@@ -7,6 +7,35 @@ Website: https://themesbrand.com/
 Contact: support@themesbrand.com
 File: Main Css File
 */
+
+/**
+ * Sikh Anand Karaj application styles.
+ *
+ * Keep project-specific styling in this file. Bootstrap framework
+ * definitions should remain inside assets/css/bootstrap.css.
+ */
+
+html {
+    min-height: 100%;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1 0 auto;
+}
+
+img,
+video {
+    max-width: 100%;
+    height: auto;
+}
+
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @font-face {

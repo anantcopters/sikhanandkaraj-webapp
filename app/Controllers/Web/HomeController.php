@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
-use CodeIgniter\HTTP\ResponseInterface;
 
 /**
  * Displays publicly accessible website pages.
