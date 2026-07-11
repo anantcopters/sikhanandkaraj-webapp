@@ -1,0 +1,206 @@
+/*
+Template Name: Matrimonials
+File: Layout CSS
+Author: TemplatesOnWeb
+Author URI: https://www.templateonweb.com/
+Licence: <a href="https://www.templateonweb.com/license">Website Template Licence</a>
+*/
+
+/*********************blog****************/
+.share_link{
+  width:40px;
+  height:40px;
+  line-height:40px;
+  transition: 0.3s;
+ }
+.share_link:hover{
+  background:var(--bs-red)!important;
+ }
+.blog_pg1_right1 li a{
+  min-width:130px;
+ }
+.num{
+  width:30px;
+  height:30px;
+  line-height:30px;
+ }
+ 
+.services_1_left2{
+  display:none;
+  transition: 0.3s;
+  padding-top:30%;
+ }
+.services_1_left:hover .services_1_left2{
+   display:block;
+   transition: 0.3s;
+ }
+.services_1_left{
+  margin:1px;
+ }
+/*********************blog_end****************/
+
+/*********************moment****************/
+.moment_1li2{
+	background:var(--bg_back_white);
+	padding-top:52%; 
+	width:95%;
+	height:95%;
+	top:2.6%;
+	left:2.6%;
+	display:none;
+	transition: 0.3s;
+ }
+.moment_1li:hover .moment_1li2{
+	display:block;
+	transition: 0.3s; 
+ }
+#moment .modal-dialog {
+  max-width: 750px;
+}
+.moment_1li2o{
+	padding-top:25%; 
+	width:95%;
+	height:95%;
+	top:2.6%;
+	left:2.6%; 
+ }
+/*********************moment_end****************/
+
+
+
+@media screen and (max-width : 767px){
+.blog_pg1_left1_inner2 ul li a{
+   margin-top:3px;
+   margin-bottom:3px;
+   display:inline-block;
+ }
+.blog_pg1_right{
+   margin-top:20px;
+ }
+.profile1_left{
+   margin-top:8px;
+   margin-bottom:8px;
+ }
+.needs-validation .button{
+  width:100%!important;
+ }
+ 
+.services_1 {
+  margin-left:0!important;
+  margin-right:0!important;
+ }
+.services_1_left2  h5{
+  font-size:16px;
+ }
+.services_1_left2  p{
+  font-size:13px;
+ }
+.services_1_left2  .font_14{
+  font-size:12px;
+ }
+.services_1_left2 {
+ padding-top:13%;
+ }
+ 
+.moment_1l{
+   margin-top:15px;
+ }
+ 
+.search_form1 {
+  width:100%!important;
+  padding:10px!important;
+ }
+.search_form1 ul .form-select{
+  width:75%!important;
+ }
+.search_form1 ul .form-control{
+  width:75%!important;
+ }
+.search_form1 .button{
+  width:90%!important;
+ }
+.search_form1  br{
+  display:none;
+ }
+
+ }
+
+
+@media (min-width:576px) and (max-width:767px) {
+.services_1_left2  h5{
+  font-size:18px;
+ }
+.services_1_left2  p{
+  font-size:15px;
+ }
+.services_1_left2  .font_14{
+  font-size:14px;
+ }
+.services_1_left2 {
+  padding-top:30%;
+ }
+ }
+ 
+@media (min-width:768px) and (max-width:991px) {
+.blog_pg1_right1 ul li{
+  flex-wrap:wrap;
+ }
+.blog_pg1_right1 ul li a{
+  margin-bottom:5px;
+ }
+.num {
+    width: 25px;
+    height: 25px;
+    line-height: 25px;
+}
+.blog_pg1_right2  .fs-6{
+  font-size:14px!important;
+ }
+.services_1_left2  p{
+  display:none;
+ }
+.services_1_left2  .font_14{
+  font-size:12px;
+ }
+.services_1_left2  h5{
+  font-size:14px;
+ }
+.search_form1 {
+  width:60%!important;
+ }
+ }
+
+@media (min-width:992px) and (max-width:1200px) {
+.blog_pg1_right1 ul li{
+  flex-wrap:wrap;
+ }
+.blog_pg1_right1 ul li a{
+  margin-bottom:5px;
+ }
+.num {
+    width: 25px;
+    height: 25px;
+    line-height: 25px;
+}
+.blog_pg1_right2  .fs-6{
+  font-size:14px!important;
+ }
+.services_1_left2  .font_14{
+  font-size:12px;
+ }
+.services_1_left2  h5{
+  font-size:14px;
+ }
+.services_1_left2 {
+  padding-top:20%;
+ }
+ }
+
+@media (min-width:1201px) and (max-width:1300px) {
+
+ }
+@media (min-width:1400px) and (max-width:2000px) {
+
+ }
+
+

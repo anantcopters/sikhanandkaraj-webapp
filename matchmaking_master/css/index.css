@@ -1,0 +1,174 @@
+/*
+Template Name: Matrimonials
+File: Layout CSS
+Author: TemplatesOnWeb
+Author URI: https://www.templateonweb.com/
+Licence: <a href="https://www.templateonweb.com/license">Website Template Licence</a>
+*/
+
+
+/*********************center****************/
+.center_home {
+    background-image: url(../image/1.jpg);
+    background-position: center center;
+    background-size: cover;
+}
+.center_m{
+   padding-top:30px;
+   padding-bottom:90px;
+ }
+.center_home1_right .form-select{
+    height:35px;
+	font-size:13px;
+ }
+.center_home1_right .form-control{
+    height:35px;
+	font-size:13px;
+ }
+.center_home1_left{
+   padding-top:400px;
+ }
+.exep_m{
+  margin-top:-80px;
+ }
+/*********************center_end****************/
+
+/*********************couple****************/
+.couple_1_left3{
+  display:none;
+ }
+.couple_1_left2{
+  padding-top:40%;
+ }
+.couple_1_left:hover .couple_1_left3{
+   display:block;
+   transition: 0.3s;
+ }
+.couple_1_left:hover .couple_1_left2{
+   display:none;
+   transition: 0.3s;
+ }
+/*********************couple_end****************/
+
+
+/*********************pricing****************/
+.rounded_left{
+  border-radius:5px 0px 5px 5px;
+ }
+.rounded_right{
+  border-radius:5px 5px 5px 5px;
+ }
+.pricing_2_lefto{
+  margin-top:70px;
+ }
+/*********************pricing_end****************/
+
+
+
+@media screen and (max-width : 767px){
+
+.center_home1_left {
+    padding-top:0;
+	margin-bottom:15px;
+}
+.center_m {
+    padding-bottom: 30px;
+}
+.exep_m {
+    margin-top:20px;
+}
+.exep_2_left{
+   margin-top:8px;
+   margin-bottom:8px;
+ }
+.meet_1_right{
+  margin-top:15px;
+ }
+.meet_1_left p{
+  width:100%!important;
+ }
+.find_1_left{
+   margin-top:8px;
+   margin-bottom:8px;
+ }
+.pricing_1  p{
+   width:100%!important;
+ }
+.pricing_2 {
+   width:100%!important;
+ }
+.pricing_2_lefto {
+    margin-top: 0;
+}
+.pricing_2_left {
+   margin-top:8px;
+   margin-bottom:8px;
+}
+.news_1_left2_inner2 {
+  position:static!important;
+  background:var(--bs-dark)!important;
+ }
+.news_1_left2_inner {
+  width:100%!important;
+ }
+.match_1 {
+   width:100%!important;
+ }
+.match_1_left{
+    margin-top:8px;
+    margin-bottom:8px;
+ }
+.couple_1_left {
+    margin-top:8px;
+    margin-bottom:8px;
+ }
+.couple_1_left3  p{
+   font-size:13px;
+ }
+.couple_1_left1 img{
+  min-height:210px;
+ }
+ }
+
+
+@media (min-width:576px) and (max-width:767px) {
+
+ }
+ 
+@media (min-width:768px) and (max-width:991px) {
+.news_1_left2_inner {
+  width:90%!important;
+ }
+.match_1 {
+   width:90%!important;
+ }
+.couple_1_left3  p{
+   font-size:12px;
+ }
+.couple_1_left3  .button{
+  padding:8px 15px!important;
+  font-size:12px;
+ }
+.couple_1_left1 img{
+  min-height:200px;
+ }
+ }
+
+@media (min-width:992px) and (max-width:1200px) {
+.couple_1_left3  p{
+   font-size:13px;
+ }
+.couple_1_left3  .button{
+  padding:8px 15px!important;
+  font-size:13px;
+ }
+ }
+
+@media (min-width:1201px) and (max-width:1300px) {
+
+ }
+@media (min-width:1400px) and (max-width:2000px) {
+
+ }
+
+
