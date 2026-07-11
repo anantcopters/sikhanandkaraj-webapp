@@ -1,0 +1,43 @@
+# Environment-specific configuration
+.env
+.env.*
+!.env.example
+
+# Composer dependencies
+/vendor/
+
+# CodeIgniter writable runtime files
+/writable/cache/*
+!/writable/cache/index.html
+
+/writable/debugbar/*
+!/writable/debugbar/index.html
+
+/writable/logs/*
+!/writable/logs/index.html
+
+/writable/session/*
+!/writable/session/index.html
+
+/writable/uploads/*
+!/writable/uploads/index.html
+
+# Testing and quality reports
+.phpunit.cache/
+coverage/
+build/
+
+# IDE files
+.vscode/
+.idea/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
+
+# Secrets and private keys
+*.pem
+*.key
+*.ppk
+*.p12
+*.crt
