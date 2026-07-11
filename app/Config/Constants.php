@@ -77,3 +77,26 @@ defined('EXIT_USER_INPUT')     || define('EXIT_USER_INPUT', 7);     // invalid u
 defined('EXIT_DATABASE')       || define('EXIT_DATABASE', 8);       // database error
 defined('EXIT__AUTO_MIN')      || define('EXIT__AUTO_MIN', 9);      // lowest automatically-assigned error code
 defined('EXIT__AUTO_MAX')      || define('EXIT__AUTO_MAX', 125);    // highest automatically-assigned error code
+
+/*
+|--------------------------------------------------------------------------
+| Sikh Anand Karaj Application Constants
+|--------------------------------------------------------------------------
+|
+| These constants represent fixed technical identifiers. Environment-
+| specific and business-configurable values must remain in configuration
+| classes or the .env file.
+|
+*/
+
+defined('APP_SLUG')
+    || define('APP_SLUG', 'sikh-anand-karaj');
+
+defined('API_VERSION')
+    || define('API_VERSION', 'v1');
+
+defined('API_ROUTE_PREFIX')
+    || define('API_ROUTE_PREFIX', 'api/' . API_VERSION);
+
+defined('REQUEST_ID_HEADER')
+    || define('REQUEST_ID_HEADER', 'X-Request-ID');

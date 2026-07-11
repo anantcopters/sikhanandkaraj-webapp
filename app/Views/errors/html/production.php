@@ -1,25 +1,12 @@
-<!doctype html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="robots" content="noindex">
+<?php
 
-    <title><?= lang('Errors.whoops') ?></title>
+declare(strict_types=1);
 
-    <style>
-        <?= preg_replace('#[\r\n\t ]+#', ' ', file_get_contents(__DIR__ . DIRECTORY_SEPARATOR . 'debug.css')) ?>
-    </style>
-</head>
-<body>
+/**
+ * Generic production exception view.
+ *
+ * CI4 loads this file for unhandled production exceptions. The actual
+ * exception message and stack trace must never be exposed to users.
+ */
 
-    <div class="container text-center">
-
-        <h1 class="headline"><?= lang('Errors.whoops') ?></h1>
-
-        <p class="lead"><?= lang('Errors.weHitASnag') ?></p>
-
-    </div>
-
-</body>
-
-</html>
+require __DIR__ . DIRECTORY_SEPARATOR . 'error_500.php';

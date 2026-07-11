@@ -6,18 +6,6 @@ use Config\Site;
 
 /** @var Site $siteConfig */
 $siteConfig = config(Site::class);
-
-/**
- * CI4 supplies $message dynamically to this exception view.
- *
- * @var string|null $message
- */
-$messageText = ENVIRONMENT !== 'production'
-    && isset($message)
-    && is_string($message)
-    && $message !== ''
-        ? $message
-        : 'The page you are looking for may have been moved, renamed, or is no longer available.';
 ?>
 <!doctype html>
 <html lang="en">
@@ -31,7 +19,7 @@ $messageText = ENVIRONMENT !== 'production'
 
     <meta name="robots" content="noindex, nofollow">
 
-    <title>Page Not Found | <?= esc($siteConfig->name) ?></title>
+    <title>Server Error | <?= esc($siteConfig->name) ?></title>
 
     <link
         rel="stylesheet"
@@ -56,18 +44,19 @@ $messageText = ENVIRONMENT !== 'production'
         >
             <div class="error-page__visual" aria-hidden="true">
                 <span class="error-page__icon">
-                    <i class="mdi mdi-map-marker-question-outline"></i>
+                    <i class="mdi mdi-server-off"></i>
                 </span>
             </div>
 
-            <p class="error-page__code" aria-hidden="true">404</p>
+            <p class="error-page__code" aria-hidden="true">500</p>
 
             <h1 id="error-title" class="error-page__title">
-                Page not found
+                Something went wrong
             </h1>
 
             <p class="error-page__message">
-                <?= esc($messageText) ?>
+                We could not complete your request because of an unexpected
+                server error. Please try again after a few moments.
             </p>
 
             <div class="error-page__actions">
@@ -82,10 +71,10 @@ $messageText = ENVIRONMENT !== 'production'
                 <button
                     type="button"
                     class="btn btn-outline-secondary"
-                    onclick="history.back();"
+                    onclick="location.reload();"
                 >
-                    <i class="mdi mdi-arrow-left me-1"></i>
-                    Go back
+                    <i class="mdi mdi-refresh me-1"></i>
+                    Try again
                 </button>
             </div>
         </section>

@@ -7,17 +7,9 @@ use Config\Site;
 /** @var Site $siteConfig */
 $siteConfig = config(Site::class);
 
-/**
- * CI4 supplies $message dynamically to this exception view.
- *
- * @var string|null $message
- */
-$messageText = ENVIRONMENT !== 'production'
-    && isset($message)
-    && is_string($message)
-    && $message !== ''
-        ? $message
-        : 'The page you are looking for may have been moved, renamed, or is no longer available.';
+$messageText = isset($message) && is_string($message) && $message !== ''
+    ? $message
+    : 'You do not have permission to access this page.';
 ?>
 <!doctype html>
 <html lang="en">
@@ -31,7 +23,7 @@ $messageText = ENVIRONMENT !== 'production'
 
     <meta name="robots" content="noindex, nofollow">
 
-    <title>Page Not Found | <?= esc($siteConfig->name) ?></title>
+    <title>Access Denied | <?= esc($siteConfig->name) ?></title>
 
     <link
         rel="stylesheet"
@@ -56,14 +48,14 @@ $messageText = ENVIRONMENT !== 'production'
         >
             <div class="error-page__visual" aria-hidden="true">
                 <span class="error-page__icon">
-                    <i class="mdi mdi-map-marker-question-outline"></i>
+                    <i class="mdi mdi-shield-lock-outline"></i>
                 </span>
             </div>
 
-            <p class="error-page__code" aria-hidden="true">404</p>
+            <p class="error-page__code" aria-hidden="true">403</p>
 
             <h1 id="error-title" class="error-page__title">
-                Page not found
+                Access denied
             </h1>
 
             <p class="error-page__message">
