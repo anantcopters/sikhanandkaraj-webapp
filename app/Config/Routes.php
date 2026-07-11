@@ -32,6 +32,10 @@ $routes->group(API_ROUTE_PREFIX, [
     ]);
 });
 
+// -----------------------------------------------------------------------------
+//Ttemporary development-only routes.
+// -----------------------------------------------------------------------------
+
 if (ENVIRONMENT === 'development') {
     $routes->group('_preview/errors', static function (
         RouteCollection $routes
