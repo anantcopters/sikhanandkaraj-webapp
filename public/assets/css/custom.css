@@ -103,14 +103,6 @@
    Public website header
    ========================================================================== */
 
-:root {
-    --sak-page-background: #fef4f3;
-    --sak-primary: #ae1536;
-    --sak-primary-hover: #92112d;
-    --sak-text-primary: #191919;
-    --sak-white: #ffffff;
-}
-
 /**
  * Public website header wrapper.
  */

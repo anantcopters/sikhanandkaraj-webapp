@@ -4530,7 +4530,10 @@ code {
   --sak-primary-hover: #92112f;
   --sak-card-background: #ffffff;
   --sak-control-border: #202020;
-  --sak-section-background-green: #f8fdf7
+  --sak-section-background-green: #f8fdf7;
+  --sak-page-background: #fef4f3;
+  --sak-text-primary: #191919;
+  --sak-white: #ffffff;
 }
 
 :root[data-topbar=dark] {
