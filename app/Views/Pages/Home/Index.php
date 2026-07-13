@@ -9,10 +9,34 @@ $resolvedPageTitle = isset($pageTitle) && is_string($pageTitle)
     ? $pageTitle
     : 'Sikh Anand Karaj';
 
+/**
+ * Resolve server-side validation errors once.
+ *
+ * The controller stores these errors in flashdata when redirecting back
+ * after an unsuccessful form submission.
+ *
+ * @var array<string, string> $validationErrors
+ */
+$sessionValidationErrors = session('validationErrors');
+
+$validationErrors = is_array($sessionValidationErrors)
+    ? $sessionValidationErrors
+    : [];
+
+/**
+ * Resolve the form-level alert once.
+ *
+ * @var array<string, string>|null $formAlert
+ */
+$sessionFormAlert = session('formAlert');
+
+$formAlert = is_array($sessionFormAlert)
+    ? $sessionFormAlert
+    : null;
+
 $this->extend('Layouts/Main');
 $this->section('content');
 ?>
-
 <section class="home-registration-section">
     <div class="container">
         <div class="row align-items-center home-registration-section__row">
@@ -39,11 +63,15 @@ $this->section('content');
                         <h2 class="fs-20 fw-semibold text-center lh-base mt-0 mb-3">
                             Find your perfect match
                         </h2>
-
+                        <?= view('Components/Alerts/FormAlert', [
+                            'alert' => $formAlert,
+                        ]) ?>
                         <form
-                            action="<?= site_url('register') ?>"
+                            action="<?= route_to('web.register.create') ?>"
                             method="post"
                             class="registration-form"
+                            data-validate
+                            novalidate
                             autocomplete="off">
                             <?= csrf_field() ?>
 
@@ -57,7 +85,9 @@ $this->section('content');
                                 <select
                                     id="profileCreatedFor"
                                     name="profile_created_for"
-                                    class="form-select"
+                                    class="form-select <?= isset(
+                                                            $validationErrors['profile_created_for']
+                                                        ) ? 'is-invalid' : '' ?>"
                                     data-choices data-choices-search-false
                                     required>
 
@@ -114,16 +144,32 @@ $this->section('content');
                                     class="visually-hidden">
                                     Full name
                                 </label>
-
+                                <?php
+                                $fullNameHasError = isset($validationErrors['full_name']);
+                                ?>
                                 <input
                                     type="text"
                                     id="fullName"
                                     name="full_name"
-                                    class="form-control"
+                                    value="<?= esc(old('full_name'), 'attr') ?>"
+                                    class="form-control <?= $fullNameHasError
+                                                            ? 'is-invalid'
+                                                            : '' ?>"
+                                    <?= $fullNameHasError
+                                        ? 'aria-invalid="true"'
+                                        : '' ?>
+                                    aria-describedby="fullNameError"
                                     placeholder="Enter full name"
+                                    minlength="2"
                                     maxlength="100"
-                                    autocomplete="name"
+                                    autocomplete="full_name"
+                                    data-error-required="Please enter full name."
+                                    data-error-email="Please enter a valid full name."
                                     required>
+                                <?= view('Components/Forms/FieldError', [
+                                    'field' => 'full_name',
+                                    'errors' => $validationErrors,
+                                ]) ?>
                             </div>
                             <div class="mb-3">
                                 <label
@@ -131,16 +177,33 @@ $this->section('content');
                                     class="visually-hidden">
                                     Email
                                 </label>
+                                <?php
+                                $emailHasError = isset($validationErrors['email']);
+                                ?>
 
                                 <input
-                                    type="text"
+                                    type="email"
                                     id="email"
                                     name="email"
-                                    class="form-control"
+                                    value="<?= esc(old('email'), 'attr') ?>"
+                                    class="form-control <?= $emailHasError
+                                                            ? 'is-invalid'
+                                                            : '' ?>"
+                                    <?= $emailHasError
+                                        ? 'aria-invalid="true"'
+                                        : '' ?>
+                                    aria-describedby="emailError"
                                     placeholder="Enter email"
-                                    maxlength="100"
-                                    autocomplete="name"
+                                    maxlength="128"
+                                    autocomplete="email"
+                                    data-error-required="Please enter the email address."
+                                    data-error-email="Please enter a valid email address."
                                     required>
+                                <?= view('Components/Forms/FieldError', [
+                                    'field' => 'email',
+                                    'errors' => $validationErrors,
+                                ]) ?>
+                                <div id="emailInput" class="form-text color-pink">Verification link will be sent on this email.</div>
                             </div>
 
                             <div class="mb-3">
@@ -215,5 +278,4 @@ $this->section('content');
         </div>
     </div>
 </section>
-<script src="<?= base_url('assets/js/pages/home.js') ?>"></script>
 <?php $this->endSection(); ?>

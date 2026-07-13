@@ -18,6 +18,21 @@ $routes->group('', [
     $routes->get('/', 'HomeController::index', [
         'as' => 'web.home',
     ]);
+    $routes->post(
+        'register',
+        'RegistrationController::create',
+        [
+            'as' => 'web.register.create',
+        ]
+    );
+
+    $routes->get(
+        'register/verify-otp',
+        'RegistrationVerificationController::index',
+        [
+            'as' => 'web.registration.verify',
+        ]
+    );
 });
 
 // -----------------------------------------------------------------------------

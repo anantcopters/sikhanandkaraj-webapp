@@ -2,6 +2,10 @@
 
 namespace Config;
 
+use App\Models\ContactVerificationModel;
+use App\Models\UserContactModel;
+use App\Models\UserModel;
+use App\Services\Registration\RegisterFreeService;
 use CodeIgniter\Config\BaseService;
 
 /**
@@ -19,14 +23,27 @@ use CodeIgniter\Config\BaseService;
  */
 class Services extends BaseService
 {
-    /*
-     * public static function example($getShared = true)
-     * {
-     *     if ($getShared) {
-     *         return static::getSharedInstance('example');
-     *     }
+    /**
+     * Return the Register Free service.
      *
-     *     return new \CodeIgniter\Example();
-     * }
+     * By default, CI4 returns one shared instance during the request.
      */
+    public static function registerFreeService(
+        bool $getShared = true
+    ): RegisterFreeService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'registerFreeService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new RegisterFreeService(
+            new UserModel($database),
+            new UserContactModel($database),
+            new ContactVerificationModel($database),
+            $database
+        );
+    }
 }

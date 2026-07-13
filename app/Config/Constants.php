@@ -100,3 +100,6 @@ defined('API_ROUTE_PREFIX')
 
 defined('REQUEST_ID_HEADER')
     || define('REQUEST_ID_HEADER', 'X-Request-ID');
+
+defined('OTP_EXPIRY_MINUTES')
+    || define('OTP_EXPIRY_MINUTES', 2);

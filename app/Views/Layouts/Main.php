@@ -49,6 +49,9 @@
     <script src="<?= base_url(
                         'assets/js/components/select-choice.js'
                     ) ?>"></script>
+    <script src="<?= base_url(
+                        'assets/js/components/form-validator.js'
+                    ) ?>"></script>
     <script src="<?= base_url('assets/js/app.js') ?>"></script>
     <?php
     /**
@@ -67,6 +70,7 @@
             <script src="<?= esc(base_url($script), 'attr') ?>"></script>
         <?php endif; ?>
     <?php endforeach; ?>
+
 </body>
 
 </html>

@@ -13236,6 +13236,24 @@ div.dtr-modal div.dtr-modal-close:hover {
     }
 }
 
+/**
+ * Apply server-side and client-side validation state from the original
+ * select to the Choices.js visual control.
+ */
+select.is-invalid + .choices .choices__inner {
+    border-color: var(--vz-form-invalid-border-color);
+}
+
+select.is-invalid + .choices.is-focused .choices__inner,
+select.is-invalid + .choices.is-open .choices__inner {
+    border-color: var(--vz-form-invalid-border-color);
+    box-shadow: 0 0 0 0.25rem rgba(var(--vz-danger-rgb), 0.25);
+}
+
+select.is-valid + .choices .choices__inner {
+    border-color: var(--vz-form-valid-border-color);
+}
+
 .flatpickr-calendar {
   background: transparent;
   opacity: 0;
