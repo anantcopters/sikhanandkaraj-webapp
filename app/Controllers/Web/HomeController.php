@@ -18,6 +18,15 @@ final class HomeController extends BaseController
     {
         return view('Pages/Home/Index', [
             'pageTitle' => 'Sikh Anand Karaj',
+
+            /**
+             * JavaScript files required only by the homepage.
+             *
+             * Paths are relative to the public directory.
+             */
+            'pageScripts' => [
+                'assets/js/pages/home.js',
+            ],
         ]);
     }
 }

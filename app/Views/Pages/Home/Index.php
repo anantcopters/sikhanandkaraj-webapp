@@ -61,7 +61,7 @@ $this->section('content');
                                     data-choices data-choices-search-false
                                     required>
 
-
+                                    <option value="">Profile created for</option>
                                     <option value="self">Self</option>
                                     <option value="son">Son</option>
                                     <option value="daughter">Daughter</option>
@@ -69,7 +69,45 @@ $this->section('content');
                                     <option value="sister">Sister</option>
                                 </select>
                             </div>
+                            <div
+                                id="genderContainer"
+                                class="mb-3 d-none">
+                                <label class="form-label fw-semibold">
+                                    Gender
+                                </label>
 
+                                <div class="d-flex gap-4">
+                                    <div class="form-check">
+                                        <input
+                                            class="form-check-input"
+                                            type="radio"
+                                            name="gender"
+                                            id="genderMale"
+                                            value="M">
+
+                                        <label
+                                            class="form-check-label"
+                                            for="genderMale">
+                                            Male
+                                        </label>
+                                    </div>
+
+                                    <div class="form-check">
+                                        <input
+                                            class="form-check-input"
+                                            type="radio"
+                                            name="gender"
+                                            id="genderFemale"
+                                            value="F">
+
+                                        <label
+                                            class="form-check-label"
+                                            for="genderFemale">
+                                            Female
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="mb-3">
                                 <label
                                     for="fullName"
@@ -177,5 +215,5 @@ $this->section('content');
         </div>
     </div>
 </section>
-
+<script src="<?= base_url('assets/js/pages/home.js') ?>"></script>
 <?php $this->endSection(); ?>

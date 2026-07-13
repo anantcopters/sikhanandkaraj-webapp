@@ -50,6 +50,23 @@
                         'assets/js/components/select-choice.js'
                     ) ?>"></script>
     <script src="<?= base_url('assets/js/app.js') ?>"></script>
+    <?php
+    /**
+     * Load JavaScript required only by the current page.
+     *
+     * The controller supplies pageScripts as an array of paths relative
+     * to the public directory.
+     */
+    $resolvedPageScripts = isset($pageScripts) && is_array($pageScripts)
+        ? $pageScripts
+        : [];
+    ?>
+
+    <?php foreach ($resolvedPageScripts as $script): ?>
+        <?php if (is_string($script) && $script !== ''): ?>
+            <script src="<?= esc(base_url($script), 'attr') ?>"></script>
+        <?php endif; ?>
+    <?php endforeach; ?>
 </body>
 
 </html>
