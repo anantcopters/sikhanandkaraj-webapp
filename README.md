@@ -83,11 +83,6 @@ public/assets/
 │   └── app.js
 └── images/
 
-sql/
-├── schema/
-├── updates/
-└── seeds/
-
 docs/
 ```
 
@@ -231,19 +226,11 @@ Keep simple table queries in the model.
 
 Create a service under `app/Services/<Feature>` when the feature has business logic, transactions or multiple model calls.
 
-### 6. Add SQL
-
-- New installation schema goes in `sql/schema`.
-- Later database changes go in `sql/updates`.
-- Master/reference data goes in `sql/seeds`.
-
-Never edit an already-deployed update file. Add a new file instead.
-
-### 7. Create the view
+### 6. Create the view
 
 Create the page under `app/Views/Pages/<Feature>` and extend `Layouts/Main`.
 
-### 8. Add JavaScript
+### 7. Add JavaScript
 
 - Reusable behaviour goes in `public/assets/js/components`.
 - Page-only behaviour goes in `public/assets/js/pages`.
@@ -259,7 +246,7 @@ return view('Pages/Profile/Edit', [
 ]);
 ```
 
-### 9. Test the full flow
+### 8. Test the full flow
 
 Test:
 
