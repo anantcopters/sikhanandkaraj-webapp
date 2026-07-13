@@ -120,8 +120,8 @@ $this->section('content');
                                         ? 'aria-invalid="true"'
                                         : '' ?>
                                     aria-describedby="profileCreatedForError"
-                                    data-choices
-                                    data-choices-search-false
+                                    data-choice
+                                    data-choice-search-false
                                     required>
 
                                     <option
@@ -188,9 +188,9 @@ $this->section('content');
                                 data-validation-group="gender">
 
                                 <fieldset>
-                                    <legend class="form-label fw-semibold mb-2">
+                                    <div class="form-label fs-12 fw-medium mb-2">
                                         Gender
-                                    </legend>
+                                    </div>
 
                                     <div class="d-flex gap-4">
                                         <div class="form-check">
