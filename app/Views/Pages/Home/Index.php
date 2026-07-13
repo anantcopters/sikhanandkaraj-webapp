@@ -36,8 +36,8 @@ $this->section('content');
 
                     <div class="registration-card__body">
 
-                        <h2 class="fs-18 fw-bold text-dark text-center lh-base mt-0 mb-3">
-                            Find perfect match
+                        <h2 class="fs-20 fw-semibold text-center lh-base mt-0 mb-3">
+                            Find your perfect match
                         </h2>
 
                         <form
@@ -57,7 +57,8 @@ $this->section('content');
                                 <select
                                     id="profileCreatedFor"
                                     name="profile_created_for"
-                                    class="form-select form-select"
+                                    class="form-select"
+                                    data-choices data-choices-search-false data-choices-removeItem
                                     required>
                                     <option value="" selected disabled>
                                         Profile created for
@@ -84,7 +85,7 @@ $this->section('content');
                                     type="text"
                                     id="fullName"
                                     name="full_name"
-                                    class="form-control form-control"
+                                    class="form-control"
                                     placeholder="Enter the name"
                                     maxlength="100"
                                     autocomplete="name"
@@ -92,48 +93,48 @@ $this->section('content');
                             </div>
 
                             <div class="mb-4">
-                                <div class="input-group registration-mobile-group">
+                                <div class="row g-3">
+                                    <div class="col-md-3">
+                                        <label
+                                            for="countryCode"
+                                            class="visually-hidden">
+                                            Country code
+                                        </label>
 
-                                    <label
-                                        for="countryCode"
-                                        class="visually-hidden">
-                                        Country code
-                                    </label>
+                                        <select
+                                            id="countryCode"
+                                            name="country_code"
+                                            class="form-select registration-country-code"
+                                            aria-label="Country code"
+                                            required>
+                                            <option value="+91" selected>
+                                                +91
+                                            </option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-9">
+                                        <label
+                                            for="mobileNumber"
+                                            class="visually-hidden">
+                                            Mobile number
+                                        </label>
 
-                                    <select
-                                        id="countryCode"
-                                        name="country_code"
-                                        class="form-select form-select registration-country-code"
-                                        aria-label="Country code"
-                                        required>
-                                        <option value="+91" selected>
-                                            +91
-                                        </option>
-                                    </select>
+                                        <input
+                                            type="text"
+                                            id="mobileNumber"
+                                            name="mobile_number"
+                                            class="form-control"
+                                            placeholder="Enter Mobile Number"
+                                            inputmode="numeric"
+                                            pattern="[6-9][0-9]{9}"
+                                            minlength="10"
+                                            maxlength="10"
+                                            autocomplete="tel"
+                                            required>
+                                        <div id="passwordInput" class="form-text color-pink">OTP will be sent to this number.</div>
+                                    </div>
 
-                                    <label
-                                        for="mobileNumber"
-                                        class="visually-hidden">
-                                        Mobile number
-                                    </label>
-
-                                    <input
-                                        type="tel"
-                                        id="mobileNumber"
-                                        name="mobile_number"
-                                        class="form-control"
-                                        placeholder="Enter Mobile Number"
-                                        inputmode="numeric"
-                                        pattern="[6-9][0-9]{9}"
-                                        minlength="10"
-                                        maxlength="10"
-                                        autocomplete="tel"
-                                        required>
                                 </div>
-
-                                <p class="registration-form__help fs-13 text-dark mb-0">
-                                    OTP will be sent to this number
-                                </p>
                             </div>
 
                             <button

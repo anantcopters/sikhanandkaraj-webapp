@@ -22,6 +22,10 @@
 
     <link
         rel="stylesheet"
+        href="<?= base_url('assets/css/choices.min.css') ?>">
+
+    <link
+        rel="stylesheet"
         href="<?= base_url('assets/css/icons.css') ?>">
 
     <link
@@ -43,6 +47,11 @@
 
     <script src="<?= base_url('assets/js/jquery.js') ?>"></script>
     <script src="<?= base_url('assets/js/bootstrap.js') ?>"></script>
+    <script src="<?= base_url('assets/js/choices.min.js') ?>"></script>
+
+    <script src="<?= base_url(
+                        'assets/js/components/select-choice.js'
+                    ) ?>"></script>
     <script src="<?= base_url('assets/js/app.js') ?>"></script>
 </body>
 

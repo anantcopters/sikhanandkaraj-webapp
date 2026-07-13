@@ -289,8 +289,8 @@
     gap: 13px;
 }
 
-.registration-mobile-group>.form-select,
-.registration-mobile-group>.form-control {
+.registration-mobile-group > .form-select,
+.registration-mobile-group > .form-control {
     width: auto;
     margin-left: 0 !important;
 }
@@ -301,15 +301,6 @@
 .registration-mobile-group .form-control {
     flex: 1 1 auto;
     min-width: 0;
-}
-
-/**
- * Typography comes from fs-13 and text-dark.
- */
-.registration-form__help {
-    margin-top: 12px;
-    margin-left: 30px;
-    line-height: 20px;
 }
 
 /**
@@ -423,11 +414,6 @@
         border-radius: 20px;
     }
 
-    .registration-form__help {
-        margin-top: 10px;
-        margin-left: 10px;
-    }
-
     .registration-form__submit {
         min-height: 55px;
         border-radius: 14px;
@@ -466,4 +452,26 @@
         flex-basis: 80px;
         max-width: 80px;
     }
+}
+
+/* ==========================================================================
+   Mainly used for help text
+   ========================================================================== */
+.color-pink {
+    color: var(--vz-code-color);
+}
+
+/* ==========================================================================
+   Choices.js select controls
+   ========================================================================== */
+
+/**
+ * Remove the library's default bottom margin.
+ *
+ * Form spacing remains controlled by Bootstrap wrappers such as mb-3
+ * and mb-4.
+ */
+.choices {
+    width: 100%;
+    margin-bottom: 0;
 }
