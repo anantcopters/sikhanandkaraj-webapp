@@ -82,7 +82,24 @@ $this->section('content');
                                     id="fullName"
                                     name="full_name"
                                     class="form-control"
-                                    placeholder="Enter the name"
+                                    placeholder="Enter full name"
+                                    maxlength="100"
+                                    autocomplete="name"
+                                    required>
+                            </div>
+                            <div class="mb-3">
+                                <label
+                                    for="email"
+                                    class="visually-hidden">
+                                    Email
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="email"
+                                    name="email"
+                                    class="form-control"
+                                    placeholder="Enter email"
                                     maxlength="100"
                                     autocomplete="name"
                                     required>
@@ -90,7 +107,7 @@ $this->section('content');
 
                             <div class="mb-3">
                                 <div class="row g-3">
-                                    <div class="col-md-3">
+                                    <div class="col-md-3 col-sm-3">
                                         <label
                                             for="countryCode"
                                             class="visually-hidden">
@@ -106,7 +123,7 @@ $this->section('content');
                                             <option value="+91" selected>+91</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-9">
+                                    <div class="col-md-9 col-sm-9">
                                         <label
                                             for="mobileNumber"
                                             class="visually-hidden">

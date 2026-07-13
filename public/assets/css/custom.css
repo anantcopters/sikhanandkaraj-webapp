@@ -311,14 +311,12 @@
  */
 .registration-form__submit {
     width: 100%;
-    min-height: 61px;
-    padding: 13px 25px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 16px;
     border: 1px solid var(--sak-primary);
-    border-radius: 18px;
+    border-radius: 0.3rem;
     background-color: var(--sak-primary);
     color: #ffffff;
     letter-spacing: 0.025em;
