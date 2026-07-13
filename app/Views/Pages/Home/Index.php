@@ -73,8 +73,36 @@ $this->section('content');
                             data-validate
                             novalidate
                             autocomplete="off">
+
                             <?= csrf_field() ?>
 
+                            <?php
+                            $profileTypeHasError = isset(
+                                $validationErrors['profile_created_for']
+                            );
+
+                            $genderHasError = isset(
+                                $validationErrors['gender']
+                            );
+
+                            $fullNameHasError = isset(
+                                $validationErrors['full_name']
+                            );
+
+                            $emailHasError = isset(
+                                $validationErrors['email']
+                            );
+
+                            $countryCodeHasError = isset(
+                                $validationErrors['country_code']
+                            );
+
+                            $mobileHasError = isset(
+                                $validationErrors['mobile_number']
+                            );
+                            ?>
+
+                            <!-- Profile created for -->
                             <div class="mb-3">
                                 <label
                                     for="profileCreatedFor"
@@ -85,68 +113,153 @@ $this->section('content');
                                 <select
                                     id="profileCreatedFor"
                                     name="profile_created_for"
-                                    class="form-select <?= isset(
-                                                            $validationErrors['profile_created_for']
-                                                        ) ? 'is-invalid' : '' ?>"
-                                    data-choices data-choices-search-false
+                                    class="form-select <?= $profileTypeHasError
+                                                            ? 'is-invalid'
+                                                            : '' ?>"
+                                    <?= $profileTypeHasError
+                                        ? 'aria-invalid="true"'
+                                        : '' ?>
+                                    aria-describedby="profileCreatedForError"
+                                    data-choices
+                                    data-choices-search-false
                                     required>
 
-                                    <option value="">Profile created for</option>
-                                    <option value="self">Self</option>
-                                    <option value="son">Son</option>
-                                    <option value="daughter">Daughter</option>
-                                    <option value="brother">Brother</option>
-                                    <option value="sister">Sister</option>
+                                    <option
+                                        value=""
+                                        <?= old('profile_created_for') === null
+                                            || old('profile_created_for') === ''
+                                            ? 'selected'
+                                            : '' ?>>
+                                        Profile created for
+                                    </option>
+
+                                    <option
+                                        value="self"
+                                        <?= old('profile_created_for') === 'self'
+                                            ? 'selected'
+                                            : '' ?>>
+                                        Self
+                                    </option>
+
+                                    <option
+                                        value="son"
+                                        <?= old('profile_created_for') === 'son'
+                                            ? 'selected'
+                                            : '' ?>>
+                                        Son
+                                    </option>
+
+                                    <option
+                                        value="daughter"
+                                        <?= old('profile_created_for') === 'daughter'
+                                            ? 'selected'
+                                            : '' ?>>
+                                        Daughter
+                                    </option>
+
+                                    <option
+                                        value="brother"
+                                        <?= old('profile_created_for') === 'brother'
+                                            ? 'selected'
+                                            : '' ?>>
+                                        Brother
+                                    </option>
+
+                                    <option
+                                        value="sister"
+                                        <?= old('profile_created_for') === 'sister'
+                                            ? 'selected'
+                                            : '' ?>>
+                                        Sister
+                                    </option>
                                 </select>
+
+                                <?= view('Components/Forms/FieldError', [
+                                    'field' => 'profile_created_for',
+                                    'errorId' => 'profileCreatedForError',
+                                    'errors' => $validationErrors,
+                                ]) ?>
                             </div>
+
+                            <!-- Gender -->
                             <div
                                 id="genderContainer"
-                                class="mb-3 d-none">
-                                <label class="form-label fw-semibold">
-                                    Gender
-                                </label>
+                                class="mb-3 d-none"
+                                data-validation-group="gender">
 
-                                <div class="d-flex gap-4">
-                                    <div class="form-check">
-                                        <input
-                                            class="form-check-input"
-                                            type="radio"
-                                            name="gender"
-                                            id="genderMale"
-                                            value="M">
+                                <fieldset>
+                                    <legend class="form-label fw-semibold mb-2">
+                                        Gender
+                                    </legend>
 
-                                        <label
-                                            class="form-check-label"
-                                            for="genderMale">
-                                            Male
-                                        </label>
+                                    <div class="d-flex gap-4">
+                                        <div class="form-check">
+                                            <input
+                                                class="form-check-input <?= $genderHasError
+                                                                            ? 'is-invalid'
+                                                                            : '' ?>"
+                                                type="radio"
+                                                name="gender"
+                                                id="genderMale"
+                                                value="M"
+                                                <?= old('gender') === 'M'
+                                                    ? 'checked'
+                                                    : '' ?>
+                                                <?= $genderHasError
+                                                    ? 'aria-invalid="true"'
+                                                    : '' ?>
+                                                aria-describedby="genderError"
+                                                data-error-required="Please select gender.">
+
+                                            <label
+                                                class="form-check-label"
+                                                for="genderMale">
+                                                Male
+                                            </label>
+                                        </div>
+
+                                        <div class="form-check">
+                                            <input
+                                                class="form-check-input <?= $genderHasError
+                                                                            ? 'is-invalid'
+                                                                            : '' ?>"
+                                                type="radio"
+                                                name="gender"
+                                                id="genderFemale"
+                                                value="F"
+                                                <?= old('gender') === 'F'
+                                                    ? 'checked'
+                                                    : '' ?>
+                                                <?= $genderHasError
+                                                    ? 'aria-invalid="true"'
+                                                    : '' ?>
+                                                aria-describedby="genderError"
+                                                data-error-required="Please select gender.">
+
+                                            <label
+                                                class="form-check-label"
+                                                for="genderFemale">
+                                                Female
+                                            </label>
+                                        </div>
                                     </div>
 
-                                    <div class="form-check">
-                                        <input
-                                            class="form-check-input"
-                                            type="radio"
-                                            name="gender"
-                                            id="genderFemale"
-                                            value="F">
-
-                                        <label
-                                            class="form-check-label"
-                                            for="genderFemale">
-                                            Female
-                                        </label>
-                                    </div>
-                                </div>
+                                    <?= view('Components/Forms/FieldError', [
+                                        'field' => 'gender',
+                                        'errorId' => 'genderError',
+                                        'errors' => $validationErrors,
+                                    ]) ?>
+                                </fieldset>
                             </div>
+
+                            <!-- Full name -->
                             <div class="mb-3">
                                 <label
                                     for="fullName"
                                     class="visually-hidden">
                                     Full name
                                 </label>
-                                <?php
-                                $fullNameHasError = isset($validationErrors['full_name']);
-                                ?>
+
                                 <input
                                     type="text"
                                     id="fullName"
@@ -162,27 +275,29 @@ $this->section('content');
                                     placeholder="Enter full name"
                                     minlength="2"
                                     maxlength="100"
-                                    autocomplete="full_name"
+                                    autocomplete="name"
                                     data-error-required="Please enter full name."
-                                    data-error-email="Please enter a valid full name."
+                                    data-error-minlength="Full name must contain at least 2 characters."
+                                    data-error-maxlength="Full name cannot exceed 100 characters."
                                     required>
+
                                 <?= view('Components/Forms/FieldError', [
                                     'field' => 'full_name',
+                                    'errorId' => 'fullNameError',
                                     'errors' => $validationErrors,
                                 ]) ?>
                             </div>
+
+                            <!-- Email -->
                             <div class="mb-3">
                                 <label
                                     for="email"
                                     class="visually-hidden">
-                                    Email
+                                    Email address
                                 </label>
-                                <?php
-                                $emailHasError = isset($validationErrors['email']);
-                                ?>
 
                                 <input
-                                    type="email"
+                                    type="text"
                                     id="email"
                                     name="email"
                                     value="<?= esc(old('email'), 'attr') ?>"
@@ -192,23 +307,33 @@ $this->section('content');
                                     <?= $emailHasError
                                         ? 'aria-invalid="true"'
                                         : '' ?>
-                                    aria-describedby="emailError"
+                                    aria-describedby="emailError emailHelp"
                                     placeholder="Enter email"
                                     maxlength="128"
                                     autocomplete="email"
-                                    data-error-required="Please enter the email address."
+                                    data-error-required="Please enter email address."
                                     data-error-email="Please enter a valid email address."
+                                    data-error-maxlength="Email address is too long."
                                     required>
+
                                 <?= view('Components/Forms/FieldError', [
                                     'field' => 'email',
+                                    'errorId' => 'emailError',
                                     'errors' => $validationErrors,
                                 ]) ?>
-                                <div id="emailInput" class="form-text color-pink">Verification link will be sent on this email.</div>
+
+                                <div
+                                    id="emailHelp"
+                                    class="form-text color-pink">
+                                    Verification link will be sent to this email.
+                                </div>
                             </div>
 
+                            <!-- Country code and mobile number -->
                             <div class="mb-3">
                                 <div class="row g-3">
-                                    <div class="col-md-3 col-sm-3">
+
+                                    <div class="col-3">
                                         <label
                                             for="countryCode"
                                             class="visually-hidden">
@@ -218,13 +343,34 @@ $this->section('content');
                                         <select
                                             id="countryCode"
                                             name="country_code"
-                                            class="form-select registration-country-code"
+                                            class="form-select registration-country-code
+                        <?= $countryCodeHasError
+                            ? 'is-invalid'
+                            : '' ?>"
+                                            <?= $countryCodeHasError
+                                                ? 'aria-invalid="true"'
+                                                : '' ?>
+                                            aria-describedby="countryCodeError"
                                             aria-label="Country code"
                                             required>
-                                            <option value="+91" selected>+91</option>
+
+                                            <option
+                                                value="+91"
+                                                <?= old('country_code', '+91') === '+91'
+                                                    ? 'selected'
+                                                    : '' ?>>
+                                                +91
+                                            </option>
                                         </select>
+
+                                        <?= view('Components/Forms/FieldError', [
+                                            'field' => 'country_code',
+                                            'errorId' => 'countryCodeError',
+                                            'errors' => $validationErrors,
+                                        ]) ?>
                                     </div>
-                                    <div class="col-md-9 col-sm-9">
+
+                                    <div class="col-9">
                                         <label
                                             for="mobileNumber"
                                             class="visually-hidden">
@@ -235,23 +381,46 @@ $this->section('content');
                                             type="text"
                                             id="mobileNumber"
                                             name="mobile_number"
-                                            class="form-control"
+                                            value="<?= esc(old('mobile_number'), 'attr') ?>"
+                                            class="form-control <?= $mobileHasError
+                                                                    ? 'is-invalid'
+                                                                    : '' ?>"
+                                            <?= $mobileHasError
+                                                ? 'aria-invalid="true"'
+                                                : '' ?>
+                                            aria-describedby="mobileNumberError mobileNumberHelp"
                                             placeholder="Enter Mobile Number"
                                             inputmode="numeric"
                                             pattern="[6-9][0-9]{9}"
                                             minlength="10"
                                             maxlength="10"
                                             autocomplete="tel"
+                                            data-error-required="Please enter mobile number."
+                                            data-error-pattern="Please enter a valid 10-digit Indian mobile number."
+                                            data-error-minlength="Please enter a 10-digit mobile number."
+                                            data-error-maxlength="Please enter a 10-digit mobile number."
                                             required>
-                                        <div id="passwordInput" class="form-text color-pink">OTP will be sent to this number.</div>
-                                    </div>
 
+                                        <?= view('Components/Forms/FieldError', [
+                                            'field' => 'mobile_number',
+                                            'errorId' => 'mobileNumberError',
+                                            'errors' => $validationErrors,
+                                        ]) ?>
+
+                                        <div
+                                            id="mobileNumberHelp"
+                                            class="form-text color-pink">
+                                            OTP will be sent to this number.
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
                             <button
                                 type="submit"
-                                class="btn registration-form__submit fs-16 fw-semibold text-uppercase">
+                                class="btn registration-form__submit
+               fs-16 fw-semibold text-uppercase">
+
                                 <span>Register Free</span>
 
                                 <span

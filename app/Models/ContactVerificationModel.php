@@ -56,8 +56,8 @@ final class ContactVerificationModel extends Model
     public function cancelPendingForContact(
         int $userContactId,
         string $purpose
-    ): void {
-        $this
+    ): bool {
+        return $this
             ->where('user_contact_id', $userContactId)
             ->where('purpose', $purpose)
             ->where('status', self::STATUS_PENDING)

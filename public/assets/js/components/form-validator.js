@@ -2,12 +2,13 @@
  * Generic application form validator.
  *
  * Enhances forms marked with data-validate while relying on native HTML
- * constraints and server-side CI4 validation as the source of truth.
+ * constraints. CI4 server-side validation remains authoritative.
  */
 (function (window, document) {
     'use strict';
 
     const FORM_SELECTOR = 'form[data-validate]';
+
     const FIELD_SELECTOR = [
         'input:not([type="hidden"]):not([disabled])',
         'select:not([disabled])',
@@ -15,15 +16,7 @@
     ].join(',');
 
     /**
-     * Return a user-friendly message for one invalid field.
-     *
-     * HTML data attributes can override generic messages:
-     *
-     * data-error-required
-     * data-error-email
-     * data-error-pattern
-     * data-error-minlength
-     * data-error-maxlength
+     * Return a user-friendly validation message.
      *
      * @param {HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement} field
      *
@@ -62,71 +55,134 @@
     }
 
     /**
-     * Find or create the error element belonging to a field.
+     * Return the Choices.js visual wrapper for a select.
+     *
+     * @param {HTMLSelectElement} field
+     *
+     * @returns {HTMLElement|null}
      */
-    function getErrorElement(field) {
-        const errorId = `${field.id}Error`;
-
-        let errorElement = document.getElementById(errorId);
-
-        if (errorElement) {
-            return errorElement;
+    function getChoicesElement(field) {
+        if (!field.matches('select[data-choices]')) {
+            return null;
         }
 
-        errorElement = document.createElement('div');
+        const sibling = field.nextElementSibling;
+
+        if (
+            sibling
+            && sibling.classList.contains('choices')
+        ) {
+            return sibling;
+        }
+
+        return null;
+    }
+
+    /**
+     * Find or create the error element belonging to a field.
+     *
+     * Existing server-rendered elements are preferred so client-side
+     * validation and server-side validation use the same message area.
+     *
+     * @param {HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement} field
+     *
+     * @returns {HTMLElement}
+     */
+    function getErrorElement(field) {
+        const form = field.form;
+
+        /**
+         * First look for an error element identified by the field name.
+         *
+         * This is especially important for radio groups, where both radio
+         * inputs share one error message below the complete group.
+         */
+        if (form && field.name) {
+            const namedError = form.querySelector(
+                `[data-validation-error="${CSS.escape(field.name)}"]`
+            );
+
+            if (namedError) {
+                return namedError;
+            }
+        }
+
+        const errorId = `${field.id}Error`;
+
+        const existingError = document.getElementById(errorId);
+
+        if (existingError) {
+            return existingError;
+        }
+
+        const errorElement = document.createElement('div');
+
         errorElement.id = errorId;
         errorElement.className = 'invalid-feedback';
         errorElement.dataset.validationError = field.name;
 
-        const choicesElement = field.nextElementSibling;
+        const choicesElement = getChoicesElement(field);
 
-        if (
-            field.matches('select[data-choices]')
-            && choicesElement
-            && choicesElement.classList.contains('choices')
-        ) {
+        if (choicesElement) {
             choicesElement.insertAdjacentElement(
                 'afterend',
                 errorElement
             );
         } else {
-            field.insertAdjacentElement('afterend', errorElement);
+            field.insertAdjacentElement(
+                'afterend',
+                errorElement
+            );
         }
 
         return errorElement;
     }
 
     /**
-     * Synchronize validation state with Choices.js.
+     * Synchronize a select's validation state with Choices.js.
+     *
+     * @param {HTMLSelectElement} field
+     * @param {boolean} isValid
+     *
+     * @returns {void}
      */
     function updateChoicesState(field, isValid) {
-        if (!field.matches('select[data-choices]')) {
+        const choicesElement = getChoicesElement(field);
+
+        if (!choicesElement) {
             return;
         }
 
-        const choicesElement = field.nextElementSibling;
+        choicesElement.classList.toggle(
+            'is-invalid',
+            !isValid
+        );
 
-        if (
-            !choicesElement
-            || !choicesElement.classList.contains('choices')
-        ) {
-            return;
-        }
-
-        choicesElement.classList.toggle('is-invalid', !isValid);
-        choicesElement.classList.toggle('is-valid', isValid);
+        choicesElement.classList.toggle(
+            'is-valid',
+            isValid
+        );
     }
 
     /**
-     * Display an error for one field.
+     * Display an error for one non-radio field.
+     *
+     * @param {HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement} field
+     * @param {string} message
+     *
+     * @returns {void}
      */
     function showError(field, message) {
         const errorElement = getErrorElement(field);
 
         field.classList.add('is-invalid');
         field.classList.remove('is-valid');
+
         field.setAttribute('aria-invalid', 'true');
-        field.setAttribute('aria-describedby', errorElement.id);
+        field.setAttribute(
+            'aria-describedby',
+            errorElement.id
+        );
 
         errorElement.textContent = message;
         errorElement.classList.add('d-block');
@@ -135,72 +191,206 @@
     }
 
     /**
-     * Remove the visible error for one field.
+     * Clear an error from one non-radio field.
+     *
+     * @param {HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement} field
+     *
+     * @returns {void}
      */
     function clearError(field) {
-        const errorElement = document.getElementById(
-            `${field.id}Error`
-        );
+        const errorElement = getErrorElement(field);
 
         field.classList.remove('is-invalid');
+        field.classList.remove('is-valid');
+
         field.removeAttribute('aria-invalid');
 
-        if (errorElement) {
-            errorElement.textContent = '';
-            errorElement.classList.remove('d-block');
-        }
+        errorElement.textContent = '';
+        errorElement.classList.remove('d-block');
 
         updateChoicesState(field, true);
     }
 
     /**
-     * Validate one form field.
+     * Validate one normal field.
+     *
+     * @param {HTMLInputElement|HTMLSelectElement|HTMLTextAreaElement} field
+     *
+     * @returns {boolean}
      */
     function validateField(field) {
         if (field.checkValidity()) {
             clearError(field);
-            return true;
-        }
 
-        showError(field, getErrorMessage(field));
-
-        return false;
-    }
-
-    /**
-     * Validate radio groups as one logical field.
-     */
-    function validateRadioGroup(field, form) {
-        const group = form.querySelectorAll(
-            `input[type="radio"][name="${CSS.escape(field.name)}"]`
-        );
-
-        const isRequired = Array.from(group).some(
-            (radio) => radio.required
-        );
-
-        const isChecked = Array.from(group).some(
-            (radio) => radio.checked
-        );
-
-        if (!isRequired || isChecked) {
-            group.forEach(clearError);
             return true;
         }
 
         showError(
-            group[0],
-            group[0].dataset.errorRequired
-                || 'Please select an option.'
+            field,
+            getErrorMessage(field)
         );
 
         return false;
     }
 
     /**
+     * Return every radio in one named group.
+     *
+     * @param {HTMLFormElement} form
+     * @param {string} name
+     *
+     * @returns {HTMLInputElement[]}
+     */
+    function getRadioGroup(form, name) {
+        return Array.from(
+            form.querySelectorAll(
+                `input[type="radio"][name="${CSS.escape(name)}"]`
+            )
+        );
+    }
+
+    /**
+     * Show one group-level error for a radio group.
+     *
+     * @param {HTMLInputElement[]} group
+     * @param {string} message
+     *
+     * @returns {void}
+     */
+    function showRadioGroupError(group, message) {
+        if (group.length === 0) {
+            return;
+        }
+
+        const firstRadio = group[0];
+
+        const errorElement = getErrorElement(firstRadio);
+
+        group.forEach(function (radio) {
+            radio.classList.add('is-invalid');
+            radio.classList.remove('is-valid');
+
+            radio.setAttribute(
+                'aria-invalid',
+                'true'
+            );
+
+            radio.setAttribute(
+                'aria-describedby',
+                errorElement.id
+            );
+        });
+
+        errorElement.textContent = message;
+        errorElement.classList.add('d-block');
+    }
+
+    /**
+     * Clear the group-level error from a radio group.
+     *
+     * @param {HTMLInputElement[]} group
+     *
+     * @returns {void}
+     */
+    function clearRadioGroupError(group) {
+        if (group.length === 0) {
+            return;
+        }
+
+        const errorElement = getErrorElement(group[0]);
+
+        group.forEach(function (radio) {
+            radio.classList.remove('is-invalid');
+            radio.classList.remove('is-valid');
+
+            radio.removeAttribute('aria-invalid');
+        });
+
+        errorElement.textContent = '';
+        errorElement.classList.remove('d-block');
+    }
+
+    /**
+     * Validate a radio group as one logical field.
+     *
+     * @param {HTMLInputElement} field
+     * @param {HTMLFormElement} form
+     *
+     * @returns {boolean}
+     */
+    function validateRadioGroup(field, form) {
+        const group = getRadioGroup(
+            form,
+            field.name
+        );
+
+        const isRequired = group.some(function (radio) {
+            return radio.required;
+        });
+
+        const isChecked = group.some(function (radio) {
+            return radio.checked;
+        });
+
+        if (!isRequired || isChecked) {
+            clearRadioGroupError(group);
+
+            return true;
+        }
+
+        showRadioGroupError(
+            group,
+            field.dataset.errorRequired
+            || 'Please select an option.'
+        );
+
+        return false;
+    }
+
+    /**
+     * Focus the visual Choices control or the original field.
+     *
+     * @param {HTMLElement} field
+     *
+     * @returns {void}
+     */
+    function focusInvalidField(field) {
+        if (
+            field instanceof HTMLSelectElement
+            && field.matches('select[data-choices]')
+        ) {
+            const choicesElement = getChoicesElement(field);
+
+            const choiceInput = choicesElement
+                ? choicesElement.querySelector(
+                    '.choices__input, .choices__inner'
+                )
+                : null;
+
+            if (choiceInput instanceof HTMLElement) {
+                choiceInput.focus();
+
+                return;
+            }
+        }
+
+        field.focus();
+    }
+
+    /**
      * Initialize one form.
+     *
+     * @param {HTMLFormElement} form
+     *
+     * @returns {void}
      */
     function initializeForm(form) {
+        if (form.dataset.validationInitialized === 'true') {
+            return;
+        }
+
+        form.dataset.validationInitialized = 'true';
+
         const fields = Array.from(
             form.querySelectorAll(FIELD_SELECTOR)
         );
@@ -208,58 +398,116 @@
         form.addEventListener('submit', function (event) {
             let isFormValid = true;
             let firstInvalidField = null;
+
             const processedRadioGroups = new Set();
 
             fields.forEach(function (field) {
-                let isFieldValid;
+                let isFieldValid = true;
 
-                if (field.type === 'radio') {
-                    if (processedRadioGroups.has(field.name)) {
+                if (
+                    field instanceof HTMLInputElement
+                    && field.type === 'radio'
+                ) {
+                    if (
+                        processedRadioGroups.has(field.name)
+                    ) {
                         return;
                     }
 
                     processedRadioGroups.add(field.name);
-                    isFieldValid = validateRadioGroup(field, form);
+
+                    isFieldValid = validateRadioGroup(
+                        field,
+                        form
+                    );
                 } else {
                     isFieldValid = validateField(field);
                 }
 
                 if (!isFieldValid) {
                     isFormValid = false;
-                    firstInvalidField ||= field;
+
+                    if (!firstInvalidField) {
+                        firstInvalidField = field;
+                    }
                 }
             });
 
             if (!isFormValid) {
                 event.preventDefault();
 
-                firstInvalidField?.focus();
+                if (firstInvalidField) {
+                    focusInvalidField(
+                        firstInvalidField
+                    );
+                }
             }
         });
 
         fields.forEach(function (field) {
-            field.addEventListener('blur', function () {
-                validateField(field);
-            });
+            /**
+             * Radio buttons are validated at group level.
+             */
+            if (
+                field instanceof HTMLInputElement
+                && field.type === 'radio'
+            ) {
+                field.addEventListener(
+                    'change',
+                    function () {
+                        validateRadioGroup(
+                            field,
+                            form
+                        );
+                    }
+                );
 
-            field.addEventListener('input', function () {
-                if (field.classList.contains('is-invalid')) {
+                return;
+            }
+
+            field.addEventListener(
+                'blur',
+                function () {
                     validateField(field);
                 }
-            });
+            );
 
-            field.addEventListener('change', function () {
-                if (
-                    field.classList.contains('is-invalid')
-                    || field.type === 'radio'
-                    || field.tagName === 'SELECT'
-                ) {
-                    validateField(field);
+            field.addEventListener(
+                'input',
+                function () {
+                    if (
+                        field.classList.contains(
+                            'is-invalid'
+                        )
+                    ) {
+                        validateField(field);
+                    }
                 }
-            });
+            );
+
+            field.addEventListener(
+                'change',
+                function () {
+                    if (
+                        field.classList.contains(
+                            'is-invalid'
+                        )
+                        || field.tagName === 'SELECT'
+                    ) {
+                        validateField(field);
+                    }
+                }
+            );
         });
     }
 
+    /**
+     * Initialize all validation-enabled forms inside a container.
+     *
+     * @param {Document|HTMLElement} container
+     *
+     * @returns {void}
+     */
     function init(container = document) {
         container
             .querySelectorAll(FORM_SELECTOR)
@@ -270,7 +518,10 @@
         init
     });
 
-    document.addEventListener('DOMContentLoaded', function () {
-        init();
-    });
+    document.addEventListener(
+        'DOMContentLoaded',
+        function () {
+            init(document);
+        }
+    );
 })(window, document);

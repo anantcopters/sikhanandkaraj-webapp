@@ -80,7 +80,11 @@ final class RegisterFreeService
 
             /**
              * Case B:
-             * The mobile exists, but registration is still pending.
+             * Mobile exists but is not verified.
+             *
+             * The existing account must also be PENDING. An ACTIVE,
+             * SUSPENDED or DELETED account must never be overwritten
+             * through the Register Free form.
              */
             if ($existingMobile !== null) {
                 $result = $this->updatePendingRegistration(
@@ -89,6 +93,16 @@ final class RegisterFreeService
                     email: $email,
                     gender: $gender
                 );
+
+                /**
+                 * A business-rule failure is returned without committing
+                 * any database changes.
+                 */
+                if (!$result->successful) {
+                    $this->database->transRollback();
+
+                    return $result;
+                }
 
                 $this->commitOrFail();
 
@@ -110,16 +124,24 @@ final class RegisterFreeService
 
             return $result;
         } catch (Throwable $exception) {
-            if ($this->database->transStatus()) {
-                $this->database->transRollback();
-            }
+            /**
+             * Always roll back when an exception occurs.
+             *
+             * Do not condition rollback on transStatus(), because a failed
+             * query normally changes the transaction status to false.
+             */
+            $this->database->transRollback();
 
             throw $exception;
         }
     }
 
     /**
-     * Case B: update a pending registration.
+     * Case B: update an existing pending registration.
+     *
+     * The mobile contact is known to be unverified before this method
+     * is called. This method additionally verifies that the corresponding
+     * user account is still PENDING.
      *
      * @param array<string, mixed> $existingMobile
      * @param array<string, mixed> $data
@@ -136,7 +158,25 @@ final class RegisterFreeService
 
         if (!is_array($user)) {
             throw new RuntimeException(
-                'Pending user could not be found.'
+                'The user associated with this mobile number was not found.'
+            );
+        }
+
+        /**
+         * Only pending registrations may be updated through this flow.
+         *
+         * This prevents an unverified contact belonging to an ACTIVE,
+         * SUSPENDED or DELETED account from being reset to PENDING.
+         */
+        if (
+            (string) ($user['account_status'] ?? '')
+            !== 'PENDING'
+        ) {
+            return RegisterFreeResult::fieldFailure(
+                RegistrationAction::VERIFIED_MOBILE_EXISTS,
+                'mobile_number',
+                'This mobile number is already associated with an account. '
+                    . 'Please log in or recover your account.'
             );
         }
 
@@ -152,7 +192,10 @@ final class RegisterFreeService
                 (string) $data['full_name']
             ),
 
-            'account_status' => 'PENDING',
+            /**
+         * The existing account is already confirmed as PENDING,
+         * so there is no need to overwrite account_status here.
+         */
         ]);
 
         if ($updated === false) {
@@ -162,18 +205,12 @@ final class RegisterFreeService
         }
 
         /**
-         * Keep the existing mobile record, but make sure it remains
-         * unverified while the new OTP process is pending.
+         * Keep the existing mobile record unverified while a new
+         * registration OTP is pending.
          */
         $mobileUpdated = $this->userContactModel->update(
             $mobileContactId,
             [
-                'contact_value' =>
-                (string) $existingMobile['normalized_value'],
-
-                'normalized_value' =>
-                (string) $existingMobile['normalized_value'],
-
                 'is_primary' => true,
                 'is_verified' => false,
                 'verified_at' => null,
@@ -354,10 +391,14 @@ final class RegisterFreeService
     private function createRegistrationOtp(
         int $mobileContactId
     ): int {
-        $this->verificationModel->cancelPendingForContact(
+        if (!$this->verificationModel->cancelPendingForContact(
             $mobileContactId,
             ContactVerificationModel::PURPOSE_REGISTER
-        );
+        )) {
+            throw new RuntimeException(
+                'Unable to cancel previous OTP records.'
+            );
+        }
 
         $otp = (string) random_int(1000, 9999);
 

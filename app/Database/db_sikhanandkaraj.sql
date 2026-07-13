@@ -1,3 +1,15 @@
+BEGIN;
+
+
+CREATE TABLE "ci_sessions" (
+    "id" varchar(128) NOT NULL,
+    "ip_address" inet NOT NULL,
+    "timestamp" timestamptz DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "data" bytea DEFAULT '' NOT NULL
+);
+
+CREATE INDEX "ci_sessions_timestamp" ON "ci_sessions" ("timestamp");
+
 CREATE TABLE users (
     id BIGSERIAL PRIMARY KEY,
     profile_ref_number VARCHAR(32) NOT NULL,
@@ -33,6 +45,13 @@ CREATE TABLE users (
                 'SUSPENDED',
                 'DELETED'
             )
+        ),
+    CONSTRAINT uq_users_profile_ref_number
+        UNIQUE (profile_ref_number),
+
+    CONSTRAINT chk_users_profile_ref_number
+        CHECK (
+            profile_ref_number ~ '^SAK[0-9]{7}$'
         )
 );
 
@@ -128,3 +147,5 @@ ON contact_verifications (
     status,
     expires_at
 );
+
+COMMIT;

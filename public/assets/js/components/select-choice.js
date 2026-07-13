@@ -20,7 +20,7 @@
      * Every select is enhanced unless it explicitly contains
      * the data-choice-ignore attribute.
      */
-    const DEFAULT_SELECTOR = 'select:not([data-choice-ignore])';
+    const DEFAULT_SELECTOR = 'select[data-choice]';
 
     /**
      * Store instances against their original select elements.
