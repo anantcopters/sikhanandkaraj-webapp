@@ -58,19 +58,15 @@ $this->section('content');
                                     id="profileCreatedFor"
                                     name="profile_created_for"
                                     class="form-select"
-                                    data-choices data-choices-search-false data-choices-removeItem
+                                    data-choices data-choices-search-false
                                     required>
-                                    <option value="" selected disabled>
-                                        Profile created for
-                                    </option>
+
 
                                     <option value="self">Self</option>
                                     <option value="son">Son</option>
                                     <option value="daughter">Daughter</option>
                                     <option value="brother">Brother</option>
                                     <option value="sister">Sister</option>
-                                    <option value="relative">Relative</option>
-                                    <option value="friend">Friend</option>
                                 </select>
                             </div>
 
@@ -107,9 +103,7 @@ $this->section('content');
                                             class="form-select registration-country-code"
                                             aria-label="Country code"
                                             required>
-                                            <option value="+91" selected>
-                                                +91
-                                            </option>
+                                            <option value="+91" selected>+91</option>
                                         </select>
                                     </div>
                                     <div class="col-md-9">

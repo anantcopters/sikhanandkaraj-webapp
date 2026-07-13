@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" dir="ltr">
 
 <head>
     <meta charset="utf-8">
@@ -20,9 +20,6 @@
         rel="stylesheet"
         href="<?= base_url('assets/css/bootstrap.css') ?>">
 
-    <link
-        rel="stylesheet"
-        href="<?= base_url('assets/css/choices.min.css') ?>">
 
     <link
         rel="stylesheet"

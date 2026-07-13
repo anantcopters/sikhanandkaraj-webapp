@@ -462,16 +462,77 @@
 }
 
 /* ==========================================================================
-   Choices.js select controls
+   Choices.js public-site LTR corrections
    ========================================================================== */
 
-/**
- * Remove the library's default bottom margin.
- *
- * Form spacing remains controlled by Bootstrap wrappers such as mb-3
- * and mb-4.
- */
-.choices {
-    width: 100%;
-    margin-bottom: 0;
+
+/* ==========================================================================
+   Choices.js public-site LTR corrections
+   ========================================================================== */
+
+html[dir="ltr"] .choices[data-type*="select-one"] .choices__button {
+    right: 0;
+    left: auto;
+    margin-right: 25px;
+    margin-left: 0;
+}
+
+html[dir="ltr"] .choices[data-type*="select-one"]::after {
+    right: 11.5px;
+    left: auto;
+}
+
+html[dir="ltr"] .choices__inner {
+    padding-right: 3.6rem;
+    padding-left: 0.5rem;
+}
+
+html[dir="ltr"] .choices__list {
+    padding-right: 0;
+    padding-left: 0;
+}
+
+html[dir="ltr"] .choices__list--single {
+    padding: 4px 16px 4px 4px;
+}
+
+html[dir="ltr"] .choices__list--dropdown,
+html[dir="ltr"] .choices__list[aria-expanded] {
+    right: auto;
+    left: 0;
+    text-align: left;
+}
+
+html[dir="ltr"] .choices__list--dropdown .choices__list,
+html[dir="ltr"] .choices__list[aria-expanded] .choices__list {
+    margin: 0;
+}
+
+html[dir="ltr"] .choices__list--dropdown .choices__item,
+html[dir="ltr"] .choices__list[aria-expanded] .choices__item {
+    padding: 10px;
+    font-size: 14px;
+    text-align: left;
+}
+
+html[dir="ltr"] .choices__input {
+    direction: ltr;
+    text-align: left;
+}
+
+html[dir="ltr"] .choices__heading {
+    text-align: left;
+}
+
+@media (min-width: 640px) {
+    html[dir="ltr"]
+    .choices__list--dropdown
+    .choices__item--selectable::after,
+
+    html[dir="ltr"]
+    .choices__list[aria-expanded]
+    .choices__item--selectable::after {
+        right: 10px;
+        left: auto;
+    }
 }
