@@ -13132,6 +13132,110 @@ div.dtr-modal div.dtr-modal-close:hover {
           filter: invert(1) grayscale(100%) brightness(200%);
 }
 
+/* ==========================================================================
+   Choices.js — universal LTR styling
+   ========================================================================== */
+
+/**
+ * Position the clear button on the right for single-select controls.
+ */
+.choices[data-type*="select-one"] .choices__button {
+    right: 0;
+    left: auto;
+    margin-right: 25px;
+    margin-left: 0;
+}
+
+/**
+ * Position the dropdown indicator on the right.
+ */
+.choices[data-type*="select-one"]::after {
+    right: 11.5px;
+    left: auto;
+}
+
+/**
+ * Reserve space on the right for the dropdown indicator and clear button.
+ */
+.choices__inner {
+    padding-right: 3.6rem;
+    padding-left: 0.5rem;
+}
+
+/**
+ * Reset Choices list spacing for LTR layouts.
+ */
+.choices__list {
+    padding-right: 0;
+    padding-left: 0;
+}
+
+/**
+ * Keep the selected single value aligned like the css_master version.
+ */
+.choices__list--single {
+    padding: 4px 16px 4px 4px;
+}
+
+/**
+ * Align the dropdown panel with the left edge of the control.
+ */
+.choices__list--dropdown,
+.choices__list[aria-expanded] {
+    right: auto;
+    left: 0;
+    text-align: left;
+}
+
+/**
+ * Remove RTL-specific negative margins from the dropdown list.
+ */
+.choices__list--dropdown .choices__list,
+.choices__list[aria-expanded] .choices__list {
+    margin: 0;
+    padding-right: 0;
+    padding-left: 0;
+}
+
+/**
+ * Match css_master option sizing and alignment.
+ */
+.choices__list--dropdown .choices__item,
+.choices__list[aria-expanded] .choices__item {
+    position: relative;
+    padding: 10px;
+    font-size: 0.8125rem;
+    text-align: left;
+}
+
+/**
+ * Keep search input text aligned for LTR pages.
+ */
+.choices__input {
+    direction: ltr;
+    text-align: left;
+}
+
+/**
+ * Align option-group headings.
+ */
+.choices__heading {
+    text-align: left;
+}
+
+/**
+ * Position optional select-helper text on the right.
+ */
+@media (min-width: 640px) {
+    .choices__list--dropdown
+    .choices__item--selectable::after,
+    .choices__list[aria-expanded]
+    .choices__item--selectable::after {
+        right: 10px;
+        left: auto;
+    }
+}
+
 .flatpickr-calendar {
   background: transparent;
   opacity: 0;

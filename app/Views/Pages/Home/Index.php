@@ -47,7 +47,7 @@ $this->section('content');
                             autocomplete="off">
                             <?= csrf_field() ?>
 
-                            <div class="mb-4">
+                            <div class="mb-3">
                                 <label
                                     for="profileCreatedFor"
                                     class="visually-hidden">
@@ -70,7 +70,7 @@ $this->section('content');
                                 </select>
                             </div>
 
-                            <div class="mb-4">
+                            <div class="mb-3">
                                 <label
                                     for="fullName"
                                     class="visually-hidden">
@@ -88,7 +88,7 @@ $this->section('content');
                                     required>
                             </div>
 
-                            <div class="mb-4">
+                            <div class="mb-3">
                                 <div class="row g-3">
                                     <div class="col-md-3">
                                         <label
