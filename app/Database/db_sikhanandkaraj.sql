@@ -16,7 +16,7 @@ CREATE TABLE users (
     profile_created_for VARCHAR(20) NOT NULL,
     gender CHAR(1) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
-
+    password_hash VARCHAR(255) NOT NULL,
     account_status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -26,6 +26,7 @@ final class HomeController extends BaseController
              */
             'pageScripts' => [
                 'assets/js/pages/home.js',
+                'assets/js/components/password-toggle.js'
             ],
         ]);
     }

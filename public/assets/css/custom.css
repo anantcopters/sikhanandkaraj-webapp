@@ -459,3 +459,60 @@
     color: var(--vz-code-color);
 }
 
+/* ==========================================================================
+   Password field
+   ========================================================================== */
+
+.password-field {
+    position: relative;
+}
+
+.password-field__input {
+    padding-right: 3rem;
+}
+
+.password-field__toggle {
+    position: absolute;
+    top: 50%;
+    right: 0.875rem;
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--vz-secondary-color);
+    font-size: 1.25rem;
+    line-height: 1;
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+.password-field__toggle:hover,
+.password-field__toggle:focus-visible {
+    color: var(--vz-primary);
+}
+
+.password-field__toggle:focus-visible {
+    border-radius: 0.25rem;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(var(--vz-primary-rgb), 0.2);
+}
+
+/**
+ * Keep the eye button clear of Bootstrap validation icons.
+ */
+.password-field__input.is-invalid,
+.password-field__input.is-valid {
+    padding-right: 4.75rem;
+}
+
+.password-field__input.is-invalid
+    + .password-field__toggle,
+.password-field__input.is-valid
+    + .password-field__toggle {
+    right: 2.75rem;
+}

@@ -142,6 +142,10 @@ final class RegistrationController extends BaseController
                     'mobile_number'
                 )
             ) ?? '',
+
+            'password' => (string) $this->request->getPost(
+                'password'
+            ),
         ];
     }
 

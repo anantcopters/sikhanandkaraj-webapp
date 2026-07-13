@@ -102,6 +102,32 @@ final class RegisterFreeValidation
                     'regex_match' => 'Please enter a valid 10-digit Indian mobile number.',
                 ],
             ],
+
+            'password' => [
+                'label' => 'Password',
+
+                'rules' => [
+                    'required',
+                    'min_length[8]',
+                    'max_length[64]',
+                    'regex_match[/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,64}$/]',
+                ],
+
+                'errors' => [
+                    'required' =>
+                    'Please enter a password.',
+
+                    'min_length' =>
+                    'The password must contain at least 8 characters.',
+
+                    'max_length' =>
+                    'The password cannot exceed 64 characters.',
+
+                    'regex_match' =>
+                    'The password must contain at least one uppercase letter, '
+                        . 'one lowercase letter and one number.',
+                ],
+            ],
         ];
 
         /**
@@ -130,7 +156,5 @@ final class RegisterFreeValidation
     /**
      * Prevent instantiation.
      */
-    private function __construct()
-    {
-    }
+    private function __construct() {}
 }

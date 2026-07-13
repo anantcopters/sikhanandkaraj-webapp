@@ -100,6 +100,10 @@ $this->section('content');
                             $mobileHasError = isset(
                                 $validationErrors['mobile_number']
                             );
+
+                            $passwordHasError = isset(
+                                $validationErrors['password']
+                            );
                             ?>
 
                             <!-- Profile created for -->
@@ -413,6 +417,67 @@ $this->section('content');
                                             OTP will be sent to this number.
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="mb-3">
+                                <label
+                                    for="password"
+                                    class="visually-hidden">
+                                    Password
+                                </label>
+
+                                <div class="password-field">
+                                    <input
+                                        type="password"
+                                        id="password"
+                                        name="password"
+                                        class="form-control password-field__input
+                <?= $passwordHasError
+                    ? 'is-invalid'
+                    : '' ?>"
+                                        <?= $passwordHasError
+                                            ? 'aria-invalid="true"'
+                                            : '' ?>
+                                        aria-describedby="passwordError passwordHelp"
+                                        placeholder="Create password"
+                                        minlength="8"
+                                        maxlength="64"
+                                        autocomplete="new-password"
+                                        data-error-required="Please enter a password."
+                                        data-error-minlength="The password must contain at least 8 characters."
+                                        data-error-maxlength="The password cannot exceed 64 characters."
+                                        data-error-pattern="The password must contain at least one uppercase letter, one lowercase letter and one number."
+                                        pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,64}"
+                                        required>
+
+                                    <button
+                                        type="button"
+                                        class="password-field__toggle"
+                                        data-password-toggle="password"
+                                        aria-label="Show password"
+                                        aria-controls="password"
+                                        aria-pressed="false">
+
+                                        <span
+                                            class="mdi mdi-eye-off-outline"
+                                            aria-hidden="true">
+                                        </span>
+                                    </button>
+                                </div>
+
+                                <?= view('Components/Forms/FieldError', [
+                                    'field' => 'password',
+                                    'errorId' => 'passwordError',
+                                    'errors' => $validationErrors,
+                                ]) ?>
+
+                                <div
+                                    id="passwordHelp"
+                                    class="form-text color-pink">
+                                    Use at least 8 characters with one uppercase letter,
+                                    one lowercase letter and one number.
                                 </div>
                             </div>
 

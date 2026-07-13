@@ -51,6 +51,10 @@ final class RegisterFreeService
 
         $gender = $this->resolveGender($data);
 
+        $passwordHash = $this->hashPassword(
+            (string) $data['password']
+        );
+
         $this->database->transBegin();
 
         try {
@@ -91,7 +95,8 @@ final class RegisterFreeService
                     existingMobile: $existingMobile,
                     data: $data,
                     email: $email,
-                    gender: $gender
+                    gender: $gender,
+                    passwordHash: $passwordHash
                 );
 
                 /**
@@ -117,7 +122,8 @@ final class RegisterFreeService
                 data: $data,
                 mobile: $mobile,
                 email: $email,
-                gender: $gender
+                gender: $gender,
+                passwordHash: $passwordHash
             );
 
             $this->commitOrFail();
@@ -150,7 +156,8 @@ final class RegisterFreeService
         array $existingMobile,
         array $data,
         string $email,
-        string $gender
+        string $gender,
+        string $passwordHash
     ): RegisterFreeResult {
         $userId = (int) $existingMobile['user_id'];
 
@@ -191,6 +198,12 @@ final class RegisterFreeService
             'full_name' => trim(
                 (string) $data['full_name']
             ),
+            /**
+             * A pending registration may be resubmitted.
+             *
+             * The latest submitted password becomes the account password.
+             */
+            'password_hash' => $passwordHash,
 
             /**
          * The existing account is already confirmed as PENDING,
@@ -247,7 +260,8 @@ final class RegisterFreeService
         array $data,
         string $mobile,
         string $email,
-        string $gender
+        string $gender,
+        string $passwordHash
     ): RegisterFreeResult {
 
         $profileReference = $this->generateUniqueProfileReference();
@@ -261,6 +275,7 @@ final class RegisterFreeService
             'full_name' => trim(
                 (string) $data['full_name']
             ),
+            'password_hash' => $passwordHash,
 
             'account_status' => 'PENDING',
         ], true);
@@ -553,5 +568,26 @@ final class RegisterFreeService
         throw new RuntimeException(
             'Unable to generate a unique profile reference.'
         );
+    }
+
+    /**
+     * Create a secure one-way password hash.
+     *
+     * The plain password must never be stored, logged or returned.
+     */
+    private function hashPassword(string $password): string
+    {
+        $passwordHash = password_hash(
+            $password,
+            PASSWORD_DEFAULT
+        );
+
+        if (!is_string($passwordHash)) {
+            throw new RuntimeException(
+                'Unable to secure the password.'
+            );
+        }
+
+        return $passwordHash;
     }
 }

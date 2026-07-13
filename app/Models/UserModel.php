@@ -26,6 +26,7 @@ final class UserModel extends Model
         'profile_created_for',
         'gender',
         'full_name',
+        'password_hash',
         'account_status',
     ];
 
