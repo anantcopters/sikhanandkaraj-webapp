@@ -36,8 +36,8 @@ $this->section('content');
 
                     <div class="registration-card__body">
 
-                        <h2 class="fs-20 fw-bold text-dark text-center lh-base mt-0 mb-4">
-                            Find your perfect match
+                        <h2 class="fs-18 fw-bold text-dark text-center lh-base mt-0 mb-3">
+                            Find perfect match
                         </h2>
 
                         <form
@@ -57,7 +57,7 @@ $this->section('content');
                                 <select
                                     id="profileCreatedFor"
                                     name="profile_created_for"
-                                    class="form-select form-select-lg"
+                                    class="form-select form-select"
                                     required>
                                     <option value="" selected disabled>
                                         Profile created for
@@ -84,7 +84,7 @@ $this->section('content');
                                     type="text"
                                     id="fullName"
                                     name="full_name"
-                                    class="form-control form-control-lg"
+                                    class="form-control form-control"
                                     placeholder="Enter the name"
                                     maxlength="100"
                                     autocomplete="name"
@@ -103,7 +103,7 @@ $this->section('content');
                                     <select
                                         id="countryCode"
                                         name="country_code"
-                                        class="form-select form-select-lg registration-country-code"
+                                        class="form-select form-select registration-country-code"
                                         aria-label="Country code"
                                         required>
                                         <option value="+91" selected>
@@ -121,7 +121,7 @@ $this->section('content');
                                         type="tel"
                                         id="mobileNumber"
                                         name="mobile_number"
-                                        class="form-control form-control-lg"
+                                        class="form-control"
                                         placeholder="Enter Mobile Number"
                                         inputmode="numeric"
                                         pattern="[6-9][0-9]{9}"

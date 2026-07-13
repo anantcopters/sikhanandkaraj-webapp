@@ -17,7 +17,7 @@
     min-height: 110px;
     padding: 0;
     background-color: var(--sak-page-background);
-    box-shadow: 1px 2px 8px 1px #e7e6e6
+    box-shadow: 1px 2px 8px 1px #e7e6e6;
 }
 
 /**
@@ -243,6 +243,29 @@
     background-color: var(--sak-card-background);
 }
 
+/**
+ * Apply branded dimensions and interaction states to the joined
+ * country-code and mobile-number controls.
+ */
+.registration-mobile-group .form-control,
+.registration-mobile-group .form-select {
+    min-height: 56px;
+    border-color: var(--sak-control-border);
+    border-radius: 11px;
+    box-shadow: none;
+}
+
+.registration-mobile-group .form-control:hover,
+.registration-mobile-group .form-select:hover {
+    border-color: var(--sak-primary);
+}
+
+.registration-mobile-group .form-control:focus,
+.registration-mobile-group .form-select:focus {
+    border-color: var(--sak-primary);
+    box-shadow: 0 0 0 3px rgba(174, 21, 54, 0.14);
+}
+
 
 /**
  * Keep the country-code selector compact.
@@ -250,12 +273,6 @@
 .registration-mobile-group .registration-country-code {
     flex: 0 0 98px;
     max-width: 98px;
-}
-
-/**
- * Restore rounded outer corners because input-group normally joins controls.
- */
-.registration-mobile-group .registration-country-code {
     border-top-left-radius: 11px;
     border-bottom-left-radius: 11px;
 }
@@ -272,8 +289,8 @@
     gap: 13px;
 }
 
-.registration-mobile-group > .form-select,
-.registration-mobile-group > .form-control {
+.registration-mobile-group>.form-select,
+.registration-mobile-group>.form-control {
     width: auto;
     margin-left: 0 !important;
 }
@@ -419,6 +436,16 @@
     .registration-form__terms {
         margin-top: 18px;
     }
+
+    .registration-mobile-group .form-control,
+    .registration-mobile-group .form-select {
+        min-height: 52px;
+    }
+
+    .registration-mobile-group .registration-country-code {
+        flex-basis: 88px;
+        max-width: 88px;
+    }
 }
 
 /* ==========================================================================
@@ -430,26 +457,7 @@
         padding-right: 16px;
         padding-left: 16px;
     }
-}
 
-@media (max-width: 767.98px) {
-    .registration-mobile-group .form-control,
-    .registration-mobile-group .form-select {
-        min-height: 52px;
-    }
-
-    .registration-mobile-group .registration-country-code {
-        flex-basis: 88px;
-        max-width: 88px;
-    }
-
-    .registration-form__help {
-        margin-top: 10px;
-        margin-left: 10px;
-    }
-}
-
-@media (max-width: 374.98px) {
     .registration-mobile-group {
         gap: 8px;
     }
