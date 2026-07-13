@@ -29,14 +29,14 @@ $this->section('content');
                 <div class="registration-card">
 
                     <div class="registration-card__header">
-                        <h1 class="registration-card__title fs-20 fw-normal mb-0">
+                        <h1 class="fs-22 fw-normal mb-0 text-white text-center lh-base">
                             Create a Matrimony Profile
                         </h1>
                     </div>
 
                     <div class="registration-card__body">
 
-                        <h2 class="registration-card__subtitle fs-20 fw-bold text-dark">
+                        <h2 class="fs-20 fw-bold text-dark text-center lh-base mt-0 mb-4">
                             Find your perfect match
                         </h2>
 

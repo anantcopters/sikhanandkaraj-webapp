@@ -11,7 +11,7 @@ declare(strict_types=1);
         <div class="container public-navbar__container">
 
             <a
-                class="navbar-brand public-navbar__brand"
+                class="navbar-brand d-inline-flex align-items-center flex-shrink-0 m-0 p-0"
                 href="<?= site_url('/') ?>"
                 aria-label="Sikh Anand Karaj home"
             >
@@ -24,7 +24,7 @@ declare(strict_types=1);
 
             <div class="public-navbar__actions">
 
-                <span class="public-navbar__member-text hide-on-mobile-tablet">
+                <span class="fs-16 fw-semibold lh-base text-dark text-nowrap hide-on-mobile-tablet">
                     Already a member?
                 </span>
 
