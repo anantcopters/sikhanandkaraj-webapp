@@ -134,9 +134,12 @@
 @media (max-width: 991.98px) {
     .public-navbar {
         min-height: auto;
-        padding: 18px 0;
+        padding: 14px 0;
     }
 
+    /*
+     * Existing public/login header can still use two rows where needed.
+     */
     .public-navbar__container {
         min-height: auto;
         flex-direction: column;
@@ -149,17 +152,48 @@
         justify-content: center;
         gap: 12px 18px;
     }
+
+    /*
+     * Authenticated header must remain one row:
+     * logo on the left and account control on the right.
+     */
+    .public-navbar__container--authenticated {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .public-navbar__actions--authenticated {
+        width: auto;
+        flex: 0 0 auto;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        margin-left: auto;
+    }
+
+    /*
+     * Shorten the logo enough to leave space for the account icon.
+     */
+    .public-navbar__container--authenticated .public-navbar__logo {
+        max-width: 240px;
+        max-height: 58px;
+    }
 }
 
 @media (max-width: 575.98px) {
     .public-navbar {
-        padding: 15px 0;
+        padding: 10px 0;
     }
 
     .public-navbar__container {
         gap: 15px;
     }
 
+    /*
+     * General public header logo.
+     */
     .public-navbar__logo {
         max-width: 210px;
         max-height: 62px;
@@ -168,6 +202,36 @@
     .public-navbar__actions {
         width: 100%;
         gap: 12px;
+    }
+
+    /*
+     * Override public header behaviour for logged-in users.
+     */
+    .public-navbar__container--authenticated {
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .public-navbar__container--authenticated .navbar-brand {
+        min-width: 0;
+        flex: 1 1 auto;
+        overflow: hidden;
+    }
+
+    .public-navbar__container--authenticated .public-navbar__logo {
+        max-width: 175px;
+        max-height: 48px;
+    }
+
+    .public-navbar__actions--authenticated {
+        width: auto;
+        flex: 0 0 auto;
+        margin-left: auto;
+        gap: 0;
     }
 
     .public-navbar__login {
@@ -185,6 +249,13 @@
         width: 28px;
         height: 28px;
         flex-basis: 28px;
+    }
+}
+
+@media (max-width: 374.98px) {
+    .public-navbar__container--authenticated .public-navbar__logo {
+        max-width: 145px;
+        max-height: 44px;
     }
 }
 
@@ -703,10 +774,25 @@ form[aria-busy="true"] {
 /*
  * Keep the dropdown above page cards and form controls.
  */
+.public-navbar .topbar-user {
+    position: relative;
+    margin-left: 0 !important;
+}
+
 .public-navbar .topbar-user .dropdown-menu {
+    top: 100% !important;
+    right: 0 !important;
+    bottom: auto !important;
+    left: auto !important;
+
     z-index: 1055;
     min-width: 230px;
-    margin-top: 70px !important;
+    margin-top: 8px !important;
+
+    /*
+     * Used with data-bs-display="static".
+     */
+    transform: none !important;
 }
 
 /*
@@ -740,6 +826,9 @@ form[aria-busy="true"] {
     }
 
     .public-navbar .topbar-user .dropdown-menu {
-        min-width: min(230px, calc(100vw - 30px));
+        right: 0 !important;
+        left: auto !important;
+        min-width: min(230px, calc(100vw - 24px));
+        margin-top: 8px !important;
     }
 }

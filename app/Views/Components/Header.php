@@ -49,7 +49,10 @@ if ($resolvedLoggedInName === '') {
         class="navbar public-navbar"
         aria-label="Main website navigation">
 
-        <div class="container public-navbar__container">
+        <div class="container public-navbar__container
+                    <?= $isAuthenticated
+                        ? 'public-navbar__container--authenticated'
+                        : '' ?>">
 
             <!-- Website logo -->
             <a
@@ -67,7 +70,10 @@ if ($resolvedLoggedInName === '') {
                     class="public-navbar__logo">
             </a>
 
-            <div class="public-navbar__actions">
+            <div class="public-navbar__actions
+                <?= $isAuthenticated
+                    ? 'public-navbar__actions--authenticated'
+                    : '' ?>">
 
                 <?php if ($isAuthenticated): ?>
 
@@ -82,12 +88,13 @@ if ($resolvedLoggedInName === '') {
                         : '';
                     ?>
 
-                    <div class="dropdown ms-sm-3 header-item topbar-user">
+                    <div class="dropdown header-item topbar-user">
 
                         <button
                             type="button"
                             class="btn shadow-none"
                             id="page-header-user-dropdown"
+                            data-bs-display="static"
                             data-bs-toggle="dropdown"
                             aria-haspopup="true"
                             aria-expanded="false">
