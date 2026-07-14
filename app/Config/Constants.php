@@ -111,14 +111,14 @@ defined('REQUEST_ID_HEADER')
 */
 
 defined('OTP_EXPIRY_MINUTES')
-    || define('OTP_EXPIRY_MINUTES', 3);
+    || define('OTP_EXPIRY_MINUTES', 1);
 
 /**
  * Maximum OTP messages that may be issued for one mobile number
  * during a rolling 24-hour period.
  */
 defined('REGISTRATION_OTP_DAILY_SEND_LIMIT')
-    || define('REGISTRATION_OTP_DAILY_SEND_LIMIT', 1);
+    || define('REGISTRATION_OTP_DAILY_SEND_LIMIT', 3);
 
 /**
  * Maximum incorrect OTP submissions against one issued OTP.

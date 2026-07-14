@@ -125,11 +125,31 @@ final class RegistrationVerificationController extends BaseController
              * Add any other minimum identifiers needed by the dashboard.
              * Do not store passwords or sensitive contact data.
              */
+            $userModel = new \App\Models\UserModel();
+
+            $user = $userModel->find(
+                $pending['userId']
+            );
+
+            $authenticatedUserName = is_array($user)
+                ? trim((string) ($user['full_name'] ?? ''))
+                : '';
+
+            if ($authenticatedUserName === '') {
+                $authenticatedUserName = 'Member';
+            }
+
             session()->set([
                 'auth_user_id' => $pending['userId'],
+
+                'auth_user_name' =>
+                $authenticatedUserName,
+
                 'auth_profile_reference' =>
                 session('pending_profile_reference'),
+
                 'is_authenticated' => true,
+
                 'authenticated_at' => time(),
             ]);
 

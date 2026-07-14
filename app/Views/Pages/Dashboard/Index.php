@@ -17,7 +17,7 @@ $this->extend('Layouts/Main');
 $this->section('content');
 ?>
 
-<section class="py-5">
+<section class="pb-5 pt-3">
     <div class="container">
 
         <?= view('Components/Alerts/FormAlert', [

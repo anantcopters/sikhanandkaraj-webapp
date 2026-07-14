@@ -63,6 +63,7 @@ $this->section('content');
                                     ) ?>"
                             id="registrationOtpForm"
                             autocomplete="one-time-code"
+                            data-submit-loader
                             novalidate>
 
                             <?= csrf_field() ?>
@@ -137,7 +138,7 @@ $this->section('content');
                                         type="submit"
                                         form="resendOtpForm"
                                         id="resendOtpButton"
-                                        class="registration-otp-resend-link"
+                                        class="registration-otp-resend-link fs-12"
                                         <?= $isExpired
                                             ? ''
                                             : 'disabled' ?>>
@@ -178,11 +179,6 @@ $this->section('content');
                                     class="btn btn-outline-secondary flex-fill d-inline-flex align-items-center justify-content-center gap-2"
                                     id="resetOtpButton">
 
-                                    <span
-                                        class="mdi mdi-backup-restore"
-                                        aria-hidden="true">
-                                    </span>
-
                                     <span>Reset</span>
                                 </button>
 
@@ -190,11 +186,6 @@ $this->section('content');
                                     type="submit"
                                     class="btn btn-outline-danger flex-fill d-inline-flex align-items-center justify-content-center gap-2"
                                     form="cancelRegistrationForm">
-
-                                    <span
-                                        class="mdi mdi-close-circle-outline"
-                                        aria-hidden="true">
-                                    </span>
 
                                     <span>Cancel</span>
                                 </button>

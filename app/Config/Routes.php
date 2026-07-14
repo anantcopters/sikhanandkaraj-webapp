@@ -75,6 +75,24 @@ $routes->group('', [
             'filter' => 'webAuth',
         ]
     );
+
+    $routes->get(
+        'profile/edit',
+        'ProfileController::edit',
+        [
+            'as' => 'web.profile.edit',
+            'filter' => 'webAuth',
+        ]
+    );
+
+    $routes->get(
+        'account/settings',
+        'AccountSettingsController::index',
+        [
+            'as' => 'web.account.settings',
+            'filter' => 'webAuth',
+        ]
+    );
 });
 
 // -----------------------------------------------------------------------------

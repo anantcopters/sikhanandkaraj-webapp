@@ -376,6 +376,8 @@ $this->section('content');
                                                 : '' ?>
                                             aria-describedby="countryCodeError"
                                             aria-label="Country code"
+                                            data-choice
+                                            data-choice-search-false
                                             required>
 
                                             <option
