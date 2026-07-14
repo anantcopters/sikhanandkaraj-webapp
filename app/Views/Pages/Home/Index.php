@@ -71,6 +71,7 @@ $this->section('content');
                             method="post"
                             class="registration-form"
                             data-validate
+                            data-submit-loader
                             novalidate
                             autocomplete="off">
 
@@ -483,14 +484,33 @@ $this->section('content');
 
                             <button
                                 type="submit"
-                                class="btn registration-form__submit
-               fs-16 fw-semibold text-uppercase">
-
-                                <span>Register Free</span>
+                                class="btn registration-form__submit fs-16 fw-semibold text-uppercase" data-submit-button>
 
                                 <span
-                                    class="mdi mdi-arrow-right fs-20"
-                                    aria-hidden="true"></span>
+                                    class="registration-submit__idle"
+                                    data-submit-idle>
+
+                                    <span>Register Free</span>
+
+                                    <span
+                                        class="mdi mdi-arrow-right fs-20"
+                                        aria-hidden="true">
+                                    </span>
+                                </span>
+
+                                <span
+                                    class="registration-submit__loading d-none"
+                                    data-submit-loading
+                                    aria-hidden="true">
+
+                                    <span
+                                        class="spinner-border spinner-border-sm"
+                                        role="status"
+                                        aria-hidden="true">
+                                    </span>
+
+                                    <span>Creating Profile...</span>
+                                </span>
                             </button>
 
                             <p class="registration-form__terms fs-12 text-muted mb-0">

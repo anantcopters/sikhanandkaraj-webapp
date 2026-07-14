@@ -516,3 +516,33 @@
     + .password-field__toggle {
     right: 2.75rem;
 }
+
+/* ==========================================================================
+   Form submit loader
+   ========================================================================== */
+
+.registration-submit__idle,
+.registration-submit__loading {
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.registration-submit__idle {
+    display: inline-flex;
+}
+
+.registration-submit__loading:not(.d-none) {
+    display: inline-flex;
+}
+
+[data-submit-button][disabled] {
+    cursor: wait;
+    opacity: 0.8;
+}
+
+form[aria-busy="true"] {
+    cursor: progress;
+}
+
