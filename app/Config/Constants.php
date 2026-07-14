@@ -101,5 +101,29 @@ defined('API_ROUTE_PREFIX')
 defined('REQUEST_ID_HEADER')
     || define('REQUEST_ID_HEADER', 'X-Request-ID');
 
+/*
+|--------------------------------------------------------------------------
+| Registration OTP configuration
+|--------------------------------------------------------------------------
+|
+| These may later be moved into a dedicated configuration class.
+|
+*/
+
 defined('OTP_EXPIRY_MINUTES')
-    || define('OTP_EXPIRY_MINUTES', 2);
+    || define('OTP_EXPIRY_MINUTES', 3);
+
+/**
+ * Maximum OTP messages that may be issued for one mobile number
+ * during a rolling 24-hour period.
+ */
+defined('REGISTRATION_OTP_DAILY_SEND_LIMIT')
+    || define('REGISTRATION_OTP_DAILY_SEND_LIMIT', 3);
+
+/**
+ * Maximum incorrect OTP submissions against one issued OTP.
+ *
+ * This is separate from the SMS send limit.
+ */
+defined('REGISTRATION_OTP_VERIFY_ATTEMPT_LIMIT')
+    || define('REGISTRATION_OTP_VERIFY_ATTEMPT_LIMIT', 5);

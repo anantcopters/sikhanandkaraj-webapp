@@ -23,4 +23,11 @@ enum RegistrationAction: string
      * The mobile belongs to an existing verified account.
      */
     case VERIFIED_MOBILE_EXISTS = 'VERIFIED_MOBILE_EXISTS';
+
+    /**
+     * CHANGE:
+     * The mobile number has reached the registration OTP-send limit.
+     */
+    case OTP_LIMIT_REACHED = 'OTP_LIMIT_REACHED';
 }
+

@@ -5,19 +5,281 @@ declare(strict_types=1);
 namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
+use App\Services\Registration\RegistrationOtpService;
 use CodeIgniter\HTTP\RedirectResponse;
+use Throwable;
 
 /**
- * Displays the registration OTP verification page.
+ * Handles registration OTP screen, verification, resend and cancellation.
  */
 final class RegistrationVerificationController extends BaseController
 {
     /**
-     * Display the OTP verification screen.
+     * Display the registration OTP screen.
+     *
+     * A refresh reads expiry from the database. It does not restart
+     * the timer and does not generate another OTP.
      *
      * @return string|RedirectResponse
      */
     public function index(): string|RedirectResponse
+    {
+        $pending = $this->getPendingSession();
+
+        if ($pending === null) {
+            return $this->redirectHomeWithWarning();
+        }
+
+        /** @var RegistrationOtpService $service */
+        $service = service('registrationOtpService');
+
+        $expiresAtTimestamp =
+            $service->getPendingExpiryTimestamp(
+                $pending['mobileContactId']
+            );
+
+        return view(
+            'Pages/Registration/VerifyOtp',
+            [
+                'pageTitle' => 'Verify OTP',
+                'profileReference' =>
+                    session('pending_profile_reference'),
+                'expiresAtTimestamp' =>
+                    $expiresAtTimestamp,
+                'pageScripts' => [
+                    'assets/js/pages/registration-otp.js',
+                ],
+            ]
+        );
+    }
+
+    /**
+     * Verify the submitted four-digit OTP.
+     */
+    public function verify(): RedirectResponse
+    {
+        $pending = $this->getPendingSession();
+
+        if ($pending === null) {
+            return $this->redirectHomeWithWarning();
+        }
+
+        $otp = $this->readOtp();
+
+        try {
+            /** @var RegistrationOtpService $service */
+            $service = service(
+                'registrationOtpService'
+            );
+
+            $result = $service->verify(
+                $pending['userId'],
+                $pending['mobileContactId'],
+                $otp
+            );
+
+            if (!$result->successful) {
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with('formAlert', [
+                        'type' => 'danger',
+                        'title' => 'OTP verification failed',
+                        'message' => $result->message,
+                    ]);
+            }
+
+            /**
+             * Prevent session fixation.
+             */
+            session()->regenerate(true);
+
+            /**
+             * Create the authenticated user session.
+             *
+             * Add any other minimum identifiers needed by the dashboard.
+             * Do not store passwords or sensitive contact data.
+             */
+            session()->set([
+                'auth_user_id' => $pending['userId'],
+                'auth_profile_reference' =>
+                    session('pending_profile_reference'),
+                'is_authenticated' => true,
+                'authenticated_at' => time(),
+            ]);
+
+            /**
+             * Remove temporary registration state after authentication.
+             */
+            session()->remove([
+                'pending_registration_user_id',
+                'pending_mobile_contact_id',
+                'pending_profile_reference',
+            ]);
+
+            return redirect()
+                ->to(route_to('web.dashboard'))
+                ->with('formAlert', [
+                    'type' => 'success',
+                    'title' => 'Registration completed',
+                    'message' =>
+                        'Your mobile number has been verified successfully.',
+                ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Registration OTP verification failed: {message}',
+                [
+                    'message' => $exception->getMessage(),
+                ]
+            );
+
+            return redirect()
+                ->back()
+                ->with('formAlert', [
+                    'type' => 'danger',
+                    'title' => 'Verification failed',
+                    'message' =>
+                        'We could not verify the OTP. Please try again.',
+                ]);
+        }
+    }
+
+    /**
+     * Resend OTP after the existing OTP has expired.
+     */
+    public function resend(): RedirectResponse
+    {
+        $pending = $this->getPendingSession();
+
+        if ($pending === null) {
+            return $this->redirectHomeWithWarning();
+        }
+
+        try {
+            /** @var RegistrationOtpService $service */
+            $service = service(
+                'registrationOtpService'
+            );
+
+            $currentExpiry =
+                $service->getPendingExpiryTimestamp(
+                    $pending['mobileContactId']
+                );
+
+            /**
+             * Server-side enforcement is mandatory.
+             *
+             * The disabled link in JavaScript is only for user experience.
+             */
+            if (
+                $currentExpiry !== null
+                && $currentExpiry > time()
+            ) {
+                return redirect()
+                    ->back()
+                    ->with('formAlert', [
+                        'type' => 'warning',
+                        'title' => 'Please wait',
+                        'message' =>
+                            'You can resend the OTP after the timer expires.',
+                    ]);
+            }
+
+            $result = $service->issue(
+                $pending['mobileContactId']
+            );
+
+            if (!$result->successful) {
+                return redirect()
+                    ->back()
+                    ->with('formAlert', [
+                        'type' => 'danger',
+                        'title' => 'OTP limit reached',
+                        'message' => $result->message,
+                    ]);
+            }
+
+            return redirect()
+                ->to(route_to('web.registration.verify'))
+                ->with('formAlert', [
+                    'type' => 'success',
+                    'title' => 'New OTP sent',
+                    'message' =>
+                        'A new OTP has been sent to your mobile number.',
+                ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Registration OTP resend failed: {message}',
+                [
+                    'message' => $exception->getMessage(),
+                ]
+            );
+
+            return redirect()
+                ->back()
+                ->with('formAlert', [
+                    'type' => 'danger',
+                    'title' => 'Unable to resend OTP',
+                    'message' =>
+                        'Please try again after a few moments.',
+                ]);
+        }
+    }
+
+    /**
+     * Cancel the current registration verification session.
+     *
+     * The pending database registration is retained so the mobile-number
+     * rate limit and incomplete registration history cannot be bypassed.
+     */
+    public function cancel(): RedirectResponse
+    {
+        session()->remove([
+            'pending_registration_user_id',
+            'pending_mobile_contact_id',
+            'pending_profile_reference',
+        ]);
+
+        return redirect()
+            ->to(route_to('web.home'))
+            ->with('formAlert', [
+                'type' => 'info',
+                'title' => 'Verification cancelled',
+                'message' =>
+                    'OTP verification was cancelled.',
+            ]);
+    }
+
+    /**
+     * Combine the four individual OTP form fields.
+     */
+    private function readOtp(): string
+    {
+        $digits = [];
+
+        for ($index = 1; $index <= 4; $index++) {
+            $digit = trim(
+                (string) $this->request->getPost(
+                    'otp_' . $index
+                )
+            );
+
+            $digits[] = preg_match('/^\d$/', $digit)
+                ? $digit
+                : '';
+        }
+
+        return implode('', $digits);
+    }
+
+    /**
+     * Return validated pending-registration session identifiers.
+     *
+     * @return array{userId: int, mobileContactId: int}|null
+     */
+    private function getPendingSession(): ?array
     {
         $userId = session(
             'pending_registration_user_id'
@@ -27,31 +289,30 @@ final class RegistrationVerificationController extends BaseController
             'pending_mobile_contact_id'
         );
 
-        /**
-         * Prevent direct access without a pending registration.
-         */
         if (
             !is_numeric($userId)
             || !is_numeric($mobileContactId)
         ) {
-            return redirect()
-                ->to(route_to('web.home'))
-                ->with('formAlert', [
-                    'type' => 'warning',
-                    'title' => 'Registration required',
-                    'message' =>
-                        'Please complete the registration form first.',
-                ]);
+            return null;
         }
 
-        return view(
-            'Pages/Registration/VerifyOtp',
-            [
-                'pageTitle' => 'Verify OTP',
-                'profileReference' => session(
-                    'pending_profile_reference'
-                ),
-            ]
-        );
+        return [
+            'userId' => (int) $userId,
+            'mobileContactId' =>
+                (int) $mobileContactId,
+        ];
+    }
+
+    private function redirectHomeWithWarning(): RedirectResponse
+    {
+        return redirect()
+            ->to(route_to('web.home'))
+            ->with('formAlert', [
+                'type' => 'warning',
+                'title' => 'Registration required',
+                'message' =>
+                    'Please complete the registration form first.',
+            ]);
     }
 }
+

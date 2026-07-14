@@ -33,6 +33,48 @@ $routes->group('', [
             'as' => 'web.registration.verify',
         ]
     );
+
+    $routes->post(
+        'register/verify-otp',
+        'RegistrationVerificationController::verify',
+        [
+            'as' => 'web.registration.verify.submit',
+        ]
+    );
+
+    $routes->post(
+        'register/resend-otp',
+        'RegistrationVerificationController::resend',
+        [
+            'as' => 'web.registration.otp.resend',
+        ]
+    );
+
+    $routes->post(
+        'register/cancel',
+        'RegistrationVerificationController::cancel',
+        [
+            'as' => 'web.registration.cancel',
+        ]
+    );
+
+    $routes->get(
+        'dashboard',
+        'DashboardController::index',
+        [
+            'as' => 'web.dashboard',
+            'filter' => 'webAuth',
+        ]
+    );
+
+    $routes->post(
+        'logout',
+        'AuthenticationController::logout',
+        [
+            'as' => 'web.logout',
+            'filter' => 'webAuth',
+        ]
+    );
 });
 
 // -----------------------------------------------------------------------------

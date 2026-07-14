@@ -148,4 +148,26 @@ ON contact_verifications (
     expires_at
 );
 
+CREATE INDEX IF NOT EXISTS idx_contact_verifications_contact_purpose_created
+ON contact_verifications (
+    user_contact_id,
+    purpose,
+    created_at DESC
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_verifications_pending_lookup
+ON contact_verifications (
+    user_contact_id,
+    purpose,
+    status,
+    id DESC
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_one_pending_registration_otp
+ON contact_verifications (
+    user_contact_id,
+    purpose
+)
+WHERE status = 'PENDING';
+
 COMMIT;

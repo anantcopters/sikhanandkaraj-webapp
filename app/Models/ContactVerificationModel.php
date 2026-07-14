@@ -51,6 +51,25 @@ final class ContactVerificationModel extends Model
     protected $skipValidation = true;
 
     /**
+     * Find the newest pending registration OTP for a contact.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findLatestPendingForContact(
+        int $userContactId,
+        string $purpose
+    ): ?array {
+        $record = $this
+            ->where('user_contact_id', $userContactId)
+            ->where('purpose', $purpose)
+            ->where('status', self::STATUS_PENDING)
+            ->orderBy('id', 'DESC')
+            ->first();
+
+        return is_array($record) ? $record : null;
+    }
+
+    /**
      * Cancel old pending OTPs before issuing another OTP.
      */
     public function cancelPendingForContact(
@@ -65,5 +84,52 @@ final class ContactVerificationModel extends Model
                 'status' => self::STATUS_CANCELLED,
             ])
             ->update();
+    }
+
+    /**
+     * Find the oldest OTP issued during a rolling time window.
+     *
+     * This determines when the 24-hour restriction ends.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findOldestIssuedSince(
+        int $userContactId,
+        string $purpose,
+        string $since
+    ): ?array {
+        $record = $this
+            ->where('user_contact_id', $userContactId)
+            ->where('purpose', $purpose)
+            ->where('created_at >=', $since)
+            ->orderBy('created_at', 'ASC')
+            ->first();
+
+        return is_array($record) ? $record : null;
+    }
+
+    /**
+     * Increment incorrect verification attempts atomically.
+     */
+    public function incrementAttemptCount(int $verificationId): bool
+    {
+        return $this
+            ->where('id', $verificationId)
+            ->set(
+                'attempt_count',
+                'attempt_count + 1',
+                false
+            )
+            ->update();
+    }
+
+    /**
+     * Mark an OTP as expired.
+     */
+    public function markExpired(int $verificationId): bool
+    {
+        return $this->update($verificationId, [
+            'status' => self::STATUS_EXPIRED,
+        ]);
     }
 }

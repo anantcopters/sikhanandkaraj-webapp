@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Registration;
 
-use App\Models\ContactVerificationModel;
 use App\Models\UserContactModel;
 use App\Models\UserModel;
 use CodeIgniter\Database\BaseConnection;
@@ -14,30 +13,50 @@ use Throwable;
 /**
  * Coordinates Register Free business logic.
  *
- * This service handles:
+ * Registration cases:
  *
  * Case A:
  *     Existing verified mobile -> reject registration.
  *
  * Case B:
- *     Existing unverified mobile -> update pending registration.
+ *     Existing unverified mobile attached to a PENDING user
+ *     -> update the pending registration.
  *
  * Case C:
- *     New mobile -> create pending user and contact records.
+ *     New mobile -> create a pending user and contact records.
+ *
+ * OTP handling:
+ *     The user/contact transaction is committed first.
+ *     RegistrationOtpService then applies rate limits and issues the OTP.
+ *
+ * This separation avoids creating an OTP inside an unfinished database
+ * transaction and ensures initial OTPs and resends follow the same limits.
  */
 final class RegisterFreeService
 {
+    /**
+     * Maximum attempts when generating a random profile reference.
+     */
+    private const PROFILE_REFERENCE_ATTEMPTS = 20;
+
+    /**
+     * CHANGE:
+     * ContactVerificationModel is no longer required directly here.
+     *
+     * OTP creation, cancellation and rate limiting are now handled by
+     * RegistrationOtpService.
+     */
     public function __construct(
         private readonly UserModel $userModel,
         private readonly UserContactModel $userContactModel,
-        private readonly ContactVerificationModel $verificationModel,
-        private readonly BaseConnection $database
+        private readonly BaseConnection $database,
+        private readonly RegistrationOtpService $otpService
     ) {}
 
     /**
      * Process the Register Free request.
      *
-     * @param array<string, mixed> $data
+     * @param array<string, mixed> $data Validated registration data.
      */
     public function register(array $data): RegisterFreeResult
     {
@@ -58,6 +77,12 @@ final class RegisterFreeService
         $this->database->transBegin();
 
         try {
+            /**
+             * Search by normalized E.164-style mobile number.
+             *
+             * Example:
+             * 9876543210 becomes +919876543210.
+             */
             $existingMobile = $this->userContactModel
                 ->findByNormalizedValue(
                     UserContactModel::TYPE_MOBILE,
@@ -65,8 +90,12 @@ final class RegisterFreeService
                 );
 
             /**
-             * Case A:
-             * The mobile already belongs to a verified account.
+             * -------------------------------------------------------------
+             * Case A: verified mobile already exists
+             * -------------------------------------------------------------
+             *
+             * A verified mobile belongs to an existing account and cannot
+             * be reused through the public registration form.
              */
             if (
                 $existingMobile !== null
@@ -83,12 +112,9 @@ final class RegisterFreeService
             }
 
             /**
-             * Case B:
-             * Mobile exists but is not verified.
-             *
-             * The existing account must also be PENDING. An ACTIVE,
-             * SUSPENDED or DELETED account must never be overwritten
-             * through the Register Free form.
+             * -------------------------------------------------------------
+             * Case B: unverified mobile already exists
+             * -------------------------------------------------------------
              */
             if ($existingMobile !== null) {
                 $result = $this->updatePendingRegistration(
@@ -100,8 +126,10 @@ final class RegisterFreeService
                 );
 
                 /**
-                 * A business-rule failure is returned without committing
-                 * any database changes.
+                 * A business-rule failure must not commit changes.
+                 *
+                 * For example, an unverified mobile attached to an ACTIVE
+                 * or SUSPENDED account cannot be overwritten.
                  */
                 if (!$result->successful) {
                     $this->database->transRollback();
@@ -109,14 +137,29 @@ final class RegisterFreeService
                     return $result;
                 }
 
+                /**
+                 * CHANGE:
+                 * Commit user/contact changes before issuing an OTP.
+                 */
                 $this->commitOrFail();
 
-                return $result;
+                /**
+                 * CHANGE:
+                 * Issue the OTP through the shared OTP service.
+                 *
+                 * This ensures:
+                 * - initial registration OTPs count towards the limit;
+                 * - registration resubmissions count towards the limit;
+                 * - resend requests use the same limit;
+                 * - old pending OTPs are cancelled consistently.
+                 */
+                return $this->issueOtpForRegistration($result);
             }
 
             /**
-             * Case C:
-             * No account currently uses this mobile.
+             * -------------------------------------------------------------
+             * Case C: mobile does not exist
+             * -------------------------------------------------------------
              */
             $result = $this->createPendingRegistration(
                 data: $data,
@@ -126,15 +169,24 @@ final class RegisterFreeService
                 passwordHash: $passwordHash
             );
 
+            /**
+             * CHANGE:
+             * Commit the new pending user and contacts before issuing OTP.
+             */
             $this->commitOrFail();
 
-            return $result;
+            /**
+             * CHANGE:
+             * Apply the same OTP issue and rate-limit logic.
+             */
+            return $this->issueOtpForRegistration($result);
         } catch (Throwable $exception) {
             /**
-             * Always roll back when an exception occurs.
+             * Rollback is safe even when the transaction has already been
+             * committed. The database layer will have no active work to undo.
              *
              * Do not condition rollback on transStatus(), because a failed
-             * query normally changes the transaction status to false.
+             * query normally changes transaction status to false.
              */
             $this->database->transRollback();
 
@@ -143,11 +195,60 @@ final class RegisterFreeService
     }
 
     /**
+     * CHANGE:
+     * Issue an OTP after the pending registration transaction has committed.
+     *
+     * If the OTP send limit has been reached, the pending user remains in
+     * the database. This is intentional:
+     *
+     * - the same mobile cannot bypass the limit by registering again;
+     * - the user can continue after the 24-hour restriction ends;
+     * - incomplete registration history remains auditable.
+     */
+    private function issueOtpForRegistration(
+        RegisterFreeResult $registrationResult
+    ): RegisterFreeResult {
+        if (
+            !$registrationResult->successful
+            || $registrationResult->mobileContactId === null
+        ) {
+            throw new RuntimeException(
+                'A successful pending registration is required '
+                    . 'before issuing an OTP.'
+            );
+        }
+
+        $otpResult = $this->otpService->issue(
+            $registrationResult->mobileContactId
+        );
+
+        if (!$otpResult->successful) {
+            return RegisterFreeResult::fieldFailure(
+                RegistrationAction::OTP_LIMIT_REACHED,
+                'mobile_number',
+                $otpResult->message
+            );
+        }
+
+        /**
+         * Preserve the original registration result.
+         *
+         * The controller requires:
+         * - userId
+         * - mobileContactId
+         * - profileReference
+         *
+         * It stores those values in the pending-registration session.
+         */
+        return $registrationResult;
+    }
+
+    /**
      * Case B: update an existing pending registration.
      *
-     * The mobile contact is known to be unverified before this method
-     * is called. This method additionally verifies that the corresponding
-     * user account is still PENDING.
+     * The mobile contact is already known to be unverified before this
+     * method is called. This method additionally confirms that its user
+     * account is still PENDING.
      *
      * @param array<string, mixed> $existingMobile
      * @param array<string, mixed> $data
@@ -159,7 +260,13 @@ final class RegisterFreeService
         string $gender,
         string $passwordHash
     ): RegisterFreeResult {
-        $userId = (int) $existingMobile['user_id'];
+        $userId = (int) ($existingMobile['user_id'] ?? 0);
+
+        if ($userId <= 0) {
+            throw new RuntimeException(
+                'The mobile contact does not contain a valid user ID.'
+            );
+        }
 
         $user = $this->userModel->find($userId);
 
@@ -170,9 +277,9 @@ final class RegisterFreeService
         }
 
         /**
-         * Only pending registrations may be updated through this flow.
+         * Only PENDING accounts may be updated through registration.
          *
-         * This prevents an unverified contact belonging to an ACTIVE,
+         * This prevents an unverified mobile belonging to an ACTIVE,
          * SUSPENDED or DELETED account from being reset to PENDING.
          */
         if (
@@ -187,39 +294,53 @@ final class RegisterFreeService
             );
         }
 
-        $mobileContactId = (int) $existingMobile['id'];
+        $mobileContactId = (int) (
+            $existingMobile['id'] ?? 0
+        );
 
-        $updated = $this->userModel->update($userId, [
-            'profile_created_for' =>
-            (string) $data['profile_created_for'],
+        if ($mobileContactId <= 0) {
+            throw new RuntimeException(
+                'The existing mobile contact ID is invalid.'
+            );
+        }
 
-            'gender' => $gender,
-
-            'full_name' => trim(
-                (string) $data['full_name']
-            ),
-            /**
-             * A pending registration may be resubmitted.
-             *
-             * The latest submitted password becomes the account password.
-             */
-            'password_hash' => $passwordHash,
-
-            /**
-         * The existing account is already confirmed as PENDING,
-         * so there is no need to overwrite account_status here.
+        /**
+         * Update the latest details submitted by the user.
+         *
+         * A pending registration may be resubmitted, so the most recently
+         * submitted password becomes the pending account password.
          */
-        ]);
+        $userUpdated = $this->userModel->update(
+            $userId,
+            [
+                'profile_created_for' =>
+                (string) $data['profile_created_for'],
 
-        if ($updated === false) {
+                'gender' => $gender,
+
+                'full_name' => trim(
+                    (string) $data['full_name']
+                ),
+
+                'password_hash' => $passwordHash,
+
+                /**
+             * account_status is deliberately not changed here.
+             *
+             * It has already been confirmed as PENDING.
+             */
+            ]
+        );
+
+        if ($userUpdated === false) {
             throw new RuntimeException(
                 'Unable to update the pending user.'
             );
         }
 
         /**
-         * Keep the existing mobile record unverified while a new
-         * registration OTP is pending.
+         * Keep the mobile unverified until the newly issued OTP has been
+         * successfully verified.
          */
         $mobileUpdated = $this->userContactModel->update(
             $mobileContactId,
@@ -236,12 +357,20 @@ final class RegisterFreeService
             );
         }
 
+        /**
+         * Update or create the primary email contact.
+         */
         $this->upsertEmailContact(
             userId: $userId,
             email: $email
         );
 
-        $this->createRegistrationOtp($mobileContactId);
+        /**
+         * CHANGE:
+         * OTP is not generated inside this method anymore.
+         *
+         * It will be issued only after the user/contact transaction commits.
+         */
 
         return RegisterFreeResult::success(
             RegistrationAction::PENDING_UPDATED,
@@ -263,22 +392,33 @@ final class RegisterFreeService
         string $gender,
         string $passwordHash
     ): RegisterFreeResult {
+        $profileReference =
+            $this->generateUniqueProfileReference();
 
-        $profileReference = $this->generateUniqueProfileReference();
-        $userId = $this->userModel->insert([
-            'profile_ref_number' => $profileReference,
-            'profile_created_for' =>
-            (string) $data['profile_created_for'],
+        $userId = $this->userModel->insert(
+            [
+                'profile_ref_number' =>
+                $profileReference,
 
-            'gender' => $gender,
+                'profile_created_for' =>
+                (string) $data['profile_created_for'],
 
-            'full_name' => trim(
-                (string) $data['full_name']
-            ),
-            'password_hash' => $passwordHash,
+                'gender' => $gender,
 
-            'account_status' => 'PENDING',
-        ], true);
+                'full_name' => trim(
+                    (string) $data['full_name']
+                ),
+
+                'password_hash' => $passwordHash,
+
+                /**
+                 * The account becomes ACTIVE only after successful
+                 * mobile OTP verification.
+                 */
+                'account_status' => 'PENDING',
+            ],
+            true
+        );
 
         if (!is_numeric($userId)) {
             throw new RuntimeException(
@@ -288,19 +428,25 @@ final class RegisterFreeService
 
         $userId = (int) $userId;
 
-        $mobileContactId = $this->userContactModel->insert([
-            'user_id' => $userId,
+        /**
+         * Create the unverified primary mobile contact.
+         */
+        $mobileContactId = $this->userContactModel->insert(
+            [
+                'user_id' => $userId,
 
-            'contact_type' =>
-            UserContactModel::TYPE_MOBILE,
+                'contact_type' =>
+                UserContactModel::TYPE_MOBILE,
 
-            'contact_value' => $mobile,
-            'normalized_value' => $mobile,
+                'contact_value' => $mobile,
+                'normalized_value' => $mobile,
 
-            'is_primary' => true,
-            'is_verified' => false,
-            'verified_at' => null,
-        ], true);
+                'is_primary' => true,
+                'is_verified' => false,
+                'verified_at' => null,
+            ],
+            true
+        );
 
         if (!is_numeric($mobileContactId)) {
             throw new RuntimeException(
@@ -310,19 +456,25 @@ final class RegisterFreeService
 
         $mobileContactId = (int) $mobileContactId;
 
-        $emailContactId = $this->userContactModel->insert([
-            'user_id' => $userId,
+        /**
+         * Create the unverified primary email contact.
+         */
+        $emailContactId = $this->userContactModel->insert(
+            [
+                'user_id' => $userId,
 
-            'contact_type' =>
-            UserContactModel::TYPE_EMAIL,
+                'contact_type' =>
+                UserContactModel::TYPE_EMAIL,
 
-            'contact_value' => $email,
-            'normalized_value' => $email,
+                'contact_value' => $email,
+                'normalized_value' => $email,
 
-            'is_primary' => true,
-            'is_verified' => false,
-            'verified_at' => null,
-        ], true);
+                'is_primary' => true,
+                'is_verified' => false,
+                'verified_at' => null,
+            ],
+            true
+        );
 
         if (!is_numeric($emailContactId)) {
             throw new RuntimeException(
@@ -330,7 +482,13 @@ final class RegisterFreeService
             );
         }
 
-        $this->createRegistrationOtp($mobileContactId);
+        /**
+         * CHANGE:
+         * OTP is not generated here.
+         *
+         * It will be generated after the pending user and contacts have
+         * been committed successfully.
+         */
 
         return RegisterFreeResult::success(
             RegistrationAction::CREATED,
@@ -353,20 +511,27 @@ final class RegisterFreeService
                 UserContactModel::TYPE_EMAIL
             );
 
+        /**
+         * No email contact exists yet, so create one.
+         */
         if ($existingEmail === null) {
-            $emailContactId = $this->userContactModel->insert([
-                'user_id' => $userId,
+            $emailContactId =
+                $this->userContactModel->insert(
+                    [
+                        'user_id' => $userId,
 
-                'contact_type' =>
-                UserContactModel::TYPE_EMAIL,
+                        'contact_type' =>
+                        UserContactModel::TYPE_EMAIL,
 
-                'contact_value' => $email,
-                'normalized_value' => $email,
+                        'contact_value' => $email,
+                        'normalized_value' => $email,
 
-                'is_primary' => true,
-                'is_verified' => false,
-                'verified_at' => null,
-            ], true);
+                        'is_primary' => true,
+                        'is_verified' => false,
+                        'verified_at' => null,
+                    ],
+                    true
+                );
 
             if (!is_numeric($emailContactId)) {
                 throw new RuntimeException(
@@ -378,19 +543,20 @@ final class RegisterFreeService
         }
 
         /**
-         * A changed email must be verified again.
+         * A resubmitted or changed email must be verified again.
          */
-        $updated = $this->userContactModel->update(
+        $emailUpdated = $this->userContactModel->update(
             (int) $existingEmail['id'],
             [
                 'contact_value' => $email,
                 'normalized_value' => $email,
+                'is_primary' => true,
                 'is_verified' => false,
                 'verified_at' => null,
             ]
         );
 
-        if ($updated === false) {
+        if ($emailUpdated === false) {
             throw new RuntimeException(
                 'Unable to update the email contact.'
             );
@@ -398,72 +564,7 @@ final class RegisterFreeService
     }
 
     /**
-     * Cancel old OTPs and create a new registration OTP.
-     *
-     * The plain OTP should be passed to the SMS provider after the
-     * database transaction succeeds. Only its hash is stored.
-     */
-    private function createRegistrationOtp(
-        int $mobileContactId
-    ): int {
-        if (!$this->verificationModel->cancelPendingForContact(
-            $mobileContactId,
-            ContactVerificationModel::PURPOSE_REGISTER
-        )) {
-            throw new RuntimeException(
-                'Unable to cancel previous OTP records.'
-            );
-        }
-
-        $otp = (string) random_int(1000, 9999);
-
-        $expiresAt = date(
-            'Y-m-d H:i:s',
-            strtotime(
-                '+' . OTP_EXPIRY_MINUTES . ' minutes'
-            )
-        );
-
-        $verificationId = $this->verificationModel->insert([
-            'user_contact_id' => $mobileContactId,
-
-            'purpose' =>
-            ContactVerificationModel::PURPOSE_REGISTER,
-
-            'otp_hash' => password_hash(
-                $otp,
-                PASSWORD_DEFAULT
-            ),
-
-            'expires_at' => $expiresAt,
-
-            'attempt_count' => 0,
-            'resend_count' => 0,
-
-            'status' =>
-            ContactVerificationModel::STATUS_PENDING,
-
-            'verified_at' => null,
-        ], true);
-
-        if (!is_numeric($verificationId)) {
-            throw new RuntimeException(
-                'Unable to create the OTP verification record.'
-            );
-        }
-
-        /**
-         * Do not log the OTP in production.
-         *
-         * Replace this with an injected OTP sender:
-         *
-         * $this->otpSender->send($mobile, $otp);
-         */
-        return (int) $verificationId;
-    }
-
-    /**
-     * Infer gender for relationships where it is unambiguous.
+     * Infer gender when profile_created_for makes it unambiguous.
      *
      * @param array<string, mixed> $data
      */
@@ -471,8 +572,12 @@ final class RegisterFreeService
     {
         return match ((string) $data['profile_created_for']) {
             'self' => (string) $data['gender'],
-            'son', 'brother' => 'M',
-            'daughter', 'sister' => 'F',
+
+            'son',
+            'brother' => 'M',
+
+            'daughter',
+            'sister' => 'F',
 
             default => throw new RuntimeException(
                 'Unsupported profile relationship.'
@@ -481,7 +586,10 @@ final class RegisterFreeService
     }
 
     /**
-     * Normalize an Indian mobile to E.164-like storage.
+     * Normalize an Indian mobile number for consistent lookup/storage.
+     *
+     * The validated form supplies ten digits. The normalized database
+     * value is stored in an E.164-style format such as +919876543210.
      */
     private function normalizeIndianMobile(
         string $mobileNumber
@@ -492,6 +600,23 @@ final class RegisterFreeService
             $mobileNumber
         ) ?? '';
 
+        /**
+         * Prevent accidentally duplicating the country code if this method
+         * receives a value that already includes 91.
+         */
+        if (
+            strlen($digits) === 12
+            && str_starts_with($digits, '91')
+        ) {
+            $digits = substr($digits, 2);
+        }
+
+        if (strlen($digits) !== 10) {
+            throw new RuntimeException(
+                'A valid ten-digit mobile number is required.'
+            );
+        }
+
         return '+91' . $digits;
     }
 
@@ -500,11 +625,20 @@ final class RegisterFreeService
      */
     private function normalizeEmail(string $email): string
     {
-        return mb_strtolower(trim($email));
+        return mb_strtolower(
+            trim($email)
+        );
     }
 
     /**
-     * Safely interpret PostgreSQL/CI4 boolean values.
+     * Safely interpret PostgreSQL/CodeIgniter boolean values.
+     *
+     * Depending on the database driver, a boolean may be returned as:
+     *
+     * - true/false
+     * - 1/0
+     * - "t"/"f"
+     * - "true"/"false"
      *
      * @param array<string, mixed> $contact
      */
@@ -517,7 +651,7 @@ final class RegisterFreeService
     }
 
     /**
-     * Commit the transaction or fail the complete operation.
+     * Commit the registration transaction or fail the entire operation.
      */
     private function commitOrFail(): void
     {
@@ -533,15 +667,10 @@ final class RegisterFreeService
     }
 
     /**
-     * Maximum attempts when generating a random profile reference.
-     */
-    private const PROFILE_REFERENCE_ATTEMPTS = 20;
-
-    /**
-     * Generate a reference in the format SAK1234567.
+     * Generate a unique profile reference in the format SAK1234567.
      *
      * The database unique index remains the final protection against
-     * concurrent requests.
+     * duplicate references caused by concurrent registration requests.
      */
     private function generateUniqueProfileReference(): string
     {
@@ -575,8 +704,9 @@ final class RegisterFreeService
      *
      * The plain password must never be stored, logged or returned.
      */
-    private function hashPassword(string $password): string
-    {
+    private function hashPassword(
+        string $password
+    ): string {
         $passwordHash = password_hash(
             $password,
             PASSWORD_DEFAULT
