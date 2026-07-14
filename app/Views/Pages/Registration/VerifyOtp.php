@@ -35,10 +35,6 @@ $this->section('content');
                 <div class="card registration-otp-card">
                     <div class="card-body p-4 p-md-5 text-center">
 
-                        <div class="registration-otp-icon mb-3">
-                            <i class="bi bi-phone"></i>
-                        </div>
-
                         <h1 class="fs-22 mb-2">
                             Verify your mobile
                         </h1>

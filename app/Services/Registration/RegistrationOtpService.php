@@ -12,6 +12,7 @@ use DateInterval;
 use DateTimeImmutable;
 use RuntimeException;
 use Throwable;
+use DateTimeZone;
 
 /**
  * Handles issuing, resending and verifying registration OTPs.
@@ -100,7 +101,18 @@ final class RegistrationOtpService
                 ? $fixedOtp
                 : (string) random_int(1000, 9999);
 
-            $now = new DateTimeImmutable();
+            /**
+             * Always generate and store OTP timestamps in UTC.
+             *
+             * The database value uses a timezone-free datetime format, so the timezone
+             * must be explicitly controlled both when writing and reading it.
+             */
+            $utcTimezone = new DateTimeZone('UTC');
+
+            $now = new DateTimeImmutable(
+                'now',
+                $utcTimezone
+            );
 
             $expiresAt = $now->add(
                 new DateInterval(
@@ -223,12 +235,12 @@ final class RegistrationOtpService
                 );
             }
 
-            $expiresAt = strtotime(
+            $expiresAt = $this->parseUtcTimestamp(
                 (string) $verification['expires_at']
             );
 
             if (
-                $expiresAt === false
+                $expiresAt === null
                 || $expiresAt <= time()
             ) {
                 $this->verificationModel->markExpired(
@@ -379,11 +391,9 @@ final class RegistrationOtpService
             return null;
         }
 
-        $expiresAt = strtotime(
+        return $this->parseUtcTimestamp(
             (string) $verification['expires_at']
         );
-
-        return $expiresAt === false ? null : $expiresAt;
     }
 
     /**
@@ -422,8 +432,14 @@ final class RegistrationOtpService
                 $since
             );
 
-        $retryAfter = isset($oldest['created_at'])
-            ? strtotime((string) $oldest['created_at']) + DAY
+        $oldestCreatedAt = isset($oldest['created_at'])
+            ? $this->parseUtcTimestamp(
+                (string) $oldest['created_at']
+            )
+            : null;
+
+        $retryAfter = $oldestCreatedAt !== null
+            ? $oldestCreatedAt + DAY
             : time() + DAY;
 
         return RegistrationOtpResult::failure(
@@ -454,5 +470,34 @@ final class RegistrationOtpService
         }
 
         $this->database->transCommit();
+    }
+
+    /**
+     * Convert a database UTC datetime string into a Unix timestamp.
+     *
+     * Database datetime columns do not include a timezone offset. Therefore,
+     * strtotime() must not be used because it relies on the PHP runtime's
+     * current default timezone.
+     */
+    private function parseUtcTimestamp(
+        string $dateTime
+    ): ?int {
+        $dateTime = trim($dateTime);
+
+        if ($dateTime === '') {
+            return null;
+        }
+
+        $parsed = DateTimeImmutable::createFromFormat(
+            'Y-m-d H:i:s',
+            $dateTime,
+            new DateTimeZone('UTC')
+        );
+
+        if (!$parsed instanceof DateTimeImmutable) {
+            return null;
+        }
+
+        return $parsed->getTimestamp();
     }
 }

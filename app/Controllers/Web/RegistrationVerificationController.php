@@ -24,6 +24,19 @@ final class RegistrationVerificationController extends BaseController
      */
     public function index(): string|RedirectResponse
     {
+        /**
+         * The OTP screen contains session-specific data, CSRF tokens
+         * and a database-backed expiry timestamp. It must never be cached.
+         */
+        $this->response
+            ->setHeader(
+                'Cache-Control',
+                'no-store, no-cache, must-revalidate, max-age=0'
+            )
+            ->setHeader('Pragma', 'no-cache')
+            ->setHeader('Expires', '0');
+
+
         $pending = $this->getPendingSession();
 
         if ($pending === null) {
@@ -38,14 +51,26 @@ final class RegistrationVerificationController extends BaseController
                 $pending['mobileContactId']
             );
 
+        log_message(
+            'debug',
+            'OTP timer debug: now={now}, expiry={expiry}, remaining={remaining}',
+            [
+                'now' => time(),
+                'expiry' => $expiresAtTimestamp ?? 0,
+                'remaining' => $expiresAtTimestamp !== null
+                    ? $expiresAtTimestamp - time()
+                    : -1,
+            ]
+        );
+
         return view(
             'Pages/Registration/VerifyOtp',
             [
                 'pageTitle' => 'Verify OTP',
                 'profileReference' =>
-                    session('pending_profile_reference'),
+                session('pending_profile_reference'),
                 'expiresAtTimestamp' =>
-                    $expiresAtTimestamp,
+                $expiresAtTimestamp,
                 'pageScripts' => [
                     'assets/js/pages/registration-otp.js',
                 ],
@@ -103,7 +128,7 @@ final class RegistrationVerificationController extends BaseController
             session()->set([
                 'auth_user_id' => $pending['userId'],
                 'auth_profile_reference' =>
-                    session('pending_profile_reference'),
+                session('pending_profile_reference'),
                 'is_authenticated' => true,
                 'authenticated_at' => time(),
             ]);
@@ -123,7 +148,7 @@ final class RegistrationVerificationController extends BaseController
                     'type' => 'success',
                     'title' => 'Registration completed',
                     'message' =>
-                        'Your mobile number has been verified successfully.',
+                    'Your mobile number has been verified successfully.',
                 ]);
         } catch (Throwable $exception) {
             log_message(
@@ -140,7 +165,7 @@ final class RegistrationVerificationController extends BaseController
                     'type' => 'danger',
                     'title' => 'Verification failed',
                     'message' =>
-                        'We could not verify the OTP. Please try again.',
+                    'We could not verify the OTP. Please try again.',
                 ]);
         }
     }
@@ -182,7 +207,7 @@ final class RegistrationVerificationController extends BaseController
                         'type' => 'warning',
                         'title' => 'Please wait',
                         'message' =>
-                            'You can resend the OTP after the timer expires.',
+                        'You can resend the OTP after the timer expires.',
                     ]);
             }
 
@@ -206,7 +231,7 @@ final class RegistrationVerificationController extends BaseController
                     'type' => 'success',
                     'title' => 'New OTP sent',
                     'message' =>
-                        'A new OTP has been sent to your mobile number.',
+                    'A new OTP has been sent to your mobile number.',
                 ]);
         } catch (Throwable $exception) {
             log_message(
@@ -223,7 +248,7 @@ final class RegistrationVerificationController extends BaseController
                     'type' => 'danger',
                     'title' => 'Unable to resend OTP',
                     'message' =>
-                        'Please try again after a few moments.',
+                    'Please try again after a few moments.',
                 ]);
         }
     }
@@ -248,7 +273,7 @@ final class RegistrationVerificationController extends BaseController
                 'type' => 'info',
                 'title' => 'Verification cancelled',
                 'message' =>
-                    'OTP verification was cancelled.',
+                'OTP verification was cancelled.',
             ]);
     }
 
@@ -299,7 +324,7 @@ final class RegistrationVerificationController extends BaseController
         return [
             'userId' => (int) $userId,
             'mobileContactId' =>
-                (int) $mobileContactId,
+            (int) $mobileContactId,
         ];
     }
 
@@ -311,8 +336,7 @@ final class RegistrationVerificationController extends BaseController
                 'type' => 'warning',
                 'title' => 'Registration required',
                 'message' =>
-                    'Please complete the registration form first.',
+                'Please complete the registration form first.',
             ]);
     }
 }
-
