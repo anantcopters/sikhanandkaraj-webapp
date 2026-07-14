@@ -23,7 +23,7 @@ $this->extend('Layouts/Main');
 $this->section('content');
 ?>
 
-<section class="registration-otp-page py-5">
+<section class="registration-otp-page py-4">
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-12 col-md-8 col-lg-5">
@@ -33,7 +33,7 @@ $this->section('content');
                 ]) ?>
 
                 <div class="card registration-otp-card">
-                    <div class="card-body p-4 p-md-5 text-center">
+                    <div class="card-body p-4 p-md-5 pt-md-4 pb-md-4 text-center">
 
                         <h1 class="fs-22 mb-2">
                             Verify your mobile

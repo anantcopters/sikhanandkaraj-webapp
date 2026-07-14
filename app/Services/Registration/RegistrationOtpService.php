@@ -129,8 +129,14 @@ final class RegistrationOtpService
                         $otp,
                         PASSWORD_DEFAULT
                     ),
+                    /**
+                     * Include the UTC offset when writing to PostgreSQL.
+                     *
+                     * Without the offset PostgreSQL interprets the datetime using the
+                     * database-session timezone, which may be Asia/Kolkata.
+                     */
                     'expires_at' =>
-                    $expiresAt->format('Y-m-d H:i:s'),
+                    $expiresAt->format('Y-m-d H:i:sP'),
                     'attempt_count' => 0,
                     'resend_count' => 0,
                     'status' =>
@@ -317,7 +323,10 @@ final class RegistrationOtpService
                 );
             }
 
-            $verifiedAt = date('Y-m-d H:i:s');
+            $verifiedAt = (new DateTimeImmutable(
+                'now',
+                new DateTimeZone('UTC')
+            ))->format('Y-m-d H:i:sP');
 
             $userUpdated = $this->userModel->update(
                 $userId,
@@ -391,9 +400,33 @@ final class RegistrationOtpService
             return null;
         }
 
-        return $this->parseUtcTimestamp(
-            (string) $verification['expires_at']
+        $rawExpiresAt = $verification['expires_at'] ?? null;
+
+        // log_message(
+        //     'debug',
+        //     'Raw OTP expiry: value={value}, type={type}, otp_id={otpId}',
+        //     [
+        //         'value' => is_scalar($rawExpiresAt)
+        //             ? (string) $rawExpiresAt
+        //             : json_encode($rawExpiresAt),
+        //         'type' => get_debug_type($rawExpiresAt),
+        //         'otpId' => $verification['id'] ?? 0,
+        //     ]
+        // );
+
+        $timestamp = $this->parseUtcTimestamp(
+            (string) $rawExpiresAt
         );
+
+        // log_message(
+        //     'debug',
+        //     'Parsed OTP expiry timestamp: {timestamp}',
+        //     [
+        //         'timestamp' => $timestamp ?? 0,
+        //     ]
+        // );
+
+        return $timestamp;
     }
 
     /**
@@ -473,11 +506,12 @@ final class RegistrationOtpService
     }
 
     /**
-     * Convert a database UTC datetime string into a Unix timestamp.
+     * Convert a database datetime value into a Unix timestamp.
      *
-     * Database datetime columns do not include a timezone offset. Therefore,
-     * strtotime() must not be used because it relies on the PHP runtime's
-     * current default timezone.
+     * Supports PostgreSQL values with:
+     * - no timezone
+     * - timezone offsets
+     * - fractional seconds
      */
     private function parseUtcTimestamp(
         string $dateTime
@@ -488,16 +522,53 @@ final class RegistrationOtpService
             return null;
         }
 
-        $parsed = DateTimeImmutable::createFromFormat(
-            'Y-m-d H:i:s',
-            $dateTime,
-            new DateTimeZone('UTC')
-        );
+        $utc = new DateTimeZone('UTC');
 
-        if (!$parsed instanceof DateTimeImmutable) {
-            return null;
+        /**
+         * Try the possible PostgreSQL datetime formats explicitly.
+         */
+        $formats = [
+            'Y-m-d H:i:s.uP',
+            'Y-m-d H:i:sP',
+            'Y-m-d H:i:s.uO',
+            'Y-m-d H:i:sO',
+            'Y-m-d H:i:s.u',
+            'Y-m-d H:i:s',
+        ];
+
+        foreach ($formats as $format) {
+            $parsed = DateTimeImmutable::createFromFormat(
+                '!' . $format,
+                $dateTime,
+                $utc
+            );
+
+            if ($parsed instanceof DateTimeImmutable) {
+                return $parsed->getTimestamp();
+            }
         }
 
-        return $parsed->getTimestamp();
+        /**
+         * Final fallback for valid ISO/PostgreSQL date strings.
+         */
+        try {
+            $parsed = new DateTimeImmutable(
+                $dateTime,
+                $utc
+            );
+
+            return $parsed->getTimestamp();
+        } catch (\Exception $exception) {
+            // log_message(
+            //     'error',
+            //     'Unable to parse OTP datetime: value={value}, error={error}',
+            //     [
+            //         'value' => $dateTime,
+            //         'error' => $exception->getMessage(),
+            //     ]
+            // );
+
+            return null;
+        }
     }
 }
