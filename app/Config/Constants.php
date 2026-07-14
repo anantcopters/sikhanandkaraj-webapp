@@ -118,7 +118,7 @@ defined('OTP_EXPIRY_MINUTES')
  * during a rolling 24-hour period.
  */
 defined('REGISTRATION_OTP_DAILY_SEND_LIMIT')
-    || define('REGISTRATION_OTP_DAILY_SEND_LIMIT', 3);
+    || define('REGISTRATION_OTP_DAILY_SEND_LIMIT', 1);
 
 /**
  * Maximum incorrect OTP submissions against one issued OTP.

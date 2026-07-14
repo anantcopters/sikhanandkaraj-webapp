@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 /**
  * @var string|null $profileReference
+ * @var string|null $loggedInUserName
  */
 
 $formAlert = session('formAlert');
@@ -25,15 +26,18 @@ $this->section('content');
 
         <div class="card">
             <div class="card-body p-4">
-                <h1 class="fs-22">
-                    Welcome to your dashboard
+                <h1 class="fs-22 mb-2">
+                    Welcome,
+                    <?= esc(
+                        $loggedInUserName ?? 'Member'
+                    ) ?>
                 </h1>
 
                 <?php if (
                     is_string($profileReference)
                     && $profileReference !== ''
                 ): ?>
-                    <p class="text-muted">
+                    <p class="text-muted mb-0">
                         Profile reference:
                         <strong>
                             <?= esc($profileReference) ?>
@@ -41,18 +45,14 @@ $this->section('content');
                     </p>
                 <?php endif; ?>
 
+                <!-- Keep this form for dashboard-security.js. -->
                 <form
                     method="post"
                     action="<?= url_to('web.logout') ?>"
-                    id="dashboardLogoutForm">
+                    id="dashboardLogoutForm"
+                    class="d-none">
 
                     <?= csrf_field() ?>
-
-                    <button
-                        type="submit"
-                        class="btn btn-outline-danger">
-                        Logout
-                    </button>
                 </form>
             </div>
         </div>
@@ -61,4 +61,3 @@ $this->section('content');
 </section>
 
 <?php $this->endSection(); ?>
-

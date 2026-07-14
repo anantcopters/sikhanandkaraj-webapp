@@ -59,8 +59,8 @@ $this->section('content');
                         <form
                             method="post"
                             action="<?= url_to(
-                                'web.registration.verify.submit'
-                            ) ?>"
+                                        'web.registration.verify.submit'
+                                    ) ?>"
                             id="registrationOtpForm"
                             autocomplete="one-time-code"
                             novalidate>
@@ -86,8 +86,8 @@ $this->section('content');
                                         pattern="[0-9]"
                                         maxlength="1"
                                         autocomplete="<?= $index === 1
-                                            ? 'one-time-code'
-                                            : 'off' ?>"
+                                                            ? 'one-time-code'
+                                                            : 'off' ?>"
                                         aria-label="OTP digit <?= $index ?>"
                                         required>
                                 <?php endfor; ?>
@@ -96,28 +96,60 @@ $this->section('content');
                             <div
                                 class="registration-otp-timer mt-4"
                                 data-otp-expiry="<?= esc(
-                                    (string) ($expiry * 1000),
-                                    'attr'
-                                ) ?>">
+                                                        (string) ($expiry * 1000),
+                                                        'attr'
+                                                    ) ?>">
 
-                                <p
+                                <div
                                     id="otpTimerMessage"
-                                    class="mb-1 <?= $isExpired
-                                        ? 'd-none'
-                                        : '' ?>">
-                                    OTP expires in
-                                    <strong id="otpTimer">
+                                    class="<?= $isExpired
+                                                ? 'd-none'
+                                                : '' ?>">
+
+                                    <span class="text-muted">
+                                        OTP expires in
+                                    </span>
+
+                                    <strong
+                                        id="otpTimer"
+                                        class="ms-1">
                                         03:00
                                     </strong>
-                                </p>
+                                </div>
 
-                                <p
+                                <div
                                     id="otpExpiredMessage"
-                                    class="text-danger mb-1 <?= $isExpired
-                                        ? ''
-                                        : 'd-none' ?>">
-                                    Your OTP has expired.
-                                </p>
+                                    class="<?= $isExpired
+                                                ? ''
+                                                : 'd-none' ?>">
+
+                                    <span class="text-danger">
+                                        OTP expired.
+                                    </span>
+                                </div>
+
+                                <div class="small mt-2">
+                                    <span class="text-muted">
+                                        Didn't receive the OTP?
+                                    </span>
+
+                                    <button
+                                        type="submit"
+                                        form="resendOtpForm"
+                                        id="resendOtpButton"
+                                        class="registration-otp-resend-link"
+                                        <?= $isExpired
+                                            ? ''
+                                            : 'disabled' ?>>
+
+                                        <span
+                                            class="mdi mdi-refresh"
+                                            aria-hidden="true">
+                                        </span>
+
+                                        <span>Resend OTP</span>
+                                    </button>
+                                </div>
 
                                 <p class="small text-muted mb-0">
                                     You can request a maximum of three
@@ -127,27 +159,44 @@ $this->section('content');
 
                             <button
                                 type="submit"
-                                class="btn btn-primary w-100 mt-4"
+                                class="btn btn-primary w-100 mt-4 d-inline-flex align-items-center justify-content-center gap-2"
                                 id="verifyOtpButton"
                                 <?= $isExpired
                                     ? 'disabled'
                                     : '' ?>>
-                                Verify OTP
+                                <span
+                                    class="mdi mdi-shield-check-outline fs-18"
+                                    aria-hidden="true">
+                                </span>
+
+                                <span>Verify OTP</span>
                             </button>
 
                             <div class="d-flex gap-2 mt-3">
                                 <button
                                     type="button"
-                                    class="btn btn-outline-secondary flex-fill"
+                                    class="btn btn-outline-secondary flex-fill d-inline-flex align-items-center justify-content-center gap-2"
                                     id="resetOtpButton">
-                                    Reset
+
+                                    <span
+                                        class="mdi mdi-backup-restore"
+                                        aria-hidden="true">
+                                    </span>
+
+                                    <span>Reset</span>
                                 </button>
 
                                 <button
                                     type="submit"
-                                    class="btn btn-outline-danger flex-fill"
+                                    class="btn btn-outline-danger flex-fill d-inline-flex align-items-center justify-content-center gap-2"
                                     form="cancelRegistrationForm">
-                                    Cancel
+
+                                    <span
+                                        class="mdi mdi-close-circle-outline"
+                                        aria-hidden="true">
+                                    </span>
+
+                                    <span>Cancel</span>
                                 </button>
                             </div>
                         </form>
@@ -155,29 +204,18 @@ $this->section('content');
                         <form
                             method="post"
                             action="<?= url_to(
-                                'web.registration.otp.resend'
-                            ) ?>"
-                            id="resendOtpForm"
-                            class="mt-4">
+                                        'web.registration.otp.resend'
+                                    ) ?>"
+                            id="resendOtpForm">
 
-                            <?= csrf_field() ?>
-
-                            <button
-                                type="submit"
-                                id="resendOtpButton"
-                                class="btn btn-link p-0"
-                                <?= $isExpired
-                                    ? ''
-                                    : 'disabled' ?>>
-                                Resend OTP
-                            </button>
+                            <?= csrf_field() ?>                            
                         </form>
 
                         <form
                             method="post"
                             action="<?= url_to(
-                                'web.registration.cancel'
-                            ) ?>"
+                                        'web.registration.cancel'
+                                    ) ?>"
                             id="cancelRegistrationForm">
 
                             <?= csrf_field() ?>
@@ -192,4 +230,3 @@ $this->section('content');
 </section>
 
 <?php $this->endSection(); ?>
-

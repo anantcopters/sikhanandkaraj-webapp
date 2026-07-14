@@ -8,6 +8,8 @@ use App\Models\ContactVerificationModel;
 use App\Models\UserContactModel;
 use App\Models\UserModel;
 use CodeIgniter\Database\BaseConnection;
+use App\Services\Sms\SmsMessage;
+use App\Services\Sms\SmsProviderInterface;
 use DateInterval;
 use DateTimeImmutable;
 use RuntimeException;
@@ -23,7 +25,13 @@ final class RegistrationOtpService
         private readonly UserModel $userModel,
         private readonly UserContactModel $contactModel,
         private readonly ContactVerificationModel $verificationModel,
-        private readonly BaseConnection $database
+        private readonly BaseConnection $database,
+
+        /**
+         * SMS provider is injected so the OTP service does not know
+         * whether MSG91, Twilio or another provider is being used.
+         */
+        private readonly SmsProviderInterface $smsProvider
     ) {}
 
     /**
@@ -153,22 +161,61 @@ final class RegistrationOtpService
             $this->commitOrFail();
 
             /**
-             * Send only after the transaction commits.
+             * Send the SMS only after the OTP record has been committed.
              *
-             * Replace this development block with an injected SMS sender:
-             *
-             * $this->otpSender->send(
-             *     (string) $contact['normalized_value'],
-             *     $otp
-             * );
+             * This prevents sending an OTP that does not exist in the database.
              */
-            if (ENVIRONMENT !== 'production') {
+            $smsResult = $this->smsProvider->send(
+                new SmsMessage(
+                    mobileNumber: (string) $contact['normalized_value'],
+
+                    message: 'Your Sikh Anand Karaj verification OTP is '
+                        . $otp
+                        . '. It is valid for '
+                        . OTP_EXPIRY_MINUTES
+                        . ' minutes.',
+
+                    templateId: trim(
+                        (string) env(
+                            'sms.registrationTemplateId'
+                        )
+                    ) ?: null,
+
+                    variables: [
+                        'otp' => $otp,
+                        'expiry_minutes' =>
+                        (string) OTP_EXPIRY_MINUTES,
+                    ]
+                )
+            );
+
+            if (!$smsResult->successful) {
+                /**
+                 * OTP record already exists, but delivery failed.
+                 *
+                 * For now return an error to the user. Later, queue-based delivery
+                 * can retry this automatically.
+                 */
                 log_message(
-                    'debug',
-                    'Registration OTP: {otp}',
-                    ['otp' => $otp]
+                    'error',
+                    'Registration OTP SMS failed: contact_id={contactId}, error={error}',
+                    [
+                        'contactId' => $mobileContactId,
+                        'error' =>
+                        $smsResult->errorMessage
+                            ?? 'Unknown SMS provider error',
+                    ]
+                );
+
+                return RegistrationOtpResult::failure(
+                    'We could not send the OTP. Please try again.'
                 );
             }
+
+            return RegistrationOtpResult::success(
+                'OTP sent successfully.',
+                $expiresAt->getTimestamp()
+            );
 
             return RegistrationOtpResult::success(
                 'OTP sent successfully.',

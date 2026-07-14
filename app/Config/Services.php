@@ -8,6 +8,8 @@ use App\Models\UserModel;
 use App\Services\Registration\RegisterFreeService;
 use App\Services\Registration\RegistrationOtpService;
 use CodeIgniter\Config\BaseService;
+use App\Services\Sms\SmsProviderFactory;
+use App\Services\Sms\SmsProviderInterface;
 
 /**
  * Application service configuration.
@@ -47,7 +49,8 @@ class Services extends BaseService
                 new UserModel($database),
                 new UserContactModel($database),
                 new ContactVerificationModel($database),
-                $database
+                $database,
+                static::smsProvider(false)
             )
         );
     }
@@ -70,7 +73,23 @@ class Services extends BaseService
             new UserModel($database),
             new UserContactModel($database),
             new ContactVerificationModel($database),
-            $database
+            $database,
+            static::smsProvider(false)
         );
+    }
+
+    /**
+     * Return the configured SMS provider.
+     */
+    public static function smsProvider(
+        bool $getShared = true
+    ): SmsProviderInterface {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'smsProvider'
+            );
+        }
+
+        return SmsProviderFactory::create();
     }
 }
