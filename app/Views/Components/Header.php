@@ -39,9 +39,9 @@ if ($resolvedLoggedInName === '') {
 /**
  * Display the first letter inside the avatar.
  */
-$userInitial = mb_strtoupper(
-    mb_substr($resolvedLoggedInName, 0, 1)
-);
+// $userInitial = mb_strtoupper(
+//     mb_substr($resolvedLoggedInName, 0, 1)
+// );
 ?>
 
 <header class="public-header">
@@ -71,125 +71,113 @@ $userInitial = mb_strtoupper(
 
                 <?php if ($isAuthenticated): ?>
 
-                    <!-- Logged-in user dropdown -->
-                    <div class="dropdown member-profile-dropdown">
+                    <?php
+                    $profileReference = session(
+                        'auth_profile_reference'
+                    );
+
+                    $resolvedProfileReference =
+                        is_string($profileReference)
+                        ? trim($profileReference)
+                        : '';
+                    ?>
+
+                    <div class="dropdown ms-sm-3 header-item topbar-user">
 
                         <button
                             type="button"
-                            class="btn member-profile-dropdown__toggle"
-                            id="memberProfileDropdown"
+                            class="btn shadow-none"
+                            id="page-header-user-dropdown"
                             data-bs-toggle="dropdown"
-                            data-bs-auto-close="outside"
+                            aria-haspopup="true"
                             aria-expanded="false">
 
-                            <!-- User avatar -->
-                            <span
-                                class="member-profile-dropdown__avatar"
-                                aria-hidden="true">
-                                <?= esc($userInitial) ?>
-                            </span>
+                            <span class="d-flex align-items-center">
+                                <span
+                                    class="avatar-sm flex-shrink-0"
+                                    aria-hidden="true">
 
-                            <!-- User details -->
-                            <span class="member-profile-dropdown__details">
-                                <span class="member-profile-dropdown__welcome">
-                                    Welcome
+                                    <div class="flex-shrink-0">
+                                        <i class="ri-user-line display-6 text-muted"></i>
+                                    </div>
                                 </span>
 
-                                <strong class="member-profile-dropdown__name">
-                                    <?= esc($resolvedLoggedInName) ?>
-                                </strong>
-                            </span>
+                                <span class="text-start ms-xl-2">
 
-                            <span
-                                class="mdi mdi-chevron-down member-profile-dropdown__arrow"
-                                aria-hidden="true">
+                                    <span
+                                        class="d-none d-xl-inline-block ms-1 fw-medium user-name-text">
+
+                                        <?= esc($resolvedLoggedInName) ?>
+                                    </span>
+
+                                    <?php if (
+                                        $resolvedProfileReference !== ''
+                                    ): ?>
+                                        <span
+                                            class="d-none d-xl-block ms-1 fs-12 user-name-sub-text text-muted">
+
+                                            <?= esc($resolvedProfileReference) ?>
+                                        </span>
+                                    <?php endif; ?>
+
+                                </span>
+
+                                <span
+                                    class="mdi mdi-chevron-down d-none d-xl-inline-block ms-2 text-muted"
+                                    aria-hidden="true">
+                                </span>
                             </span>
                         </button>
 
                         <div
-                            class="dropdown-menu dropdown-menu-end member-profile-menu"
-                            aria-labelledby="memberProfileDropdown">
+                            class="dropdown-menu dropdown-menu-end"
+                            aria-labelledby="page-header-user-dropdown">
 
-                            <!-- Dropdown heading -->
-                            <div class="member-profile-menu__header">
-                                <span
-                                    class="member-profile-menu__avatar"
-                                    aria-hidden="true">
-                                    <?= esc($userInitial) ?>
-                                </span>
+                            <h6 class="dropdown-header fs-14">
+                                Welcome
+                                <?= esc($resolvedLoggedInName) ?>!
+                            </h6>
 
-                                <div class="member-profile-menu__identity">
-                                    <strong class="member-profile-menu__name">
-                                        <?= esc($resolvedLoggedInName) ?>
-                                    </strong>
-
-                                    <?php
-                                    $profileReference = session(
-                                        'auth_profile_reference'
-                                    );
-                                    ?>
-
-                                    <?php if (
-                                        is_string($profileReference)
-                                        && $profileReference !== ''
-                                    ): ?>
-                                        <span class="member-profile-menu__reference">
-                                            <?= esc($profileReference) ?>
-                                        </span>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-
-                            <div class="dropdown-divider"></div>
-
-                            <!-- Dashboard -->
                             <a
-                                href="<?= url_to('web.dashboard') ?>"
-                                class="dropdown-item member-profile-menu__item">
+                                class="dropdown-item"
+                                href="<?= url_to('web.dashboard') ?>">
 
-                                <span
-                                    class="mdi mdi-view-dashboard-outline"
-                                    aria-hidden="true">
+                                <i
+                                    class="mdi mdi-view-dashboard-outline text-muted fs-16 align-middle me-1"
+                                    aria-hidden="true"></i>
+
+                                <span class="align-middle">
+                                    Dashboard
                                 </span>
-
-                                <span>Dashboard</span>
                             </a>
 
-                            <!-- Edit profile -->
                             <a
-                                href="<?= url_to('web.profile.edit') ?>"
-                                class="dropdown-item member-profile-menu__item">
+                                class="dropdown-item"
+                                href="<?= url_to('web.profile.edit') ?>">
 
-                                <span
-                                    class="mdi mdi-account-edit-outline"
-                                    aria-hidden="true">
+                                <i
+                                    class="mdi mdi-account-edit-outline text-muted fs-16 align-middle me-1"
+                                    aria-hidden="true"></i>
+
+                                <span class="align-middle">
+                                    Edit Profile
                                 </span>
-
-                                <span>Edit Profile</span>
                             </a>
 
-                            <!-- Account settings -->
                             <a
-                                href="<?= url_to('web.account.settings') ?>"
-                                class="dropdown-item member-profile-menu__item">
+                                class="dropdown-item"
+                                href="<?= url_to('web.account.settings') ?>">
 
-                                <span
-                                    class="mdi mdi-cog-outline"
-                                    aria-hidden="true">
+                                <i
+                                    class="mdi mdi-cog-outline text-muted fs-16 align-middle me-1"
+                                    aria-hidden="true"></i>
+
+                                <span class="align-middle">
+                                    Account Settings
                                 </span>
-
-                                <span>Account Settings</span>
                             </a>
 
                             <div class="dropdown-divider"></div>
-
-                            <!--
-                                Logout must remain a POST request.
-
-                                Do not use an ordinary anchor for logout because
-                                logout changes session state and must remain CSRF
-                                protected.
-                            -->
                             <form
                                 method="post"
                                 action="<?= url_to('web.logout') ?>"
@@ -199,16 +187,18 @@ $userInitial = mb_strtoupper(
 
                                 <button
                                     type="submit"
-                                    class="dropdown-item member-profile-menu__item member-profile-menu__logout">
+                                    class="dropdown-item border-0 bg-transparent w-100 text-start">
 
-                                    <span
-                                        class="mdi mdi-logout"
-                                        aria-hidden="true">
+                                    <i
+                                        class="mdi mdi-logout text-danger fs-16 align-middle me-1"
+                                        aria-hidden="true"></i>
+
+                                    <span class="align-middle">
+                                        Logout
                                     </span>
-
-                                    <span>Logout</span>
                                 </button>
                             </form>
+
                         </div>
                     </div>
 

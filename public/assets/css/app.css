@@ -269,7 +269,10 @@ video {
 
 @media (min-width: 768px) {
   .topbar-user {
-    background-color: var(--vz-topbar-user-bg);
+    /* background-color: var(--vz-topbar-user-bg); */
+    border-radius: 15px;
+    border: 1px solid #495057;
+
   }
 }
 

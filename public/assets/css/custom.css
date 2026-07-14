@@ -509,8 +509,8 @@
     padding-right: 5.25rem;
 }
 
-.password-field__input.is-invalid + .password-field__toggle,
-.password-field__input.is-valid + .password-field__toggle {
+.password-field__input.is-invalid+.password-field__toggle,
+.password-field__input.is-valid+.password-field__toggle {
     right: 2.75rem;
 }
 
@@ -672,294 +672,74 @@ form[aria-busy="true"] {
 }
 
 /* ==========================================================================
-   Authenticated member header dropdown
+   Dashboard user dropdown integration
    ========================================================================== */
 
-.member-profile-dropdown {
-    position: relative;
+/*
+ * Allow the existing Velzon topbar profile component to fit inside
+ * the public website header.
+ */
+.public-navbar .topbar-user {
+    margin-left: 0 !important;
 }
 
 /*
- * Main dropdown trigger.
+ * The app.css topbar user button was originally designed for the Velzon
+ * admin topbar. Keep it compact inside the Sikh Anand Karaj header.
  */
-.member-profile-dropdown__toggle {
-    min-width: 220px;
-    min-height: 56px;
-
-    display: inline-flex;
-    align-items: center;
-    gap: 0.7rem;
-
-    padding: 7px 12px;
-
-    border: 1px solid transparent;
-    border-radius: 12px;
-    background-color: transparent;
-    color: var(--sak-text-primary);
-    text-align: left;
-
-    transition:
-        background-color 0.2s ease,
-        border-color 0.2s ease,
-        box-shadow 0.2s ease;
-}
-
-.member-profile-dropdown__toggle:hover,
-.member-profile-dropdown__toggle:focus,
-.member-profile-dropdown__toggle[aria-expanded="true"] {
-    border-color: rgba(174, 21, 54, 0.15);
-    background-color: rgba(174, 21, 54, 0.05);
-    color: var(--sak-text-primary);
-    box-shadow: none;
-}
-
-.member-profile-dropdown__toggle:focus-visible {
-    outline: 3px solid rgba(174, 21, 54, 0.15);
-    outline-offset: 2px;
-}
-
-/*
- * Circular avatar displayed in the header.
- */
-.member-profile-dropdown__avatar {
-    width: 42px;
-    height: 42px;
-
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 42px;
-
-    border-radius: 50%;
-    background-color: var(--sak-primary);
-    color: #ffffff;
-
-    font-size: 1rem;
-    font-weight: 600;
-    line-height: 1;
-    text-transform: uppercase;
-}
-
-/*
- * Name and welcome label.
- */
-.member-profile-dropdown__details {
-    min-width: 0;
-    display: flex;
-    flex: 1 1 auto;
-    flex-direction: column;
-    line-height: 1.2;
-}
-
-.member-profile-dropdown__welcome {
-    color: #878a99;
-    font-size: 0.72rem;
-    font-weight: 400;
-}
-
-.member-profile-dropdown__name {
-    max-width: 145px;
-    overflow: hidden;
-
-    color: #212529;
-    font-size: 0.9rem;
-    font-weight: 600;
-
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.member-profile-dropdown__arrow {
-    flex: 0 0 auto;
-    color: #878a99;
-    font-size: 1.15rem;
-    transition: transform 0.2s ease;
-}
-
-/*
- * Rotate the arrow when the menu is open.
- */
-.member-profile-dropdown__toggle[aria-expanded="true"]
-    .member-profile-dropdown__arrow {
-    transform: rotate(180deg);
-}
-
-/* ==========================================================================
-   Member dropdown menu
-   ========================================================================== */
-
-.member-profile-menu {
-    width: 275px;
-    margin-top: 10px !important;
-    padding: 0.6rem;
-
-    border: 1px solid #e9ebec;
-    border-radius: 12px;
-    background-color: #ffffff;
-
-    box-shadow:
-        0 8px 24px rgba(30, 32, 37, 0.12),
-        0 2px 6px rgba(30, 32, 37, 0.06);
-}
-
-/*
- * User information at the top of the menu.
- */
-.member-profile-menu__header {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-
-    padding: 0.65rem 0.6rem;
-}
-
-.member-profile-menu__avatar {
-    width: 44px;
-    height: 44px;
-
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 44px;
-
-    border-radius: 50%;
-    background-color: rgba(174, 21, 54, 0.1);
-    color: var(--sak-primary);
-
-    font-size: 1rem;
-    font-weight: 700;
-    text-transform: uppercase;
-}
-
-.member-profile-menu__identity {
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.member-profile-menu__name {
-    overflow: hidden;
-    color: #212529;
-    font-size: 0.9rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.member-profile-menu__reference {
-    margin-top: 2px;
-    color: #878a99;
-    font-size: 0.75rem;
-}
-
-/*
- * Menu links and form buttons share the same appearance.
- */
-.member-profile-menu__item {
-    width: 100%;
-    min-height: 42px;
-
-    display: flex;
-    align-items: center;
-    gap: 0.7rem;
-
-    padding: 0.55rem 0.7rem;
-
+.public-navbar .topbar-user .btn {
+    min-height: 54px;
+    padding: 6px 12px;
     border: 0;
-    border-radius: 8px;
-    background-color: transparent;
-    color: #495057;
-
-    font-size: 0.875rem;
-    text-align: left;
-    text-decoration: none;
+    border-radius: 10px;
 }
 
-.member-profile-menu__item .mdi {
-    width: 20px;
-    flex: 0 0 20px;
-    color: #878a99;
-    font-size: 1.15rem;
-    text-align: center;
-}
-
-.member-profile-menu__item:hover,
-.member-profile-menu__item:focus {
+/* .public-navbar .topbar-user .btn:hover,
+.public-navbar .topbar-user .btn:focus,
+.public-navbar .topbar-user .btn[aria-expanded="true"] {
     background-color: rgba(174, 21, 54, 0.06);
-    color: var(--sak-primary);
+} */
+
+/*
+ * Keep the dropdown above page cards and form controls.
+ */
+.public-navbar .topbar-user .dropdown-menu {
+    z-index: 1055;
+    min-width: 230px;
+    margin-top: 70px !important;
 }
 
-.member-profile-menu__item:hover .mdi,
-.member-profile-menu__item:focus .mdi {
-    color: var(--sak-primary);
+/*
+ * Use the Sikh Anand Karaj brand colour for the generated avatar.
+ */
+.public-navbar .topbar-user .avatar-title {
+    background-color: rgba(174, 21, 54, 0.1) !important;
+    color: var(--sak-primary) !important;
 }
 
-.member-profile-menu__logout {
-    color: #dc3545;
+/*
+ * Ensure the logout form button has the same dimensions as normal
+ * dropdown links.
+ */
+.public-navbar .topbar-user form .dropdown-item {
+    padding: var(--vz-dropdown-item-padding-y) var(--vz-dropdown-item-padding-x);
 }
 
-.member-profile-menu__logout .mdi {
-    color: #dc3545;
-}
-
-.member-profile-menu__logout:hover,
-.member-profile-menu__logout:focus {
-    background-color: rgba(220, 53, 69, 0.08);
-    color: #dc3545;
-}
-
-.member-profile-menu .dropdown-divider {
-    margin: 0.45rem 0;
-    border-color: #eff2f7;
-}
-
-/* ==========================================================================
-   Responsive member dropdown
-   ========================================================================== */
-
+/*
+ * Mobile displays only the avatar.
+ */
 @media (max-width: 575.98px) {
-    .member-profile-dropdown__toggle {
-        min-width: auto;
-        min-height: 46px;
-        padding: 4px 7px;
+    .public-navbar .topbar-user .btn {
+        min-height: 44px;
+        padding: 3px;
     }
 
-    .member-profile-dropdown__avatar {
+    .public-navbar .topbar-user .avatar-sm {
         width: 38px;
         height: 38px;
-        flex-basis: 38px;
     }
 
-    .member-profile-dropdown__welcome,
-    .member-profile-dropdown__details {
-        display: none;
-    }
-
-    .member-profile-dropdown__arrow {
-        font-size: 1rem;
-    }
-
-    .member-profile-menu {
-        width: min(275px, calc(100vw - 30px));
-    }
-}
-
-.member-header-logout:hover,
-.member-header-logout:focus {
-    border-color: #ae1536;
-    background: #ae1536;
-    color: #fff;
-}
-
-@media (max-width: 575.98px) {
-    .member-header-user__label {
-        display: none;
-    }
-
-    .member-header-user__name {
-        max-width: 100px;
-    }
-
-    .member-header-user__icon {
-        font-size: 1.6rem;
+    .public-navbar .topbar-user .dropdown-menu {
+        min-width: min(230px, calc(100vw - 30px));
     }
 }
