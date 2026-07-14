@@ -104,6 +104,35 @@ final class RegisterFreeService
                 ? (int) ($existingMobile['user_id'] ?? 0)
                 : null;
 
+            // Check email ownership once
+            /**
+             * An email may be reused only by the same pending registration.
+             *
+             * A verified or unverified email belonging to another user remains
+             * reserved and cannot be claimed through public registration.
+             */
+            if ($existingEmail !== null) {
+                $emailOwnerUserId = (int) (
+                    $existingEmail['user_id'] ?? 0
+                );
+
+                $belongsToSameUser =
+                    $targetUserId !== null
+                    && $targetUserId > 0
+                    && $emailOwnerUserId === $targetUserId;
+
+                if (!$belongsToSameUser) {
+                    $this->database->transRollback();
+
+                    return RegisterFreeResult::fieldFailure(
+                        RegistrationAction::EMAIL_ALREADY_EXISTS,
+                        'email',
+                        'This email address is already associated with an account. '
+                            . 'Please log in or recover your account.'
+                    );
+                }
+            }
+
             /**
              * -------------------------------------------------------------
              * Case A: verified mobile already exists
@@ -133,33 +162,6 @@ final class RegisterFreeService
              */
             if ($existingMobile !== null) {
 
-                /**
-                 * An email may be reused only by the same pending registration.
-                 *
-                 * A verified or unverified email belonging to another user remains
-                 * reserved and cannot be claimed through public registration.
-                 */
-                if ($existingEmail !== null) {
-                    $emailOwnerUserId = (int) (
-                        $existingEmail['user_id'] ?? 0
-                    );
-
-                    $belongsToSamePendingUser =
-                        $targetUserId !== null
-                        && $targetUserId > 0
-                        && $emailOwnerUserId === $targetUserId;
-
-                    if (!$belongsToSamePendingUser) {
-                        $this->database->transRollback();
-
-                        return RegisterFreeResult::fieldFailure(
-                            RegistrationAction::EMAIL_ALREADY_EXISTS,
-                            'email',
-                            'This email address is already associated with an account. '
-                                . 'Please log in or recover your account.'
-                        );
-                    }
-                }
 
                 $result = $this->updatePendingRegistration(
                     existingMobile: $existingMobile,
@@ -206,34 +208,6 @@ final class RegisterFreeService
              * -------------------------------------------------------------
              */
 
-            /**
-             * An email may be reused only by the same pending registration.
-             *
-             * A verified or unverified email belonging to another user remains
-             * reserved and cannot be claimed through public registration.
-             */
-            if ($existingEmail !== null) {
-                $emailOwnerUserId = (int) (
-                    $existingEmail['user_id'] ?? 0
-                );
-
-                $belongsToSamePendingUser =
-                    $targetUserId !== null
-                    && $targetUserId > 0
-                    && $emailOwnerUserId === $targetUserId;
-
-                if (!$belongsToSamePendingUser) {
-                    $this->database->transRollback();
-
-                    return RegisterFreeResult::fieldFailure(
-                        RegistrationAction::EMAIL_ALREADY_EXISTS,
-                        'email',
-                        'This email address is already associated with an account. '
-                            . 'Please log in or recover your account.'
-                    );
-                }
-            }
-            
             $result = $this->createPendingRegistration(
                 data: $data,
                 mobile: $mobile,
