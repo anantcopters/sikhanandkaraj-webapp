@@ -43,7 +43,7 @@
     <?= $this->include('Components/Footer') ?>
 
     <script src="<?= base_url('assets/js/jquery.js') ?>"></script>
-    <script src="<?= base_url('assets/js/bootstrap.js') ?>"></script>
+    <script src="<?= base_url('assets/js/bootstrap.bundle.min.js') ?>"></script>
     <script src="<?= base_url('assets/js/choices.min.js') ?>"></script>
 
     <script src="<?= base_url(
