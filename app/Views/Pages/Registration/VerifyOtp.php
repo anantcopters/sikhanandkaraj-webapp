@@ -171,6 +171,20 @@ $this->section('content');
                                 </span>
 
                                 <span>Verify OTP</span>
+
+                                <span
+                                    class="registration-submit__loading d-none"
+                                    data-otp-submit-loading
+                                    aria-hidden="true">
+
+                                    <span
+                                        class="spinner-border spinner-border-sm"
+                                        role="status"
+                                        aria-hidden="true">
+                                    </span>
+
+                                    <span>Verifying...</span>
+                                </span>
                             </button>
 
                             <div class="d-flex gap-2 mt-3">
@@ -199,7 +213,7 @@ $this->section('content');
                                     ) ?>"
                             id="resendOtpForm">
 
-                            <?= csrf_field() ?>                            
+                            <?= csrf_field() ?>
                         </form>
 
                         <form

@@ -170,4 +170,14 @@ ON contact_verifications (
 )
 WHERE status = 'PENDING';
 
+CREATE UNIQUE INDEX IF NOT EXISTS
+    uq_user_contacts_email_normalized
+ON user_contacts (normalized_value)
+WHERE contact_type = 'EMAIL';
+
+CREATE UNIQUE INDEX IF NOT EXISTS
+    uq_user_contacts_mobile_normalized
+ON user_contacts (normalized_value)
+WHERE contact_type = 'MOBILE';
+
 COMMIT;

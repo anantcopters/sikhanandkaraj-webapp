@@ -90,6 +90,21 @@ final class RegisterFreeService
                 );
 
             /**
+             * Find any account already using this normalized email.
+             *
+             * Email uniqueness is checked independently from verification status.
+             */
+            $existingEmail = $this->userContactModel
+                ->findByNormalizedValue(
+                    UserContactModel::TYPE_EMAIL,
+                    $email
+                );
+
+            $targetUserId = $existingMobile !== null
+                ? (int) ($existingMobile['user_id'] ?? 0)
+                : null;
+
+            /**
              * -------------------------------------------------------------
              * Case A: verified mobile already exists
              * -------------------------------------------------------------
@@ -117,6 +132,35 @@ final class RegisterFreeService
              * -------------------------------------------------------------
              */
             if ($existingMobile !== null) {
+
+                /**
+                 * An email may be reused only by the same pending registration.
+                 *
+                 * A verified or unverified email belonging to another user remains
+                 * reserved and cannot be claimed through public registration.
+                 */
+                if ($existingEmail !== null) {
+                    $emailOwnerUserId = (int) (
+                        $existingEmail['user_id'] ?? 0
+                    );
+
+                    $belongsToSamePendingUser =
+                        $targetUserId !== null
+                        && $targetUserId > 0
+                        && $emailOwnerUserId === $targetUserId;
+
+                    if (!$belongsToSamePendingUser) {
+                        $this->database->transRollback();
+
+                        return RegisterFreeResult::fieldFailure(
+                            RegistrationAction::EMAIL_ALREADY_EXISTS,
+                            'email',
+                            'This email address is already associated with an account. '
+                                . 'Please log in or recover your account.'
+                        );
+                    }
+                }
+
                 $result = $this->updatePendingRegistration(
                     existingMobile: $existingMobile,
                     data: $data,
@@ -161,6 +205,35 @@ final class RegisterFreeService
              * Case C: mobile does not exist
              * -------------------------------------------------------------
              */
+
+            /**
+             * An email may be reused only by the same pending registration.
+             *
+             * A verified or unverified email belonging to another user remains
+             * reserved and cannot be claimed through public registration.
+             */
+            if ($existingEmail !== null) {
+                $emailOwnerUserId = (int) (
+                    $existingEmail['user_id'] ?? 0
+                );
+
+                $belongsToSamePendingUser =
+                    $targetUserId !== null
+                    && $targetUserId > 0
+                    && $emailOwnerUserId === $targetUserId;
+
+                if (!$belongsToSamePendingUser) {
+                    $this->database->transRollback();
+
+                    return RegisterFreeResult::fieldFailure(
+                        RegistrationAction::EMAIL_ALREADY_EXISTS,
+                        'email',
+                        'This email address is already associated with an account. '
+                            . 'Please log in or recover your account.'
+                    );
+                }
+            }
+            
             $result = $this->createPendingRegistration(
                 data: $data,
                 mobile: $mobile,

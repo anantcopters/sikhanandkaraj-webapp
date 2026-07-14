@@ -29,5 +29,9 @@ enum RegistrationAction: string
      * The mobile number has reached the registration OTP-send limit.
      */
     case OTP_LIMIT_REACHED = 'OTP_LIMIT_REACHED';
-}
 
+    /**
+     * The submitted email is already associated with another account.
+     */
+    case EMAIL_ALREADY_EXISTS = 'EMAIL_ALREADY_EXISTS';
+}
