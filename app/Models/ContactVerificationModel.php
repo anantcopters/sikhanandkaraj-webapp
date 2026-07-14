@@ -87,6 +87,24 @@ final class ContactVerificationModel extends Model
     }
 
     /**
+     * Count OTP records issued during a rolling time window.
+     *
+     * All records are counted, including CANCELLED, EXPIRED and VERIFIED,
+     * because an OTP message was still issued for each record.
+     */
+    public function countIssuedSince(
+        int $userContactId,
+        string $purpose,
+        string $since
+    ): int {
+        return $this
+            ->where('user_contact_id', $userContactId)
+            ->where('purpose', $purpose)
+            ->where('created_at >=', $since)
+            ->countAllResults();
+    }
+
+    /**
      * Find the oldest OTP issued during a rolling time window.
      *
      * This determines when the 24-hour restriction ends.

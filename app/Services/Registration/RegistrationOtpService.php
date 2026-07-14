@@ -44,7 +44,7 @@ final class RegistrationOtpService
             if (
                 !is_array($contact)
                 || (string) ($contact['contact_type'] ?? '')
-                    !== UserContactModel::TYPE_MOBILE
+                !== UserContactModel::TYPE_MOBILE
             ) {
                 throw new RuntimeException(
                     'The mobile contact was not found.'
@@ -87,7 +87,18 @@ final class RegistrationOtpService
                 );
             }
 
-            $otp = (string) random_int(1000, 9999);
+            /**
+             * Development and QA environments use a fixed OTP
+             * to simplify testing.
+             *
+             * Production always generates a cryptographically
+             * secure random OTP.
+             */
+            $fixedOtp = trim((string) env('OTP_FIXED_VALUE'));
+
+            $otp = $fixedOtp !== ''
+                ? $fixedOtp
+                : (string) random_int(1000, 9999);
 
             $now = new DateTimeImmutable();
 
@@ -101,17 +112,17 @@ final class RegistrationOtpService
                 ->insert([
                     'user_contact_id' => $mobileContactId,
                     'purpose' =>
-                        ContactVerificationModel::PURPOSE_REGISTER,
+                    ContactVerificationModel::PURPOSE_REGISTER,
                     'otp_hash' => password_hash(
                         $otp,
                         PASSWORD_DEFAULT
                     ),
                     'expires_at' =>
-                        $expiresAt->format('Y-m-d H:i:s'),
+                    $expiresAt->format('Y-m-d H:i:s'),
                     'attempt_count' => 0,
                     'resend_count' => 0,
                     'status' =>
-                        ContactVerificationModel::STATUS_PENDING,
+                    ContactVerificationModel::STATUS_PENDING,
                     'verified_at' => null,
                 ], true);
 
@@ -133,10 +144,10 @@ final class RegistrationOtpService
              *     $otp
              * );
              */
-            if (ENVIRONMENT === 'development') {
+            if (ENVIRONMENT !== 'production') {
                 log_message(
                     'debug',
-                    'Development registration OTP: {otp}',
+                    'Registration OTP: {otp}',
                     ['otp' => $otp]
                 );
             }
@@ -180,7 +191,7 @@ final class RegistrationOtpService
                 || !is_array($contact)
                 || (int) ($contact['user_id'] ?? 0) !== $userId
                 || (string) ($contact['contact_type'] ?? '')
-                    !== UserContactModel::TYPE_MOBILE
+                !== UserContactModel::TYPE_MOBILE
             ) {
                 throw new RuntimeException(
                     'The pending registration could not be found.'
@@ -243,7 +254,7 @@ final class RegistrationOtpService
                     (int) $verification['id'],
                     [
                         'status' =>
-                            ContactVerificationModel::STATUS_CANCELLED,
+                        ContactVerificationModel::STATUS_CANCELLED,
                     ]
                 );
 
@@ -277,7 +288,7 @@ final class RegistrationOtpService
                         (int) $verification['id'],
                         [
                             'status' =>
-                                ContactVerificationModel::STATUS_CANCELLED,
+                            ContactVerificationModel::STATUS_CANCELLED,
                         ]
                     );
                 }
@@ -287,10 +298,10 @@ final class RegistrationOtpService
                 return RegistrationOtpResult::failure(
                     $remainingAttempts > 0
                         ? 'Incorrect OTP. '
-                            . $remainingAttempts
-                            . ' attempt(s) remaining.'
+                        . $remainingAttempts
+                        . ' attempt(s) remaining.'
                         : 'Too many incorrect attempts. '
-                            . 'Please request a new OTP.'
+                        . 'Please request a new OTP.'
                 );
             }
 
@@ -315,7 +326,7 @@ final class RegistrationOtpService
                 (int) $verification['id'],
                 [
                     'status' =>
-                        ContactVerificationModel::STATUS_VERIFIED,
+                    ContactVerificationModel::STATUS_VERIFIED,
                     'verified_at' => $verifiedAt,
                 ]
             );
@@ -445,4 +456,3 @@ final class RegistrationOtpService
         $this->database->transCommit();
     }
 }
-
