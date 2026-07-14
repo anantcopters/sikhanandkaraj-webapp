@@ -189,63 +189,82 @@ $this->section('content');
                             <!-- Gender -->
                             <div
                                 id="genderContainer"
-                                class="mb-3 d-none"
+                                class="mb-3 <?= old('profile_created_for') === 'self'
+                                                ? ''
+                                                : 'd-none' ?>"
                                 data-validation-group="gender">
 
                                 <fieldset>
-                                    <div class="form-label fs-12 fw-medium mb-2">
+                                    <legend class="visually-hidden">
                                         Gender
-                                    </div>
+                                    </legend>
 
-                                    <div class="d-flex gap-4">
-                                        <div class="form-check">
-                                            <input
-                                                class="form-check-input <?= $genderHasError
-                                                                            ? 'is-invalid'
-                                                                            : '' ?>"
-                                                type="radio"
-                                                name="gender"
-                                                id="genderMale"
-                                                value="M"
-                                                <?= old('gender') === 'M'
-                                                    ? 'checked'
-                                                    : '' ?>
-                                                <?= $genderHasError
-                                                    ? 'aria-invalid="true"'
-                                                    : '' ?>
-                                                aria-describedby="genderError"
-                                                data-error-required="Please select gender.">
+                                    <div class="row align-items-center g-2">
 
-                                            <label
-                                                class="form-check-label"
-                                                for="genderMale">
-                                                Male
-                                            </label>
+                                        <!-- Gender label -->
+                                        <div class="col-auto">
+                                            <span class="form-label fs-13 fw-medium mb-0 pe-3">
+                                                Gender
+                                            </span>
                                         </div>
 
-                                        <div class="form-check">
-                                            <input
-                                                class="form-check-input <?= $genderHasError
-                                                                            ? 'is-invalid'
-                                                                            : '' ?>"
-                                                type="radio"
-                                                name="gender"
-                                                id="genderFemale"
-                                                value="F"
-                                                <?= old('gender') === 'F'
-                                                    ? 'checked'
-                                                    : '' ?>
-                                                <?= $genderHasError
-                                                    ? 'aria-invalid="true"'
-                                                    : '' ?>
-                                                aria-describedby="genderError"
-                                                data-error-required="Please select gender.">
+                                        <!-- Gender options -->
+                                        <div class="col">
+                                            <div class="d-flex align-items-center gap-4 flex-nowrap">
 
-                                            <label
-                                                class="form-check-label"
-                                                for="genderFemale">
-                                                Female
-                                            </label>
+                                                <!-- Male -->
+                                                <div class="form-check form-check-inline mb-0 me-0">
+                                                    <input
+                                                        type="radio"
+                                                        name="gender"
+                                                        id="genderMale"
+                                                        value="M"
+                                                        class="form-check-input <?= $genderHasError
+                                                                                    ? 'is-invalid'
+                                                                                    : '' ?>"
+                                                        <?= old('gender') === 'M'
+                                                            ? 'checked'
+                                                            : '' ?>
+                                                        <?= $genderHasError
+                                                            ? 'aria-invalid="true"'
+                                                            : '' ?>
+                                                        aria-describedby="genderError"
+                                                        data-error-required="Please select gender.">
+
+                                                    <label
+                                                        class="form-check-label"
+                                                        for="genderMale">
+                                                        Male
+                                                    </label>
+                                                </div>
+
+                                                <!-- Female -->
+                                                <div class="form-check form-check-inline mb-0 me-0">
+                                                    <input
+                                                        type="radio"
+                                                        name="gender"
+                                                        id="genderFemale"
+                                                        value="F"
+                                                        class="form-check-input <?= $genderHasError
+                                                                                    ? 'is-invalid'
+                                                                                    : '' ?>"
+                                                        <?= old('gender') === 'F'
+                                                            ? 'checked'
+                                                            : '' ?>
+                                                        <?= $genderHasError
+                                                            ? 'aria-invalid="true"'
+                                                            : '' ?>
+                                                        aria-describedby="genderError"
+                                                        data-error-required="Please select gender.">
+
+                                                    <label
+                                                        class="form-check-label"
+                                                        for="genderFemale">
+                                                        Female
+                                                    </label>
+                                                </div>
+
+                                            </div>
                                         </div>
                                     </div>
 
