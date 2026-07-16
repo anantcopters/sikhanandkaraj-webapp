@@ -41,7 +41,7 @@ $this->section('content');
         <div
             class="row justify-content-center align-items-center auth-content-height">
 
-            <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
+            <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-5">
 
                 <div class="card border-0 shadow-lg mb-0">
                     <div class="card-body p-4 p-md-5 pt-md-4">
@@ -119,10 +119,7 @@ $this->section('content');
 
                             <!-- Password -->
                             <div class="mb-3">
-                                <div
-                                    class="d-flex align-items-center
-                                        justify-content-between">
-
+                                <div class="d-flex align-items-center justify-content-between">
                                     <label
                                         for="loginPassword"
                                         class="form-label">
@@ -136,30 +133,32 @@ $this->section('content');
                                     </a>
                                 </div>
 
-                                <div class="position-relative auth-pass-inputgroup">
+                                <div class="password-field">
                                     <input
                                         type="password"
                                         id="loginPassword"
                                         name="password"
-                                        class="form-control pe-5 <?= $passwordHasError
-                                                                        ? 'is-invalid'
-                                                                        : '' ?>"
-                                        placeholder="Enter password"
-                                        maxlength="128"
-                                        autocomplete="current-password"
-                                        data-error-required="Please enter your password."
-                                        data-error-maxlength="Password cannot exceed 128 characters."
-                                        aria-describedby="loginPasswordError"
+                                        class="form-control password-field__input
+                <?= $passwordHasError
+                    ? 'is-invalid'
+                    : '' ?>"
                                         <?= $passwordHasError
                                             ? 'aria-invalid="true"'
                                             : '' ?>
+                                        aria-describedby="loginPasswordError"
+                                        placeholder="Enter password"
+                                        maxlength="64"
+                                        autocomplete="current-password"
+                                        data-error-required="Please enter your password."
+                                        data-error-maxlength="Password cannot exceed 64 characters."
                                         required>
+
                                     <button
                                         type="button"
                                         class="password-field__toggle"
-                                        data-password-toggle="password"
+                                        data-password-toggle="loginPassword"
                                         aria-label="Show password"
-                                        aria-controls="password"
+                                        aria-controls="loginPassword"
                                         aria-pressed="false">
 
                                         <span
@@ -167,16 +166,13 @@ $this->section('content');
                                             aria-hidden="true">
                                         </span>
                                     </button>
-
-                                    <div
-                                        id="loginPasswordError"
-                                        class="invalid-feedback"
-                                        data-validation-error="password">
-                                        <?= esc(
-                                            $validationErrors['password'] ?? ''
-                                        ) ?>
-                                    </div>
                                 </div>
+
+                                <?= view('Components/Forms/FieldError', [
+                                    'field' => 'password',
+                                    'errorId' => 'loginPasswordError',
+                                    'errors' => $validationErrors,
+                                ]) ?>
                             </div>
 
                             <div class="mt-5">
