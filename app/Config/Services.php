@@ -13,6 +13,7 @@ use App\Services\Sms\SmsProviderInterface;
 use App\Models\HttpRequestLogModel;
 use App\Services\Logging\HttpRequestLogService;
 use App\Services\Logging\RequestDataSanitizer;
+use App\Services\Authentication\LoginService;
 
 
 /**
@@ -114,6 +115,24 @@ class Services extends BaseService
         return new HttpRequestLogService(
             new HttpRequestLogModel($database),
             new RequestDataSanitizer()
+        );
+    }
+
+    /**
+     * Return the password login service.
+     */
+    public static function loginService(
+        bool $getShared = true
+    ): LoginService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'loginService'
+            );
+        }
+
+        return new LoginService(
+            new UserModel(),
+            new UserContactModel()
         );
     }
 }

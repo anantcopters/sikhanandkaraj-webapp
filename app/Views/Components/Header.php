@@ -218,7 +218,7 @@ if ($resolvedLoggedInName === '') {
 
                     <a
                         href="<?= site_url('login') ?>"
-                        class="btn public-navbar__login">
+                        class="btn public-navbar__login fs-14">
                         Login
                     </a>
 

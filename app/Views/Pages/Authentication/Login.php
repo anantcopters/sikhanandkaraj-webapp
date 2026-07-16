@@ -1,0 +1,240 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Resolve server-side validation errors.
+ *
+ * @var array<string, string> $validationErrors
+ */
+$sessionValidationErrors = session('validationErrors');
+
+$validationErrors = is_array($sessionValidationErrors)
+    ? $sessionValidationErrors
+    : [];
+
+/**
+ * Resolve any form-level message.
+ *
+ * @var array<string, string>|null $formAlert
+ */
+$sessionFormAlert = session('formAlert');
+
+$formAlert = is_array($sessionFormAlert)
+    ? $sessionFormAlert
+    : null;
+
+$identifierHasError = isset(
+    $validationErrors['identifier']
+);
+
+$passwordHasError = isset(
+    $validationErrors['password']
+);
+
+$this->extend('Layouts/Main');
+$this->section('content');
+?>
+
+<section class="py-4">
+    <div class="container">
+        <div
+            class="row justify-content-center align-items-center auth-content-height">
+
+            <div class="col-12 col-sm-10 col-md-8 col-lg-5 col-xl-4">
+
+                <div class="card border-0 shadow-lg mb-0">
+                    <div class="card-body p-4 p-md-5 pt-md-4">
+
+                        <div class="text-center mb-4">
+                            <h1 class="fs-24 fw-semibold mb-2">
+                                Welcome Back
+                            </h1>
+
+                            <p class="text-muted mb-0">
+                                Login to continue to Sikh Anand Karaj
+                            </p>
+                        </div>
+
+                        <?= view(
+                            'Components/Alerts/FormAlert',
+                            [
+                                'alert' => $formAlert,
+                            ]
+                        ) ?>
+
+                        <form
+                            id="loginForm"
+                            action="<?= route_to(
+                                        'web.login.submit'
+                                    ) ?>"
+                            method="post"
+                            data-validate
+                            data-submit-loader
+                            novalidate
+                            autocomplete="on">
+
+                            <?= csrf_field() ?>
+
+                            <!-- Email or mobile -->
+                            <div class="mb-3">
+                                <label
+                                    for="loginIdentifier"
+                                    class="form-label">
+                                    Email or Mobile Number
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="loginIdentifier"
+                                    name="identifier"
+                                    value="<?= esc(
+                                                old('identifier') ?? ''
+                                            ) ?>"
+                                    class="form-control
+                                        <?= $identifierHasError
+                                            ? 'is-invalid'
+                                            : '' ?>"
+                                    placeholder="Enter email or mobile number"
+                                    maxlength="254"
+                                    autocomplete="username"
+                                    pattern="(?:[^\s@]+@[^\s@]+\.[^\s@]+)|(?:\+?91[\s-]?)?[6-9][0-9\s-]{9,13}"
+                                    data-error-required="Please enter your email address or mobile number."
+                                    data-error-pattern="Enter a valid email address or 10-digit Indian mobile number."
+                                    aria-describedby="loginIdentifierError"
+                                    <?= $identifierHasError
+                                        ? 'aria-invalid="true"'
+                                        : '' ?>
+                                    required>
+
+                                <div
+                                    id="loginIdentifierError"
+                                    class="invalid-feedback"
+                                    data-validation-error="identifier">
+                                    <?= esc(
+                                        $validationErrors['identifier'] ?? ''
+                                    ) ?>
+                                </div>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="mb-3">
+                                <div
+                                    class="d-flex align-items-center
+                                        justify-content-between">
+
+                                    <label
+                                        for="loginPassword"
+                                        class="form-label">
+                                        Password
+                                    </label>
+
+                                    <a
+                                        href="javascript:void(0);"
+                                        class="text-muted fs-13">
+                                        Forgot password?
+                                    </a>
+                                </div>
+
+                                <div class="position-relative auth-pass-inputgroup">
+                                    <input
+                                        type="password"
+                                        id="loginPassword"
+                                        name="password"
+                                        class="form-control pe-5 <?= $passwordHasError
+                                                                        ? 'is-invalid'
+                                                                        : '' ?>"
+                                        placeholder="Enter password"
+                                        maxlength="128"
+                                        autocomplete="current-password"
+                                        data-error-required="Please enter your password."
+                                        data-error-maxlength="Password cannot exceed 128 characters."
+                                        aria-describedby="loginPasswordError"
+                                        <?= $passwordHasError
+                                            ? 'aria-invalid="true"'
+                                            : '' ?>
+                                        required>
+                                    <button
+                                        type="button"
+                                        class="password-field__toggle"
+                                        data-password-toggle="password"
+                                        aria-label="Show password"
+                                        aria-controls="password"
+                                        aria-pressed="false">
+
+                                        <span
+                                            class="mdi mdi-eye-off-outline"
+                                            aria-hidden="true">
+                                        </span>
+                                    </button>
+
+                                    <div
+                                        id="loginPasswordError"
+                                        class="invalid-feedback"
+                                        data-validation-error="password">
+                                        <?= esc(
+                                            $validationErrors['password'] ?? ''
+                                        ) ?>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-5">
+                                <button
+                                    type="submit"
+                                    class="btn registration-form__submit fs-16 fw-semibold text-uppercase"
+                                    data-submit-button>
+
+                                    <span data-submit-text>
+                                        Login
+                                    </span>
+
+                                    <span
+                                        class="spinner-border
+                                            spinner-border-sm
+                                            ms-1 d-none"
+                                        data-submit-spinner
+                                        role="status"
+                                        aria-hidden="true">
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="mt-4 text-center">
+                            <p class="mb-0 text-muted">
+                                Don&apos;t have a profile?
+
+                                <a
+                                    href="<?= route_to(
+                                                'web.home'
+                                            ) ?>"
+                                    class="fw-semibold
+                                        text-primary
+                                        text-decoration-underline">
+                                    Register Free
+                                </a>
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <p class="text-muted mb-0 fs-13">
+                        <i
+                            class="ri-shield-check-line
+                                text-primary me-1"
+                            aria-hidden="true"></i>
+
+                        Your login information is securely protected.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</section>
+
+<?php
+$this->endSection();

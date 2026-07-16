@@ -93,6 +93,22 @@ $routes->group('', [
             'filter' => 'webAuth',
         ]
     );
+
+    $routes->get(
+        'login',
+        'AuthenticationController::index',
+        [
+            'as' => 'web.login',
+        ]
+    );
+
+    $routes->post(
+        'login',
+        'AuthenticationController::login',
+        [
+            'as' => 'web.login.submit',
+        ]
+    );
 });
 
 // -----------------------------------------------------------------------------
