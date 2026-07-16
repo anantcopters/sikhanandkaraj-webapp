@@ -5,21 +5,24 @@ declare(strict_types=1);
 namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
-use CodeIgniter\HTTP\RedirectResponse;
 use App\Services\Authentication\LoginResult;
 use App\Services\Authentication\LoginService;
 use App\Validation\LoginValidation;
+use CodeIgniter\HTTP\RedirectResponse;
+use RuntimeException;
 use Throwable;
-
 
 /**
  * Handles login and authenticated web-session actions.
  */
 final class AuthenticationController extends BaseController
 {
+    /**
+     * Display the login screen.
+     */
     public function index(): string|RedirectResponse
     {
-        if (session('is_authenticated') === true) {
+        if ($this->isAuthenticated()) {
             return redirect()->to(
                 route_to('web.dashboard')
             );
@@ -29,20 +32,25 @@ final class AuthenticationController extends BaseController
             'Pages/Authentication/Login',
             [
                 'pageTitle' => 'Login',
+
                 'pageScripts' => [
                     'assets/js/components/password-toggle.js',
+                    'assets/js/components/submit-loader.js',
                 ],
             ]
         );
     }
 
+    /**
+     * Validate and process a password login.
+     */
     public function login(): RedirectResponse
     {
         /**
-         * Prevent an already-authenticated session from being replaced
-         * unexpectedly through another login form submission.
+         * Do not replace an already authenticated session through another
+         * login form submission.
          */
-        if (session('is_authenticated') === true) {
+        if ($this->isAuthenticated()) {
             return redirect()->to(
                 route_to('web.dashboard')
             );
@@ -57,13 +65,10 @@ final class AuthenticationController extends BaseController
         );
 
         if (!$validation->run($input)) {
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with(
-                    'validationErrors',
-                    $validation->getErrors()
-                );
+            return $this->redirectToLogin(
+                identifier: $input['identifier'],
+                validationErrors: $validation->getErrors()
+            );
         }
 
         $validated = $validation->getValidated();
@@ -79,21 +84,30 @@ final class AuthenticationController extends BaseController
 
             if (!$result->successful) {
                 return $this->handleLoginFailure(
-                    $result
+                    $result,
+                    (string) $validated['identifier']
                 );
             }
 
             $user = $result->user;
 
             if (!is_array($user)) {
-                throw new \RuntimeException(
+                throw new RuntimeException(
                     'Successful login returned no user.'
                 );
             }
 
+            $userId = $user['id'] ?? null;
+
+            if (!is_numeric($userId)) {
+                throw new RuntimeException(
+                    'Successful login returned an invalid user ID.'
+                );
+            }
+
             /**
-             * Regenerate the session identifier after authentication
-             * to prevent session fixation.
+             * Regenerate the session identifier immediately after
+             * authentication to prevent session fixation.
              */
             session()->regenerate(true);
 
@@ -101,17 +115,16 @@ final class AuthenticationController extends BaseController
                 'is_authenticated' => true,
 
                 'auth_user_id' =>
-                (int) $user['id'],
+                (int) $userId,
 
                 'auth_user_name' =>
-                trim(
-                    (string) ($user['full_name'] ?? '')
-                ),
+                $this->resolveUserName($user),
 
                 'auth_profile_reference' =>
                 trim(
                     (string) (
-                        $user['profile_ref_number'] ?? ''
+                        $user['profile_ref_number']
+                        ?? ''
                     )
                 ),
 
@@ -131,23 +144,33 @@ final class AuthenticationController extends BaseController
                 'error',
                 'Login failed: {message}',
                 [
-                    'message' => $exception->getMessage(),
+                    'message' =>
+                    $exception->getMessage(),
                 ]
             );
 
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('formAlert', [
+            /**
+             * Preserve only the identifier.
+             *
+             * Never call withInput() here because the submitted request
+             * also contains the plain password.
+             */
+            return $this->redirectToLogin(
+                identifier: $input['identifier'],
+                formAlert: [
                     'type' => 'danger',
                     'title' => 'Login unavailable',
                     'message' =>
                     'We could not log you in right now. '
                         . 'Please try again.',
-                ]);
+                ]
+            );
         }
     }
 
+    /**
+     * Destroy the authenticated session.
+     */
     public function logout(): RedirectResponse
     {
         session()->destroy();
@@ -163,7 +186,12 @@ final class AuthenticationController extends BaseController
     }
 
     /**
-     * @return array<string, string>
+     * Read only the expected login fields.
+     *
+     * @return array{
+     *     identifier: string,
+     *     password: string
+     * }
      */
     private function getLoginInput(): array
     {
@@ -175,38 +203,103 @@ final class AuthenticationController extends BaseController
             ),
 
             /**
-             * Password must not be trimmed because spaces may be part
-             * of a legitimate password.
+             * Do not trim passwords because spaces may legitimately be
+             * part of the user's password.
              */
-            'password' => (string) $this->request->getPost(
-                'password'
-            ),
+            'password' => (string) $this->request
+                ->getPost('password'),
         ];
     }
 
     private function handleLoginFailure(
-        LoginResult $result
+        LoginResult $result,
+        string $identifier
     ): RedirectResponse {
         if (
             $result->field !== null
             && $result->message !== null
         ) {
-            return redirect()
-                ->back()
-                ->withInput()
-                ->with('validationErrors', [
-                    $result->field => $result->message,
-                ]);
+            return $this->redirectToLogin(
+                identifier: $identifier,
+                validationErrors: [
+                    $result->field =>
+                    $result->message,
+                ]
+            );
         }
 
-        return redirect()
-            ->back()
-            ->withInput()
-            ->with('formAlert', [
+        return $this->redirectToLogin(
+            identifier: $identifier,
+            formAlert: [
                 'type' => 'danger',
                 'title' => 'Login failed',
                 'message' => $result->message
                     ?? 'The login could not be completed.',
-            ]);
+            ]
+        );
+    }
+
+    /**
+     * Redirect back to the login page while preserving only the login
+     * identifier.
+     *
+     * The password is deliberately never written to flashdata.
+     *
+     * @param array<string, string>      $validationErrors
+     * @param array<string, string>|null $formAlert
+     */
+    private function redirectToLogin(
+        string $identifier,
+        array $validationErrors = [],
+        ?array $formAlert = null
+    ): RedirectResponse {
+        $redirect = redirect()
+            ->to(route_to('web.login'))
+            ->with(
+                'loginIdentifier',
+                $identifier
+            );
+
+        if ($validationErrors !== []) {
+            $redirect->with(
+                'validationErrors',
+                $validationErrors
+            );
+        }
+
+        if ($formAlert !== null) {
+            $redirect->with(
+                'formAlert',
+                $formAlert
+            );
+        }
+
+        return $redirect;
+    }
+
+    /**
+     * Determine whether the current session is authenticated.
+     */
+    private function isAuthenticated(): bool
+    {
+        return session('is_authenticated') === true
+            && is_numeric(
+                session('auth_user_id')
+            );
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     */
+    private function resolveUserName(
+        array $user
+    ): string {
+        $name = trim(
+            (string) ($user['full_name'] ?? '')
+        );
+
+        return $name !== ''
+            ? $name
+            : 'Member';
     }
 }

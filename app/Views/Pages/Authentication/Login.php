@@ -89,7 +89,8 @@ $this->section('content');
                                     id="loginIdentifier"
                                     name="identifier"
                                     value="<?= esc(
-                                                old('identifier') ?? ''
+                                                session('loginIdentifier') ?? '',
+                                                'attr'
                                             ) ?>"
                                     class="form-control
                                         <?= $identifierHasError
@@ -98,7 +99,6 @@ $this->section('content');
                                     placeholder="Enter email or mobile number"
                                     maxlength="254"
                                     autocomplete="username"
-                                    pattern="(?:[^\s@]+@[^\s@]+\.[^\s@]+)|(?:\+?91[\s-]?)?[6-9][0-9\s-]{9,13}"
                                     data-error-required="Please enter your email address or mobile number."
                                     data-error-pattern="Enter a valid email address or 10-digit Indian mobile number."
                                     aria-describedby="loginIdentifierError"
@@ -181,17 +181,31 @@ $this->section('content');
                                     class="btn registration-form__submit fs-16 fw-semibold text-uppercase"
                                     data-submit-button>
 
-                                    <span data-submit-text>
+                                    <span>
                                         Login
                                     </span>
 
-                                    <span
+                                    <!-- <span
                                         class="spinner-border
                                             spinner-border-sm
                                             ms-1 d-none"
                                         data-submit-spinner
                                         role="status"
                                         aria-hidden="true">
+                                    </span> -->
+
+                                    <span
+                                        class="registration-submit__loading d-none"
+                                        data-submit-loading
+                                        aria-hidden="true">
+
+                                        <span
+                                            class="spinner-border spinner-border-sm"
+                                            role="status"
+                                            aria-hidden="true">
+                                        </span>
+
+                                        <span>Checking credentials...</span>
                                     </span>
                                 </button>
                             </div>

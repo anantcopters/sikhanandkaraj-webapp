@@ -22,7 +22,7 @@ final class WebAuthFilter implements FilterInterface
             || !is_numeric(session('auth_user_id'))
         ) {
             return redirect()
-                ->to(route_to('web.home'))
+                ->to(route_to('web.login'))
                 ->with('formAlert', [
                     'type' => 'warning',
                     'title' => 'Login required',

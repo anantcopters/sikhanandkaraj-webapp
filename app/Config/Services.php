@@ -130,9 +130,11 @@ class Services extends BaseService
             );
         }
 
+        $database = db_connect();
+
         return new LoginService(
-            new UserModel(),
-            new UserContactModel()
+            new UserModel($database),
+            new UserContactModel($database)
         );
     }
 }
