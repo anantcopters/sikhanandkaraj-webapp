@@ -10,6 +10,10 @@ use App\Services\Registration\RegistrationOtpService;
 use CodeIgniter\Config\BaseService;
 use App\Services\Sms\SmsProviderFactory;
 use App\Services\Sms\SmsProviderInterface;
+use App\Models\HttpRequestLogModel;
+use App\Services\Logging\HttpRequestLogService;
+use App\Services\Logging\RequestDataSanitizer;
+
 
 /**
  * Application service configuration.
@@ -91,5 +95,25 @@ class Services extends BaseService
         }
 
         return SmsProviderFactory::create();
+    }
+
+    /**
+     * Return the technical HTTP request logging service.
+     */
+    public static function httpRequestLogService(
+        bool $getShared = true
+    ): HttpRequestLogService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'httpRequestLogService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new HttpRequestLogService(
+            new HttpRequestLogModel($database),
+            new RequestDataSanitizer()
+        );
     }
 }

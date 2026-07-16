@@ -180,4 +180,71 @@ CREATE UNIQUE INDEX IF NOT EXISTS
 ON user_contacts (normalized_value)
 WHERE contact_type = 'MOBILE';
 
+CREATE TABLE IF NOT EXISTS http_request_logs (
+    id BIGSERIAL PRIMARY KEY,
+
+    request_id UUID NOT NULL UNIQUE,
+
+    occurred_at TIMESTAMPTZ NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+    environment VARCHAR(20) NOT NULL,
+
+    request_method VARCHAR(10) NOT NULL,
+    request_uri TEXT NOT NULL,
+
+    route_name VARCHAR(150),
+    controller_action VARCHAR(255),
+
+    response_status SMALLINT NOT NULL,
+    duration_ms INTEGER NOT NULL DEFAULT 0,
+
+    ip_address INET,
+
+    user_id BIGINT,
+    profile_reference VARCHAR(50),
+    is_authenticated BOOLEAN NOT NULL DEFAULT FALSE,
+
+    user_agent VARCHAR(1000),
+    referer VARCHAR(2000),
+
+    request_headers JSONB,
+    request_payload JSONB,
+    response_payload JSONB,
+
+    request_size_bytes INTEGER,
+    response_size_bytes INTEGER,
+
+    severity VARCHAR(20) NOT NULL DEFAULT 'INFO',
+    is_successful BOOLEAN NOT NULL DEFAULT TRUE,
+
+    created_at TIMESTAMPTZ NOT NULL
+        DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS
+    idx_http_request_logs_occurred_at
+    ON http_request_logs (occurred_at DESC);
+
+CREATE INDEX IF NOT EXISTS
+    idx_http_request_logs_user
+    ON http_request_logs (
+        user_id,
+        occurred_at DESC
+    );
+
+CREATE INDEX IF NOT EXISTS
+    idx_http_request_logs_status
+    ON http_request_logs (
+        response_status,
+        occurred_at DESC
+    );
+
+CREATE INDEX IF NOT EXISTS
+    idx_http_request_logs_failed
+        ON http_request_logs (occurred_at DESC)
+        WHERE response_status >= 400;
+
+
+
 COMMIT;

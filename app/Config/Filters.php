@@ -12,6 +12,7 @@ use CodeIgniter\Filters\InvalidChars;
 use CodeIgniter\Filters\PageCache;
 use CodeIgniter\Filters\PerformanceMetrics;
 use CodeIgniter\Filters\SecureHeaders;
+use App\Filters\RequestResponseLogFilter;
 
 class Filters extends BaseFilters
 {
@@ -35,6 +36,7 @@ class Filters extends BaseFilters
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
         'webAuth'       => \App\Filters\WebAuthFilter::class,
+        'requestLog'    => RequestResponseLogFilter::class,
     ];
 
     /**
@@ -72,10 +74,19 @@ class Filters extends BaseFilters
     public array $globals = [
         'before' => [
             // 'honeypot',
+            /**
+             * Run request logging first so timing and request ID are available
+             * even when a later filter rejects a request.
+             */
+            'requestLog',
             'csrf',
             'invalidchars',
         ],
         'after' => [
+            /**
+             * Write the log after the controller has produced its response.
+             */
+            'requestLog',
             // 'honeypot',
             'secureheaders',
         ],
