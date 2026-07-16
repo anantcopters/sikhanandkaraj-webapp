@@ -7,6 +7,7 @@ namespace App\Services\Registration;
 use App\Models\UserContactModel;
 use App\Models\UserModel;
 use CodeIgniter\Database\BaseConnection;
+use App\Support\BooleanValue;
 use RuntimeException;
 use Throwable;
 
@@ -691,9 +692,8 @@ final class RegisterFreeService
      */
     private function isVerified(array $contact): bool
     {
-        return filter_var(
-            $contact['is_verified'] ?? false,
-            FILTER_VALIDATE_BOOLEAN
+        return BooleanValue::fromDatabase(
+            $contact['is_verified'] ?? false
         );
     }
 

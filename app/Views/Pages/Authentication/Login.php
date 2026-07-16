@@ -178,21 +178,15 @@ $this->section('content');
                             <div class="mt-5">
                                 <button
                                     type="submit"
-                                    class="btn registration-form__submit fs-16 fw-semibold text-uppercase"
+                                    class="btn registration-form__submit
+            fs-16 fw-semibold text-uppercase"
                                     data-submit-button>
 
-                                    <span>
+                                    <span
+                                        data-submit-idle
+                                        aria-hidden="false">
                                         Login
                                     </span>
-
-                                    <!-- <span
-                                        class="spinner-border
-                                            spinner-border-sm
-                                            ms-1 d-none"
-                                        data-submit-spinner
-                                        role="status"
-                                        aria-hidden="true">
-                                    </span> -->
 
                                     <span
                                         class="registration-submit__loading d-none"
@@ -205,7 +199,9 @@ $this->section('content');
                                             aria-hidden="true">
                                         </span>
 
-                                        <span>Checking credentials...</span>
+                                        <span>
+                                            Checking credentials...
+                                        </span>
                                     </span>
                                 </button>
                             </div>

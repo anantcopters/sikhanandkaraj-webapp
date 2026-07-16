@@ -6,6 +6,7 @@ namespace App\Services\Authentication;
 
 use App\Models\UserContactModel;
 use App\Models\UserModel;
+use App\Support\BooleanValue;
 
 /**
  * Authenticates a user through a verified email or mobile contact.
@@ -212,16 +213,13 @@ final class LoginService
     }
 
     /**
-     * Safely interpret PostgreSQL boolean values.
-     *
      * @param array<string, mixed> $contact
      */
     private function isVerified(
         array $contact
     ): bool {
-        return filter_var(
-            $contact['is_verified'] ?? false,
-            FILTER_VALIDATE_BOOLEAN
+        return BooleanValue::fromDatabase(
+            $contact['is_verified'] ?? false
         );
     }
 

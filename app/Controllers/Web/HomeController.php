@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
+use CodeIgniter\HTTP\RedirectResponse;
 
 /**
  * Displays publicly accessible website pages.
@@ -12,23 +13,53 @@ use App\Controllers\BaseController;
 final class HomeController extends BaseController
 {
     /**
-     * Displays the public homepage.
+     * Display the public registration homepage.
+     *
+     * Authenticated users are redirected to their dashboard because the
+     * registration form is intended only for visitors.
      */
-    public function index(): string
+    public function index(): string|RedirectResponse
     {
-        return view('Pages/Home/Index', [
-            'pageTitle' => 'Sikh Anand Karaj',
+        if ($this->isAuthenticated()) {
+            return redirect()->to(
+                route_to('web.dashboard')
+            );
+        }
 
-            /**
-             * JavaScript files required only by the homepage.
-             *
-             * Paths are relative to the public directory.
-             */
-            'pageScripts' => [
-                'assets/js/pages/home.js',
-                'assets/js/components/password-toggle.js',
-                'assets/js/components/submit-loader.js'
-            ],
-        ]);
+        /**
+         * Prevent the registration page from being restored with stale
+         * session-dependent content after login or logout.
+         */
+        $this->response
+            ->setHeader(
+                'Cache-Control',
+                'no-store, no-cache, must-revalidate, max-age=0'
+            )
+            ->setHeader('Pragma', 'no-cache')
+            ->setHeader('Expires', '0');
+
+        return view(
+            'Pages/Home/Index',
+            [
+                'pageTitle' => 'Sikh Anand Karaj',
+
+                'pageScripts' => [
+                    'assets/js/pages/home.js',
+                    'assets/js/components/password-toggle.js',
+                    'assets/js/components/submit-loader.js',
+                ],
+            ]
+        );
+    }
+
+    /**
+     * Check whether the current session contains a valid authenticated user.
+     */
+    private function isAuthenticated(): bool
+    {
+        return session('is_authenticated') === true
+            && is_numeric(
+                session('auth_user_id')
+            );
     }
 }

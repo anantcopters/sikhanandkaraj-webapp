@@ -28,6 +28,14 @@ final class AuthenticationController extends BaseController
             );
         }
 
+        $this->response
+            ->setHeader(
+                'Cache-Control',
+                'no-store, no-cache, must-revalidate, max-age=0'
+            )
+            ->setHeader('Pragma', 'no-cache')
+            ->setHeader('Expires', '0');
+
         return view(
             'Pages/Authentication/Login',
             [
