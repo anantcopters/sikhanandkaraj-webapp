@@ -12,6 +12,14 @@ use CodeIgniter\Router\RouteCollection;
 // Web routes
 // -----------------------------------------------------------------------------
 
+if (ENVIRONMENT === 'development') {
+    $routes->get(
+        '_test/email',
+        'EmailTestController::send'
+    );
+}
+
+
 $routes->group('', [
     'namespace' => 'App\Controllers\Web',
 ], static function (RouteCollection $routes): void {
@@ -107,6 +115,23 @@ $routes->group('', [
         'AuthenticationController::login',
         [
             'as' => 'web.login.submit',
+        ]
+    );
+
+    $routes->post(
+        'email/verification/send',
+        'EmailVerificationController::send',
+        [
+            'as' => 'web.email.verification.send',
+            'filter' => 'webAuth',
+        ]
+    );
+
+    $routes->get(
+        'email/verify/(:segment)',
+        'EmailVerificationController::verify/$1',
+        [
+            'as' => 'web.email.verify',
         ]
     );
 });

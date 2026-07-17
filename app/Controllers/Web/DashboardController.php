@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Controllers\Web;
 
+use App\Models\UserContactModel;
+use App\Support\BooleanValue;
 use App\Controllers\BaseController;
 use App\Models\UserModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -45,6 +47,31 @@ final class DashboardController extends BaseController
             (string) ($user['profile_ref_number'] ?? '')
         );
 
+        $emailContact = (
+            new UserContactModel()
+        )->findPrimaryForUser(
+            (int) $userId,
+            UserContactModel::TYPE_EMAIL
+        );
+
+        $primaryEmail = null;
+        $isEmailVerified = false;
+
+        if (is_array($emailContact)) {
+            $primaryEmail = trim(
+                (string) (
+                    $emailContact['contact_value']
+                    ?? ''
+                )
+            );
+
+            $isEmailVerified =
+                BooleanValue::fromDatabase(
+                    $emailContact['is_verified']
+                        ?? false
+                );
+        }
+
         /**
          * Refresh the shared authenticated-session values so the
          * header on subsequent pages displays current information.
@@ -64,6 +91,10 @@ final class DashboardController extends BaseController
 
                 'loggedInUserName' =>
                 $loggedInUserName,
+
+                'primaryEmail' => $primaryEmail,
+
+                'isEmailVerified' => $isEmailVerified,
 
                 'pageScripts' => [
                     'assets/js/pages/dashboard-security.js',

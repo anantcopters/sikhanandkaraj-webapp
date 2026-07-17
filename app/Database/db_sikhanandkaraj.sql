@@ -245,6 +245,42 @@ CREATE INDEX IF NOT EXISTS
         ON http_request_logs (occurred_at DESC)
         WHERE response_status >= 400;
 
+CREATE TABLE email_verification_tokens
+(
+    id                  BIGSERIAL PRIMARY KEY,
 
+    user_id             BIGINT NOT NULL,
+    user_contact_id     BIGINT NOT NULL,
+
+    token_hash          CHAR(64) NOT NULL,
+
+    expires_at          TIMESTAMP NOT NULL,
+    used_at             TIMESTAMP NULL,
+
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_email_verification_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_email_verification_contact
+        FOREIGN KEY (user_contact_id)
+        REFERENCES user_contacts(id)
+        ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX uq_email_verification_token_hash
+ON email_verification_tokens(token_hash);
+
+CREATE INDEX idx_email_verification_user
+ON email_verification_tokens(user_id);
+
+CREATE INDEX idx_email_verification_contact
+ON email_verification_tokens(user_contact_id);
+
+CREATE INDEX idx_email_verification_expiry
+ON email_verification_tokens(expires_at);
 
 COMMIT;

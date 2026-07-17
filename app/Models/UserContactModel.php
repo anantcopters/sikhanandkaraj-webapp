@@ -77,4 +77,25 @@ final class UserContactModel extends Model
 
         return is_array($record) ? $record : null;
     }
+
+    /**
+     * Find a contact belonging to a particular user.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findForUser(
+        int $contactId,
+        int $userId,
+        string $type
+    ): ?array {
+        $record = $this
+            ->where('id', $contactId)
+            ->where('user_id', $userId)
+            ->where('contact_type', $type)
+            ->first();
+
+        return is_array($record)
+            ? $record
+            : null;
+    }
 }
