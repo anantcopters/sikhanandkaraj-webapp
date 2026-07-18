@@ -64,6 +64,21 @@ final class EmailQueueWorker
                 'worker_name' => $workerName,
             ], true);
 
+            if (!is_numeric($attemptId)) {
+                /*
+                * Return this job to the queue. Do not send SMTP without a
+                * corresponding attempt log.
+                */
+                $this->queueService->releaseForRetry(
+                    $email,
+                    'Email attempt log could not be created.'
+                );
+
+                $result['retried']++;
+
+                continue;
+            }
+
             try {
                 $this->mailService->sendTemplate(
                     $email->recipientEmail,

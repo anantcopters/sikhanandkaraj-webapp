@@ -323,4 +323,20 @@ final class EmailQueueService
 
         return mb_substr($error, 0, 5000);
     }
+
+    public function releaseForRetry(
+        QueuedEmail $email,
+        string $error
+    ): void {
+        $this->queueModel->update($email->id, [
+            'status' => EmailQueueModel::STATUS_PENDING,
+            'available_at' => date(
+                'Y-m-d H:i:s',
+                strtotime('+2 minutes')
+            ),
+            'locked_at' => null,
+            'locked_by' => null,
+            'last_error' => $this->truncateError($error),
+        ]);
+    }
 }

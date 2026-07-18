@@ -137,19 +137,21 @@ try {
 
     echo $message . PHP_EOL;
 
-    log_message(
-        'info',
-        'Email worker completed. Reserved={reserved}, '
-            . 'sent={sent}, retried={retried}, '
-            . 'failed={failed}, durationMs={durationMs}',
-        [
-            'reserved' => $result['reserved'],
-            'sent' => $result['sent'],
-            'retried' => $result['retried'],
-            'failed' => $result['failed'],
-            'durationMs' => $durationMs,
-        ]
-    );
+    if ($result['reserved'] > 0) {
+        log_message(
+            'info',
+            'Email worker completed. Reserved={reserved}, '
+                . 'sent={sent}, retried={retried}, '
+                . 'failed={failed}, durationMs={durationMs}',
+            [
+                'reserved' => $result['reserved'],
+                'sent' => $result['sent'],
+                'retried' => $result['retried'],
+                'failed' => $result['failed'],
+                'durationMs' => $durationMs,
+            ]
+        );
+    }
 
     exit(0);
 } catch (Throwable $exception) {

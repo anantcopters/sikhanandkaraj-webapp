@@ -7,10 +7,8 @@ namespace App\Services\EmailVerification;
 use App\Models\EmailVerificationTokenModel;
 use App\Models\UserContactModel;
 use App\Models\UserModel;
-use App\Services\Email\MailService;
 use App\Support\BooleanValue;
 use App\Services\Email\EmailQueueService;
-use CodeIgniter\Database\BaseConnection;
 use RuntimeException;
 use Throwable;
 
@@ -109,32 +107,39 @@ final class EmailVerificationService
 
         $contactId = (int) $contact['id'];
 
-        /*
-         * Invalidate previous unused links before creating a new one.
-         */
-        $this->tokenModel->invalidateForContact(
-            $contactId
-        );
+        $database = db_connect();
 
-        $tokenId = $this->tokenModel->insert([
-            'user_id' => $userId,
-            'user_contact_id' => $contactId,
-            'token_hash' => $tokenHash,
-            'expires_at' => $expiresAt,
-        ], true);
-
-        if (!is_numeric($tokenId)) {
-            throw new RuntimeException(
-                'Verification token could not be created.'
-            );
-        }
-
-        $verificationUrl = url_to(
-            'web.email.verify',
-            $rawToken
-        );
+        $database->transBegin();
 
         try {
+
+            /*
+            * Invalidate earlier links and create the replacement token
+            * within the same transaction as the queue record.
+            */
+            $this->tokenModel->invalidateForContact(
+                $contactId
+            );
+
+            $tokenId = $this->tokenModel->insert([
+                'user_id' => $userId,
+                'user_contact_id' => $contactId,
+                'token_hash' => $tokenHash,
+                'expires_at' => $expiresAt,
+            ], true);
+
+            if (!is_numeric($tokenId)) {
+                throw new RuntimeException(
+                    'Verification token could not be created.'
+                );
+            }
+
+            $verificationUrl = url_to(
+                'web.email.verify',
+                $rawToken
+            );
+
+
             $this->emailQueueService->enqueue(
                 recipientEmail: $emailAddress,
                 recipientName: trim(
@@ -158,16 +163,16 @@ final class EmailVerificationService
                 referenceType: 'EMAIL_VERIFICATION_TOKEN',
                 referenceId: (int) $tokenId
             );
+
+            if (!$database->transStatus()) {
+                throw new RuntimeException(
+                    'Verification request could not be saved.'
+                );
+            }
+
+            $database->transCommit();
         } catch (Throwable $exception) {
-            /*
-     * The token cannot be used because its email was not queued.
-     */
-            $this->tokenModel->update(
-                (int) $tokenId,
-                [
-                    'used_at' => date('Y-m-d H:i:s'),
-                ]
-            );
+            $database->transRollback();
 
             throw new RuntimeException(
                 'Verification email could not be queued.',
