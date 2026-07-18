@@ -13,7 +13,7 @@ class Email extends BaseConfig
     /**
      * The "user agent"
      */
-    public string $userAgent = 'Info';
+    public string $userAgent = 'Sikh Anand Karaj';
 
     /**
      * The mail sending protocol: mail, sendmail, smtp
