@@ -9,6 +9,7 @@ use App\Models\UserContactModel;
 use App\Models\UserModel;
 use App\Services\Email\MailService;
 use App\Support\BooleanValue;
+use App\Services\Email\EmailQueueService;
 use CodeIgniter\Database\BaseConnection;
 use RuntimeException;
 use Throwable;
@@ -23,13 +24,13 @@ final class EmailVerificationService
 
     private EmailVerificationTokenModel $tokenModel;
 
-    private MailService $mailService;
+    private EmailQueueService $emailQueueService;
 
     public function __construct(
         ?UserModel $userModel = null,
         ?UserContactModel $contactModel = null,
         ?EmailVerificationTokenModel $tokenModel = null,
-        ?MailService $mailService = null
+        ?EmailQueueService $emailQueueService = null
     ) {
         $this->userModel =
             $userModel ?? new UserModel();
@@ -38,11 +39,10 @@ final class EmailVerificationService
             $contactModel ?? new UserContactModel();
 
         $this->tokenModel =
-            $tokenModel
-            ?? new EmailVerificationTokenModel();
+            $tokenModel ?? new EmailVerificationTokenModel();
 
-        $this->mailService =
-            $mailService ?? new MailService();
+        $this->emailQueueService =
+            $emailQueueService ?? new EmailQueueService();
     }
 
     /**
@@ -135,47 +135,49 @@ final class EmailVerificationService
         );
 
         try {
-            $this->mailService->sendTemplate(
-                $emailAddress,
-                trim(
+            $this->emailQueueService->enqueue(
+                recipientEmail: $emailAddress,
+                recipientName: trim(
                     (string) ($user['full_name'] ?? '')
                 ),
-                'Verify your Sikh Anand Karaj email',
-                'Emails/Authentication/VerifyEmail',
-                [
-                    'userName' =>
-                    trim(
+                subject: 'Verify your Sikh Anand Karaj email',
+                viewName: 'Emails/Authentication/VerifyEmail',
+                viewData: [
+                    'userName' => trim(
                         (string) (
                             $user['full_name']
                             ?? 'Member'
                         )
                     ),
-
-                    'verificationUrl' =>
-                    $verificationUrl,
-
+                    'verificationUrl' => $verificationUrl,
                     'expiresInHours' =>
                     self::TOKEN_LIFETIME_HOURS,
-                ]
+                ],
+                priority: 10,
+                maxAttempts: 3,
+                referenceType: 'EMAIL_VERIFICATION_TOKEN',
+                referenceId: (int) $tokenId
             );
         } catch (Throwable $exception) {
             /*
-             * Mark an unsent token unusable.
-             */
+     * The token cannot be used because its email was not queued.
+     */
             $this->tokenModel->update(
                 (int) $tokenId,
                 [
-                    'used_at' => date(
-                        'Y-m-d H:i:s'
-                    ),
+                    'used_at' => date('Y-m-d H:i:s'),
                 ]
             );
 
-            throw $exception;
+            throw new RuntimeException(
+                'Verification email could not be queued.',
+                0,
+                $exception
+            );
         }
 
         return VerificationResult::success(
-            'A verification link has been sent to your email address.'
+            'A verification link has been queued and will arrive shortly.'
         );
     }
 

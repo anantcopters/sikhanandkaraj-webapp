@@ -12,6 +12,8 @@ final class MailService
 {
     private Email $email;
 
+    private string $lastDebugOutput = '';
+
     public function __construct(
         ?Email $email = null
     ) {
@@ -19,7 +21,7 @@ final class MailService
     }
 
     /**
-     * Send an HTML email using a reusable CI4 view.
+     * Perform the actual SMTP delivery.
      *
      * @param array<string, mixed> $viewData
      */
@@ -30,7 +32,28 @@ final class MailService
         string $viewName,
         array $viewData = []
     ): void {
+        $this->lastDebugOutput = '';
+
+        $config = config('Email');
+
+        if (
+            trim($config->fromEmail) === ''
+            || !filter_var(
+                $config->fromEmail,
+                FILTER_VALIDATE_EMAIL
+            )
+        ) {
+            throw new RuntimeException(
+                'The sender email address is not configured.'
+            );
+        }
+
         $this->email->clear(true);
+
+        $this->email->setFrom(
+            $config->fromEmail,
+            $config->fromName ?: 'Sikh Anand Karaj'
+        );
 
         $this->email->setTo(
             $recipientEmail,
@@ -44,37 +67,44 @@ final class MailService
         );
 
         try {
-            if (!$this->email->send()) {
-                log_message(
-                    'error',
-                    'Email could not be sent to {email}. Debug: {debug}',
-                    [
-                        'email' => $recipientEmail,
-                        'debug' => $this->email->printDebugger([
-                            'headers',
-                        ]),
-                    ]
-                );
+            /*
+             * false preserves SMTP diagnostics for printDebugger().
+             */
+            if (!$this->email->send(false)) {
+                $this->lastDebugOutput =
+                    $this->email->printDebugger([
+                        'headers',
+                        'subject',
+                    ]);
 
                 throw new RuntimeException(
-                    'Email could not be sent.'
+                    'SMTP rejected or failed to deliver the email.'
                 );
             }
         } catch (Throwable $exception) {
-            log_message(
-                'error',
-                'Email sending exception for {email}: {message}',
-                [
-                    'email' => $recipientEmail,
-                    'message' => $exception->getMessage(),
-                ]
-            );
+            if ($this->lastDebugOutput === '') {
+                $this->lastDebugOutput =
+                    $this->email->printDebugger([
+                        'headers',
+                        'subject',
+                    ]);
+            }
 
             throw new RuntimeException(
-                'Email could not be sent.',
+                'Email could not be sent: '
+                    . $exception->getMessage(),
                 0,
                 $exception
             );
         }
+    }
+
+    public function getLastDebugOutput(): string
+    {
+        return mb_substr(
+            strip_tags($this->lastDebugOutput),
+            0,
+            10000
+        );
     }
 }

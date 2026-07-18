@@ -283,4 +283,111 @@ ON email_verification_tokens(user_contact_id);
 CREATE INDEX idx_email_verification_expiry
 ON email_verification_tokens(expires_at);
 
+CREATE TABLE email_queue
+(
+    id                  BIGSERIAL PRIMARY KEY,
+
+    queue_name          VARCHAR(50) NOT NULL DEFAULT 'default',
+
+    recipient_email     VARCHAR(254) NOT NULL,
+    recipient_name      VARCHAR(150) NULL,
+
+    subject             VARCHAR(255) NOT NULL,
+    view_name           VARCHAR(255) NOT NULL,
+    view_data           JSONB NOT NULL DEFAULT '{}'::jsonb,
+
+    status              VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+    priority            SMALLINT NOT NULL DEFAULT 100,
+
+    attempts            SMALLINT NOT NULL DEFAULT 0,
+    max_attempts        SMALLINT NOT NULL DEFAULT 3,
+
+    available_at        TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    locked_at           TIMESTAMP NULL,
+    locked_by           VARCHAR(100) NULL,
+
+    sent_at             TIMESTAMP NULL,
+    failed_at           TIMESTAMP NULL,
+
+    last_error          TEXT NULL,
+
+    reference_type      VARCHAR(100) NULL,
+    reference_id        BIGINT NULL,
+
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT chk_email_queue_status
+        CHECK (
+            status IN (
+                'PENDING',
+                'PROCESSING',
+                'SENT',
+                'FAILED'
+            )
+        ),
+
+    CONSTRAINT chk_email_queue_attempts
+        CHECK (
+            attempts >= 0
+            AND max_attempts > 0
+        )
+);
+
+CREATE INDEX idx_email_queue_ready
+ON email_queue (
+    priority ASC,
+    available_at ASC,
+    id ASC
+)
+WHERE status = 'PENDING';
+
+CREATE INDEX idx_email_queue_stale
+ON email_queue (locked_at)
+WHERE status = 'PROCESSING';
+
+CREATE INDEX idx_email_queue_reference
+ON email_queue (reference_type, reference_id);
+
+
+CREATE TABLE email_queue_attempts
+(
+    id                  BIGSERIAL PRIMARY KEY,
+
+    email_queue_id      BIGINT NOT NULL,
+    attempt_number      SMALLINT NOT NULL,
+
+    status              VARCHAR(20) NOT NULL,
+    started_at          TIMESTAMP NOT NULL,
+    completed_at        TIMESTAMP NULL,
+
+    duration_ms         INTEGER NULL,
+    error_message       TEXT NULL,
+    smtp_debug          TEXT NULL,
+
+    worker_name         VARCHAR(100) NULL,
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_email_queue_attempt
+        FOREIGN KEY (email_queue_id)
+        REFERENCES email_queue(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT chk_email_attempt_status
+        CHECK (
+            status IN (
+                'STARTED',
+                'SENT',
+                'RETRY',
+                'FAILED'
+            )
+        )
+);
+
+CREATE INDEX idx_email_attempt_queue
+ON email_queue_attempts (
+    email_queue_id,
+    attempt_number
+);
+
 COMMIT;
