@@ -17,8 +17,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  AWS_REGION: ${{ vars.AWS_REGION }}
-  QA_INSTANCE_ID: ${{ vars.QA_INSTANCE_ID }}
+  AWS_REGION: ap-south-1
+  QA_INSTANCE_ID: ${{ secrets.QA_INSTANCE_ID }}
 
 jobs:
   validate:
@@ -103,13 +103,16 @@ jobs:
 
     runs-on: ubuntu-latest
     environment: qa
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Configure temporary AWS credentials
-        uses: aws-actions/configure-aws-credentials@v5
+        uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
-          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-south-1
           role-session-name: github-sikhanandkaraj-qa
 
       - name: Verify EC2 is available in Systems Manager
