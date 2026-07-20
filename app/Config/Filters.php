@@ -37,6 +37,8 @@ class Filters extends BaseFilters
         'performance'   => PerformanceMetrics::class,
         'webAuth'       => \App\Filters\WebAuthFilter::class,
         'requestLog'    => RequestResponseLogFilter::class,
+        'adminAuth'     => \App\Filters\AdminAuthFilter::class,
+        'superAdmin'    => \App\Filters\SuperAdminFilter::class,
     ];
 
     /**

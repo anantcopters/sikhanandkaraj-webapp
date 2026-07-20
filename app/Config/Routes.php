@@ -12,14 +12,6 @@ use CodeIgniter\Router\RouteCollection;
 // Web routes
 // -----------------------------------------------------------------------------
 
-if (ENVIRONMENT === 'development') {
-    $routes->get(
-        '_test/email',
-        'EmailTestController::send'
-    );
-}
-
-
 $routes->group('', [
     'namespace' => 'App\Controllers\Web',
 ], static function (RouteCollection $routes): void {
@@ -134,6 +126,118 @@ $routes->group('', [
             'as' => 'web.email.verify',
         ]
     );
+});
+
+// -----------------------------------------------------------------------------
+// Admin routes
+// -----------------------------------------------------------------------------
+
+$routes->group('admin', [
+    'namespace' => 'App\Controllers\Admin',
+], static function (
+    RouteCollection $routes
+): void {
+    $routes->get(
+        'login',
+        'AdminAuthenticationController::index',
+        [
+            'as' => 'admin.login',
+        ]
+    );
+
+    $routes->post(
+        'login',
+        'AdminAuthenticationController::login',
+        [
+            'as' => 'admin.login.submit',
+        ]
+    );
+
+    $routes->get(
+        'invitation/(:segment)',
+        'AdminInvitationController::show/$1',
+        [
+            'as' => 'admin.invitation.show',
+        ]
+    );
+
+    $routes->post(
+        'invitation/(:segment)',
+        'AdminInvitationController::accept/$1',
+        [
+            'as' =>
+            'admin.invitation.accept',
+        ]
+    );
+
+    $routes->post(
+        'logout',
+        'AdminAuthenticationController::logout',
+        [
+            'as' => 'admin.logout',
+            'filter' => 'adminAuth',
+        ]
+    );
+
+    $routes->get(
+        'dashboard',
+        'AdminDashboardController::index',
+        [
+            'as' => 'admin.dashboard',
+            'filter' => 'adminAuth',
+        ]
+    );
+
+    $routes->group('users', [
+        'filter' => 'adminAuth,superAdmin',
+    ], static function (
+        RouteCollection $routes
+    ): void {
+        $routes->get(
+            '',
+            'AdminUserController::index',
+            [
+                'as' =>
+                'admin.users.index',
+            ]
+        );
+
+        $routes->get(
+            'create',
+            'AdminUserController::create',
+            [
+                'as' =>
+                'admin.users.create',
+            ]
+        );
+
+        $routes->post(
+            '',
+            'AdminUserController::store',
+            [
+                'as' =>
+                'admin.users.store',
+            ]
+        );
+
+        $routes->post(
+            '(:num)/resend-invitation',
+            'AdminUserController::resend/$1',
+            [
+                'as' =>
+                'admin.users.resend',
+            ]
+        );
+
+        $routes->post(
+            '(:num)/suspend',
+            'AdminUserController::suspend/$1',
+            [
+                'as' =>
+                'admin.users.suspend',
+            ]
+        );
+    });
 });
 
 // -----------------------------------------------------------------------------

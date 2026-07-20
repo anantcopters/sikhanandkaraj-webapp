@@ -14,6 +14,12 @@ use App\Models\HttpRequestLogModel;
 use App\Services\Logging\HttpRequestLogService;
 use App\Services\Logging\RequestDataSanitizer;
 use App\Services\Authentication\LoginService;
+use App\Models\AdminInvitationModel;
+use App\Models\AdminUserModel;
+use App\Services\Admin\AdminInvitationService;
+use App\Services\Admin\AdminManagementService;
+use App\Services\Admin\Authentication\AdminLoginService;
+use App\Services\Email\EmailQueueService;
 
 
 /**
@@ -135,6 +141,59 @@ class Services extends BaseService
         return new LoginService(
             new UserModel($database),
             new UserContactModel($database)
+        );
+    }
+
+    public static function adminLoginService(
+        bool $getShared = true
+    ): AdminLoginService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'adminLoginService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new AdminLoginService(
+            new AdminUserModel($database)
+        );
+    }
+
+    public static function adminInvitationService(
+        bool $getShared = true
+    ): AdminInvitationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'adminInvitationService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new AdminInvitationService(
+            new AdminUserModel($database),
+            new AdminInvitationModel($database),
+            new EmailQueueService(
+                $database
+            ),
+            $database
+        );
+    }
+
+    public static function adminManagementService(
+        bool $getShared = true
+    ): AdminManagementService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'adminManagementService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new AdminManagementService(
+            new AdminUserModel($database)
         );
     }
 }

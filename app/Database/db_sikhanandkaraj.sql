@@ -390,4 +390,134 @@ ON email_queue_attempts (
     attempt_number
 );
 
+CREATE TABLE admin_users
+(
+    id                  BIGSERIAL PRIMARY KEY,
+
+    full_name           VARCHAR(150) NOT NULL,
+    mobile_number       VARCHAR(15) NOT NULL,
+    email_address       VARCHAR(254) NOT NULL,
+
+    password_hash       VARCHAR(255) NULL,
+
+    role                VARCHAR(20) NOT NULL DEFAULT 'ADMIN',
+    account_status      VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+
+    is_mobile_verified  BOOLEAN NOT NULL DEFAULT TRUE,
+    mobile_verified_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    is_email_verified   BOOLEAN NOT NULL DEFAULT FALSE,
+    email_verified_at   TIMESTAMP NULL,
+
+    password_set_at     TIMESTAMP NULL,
+    last_login_at       TIMESTAMP NULL,
+
+    created_by          BIGINT NULL,
+
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at          TIMESTAMP NULL,
+
+    CONSTRAINT uq_admin_users_mobile
+        UNIQUE (mobile_number),
+
+    CONSTRAINT uq_admin_users_email
+        UNIQUE (email_address),
+
+    CONSTRAINT chk_admin_role
+        CHECK (
+            role IN ('SUPER_ADMIN', 'ADMIN')
+        ),
+
+    CONSTRAINT chk_admin_status
+        CHECK (
+            account_status IN (
+                'PENDING',
+                'VERIFIED',
+                'SUSPENDED'
+            )
+        ),
+
+    CONSTRAINT fk_admin_created_by
+        FOREIGN KEY (created_by)
+        REFERENCES admin_users(id)
+        ON DELETE SET NULL
+);
+
+CREATE INDEX idx_admin_users_status
+ON admin_users(account_status)
+WHERE deleted_at IS NULL;
+
+CREATE INDEX idx_admin_users_role
+ON admin_users(role)
+WHERE deleted_at IS NULL;
+
+
+CREATE TABLE admin_invitations
+(
+    id                  BIGSERIAL PRIMARY KEY,
+
+    admin_user_id       BIGINT NOT NULL,
+    token_hash          CHAR(64) NOT NULL,
+
+    expires_at          TIMESTAMP NOT NULL,
+    used_at             TIMESTAMP NULL,
+    revoked_at          TIMESTAMP NULL,
+
+    created_by          BIGINT NOT NULL,
+
+    created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uq_admin_invitation_token
+        UNIQUE (token_hash),
+
+    CONSTRAINT fk_admin_invitation_user
+        FOREIGN KEY (admin_user_id)
+        REFERENCES admin_users(id)
+        ON DELETE CASCADE,
+
+    CONSTRAINT fk_admin_invitation_creator
+        FOREIGN KEY (created_by)
+        REFERENCES admin_users(id)
+        ON DELETE RESTRICT
+);
+
+CREATE INDEX idx_admin_invitation_user
+ON admin_invitations(admin_user_id);
+
+CREATE INDEX idx_admin_invitation_usable
+ON admin_invitations(token_hash, expires_at)
+WHERE used_at IS NULL
+  AND revoked_at IS NULL;
+
+INSERT INTO admin_users
+(
+    full_name,
+    mobile_number,
+    email_address,
+    password_hash,
+    role,
+    account_status,
+    is_mobile_verified,
+    mobile_verified_at,
+    is_email_verified,
+    email_verified_at,
+    password_set_at
+)
+VALUES
+(
+    'Anant Prakash Singh',
+    '+918550915559',
+    'anantsinghkota@gmail.com',
+    '$2y$10$j4NbDmW.KD8/PLEj7VTfi.97R./.zfv1KAFqKopBxobPBEpnph1f6',
+    'SUPER_ADMIN',
+    'VERIFIED',
+    TRUE,
+    CURRENT_TIMESTAMP,
+    TRUE,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+);
+
 COMMIT;
