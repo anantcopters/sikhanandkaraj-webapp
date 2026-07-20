@@ -47,59 +47,76 @@ $pageScripts = $pageScripts ?? [];
 
 </head>
 
-<body class="admin-body">
+<body>
 
     <?php if (
         session('admin_is_authenticated') === true
     ): ?>
-        <header class="admin-header">
-            <div class="container-fluid">
-                <div
-                    class="d-flex align-items-center
-                        justify-content-between gap-3">
+        <header class="page-topbar">
+            <div class="layout-width">
+                <div class="navbar public-navbar">
+                    <div class="container public-navbar__container">
 
-                    <a
-                        href="<?= route_to(
-                                    'admin.dashboard'
-                                ) ?>"
-                        class="admin-brand">
-                        Sikh Anand Karaj
-                        <span>Administration</span>
-                    </a>
+                        <div class="d-flex align-items-center">
+                            <a
+                                href="<?= route_to(
+                                            'admin.dashboard'
+                                        ) ?>"
+                                class="navbar-brand-box text-decoration-none">
 
-                    <div
-                        class="d-flex align-items-center gap-3">
+                                <span class="fs-18 fw-semibold text-primary">
+                                    Sikh Anand Karaj
+                                </span>
 
-                        <span
-                            class="d-none d-md-inline text-muted">
-                            <?= esc(
-                                session(
-                                    'admin_user_name'
-                                )
-                            ) ?>
-                        </span>
+                                <span
+                                    class="d-block fs-11 text-muted
+                                text-uppercase">
+                                    Administration
+                                </span>
+                            </a>
+                        </div>
 
-                        <form
-                            action="<?= route_to(
-                                        'admin.logout'
-                                    ) ?>"
-                            method="post">
-                            <?= csrf_field() ?>
+                        <div class="d-flex align-items-center gap-2">
 
-                            <button
-                                class="btn btn-outline-secondary
-                                    btn-sm"
-                                type="submit">
-                                Logout
-                            </button>
-                        </form>
+                            <span
+                                class="d-none d-md-inline-block
+                            text-muted">
+                                <?= esc(
+                                    session('admin_user_name')
+                                ) ?>
+                            </span>
+
+                            <form
+                                action="<?= route_to(
+                                            'admin.logout'
+                                        ) ?>"
+                                method="post">
+                                <?= csrf_field() ?>
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-soft-secondary btn-sm">
+                                    <i
+                                        class="ri-logout-box-r-line
+                                    align-middle me-1">
+                                    </i>
+                                    Logout
+                                </button>
+                            </form>
+
+                        </div>
                     </div>
                 </div>
             </div>
         </header>
     <?php endif; ?>
 
-    <main>
+    <main
+        class="<?= session(
+                    'admin_is_authenticated'
+                ) === true
+                    ? 'page-content'
+                    : '' ?>">
         <?= $this->renderSection('content') ?>
     </main>
 

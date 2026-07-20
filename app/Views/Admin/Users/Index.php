@@ -36,44 +36,54 @@ $this->extend('Admin/Layouts/Main');
 $this->section('content');
 ?>
 
-<section class="admin-page-section">
-    <div class="container-fluid">
 
-        <div class="admin-page-heading">
-            <div>
-                <p class="admin-page-heading__eyebrow">
-                    Access Management
-                </p>
+<div class="container-fluid">
 
-                <h1>Administrators</h1>
+    <div class="row">
+        <div class="col-12">
+            <div
+                class="page-title-box
+                d-sm-flex align-items-center
+                justify-content-between">
 
-                <p>
-                    Invite, verify and manage administrator access.
-                </p>
+                <div>
+                    <h4 class="mb-sm-0">
+                        Administrator Dashboard
+                    </h4>
+
+                    <p class="text-muted mb-0 mt-1">
+                        Review administrator accounts,
+                        verification status and access.
+                    </p>
+                </div>
+
+                <div class="page-title-right">
+                    <a
+                        href="<?= route_to(
+                                    'admin.users.create'
+                                ) ?>"
+                        class="btn btn-primary">
+                        <i
+                            class="ri-user-add-line"
+                            aria-hidden="true">
+                        </i>
+                        Add Administrator
+                    </a>
+                </div>
+
             </div>
-
-            <a
-                href="<?= route_to(
-                            'admin.users.create'
-                        ) ?>"
-                class="btn registration-form__submit
-                    admin-page-heading__action">
-                <i
-                    class="ri-user-add-line"
-                    aria-hidden="true">
-                </i>
-                Add Administrator
-            </a>
         </div>
+    </div>
 
-        <?= view(
-            'Components/Alerts/FormAlert',
-            [
-                'alert' => $formAlert,
-            ]
-        ) ?>
+    <?= view(
+        'Components/Alerts/FormAlert',
+        [
+            'alert' => $formAlert,
+        ]
+    ) ?>
 
-        <div class="admin-panel p-0 overflow-hidden">
+    <div class="card">
+        <div class="card-body">
 
             <div class="table-responsive">
                 <table
@@ -96,18 +106,25 @@ $this->section('content');
                         ): ?>
                             <tr>
                                 <td colspan="5">
-                                    <div class="admin-empty-state">
-                                        <i
-                                            class="ri-user-settings-line">
-                                        </i>
+                                    <div class="text-center py-5">
+                                        <div
+                                            class="avatar-md mx-auto mb-3">
+                                            <div
+                                                class="avatar-title
+                rounded-circle
+                bg-primary-subtle
+                text-primary fs-24">
+                                                <i class="ri-user-settings-line"></i>
+                                            </div>
+                                        </div>
 
-                                        <h2>
-                                            No administrators added
-                                        </h2>
+                                        <h5 class="mb-1">
+                                            No administrators found
+                                        </h5>
 
-                                        <p>
-                                            Add the first administrator
-                                            and send an email invitation.
+                                        <p class="text-muted mb-0">
+                                            Add an administrator to send
+                                            the first invitation.
                                         </p>
                                     </div>
                                 </td>
@@ -150,46 +167,48 @@ $this->section('content');
 
                             <tr>
                                 <td>
-                                    <div class="admin-user-cell">
-                                        <div class="admin-user-avatar">
-                                            <?= esc(
-                                                mb_strtoupper(
-                                                    mb_substr(
-                                                        (string) $admin['full_name'],
-                                                        0,
-                                                        1
-                                                    )
-                                                )
-                                            ) ?>
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="avatar-sm">
+                                                <span
+                                                    class="avatar-title
+                    rounded-circle
+                    bg-primary-subtle
+                    text-primary fw-semibold">
+                                                    A
+                                                </span>
+                                            </div>
                                         </div>
 
-                                        <div>
-                                            <strong>
-                                                <?= esc(
-                                                    $admin['full_name']
-                                                ) ?>
-                                            </strong>
+                                        <div class="flex-grow-1 ms-2">
+                                            <h6 class="mb-0">
+                                                Administrator Name
+                                            </h6>
 
-                                            <span>Administrator</span>
+                                            <p class="text-muted mb-0 fs-12">
+                                                Administrator
+                                            </p>
                                         </div>
                                     </div>
                                 </td>
 
                                 <td>
-                                    <div class="admin-contact-cell">
-                                        <span>
-                                            <i class="ri-mail-line"></i>
-                                            <?= esc(
-                                                $admin['email_address']
-                                            ) ?>
-                                        </span>
+                                    <div>
+                                        <p class="mb-1">
+                                            <i
+                                                class="ri-mail-line
+                align-middle me-1 text-muted">
+                                            </i>
+                                            email
+                                        </p>
 
-                                        <span>
-                                            <i class="ri-phone-line"></i>
-                                            <?= esc(
-                                                $admin['mobile_number']
-                                            ) ?>
-                                        </span>
+                                        <p class="text-muted mb-0">
+                                            <i
+                                                class="ri-phone-line
+                align-middle me-1">
+                                            </i>
+                                            mobile
+                                        </p>
                                     </div>
                                 </td>
 
@@ -272,6 +291,7 @@ $this->section('content');
 
         </div>
     </div>
-</section>
+</div>
+
 
 <?php $this->endSection(); ?>

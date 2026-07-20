@@ -18,165 +18,181 @@ $this->extend('Admin/Layouts/Main');
 $this->section('content');
 ?>
 
-<section class="admin-auth-section">
-    <div class="container">
-        <div
-            class="row justify-content-center
-                align-items-center min-vh-100 py-4">
+<div class="auth-page-wrapper pt-5">
+    <div class="auth-page-content">
+        <div class="container">
 
-            <div
-                class="col-12 col-sm-10
-                    col-md-7 col-lg-5 col-xl-4">
+            <div class="row justify-content-center">
+                <div
+                    class="col-md-8 col-lg-6 col-xl-5">
 
-                <div class="admin-auth-card">
+                    <div class="card mt-4">
+                        <div class="card-body p-4">
 
-                    <div class="admin-auth-card__header">
-                        <div class="admin-auth-icon">
-                            <i
-                                class="ri-shield-user-line"
-                                aria-hidden="true">
-                            </i>
-                        </div>
+                            <div class="text-center mt-2">
 
-                        <h1>Administrator Login</h1>
+                                <div
+                                    class="avatar-md mx-auto mb-3">
+                                    <div
+                                        class="avatar-title
+                                            rounded-circle
+                                            bg-primary-subtle
+                                            text-primary fs-24">
+                                        <i
+                                            class="ri-shield-user-line">
+                                        </i>
+                                    </div>
+                                </div>
 
-                        <p>
-                            Sign in using your verified email
-                            address or mobile number.
-                        </p>
-                    </div>
+                                <h1 class="fs-20">
+                                    Administrator Login
+                                </h1>
 
-                    <?= view(
-                        'Components/Alerts/FormAlert',
-                        [
-                            'alert' => $formAlert,
-                        ]
-                    ) ?>
+                                <p class="text-muted mb-0">
+                                    Sign in using your verified
+                                    email address or mobile number.
+                                </p>
+                            </div>
 
-                    <form
-                        action="<?= route_to(
-                                    'admin.login.submit'
-                                ) ?>"
-                        method="post"
-                        data-validate
-                        data-submit-loader
-                        novalidate>
+                            <div class="p-2 mt-4">
+                                <?= view(
+                                    'Components/Alerts/FormAlert',
+                                    [
+                                        'alert' => $formAlert,
+                                    ]
+                                ) ?>
 
-                        <?= csrf_field() ?>
+                                <form
+                                    action="<?= route_to(
+                                                'admin.login.submit'
+                                            ) ?>"
+                                    method="post"
+                                    data-validate
+                                    data-submit-loader
+                                    novalidate>
 
-                        <div class="mb-3">
-                            <label
-                                class="form-label"
-                                for="adminIdentifier">
-                                Email or Mobile Number
-                            </label>
+                                    <?= csrf_field() ?>
 
-                            <input
-                                class="form-control
+                                    <div class="mb-3">
+                                        <label
+                                            class="form-label"
+                                            for="adminIdentifier">
+                                            Email or Mobile Number
+                                        </label>
+
+                                        <input
+                                            class="form-control
                                     <?= isset(
                                         $validationErrors['identifier']
                                     )
                                         ? 'is-invalid'
                                         : '' ?>"
-                                type="text"
-                                id="adminIdentifier"
-                                name="identifier"
-                                value="<?= esc(
-                                            session(
-                                                'adminLoginIdentifier'
-                                            ) ?? '',
-                                            'attr'
-                                        ) ?>"
-                                placeholder="Email or mobile number"
-                                autocomplete="username"
-                                maxlength="254"
-                                required>
+                                            type="text"
+                                            id="adminIdentifier"
+                                            name="identifier"
+                                            value="<?= esc(
+                                                        session(
+                                                            'adminLoginIdentifier'
+                                                        ) ?? '',
+                                                        'attr'
+                                                    ) ?>"
+                                            placeholder="Email or mobile number"
+                                            autocomplete="username"
+                                            maxlength="254"
+                                            required>
 
-                            <div class="invalid-feedback">
-                                <?= esc(
-                                    $validationErrors['identifier'] ?? ''
-                                ) ?>
-                            </div>
-                        </div>
+                                        <div class="invalid-feedback">
+                                            <?= esc(
+                                                $validationErrors['identifier'] ?? ''
+                                            ) ?>
+                                        </div>
+                                    </div>
 
-                        <div class="mb-4">
-                            <label
-                                class="form-label"
-                                for="adminPassword">
-                                Password
-                            </label>
+                                    <div class="mb-4">
+                                        <label
+                                            class="form-label"
+                                            for="adminPassword">
+                                            Password
+                                        </label>
 
-                            <div class="password-field">
-                                <input
-                                    class="form-control
+                                        <div class="password-field">
+                                            <input
+                                                class="form-control
                                         password-field__input
                                         <?= isset(
                                             $validationErrors['password']
                                         )
                                             ? 'is-invalid'
                                             : '' ?>"
-                                    type="password"
-                                    id="adminPassword"
-                                    name="password"
-                                    placeholder="Enter password"
-                                    maxlength="128"
-                                    autocomplete="current-password"
-                                    required>
+                                                type="password"
+                                                id="adminPassword"
+                                                name="password"
+                                                placeholder="Enter password"
+                                                maxlength="128"
+                                                autocomplete="current-password"
+                                                required>
 
-                                <button
-                                    type="button"
-                                    class="password-field__toggle"
-                                    data-password-toggle="adminPassword"
-                                    aria-label="Show password">
-                                    <span
-                                        class="mdi mdi-eye-off-outline"
-                                        aria-hidden="true">
-                                    </span>
-                                </button>
-                            </div>
+                                            <button
+                                                type="button"
+                                                class="password-field__toggle"
+                                                data-password-toggle="adminPassword"
+                                                aria-label="Show password">
+                                                <span
+                                                    class="mdi mdi-eye-off-outline"
+                                                    aria-hidden="true">
+                                                </span>
+                                            </button>
+                                        </div>
 
-                            <div class="invalid-feedback d-block">
-                                <?= esc(
-                                    $validationErrors['password'] ?? ''
-                                ) ?>
-                            </div>
-                        </div>
+                                        <div class="invalid-feedback d-block">
+                                            <?= esc(
+                                                $validationErrors['password'] ?? ''
+                                            ) ?>
+                                        </div>
+                                    </div>
 
-                        <button
-                            type="submit"
-                            class="btn registration-form__submit
+                                    <button
+                                        type="submit"
+                                        class="btn registration-form__submit
                                 fs-16 fw-semibold"
-                            data-submit-button>
+                                        data-submit-button>
 
-                            <span data-submit-idle>
-                                Login to Administration
-                            </span>
+                                        <span data-submit-idle>
+                                            Login to Administration
+                                        </span>
 
-                            <span
-                                class="registration-submit__loading
+                                        <span
+                                            class="registration-submit__loading
                                     d-none"
-                                data-submit-loading>
-                                <span
-                                    class="spinner-border
+                                            data-submit-loading>
+                                            <span
+                                                class="spinner-border
                                         spinner-border-sm">
-                                </span>
-                                Checking credentials...
-                            </span>
-                        </button>
-                    </form>
+                                            </span>
+                                            Checking credentials...
+                                        </span>
+                                    </button>
+                                </form>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <p
+                        class="text-center text-muted
+                            mt-4 mb-0">
+                        <i
+                            class="ri-lock-2-line
+                                align-middle me-1">
+                        </i>
+                        Restricted administration access
+                    </p>
 
                 </div>
-
-                <p class="admin-auth-security">
-                    <i
-                        class="ri-lock-2-line"
-                        aria-hidden="true">
-                    </i>
-                    Restricted administration access
-                </p>
             </div>
+
         </div>
     </div>
-</section>
+</div>
 
 <?php $this->endSection(); ?>

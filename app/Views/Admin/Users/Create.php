@@ -21,37 +21,38 @@ $this->extend('Admin/Layouts/Main');
 $this->section('content');
 ?>
 
-<section class="admin-page-section">
-    <div class="container-fluid">
 
-        <div class="admin-page-heading">
-            <div>
-                <p class="admin-page-heading__eyebrow">
-                    Super Administrator
-                </p>
+<div class="container-fluid">
 
-                <h1>Add Administrator</h1>
+    <div class="admin-page-heading">
+        <div>
+            <p class="text-uppercase fw-semibold text-primary fs-12 mb-1">
+                Super Administrator
+            </p>
 
-                <p>
-                    The mobile number will be marked verified.
-                    The administrator must verify the email and
-                    create a password using the invitation link.
-                </p>
-            </div>
+            <h1>Add Administrator</h1>
 
-            <a
-                href="<?= route_to(
-                            'admin.users.index'
-                        ) ?>"
-                class="btn btn-outline-secondary">
-                Back to Administrators
-            </a>
+            <p>
+                The mobile number will be marked verified.
+                The administrator must verify the email and
+                create a password using the invitation link.
+            </p>
         </div>
 
-        <div class="row">
-            <div class="col-12 col-xl-8">
+        <a
+            href="<?= route_to(
+                        'admin.users.index'
+                    ) ?>"
+            class="btn btn-outline-secondary">
+            Back to Administrators
+        </a>
+    </div>
 
-                <div class="admin-panel">
+    <div class="row">
+        <div class="col-12 col-xl-8">
+
+            <div class="card">
+                <div class="card-body">
                     <?= view(
                         'Components/Alerts/FormAlert',
                         [
@@ -186,21 +187,24 @@ $this->section('content');
                         </div>
 
                         <div
-                            class="admin-invitation-note mt-4">
+                            class="alert alert-primary
+        d-flex align-items-start gap-2 mt-4 mb-0"
+                            role="alert">
+
                             <i
-                                class="ri-mail-send-line"
-                                aria-hidden="true">
+                                class="ri-mail-send-line
+            fs-20 flex-shrink-0">
                             </i>
 
                             <div>
-                                <strong>
+                                <h6 class="alert-heading mb-1">
                                     Invitation email
-                                </strong>
+                                </h6>
 
-                                <p>
-                                    A one-time link valid for
-                                    24 hours will be queued after
-                                    the administrator is created.
+                                <p class="mb-0">
+                                    A one-time link valid for 24 hours
+                                    will be queued after the administrator
+                                    is created.
                                 </p>
                             </div>
                         </div>
@@ -208,7 +212,7 @@ $this->section('content');
                         <div class="mt-4">
                             <button
                                 type="submit"
-                                class="btn registration-form__submit"
+                                class="btn btn btn-primary"
                                 data-submit-button>
 
                                 <span data-submit-idle>
@@ -229,10 +233,11 @@ $this->section('content');
                         </div>
                     </form>
                 </div>
-
             </div>
+
         </div>
     </div>
-</section>
+</div>
+
 
 <?php $this->endSection(); ?>

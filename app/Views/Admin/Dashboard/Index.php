@@ -25,8 +25,8 @@ $formAlert = is_array($alert)
 
 $summary = isset($summary)
     && is_array($summary)
-        ? $summary
-        : [];
+    ? $summary
+    : [];
 
 $summary = array_merge(
     [
@@ -40,166 +40,221 @@ $summary = array_merge(
 
 $administrators = isset($administrators)
     && is_array($administrators)
-        ? $administrators
-        : [];
+    ? $administrators
+    : [];
 
 $this->extend('Admin/Layouts/Main');
 
 $this->section('content');
 ?>
 
-<section class="admin-page-section">
-    <div class="container-fluid">
 
-        <div class="admin-page-heading">
-            <div>
-                <p class="admin-page-heading__eyebrow">
-                    Administration
-                </p>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div
+                class="page-title-box
+                d-sm-flex align-items-center
+                justify-content-between">
 
-                <h1>Dashboard</h1>
+                <div>
+                    <h4 class="mb-sm-0">
+                        Administrator Dashboard
+                    </h4>
 
-                <p>
-                    Review administrator accounts,
-                    verification status and access.
-                </p>
+                    <p class="text-muted mb-0 mt-1">
+                        Review administrator accounts,
+                        verification status and access.
+                    </p>
+                </div>
+
+                <div class="page-title-right">
+                    <?php if (
+                        session('admin_role')
+                        === AdminUserModel::ROLE_SUPER_ADMIN
+                    ): ?>
+                        <a
+                            href="<?= route_to(
+                                        'admin.users.create'
+                                    ) ?>"
+                            class="btn btn-primary">
+                            <i
+                                class="ri-user-add-line"
+                                aria-hidden="true"></i>
+
+                            Add Administrator
+                        </a>
+                    <?php endif; ?>
+                </div>
+
             </div>
+        </div>
+    </div>
 
-            <?php if (
-                session('admin_role')
-                === AdminUserModel::ROLE_SUPER_ADMIN
-            ): ?>
-                <a
-                    href="<?= route_to(
-                                'admin.users.create'
-                            ) ?>"
-                    class="btn registration-form__submit
-                        admin-page-heading__action">
-                    <i
-                        class="ri-user-add-line"
-                        aria-hidden="true"></i>
+    <?= view(
+        'Components/Alerts/FormAlert',
+        [
+            'alert' => $formAlert,
+        ]
+    ) ?>
 
-                    Add Administrator
-                </a>
-            <?php endif; ?>
+    <div class="row g-3 mb-4">
+
+        <div class="col-6 col-lg-3">
+            <div class="card card-animate h-100">
+                <div class="card-body">
+                    <div
+                        class="d-flex align-items-center
+                justify-content-between">
+
+                        <div>
+                            <p
+                                class="text-uppercase
+                        fw-medium text-muted
+                        text-truncate mb-0">
+                                Total Administrators
+                            </p>
+
+                            <h4 class="fs-22 fw-semibold mb-0 mt-2">
+                                <?= esc(
+                                    (string) $summary['total']
+                                ) ?>
+                            </h4>
+                        </div>
+
+                        <div class="avatar-sm flex-shrink-0">
+                            <span
+                                class="avatar-title
+                        bg-primary-subtle
+                        text-primary rounded-circle
+                        fs-3">
+                                <i class="ri-group-line"></i>
+                            </span>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <?= view(
-            'Components/Alerts/FormAlert',
-            [
-                'alert' => $formAlert,
-            ]
-        ) ?>
-
-        <div class="row g-3 mb-4">
-
-            <div class="col-6 col-lg-3">
-                <div class="admin-summary-card">
+        <div class="col-6 col-lg-3">
+            <div class="card card-animate h-100">
+                <div class="card-body">
                     <div
-                        class="admin-summary-card__icon
-                            admin-summary-card__icon--total">
-                        <i
-                            class="ri-group-line"
-                            aria-hidden="true"></i>
-                    </div>
+                        class="d-flex align-items-center
+                justify-content-between">
 
-                    <div>
-                        <span>Total Admins</span>
+                        <div>
+                            <p
+                                class="text-uppercase
+                        fw-medium text-muted
+                        text-truncate mb-0">
+                                Total Administrators
+                            </p>
 
-                        <strong>
-                            <?= esc(
-                                (string) (
-                                    $summary['total']
-                                    ?? 0
-                                )
-                            ) ?>
-                        </strong>
+                            <h4 class="fs-22 fw-semibold mb-0 mt-2">
+                                <?= esc(
+                                    (string) $summary['total']
+                                ) ?>
+                            </h4>
+                        </div>
+
+                        <div class="avatar-sm flex-shrink-0">
+                            <span
+                                class="avatar-title
+                        bg-primary-subtle
+                        text-primary rounded-circle
+                        fs-3">
+                                <i class="ri-group-line"></i>
+                            </span>
+                        </div>
+
                     </div>
                 </div>
             </div>
-
-            <div class="col-6 col-lg-3">
-                <div class="admin-summary-card">
-                    <div
-                        class="admin-summary-card__icon
-                            admin-summary-card__icon--pending">
-                        <i
-                            class="ri-time-line"
-                            aria-hidden="true"></i>
-                    </div>
-
-                    <div>
-                        <span>Not Verified</span>
-
-                        <strong>
-                            <?= esc(
-                                (string) (
-                                    $summary['pending']
-                                    ?? $summary['not_verified']
-                                    ?? 0
-                                )
-                            ) ?>
-                        </strong>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-6 col-lg-3">
-                <div class="admin-summary-card">
-                    <div
-                        class="admin-summary-card__icon
-                            admin-summary-card__icon--verified">
-                        <i
-                            class="ri-checkbox-circle-line"
-                            aria-hidden="true"></i>
-                    </div>
-
-                    <div>
-                        <span>Verified</span>
-
-                        <strong>
-                            <?= esc(
-                                (string) (
-                                    $summary['verified']
-                                    ?? 0
-                                )
-                            ) ?>
-                        </strong>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-6 col-lg-3">
-                <div class="admin-summary-card">
-                    <div
-                        class="admin-summary-card__icon
-                            admin-summary-card__icon--suspended">
-                        <i
-                            class="ri-forbid-line"
-                            aria-hidden="true"></i>
-                    </div>
-
-                    <div>
-                        <span>Suspended</span>
-
-                        <strong>
-                            <?= esc(
-                                (string) (
-                                    $summary['suspended']
-                                    ?? 0
-                                )
-                            ) ?>
-                        </strong>
-                    </div>
-                </div>
-            </div>
-
         </div>
 
-        <div class="admin-panel p-0 overflow-hidden">
+        <div class="col-6 col-lg-3">
+            <div class="card card-animate h-100">
+                <div class="card-body">
+                    <div
+                        class="d-flex align-items-center
+                justify-content-between">
+
+                        <div>
+                            <p
+                                class="text-uppercase
+                        fw-medium text-muted
+                        text-truncate mb-0">
+                                Total Administrators
+                            </p>
+
+                            <h4 class="fs-22 fw-semibold mb-0 mt-2">
+                                <?= esc(
+                                    (string) $summary['total']
+                                ) ?>
+                            </h4>
+                        </div>
+
+                        <div class="avatar-sm flex-shrink-0">
+                            <span
+                                class="avatar-title
+                        bg-primary-subtle
+                        text-primary rounded-circle
+                        fs-3">
+                                <i class="ri-group-line"></i>
+                            </span>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-3">
+            <div class="card card-animate h-100">
+                <div class="card-body">
+                    <div
+                        class="d-flex align-items-center
+                justify-content-between">
+
+                        <div>
+                            <p
+                                class="text-uppercase
+                        fw-medium text-muted
+                        text-truncate mb-0">
+                                Total Administrators
+                            </p>
+
+                            <h4 class="fs-22 fw-semibold mb-0 mt-2">
+                                <?= esc(
+                                    (string) $summary['total']
+                                ) ?>
+                            </h4>
+                        </div>
+
+                        <div class="avatar-sm flex-shrink-0">
+                            <span
+                                class="avatar-title
+                        bg-primary-subtle
+                        text-primary rounded-circle
+                        fs-3">
+                                <i class="ri-group-line"></i>
+                            </span>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card">
+        <div class="card-body">
 
             <div
-                class="admin-panel__heading
+                class="card-header
                     d-flex align-items-center
                     justify-content-between gap-3">
                 <div>
@@ -228,9 +283,8 @@ $this->section('content');
 
             <div class="table-responsive">
                 <table
-                    class="table admin-table
-                        align-middle mb-0">
-                    <thead>
+                    class="table table-hover table-nowrap align-middle mb-0">
+                    <thead class="table-light">
                         <tr>
                             <th>Administrator</th>
                             <th>Contact</th>
@@ -245,18 +299,25 @@ $this->section('content');
                         ): ?>
                             <tr>
                                 <td colspan="4">
-                                    <div class="admin-empty-state">
-                                        <i
-                                            class="ri-user-settings-line"
-                                            aria-hidden="true"></i>
+                                    <div class="text-center py-5">
+                                        <div
+                                            class="avatar-md mx-auto mb-3">
+                                            <div
+                                                class="avatar-title
+                rounded-circle
+                bg-primary-subtle
+                text-primary fs-24">
+                                                <i class="ri-user-settings-line"></i>
+                                            </div>
+                                        </div>
 
-                                        <h2>
+                                        <h5 class="mb-1">
                                             No administrators found
-                                        </h2>
+                                        </h5>
 
-                                        <p>
-                                            Add an administrator to
-                                            send the first invitation.
+                                        <p class="text-muted mb-0">
+                                            Add an administrator to send
+                                            the first invitation.
                                         </p>
                                     </div>
                                 </td>
@@ -310,62 +371,45 @@ $this->section('content');
 
                             <tr>
                                 <td>
-                                    <div class="admin-user-cell">
-                                        <div
-                                            class="admin-user-avatar">
-                                            <?= esc(
-                                                mb_strtoupper(
-                                                    mb_substr(
-                                                        (string) (
-                                                            $admin['full_name']
-                                                            ?? 'A'
-                                                        ),
-                                                        0,
-                                                        1
-                                                    )
-                                                )
-                                            ) ?>
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="avatar-sm">
+                                                <span
+                                                    class="avatar-title rounded-circle bg-primary-subtle text-primary fw-semibold">
+                                                    A
+                                                </span>
+                                            </div>
                                         </div>
 
-                                        <div>
-                                            <strong>
-                                                <?= esc(
-                                                    $admin['full_name']
-                                                        ?? ''
-                                                ) ?>
-                                            </strong>
+                                        <div class="flex-grow-1 ms-2">
+                                            <h6 class="mb-0">
+                                                Administrator Name
+                                            </h6>
 
-                                            <span>
+                                            <p class="text-muted mb-0 fs-12">
                                                 Administrator
-                                            </span>
+                                            </p>
                                         </div>
                                     </div>
                                 </td>
 
                                 <td>
-                                    <div
-                                        class="admin-contact-cell">
-                                        <span>
+                                    <div>
+                                        <p class="mb-1">
                                             <i
-                                                class="ri-mail-line"
-                                                aria-hidden="true"></i>
+                                                class="ri-mail-line
+                align-middle me-1 text-muted">
+                                            </i>
+                                            email
+                                        </p>
 
-                                            <?= esc(
-                                                $admin['email_address']
-                                                    ?? ''
-                                            ) ?>
-                                        </span>
-
-                                        <span>
+                                        <p class="text-muted mb-0">
                                             <i
-                                                class="ri-phone-line"
-                                                aria-hidden="true"></i>
-
-                                            <?= esc(
-                                                $admin['mobile_number']
-                                                    ?? ''
-                                            ) ?>
-                                        </span>
+                                                class="ri-phone-line
+                align-middle me-1">
+                                            </i>
+                                            mobile
+                                        </p>
                                     </div>
                                 </td>
 
@@ -406,6 +450,7 @@ $this->section('content');
 
         </div>
     </div>
-</section>
+</div>
+
 
 <?php $this->endSection(); ?>
