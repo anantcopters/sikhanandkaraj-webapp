@@ -100,7 +100,7 @@ $this->section('content');
 
     <div class="row g-3 mb-4">
 
-        <div class="col-6 col-lg-3">
+        <div class="col-12 col-sm-6 col-xl-3">
             <div class="card card-animate h-100">
                 <div class="card-body">
                     <div
@@ -137,7 +137,7 @@ $this->section('content');
             </div>
         </div>
 
-        <div class="col-6 col-lg-3">
+        <div class="col-12 col-sm-6 col-xl-3">
             <div class="card card-animate h-100">
                 <div class="card-body">
                     <div
@@ -147,14 +147,13 @@ $this->section('content');
                         <div>
                             <p
                                 class="text-uppercase
-                        fw-medium text-muted
-                        text-truncate mb-0">
-                                Total Administrators
+            fw-medium text-muted mb-0">
+                                Pending Verification
                             </p>
 
                             <h4 class="fs-22 fw-semibold mb-0 mt-2">
                                 <?= esc(
-                                    (string) $summary['total']
+                                    (string) $summary['pending']
                                 ) ?>
                             </h4>
                         </div>
@@ -162,10 +161,9 @@ $this->section('content');
                         <div class="avatar-sm flex-shrink-0">
                             <span
                                 class="avatar-title
-                        bg-primary-subtle
-                        text-primary rounded-circle
-                        fs-3">
-                                <i class="ri-group-line"></i>
+            bg-warning-subtle
+            text-warning rounded-circle fs-3">
+                                <i class="ri-time-line"></i>
                             </span>
                         </div>
 
@@ -174,7 +172,7 @@ $this->section('content');
             </div>
         </div>
 
-        <div class="col-6 col-lg-3">
+        <div class="col-12 col-sm-6 col-xl-3">
             <div class="card card-animate h-100">
                 <div class="card-body">
                     <div
@@ -184,14 +182,13 @@ $this->section('content');
                         <div>
                             <p
                                 class="text-uppercase
-                        fw-medium text-muted
-                        text-truncate mb-0">
-                                Total Administrators
+            fw-medium text-muted mb-0">
+                                Verified
                             </p>
 
                             <h4 class="fs-22 fw-semibold mb-0 mt-2">
                                 <?= esc(
-                                    (string) $summary['total']
+                                    (string) $summary['verified']
                                 ) ?>
                             </h4>
                         </div>
@@ -199,10 +196,9 @@ $this->section('content');
                         <div class="avatar-sm flex-shrink-0">
                             <span
                                 class="avatar-title
-                        bg-primary-subtle
-                        text-primary rounded-circle
-                        fs-3">
-                                <i class="ri-group-line"></i>
+            bg-success-subtle
+            text-success rounded-circle fs-3">
+                                <i class="ri-checkbox-circle-line"></i>
                             </span>
                         </div>
 
@@ -211,7 +207,7 @@ $this->section('content');
             </div>
         </div>
 
-        <div class="col-6 col-lg-3">
+        <div class="col-12 col-sm-6 col-xl-3">
             <div class="card card-animate h-100">
                 <div class="card-body">
                     <div
@@ -221,14 +217,13 @@ $this->section('content');
                         <div>
                             <p
                                 class="text-uppercase
-                        fw-medium text-muted
-                        text-truncate mb-0">
-                                Total Administrators
+            fw-medium text-muted mb-0">
+                                Suspended
                             </p>
 
                             <h4 class="fs-22 fw-semibold mb-0 mt-2">
                                 <?= esc(
-                                    (string) $summary['total']
+                                    (string) $summary['suspended']
                                 ) ?>
                             </h4>
                         </div>
@@ -236,10 +231,9 @@ $this->section('content');
                         <div class="avatar-sm flex-shrink-0">
                             <span
                                 class="avatar-title
-                        bg-primary-subtle
-                        text-primary rounded-circle
-                        fs-3">
-                                <i class="ri-group-line"></i>
+            bg-danger-subtle
+            text-danger rounded-circle fs-3">
+                                <i class="ri-forbid-line"></i>
                             </span>
                         </div>
 
@@ -251,36 +245,39 @@ $this->section('content');
     </div>
 
     <div class="card">
-        <div class="card-body">
 
-            <div
-                class="card-header
-                    d-flex align-items-center
-                    justify-content-between gap-3">
-                <div>
-                    <h2>Administrator Accounts</h2>
+        <div
+            class="card-header
+            d-flex align-items-center
+            justify-content-between gap-3">
 
-                    <p>
-                        Current administrators and their
-                        account status.
-                    </p>
-                </div>
+            <div>
+                <h4 class="card-title mb-1">
+                    Administrator Accounts
+                </h4>
 
-                <?php if (
-                    session('admin_role')
-                    === AdminUserModel::ROLE_SUPER_ADMIN
-                ): ?>
-                    <a
-                        href="<?= route_to(
-                                    'admin.users.index'
-                                ) ?>"
-                        class="btn btn-sm
-                            btn-outline-secondary">
-                        Manage Admins
-                    </a>
-                <?php endif; ?>
+                <p class="text-muted mb-0">
+                    Current administrators and their
+                    account status.
+                </p>
             </div>
 
+            <?php if (
+                session('admin_role')
+                === AdminUserModel::ROLE_SUPER_ADMIN
+            ): ?>
+                <a
+                    href="<?= route_to(
+                                'admin.users.index'
+                            ) ?>"
+                    class="btn btn-soft-secondary btn-sm">
+                    Manage Administrators
+                </a>
+            <?php endif; ?>
+
+        </div>
+
+        <div class="card-body p-0">
             <div class="table-responsive">
                 <table
                     class="table table-hover table-nowrap align-middle mb-0">
@@ -339,13 +336,13 @@ $this->section('content');
 
                             $badgeClass = match ($status) {
                                 AdminUserModel::STATUS_VERIFIED =>
-                                'admin-status--verified',
+                                'bg-success-subtle text-success',
 
                                 AdminUserModel::STATUS_SUSPENDED =>
-                                'admin-status--suspended',
+                                'bg-danger-subtle text-danger',
 
                                 default =>
-                                'admin-status--pending',
+                                'bg-warning-subtle text-warning',
                             };
 
                             $statusLabel = match ($status) {
@@ -372,24 +369,44 @@ $this->section('content');
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center">
+
                                         <div class="flex-shrink-0">
                                             <div class="avatar-sm">
                                                 <span
-                                                    class="avatar-title rounded-circle bg-primary-subtle text-primary fw-semibold">
-                                                    A
+                                                    class="avatar-title
+                        rounded-circle
+                        bg-primary-subtle
+                        text-primary fw-semibold">
+
+                                                    <?= esc(
+                                                        mb_strtoupper(
+                                                            mb_substr(
+                                                                (string) (
+                                                                    $admin['full_name']
+                                                                    ?? 'A'
+                                                                ),
+                                                                0,
+                                                                1
+                                                            )
+                                                        )
+                                                    ) ?>
                                                 </span>
                                             </div>
                                         </div>
 
                                         <div class="flex-grow-1 ms-2">
                                             <h6 class="mb-0">
-                                                Administrator Name
+                                                <?= esc(
+                                                    $admin['full_name']
+                                                        ?? ''
+                                                ) ?>
                                             </h6>
 
                                             <p class="text-muted mb-0 fs-12">
                                                 Administrator
                                             </p>
                                         </div>
+
                                     </div>
                                 </td>
 
@@ -398,24 +415,33 @@ $this->section('content');
                                         <p class="mb-1">
                                             <i
                                                 class="ri-mail-line
-                align-middle me-1 text-muted">
+                    align-middle me-1
+                    text-muted">
                                             </i>
-                                            email
+
+                                            <?= esc(
+                                                $admin['email_address']
+                                                    ?? ''
+                                            ) ?>
                                         </p>
 
                                         <p class="text-muted mb-0">
                                             <i
                                                 class="ri-phone-line
-                align-middle me-1">
+                    align-middle me-1">
                                             </i>
-                                            mobile
+
+                                            <?= esc(
+                                                $admin['mobile_number']
+                                                    ?? ''
+                                            ) ?>
                                         </p>
                                     </div>
                                 </td>
 
                                 <td>
                                     <span
-                                        class="admin-status
+                                        class="badge fs-12 
                                         <?= esc(
                                             $badgeClass,
                                             'attr'
@@ -447,9 +473,12 @@ $this->section('content');
                     </tbody>
                 </table>
             </div>
-
         </div>
+
     </div>
+
+
+
 </div>
 
 

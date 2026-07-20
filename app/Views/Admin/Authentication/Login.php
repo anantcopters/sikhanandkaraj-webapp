@@ -18,15 +18,15 @@ $this->extend('Admin/Layouts/Main');
 $this->section('content');
 ?>
 
-<div class="auth-page-wrapper pt-5">
-    <div class="auth-page-content">
+<div class="auth-page-wrapper min-vh-100">
+    <div class="auth-page-content d-flex align-items-center py-5">
         <div class="container">
 
             <div class="row justify-content-center">
                 <div
                     class="col-md-8 col-lg-6 col-xl-5">
 
-                    <div class="card mt-4">
+                    <div class="card mb-0">
                         <div class="card-body p-4">
 
                             <div class="text-center mt-2">
@@ -183,7 +183,7 @@ $this->section('content');
                             mt-4 mb-0">
                         <i
                             class="ri-lock-2-line
-                                align-middle me-1">
+                                text-danger me-1">
                         </i>
                         Restricted administration access
                     </p>

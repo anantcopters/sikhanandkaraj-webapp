@@ -48,12 +48,12 @@ $this->section('content');
 
                 <div>
                     <h4 class="mb-sm-0">
-                        Administrator Dashboard
+                        Manage Administrators
                     </h4>
 
                     <p class="text-muted mb-0 mt-1">
-                        Review administrator accounts,
-                        verification status and access.
+                        Invite, review and manage administrator
+                        access.
                     </p>
                 </div>
 
@@ -83,20 +83,20 @@ $this->section('content');
     ) ?>
 
     <div class="card">
-        <div class="card-body">
+        <div class="card-body p-0">
 
             <div class="table-responsive">
                 <table
-                    class="table admin-table mb-0
-                        align-middle">
+                    class="table table-hover
+                    table-nowrap align-middle mb-0">
 
-                    <thead>
+                    <thead class="table-light">
                         <tr>
                             <th>Administrator</th>
                             <th>Contact</th>
                             <th>Status</th>
                             <th>Added</th>
-                            <th class="text-end">Action</th>
+                            <th class="text-end text-nowrap">Action</th>
                         </tr>
                     </thead>
 
@@ -140,15 +140,24 @@ $this->section('content');
                                 ?? ''
                             );
 
+                            $status = strtoupper(
+                                trim(
+                                    (string) (
+                                        $admin['account_status']
+                                        ?? ''
+                                    )
+                                )
+                            );
+
                             $badgeClass = match ($status) {
                                 AdminUserModel::STATUS_VERIFIED =>
-                                'admin-status--verified',
+                                'bg-success-subtle text-success',
 
                                 AdminUserModel::STATUS_SUSPENDED =>
-                                'admin-status--suspended',
+                                'bg-danger-subtle text-danger',
 
                                 default =>
-                                'admin-status--pending',
+                                'bg-warning-subtle text-warning',
                             };
 
                             $statusLabel = match ($status) {
@@ -168,27 +177,44 @@ $this->section('content');
                             <tr>
                                 <td>
                                     <div class="d-flex align-items-center">
+
                                         <div class="flex-shrink-0">
                                             <div class="avatar-sm">
                                                 <span
                                                     class="avatar-title
-                    rounded-circle
-                    bg-primary-subtle
-                    text-primary fw-semibold">
-                                                    A
+                        rounded-circle
+                        bg-primary-subtle
+                        text-primary fw-semibold">
+
+                                                    <?= esc(
+                                                        mb_strtoupper(
+                                                            mb_substr(
+                                                                (string) (
+                                                                    $admin['full_name']
+                                                                    ?? 'A'
+                                                                ),
+                                                                0,
+                                                                1
+                                                            )
+                                                        )
+                                                    ) ?>
                                                 </span>
                                             </div>
                                         </div>
 
                                         <div class="flex-grow-1 ms-2">
                                             <h6 class="mb-0">
-                                                Administrator Name
+                                                <?= esc(
+                                                    $admin['full_name']
+                                                        ?? ''
+                                                ) ?>
                                             </h6>
 
                                             <p class="text-muted mb-0 fs-12">
                                                 Administrator
                                             </p>
                                         </div>
+
                                     </div>
                                 </td>
 
@@ -197,24 +223,33 @@ $this->section('content');
                                         <p class="mb-1">
                                             <i
                                                 class="ri-mail-line
-                align-middle me-1 text-muted">
+                    align-middle me-1
+                    text-muted">
                                             </i>
-                                            email
+
+                                            <?= esc(
+                                                $admin['email_address']
+                                                    ?? ''
+                                            ) ?>
                                         </p>
 
                                         <p class="text-muted mb-0">
                                             <i
                                                 class="ri-phone-line
-                align-middle me-1">
+                    align-middle me-1">
                                             </i>
-                                            mobile
+
+                                            <?= esc(
+                                                $admin['mobile_number']
+                                                    ?? ''
+                                            ) ?>
                                         </p>
                                     </div>
                                 </td>
 
                                 <td>
                                     <span
-                                        class="admin-status
+                                        class="badge fs-12
                                         <?= $badgeClass ?>">
                                         <?= esc($statusLabel) ?>
                                     </span>
@@ -231,7 +266,7 @@ $this->section('content');
                                     ) ?>
                                 </td>
 
-                                <td class="text-end">
+                                <td class="text-end text-nowrap">
                                     <?php if (
                                         $status ===
                                         AdminUserModel::STATUS_PENDING
@@ -249,7 +284,7 @@ $this->section('content');
                                             <button
                                                 type="submit"
                                                 class="btn btn-sm
-                                                btn-outline-primary">
+                                                btn-soft-primary">
                                                 Resend Invitation
                                             </button>
                                         </form>
@@ -273,7 +308,7 @@ $this->section('content');
                                             <button
                                                 type="submit"
                                                 class="btn btn-sm
-                                                btn-outline-danger">
+                                                btn-soft-danger">
                                                 Suspend
                                             </button>
                                         </form>

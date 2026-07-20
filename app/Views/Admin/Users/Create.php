@@ -24,34 +24,56 @@ $this->section('content');
 
 <div class="container-fluid">
 
-    <div class="admin-page-heading">
-        <div>
-            <p class="text-uppercase fw-semibold text-primary fs-12 mb-1">
-                Super Administrator
-            </p>
+    <div class="row">
+        <div class="col-12">
+            <div
+                class="page-title-box
+                d-sm-flex align-items-center
+                justify-content-between">
 
-            <h1>Add Administrator</h1>
+                <div>
+                    <h4 class="mb-sm-0">
+                        Add Administrator
+                    </h4>
 
-            <p>
-                The mobile number will be marked verified.
-                The administrator must verify the email and
-                create a password using the invitation link.
-            </p>
+                    <p class="text-muted mb-0 mt-1">
+                        The mobile number will be marked verified.
+                        The administrator must verify the email and
+                        create a password using the invitation link.
+                    </p>
+                </div>
+
+                <div class="page-title-right mt-3 mt-sm-0">
+                    <a
+                        href="<?= route_to(
+                                    'admin.users.index'
+                                ) ?>"
+                        class="btn btn-soft-secondary">
+
+                        <i
+                            class="ri-arrow-left-line
+                            align-middle me-1">
+                        </i>
+
+                        Back to Administrators
+                    </a>
+                </div>
+
+            </div>
         </div>
-
-        <a
-            href="<?= route_to(
-                        'admin.users.index'
-                    ) ?>"
-            class="btn btn-outline-secondary">
-            Back to Administrators
-        </a>
     </div>
 
-    <div class="row">
-        <div class="col-12 col-xl-8">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6 col-xl-5">
 
             <div class="card">
+
+                <div class="card-header">
+                    <h4 class="card-title mb-0">
+                        Administrator Details
+                    </h4>
+                </div>
+
                 <div class="card-body">
                     <?= view(
                         'Components/Alerts/FormAlert',
@@ -209,10 +231,12 @@ $this->section('content');
                             </div>
                         </div>
 
-                        <div class="mt-4">
+                        <div class="mt-4 d-grid d-sm-flex justify-content-sm-end">
+
                             <button
                                 type="submit"
-                                class="btn btn btn-primary"
+                                class="btn registration-form__submit
+                                fs-16 fw-semibold w-100 w-sm-auto"
                                 data-submit-button>
 
                                 <span data-submit-idle>

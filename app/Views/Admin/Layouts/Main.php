@@ -52,19 +52,20 @@ $pageScripts = $pageScripts ?? [];
     <?php if (
         session('admin_is_authenticated') === true
     ): ?>
-        <header class="page-topbar">
+        <header id="page-topbar" style="position: inherit;">
             <div class="layout-width">
-                <div class="navbar public-navbar">
-                    <div class="container public-navbar__container">
+                <div class="navbar-header px-4">
+                    <div class="w-100 public-navbar__container mx-0 px-0">
 
                         <div class="d-flex align-items-center">
                             <a
                                 href="<?= route_to(
                                             'admin.dashboard'
                                         ) ?>"
-                                class="navbar-brand-box text-decoration-none">
+                                class="text-decoration-none">
 
-                                <span class="fs-18 fw-semibold text-primary">
+                                <span class="d-block fs-18
+                                fw-semibold text-primary">
                                     Sikh Anand Karaj
                                 </span>
 
@@ -111,12 +112,15 @@ $pageScripts = $pageScripts ?? [];
         </header>
     <?php endif; ?>
 
+    <?php $isAuthenticated =
+        session('admin_is_authenticated') === true;
+    ?>
+
     <main
-        class="<?= session(
-                    'admin_is_authenticated'
-                ) === true
-                    ? 'page-content'
+        class="<?= $isAuthenticated
+                    ? 'page-content py-4'
                     : '' ?>">
+
         <?= $this->renderSection('content') ?>
     </main>
 
