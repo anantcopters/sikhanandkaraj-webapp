@@ -213,7 +213,7 @@ if ($resolvedLoggedInName === '') {
 
                     <!-- Public header -->
                     <span class="fs-16 fw-semibold lh-base text-dark text-nowrap hide-on-mobile-tablet">
-                        Already a member?
+                        Already a member
                     </span>
 
                     <a
