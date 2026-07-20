@@ -6,7 +6,7 @@ This file records important technical decisions so future developers understand 
 
 **Decision:** Use Route → Controller → Validation → Service → Model → Database.
 
-**Reason:** It keeps HTTP handling, business logic and database access separate and makes the code easier for junior developers to follow.
+**Reason:** It keeps HTTP handling, business logic and database access separate and makes the code easier to test and maintain.
 
 ## ADR-002: Thin controllers
 
@@ -28,19 +28,19 @@ This file records important technical decisions so future developers understand 
 
 ## ADR-005: Plain SQL files for schema and deployment changes
 
-**Decision:** Use `sql/schema`, `sql/updates` and `sql/seeds`.
+**Decision:** Use `sql/schema`, `sql/updates` and `sql/seeds` as the database source of truth.
 
-**Reason:** The project owner prefers simple, reviewable SQL that can later be executed by a CI/CD pipeline.
+**Reason:** Plain SQL is reviewable, PostgreSQL-specific constraints remain explicit and deployment can execute updates deterministically.
 
 ## ADR-006: PostgreSQL
 
 **Decision:** Use PostgreSQL as the application database.
 
-**Reason:** It provides strong constraints, partial indexes, transactions and reliable relational data handling suitable for profile, contact and matching data.
+**Reason:** It provides strong constraints, partial indexes, row locking and reliable transactions suitable for profile, contact and authentication data.
 
 ## ADR-007: Server validation is authoritative
 
-**Decision:** Client validation improves UX, but every form must also have server validation.
+**Decision:** Client validation improves UX, but every form also has server validation.
 
 **Reason:** Browser validation can be bypassed.
 
@@ -70,9 +70,9 @@ This file records important technical decisions so future developers understand 
 
 ## ADR-012: `app.css` is universal
 
-**Decision:** Reusable component styles belong in `app.css`. `custom.css` contains only missing project/page-specific styles.
+**Decision:** Reusable public, member and administrator component styles belong in `app.css`. `custom.css` contains only missing public/page-specific styles.
 
-**Reason:** It reduces redundant CSS and keeps visual behaviour consistent.
+**Reason:** It reduces redundant CSS and keeps visual behaviour consistent. Admin pages must not create a parallel `admin-*` design system.
 
 ## ADR-013: Public profile reference numbers
 
@@ -84,19 +84,62 @@ This file records important technical decisions so future developers understand 
 
 **Decision:** Email and mobile contacts live in `user_contacts` with independent verification status.
 
-**Reason:** It supports future contact changes, multiple contact types and verification history without widening the user table.
+**Reason:** It supports contact changes, multiple contact types and verification history without widening the user table.
 
 ## ADR-015: OTP values are hashed
 
-**Decision:** Store only a hash of the OTP.
+**Decision:** Store only a hash of each OTP.
 
 **Reason:** A database leak should not expose usable OTP values.
 
+## ADR-016: Separate member and administrator authentication contexts
+
+**Decision:** Member and administrator authentication use separate controllers, routes, filters, views and session keys.
+
+**Reason:** Administrator privileges have different account states and security requirements. Separation prevents member-session assumptions from granting Admin access and allows each context to evolve independently.
+
+**Consequence:** Logging out of one context should clear only that context unless a deliberate global logout is implemented.
+
+## ADR-017: Role and status authorization for administrators
+
+**Decision:** Administrator access is based on both role (`SUPER_ADMIN`, `ADMIN`) and status (`PENDING`, `VERIFIED`, `SUSPENDED`).
+
+**Reason:** Authentication alone is insufficient. Pending accounts must finish invitation acceptance, suspended accounts must remain blocked and privileged management actions require a super administrator.
+
+## ADR-018: Administrator invitations use hashed one-time tokens
+
+**Decision:** Invitation URLs contain a cryptographically random token, while the database stores only its hash with expiry and consumption state.
+
+**Reason:** Plain invitation tokens in the database would remain usable after a database disclosure.
+
+**Consequence:** The raw token is available only when the invitation is generated and must not be logged.
+
+## ADR-019: Invitation acceptance uses row locking
+
+**Decision:** Lock invitation and affected administrator rows during acceptance before validating and consuming the token.
+
+**Reason:** Two concurrent requests must not activate an account or consume the same invitation twice.
+
+## ADR-020: External messages occur after the database decision
+
+**Decision:** Commit essential account/invitation data before sending or queueing external email, using a retryable queue/outbox approach where available.
+
+**Reason:** A mail-provider failure must not leave an uncertain or partially committed account transaction.
+
+## ADR-021: Administrator actions are audited
+
+**Decision:** Record meaningful authentication, invitation and account-management events in `admin_audit_logs`.
+
+**Reason:** Privileged actions require traceability for support, security review and incident response.
+
+**Consequence:** Audit payloads must omit passwords, OTPs, tokens, full session identifiers and unnecessary personal data.
+
+## ADR-022: Operational scripts are CLI-only
+
+**Decision:** Maintenance scripts live under `scripts/`, reject web execution and run through controlled cron/deployment jobs.
+
+**Reason:** Cleanup and maintenance operations need filesystem/database privileges that must not be exposed through HTTP.
+
 ## Adding a decision
 
-Add a new numbered section when a decision affects several future features. Include:
-
-- decision;
-- reason;
-- date when useful;
-- consequences or migration notes when relevant.
+Add a new numbered section when a decision affects several future features. Include the decision, reason, date when useful, and consequences or migration notes when relevant.
