@@ -131,4 +131,31 @@ final class AdminManagementService
             )
         );
     }
+
+    /**
+     * Return regular administrator accounts for the management screen.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listAdministrators(): array
+    {
+        $records = $this->adminUserModel
+            ->where(
+                'role',
+                AdminUserModel::ROLE_ADMIN
+            )
+            ->where(
+                'deleted_at',
+                null
+            )
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->findAll();
+
+        return is_array($records)
+            ? array_values($records)
+            : [];
+    }
 }

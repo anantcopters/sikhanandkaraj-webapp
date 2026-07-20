@@ -4,6 +4,28 @@ declare(strict_types=1);
 
 use App\Models\AdminUserModel;
 
+/**
+ * Administrator records supplied by AdminUserController::index().
+ *
+ * @var list<array{
+ *     id:int|string,
+ *     full_name:string,
+ *     email_address:string,
+ *     mobile_number:string,
+ *     role:string,
+ *     account_status:string,
+ *     created_at:string,
+ *     last_login_at?:string|null
+ * }> $administrators
+ */
+
+if (
+    !isset($administrators)
+    || !is_array($administrators)
+) {
+    $administrators = [];
+}
+
 $alert = session('formAlert');
 
 $formAlert = is_array($alert)

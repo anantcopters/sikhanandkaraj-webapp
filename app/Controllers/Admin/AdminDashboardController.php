@@ -17,27 +17,43 @@ final class AdminDashboardController extends BaseController
             $model->listAdministrators();
 
         $summary = [
-            'total' => count($administrators),
+            'total' =>
+            count($administrators),
+
             'pending' => 0,
             'verified' => 0,
             'suspended' => 0,
         ];
 
         foreach ($administrators as $admin) {
-            $status = $admin['account_status']
-                ?? '';
+            $status = strtoupper(
+                trim(
+                    (string) (
+                        $admin['account_status']
+                        ?? ''
+                    )
+                )
+            );
 
             if (
                 $status ===
                 AdminUserModel::STATUS_PENDING
             ) {
                 $summary['pending']++;
-            } elseif (
+
+                continue;
+            }
+
+            if (
                 $status ===
                 AdminUserModel::STATUS_VERIFIED
             ) {
                 $summary['verified']++;
-            } elseif (
+
+                continue;
+            }
+
+            if (
                 $status ===
                 AdminUserModel::STATUS_SUSPENDED
             ) {
@@ -50,7 +66,10 @@ final class AdminDashboardController extends BaseController
             [
                 'pageTitle' =>
                 'Administrator Dashboard',
-                'summary' => $summary,
+
+                'summary' =>
+                $summary,
+
                 'administrators' =>
                 $administrators,
             ]

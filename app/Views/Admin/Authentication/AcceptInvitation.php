@@ -2,6 +2,40 @@
 
 declare(strict_types=1);
 
+/**
+ * Data supplied by the invitation controller.
+ *
+ * @var array{
+ *     id:int|string,
+ *     full_name:string,
+ *     email_address?:string,
+ *     account_status?:string
+ * } $admin
+ *
+ * @var string $token
+ */
+
+if (
+    !isset($admin)
+    || !is_array($admin)
+) {
+    throw new LogicException(
+        'Administrator data was not supplied to the invitation view.'
+    );
+}
+
+if (
+    !isset($token)
+    || !is_string($token)
+    || trim($token) === ''
+) {
+    throw new LogicException(
+        'Invitation token was not supplied to the invitation view.'
+    );
+}
+
+$token = trim($token);
+
 $errors = session('validationErrors');
 
 $validationErrors = is_array($errors)

@@ -16,14 +16,19 @@ final class AdminUserController extends BaseController
 {
     public function index(): string
     {
+        /** @var \App\Services\Admin\AdminManagementService $service */
+        $service = service(
+            'adminManagementService'
+        );
+
         return view(
             'Admin/Users/Index',
             [
                 'pageTitle' =>
-                'Administrator Management',
-                'administrators' => (
-                    new AdminUserModel()
-                )->listAdministrators(),
+                'Manage Administrators',
+
+                'administrators' =>
+                $service->listAdministrators(),
             ]
         );
     }

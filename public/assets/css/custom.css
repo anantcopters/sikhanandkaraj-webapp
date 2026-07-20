@@ -1263,3 +1263,97 @@ form[aria-busy="true"] {
         padding: 1.5rem;
     }
 }
+
+/* ==========================================================================
+   Admin dashboard
+   ========================================================================== */
+
+.admin-summary-card {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 1rem;
+    background: #fff;
+    border: 1px solid #ece7e8;
+    border-radius: 1rem;
+    box-shadow: 0 0.5rem 1.5rem rgba(46, 19, 25, 0.05);
+}
+
+.admin-summary-card__icon {
+    display: inline-flex;
+    width: 2.75rem;
+    height: 2.75rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    font-size: 1.35rem;
+}
+
+.admin-summary-card__icon--total {
+    color: #344054;
+    background: #f2f4f7;
+}
+
+.admin-summary-card__icon--pending {
+    color: #934f00;
+    background: #fff3d6;
+}
+
+.admin-summary-card__icon--verified {
+    color: #067647;
+    background: #dcfae6;
+}
+
+.admin-summary-card__icon--suspended {
+    color: #b42318;
+    background: #fee4e2;
+}
+
+.admin-summary-card span {
+    display: block;
+    color: #71717a;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.admin-summary-card strong {
+    display: block;
+    margin-top: 0.125rem;
+    color: #27272a;
+    font-size: 1.5rem;
+    line-height: 1.1;
+}
+
+.admin-panel__heading {
+    padding: 1rem;
+    border-bottom: 1px solid #ece7e8;
+}
+
+.admin-panel__heading h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+}
+
+.admin-panel__heading p {
+    margin: 0.25rem 0 0;
+    color: #71717a;
+    font-size: 0.875rem;
+}
+
+@media (min-width: 768px) {
+    .admin-summary-card {
+        padding: 1.25rem;
+    }
+
+    .admin-summary-card__icon {
+        width: 3rem;
+        height: 3rem;
+    }
+
+    .admin-panel__heading {
+        padding: 1.25rem 1.5rem;
+    }
+}
