@@ -565,4 +565,17 @@ ON admin_audit_logs(
     occurred_at DESC
 );
 
+CREATE TABLE IF NOT EXISTS deployment_sql_history
+(
+    id                  BIGSERIAL PRIMARY KEY,
+    filename            VARCHAR(255) NOT NULL UNIQUE,
+    checksum_sha256     VARCHAR(64) NOT NULL,
+    git_commit          VARCHAR(40) NOT NULL,
+    execution_started_at TIMESTAMPTZ NOT NULL,
+    execution_ended_at   TIMESTAMPTZ NOT NULL,
+    execution_time_ms    BIGINT NOT NULL,
+    deployed_by          VARCHAR(100) NOT NULL DEFAULT 'github-actions',
+    created_at           TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 COMMIT;
