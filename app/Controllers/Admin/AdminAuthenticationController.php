@@ -56,6 +56,22 @@ final class AdminAuthenticationController extends BaseController
                 'password' => $password,
             ])
         ) {
+
+            $audit = service('adminAuditService');
+
+            $audit->record(
+                new \App\Services\Admin\Audit\AdminAuditEvent(
+                    action: \App\Services\Admin\Audit\AdminAuditAction::LOGIN_FAILURE,
+                    outcome: 'FAILURE',
+                    description: 'Administrator login failed because of an internal error.',
+                    metadata: [
+                        'identifier' =>
+                        $this->maskAdminIdentifier($identifier),
+                        'failure_type' => 'INTERNAL_ERROR',
+                    ]
+                )
+            );
+            
             return redirect()
                 ->to(route_to('admin.login'))
                 ->with(

@@ -6,6 +6,8 @@ namespace App\Services\Admin;
 
 use App\Models\AdminUserModel;
 use App\Services\Admin\Audit\AdminAuditService;
+use App\Services\Admin\Audit\AdminAuditAction;
+use App\Services\Admin\Audit\AdminAuditEvent;
 use RuntimeException;
 
 final class AdminManagementService
@@ -64,6 +66,25 @@ final class AdminManagementService
             ($admin['account_status'] ?? null)
             !== AdminUserModel::STATUS_VERIFIED
         ) {
+
+            $this->auditService->record(
+                new AdminAuditEvent(
+                    action: AdminAuditAction::ADMIN_SUSPENDED,
+                    outcome: 'DENIED',
+                    targetType: 'ADMIN_USER',
+                    targetId: $adminUserId,
+                    targetLabel: (string) (
+                        $admin['email_address']
+                        ?? ''
+                    ),
+                    description: 'Suspension was denied because the administrator '
+                        . 'was not in VERIFIED status.',
+                    metadata: [
+                        'current_status' =>
+                        $admin['account_status'] ?? null,
+                    ]
+                )
+            );
             throw new RuntimeException(
                 'Only verified administrators can be suspended.'
             );
@@ -89,28 +110,20 @@ final class AdminManagementService
         }
 
         /** @var \App\Services\Admin\Audit\AdminAuditService $audit */
-        $audit = service('adminAuditService');
-
-        $audit->record(
-            new \App\Services\Admin\Audit\AdminAuditEvent(
-                action: \App\Services\Admin\Audit\AdminAuditAction::ADMIN_SUSPENDED,
-
+        $this->auditService->record(
+            new AdminAuditEvent(
+                action: AdminAuditAction::ADMIN_SUSPENDED,
                 targetType: 'ADMIN_USER',
-
                 targetId: $adminUserId,
-
                 targetLabel: (string) (
                     $admin['email_address']
                     ?? ''
                 ),
-
                 description: 'Administrator account was suspended.',
-
                 beforeData: [
                     'account_status' =>
                     AdminUserModel::STATUS_VERIFIED,
                 ],
-
                 afterData: [
                     'account_status' =>
                     AdminUserModel::STATUS_SUSPENDED,

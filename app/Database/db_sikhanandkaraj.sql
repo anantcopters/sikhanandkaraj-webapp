@@ -491,35 +491,6 @@ ON admin_invitations(token_hash, expires_at)
 WHERE used_at IS NULL
   AND revoked_at IS NULL;
 
-INSERT INTO admin_users
-(
-    full_name,
-    mobile_number,
-    email_address,
-    password_hash,
-    role,
-    account_status,
-    is_mobile_verified,
-    mobile_verified_at,
-    is_email_verified,
-    email_verified_at,
-    password_set_at
-)
-VALUES
-(
-    'Anant Prakash Singh',
-    '+918550915559',
-    'anantsinghkota@gmail.com',
-    '$2y$10$j4NbDmW.KD8/PLEj7VTfi.97R./.zfv1KAFqKopBxobPBEpnph1f6',
-    'SUPER_ADMIN',
-    'VERIFIED',
-    TRUE,
-    CURRENT_TIMESTAMP,
-    TRUE,
-    CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-);
-
 CREATE TABLE admin_audit_logs
 (
     id                  BIGSERIAL PRIMARY KEY,

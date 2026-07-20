@@ -471,6 +471,12 @@ final class AdminInvitationService
             }
 
             $this->database->transCommit();
+            
+
+            /*
+            * Put INVITATION_ACCEPTED audit recording here, after commit.
+            * Exact audit placement is described later in this answer.
+            */
 
             /** @var \App\Services\Admin\Audit\AdminAuditService $audit */
             $audit = service('adminAuditService');
@@ -507,11 +513,6 @@ final class AdminInvitationService
                     ]
                 )
             );
-
-            /*
-         * Put INVITATION_ACCEPTED audit recording here, after commit.
-         * Exact audit placement is described later in this answer.
-         */
         } catch (Throwable $exception) {
             $this->database->transRollback();
 

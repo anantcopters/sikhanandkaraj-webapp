@@ -225,9 +225,6 @@ final class AdminAuthFilter implements FilterInterface
 
     /**
      * Remove only administration values.
-     *
-     * Do not destroy the entire session because the browser may also contain
-     * a valid matrimonial-member login.
      */
     private function clearAdminSession(): void
     {
