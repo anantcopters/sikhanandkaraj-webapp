@@ -10,7 +10,6 @@ use App\Models\AdminUserModel;
  * @var array{
  *     total:int,
  *     pending?:int,
- *     not_verified?:int,
  *     verified:int,
  *     suspended:int
  * } $summary
@@ -33,7 +32,6 @@ $summary = array_merge(
     [
         'total' => 0,
         'pending' => 0,
-        'not_verified' => 0,
         'verified' => 0,
         'suspended' => 0,
     ],

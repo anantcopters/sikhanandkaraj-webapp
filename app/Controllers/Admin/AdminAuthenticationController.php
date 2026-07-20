@@ -57,9 +57,9 @@ final class AdminAuthenticationController extends BaseController
             ])
         ) {
 
-            $audit = service('adminAuditService');
+            $audit = service('adminAuditService');            
 
-            $audit->record(
+            $this->recordAuditSafely(
                 new \App\Services\Admin\Audit\AdminAuditEvent(
                     action: \App\Services\Admin\Audit\AdminAuditAction::LOGIN_FAILURE,
                     outcome: 'FAILURE',
@@ -71,7 +71,7 @@ final class AdminAuthenticationController extends BaseController
                     ]
                 )
             );
-            
+
             return redirect()
                 ->to(route_to('admin.login'))
                 ->with(
@@ -103,7 +103,7 @@ final class AdminAuthenticationController extends BaseController
                 /** @var \App\Services\Admin\Audit\AdminAuditService $audit */
                 $audit = service('adminAuditService');
 
-                $audit->record(
+                $this->recordAuditSafely(
                     new \App\Services\Admin\Audit\AdminAuditEvent(
                         action: \App\Services\Admin\Audit\AdminAuditAction::LOGIN_FAILURE,
 
@@ -189,7 +189,7 @@ final class AdminAuthenticationController extends BaseController
             /** @var \App\Services\Admin\Audit\AdminAuditService $audit */
             $audit = service('adminAuditService');
 
-            $audit->record(
+            $this->recordAuditSafely(
                 new \App\Services\Admin\Audit\AdminAuditEvent(
                     action: \App\Services\Admin\Audit\AdminAuditAction::LOGIN_SUCCESS,
 
@@ -247,7 +247,7 @@ final class AdminAuthenticationController extends BaseController
         /** @var \App\Services\Admin\Audit\AdminAuditService $audit */
         $audit = service('adminAuditService');
 
-        $audit->record(
+        $this->recordAuditSafely(
             new \App\Services\Admin\Audit\AdminAuditEvent(
                 action: \App\Services\Admin\Audit\AdminAuditAction::LOGOUT,
 
@@ -313,5 +313,25 @@ final class AdminAuthenticationController extends BaseController
         }
 
         return '[INVALID IDENTIFIER]';
+    }
+
+    private function recordAuditSafely(
+        \App\Services\Admin\Audit\AdminAuditEvent $event
+    ): void {
+        try {
+            /** @var \App\Services\Admin\Audit\AdminAuditService $audit */
+            $audit = service('adminAuditService');
+
+            $audit->record($event);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Administrator audit could not be recorded: {message}',
+                [
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+        }
     }
 }

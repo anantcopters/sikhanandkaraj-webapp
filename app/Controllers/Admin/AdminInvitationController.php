@@ -155,20 +155,12 @@ final class AdminInvitationController extends BaseController
                 );
         } catch (RuntimeException $exception) {
             return redirect()
-                ->to(
-                    route_to(
-                        'admin.invitation.show',
-                        $token
-                    )
-                )
-                ->withInput()
+                ->to(route_to('admin.login'))
                 ->with(
                     'formAlert',
                     [
                         'type' => 'danger',
-                        'title' =>
-                        'Activation failed',
-
+                        'title' => 'Activation failed',
                         'message' =>
                         $exception->getMessage(),
                     ]

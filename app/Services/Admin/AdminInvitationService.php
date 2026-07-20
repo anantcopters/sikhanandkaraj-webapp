@@ -295,6 +295,9 @@ final class AdminInvitationService
             );
         }
 
+        $adminUserId = 0;
+        $admin = [];
+
         $this->database->transBegin();
 
         try {
@@ -472,12 +475,17 @@ final class AdminInvitationService
 
             $this->database->transCommit();
             
+        } catch (Throwable $exception) {
+            $this->database->transRollback();
 
-            /*
-            * Put INVITATION_ACCEPTED audit recording here, after commit.
-            * Exact audit placement is described later in this answer.
-            */
+            throw $exception;
+        }
 
+        /*
+     * Audit failure must not make a successfully committed activation
+     * appear unsuccessful.
+     */
+        try {
             /** @var \App\Services\Admin\Audit\AdminAuditService $audit */
             $audit = service('adminAuditService');
 
@@ -487,36 +495,37 @@ final class AdminInvitationService
 
                     actorAdminId: $adminUserId,
 
-                    actorName: (string) $admin['full_name'],
+                    actorName: (string) (
+                        $admin['full_name']
+                        ?? ''
+                    ),
 
-                    actorRole: (string) $admin['role'],
+                    actorRole: (string) (
+                        $admin['role']
+                        ?? ''
+                    ),
 
                     targetType: 'ADMIN_USER',
 
                     targetId: $adminUserId,
 
-                    targetLabel: (string) $admin['email_address'],
+                    targetLabel: (string) (
+                        $admin['email_address']
+                        ?? ''
+                    ),
 
-                    description: 'Administrator accepted the invitation, '
-                        . 'verified the email and created a password.',
-
-                    beforeData: [
-                        'account_status' =>
-                        AdminUserModel::STATUS_PENDING,
-                        'is_email_verified' => false,
-                    ],
-
-                    afterData: [
-                        'account_status' =>
-                        AdminUserModel::STATUS_VERIFIED,
-                        'is_email_verified' => true,
-                    ]
+                    description: 'Administrator invitation was accepted and the account was activated.'
                 )
             );
-        } catch (Throwable $exception) {
-            $this->database->transRollback();
-
-            throw $exception;
+        } catch (Throwable $auditException) {
+            log_message(
+                'error',
+                'Unable to record invitation acceptance audit: {message}',
+                [
+                    'message' =>
+                    $auditException->getMessage(),
+                ]
+            );
         }
     }
 
