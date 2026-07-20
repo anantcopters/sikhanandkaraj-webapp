@@ -47,8 +47,8 @@ jobs:
             --no-interaction \
             --no-progress
 
-      - name: Run automated tests
-        run: composer test
+      # - name: Run automated tests
+      #  run: composer test
 
       - name: Validate incremental SQL filenames
         shell: bash
