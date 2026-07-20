@@ -520,4 +520,78 @@ VALUES
     CURRENT_TIMESTAMP
 );
 
+CREATE TABLE admin_audit_logs
+(
+    id                  BIGSERIAL PRIMARY KEY,
+
+    occurred_at         TIMESTAMPTZ NOT NULL
+                            DEFAULT CURRENT_TIMESTAMP,
+
+    actor_admin_id      BIGINT NULL,
+    actor_name          VARCHAR(150) NULL,
+    actor_role          VARCHAR(30) NULL,
+
+    action              VARCHAR(100) NOT NULL,
+
+    target_type         VARCHAR(100) NULL,
+    target_id           BIGINT NULL,
+    target_label        VARCHAR(254) NULL,
+
+    outcome             VARCHAR(20) NOT NULL DEFAULT 'SUCCESS',
+
+    description         TEXT NULL,
+
+    before_data         JSONB NULL,
+    after_data          JSONB NULL,
+    metadata            JSONB NULL,
+
+    request_id          VARCHAR(100) NULL,
+    route_name          VARCHAR(150) NULL,
+
+    ip_address          VARCHAR(45) NULL,
+    user_agent          VARCHAR(1000) NULL,
+
+    CONSTRAINT fk_admin_audit_actor
+        FOREIGN KEY (actor_admin_id)
+        REFERENCES admin_users(id)
+        ON DELETE SET NULL,
+
+    CONSTRAINT chk_admin_audit_outcome
+        CHECK (
+            outcome IN (
+                'SUCCESS',
+                'FAILURE',
+                'DENIED'
+            )
+        )
+);
+
+CREATE INDEX idx_admin_audit_occurred
+ON admin_audit_logs(occurred_at DESC);
+
+CREATE INDEX idx_admin_audit_actor
+ON admin_audit_logs(
+    actor_admin_id,
+    occurred_at DESC
+);
+
+CREATE INDEX idx_admin_audit_action
+ON admin_audit_logs(
+    action,
+    occurred_at DESC
+);
+
+CREATE INDEX idx_admin_audit_target
+ON admin_audit_logs(
+    target_type,
+    target_id,
+    occurred_at DESC
+);
+
+CREATE INDEX idx_admin_audit_outcome
+ON admin_audit_logs(
+    outcome,
+    occurred_at DESC
+);
+
 COMMIT;

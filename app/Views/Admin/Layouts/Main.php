@@ -10,6 +10,10 @@ $pageScripts = $pageScripts ?? [];
 
 <head>
     <meta charset="utf-8">
+    <link rel="apple-touch-icon" sizes="180x180" href="<?= base_url('assets/images/favicon/apple-touch-icon.png') ?>">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?= base_url('assets/images/favicon/favicon-32x32.png') ?>">
+    <link rel="icon" type="image/png" sizes="16x16" href="<?= base_url('assets/images/favicon/favicon-16x16.png') ?>">
+    <link rel="manifest" href="<?= base_url('assets/images/favicon/site.webmanifest') ?>">
 
     <meta
         name="viewport"
@@ -36,6 +40,11 @@ $pageScripts = $pageScripts ?? [];
         href="<?= base_url(
                     'assets/css/app.css'
                 ) ?>">
+
+    <link
+        rel="stylesheet"
+        href="<?= base_url('assets/css/custom.css') ?>">
+
 </head>
 
 <body class="admin-body">
@@ -100,10 +109,22 @@ $pageScripts = $pageScripts ?? [];
                 ) ?>">
     </script>
 
-    <?php foreach ($pageScripts as $script): ?>
-        <script
-            src="<?= base_url($script) ?>">
-        </script>
+    <?php
+    /**
+     * Load JavaScript required only by the current page.
+     *
+     * The controller supplies pageScripts as an array of paths relative
+     * to the public directory.
+     */
+    $resolvedPageScripts = isset($pageScripts) && is_array($pageScripts)
+        ? $pageScripts
+        : [];
+    ?>
+
+    <?php foreach ($resolvedPageScripts as $script): ?>
+        <?php if (is_string($script) && $script !== ''): ?>
+            <script src="<?= esc(base_url($script), 'attr') ?>"></script>
+        <?php endif; ?>
     <?php endforeach; ?>
 </body>
 

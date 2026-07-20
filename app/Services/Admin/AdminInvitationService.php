@@ -83,6 +83,36 @@ final class AdminInvitationService
 
             $this->database->transCommit();
 
+            /** @var \App\Services\Admin\Audit\AdminAuditService $audit */
+            $audit = service('adminAuditService');
+
+            $audit->record(
+                new \App\Services\Admin\Audit\AdminAuditEvent(
+                    action: \App\Services\Admin\Audit\AdminAuditAction::ADMIN_CREATED,
+
+                    targetType: 'ADMIN_USER',
+
+                    targetId: (int) $adminId,
+
+                    targetLabel: $emailAddress,
+
+                    description: 'Administrator account was created and '
+                        . 'an invitation was queued.',
+
+                    afterData: [
+                        'full_name' => $fullName,
+                        'mobile_number' => $mobileNumber,
+                        'email_address' => $emailAddress,
+                        'role' =>
+                        AdminUserModel::ROLE_ADMIN,
+                        'account_status' =>
+                        AdminUserModel::STATUS_PENDING,
+                        'is_mobile_verified' => true,
+                        'is_email_verified' => false,
+                    ]
+                )
+            );
+
             return [
                 'admin_id' => (int) $adminId,
             ];
@@ -146,6 +176,23 @@ final class AdminInvitationService
             }
 
             $this->database->transCommit();
+
+            /** @var \App\Services\Admin\Audit\AdminAuditService $audit */
+            $audit = service('adminAuditService');
+
+            $audit->record(
+                new \App\Services\Admin\Audit\AdminAuditEvent(
+                    action: \App\Services\Admin\Audit\AdminAuditAction::INVITATION_RESENT,
+
+                    targetType: 'ADMIN_USER',
+
+                    targetId: $adminUserId,
+
+                    targetLabel: (string) $admin['email_address'],
+
+                    description: 'A replacement administrator invitation was queued.'
+                )
+            );
         } catch (Throwable $exception) {
             $this->database->transRollback();
 
@@ -206,17 +253,37 @@ final class AdminInvitationService
         ];
     }
 
+    /**
+     * Accept a one-time administrator invitation.
+     *
+     * The invitation row is locked inside the transaction so only one request
+     * can consume the token. A concurrent second request waits for the first
+     * transaction and then finds used_at populated.
+     */
     public function acceptInvitation(
         string $rawToken,
         string $password
     ): void {
-        $resolved = $this->inspectToken(
+        if (
+            preg_match(
+                '/^[a-f0-9]{64}$/',
+                $rawToken
+            ) !== 1
+        ) {
+            throw new RuntimeException(
+                'This invitation is invalid or has expired.'
+            );
+        }
+
+        $tokenHash = hash(
+            'sha256',
             $rawToken
         );
 
-        $invitation = $resolved['invitation'];
-        $admin = $resolved['admin'];
-
+        /*
+     * Hashing may happen before the transaction because it does not modify
+     * state and avoids doing unnecessary work while holding a row lock.
+     */
         $passwordHash = password_hash(
             $password,
             PASSWORD_DEFAULT
@@ -228,13 +295,136 @@ final class AdminInvitationService
             );
         }
 
-        $now = date('Y-m-d H:i:s');
-
         $this->database->transBegin();
 
         try {
-            $updated = $this->adminUserModel->update(
-                (int) $admin['id'],
+            /*
+         * Lock the invitation row until this transaction commits or rolls
+         * back. PostgreSQL blocks any concurrent acceptance of this token.
+         */
+            $query = $this->database->query(
+                <<<'SQL'
+                SELECT
+                    id,
+                    admin_user_id,
+                    token_hash,
+                    expires_at,
+                    used_at,
+                    revoked_at,
+                    created_by,
+                    created_at,
+                    updated_at
+                FROM admin_invitations
+                WHERE token_hash = ?
+                FOR UPDATE
+            SQL,
+                [
+                    $tokenHash,
+                ]
+            );
+
+            $invitation = $query->getRowArray();
+
+            if (!is_array($invitation)) {
+                throw new RuntimeException(
+                    'This invitation is invalid or has expired.'
+                );
+            }
+
+            /*
+         * These checks must occur after the row lock is acquired.
+         */
+            if (
+                $invitation['used_at'] !== null
+                || $invitation['revoked_at'] !== null
+            ) {
+                throw new RuntimeException(
+                    'This invitation is invalid or has expired.'
+                );
+            }
+
+            $expiresAt = strtotime(
+                (string) $invitation['expires_at']
+            );
+
+            if (
+                $expiresAt === false
+                || $expiresAt < time()
+            ) {
+                throw new RuntimeException(
+                    'This invitation is invalid or has expired.'
+                );
+            }
+
+            $adminUserId = (int) (
+                $invitation['admin_user_id']
+                ?? 0
+            );
+
+            /*
+         * Lock the administrator as well so another process cannot suspend,
+         * delete or activate the account while this request is completing.
+         */
+            $adminQuery = $this->database->query(
+                <<<'SQL'
+                SELECT
+                    id,
+                    full_name,
+                    mobile_number,
+                    email_address,
+                    password_hash,
+                    role,
+                    account_status,
+                    is_mobile_verified,
+                    mobile_verified_at,
+                    is_email_verified,
+                    email_verified_at,
+                    password_set_at,
+                    last_login_at,
+                    created_by,
+                    created_at,
+                    updated_at,
+                    deleted_at
+                FROM admin_users
+                WHERE id = ?
+                  AND deleted_at IS NULL
+                FOR UPDATE
+            SQL,
+                [
+                    $adminUserId,
+                ]
+            );
+
+            $admin = $adminQuery->getRowArray();
+
+            if (!is_array($admin)) {
+                throw new RuntimeException(
+                    'This invitation is invalid or has expired.'
+                );
+            }
+
+            if (
+                ($admin['role'] ?? null)
+                !== AdminUserModel::ROLE_ADMIN
+            ) {
+                throw new RuntimeException(
+                    'This invitation is invalid or has expired.'
+                );
+            }
+
+            if (
+                ($admin['account_status'] ?? null)
+                !== AdminUserModel::STATUS_PENDING
+            ) {
+                throw new RuntimeException(
+                    'This invitation is invalid or has expired.'
+                );
+            }
+
+            $now = date('Y-m-d H:i:s');
+
+            $updatedAdmin = $this->adminUserModel->update(
+                $adminUserId,
                 [
                     'password_hash' => $passwordHash,
                     'account_status' =>
@@ -245,24 +435,33 @@ final class AdminInvitationService
                 ]
             );
 
-            if ($updated === false) {
+            if ($updatedAdmin === false) {
                 throw new RuntimeException(
                     'Administrator account could not be activated.'
                 );
             }
 
-            $this->invitationModel->update(
-                (int) $invitation['id'],
-                [
-                    'used_at' => $now,
-                ]
-            );
+            $updatedInvitation =
+                $this->invitationModel->update(
+                    (int) $invitation['id'],
+                    [
+                        'used_at' => $now,
+                    ]
+                );
+
+            if ($updatedInvitation === false) {
+                throw new RuntimeException(
+                    'Administrator invitation could not be completed.'
+                );
+            }
 
             /*
-             * Revoke any other outstanding links.
-             */
+         * Revoke any additional outstanding invitations for this admin.
+         * The consumed invitation has used_at set, so revokeForAdmin() will
+         * affect only other unused links.
+         */
             $this->invitationModel->revokeForAdmin(
-                (int) $admin['id']
+                $adminUserId
             );
 
             if (!$this->database->transStatus()) {
@@ -272,6 +471,47 @@ final class AdminInvitationService
             }
 
             $this->database->transCommit();
+
+            /** @var \App\Services\Admin\Audit\AdminAuditService $audit */
+            $audit = service('adminAuditService');
+
+            $audit->record(
+                new \App\Services\Admin\Audit\AdminAuditEvent(
+                    action: \App\Services\Admin\Audit\AdminAuditAction::INVITATION_ACCEPTED,
+
+                    actorAdminId: $adminUserId,
+
+                    actorName: (string) $admin['full_name'],
+
+                    actorRole: (string) $admin['role'],
+
+                    targetType: 'ADMIN_USER',
+
+                    targetId: $adminUserId,
+
+                    targetLabel: (string) $admin['email_address'],
+
+                    description: 'Administrator accepted the invitation, '
+                        . 'verified the email and created a password.',
+
+                    beforeData: [
+                        'account_status' =>
+                        AdminUserModel::STATUS_PENDING,
+                        'is_email_verified' => false,
+                    ],
+
+                    afterData: [
+                        'account_status' =>
+                        AdminUserModel::STATUS_VERIFIED,
+                        'is_email_verified' => true,
+                    ]
+                )
+            );
+
+            /*
+         * Put INVITATION_ACCEPTED audit recording here, after commit.
+         * Exact audit placement is described later in this answer.
+         */
         } catch (Throwable $exception) {
             $this->database->transRollback();
 

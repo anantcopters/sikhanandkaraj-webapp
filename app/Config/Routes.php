@@ -9,15 +9,22 @@ use CodeIgniter\Router\RouteCollection;
  */
 
 // -----------------------------------------------------------------------------
-// Web routes
+// Member web routes
 // -----------------------------------------------------------------------------
 
 $routes->group('', [
     'namespace' => 'App\Controllers\Web',
-], static function (RouteCollection $routes): void {
-    $routes->get('/', 'HomeController::index', [
-        'as' => 'web.home',
-    ]);
+], static function (
+    RouteCollection $routes
+): void {
+    $routes->get(
+        '/',
+        'HomeController::index',
+        [
+            'as' => 'web.home',
+        ]
+    );
+
     $routes->post(
         'register',
         'RegistrationController::create',
@@ -59,11 +66,18 @@ $routes->group('', [
     );
 
     $routes->get(
-        'dashboard',
-        'DashboardController::index',
+        'login',
+        'AuthenticationController::index',
         [
-            'as' => 'web.dashboard',
-            'filter' => 'webAuth',
+            'as' => 'web.login',
+        ]
+    );
+
+    $routes->post(
+        'login',
+        'AuthenticationController::login',
+        [
+            'as' => 'web.login.submit',
         ]
     );
 
@@ -72,6 +86,15 @@ $routes->group('', [
         'AuthenticationController::logout',
         [
             'as' => 'web.logout',
+            'filter' => 'webAuth',
+        ]
+    );
+
+    $routes->get(
+        'dashboard',
+        'DashboardController::index',
+        [
+            'as' => 'web.dashboard',
             'filter' => 'webAuth',
         ]
     );
@@ -94,22 +117,6 @@ $routes->group('', [
         ]
     );
 
-    $routes->get(
-        'login',
-        'AuthenticationController::index',
-        [
-            'as' => 'web.login',
-        ]
-    );
-
-    $routes->post(
-        'login',
-        'AuthenticationController::login',
-        [
-            'as' => 'web.login.submit',
-        ]
-    );
-
     $routes->post(
         'email/verification/send',
         'EmailVerificationController::send',
@@ -129,7 +136,7 @@ $routes->group('', [
 });
 
 // -----------------------------------------------------------------------------
-// Admin routes
+// Administrator routes
 // -----------------------------------------------------------------------------
 
 $routes->group('admin', [
@@ -137,6 +144,9 @@ $routes->group('admin', [
 ], static function (
     RouteCollection $routes
 ): void {
+    /*
+     * Public administrator authentication routes.
+     */
     $routes->get(
         'login',
         'AdminAuthenticationController::index',
@@ -153,6 +163,9 @@ $routes->group('admin', [
         ]
     );
 
+    /*
+     * Public one-time invitation routes.
+     */
     $routes->get(
         'invitation/(:segment)',
         'AdminInvitationController::show/$1',
@@ -165,115 +178,142 @@ $routes->group('admin', [
         'invitation/(:segment)',
         'AdminInvitationController::accept/$1',
         [
-            'as' =>
-            'admin.invitation.accept',
+            'as' => 'admin.invitation.accept',
         ]
     );
 
-    $routes->post(
-        'logout',
-        'AdminAuthenticationController::logout',
-        [
-            'as' => 'admin.logout',
-            'filter' => 'adminAuth',
-        ]
-    );
-
-    $routes->get(
-        'dashboard',
-        'AdminDashboardController::index',
-        [
-            'as' => 'admin.dashboard',
-            'filter' => 'adminAuth',
-        ]
-    );
-
-    $routes->group('users', [
-        'filter' => 'adminAuth,superAdmin',
+    /*
+     * All routes inside this group require an active, verified administrator.
+     */
+    $routes->group('', [
+        'filter' => 'adminAuth',
     ], static function (
         RouteCollection $routes
     ): void {
+        $routes->post(
+            'logout',
+            'AdminAuthenticationController::logout',
+            [
+                'as' => 'admin.logout',
+            ]
+        );
+
         $routes->get(
-            '',
-            'AdminUserController::index',
+            'dashboard',
+            'AdminDashboardController::index',
             [
-                'as' =>
-                'admin.users.index',
+                'as' => 'admin.dashboard',
             ]
         );
 
-        $routes->get(
-            'create',
-            'AdminUserController::create',
-            [
-                'as' =>
-                'admin.users.create',
-            ]
-        );
+        /*
+         * Only SUPER_ADMIN may manage other administrators.
+         */
+        $routes->group('users', [
+            'filter' => 'superAdmin',
+        ], static function (
+            RouteCollection $routes
+        ): void {
+            $routes->get(
+                '',
+                'AdminUserController::index',
+                [
+                    'as' => 'admin.users.index',
+                ]
+            );
 
-        $routes->post(
-            '',
-            'AdminUserController::store',
-            [
-                'as' =>
-                'admin.users.store',
-            ]
-        );
+            $routes->get(
+                'create',
+                'AdminUserController::create',
+                [
+                    'as' => 'admin.users.create',
+                ]
+            );
 
-        $routes->post(
-            '(:num)/resend-invitation',
-            'AdminUserController::resend/$1',
-            [
-                'as' =>
-                'admin.users.resend',
-            ]
-        );
+            $routes->post(
+                '',
+                'AdminUserController::store',
+                [
+                    'as' => 'admin.users.store',
+                ]
+            );
 
-        $routes->post(
-            '(:num)/suspend',
-            'AdminUserController::suspend/$1',
-            [
-                'as' =>
-                'admin.users.suspend',
-            ]
-        );
+            $routes->post(
+                '(:num)/resend-invitation',
+                'AdminUserController::resend/$1',
+                [
+                    'as' => 'admin.users.resend',
+                ]
+            );
+
+            $routes->post(
+                '(:num)/suspend',
+                'AdminUserController::suspend/$1',
+                [
+                    'as' => 'admin.users.suspend',
+                ]
+            );
+        });
     });
 });
 
 // -----------------------------------------------------------------------------
-// API version 1 routes
+// API v1 routes
 // -----------------------------------------------------------------------------
 
 $routes->group(API_ROUTE_PREFIX, [
     'namespace' => 'App\Controllers\Api\V1',
-], static function (RouteCollection $routes): void {
-    $routes->get('health', 'HealthController::index', [
-        'as' => 'api.v1.health',
-    ]);
+], static function (
+    RouteCollection $routes
+): void {
+    $routes->get(
+        'health',
+        'HealthController::index',
+        [
+            'as' => 'api.v1.health',
+        ]
+    );
 });
 
 // -----------------------------------------------------------------------------
-//Ttemporary development-only routes.
+// Development-only error previews
 // -----------------------------------------------------------------------------
 
 if (ENVIRONMENT === 'development') {
-    $routes->group('_preview/errors', static function (
-        RouteCollection $routes
-    ): void {
-        $routes->get('403', static function () {
-            return service('response')
-                ->setStatusCode(403)
-                ->setBody(view('errors/html/error_403'));
-        });
+    $routes->group(
+        '_preview/errors',
+        static function (
+            RouteCollection $routes
+        ): void {
+            $routes->get(
+                '403',
+                static function () {
+                    return service('response')
+                        ->setStatusCode(403)
+                        ->setBody(
+                            view('errors/html/error_403')
+                        );
+                }
+            );
 
-        $routes->get('404', static function () {
-            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
-        });
+            $routes->get(
+                '404',
+                static function () {
+                    throw \CodeIgniter\Exceptions\PageNotFoundException
+                        ::forPageNotFound();
+                }
+            );
 
-        $routes->get('500', static function () {
-            return service('response')
-                ->setStatusCode(500)
-                ->setBody(view('errors/html/error_500'));
-        });
-    });
+            $routes->get(
+                '500',
+                static function () {
+                    return service('response')
+                        ->setStatusCode(500)
+                        ->setBody(
+                            view('errors/html/error_500')
+                        );
+                }
+            );
+        }
+    );
 }

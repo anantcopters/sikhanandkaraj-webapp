@@ -18,7 +18,7 @@ final class AdminDashboardController extends BaseController
 
         $summary = [
             'total' => count($administrators),
-            'not_verified' => 0,
+            'pending' => 0,
             'verified' => 0,
             'suspended' => 0,
         ];
@@ -31,7 +31,7 @@ final class AdminDashboardController extends BaseController
                 $status ===
                 AdminUserModel::STATUS_PENDING
             ) {
-                $summary['not_verified']++;
+                $summary['pending']++;
             } elseif (
                 $status ===
                 AdminUserModel::STATUS_VERIFIED

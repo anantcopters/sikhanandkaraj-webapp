@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Admin\Authentication;
 
 use App\Models\AdminUserModel;
+use Throwable;
 
 final class AdminLoginService
 {
@@ -17,7 +18,9 @@ final class AdminLoginService
         string $password
     ): AdminLoginResult {
         $normalizedIdentifier =
-            $this->normalizeIdentifier($identifier);
+            $this->normalizeIdentifier(
+                $identifier
+            );
 
         if ($normalizedIdentifier === null) {
             return AdminLoginResult::failure(
@@ -26,17 +29,22 @@ final class AdminLoginService
         }
 
         $admin = $this->adminUserModel
-            ->findByIdentifier($normalizedIdentifier);
+            ->findByIdentifier(
+                $normalizedIdentifier
+            );
 
         /*
-         * Do not expose whether the administrator exists.
+         * Do not disclose whether the supplied identifier exists.
          */
         if (!is_array($admin)) {
             return $this->invalidCredentials();
         }
 
         $passwordHash = trim(
-            (string) ($admin['password_hash'] ?? '')
+            (string) (
+                $admin['password_hash']
+                ?? ''
+            )
         );
 
         if (
@@ -49,6 +57,11 @@ final class AdminLoginService
             return $this->invalidCredentials();
         }
 
+        /*
+         * Check account state only after validating the password.
+         * This avoids revealing administrator-account information to an
+         * unauthenticated person.
+         */
         $status = strtoupper(
             trim(
                 (string) (
@@ -88,27 +101,46 @@ final class AdminLoginService
         }
 
         if (
-            ($admin['is_email_verified'] ?? false)
-            !== true
-            && ($admin['is_email_verified'] ?? false) !== 't'
-            && ($admin['is_email_verified'] ?? false) !== 1
+            !$this->databaseBoolean(
+                $admin['is_email_verified']
+                    ?? false
+            )
         ) {
             return AdminLoginResult::failure(
                 'Your administrator email address is not verified.'
             );
         }
 
-        $adminId = (int) $admin['id'];
-
-        $this->adminUserModel->update(
-            $adminId,
-            [
-                'last_login_at' =>
-                date('Y-m-d H:i:s'),
-            ]
+        $adminId = (int) (
+            $admin['id']
+            ?? 0
         );
 
-        return AdminLoginResult::success($admin);
+        if ($adminId <= 0) {
+            return $this->invalidCredentials();
+        }
+
+        /*
+         * Upgrade the stored password hash when PHP's recommended algorithm
+         * or cost changes.
+         *
+         * Failure to rehash should not block an otherwise valid login.
+         */
+        $this->rehashPasswordIfRequired(
+            adminId: $adminId,
+            plainPassword: $password,
+            currentHash: $passwordHash
+        );
+
+        /*
+         * last_login_at is deliberately not updated here.
+         *
+         * The controller should update it only after the authenticated
+         * session has been successfully created.
+         */
+        return AdminLoginResult::success(
+            $admin
+        );
     }
 
     private function normalizeIdentifier(
@@ -122,7 +154,9 @@ final class AdminLoginService
                 FILTER_VALIDATE_EMAIL
             ) !== false
         ) {
-            return mb_strtolower($identifier);
+            return mb_strtolower(
+                $identifier
+            );
         }
 
         $digits = preg_replace(
@@ -133,9 +167,15 @@ final class AdminLoginService
 
         if (
             strlen($digits) === 12
-            && str_starts_with($digits, '91')
+            && str_starts_with(
+                $digits,
+                '91'
+            )
         ) {
-            $digits = substr($digits, 2);
+            $digits = substr(
+                $digits,
+                2
+            );
         }
 
         if (
@@ -148,6 +188,86 @@ final class AdminLoginService
         }
 
         return '+91' . $digits;
+    }
+
+    private function rehashPasswordIfRequired(
+        int $adminId,
+        string $plainPassword,
+        string $currentHash
+    ): void {
+        if (
+            !password_needs_rehash(
+                $currentHash,
+                PASSWORD_DEFAULT
+            )
+        ) {
+            return;
+        }
+
+        try {
+            $newHash = password_hash(
+                $plainPassword,
+                PASSWORD_DEFAULT
+            );
+
+            if (!is_string($newHash)) {
+                log_message(
+                    'warning',
+                    'Unable to generate a replacement password hash '
+                        . 'for administrator {adminId}.',
+                    [
+                        'adminId' => $adminId,
+                    ]
+                );
+
+                return;
+            }
+
+            $updated =
+                $this->adminUserModel->update(
+                    $adminId,
+                    [
+                        'password_hash' =>
+                        $newHash,
+                    ]
+                );
+
+            if ($updated === false) {
+                log_message(
+                    'warning',
+                    'Unable to persist a replacement password hash '
+                        . 'for administrator {adminId}.',
+                    [
+                        'adminId' => $adminId,
+                    ]
+                );
+            }
+        } catch (Throwable $exception) {
+            /*
+             * Rehash failure must never reject credentials that were already
+             * successfully authenticated.
+             */
+            log_message(
+                'warning',
+                'Administrator password rehash failed for '
+                    . '{adminId}: {message}',
+                [
+                    'adminId' => $adminId,
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+        }
+    }
+
+    private function databaseBoolean(
+        mixed $value
+    ): bool {
+        return $value === true
+            || $value === 1
+            || $value === '1'
+            || $value === 't'
+            || $value === 'true';
     }
 
     private function invalidCredentials(): AdminLoginResult

@@ -20,6 +20,8 @@ use App\Services\Admin\AdminInvitationService;
 use App\Services\Admin\AdminManagementService;
 use App\Services\Admin\Authentication\AdminLoginService;
 use App\Services\Email\EmailQueueService;
+use App\Models\AdminAuditLogModel;
+use App\Services\Admin\Audit\AdminAuditService;
 
 
 /**
@@ -193,7 +195,24 @@ class Services extends BaseService
         $database = db_connect();
 
         return new AdminManagementService(
-            new AdminUserModel($database)
+            new AdminUserModel($database),
+            static::adminAuditService(false)
+        );
+    }
+
+    public static function adminAuditService(
+        bool $getShared = true
+    ): AdminAuditService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'adminAuditService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new AdminAuditService(
+            new AdminAuditLogModel($database)
         );
     }
 }

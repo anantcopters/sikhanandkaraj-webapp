@@ -1,0 +1,43 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Admin\Audit;
+
+final class AdminAuditAction
+{
+    public const LOGIN_SUCCESS =
+    'ADMIN_LOGIN_SUCCESS';
+
+    public const LOGIN_FAILURE =
+    'ADMIN_LOGIN_FAILURE';
+
+    public const LOGOUT =
+    'ADMIN_LOGOUT';
+
+    public const ADMIN_CREATED =
+    'ADMIN_CREATED';
+
+    public const INVITATION_QUEUED =
+    'ADMIN_INVITATION_QUEUED';
+
+    public const INVITATION_RESENT =
+    'ADMIN_INVITATION_RESENT';
+
+    public const INVITATION_ACCEPTED =
+    'ADMIN_INVITATION_ACCEPTED';
+
+    public const INVITATION_REJECTED =
+    'ADMIN_INVITATION_REJECTED';
+
+    public const ADMIN_SUSPENDED =
+    'ADMIN_SUSPENDED';
+
+    public const ADMIN_REACTIVATED =
+    'ADMIN_REACTIVATED';
+
+    public const ACCESS_DENIED =
+    'ADMIN_ACCESS_DENIED';
+
+    private function __construct() {}
+}
