@@ -163,22 +163,27 @@ $this->section('content');
 
                                     <button
                                         type="submit"
-                                        class="btn btn btn-primary"
+                                        class="btn registration-form__submit fs-16 fw-semibold text-uppercase"
                                         data-submit-button>
 
-                                        <span data-submit-idle>
+                                        <span data-submit-idle aria-hidden="false">
                                             Verify Account and Set Password
                                         </span>
 
                                         <span
-                                            class="registration-submit__loading
-                                    d-none"
-                                            data-submit-loading>
+                                            class="registration-submit__loading d-none"
+                                            data-submit-loading
+                                            aria-hidden="true">
+
                                             <span
-                                                class="spinner-border
-                                        spinner-border-sm">
+                                                class="spinner-border spinner-border-sm"
+                                                role="status"
+                                                aria-hidden="true">
                                             </span>
-                                            Activating account...
+
+                                            <span>
+                                                Activating account...
+                                            </span>
                                         </span>
                                     </button>
                                 </form>
