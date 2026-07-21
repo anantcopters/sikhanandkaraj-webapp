@@ -4,6 +4,15 @@ Options -Indexes
 # ----------------------------------------------------------------------
 # Rewrite engine
 # ----------------------------------------------------------------------
+# Prevent access to hidden files.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Prevent access to sensitive project files.
+<FilesMatch "^(composer\.(json|lock)|spark|phpunit\.xml(\.dist)?|README.*|LICENSE.*)$">
+    Require all denied
+</FilesMatch>
 
 # Turning on the rewrite engine is necessary for the following rules and features.
 # FollowSymLinks must be enabled for this to work.
