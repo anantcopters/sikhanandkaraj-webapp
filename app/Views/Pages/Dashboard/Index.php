@@ -95,12 +95,10 @@ $this->section('content');
 
                     <button
                         type="submit"
-                        class="registration-form__submit
-               email-verification-alert__action"
+                        class="btn email-verification-alert__action"
                         id="emailVerificationSubmit">
 
-                        <span
-                            class="email-verification-submit__label">
+                        <span class="email-verification-submit__label fw-normal">
                             Send verification email
                         </span>
 
@@ -110,7 +108,12 @@ $this->section('content');
 
                             <span
                                 class="spinner-border spinner-border-sm"
-                                role="status">
+                                role="status"
+                                aria-hidden="true">
+                            </span>
+
+                            <span>
+                                Sending email...
                             </span>
                         </span>
                     </button>

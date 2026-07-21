@@ -22,5 +22,7 @@ final readonly class VerificationResult
     ): self {
         return new self(false, $message);
     }
+
+    public readonly ?int $retryAfter;
 }
 

@@ -157,6 +157,13 @@ function initializeEmailVerification() {
                     result.buttonText
                     || 'Okay'
             });
+            startVerificationCooldown(
+                submitButton,
+                label,
+                loading,
+                result.retryAfter || 60
+            );
+            return;
         } catch (error) {
             showFeedbackModal({
                 type: 'error',
@@ -168,12 +175,14 @@ function initializeEmailVerification() {
                 buttonText: 'Okay'
             });
         } finally {
-            setLoadingState(
-                submitButton,
-                label,
-                loading,
-                false
-            );
+            if (!cooldownStarted) {
+                setLoadingState(
+                    submitButton,
+                    label,
+                    loading,
+                    false
+                );
+            }
         }
     });
 }
@@ -253,3 +262,76 @@ function setLoadingState(
         !isLoading
     );
 }
+
+/**
+ * Prevent repeated verification-email requests during cooldown.
+ */
+function startVerificationCooldown(
+    button,
+    label,
+    loading,
+    seconds
+) {
+    loading.classList.add('d-none');
+    label.classList.remove('d-none');
+
+    let remaining = Math.max(
+        1,
+        Number.parseInt(seconds, 10) || 60
+    );
+
+    button.disabled = true;
+    button.setAttribute('aria-busy', 'false');
+
+    function updateLabel() {
+        label.textContent =
+            'Resend in ' + remaining + 's';
+
+        if (remaining <= 0) {
+            window.clearInterval(timer);
+
+            label.textContent =
+                'Resend verification email';
+
+            button.disabled = false;
+            return;
+        }
+
+        remaining -= 1;
+    }
+
+    updateLabel();
+
+    const timer = window.setInterval(
+        updateLabel,
+        1000
+    );
+}
+
+let timer = null;
+
+function updateLabel() {
+    label.textContent =
+        'Resend in ' + remaining + 's';
+
+    if (remaining <= 0) {
+        if (timer !== null) {
+            window.clearInterval(timer);
+        }
+
+        label.textContent =
+            'Resend verification email';
+
+        button.disabled = false;
+        return;
+    }
+
+    remaining -= 1;
+}
+
+updateLabel();
+
+timer = window.setInterval(
+    updateLabel,
+    1000
+);
