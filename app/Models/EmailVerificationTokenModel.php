@@ -65,4 +65,35 @@ final class EmailVerificationTokenModel extends Model
             ])
             ->update();
     }
+
+    /**
+     * Return the most recently created verification token for a contact.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findLatestForContact(
+        int $contactId
+    ): ?array {
+        $row = $this
+            ->where('user_contact_id', $contactId)
+            ->orderBy('created_at', 'DESC')
+            ->first();
+
+        return is_array($row)
+            ? $row
+            : null;
+    }
+
+    /**
+     * Count verification requests created after the supplied date.
+     */
+    public function countCreatedForContactSince(
+        int $contactId,
+        string $since
+    ): int {
+        return $this
+            ->where('user_contact_id', $contactId)
+            ->where('created_at >=', $since)
+            ->countAllResults();
+    }
 }

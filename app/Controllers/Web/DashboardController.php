@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Controllers\Web;
 
-use App\Models\UserContactModel;
-use App\Support\BooleanValue;
 use App\Controllers\BaseController;
+use App\Models\UserContactModel;
 use App\Models\UserModel;
+use App\Services\Dashboard\MemberDashboardDataService;
+use App\Support\BooleanValue;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
 /**
@@ -23,11 +24,9 @@ final class DashboardController extends BaseController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        $userModel = new UserModel();
+        $resolvedUserId = (int) $userId;
 
-        $user = $userModel->find(
-            (int) $userId
-        );
+        $user = (new UserModel())->find($resolvedUserId);
 
         if (!is_array($user)) {
             session()->destroy();
@@ -47,59 +46,99 @@ final class DashboardController extends BaseController
             (string) ($user['profile_ref_number'] ?? '')
         );
 
-        $emailContact = (
-            new UserContactModel()
-        )->findPrimaryForUser(
-            (int) $userId,
+        $contactModel = new UserContactModel();
+
+        $emailContact = $contactModel->findPrimaryForUser(
+            $resolvedUserId,
             UserContactModel::TYPE_EMAIL
         );
 
-        $primaryEmail = null;
-        $isEmailVerified = false;
+        $mobileContact = $contactModel->findPrimaryForUser(
+            $resolvedUserId,
+            UserContactModel::TYPE_MOBILE
+        );
 
-        if (is_array($emailContact)) {
-            $primaryEmail = trim(
-                (string) (
-                    $emailContact['contact_value']
-                    ?? ''
-                )
-            );
+        $primaryEmail = $this->contactValue($emailContact);
+        $primaryMobile = $this->contactValue($mobileContact);
 
-            $isEmailVerified =
-                BooleanValue::fromDatabase(
-                    $emailContact['is_verified']
-                        ?? false
-                );
-        }
+        $isEmailVerified = $this->isContactVerified(
+            $emailContact
+        );
 
-        /**
-         * Refresh the shared authenticated-session values so the
-         * header on subsequent pages displays current information.
+        $isMobileVerified = $this->isContactVerified(
+            $mobileContact
+        );
+
+        /*
+         * Keep shared authenticated-session values current for the header.
          */
         session()->set([
             'auth_user_name' => $loggedInUserName,
             'auth_profile_reference' => $profileReference,
         ]);
 
+        $dashboardData = (
+            new MemberDashboardDataService()
+        )->getDashboardData($resolvedUserId);
+
         return view(
             'Pages/Dashboard/Index',
-            [
-                'pageTitle' => 'Dashboard',
+            array_merge(
+                [
+                    'pageTitle' => 'Member Dashboard',
 
-                'profileReference' =>
-                $profileReference,
+                    'profileReference' => $profileReference,
 
-                'loggedInUserName' =>
-                $loggedInUserName,
+                    'loggedInUserName' => $loggedInUserName,
 
-                'primaryEmail' => $primaryEmail,
+                    'primaryEmail' => $primaryEmail,
 
-                'isEmailVerified' => $isEmailVerified,
+                    'primaryMobile' => $primaryMobile,
 
-                'pageScripts' => [
-                    'assets/js/pages/dashboard-security.js',
+                    'isEmailVerified' => $isEmailVerified,
+
+                    'isMobileVerified' => $isMobileVerified,
+
+                    'pageScripts' => [
+                        'assets/js/pages/dashboard-security.js',
+                    ],
                 ],
-            ]
+                $dashboardData
+            )
+        );
+    }
+
+    /**
+     * Resolve a stored contact value.
+     *
+     * @param array<string, mixed>|null $contact
+     */
+    private function contactValue(?array $contact): ?string
+    {
+        if (!is_array($contact)) {
+            return null;
+        }
+
+        $value = trim(
+            (string) ($contact['contact_value'] ?? '')
+        );
+
+        return $value !== '' ? $value : null;
+    }
+
+    /**
+     * Resolve the verification state of a contact record.
+     *
+     * @param array<string, mixed>|null $contact
+     */
+    private function isContactVerified(?array $contact): bool
+    {
+        if (!is_array($contact)) {
+            return false;
+        }
+
+        return BooleanValue::fromDatabase(
+            $contact['is_verified'] ?? false
         );
     }
 }

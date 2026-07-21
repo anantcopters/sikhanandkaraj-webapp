@@ -8,19 +8,27 @@ final readonly class VerificationResult
 {
     public function __construct(
         public bool $success,
-        public string $message
+        public string $message,
+        public ?int $retryAfter = null
     ) {}
 
     public static function success(
         string $message
     ): self {
-        return new self(true, $message);
+        return new self(
+            success: true,
+            message: $message
+        );
     }
 
     public static function failure(
-        string $message
+        string $message,
+        ?int $retryAfter = null
     ): self {
-        return new self(false, $message);
+        return new self(
+            success: false,
+            message: $message,
+            retryAfter: $retryAfter
+        );
     }
 }
-

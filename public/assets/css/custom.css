@@ -954,6 +954,21 @@ form[aria-busy="true"] {
     line-height: 1.6;
 }
 
+/**
+ * Prevent repeated verification-email requests while the request
+ * is being processed.
+ */
+.email-verification-alert__action:disabled {
+    cursor: not-allowed;
+    opacity: 0.72;
+    transform: none;
+    box-shadow: none;
+}
+
+.email-verification-alert__action[aria-busy="true"] {
+    pointer-events: none;
+}
+
 @media (max-width: 767.98px) {
     .email-verification-alert {
         align-items: stretch;
@@ -967,5 +982,229 @@ form[aria-busy="true"] {
 
     .email-verification-result__card {
         padding: 2rem 1.25rem;
+    }
+}
+
+/* =========================================================
+   Reusable application feedback modal
+   ========================================================= */
+
+.app-feedback-modal {
+    --feedback-modal-accent: #315fa8;
+    --feedback-modal-accent-soft: #edf4ff;
+}
+
+.app-feedback-modal__content {
+    border: 0;
+    border-radius: 1rem;
+    box-shadow: 0 1.25rem 3rem rgba(35, 24, 28, 0.18);
+    overflow: hidden;
+}
+
+.app-feedback-modal__body {
+    padding: 2rem 1.5rem 1.5rem;
+    text-align: center;
+}
+
+.app-feedback-modal__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 4rem;
+    height: 4rem;
+    margin-bottom: 1rem;
+    border-radius: 50%;
+    background-color: var(--feedback-modal-accent-soft);
+    color: var(--feedback-modal-accent);
+    font-size: 2rem;
+    line-height: 1;
+}
+
+.app-feedback-modal__title {
+    margin: 0 0 0.65rem;
+    color: var(--bs-body-color);
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.app-feedback-modal__message {
+    max-width: 28rem;
+    margin: 0 auto 1.5rem;
+    color: var(--bs-secondary-color);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.app-feedback-modal__button {
+    min-width: 8rem;
+    padding: 0.65rem 1.5rem;
+    border-color: var(--feedback-modal-accent);
+    border-radius: 0.65rem;
+    background-color: var(--feedback-modal-accent);
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.app-feedback-modal__button:hover,
+.app-feedback-modal__button:focus {
+    border-color: var(--feedback-modal-accent);
+    background-color: var(--feedback-modal-accent);
+    color: #ffffff;
+    filter: brightness(0.92);
+}
+
+.app-feedback-modal--success {
+    --feedback-modal-accent: #198754;
+    --feedback-modal-accent-soft: #eaf7f0;
+}
+
+.app-feedback-modal--warning {
+    --feedback-modal-accent: #b77900;
+    --feedback-modal-accent-soft: #fff7df;
+}
+
+.app-feedback-modal--error {
+    --feedback-modal-accent: #b42318;
+    --feedback-modal-accent-soft: #fff0ee;
+}
+
+.app-feedback-modal--info {
+    --feedback-modal-accent: #315fa8;
+    --feedback-modal-accent-soft: #edf4ff;
+}
+
+@media (min-width: 576px) {
+    .app-feedback-modal__body {
+        padding: 2.25rem 2rem 1.75rem;
+    }
+}
+
+/* ==========================================================================
+   Member dashboard
+   ========================================================================== */
+
+/**
+ * Keep the member account panel visible while scrolling through dashboard
+ * sections on larger screens.
+ */
+.dashboard-sidebar {
+    position: sticky;
+    top: 24px;
+}
+
+/**
+ * Temporary member avatar used until profile-image storage is connected.
+ */
+.dashboard-avatar {
+    width: 104px;
+    height: 104px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background-color: rgba(174, 21, 54, 0.08);
+    color: var(--sak-primary);
+    font-size: 3rem;
+}
+
+/**
+ * Align the profile-completion shortcut icons consistently.
+ */
+.dashboard-shortcut-icon {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+    color: var(--sak-primary);
+    font-size: 1.25rem;
+}
+
+/**
+ * Horizontal member-card list.
+ *
+ * This allows the dashboard to show several profiles without forcing every
+ * section into a large multi-row grid.
+ */
+.dashboard-profile-scroll {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: inline proximity;
+    scrollbar-width: thin;
+}
+
+/**
+ * Keep every profile card a predictable width within the horizontal list.
+ */
+.dashboard-profile-card {
+    min-width: 180px;
+    max-width: 180px;
+    flex: 0 0 180px;
+    scroll-snap-align: start;
+}
+
+/**
+ * Temporary profile image placeholder.
+ */
+.dashboard-profile-photo {
+    width: 92px;
+    height: 92px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    border-radius: 50%;
+    background-color: var(--sak-page-background);
+    color: var(--sak-primary);
+    font-size: 2.5rem;
+}
+
+/**
+ * Online/offline indicator positioned over the profile placeholder.
+ */
+.dashboard-online-status {
+    position: absolute;
+    right: calc(50% - 45px);
+    bottom: 3px;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--sak-white);
+    border-radius: 50%;
+}
+
+/* ==========================================================================
+   Member dashboard responsive behaviour
+   ========================================================================== */
+
+@media (max-width: 991.98px) {
+
+    /*
+     * Sticky positioning is unnecessary once the sidebar stacks above the
+     * dashboard content.
+     */
+    .dashboard-sidebar {
+        position: static;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .dashboard-profile-scroll {
+        gap: 12px;
+    }
+
+    .dashboard-profile-card {
+        min-width: 165px;
+        max-width: 165px;
+        flex-basis: 165px;
+    }
+
+    .dashboard-profile-photo {
+        width: 82px;
+        height: 82px;
+        font-size: 2.15rem;
     }
 }

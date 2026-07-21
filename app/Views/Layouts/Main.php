@@ -42,6 +42,8 @@
 
     <?= $this->include('Components/Footer') ?>
 
+    <?= view('Components/FeedbackModal') ?>
+
     <script src="<?= base_url('assets/js/jquery.js') ?>"></script>
     <script src="<?= base_url('assets/js/bootstrap.bundle.min.js') ?>"></script>
     <script src="<?= base_url('assets/js/choices.min.js') ?>"></script>
@@ -53,6 +55,7 @@
                         'assets/js/components/form-validator.js'
                     ) ?>"></script>
     <script src="<?= base_url('assets/js/app.js') ?>"></script>
+    <script src="<?= base_url('assets/js/components/feedback-modal.js') ?>"></script>
     <?php
     /**
      * Load JavaScript required only by the current page.

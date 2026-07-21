@@ -16,6 +16,10 @@ final class EmailVerificationService
 {
     private const TOKEN_LIFETIME_HOURS = 24;
 
+    private const RESEND_COOLDOWN_SECONDS = 60;
+
+    private const MAX_REQUESTS_PER_HOUR = 5;
+
     private UserModel $userModel;
 
     private UserContactModel $contactModel;
@@ -74,7 +78,7 @@ final class EmailVerificationService
                 $contact['is_verified'] ?? false
             )
         ) {
-            return VerificationResult::success(
+            return VerificationResult::failure(
                 'Your email address is already verified.'
             );
         }
@@ -92,6 +96,58 @@ final class EmailVerificationService
         ) {
             return VerificationResult::failure(
                 'Your account does not contain a valid email address.'
+            );
+        }
+
+        $latestToken = $this->tokenModel
+            ->findLatestForContact(
+                (int) $contact['id']
+            );
+
+        if (is_array($latestToken)) {
+            $createdTimestamp = strtotime(
+                (string) ($latestToken['created_at'] ?? '')
+            );
+
+            if ($createdTimestamp !== false) {
+                $elapsedSeconds = time() - $createdTimestamp;
+
+                if (
+                    $elapsedSeconds
+                    < self::RESEND_COOLDOWN_SECONDS
+                ) {
+                    $remainingSeconds =
+                        self::RESEND_COOLDOWN_SECONDS
+                        - $elapsedSeconds;
+
+                    return VerificationResult::failure(
+                        message: 'Please wait '
+                            . $remainingSeconds
+                            . ' seconds before requesting another email.',
+                        retryAfter: $remainingSeconds
+                    );
+                }
+            }
+        }
+
+        $oneHourAgo = date(
+            'Y-m-d H:i:s',
+            time() - 3600
+        );
+
+        $requestCount = $this->tokenModel
+            ->countCreatedForContactSince(
+                (int) $contact['id'],
+                $oneHourAgo
+            );
+
+        if (
+            $requestCount
+            >= self::MAX_REQUESTS_PER_HOUR
+        ) {
+            return VerificationResult::failure(
+                'You have requested too many verification emails. '
+                    . 'Please try again later.'
             );
         }
 

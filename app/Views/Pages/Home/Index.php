@@ -464,14 +464,14 @@ $this->section('content');
                                             : '' ?>
                                         aria-describedby="passwordError passwordHelp"
                                         placeholder="Create password"
-                                        minlength="8"
-                                        maxlength="64"
+                                        minlength="10"
+                                        maxlength="128"
                                         autocomplete="new-password"
                                         data-error-required="Please enter a password."
-                                        data-error-minlength="The password must contain at least 8 characters."
-                                        data-error-maxlength="The password cannot exceed 64 characters."
-                                        data-error-pattern="The password must contain at least one uppercase letter, one lowercase letter and one number."
-                                        pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,64}"
+                                        data-error-minlength="The password must contain at least 10 characters."
+                                        data-error-maxlength="The password cannot exceed 128 characters."
+                                        data-error-pattern="The password must contain at least one uppercase letter, one lowercase letter, one number and one special character."
+                                        pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{10,128}"
                                         required>
 
                                     <button
@@ -498,8 +498,8 @@ $this->section('content');
                                 <div
                                     id="passwordHelp"
                                     class="form-text color-pink">
-                                    Use at least 8 characters with one uppercase letter,
-                                    one lowercase letter and one number.
+                                    Use at least 10 characters with one uppercase letter,
+                                    one lowercase letter, one number and one special character.
                                 </div>
                             </div>
 
