@@ -6,6 +6,8 @@ use App\Models\AdminUserModel;
 
 /**
  * Variables supplied by AdminDashboardController.
+ * 
+ * @var bool $isSuperAdmin
  *
  * @var array{
  *     total:int,
@@ -43,6 +45,9 @@ $administrators = isset($administrators)
     ? $administrators
     : [];
 
+$isSuperAdmin = isset($isSuperAdmin)
+    && $isSuperAdmin === true;
+
 $this->extend('Admin/Layouts/Main');
 
 $this->section('content');
@@ -69,10 +74,7 @@ $this->section('content');
                 </div>
 
                 <div class="page-title-right">
-                    <?php if (
-                        session('admin_role')
-                        === AdminUserModel::ROLE_SUPER_ADMIN
-                    ): ?>
+                    <?php if ($isSuperAdmin): ?>
                         <a
                             href="<?= route_to(
                                         'admin.users.create'
@@ -97,152 +99,176 @@ $this->section('content');
             'alert' => $formAlert,
         ]
     ) ?>
+    <?php if ($isSuperAdmin): ?>
+        <div class="row g-3 mb-4">
 
-    <div class="row g-3 mb-4">
-
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card card-animate h-100">
-                <div class="card-body">
-                    <div
-                        class="d-flex align-items-center
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card card-animate h-100">
+                    <div class="card-body">
+                        <div
+                            class="d-flex align-items-center
                 justify-content-between">
 
-                        <div>
-                            <p
-                                class="text-uppercase
+                            <div>
+                                <p
+                                    class="text-uppercase
                         fw-medium text-muted
                         text-truncate mb-0">
-                                Total Administrators
-                            </p>
+                                    Total Administrators
+                                </p>
 
-                            <h4 class="fs-22 fw-semibold mb-0 mt-2">
-                                <?= esc(
-                                    (string) $summary['total']
-                                ) ?>
-                            </h4>
-                        </div>
+                                <h4 class="fs-22 fw-semibold mb-0 mt-2">
+                                    <?= esc(
+                                        (string) $summary['total']
+                                    ) ?>
+                                </h4>
+                            </div>
 
-                        <div class="avatar-sm flex-shrink-0">
-                            <span
-                                class="avatar-title
+                            <div class="avatar-sm flex-shrink-0">
+                                <span
+                                    class="avatar-title
                         bg-primary-subtle
                         text-primary rounded-circle
                         fs-3">
-                                <i class="ri-group-line"></i>
-                            </span>
-                        </div>
+                                    <i class="ri-group-line"></i>
+                                </span>
+                            </div>
 
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card card-animate h-100">
-                <div class="card-body">
-                    <div
-                        class="d-flex align-items-center
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card card-animate h-100">
+                    <div class="card-body">
+                        <div
+                            class="d-flex align-items-center
                 justify-content-between">
 
-                        <div>
-                            <p
-                                class="text-uppercase
+                            <div>
+                                <p
+                                    class="text-uppercase
             fw-medium text-muted mb-0">
-                                Pending Verification
-                            </p>
+                                    Pending Verification
+                                </p>
 
-                            <h4 class="fs-22 fw-semibold mb-0 mt-2">
-                                <?= esc(
-                                    (string) $summary['pending']
-                                ) ?>
-                            </h4>
-                        </div>
+                                <h4 class="fs-22 fw-semibold mb-0 mt-2">
+                                    <?= esc(
+                                        (string) $summary['pending']
+                                    ) ?>
+                                </h4>
+                            </div>
 
-                        <div class="avatar-sm flex-shrink-0">
-                            <span
-                                class="avatar-title
+                            <div class="avatar-sm flex-shrink-0">
+                                <span
+                                    class="avatar-title
             bg-warning-subtle
             text-warning rounded-circle fs-3">
-                                <i class="ri-time-line"></i>
-                            </span>
-                        </div>
+                                    <i class="ri-time-line"></i>
+                                </span>
+                            </div>
 
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card card-animate h-100">
-                <div class="card-body">
-                    <div
-                        class="d-flex align-items-center
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card card-animate h-100">
+                    <div class="card-body">
+                        <div
+                            class="d-flex align-items-center
                 justify-content-between">
 
-                        <div>
-                            <p
-                                class="text-uppercase
+                            <div>
+                                <p
+                                    class="text-uppercase
             fw-medium text-muted mb-0">
-                                Verified
-                            </p>
+                                    Verified
+                                </p>
 
-                            <h4 class="fs-22 fw-semibold mb-0 mt-2">
-                                <?= esc(
-                                    (string) $summary['verified']
-                                ) ?>
-                            </h4>
-                        </div>
+                                <h4 class="fs-22 fw-semibold mb-0 mt-2">
+                                    <?= esc(
+                                        (string) $summary['verified']
+                                    ) ?>
+                                </h4>
+                            </div>
 
-                        <div class="avatar-sm flex-shrink-0">
-                            <span
-                                class="avatar-title
+                            <div class="avatar-sm flex-shrink-0">
+                                <span
+                                    class="avatar-title
             bg-success-subtle
             text-success rounded-circle fs-3">
-                                <i class="ri-checkbox-circle-line"></i>
-                            </span>
-                        </div>
+                                    <i class="ri-checkbox-circle-line"></i>
+                                </span>
+                            </div>
 
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="col-12 col-sm-6 col-xl-3">
-            <div class="card card-animate h-100">
-                <div class="card-body">
-                    <div
-                        class="d-flex align-items-center
+            <div class="col-12 col-sm-6 col-xl-3">
+                <div class="card card-animate h-100">
+                    <div class="card-body">
+                        <div
+                            class="d-flex align-items-center
                 justify-content-between">
 
-                        <div>
-                            <p
-                                class="text-uppercase
+                            <div>
+                                <p
+                                    class="text-uppercase
             fw-medium text-muted mb-0">
-                                Suspended
-                            </p>
+                                    Suspended
+                                </p>
 
-                            <h4 class="fs-22 fw-semibold mb-0 mt-2">
-                                <?= esc(
-                                    (string) $summary['suspended']
-                                ) ?>
-                            </h4>
-                        </div>
+                                <h4 class="fs-22 fw-semibold mb-0 mt-2">
+                                    <?= esc(
+                                        (string) $summary['suspended']
+                                    ) ?>
+                                </h4>
+                            </div>
 
-                        <div class="avatar-sm flex-shrink-0">
-                            <span
-                                class="avatar-title
+                            <div class="avatar-sm flex-shrink-0">
+                                <span
+                                    class="avatar-title
             bg-danger-subtle
             text-danger rounded-circle fs-3">
-                                <i class="ri-forbid-line"></i>
-                            </span>
-                        </div>
+                                    <i class="ri-forbid-line"></i>
+                                </span>
+                            </div>
 
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-    </div>
+        </div>
+    <?php else: ?>
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <div class="avatar-md mx-auto mb-3">
+                    <div
+                        class="avatar-title rounded-circle
+                    bg-primary-subtle text-primary fs-24">
+                        <i
+                            class="ri-shield-user-line"
+                            aria-hidden="true"></i>
+                    </div>
+                </div>
+
+                <h5 class="mb-1">
+                    Welcome to the administration panel
+                </h5>
+
+                <p class="text-muted mb-0">
+                    Use the available administration tools to
+                    manage your assigned responsibilities.
+                </p>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <div class="card">
 
@@ -262,10 +288,7 @@ $this->section('content');
                 </p>
             </div>
 
-            <?php if (
-                session('admin_role')
-                === AdminUserModel::ROLE_SUPER_ADMIN
-            ): ?>
+            <?php if ($isSuperAdmin): ?>
                 <a
                     href="<?= route_to(
                                 'admin.users.index'
