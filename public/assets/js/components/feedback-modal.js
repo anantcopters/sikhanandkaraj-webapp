@@ -1,16 +1,24 @@
 (function (window, document) {
     'use strict';
 
-    const modalElement = document.getElementById('appFeedbackModal');
+    const modalElement = document.getElementById(
+        'appFeedbackModal'
+    );
 
-    if (!modalElement || typeof bootstrap === 'undefined') {
+    if (
+        !modalElement
+        || typeof bootstrap === 'undefined'
+    ) {
         return;
     }
 
-    const modal = bootstrap.Modal.getOrCreateInstance(modalElement, {
-        backdrop: 'static',
-        keyboard: true
-    });
+    const modal = bootstrap.Modal.getOrCreateInstance(
+        modalElement,
+        {
+            backdrop: 'static',
+            keyboard: true
+        }
+    );
 
     const titleElement = document.getElementById(
         'appFeedbackModalTitle'
@@ -27,6 +35,15 @@
     const buttonElement = document.getElementById(
         'appFeedbackModalButton'
     );
+
+    if (
+        !titleElement
+        || !messageElement
+        || !iconElement
+        || !buttonElement
+    ) {
+        return;
+    }
 
     const supportedTypes = [
         'info',
@@ -45,8 +62,6 @@
     let closeCallback = null;
 
     /**
-     * Normalize the modal type.
-     *
      * @param {string} type
      * @returns {string}
      */
@@ -57,8 +72,6 @@
     }
 
     /**
-     * Update the icon and modal type class.
-     *
      * @param {string} type
      */
     function setType(type) {
@@ -74,30 +87,30 @@
             'app-feedback-modal--' + normalizedType
         );
 
-        modalElement.dataset.modalType = normalizedType;
-
         const icon = iconElement.querySelector('i');
 
         if (!icon) {
             return;
         }
 
-        Object.values(iconClasses).forEach(function (iconClass) {
-            icon.classList.remove(iconClass);
-        });
+        Object.values(iconClasses).forEach(
+            function (iconClass) {
+                icon.classList.remove(iconClass);
+            }
+        );
 
-        icon.classList.add(iconClasses[normalizedType]);
+        icon.classList.add(
+            iconClasses[normalizedType]
+        );
     }
 
     /**
-     * Show a reusable feedback modal.
-     *
      * @param {{
-     *   type?: string,
-     *   title?: string,
-     *   message?: string,
-     *   buttonText?: string,
-     *   onClose?: Function
+     *     type?: string,
+     *     title?: string,
+     *     message?: string,
+     *     buttonText?: string,
+     *     onClose?: Function
      * }} options
      */
     function show(options) {
@@ -122,34 +135,28 @@
         modal.show();
     }
 
-    modalElement.addEventListener('hidden.bs.modal', function () {
-        if (typeof closeCallback === 'function') {
+    modalElement.addEventListener(
+        'hidden.bs.modal',
+        function () {
+            if (
+                typeof closeCallback !== 'function'
+            ) {
+                return;
+            }
+
             const callback = closeCallback;
 
             closeCallback = null;
+
             callback();
         }
-    });
+    );
 
     window.AppFeedbackModal = {
         show: show,
+
         hide: function () {
             modal.hide();
         }
     };
-
-    /*
-     * Automatically open flashdata-backed messages rendered by PHP.
-     */
-    document.addEventListener('DOMContentLoaded', function () {
-        if (modalElement.dataset.autoOpen !== 'true') {
-            return;
-        }
-
-        setType(
-            modalElement.dataset.modalType || 'info'
-        );
-
-        modal.show();
-    });
 })(window, document);

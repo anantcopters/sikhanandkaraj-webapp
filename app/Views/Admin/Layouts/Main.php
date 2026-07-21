@@ -123,7 +123,7 @@ $pageScripts = $pageScripts ?? [];
 
         <?= $this->renderSection('content') ?>
     </main>
-
+    <?= view('Components/FeedbackModal') ?>
     <script
         src="<?= base_url(
                     'assets/js/bootstrap.bundle.min.js'
@@ -148,7 +148,7 @@ $pageScripts = $pageScripts ?? [];
             <script src="<?= esc(base_url($script), 'attr') ?>"></script>
         <?php endif; ?>
     <?php endforeach; ?>
-    <?= view('Components/FeedbackModal') ?>
+
 </body>
 
 </html>

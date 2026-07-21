@@ -6,19 +6,27 @@ namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
 use App\Services\EmailVerification\EmailVerificationService;
-use CodeIgniter\HTTP\RedirectResponse;
+use CodeIgniter\HTTP\ResponseInterface;
+use Throwable;
 use RuntimeException;
 
 final class EmailVerificationController extends BaseController
 {
-    public function send(): RedirectResponse
+    public function send(): ResponseInterface
     {
         $userId = session('auth_user_id');
 
         if (!is_numeric($userId)) {
-            return redirect()->to(
-                route_to('web.login')
-            );
+            return $this->response
+                ->setStatusCode(401)
+                ->setJSON([
+                    'success' => false,
+                    'type' => 'error',
+                    'title' => 'Session expired',
+                    'message' =>
+                    'Your session has expired. Please log in again.',
+                    'redirectUrl' => route_to('web.login'),
+                ]);
         }
 
         try {
@@ -28,15 +36,24 @@ final class EmailVerificationController extends BaseController
                 (int) $userId
             );
 
-            return redirect()
-                ->to(route_to('web.dashboard'))
-                ->with('formAlert', [
+            $statusCode = $result->success
+                ? 200
+                : 422;
+
+            return $this->response
+                ->setStatusCode($statusCode)
+                ->setJSON([
+                    'success' => $result->success,
                     'type' => $result->success
                         ? 'success'
-                        : 'danger',
+                        : 'warning',
+                    'title' => $result->success
+                        ? 'Verification email sent'
+                        : 'Unable to send email',
                     'message' => $result->message,
+                    'buttonText' => 'Okay',
                 ]);
-        } catch (RuntimeException $exception) {
+        } catch (Throwable $exception) {
             log_message(
                 'error',
                 'Verification email failure for user {userId}: {message}',
@@ -46,12 +63,16 @@ final class EmailVerificationController extends BaseController
                 ]
             );
 
-            return redirect()
-                ->to(route_to('web.dashboard'))
-                ->with('formAlert', [
-                    'type' => 'danger',
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'success' => false,
+                    'type' => 'error',
+                    'title' => 'Unable to send email',
                     'message' =>
-                    'We could not send the verification email. Please try again.',
+                    'We could not send the verification email. '
+                        . 'Please try again.',
+                    'buttonText' => 'Okay',
                 ]);
         }
     }

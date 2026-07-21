@@ -12,12 +12,6 @@ declare(strict_types=1);
  * @var bool $isEmailVerified
  */
 
-$formAlert = session('formAlert');
-
-$formAlert = is_array($formAlert)
-    ? $formAlert
-    : null;
-
 $this->extend('Layouts/Main');
 $this->section('content');
 ?>
@@ -25,9 +19,6 @@ $this->section('content');
 <section class="pb-5 pt-3">
     <div class="container">
 
-        <?= view('Components/Alerts/FormAlert', [
-            'alert' => $formAlert,
-        ]) ?>
 
         <div class="card">
             <div class="card-body p-4">
@@ -96,14 +87,32 @@ $this->section('content');
                     action="<?= url_to(
                                 'web.email.verification.send'
                             ) ?>"
-                    class="email-verification-alert__form">
+                    class="email-verification-alert__form"
+                    id="emailVerificationForm"
+                    novalidate>
 
                     <?= csrf_field() ?>
 
                     <button
                         type="submit"
-                        class="btn email-verification-alert__action">
-                        Send verification email
+                        class="registration-form__submit
+               email-verification-alert__action"
+                        id="emailVerificationSubmit">
+
+                        <span
+                            class="email-verification-submit__label">
+                            Send verification email
+                        </span>
+
+                        <span
+                            class="registration-submit__loading d-none"
+                            aria-hidden="true">
+
+                            <span
+                                class="spinner-border spinner-border-sm"
+                                role="status">
+                            </span>
+                        </span>
                     </button>
                 </form>
             </div>

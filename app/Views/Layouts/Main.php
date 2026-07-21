@@ -42,6 +42,8 @@
 
     <?= $this->include('Components/Footer') ?>
 
+    <?= view('Components/FeedbackModal') ?>
+
     <script src="<?= base_url('assets/js/jquery.js') ?>"></script>
     <script src="<?= base_url('assets/js/bootstrap.bundle.min.js') ?>"></script>
     <script src="<?= base_url('assets/js/choices.min.js') ?>"></script>
@@ -71,7 +73,7 @@
             <script src="<?= esc(base_url($script), 'attr') ?>"></script>
         <?php endif; ?>
     <?php endforeach; ?>
-    <?= view('Components/FeedbackModal') ?>
+
 </body>
 
 </html>
