@@ -49,37 +49,6 @@ final class AdminUserValidation
      */
     public static function passwordRules(): array
     {
-        return [
-            'password' => [
-                'label' => 'Password',
-                'rules' => [
-                    'required',
-                    'min_length[10]',
-                    'max_length[128]',
-                    'regex_match[/[A-Z]/]',
-                    'regex_match[/[a-z]/]',
-                    'regex_match[/[0-9]/]',
-                    'regex_match[/[^A-Za-z0-9]/]',
-                ],
-                'errors' => [
-                    'min_length' =>
-                    'Password must contain at least 10 characters.',
-                    'regex_match' =>
-                    'Use uppercase, lowercase, number and special character.',
-                ],
-            ],
-
-            'password_confirmation' => [
-                'label' => 'Confirm password',
-                'rules' => [
-                    'required',
-                    'matches[password]',
-                ],
-                'errors' => [
-                    'matches' =>
-                    'The passwords do not match.',
-                ],
-            ],
-        ];
+        return PasswordValidation::passwordRules();
     }
 }
