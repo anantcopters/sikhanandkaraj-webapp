@@ -1,6 +1,10 @@
 <?php
 
 declare(strict_types=1);
+
+/** @var string $adminName */
+/** @var string $invitationUrl */
+/** @var int|string $expiresInHours */
 ?>
 <!doctype html>
 <html lang="en">

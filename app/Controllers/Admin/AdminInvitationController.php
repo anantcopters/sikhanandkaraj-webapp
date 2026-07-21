@@ -27,9 +27,9 @@ final class AdminInvitationController extends BaseController
                 'adminInvitationService'
             );
 
-            $invitationData = $service->inspectToken(
-                $token
-            );
+            // $invitationData = $service->inspectToken(
+            //     $token
+            // );
 
             return view(
                 'Admin/Authentication/AcceptInvitation',
@@ -38,7 +38,7 @@ final class AdminInvitationController extends BaseController
                     'Create Administrator Password',
 
                     'admin' =>
-                    $invitationData['admin'],
+                    'User',
 
                     'token' =>
                     $token,
