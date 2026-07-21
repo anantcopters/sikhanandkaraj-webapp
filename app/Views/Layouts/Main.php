@@ -53,6 +53,7 @@
                         'assets/js/components/form-validator.js'
                     ) ?>"></script>
     <script src="<?= base_url('assets/js/app.js') ?>"></script>
+    <script src="<?= base_url('assets/js/components/feedback-modal.js') ?>"></script>
     <?php
     /**
      * Load JavaScript required only by the current page.
@@ -70,7 +71,7 @@
             <script src="<?= esc(base_url($script), 'attr') ?>"></script>
         <?php endif; ?>
     <?php endforeach; ?>
-
+    <?= view('Components/FeedbackModal') ?>
 </body>
 
 </html>

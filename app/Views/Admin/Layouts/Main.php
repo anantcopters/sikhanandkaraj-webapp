@@ -129,6 +129,7 @@ $pageScripts = $pageScripts ?? [];
                     'assets/js/bootstrap.bundle.min.js'
                 ) ?>">
     </script>
+    <script src="<?= base_url('assets/js/components/feedback-modal.js') ?>"></script>
 
     <?php
     /**
@@ -147,6 +148,7 @@ $pageScripts = $pageScripts ?? [];
             <script src="<?= esc(base_url($script), 'attr') ?>"></script>
         <?php endif; ?>
     <?php endforeach; ?>
+    <?= view('Components/FeedbackModal') ?>
 </body>
 
 </html>
