@@ -118,7 +118,7 @@ $matchSections = [
 ];
 ?>
 
-<section class="py-4 py-lg-5">
+<section class="py-3 py-lg-3">
     <div class="container">
 
         <?php if (
@@ -191,21 +191,11 @@ $matchSections = [
             </div>
         <?php endif; ?>
 
-        <header class="mb-4">
-            <h1 class="fs-24 fw-semibold mb-1">
-                Welcome, <?= esc($resolvedName) ?>
-            </h1>
-
-            <p class="text-muted mb-0">
-                Complete your profile and discover suitable matches.
-            </p>
-        </header>
-
         <div class="row g-4">
             <aside class="col-12 col-lg-4 col-xl-3">
                 <div class="dashboard-sidebar">
                     <div class="card border-0 shadow-sm">
-                        <div class="card-body p-4 text-center">
+                        <div class="card-body p-4 pb-1 text-center">
 
                             <?php if ($resolvedProfileImage !== ''): ?>
                                 <img
@@ -232,7 +222,7 @@ $matchSections = [
                             </h2>
 
                             <?php if ($resolvedReference !== ''): ?>
-                                <p class="text-muted fs-13 mb-2">
+                                <p class="text-muted fs-13 mb-1">
                                     Reference:
                                     <strong>
                                         <?= esc($resolvedReference) ?>
@@ -240,9 +230,9 @@ $matchSections = [
                                 </p>
                             <?php endif; ?>
 
-                            <span class="badge bg-light text-dark mb-4">
+                            <p class="text-primary fs-12 mb-4">
                                 <?= esc($resolvedPlanName) ?>
-                            </span>
+                            </p>
 
                             <div class="border-top pt-3 text-start">
                                 <div
@@ -256,7 +246,17 @@ $matchSections = [
                                             aria-hidden="true">
                                         </i>
 
-                                        <span>Email</span>
+                                        <span><?php if (
+                                                    is_string($primaryEmail)
+                                                    && $primaryEmail !== ''
+                                                ): ?>
+                                                <p
+                                                    class="text-break mb-0 fw-medium">
+
+                                                    <?= esc($primaryEmail) ?>
+                                                </p>
+                                            <?php endif; ?>
+                                        </span>
                                     </span>
 
                                     <?php if ($isEmailVerified): ?>
@@ -274,16 +274,7 @@ $matchSections = [
                                     <?php endif; ?>
                                 </div>
 
-                                <?php if (
-                                    is_string($primaryEmail)
-                                    && $primaryEmail !== ''
-                                ): ?>
-                                    <p
-                                        class="text-muted fs-12 text-break mb-3">
 
-                                        <?= esc($primaryEmail) ?>
-                                    </p>
-                                <?php endif; ?>
 
                                 <div
                                     class="d-flex align-items-center justify-content-between gap-3 mb-2">
@@ -296,7 +287,15 @@ $matchSections = [
                                             aria-hidden="true">
                                         </i>
 
-                                        <span>Mobile</span>
+                                        <span><?php if (
+                                                    is_string($primaryMobile)
+                                                    && $primaryMobile !== ''
+                                                ): ?>
+                                                <p class="mb-0 fw-medium">
+                                                    <?= esc($primaryMobile) ?>
+                                                </p>
+                                            <?php endif; ?>
+                                        </span>
                                     </span>
 
                                     <?php if ($isMobileVerified): ?>
@@ -314,14 +313,7 @@ $matchSections = [
                                     <?php endif; ?>
                                 </div>
 
-                                <?php if (
-                                    is_string($primaryMobile)
-                                    && $primaryMobile !== ''
-                                ): ?>
-                                    <p class="text-muted fs-12 mb-0">
-                                        <?= esc($primaryMobile) ?>
-                                    </p>
-                                <?php endif; ?>
+
                             </div>
                         </div>
 
@@ -481,7 +473,7 @@ $matchSections = [
                                                         $shortcutUrl,
                                                         'attr'
                                                     ) ?>"
-                                            class="card h-100 border text-decoration-none">
+                                            class="card h-80 border text-decoration-none mb-1 <?= $shortcut['class'] ?>">
 
                                             <div class="card-body p-3">
                                                 <div
@@ -553,16 +545,7 @@ $matchSections = [
                                     </p>
                                 </div>
 
-                                <?php if ($sectionProfiles !== []): ?>
-                                    <span
-                                        class="badge bg-light text-dark text-nowrap">
-
-                                        <?= esc(
-                                            (string) count($sectionProfiles)
-                                        ) ?>
-                                        profiles
-                                    </span>
-                                <?php endif; ?>
+                                
                             </div>
 
                             <?php if ($sectionProfiles !== []): ?>

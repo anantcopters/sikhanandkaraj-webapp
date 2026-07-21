@@ -64,18 +64,21 @@ final class MemberDashboardDataService
                 'description' => 'Profiles with photos receive more interest.',
                 'icon' => 'ri-camera-line',
                 'url' => '#',
+                'class' => 'bg-primary-subtle shadow-none bg-opacity-10'
             ],
             [
                 'title' => 'Add horoscope details',
                 'description' => 'Complete your birth and horoscope information.',
                 'icon' => 'ri-moon-clear-line',
                 'url' => '#',
+                'class' => 'bg-success-subtle shadow-none bg-opacity-10'
             ],
             [
                 'title' => 'Add family details',
                 'description' => 'Tell matches more about your family.',
                 'icon' => 'ri-group-line',
                 'url' => '#',
+                'class' => 'bg-secondary-subtle shadow-none bg-opacity-10'
             ],
         ];
     }
