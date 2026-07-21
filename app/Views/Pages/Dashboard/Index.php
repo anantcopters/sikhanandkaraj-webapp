@@ -3,36 +3,55 @@
 declare(strict_types=1);
 
 /**
+ * Member Dashboard
+ *
+ * Authentication and contact variables.
+ *
  * @var string|null $profileReference
  * @var string|null $loggedInUserName
  * @var string|null $primaryEmail
  * @var string|null $primaryMobile
- * @var bool $isEmailVerified
- * @var bool $isMobileVerified
- * @var string|null $profileImage
- * @var array<string, mixed> $accountPlan
- * @var array<string, mixed> $profileCompletion
- * @var array<int, array<string, string>> $profileShortcuts
- * @var array<int, array<string, mixed>> $dailyRecommendations
- * @var array<int, array<string, mixed>> $allMatches
- * @var array<int, array<string, mixed>> $newMatches
- * @var array<int, array<string, mixed>> $profileVisitors
- * @var array<int, array<string, mixed>> $shortlistedProfiles
- * @var array<int, array<string, mixed>> $shortlistedByProfiles
+ * @var bool        $isEmailVerified
+ * @var bool        $isMobileVerified
+ *
+ * Dashboard variables supplied by MemberDashboardDataService.
+ *
+ * @var array<string, string>              $accountPlan
+ * @var string|null                        $profileImage
+ * @var array<string, int>                 $profileCompletion
+ * @var array<int, array<string, string>>  $profileShortcuts
+ * @var array<int, array<string, mixed>>   $dailyRecommendations
+ * @var array<int, array<string, mixed>>   $allMatches
+ * @var array<int, array<string, mixed>>   $newMatches
+ * @var array<int, array<string, mixed>>   $profileVisitors
+ * @var array<int, array<string, mixed>>   $shortlistedProfiles
+ * @var array<int, array<string, mixed>>   $shortlistedByProfiles
  */
 
 $this->extend('Layouts/Main');
 $this->section('content');
 
-$memberName = trim((string) ($loggedInUserName ?? 'Member'));
-$reference  = trim((string) ($profileReference ?? ''));
-
+/*
+ * Normalise primitive values before using them in the view.
+ */
 $resolvedName = trim(
-    (string) ($loggedInUserName ?? 'Member')
+    (string) ($loggedInUserName ?? '')
 );
+
+if ($resolvedName === '') {
+    $resolvedName = 'Member';
+}
 
 $resolvedReference = trim(
     (string) ($profileReference ?? '')
+);
+
+$resolvedProfileImage = trim(
+    (string) ($profileImage ?? '')
+);
+
+$resolvedPlanName = trim(
+    (string) ($accountPlan['name'] ?? 'Free account')
 );
 
 $completionPercentage = max(
@@ -42,7 +61,63 @@ $completionPercentage = max(
         (int) ($profileCompletion['percentage'] ?? 0)
     )
 );
+
+$completedSteps = max(
+    0,
+    (int) ($profileCompletion['completedSteps'] ?? 0)
+);
+
+$totalSteps = max(
+    0,
+    (int) ($profileCompletion['totalSteps'] ?? 0)
+);
+
+/*
+ * Combine the separate service datasets into presentation sections.
+ *
+ * The service remains responsible for retrieving records. The view only
+ * controls labels, descriptions and display ordering.
+ */
+$matchSections = [
+    [
+        'title' => 'Daily Recommendations',
+        'description' => 'Profiles selected for you based on your information.',
+        'profiles' => $dailyRecommendations ?? [],
+        'emptyMessage' => 'No daily recommendations are available yet.',
+    ],
+    [
+        'title' => 'All Matches',
+        'description' => 'Members matching your current partner preferences.',
+        'profiles' => $allMatches ?? [],
+        'emptyMessage' => 'No matching profiles are available yet.',
+    ],
+    [
+        'title' => 'New Matches',
+        'description' => 'Recently added profiles that may interest you.',
+        'profiles' => $newMatches ?? [],
+        'emptyMessage' => 'No new matches are available yet.',
+    ],
+    [
+        'title' => 'Who Viewed Your Profile',
+        'description' => 'Members who recently visited your profile.',
+        'profiles' => $profileVisitors ?? [],
+        'emptyMessage' => 'Your profile has not received any visitors yet.',
+    ],
+    [
+        'title' => 'Profiles Shortlisted By You',
+        'description' => 'Members you have saved for later consideration.',
+        'profiles' => $shortlistedProfiles ?? [],
+        'emptyMessage' => 'You have not shortlisted any profiles yet.',
+    ],
+    [
+        'title' => 'Profiles Who Shortlisted You',
+        'description' => 'Members who have shown interest in your profile.',
+        'profiles' => $shortlistedByProfiles ?? [],
+        'emptyMessage' => 'No member has shortlisted your profile yet.',
+    ],
+];
 ?>
+
 <section class="py-4 py-lg-5">
     <div class="container">
 
@@ -57,7 +132,10 @@ $completionPercentage = max(
 
                 <div class="email-verification-alert__content">
                     <div class="email-verification-alert__icon">
-                        <i class="ri-mail-warning-line"></i>
+                        <i
+                            class="ri-mail-warning-line"
+                            aria-hidden="true">
+                        </i>
                     </div>
 
                     <div>
@@ -92,6 +170,7 @@ $completionPercentage = max(
 
                         <span
                             class="email-verification-submit__label fw-normal">
+
                             Send verification email
                         </span>
 
@@ -112,109 +191,194 @@ $completionPercentage = max(
             </div>
         <?php endif; ?>
 
-        <div class="mb-4">
+        <header class="mb-4">
             <h1 class="fs-24 fw-semibold mb-1">
-                Welcome, <?= esc($memberName) ?>
+                Welcome, <?= esc($resolvedName) ?>
             </h1>
 
             <p class="text-muted mb-0">
                 Complete your profile and discover suitable matches.
             </p>
-        </div>
+        </header>
 
         <div class="row g-4">
             <aside class="col-12 col-lg-4 col-xl-3">
                 <div class="dashboard-sidebar">
                     <div class="card border-0 shadow-sm">
                         <div class="card-body p-4 text-center">
-                            <div
-                                class="dashboard-avatar mx-auto mb-3"
-                                aria-hidden="true">
-                                <i class="ri-user-3-line"></i>
-                            </div>
+
+                            <?php if ($resolvedProfileImage !== ''): ?>
+                                <img
+                                    src="<?= esc(
+                                                $resolvedProfileImage,
+                                                'attr'
+                                            ) ?>"
+                                    class="dashboard-avatar mx-auto mb-3"
+                                    alt="<?= esc(
+                                                $resolvedName . ' profile photo',
+                                                'attr'
+                                            ) ?>">
+                            <?php else: ?>
+                                <div
+                                    class="dashboard-avatar mx-auto mb-3"
+                                    aria-hidden="true">
+
+                                    <i class="ri-user-3-line"></i>
+                                </div>
+                            <?php endif; ?>
 
                             <h2 class="fs-18 fw-semibold mb-1">
-                                <?= esc($memberName) ?>
+                                <?= esc($resolvedName) ?>
                             </h2>
 
-                            <?php if ($reference !== ''): ?>
+                            <?php if ($resolvedReference !== ''): ?>
                                 <p class="text-muted fs-13 mb-2">
                                     Reference:
-                                    <strong><?= esc($reference) ?></strong>
+                                    <strong>
+                                        <?= esc($resolvedReference) ?>
+                                    </strong>
                                 </p>
                             <?php endif; ?>
 
                             <span class="badge bg-light text-dark mb-4">
-                                Free Account
+                                <?= esc($resolvedPlanName) ?>
                             </span>
 
                             <div class="border-top pt-3 text-start">
                                 <div
                                     class="d-flex align-items-center justify-content-between gap-3 mb-3">
 
-                                    <span class="d-flex align-items-center gap-2">
-                                        <i class="ri-mail-line fs-18"></i>
-                                        Email
+                                    <span
+                                        class="d-flex align-items-center gap-2">
+
+                                        <i
+                                            class="ri-mail-line fs-18"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        <span>Email</span>
                                     </span>
 
                                     <?php if ($isEmailVerified): ?>
-                                        <span class="badge bg-success-subtle text-success">
+                                        <span
+                                            class="badge bg-success-subtle text-success">
+
                                             Verified
                                         </span>
                                     <?php else: ?>
-                                        <span class="badge bg-warning-subtle text-warning">
+                                        <span
+                                            class="badge bg-warning-subtle text-warning">
+
                                             Pending
                                         </span>
                                     <?php endif; ?>
                                 </div>
 
+                                <?php if (
+                                    is_string($primaryEmail)
+                                    && $primaryEmail !== ''
+                                ): ?>
+                                    <p
+                                        class="text-muted fs-12 text-break mb-3">
+
+                                        <?= esc($primaryEmail) ?>
+                                    </p>
+                                <?php endif; ?>
+
                                 <div
-                                    class="d-flex align-items-center justify-content-between gap-3">
+                                    class="d-flex align-items-center justify-content-between gap-3 mb-2">
 
-                                    <span class="d-flex align-items-center gap-2">
-                                        <i class="ri-smartphone-line fs-18"></i>
-                                        Mobile
+                                    <span
+                                        class="d-flex align-items-center gap-2">
+
+                                        <i
+                                            class="ri-smartphone-line fs-18"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        <span>Mobile</span>
                                     </span>
 
-                                    <span class="badge bg-success-subtle text-success">
-                                        Verified
-                                    </span>
+                                    <?php if ($isMobileVerified): ?>
+                                        <span
+                                            class="badge bg-success-subtle text-success">
+
+                                            Verified
+                                        </span>
+                                    <?php else: ?>
+                                        <span
+                                            class="badge bg-warning-subtle text-warning">
+
+                                            Pending
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
+
+                                <?php if (
+                                    is_string($primaryMobile)
+                                    && $primaryMobile !== ''
+                                ): ?>
+                                    <p class="text-muted fs-12 mb-0">
+                                        <?= esc($primaryMobile) ?>
+                                    </p>
+                                <?php endif; ?>
                             </div>
                         </div>
 
-                        <div class="list-group list-group-flush">
+                        <nav
+                            class="list-group list-group-flush"
+                            aria-label="Member account">
+
                             <a
                                 href="<?= url_to('web.profile.edit') ?>"
                                 class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-3">
 
-                                <i class="ri-user-settings-line fs-18"></i>
+                                <i
+                                    class="ri-user-settings-line fs-18"
+                                    aria-hidden="true">
+                                </i>
+
                                 <span>Edit Profile</span>
                             </a>
 
+                            <!--
+                                Preference management route has not yet been
+                                added to Routes.php.
+                            -->
                             <span
                                 class="list-group-item d-flex align-items-center gap-2 py-3 text-muted"
                                 aria-disabled="true"
                                 title="Preference management will be available soon">
 
-                                <i class="ri-equalizer-line fs-18"></i>
+                                <i
+                                    class="ri-equalizer-line fs-18"
+                                    aria-hidden="true">
+                                </i>
+
                                 <span>Edit Preferences</span>
                             </span>
 
                             <a
-                                href="<?= url_to('web.account.settings') ?>"
+                                href="<?= url_to(
+                                            'web.account.settings'
+                                        ) ?>"
                                 class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-3">
 
-                                <i class="ri-settings-3-line fs-18"></i>
+                                <i
+                                    class="ri-settings-3-line fs-18"
+                                    aria-hidden="true">
+                                </i>
+
                                 <span>Account Settings</span>
                             </a>
-                        </div>
+                        </nav>
                     </div>
                 </div>
             </aside>
 
             <div class="col-12 col-lg-8 col-xl-9">
-                <div class="card border-0 shadow-sm mb-4">
+
+                <section class="card border-0 shadow-sm mb-4">
                     <div class="card-body p-4">
                         <div
                             class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
@@ -225,23 +389,25 @@ $completionPercentage = max(
                                 </h2>
 
                                 <p class="text-muted fs-13 mb-0">
-                                    A complete profile improves match quality.
+                                    A complete profile improves your match
+                                    quality and profile visibility.
                                 </p>
                             </div>
 
-                            <strong class="fs-18">
+                            <strong class="fs-18 text-nowrap">
                                 <?= esc(
-                                    (string) $profileCompletion['percentage']
+                                    (string) $completionPercentage
                                 ) ?>%
                             </strong>
                         </div>
 
                         <div
-                            class="progress mb-4"
+                            class="progress mb-2"
                             role="progressbar"
                             aria-label="Profile completion"
                             aria-valuenow="<?= esc(
-                                                (string) $profileCompletion['percentage']
+                                                (string) $completionPercentage,
+                                                'attr'
                                             ) ?>"
                             aria-valuemin="0"
                             aria-valuemax="100">
@@ -249,58 +415,129 @@ $completionPercentage = max(
                             <div
                                 class="progress-bar"
                                 style="width: <?= esc(
-                                                    (string) $profileCompletion['percentage']
+                                                    (string) $completionPercentage,
+                                                    'attr'
                                                 ) ?>%">
                             </div>
                         </div>
 
-                        <div class="row g-3">
-                            <?php foreach (
-                                $profileCompletion['items']
-                                as $completionItem
-                            ): ?>
-                                <div class="col-12 col-md-4">
-                                    <a
-                                        href="<?= esc($completionItem['url']) ?>"
-                                        class="card h-100 border text-decoration-none">
+                        <?php if ($totalSteps > 0): ?>
+                            <p class="text-muted fs-12 mb-4">
+                                <?= esc((string) $completedSteps) ?>
+                                of
+                                <?= esc((string) $totalSteps) ?>
+                                profile steps completed
+                            </p>
+                        <?php else: ?>
+                            <div class="mb-4"></div>
+                        <?php endif; ?>
 
-                                        <div class="card-body p-3">
-                                            <div
-                                                class="d-flex align-items-start gap-3">
+                        <?php if (
+                            isset($profileShortcuts)
+                            && is_array($profileShortcuts)
+                            && $profileShortcuts !== []
+                        ): ?>
+                            <div class="row g-3">
+                                <?php foreach (
+                                    $profileShortcuts as $shortcut
+                                ): ?>
+                                    <?php
+                                    $shortcutTitle = trim(
+                                        (string) (
+                                            $shortcut['title']
+                                            ?? 'Complete profile'
+                                        )
+                                    );
 
+                                    $shortcutDescription = trim(
+                                        (string) (
+                                            $shortcut['description']
+                                            ?? ''
+                                        )
+                                    );
+
+                                    $shortcutIcon = trim(
+                                        (string) (
+                                            $shortcut['icon']
+                                            ?? 'ri-edit-line'
+                                        )
+                                    );
+
+                                    $shortcutUrl = trim(
+                                        (string) (
+                                            $shortcut['url']
+                                            ?? '#'
+                                        )
+                                    );
+
+                                    if ($shortcutUrl === '') {
+                                        $shortcutUrl = '#';
+                                    }
+                                    ?>
+
+                                    <div class="col-12 col-md-4">
+                                        <a
+                                            href="<?= esc(
+                                                        $shortcutUrl,
+                                                        'attr'
+                                                    ) ?>"
+                                            class="card h-100 border text-decoration-none">
+
+                                            <div class="card-body p-3">
                                                 <div
-                                                    class="dashboard-shortcut-icon bg-light rounded-circle">
+                                                    class="d-flex align-items-start gap-3">
 
-                                                    <i class="<?= esc(
-                                                                    $completionItem['icon']
-                                                                ) ?>"></i>
-                                                </div>
+                                                    <span
+                                                        class="dashboard-shortcut-icon bg-light rounded-circle">
 
-                                                <div>
-                                                    <h3
-                                                        class="fs-14 fw-semibold text-body mb-1">
-                                                        <?= esc(
-                                                            $completionItem['title']
-                                                        ) ?>
-                                                    </h3>
+                                                        <i
+                                                            class="<?= esc(
+                                                                        $shortcutIcon,
+                                                                        'attr'
+                                                                    ) ?>"
+                                                            aria-hidden="true">
+                                                        </i>
+                                                    </span>
 
-                                                    <p
-                                                        class="text-muted fs-12 mb-0">
-                                                        <?= esc(
-                                                            $completionItem['description']
-                                                        ) ?>
-                                                    </p>
+                                                    <span>
+                                                        <span
+                                                            class="d-block fs-14 fw-semibold text-body mb-1">
+
+                                                            <?= esc(
+                                                                $shortcutTitle
+                                                            ) ?>
+                                                        </span>
+
+                                                        <?php if (
+                                                            $shortcutDescription
+                                                            !== ''
+                                                        ): ?>
+                                                            <span
+                                                                class="d-block text-muted fs-12">
+
+                                                                <?= esc(
+                                                                    $shortcutDescription
+                                                                ) ?>
+                                                            </span>
+                                                        <?php endif; ?>
+                                                    </span>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </a>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
+                                        </a>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
-                </div>
+                </section>
 
-                <?php foreach ($dashboardSections as $section): ?>
+                <?php foreach ($matchSections as $section): ?>
+                    <?php
+                    $sectionProfiles = is_array($section['profiles'])
+                        ? $section['profiles']
+                        : [];
+                    ?>
+
                     <section class="card border-0 shadow-sm mb-4">
                         <div class="card-body p-4">
                             <div
@@ -316,19 +553,72 @@ $completionPercentage = max(
                                     </p>
                                 </div>
 
-                                <a
-                                    href="#"
-                                    class="text-decoration-none text-nowrap">
-                                    View all
-                                </a>
+                                <?php if ($sectionProfiles !== []): ?>
+                                    <span
+                                        class="badge bg-light text-dark text-nowrap">
+
+                                        <?= esc(
+                                            (string) count($sectionProfiles)
+                                        ) ?>
+                                        profiles
+                                    </span>
+                                <?php endif; ?>
                             </div>
 
-                            <?php if ($section['members'] !== []): ?>
+                            <?php if ($sectionProfiles !== []): ?>
                                 <div class="dashboard-profile-scroll pb-2">
                                     <?php foreach (
-                                        $section['members']
-                                        as $member
+                                        $sectionProfiles as $profile
                                     ): ?>
+                                        <?php
+                                        $profileName = trim(
+                                            (string) (
+                                                $profile['name']
+                                                ?? 'Member'
+                                            )
+                                        );
+
+                                        $profileReferenceId = trim(
+                                            (string) (
+                                                $profile['referenceId']
+                                                ?? ''
+                                            )
+                                        );
+
+                                        $profileAge = max(
+                                            0,
+                                            (int) (
+                                                $profile['age']
+                                                ?? 0
+                                            )
+                                        );
+
+                                        $profileHeight = trim(
+                                            (string) (
+                                                $profile['height']
+                                                ?? ''
+                                            )
+                                        );
+
+                                        $profilePhoto = trim(
+                                            (string) (
+                                                $profile['image']
+                                                ?? ''
+                                            )
+                                        );
+
+                                        $profileUrl = trim(
+                                            (string) (
+                                                $profile['profileUrl']
+                                                ?? '#'
+                                            )
+                                        );
+
+                                        if ($profileUrl === '') {
+                                            $profileUrl = '#';
+                                        }
+                                        ?>
+
                                         <article
                                             class="card dashboard-profile-card border">
 
@@ -336,58 +626,97 @@ $completionPercentage = max(
                                                 <div
                                                     class="position-relative mx-auto mb-3">
 
-                                                    <div
-                                                        class="dashboard-profile-photo"
-                                                        aria-hidden="true">
-                                                        <i class="ri-user-3-line"></i>
-                                                    </div>
+                                                    <?php if (
+                                                        $profilePhoto !== ''
+                                                    ): ?>
+                                                        <img
+                                                            src="<?= esc(
+                                                                        $profilePhoto,
+                                                                        'attr'
+                                                                    ) ?>"
+                                                            class="dashboard-profile-photo"
+                                                            alt="<?= esc(
+                                                                        $profileName
+                                                                            . ' profile photo',
+                                                                        'attr'
+                                                                    ) ?>">
+                                                    <?php else: ?>
+                                                        <div
+                                                            class="dashboard-profile-photo"
+                                                            aria-hidden="true">
 
-                                                    <span
-                                                        class="dashboard-online-status <?= $member['isOnline']
-                                                                                            ? 'bg-success'
-                                                                                            : 'bg-secondary' ?>"
-                                                        title="<?= $member['isOnline']
-                                                                    ? 'Online'
-                                                                    : 'Offline' ?>">
-                                                    </span>
+                                                            <i
+                                                                class="ri-user-3-line">
+                                                            </i>
+                                                        </div>
+                                                    <?php endif; ?>
                                                 </div>
 
                                                 <h3
-                                                    class="fs-14 fw-semibold text-center mb-1 text-truncate">
-                                                    <?= esc(
-                                                        $member['name']
-                                                    ) ?>
+                                                    class="fs-14 fw-semibold text-center text-truncate mb-1"
+                                                    title="<?= esc(
+                                                                $profileName,
+                                                                'attr'
+                                                            ) ?>">
+
+                                                    <?= esc($profileName) ?>
                                                 </h3>
 
-                                                <p
-                                                    class="text-muted fs-12 text-center mb-2">
-                                                    <?= esc(
-                                                        (string) $member['age']
-                                                    ) ?>
-                                                    years,
-                                                    <?= esc(
-                                                        $member['height']
-                                                    ) ?>
-                                                </p>
+                                                <?php if (
+                                                    $profileAge > 0
+                                                    || $profileHeight !== ''
+                                                ): ?>
+                                                    <p
+                                                        class="text-muted fs-12 text-center mb-2">
 
-                                                <p
-                                                    class="text-muted fs-12 text-center mb-2 text-truncate">
-                                                    <i class="ri-map-pin-line"></i>
-                                                    <?= esc(
-                                                        $member['location']
-                                                    ) ?>
-                                                </p>
+                                                        <?php if (
+                                                            $profileAge > 0
+                                                        ): ?>
+                                                            <?= esc(
+                                                                (string) $profileAge
+                                                            ) ?>
+                                                            years
+                                                        <?php endif; ?>
 
-                                                <p
-                                                    class="fs-12 text-center mb-3">
-                                                    <?= esc(
-                                                        $member['reference']
-                                                    ) ?>
-                                                </p>
+                                                        <?php if (
+                                                            $profileAge > 0
+                                                            && $profileHeight !== ''
+                                                        ): ?>
+                                                            <span
+                                                                aria-hidden="true">
+                                                                ,
+                                                            </span>
+                                                        <?php endif; ?>
+
+                                                        <?php if (
+                                                            $profileHeight !== ''
+                                                        ): ?>
+                                                            <?= esc(
+                                                                $profileHeight
+                                                            ) ?>
+                                                        <?php endif; ?>
+                                                    </p>
+                                                <?php endif; ?>
+
+                                                <?php if (
+                                                    $profileReferenceId !== ''
+                                                ): ?>
+                                                    <p
+                                                        class="fs-12 text-center mb-3">
+
+                                                        <?= esc(
+                                                            $profileReferenceId
+                                                        ) ?>
+                                                    </p>
+                                                <?php endif; ?>
 
                                                 <a
-                                                    href="#"
+                                                    href="<?= esc(
+                                                                $profileUrl,
+                                                                'attr'
+                                                            ) ?>"
                                                     class="btn btn-outline-primary btn-sm w-100">
+
                                                     View Profile
                                                 </a>
                                             </div>
@@ -397,11 +726,14 @@ $completionPercentage = max(
                             <?php else: ?>
                                 <div class="text-center py-4">
                                     <i
-                                        class="ri-user-search-line fs-32 text-muted">
+                                        class="ri-user-search-line fs-32 text-muted"
+                                        aria-hidden="true">
                                     </i>
 
                                     <p class="text-muted mb-0 mt-2">
-                                        No profiles are available yet.
+                                        <?= esc(
+                                            $section['emptyMessage']
+                                        ) ?>
                                     </p>
                                 </div>
                             <?php endif; ?>
@@ -411,7 +743,7 @@ $completionPercentage = max(
             </div>
         </div>
 
-        <!-- Required by dashboard-security.js. -->
+        <!-- Required by assets/js/pages/dashboard-security.js. -->
         <form
             method="post"
             action="<?= url_to('web.logout') ?>"
