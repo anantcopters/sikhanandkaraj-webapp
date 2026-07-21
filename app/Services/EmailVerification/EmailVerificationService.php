@@ -78,7 +78,7 @@ final class EmailVerificationService
                 $contact['is_verified'] ?? false
             )
         ) {
-            return VerificationResult::success(
+            return VerificationResult::failure(
                 'Your email address is already verified.'
             );
         }
