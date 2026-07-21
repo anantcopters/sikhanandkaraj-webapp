@@ -121,9 +121,10 @@ final class EmailVerificationService
                         - $elapsedSeconds;
 
                     return VerificationResult::failure(
-                        'Please wait '
+                        message: 'Please wait '
                             . $remainingSeconds
-                            . ' seconds before requesting another email.'
+                            . ' seconds before requesting another email.',
+                        retryAfter: $remainingSeconds
                     );
                 }
             }

@@ -49,9 +49,14 @@ final class EmailVerificationController extends BaseController
                         : 'warning',
                     'title' => $result->success
                         ? 'Verification email sent'
-                        : 'Unable to send email',
+                        : (
+                            $result->retryAfter !== null
+                            ? 'Please wait'
+                            : 'Unable to send email'
+                        ),
                     'message' => $result->message,
                     'buttonText' => 'Okay',
+                    'retryAfter' => $result->retryAfter,
                 ]);
         } catch (Throwable $exception) {
             log_message(

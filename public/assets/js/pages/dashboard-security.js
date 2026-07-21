@@ -75,7 +75,7 @@ function initializeEmailVerification() {
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
-
+        let cooldownStarted = false;
         if (submitButton.disabled) {
             return;
         }
@@ -128,6 +128,15 @@ function initializeEmailVerification() {
                     }
                 });
 
+                startVerificationCooldown(
+                    submitButton,
+                    label,
+                    loading,
+                    result.retryAfter
+                );
+
+                cooldownStarted = true;
+
                 return;
             }
 
@@ -163,6 +172,7 @@ function initializeEmailVerification() {
                 loading,
                 result.retryAfter || 60
             );
+            cooldownStarted = true;
             return;
         } catch (error) {
             showFeedbackModal({
