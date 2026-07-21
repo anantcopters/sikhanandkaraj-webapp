@@ -26,6 +26,10 @@ final class EmailVerificationController extends BaseController
                     'message' =>
                     'Your session has expired. Please log in again.',
                     'redirectUrl' => route_to('web.login'),
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'tokenHash' => csrf_hash(),
+                    ],
                 ]);
         }
 
@@ -57,6 +61,14 @@ final class EmailVerificationController extends BaseController
                     'message' => $result->message,
                     'buttonText' => 'Okay',
                     'retryAfter' => $result->retryAfter,
+                    /*
+                    * CSRF is regenerated after every accepted POST request.
+                    * Return the new token so AJAX can update the form.
+                    */
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'tokenHash' => csrf_hash(),
+                    ],
                 ]);
         } catch (Throwable $exception) {
             log_message(
@@ -78,6 +90,10 @@ final class EmailVerificationController extends BaseController
                     'We could not send the verification email. '
                         . 'Please try again.',
                     'buttonText' => 'Okay',
+                    'csrf' => [
+                        'tokenName' => csrf_token(),
+                        'tokenHash' => csrf_hash(),
+                    ],
                 ]);
         }
     }
