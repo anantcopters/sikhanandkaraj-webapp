@@ -45,10 +45,16 @@ final class AdminUserValidation
     }
 
     /**
+     * Return password rules for administrator invitation acceptance.
+     *
+     * Administrator password creation requires password confirmation.
+     *
      * @return array<string, array<string, mixed>>
      */
     public static function passwordRules(): array
     {
-        return PasswordValidation::passwordRules();
+        return PasswordValidation::passwordRules(
+            includeConfirmation: true
+        );
     }
 }
