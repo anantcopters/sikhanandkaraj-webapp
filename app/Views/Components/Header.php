@@ -101,12 +101,12 @@ if ($resolvedLoggedInName === '') {
 
                             <span class="d-flex align-items-center">
                                 <span
-                                    class="avatar-sm flex-shrink-0"
+                                    class="avatar-sm flex-shrink-0 d-inline-flex align-items-center justify-content-center"
                                     aria-hidden="true">
 
-                                    <div class="flex-shrink-0">
-                                        <i class="ri-user-line fs-2"></i>
-                                    </div>
+                                    <i
+                                        class="ri-user-line fs-2 lh-1"
+                                        aria-hidden="true"></i>
                                 </span>
 
                                 <span class="text-start ms-xl-2">
