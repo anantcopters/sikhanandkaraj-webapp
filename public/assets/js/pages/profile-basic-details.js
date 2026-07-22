@@ -21,6 +21,111 @@ document.addEventListener('DOMContentLoaded', () => {
         'memberAgePreview'
     );
 
+    const birthDay = document.getElementById(
+        'birthDay'
+    );
+
+    const birthMonth = document.getElementById(
+        'birthMonth'
+    );
+
+    const birthYear = document.getElementById(
+        'birthYear'
+    );
+
+    const dateOfBirthError = document.getElementById(
+        'dateOfBirthError'
+    );
+
+    function synchronizeDateOfBirth() {
+        if (
+            !dateOfBirth
+            || !birthDay
+            || !birthMonth
+            || !birthYear
+        ) {
+            return false;
+        }
+
+        if (
+            birthDay.value === ''
+            || birthMonth.value === ''
+            || birthYear.value === ''
+        ) {
+            dateOfBirth.value = '';
+
+            setDateOfBirthError(
+                'Please select complete date of birth.'
+            );
+
+            return false;
+        }
+
+        const candidateDate = [
+            birthYear.value,
+            birthMonth.value,
+            birthDay.value
+        ].join('-');
+
+        const parsedDate = new Date(
+            `${candidateDate}T00:00:00`
+        );
+
+        const isRealDate =
+            !Number.isNaN(parsedDate.getTime())
+            && parsedDate.getFullYear()
+            === Number(birthYear.value)
+            && parsedDate.getMonth() + 1
+            === Number(birthMonth.value)
+            && parsedDate.getDate()
+            === Number(birthDay.value);
+
+        if (!isRealDate) {
+            dateOfBirth.value = '';
+
+            setDateOfBirthError(
+                'Please select a valid date of birth.'
+            );
+
+            return false;
+        }
+
+        const today = new Date();
+        const maximumAdultDate = new Date(
+            today.getFullYear() - 18,
+            today.getMonth(),
+            today.getDate()
+        );
+
+        if (parsedDate > maximumAdultDate) {
+            dateOfBirth.value = '';
+
+            setDateOfBirthError(
+                'The member must be at least 18 years old.'
+            );
+
+            return false;
+        }
+
+        dateOfBirth.value = candidateDate;
+
+        setDateOfBirthError('');
+        updateAgePreview();
+
+        return true;
+    }
+
+    [
+        birthDay,
+        birthMonth,
+        birthYear
+    ].forEach((field) => {
+        field?.addEventListener(
+            'change',
+            synchronizeDateOfBirth
+        );
+    });
+
     /**
      * Reopen the editor when server-side validation fails.
      */
@@ -79,38 +184,57 @@ document.addEventListener('DOMContentLoaded', () => {
             : '';
     };
 
-    dateOfBirth?.addEventListener(
-        'change',
-        updateAgePreview
-    );
-
     updateAgePreview();
 
     /**
      * Show the existing loading state and prevent duplicate submission.
      */
-    form?.addEventListener('submit', () => {
-        if (!submitButton) {
+    form?.addEventListener('submit', (event) => {
+        const isDateOfBirthValid =
+            synchronizeDateOfBirth();
+
+        if (!isDateOfBirthValid) {
+            event.preventDefault();
+
+            birthDay?.focus();
+
+            return;
+        }
+        if (
+            !submitButton
+            || event.defaultPrevented
+            || !form.checkValidity()
+        ) {
             return;
         }
 
-        submitButton.disabled = true;
-        submitButton.setAttribute(
-            'aria-busy',
-            'true'
-        );
+        window.setTimeout(() => {
+            if (
+                event.defaultPrevented
+                || !form.checkValidity()
+            ) {
+                return;
+            }
 
-        submitButton
-            .querySelector(
-                '.registration-submit__label'
-            )
-            ?.classList.add('d-none');
+            submitButton.disabled = true;
 
-        submitButton
-            .querySelector(
-                '.registration-submit__loading'
-            )
-            ?.classList.remove('d-none');
+            submitButton.setAttribute(
+                'aria-busy',
+                'true'
+            );
+
+            submitButton
+                .querySelector(
+                    '.registration-submit__label'
+                )
+                ?.classList.add('d-none');
+
+            submitButton
+                .querySelector(
+                    '.registration-submit__loading'
+                )
+                ?.classList.remove('d-none');
+        }, 0);
     });
 });
 
@@ -143,24 +267,32 @@ function initializeStateCityDependency() {
     ) {
         window.SelectChoice?.destroy(citySelect);
 
-        citySelect.innerHTML = '';
+        citySelect.replaceChildren();
 
-        const placeholder = document.createElement('option');
+        const placeholder = document.createElement(
+            'option'
+        );
 
         placeholder.value = '';
         placeholder.textContent = cities.length > 0
             ? 'Select city'
             : 'No cities available';
 
+        placeholder.selected = selectedCityId === '';
+
         citySelect.appendChild(placeholder);
 
         cities.forEach(function (city) {
-            const option = document.createElement('option');
+            const option = document.createElement(
+                'option'
+            );
 
             option.value = String(city.value);
             option.textContent = String(city.label);
+
             option.selected =
-                String(city.value) === String(selectedCityId);
+                String(city.value)
+                === String(selectedCityId);
 
             citySelect.appendChild(option);
         });
@@ -246,6 +378,33 @@ function initializeStateCityDependency() {
             selectedCityId
         );
     }
+}
+
+function setDateOfBirthError(message) {
+    if (!dateOfBirthError) {
+        return;
+    }
+
+    dateOfBirthError.textContent = message;
+    dateOfBirthError.classList.toggle(
+        'd-block',
+        message !== ''
+    );
+
+    [
+        birthDay,
+        birthMonth,
+        birthYear
+    ].forEach((field) => {
+        if (!field) {
+            return;
+        }
+
+        field.classList.toggle(
+            'is-invalid',
+            message !== ''
+        );
+    });
 }
 
 document.addEventListener(

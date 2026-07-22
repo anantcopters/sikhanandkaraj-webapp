@@ -1308,10 +1308,9 @@ form[aria-busy="true"] {
  * Keep form actions visible while scrolling through longer profile forms.
  */
 .profile-offcanvas__footer {
-    position: sticky;
-    bottom: -1rem;
-    z-index: 2;
+    position: static;
     margin-right: -1rem;
+    margin-bottom: -1rem;
     margin-left: -1rem;
     padding: 1rem;
     border-top: 1px solid var(--vz-border-color);
@@ -1325,9 +1324,11 @@ form[aria-busy="true"] {
     background-color: var(--sak-primary);
 }
 
+.profile-offcanvas__footer .btn,
 .profile-offcanvas__footer .registration-form__submit {
     min-height: 42px;
     padding: 0.625rem 1rem;
+    line-height: 1.25;
 }
 
 @media (max-width: 575.98px) {

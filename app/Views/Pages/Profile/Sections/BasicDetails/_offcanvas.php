@@ -34,7 +34,15 @@ $fieldValue = static function (
     string $field,
     mixed $storedValue = ''
 ): string {
-    $oldValue = old($field);
+    /*
+     * Return raw old input here. Output escaping is performed once,
+     * at the point where the value is rendered.
+     */
+    $oldValue = old(
+        $field,
+        null,
+        false
+    );
 
     return $oldValue !== null
         ? (string) $oldValue
@@ -159,6 +167,61 @@ $selectedCityId = $fieldValue(
     'city_id',
     $details['city_id'] ?? ''
 );
+
+$dateOfBirthHasError = isset(
+    $errors['date_of_birth']
+);
+
+$storedDateOfBirth = $fieldValue(
+    'date_of_birth',
+    $details['date_of_birth'] ?? ''
+);
+
+$dateParts = preg_match(
+    '/^\d{4}-\d{2}-\d{2}$/',
+    $storedDateOfBirth
+) === 1
+    ? explode('-', $storedDateOfBirth)
+    : ['', '', ''];
+
+$selectedBirthYear = $dateParts[0] ?? '';
+$selectedBirthMonth = $dateParts[1] ?? '';
+$selectedBirthDay = $dateParts[2] ?? '';
+
+$maximumBirthYear = (int) date('Y') - 18;
+$minimumBirthYear = $maximumBirthYear - 42;
+
+$fullNameHasError = isset(
+    $errors['full_name']
+);
+
+$dateOfBirthHasError = isset(
+    $errors['date_of_birth']
+);
+
+$maritalStatusHasError = isset(
+    $errors['marital_status_id']
+);
+
+$heightHasError = isset(
+    $errors['height_id']
+);
+
+$motherTongueHasError = isset(
+    $errors['mother_tongue_id']
+);
+
+$stateHasError = isset(
+    $errors['state_id']
+);
+
+$cityHasError = isset(
+    $errors['city_id']
+);
+
+$countryHasError = isset(
+    $errors['country_id']
+);
 ?>
 
 <div
@@ -202,6 +265,7 @@ $selectedCityId = $fieldValue(
                         'web.profile.basic-details.update'
                     ) ?>"
             id="basicDetailsForm"
+            data-validate
             novalidate>
             <?= csrf_field() ?>
 
@@ -217,9 +281,7 @@ $selectedCityId = $fieldValue(
 
                     <input
                         type="text"
-                        class="form-control <?= isset(
-                                                $errors['full_name']
-                                            )
+                        class="form-control <?= $fullNameHasError
                                                 ? 'is-invalid'
                                                 : '' ?>"
                         id="fullName"
@@ -231,22 +293,26 @@ $selectedCityId = $fieldValue(
                                     ),
                                     'attr'
                                 ) ?>"
+                        <?= $fullNameHasError
+                            ? 'aria-invalid="true"'
+                            : '' ?>
+                        aria-describedby="fullNameError"
+                        minlength="2"
                         maxlength="100"
                         autocomplete="name"
+                        data-error-required="Please enter your full name."
+                        data-error-minlength="Full name must contain at least 2 characters."
+                        data-error-maxlength="Full name cannot exceed 100 characters."
                         required>
 
-                    <?php if (
-                        isset($errors['full_name'])
-                    ): ?>
-                        <div class="invalid-feedback">
-                            <?= esc(
-                                $errors['full_name']
-                            ) ?>
-                        </div>
-                    <?php endif; ?>
+                    <?= view('Components/Forms/FieldError', [
+                        'field' => 'full_name',
+                        'errorId' => 'fullNameError',
+                        'errors' => $errors,
+                    ]) ?>
                 </div>
 
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-lg-6">
                     <label
                         for="memberGender"
                         class="form-label fw-medium">
@@ -270,7 +336,7 @@ $selectedCityId = $fieldValue(
                     </div>
                 </div>
 
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-lg-6">
                     <label
                         for="profileCreatedFor"
                         class="form-label fw-medium">
@@ -290,55 +356,216 @@ $selectedCityId = $fieldValue(
                         readonly>
                 </div>
 
-                <div class="col-12 col-md-6">
-                    <label
-                        for="dateOfBirth"
-                        class="form-label fw-medium">
-                        Date of birth
+                <?php
+                $dateOfBirthHasError = isset(
+                    $errors['date_of_birth']
+                );
 
+                $storedDateOfBirth = $fieldValue(
+                    'date_of_birth',
+                    $details['date_of_birth'] ?? ''
+                );
+
+                $dateParts = preg_match(
+                    '/^\d{4}-\d{2}-\d{2}$/',
+                    $storedDateOfBirth
+                ) === 1
+                    ? explode('-', $storedDateOfBirth)
+                    : ['', '', ''];
+
+                $selectedBirthYear = $dateParts[0] ?? '';
+                $selectedBirthMonth = $dateParts[1] ?? '';
+                $selectedBirthDay = $dateParts[2] ?? '';
+
+                $maximumBirthYear = (int) date('Y') - 18;
+                $minimumBirthYear = $maximumBirthYear - 82;
+                ?>
+
+                <div class="col-12">
+                    <label class="form-label fw-medium">
+                        Date of birth
                         <span class="text-danger">*</span>
                     </label>
 
+                    <div
+                        class="row g-2"
+                        data-validation-group="date_of_birth">
+
+                        <div class="col-4">
+                            <label
+                                for="birthDay"
+                                class="visually-hidden">
+                                Birth day
+                            </label>
+
+                            <select
+                                id="birthDay"
+                                class="form-select <?= $dateOfBirthHasError
+                                                        ? 'is-invalid'
+                                                        : '' ?>"
+                                <?= $dateOfBirthHasError
+                                    ? 'aria-invalid="true"'
+                                    : '' ?>
+                                aria-describedby="dateOfBirthError"
+                                data-choice
+                                data-choice-search="false"
+                                data-error-required="Please select day."
+                                data-validation-ignore
+                                required>
+
+                                <option value="">
+                                    Day
+                                </option>
+
+                                <?php for ($day = 1; $day <= 31; $day++): ?>
+                                    <?php
+                                    $dayValue = str_pad(
+                                        (string) $day,
+                                        2,
+                                        '0',
+                                        STR_PAD_LEFT
+                                    );
+                                    ?>
+
+                                    <option
+                                        value="<?= esc(
+                                                    $dayValue,
+                                                    'attr'
+                                                ) ?>"
+                                        <?= $dayValue === $selectedBirthDay
+                                            ? 'selected'
+                                            : '' ?>>
+                                        <?= esc($dayValue) ?>
+                                    </option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
+
+                        <div class="col-4">
+                            <label
+                                for="birthMonth"
+                                class="visually-hidden">
+                                Birth month
+                            </label>
+
+                            <select
+                                id="birthMonth"
+                                class="form-select <?= $dateOfBirthHasError
+                                                        ? 'is-invalid'
+                                                        : '' ?>"
+                                <?= $dateOfBirthHasError
+                                    ? 'aria-invalid="true"'
+                                    : '' ?>
+                                aria-describedby="dateOfBirthError"
+                                data-choice
+                                data-choice-search="false"
+                                data-error-required="Please select month."
+                                data-validation-ignore
+                                required>
+
+                                <option value="">
+                                    Month
+                                </option>
+
+                                <?php
+                                $months = [
+                                    '01' => 'Jan',
+                                    '02' => 'Feb',
+                                    '03' => 'Mar',
+                                    '04' => 'Apr',
+                                    '05' => 'May',
+                                    '06' => 'Jun',
+                                    '07' => 'Jul',
+                                    '08' => 'Aug',
+                                    '09' => 'Sep',
+                                    '10' => 'Oct',
+                                    '11' => 'Nov',
+                                    '12' => 'Dec',
+                                ];
+                                ?>
+
+                                <?php foreach ($months as $value => $label): ?>
+                                    <option
+                                        value="<?= esc($value, 'attr') ?>"
+                                        <?= $value === $selectedBirthMonth
+                                            ? 'selected'
+                                            : '' ?>>
+                                        <?= esc($label) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="col-4">
+                            <label
+                                for="birthYear"
+                                class="visually-hidden">
+                                Birth year
+                            </label>
+
+                            <select
+                                id="birthYear"
+                                class="form-select <?= $dateOfBirthHasError
+                                                        ? 'is-invalid'
+                                                        : '' ?>"
+                                <?= $dateOfBirthHasError
+                                    ? 'aria-invalid="true"'
+                                    : '' ?>
+                                aria-describedby="dateOfBirthError"
+                                data-choice
+                                data-choice-search="true"
+                                data-choice-position="bottom"
+                                data-choice-search-placeholder="Search year"
+                                data-error-required="Please select year."
+                                data-validation-ignore
+                                required>
+
+                                <option value="">
+                                    Year
+                                </option>
+
+                                <?php for (
+                                    $year = $maximumBirthYear;
+                                    $year >= $minimumBirthYear;
+                                    $year--
+                                ): ?>
+                                    <option
+                                        value="<?= esc(
+                                                    (string) $year,
+                                                    'attr'
+                                                ) ?>"
+                                        <?= (string) $year === $selectedBirthYear
+                                            ? 'selected'
+                                            : '' ?>>
+                                        <?= esc((string) $year) ?>
+                                    </option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
+                    </div>
+
                     <input
-                        type="date"
-                        class="form-control <?= isset(
-                                                $errors['date_of_birth']
-                                            )
-                                                ? 'is-invalid'
-                                                : '' ?>"
+                        type="hidden"
                         id="dateOfBirth"
                         name="date_of_birth"
                         value="<?= esc(
-                                    $fieldValue(
-                                        'date_of_birth',
-                                        $details['date_of_birth'] ?? ''
-                                    ),
+                                    $storedDateOfBirth,
                                     'attr'
-                                ) ?>"
-                        max="<?= esc(
-                                    $maximumDateOfBirth,
-                                    'attr'
-                                ) ?>"
-                        autocomplete="bday"
-                        required>
+                                ) ?>">
 
-                    <?php if (
-                        isset($errors['date_of_birth'])
-                    ): ?>
-                        <div class="invalid-feedback">
-                            <?= esc(
-                                $errors['date_of_birth']
-                            ) ?>
-                        </div>
-                    <?php else: ?>
-                        <div
-                            class="form-text"
-                            id="memberAgePreview"
-                            aria-live="polite"></div>
-                    <?php endif; ?>
+                    <?= view('Components/Forms/FieldError', [
+                        'field' => 'date_of_birth',
+                        'errorId' => 'dateOfBirthError',
+                        'errors' => $errors,
+                    ]) ?>
+
+                    <div
+                        class="form-text"
+                        id="memberAgePreview"
+                        aria-live="polite"></div>
                 </div>
 
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-lg-6">
                     <label
                         for="maritalStatusId"
                         class="form-label fw-medium">
@@ -347,21 +574,32 @@ $selectedCityId = $fieldValue(
                     </label>
 
                     <select
-                        class="form-select <?= isset(
-                                                $errors['marital_status_id']
-                                            ) ? 'is-invalid' : '' ?>"
+                        class="form-select <?= $maritalStatusHasError
+                                                ? 'is-invalid'
+                                                : '' ?>"
                         id="maritalStatusId"
                         name="marital_status_id"
+                        <?= $maritalStatusHasError
+                            ? 'aria-invalid="true"'
+                            : '' ?>
                         data-choice
+                        aria-describedby="maritalStatusIdError"
                         data-choice-search="false"
+                        data-choice-position="bottom"
+                        data-error-required="Please select your marital status."
                         required>
-                        <option value="">
+                        <option
+                            value=""
+                            <?= $fieldValue(
+                                'marital_status_id',
+                                $details['marital_status_id'] ?? ''
+                            ) === ''
+                                ? 'selected'
+                                : '' ?>>
                             Select marital status
                         </option>
 
-                        <?php foreach (
-                            $maritalStatuses as $status
-                        ): ?>
+                        <?php foreach ($maritalStatuses as $status): ?>
                             <option
                                 value="<?= esc(
                                             (string) $status['id'],
@@ -372,25 +610,19 @@ $selectedCityId = $fieldValue(
                                     (string) $status['id'],
                                     $details['marital_status_id'] ?? ''
                                 ) ?>>
-                                <?= esc(
-                                    (string) $status['name']
-                                ) ?>
+                                <?= esc((string) $status['name']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
 
-                    <?php if (
-                        isset($errors['marital_status_id'])
-                    ): ?>
-                        <div class="invalid-feedback d-block">
-                            <?= esc(
-                                $errors['marital_status_id']
-                            ) ?>
-                        </div>
-                    <?php endif; ?>
+                    <?= view('Components/Forms/FieldError', [
+                        'field' => 'marital_status_id',
+                        'errorId' => 'maritalStatusIdError',
+                        'errors' => $errors,
+                    ]) ?>
                 </div>
 
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-lg-6">
                     <label
                         for="heightId"
                         class="form-label fw-medium">
@@ -399,16 +631,29 @@ $selectedCityId = $fieldValue(
                     </label>
 
                     <select
-                        class="form-select <?= isset(
-                                                $errors['height_id']
-                                            ) ? 'is-invalid' : '' ?>"
+                        class="form-select <?= $heightHasError
+                                                ? 'is-invalid'
+                                                : '' ?>"
                         id="heightId"
                         name="height_id"
+                        <?= $heightHasError
+                            ? 'aria-invalid="true"'
+                            : '' ?>
                         data-choice
+                        aria-describedby="heightIdError"
                         data-choice-search="true"
                         data-choice-search-placeholder="Search height"
+                        data-error-required="Please select your height."
+                        data-choice-position="bottom"
                         required>
-                        <option value="">
+                        <option
+                            value=""
+                            <?= $fieldValue(
+                                'height_id',
+                                $details['height_id'] ?? ''
+                            ) === ''
+                                ? 'selected'
+                                : '' ?>>
                             Select height
                         </option>
 
@@ -430,16 +675,14 @@ $selectedCityId = $fieldValue(
                         <?php endforeach; ?>
                     </select>
 
-                    <?php if (
-                        isset($errors['height_id'])
-                    ): ?>
-                        <div class="invalid-feedback d-block">
-                            <?= esc($errors['height_id']) ?>
-                        </div>
-                    <?php endif; ?>
+                    <?= view('Components/Forms/FieldError', [
+                        'field' => 'height_id',
+                        'errorId' => 'heightIdError',
+                        'errors' => $errors,
+                    ]) ?>
                 </div>
 
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-lg-6">
                     <label
                         for="motherTongueId"
                         class="form-label fw-medium">
@@ -448,20 +691,31 @@ $selectedCityId = $fieldValue(
                     </label>
 
                     <select
-                        class="form-select <?= isset(
-                                                $errors['mother_tongue_id']
-                                            ) ? 'is-invalid' : '' ?>"
+                        class="form-select <?= $motherTongueHasError
+                                                ? 'is-invalid'
+                                                : '' ?>"
+                        <?= $motherTongueHasError
+                            ? 'aria-invalid="true"'
+                            : '' ?>
+                        aria-describedby="motherTongueIdError"
                         id="motherTongueId"
                         name="mother_tongue_id"
                         data-choice
+                        data-choice-position="bottom"
+                        data-error-required="Please select your mother tongue."
                         required>
-                        <option value="">
+                        <option
+                            value=""
+                            <?= $fieldValue(
+                                'mother_tongue_id',
+                                $details['mother_tongue_id'] ?? ''
+                            ) === ''
+                                ? 'selected'
+                                : '' ?>>
                             Select mother tongue
                         </option>
 
-                        <?php foreach (
-                            $motherTongues as $tongue
-                        ): ?>
+                        <?php foreach ($motherTongues as $tongue): ?>
                             <option
                                 value="<?= esc(
                                             (string) $tongue['id'],
@@ -472,25 +726,19 @@ $selectedCityId = $fieldValue(
                                     (string) $tongue['id'],
                                     $details['mother_tongue_id'] ?? ''
                                 ) ?>>
-                                <?= esc(
-                                    (string) $tongue['name']
-                                ) ?>
+                                <?= esc((string) $tongue['name']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
 
-                    <?php if (
-                        isset($errors['mother_tongue_id'])
-                    ): ?>
-                        <div class="invalid-feedback d-block">
-                            <?= esc(
-                                $errors['mother_tongue_id']
-                            ) ?>
-                        </div>
-                    <?php endif; ?>
+                    <?= view('Components/Forms/FieldError', [
+                        'field' => 'mother_tongue_id',
+                        'errorId' => 'motherTongueIdError',
+                        'errors' => $errors,
+                    ]) ?>
                 </div>
 
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-lg-6">
                     <label
                         for="stateId"
                         class="form-label fw-medium">
@@ -499,16 +747,26 @@ $selectedCityId = $fieldValue(
                     </label>
 
                     <select
-                        class="form-select <?= isset(
-                                                $errors['state_id']
-                                            ) ? 'is-invalid' : '' ?>"
+                        class="form-select <?= $stateHasError
+                                                ? 'is-invalid'
+                                                : '' ?>"
                         id="stateId"
                         name="state_id"
+                        <?= $stateHasError
+                            ? 'aria-invalid="true"'
+                            : '' ?>
+                        aria-describedby="stateIdError"
                         data-choice
                         data-choice-search="true"
                         data-choice-search-placeholder="Search state"
+                        data-choice-position="bottom"
+                        data-error-required="Please select your state."
                         required>
-                        <option value="">
+                        <option
+                            value=""
+                            <?= $selectedStateId === ''
+                                ? 'selected'
+                                : '' ?>>
                             Select state
                         </option>
 
@@ -523,23 +781,19 @@ $selectedCityId = $fieldValue(
                                     (string) $state['id'],
                                     $details['state_id'] ?? ''
                                 ) ?>>
-                                <?= esc(
-                                    (string) $state['name']
-                                ) ?>
+                                <?= esc((string) $state['name']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
 
-                    <?php if (
-                        isset($errors['state_id'])
-                    ): ?>
-                        <div class="invalid-feedback d-block">
-                            <?= esc($errors['state_id']) ?>
-                        </div>
-                    <?php endif; ?>
+                    <?= view('Components/Forms/FieldError', [
+                        'field' => 'state_id',
+                        'errorId' => 'stateIdError',
+                        'errors' => $errors,
+                    ]) ?>
                 </div>
 
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-lg-6">
                     <label
                         for="cityId"
                         class="form-label fw-medium">
@@ -548,14 +802,20 @@ $selectedCityId = $fieldValue(
                     </label>
 
                     <select
-                        class="form-select <?= isset(
-                                                $errors['city_id']
-                                            ) ? 'is-invalid' : '' ?>"
+                        class="form-select <?= $cityHasError
+                                                ? 'is-invalid'
+                                                : '' ?>"
                         id="cityId"
                         name="city_id"
+                        <?= $cityHasError
+                            ? 'aria-invalid="true"'
+                            : '' ?>
+                        aria-describedby="cityIdError"
                         data-choice
                         data-choice-search="true"
                         data-choice-search-placeholder="Search city"
+                        data-choice-position="bottom"
+                        data-error-required="Please select your city."
                         data-cities-url="<?= esc(
                                                 site_url('profile/master/cities'),
                                                 'attr'
@@ -568,7 +828,11 @@ $selectedCityId = $fieldValue(
                             ? 'disabled'
                             : '' ?>
                         required>
-                        <option value="">
+                        <option
+                            value=""
+                            <?= $selectedCityId === ''
+                                ? 'selected'
+                                : '' ?>>
                             <?= $selectedStateId === ''
                                 ? 'Select state first'
                                 : 'Select city' ?>
@@ -585,23 +849,19 @@ $selectedCityId = $fieldValue(
                                     (string) $city['id'],
                                     $details['city_id'] ?? ''
                                 ) ?>>
-                                <?= esc(
-                                    (string) $city['name']
-                                ) ?>
+                                <?= esc((string) $city['name']) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
 
-                    <?php if (
-                        isset($errors['city_id'])
-                    ): ?>
-                        <div class="invalid-feedback d-block">
-                            <?= esc($errors['city_id']) ?>
-                        </div>
-                    <?php endif; ?>
+                    <?= view('Components/Forms/FieldError', [
+                        'field' => 'city_id',
+                        'errorId' => 'cityIdError',
+                        'errors' => $errors,
+                    ]) ?>
                 </div>
 
-                <div class="col-12 col-md-6">
+                <div class="col-12 col-lg-6">
                     <label
                         for="countryName"
                         class="form-label fw-medium">
@@ -641,7 +901,7 @@ $selectedCityId = $fieldValue(
                     <div class="col-5">
                         <button
                             type="button"
-                            class="btn btn-light border w-100"
+                            class="btn btn-outline-danger w-100 fs-14 fw-medium"
                             data-bs-dismiss="offcanvas">
                             Cancel
                         </button>

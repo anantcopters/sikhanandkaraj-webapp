@@ -119,7 +119,9 @@
              * Keep the dropdown usable inside Bootstrap modals,
              * cards and responsive containers.
              */
-            position: 'auto'
+            position:
+                element.dataset.choicePosition
+                || 'auto'
         };
     }
 

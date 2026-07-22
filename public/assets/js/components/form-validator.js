@@ -10,9 +10,14 @@
     const FORM_SELECTOR = 'form[data-validate]';
 
     const FIELD_SELECTOR = [
-        'input:not([type="hidden"]):not([disabled])',
-        'select:not([disabled])',
+        'input:not([type="hidden"]):not([disabled])'
+        + ':not([data-validation-ignore])',
+
+        'select:not([disabled])'
+        + ':not([data-validation-ignore])',
+
         'textarea:not([disabled])'
+        + ':not([data-validation-ignore])'
     ].join(',');
 
     /**
