@@ -77,6 +77,9 @@ final class ProfileController extends BaseController
                 'basicDetailsCompletion' =>
                 $basicProfile['completion'],
 
+                'masterData' =>
+                $basicProfile['masterData'],
+
                 'profileCompletion' =>
                 $profileCompletion,
 
@@ -279,9 +282,6 @@ final class ProfileController extends BaseController
     /**
      * Read and normalize only expected Basic Details fields.
      *
-     * Gender and profile-created-for are deliberately excluded because
-     * read-only browser fields must never be trusted during an update.
-     *
      * @return array<string, string>
      */
     private function basicDetailsInput(): array
@@ -303,49 +303,41 @@ final class ProfileController extends BaseController
                 )
             ),
 
-            'marital_status' => strtoupper(trim(
+            'marital_status_id' => trim(
                 (string) $this->request->getPost(
-                    'marital_status'
-                )
-            )),
-
-            'height_cm' => trim(
-                (string) $this->request->getPost(
-                    'height_cm'
+                    'marital_status_id'
                 )
             ),
 
-            'mother_tongue' => strtoupper(trim(
+            'height_id' => trim(
                 (string) $this->request->getPost(
-                    'mother_tongue'
+                    'height_id'
                 )
-            )),
+            ),
 
-            'current_city' => preg_replace(
-                '/\s+/u',
-                ' ',
-                trim(
-                    (string) $this->request->getPost(
-                        'current_city'
-                    )
-                )
-            ) ?? '',
-
-            'current_state' => preg_replace(
-                '/\s+/u',
-                ' ',
-                trim(
-                    (string) $this->request->getPost(
-                        'current_state'
-                    )
-                )
-            ) ?? '',
-
-            'country_code' => strtoupper(trim(
+            'mother_tongue_id' => trim(
                 (string) $this->request->getPost(
-                    'country_code'
+                    'mother_tongue_id'
                 )
-            )),
+            ),
+
+            'country_id' => trim(
+                (string) $this->request->getPost(
+                    'country_id'
+                )
+            ),
+
+            'state_id' => trim(
+                (string) $this->request->getPost(
+                    'state_id'
+                )
+            ),
+
+            'city_id' => trim(
+                (string) $this->request->getPost(
+                    'city_id'
+                )
+            ),
         ];
     }
 

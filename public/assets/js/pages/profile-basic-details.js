@@ -113,3 +113,142 @@ document.addEventListener('DOMContentLoaded', () => {
             ?.classList.remove('d-none');
     });
 });
+
+/**
+ * Configure dependent State and City Choices.js fields.
+ */
+function initializeStateCityDependency() {
+    const stateSelect = document.getElementById('stateId');
+    const citySelect = document.getElementById('cityId');
+
+    if (!stateSelect || !citySelect) {
+        return;
+    }
+
+    const citiesBaseUrl = citySelect.dataset.citiesUrl;
+
+    if (!citiesBaseUrl) {
+        return;
+    }
+
+    /**
+     * Replace the native city options and rebuild Choices.js.
+     *
+     * @param {Array<{value: string, label: string}>} cities
+     * @param {string} selectedCityId
+     */
+    function replaceCityOptions(
+        cities,
+        selectedCityId
+    ) {
+        window.SelectChoice?.destroy(citySelect);
+
+        citySelect.innerHTML = '';
+
+        const placeholder = document.createElement('option');
+
+        placeholder.value = '';
+        placeholder.textContent = cities.length > 0
+            ? 'Select city'
+            : 'No cities available';
+
+        citySelect.appendChild(placeholder);
+
+        cities.forEach(function (city) {
+            const option = document.createElement('option');
+
+            option.value = String(city.value);
+            option.textContent = String(city.label);
+            option.selected =
+                String(city.value) === String(selectedCityId);
+
+            citySelect.appendChild(option);
+        });
+
+        citySelect.disabled = cities.length === 0;
+
+        window.SelectChoice?.create(citySelect);
+    }
+
+    /**
+     * Load active cities for a selected state.
+     *
+     * @param {string} stateId
+     * @param {string} selectedCityId
+     */
+    async function loadCities(
+        stateId,
+        selectedCityId = ''
+    ) {
+        if (!stateId) {
+            replaceCityOptions([], '');
+            return;
+        }
+
+        citySelect.disabled = true;
+
+        try {
+            const response = await fetch(
+                `${citiesBaseUrl}/${encodeURIComponent(stateId)}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    'Unable to load cities.'
+                );
+            }
+
+            const payload = await response.json();
+
+            const cities = Array.isArray(payload.data)
+                ? payload.data
+                : [];
+
+            replaceCityOptions(
+                cities,
+                selectedCityId
+            );
+        } catch (error) {
+            console.error(error);
+
+            replaceCityOptions([], '');
+        }
+    }
+
+    stateSelect.addEventListener(
+        'change',
+        function () {
+            loadCities(stateSelect.value);
+        }
+    );
+
+    /*
+     * Saved edit data is already server-rendered. This fallback loads
+     * it only when a state exists but no city options were rendered.
+     */
+    const selectedCityId =
+        citySelect.dataset.selectedCity || '';
+
+    if (
+        stateSelect.value
+        && citySelect.options.length <= 1
+    ) {
+        loadCities(
+            stateSelect.value,
+            selectedCityId
+        );
+    }
+}
+
+document.addEventListener(
+    'DOMContentLoaded',
+    initializeStateCityDependency
+);

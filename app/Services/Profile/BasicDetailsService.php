@@ -6,6 +6,7 @@ namespace App\Services\Profile;
 
 use App\Models\MemberBasicDetailModel;
 use App\Models\UserModel;
+use App\Services\Profile\ProfileMasterDataService;
 use DateTimeImmutable;
 use DomainException;
 use RuntimeException;
@@ -19,9 +20,9 @@ use Throwable;
 final class BasicDetailsService
 {
     public function __construct(
-        private readonly UserModel $userModel = new UserModel(),
-        private readonly MemberBasicDetailModel $basicDetailModel =
-        new MemberBasicDetailModel()
+        private readonly UserModel $userModel,
+        private readonly MemberBasicDetailModel $basicDetailModel,
+        private readonly ProfileMasterDataService $masterDataService
     ) {}
 
     /**
@@ -51,9 +52,20 @@ final class BasicDetailsService
             ->basicDetailModel
             ->findForUser($userId);
 
+        $selectedStateId = is_array($basicDetails)
+            && is_numeric($basicDetails['state_id'] ?? null)
+            ? (int) $basicDetails['state_id']
+            : null;
+
         return [
             'user' => $user,
             'basicDetails' => $basicDetails,
+
+            'masterData' =>
+            $this->masterDataService->basicDetailsOptions(
+                $selectedStateId
+            ),
+
             'completion' => $this->calculateCompletion(
                 $user,
                 $basicDetails
@@ -72,6 +84,15 @@ final class BasicDetailsService
     ): void {
         $this->assertAdult(
             (string) $data['date_of_birth']
+        );
+
+        $this->masterDataService->assertValidSelection(
+            (int) $data['marital_status_id'],
+            (int) $data['height_id'],
+            (int) $data['mother_tongue_id'],
+            (int) $data['country_id'],
+            (int) $data['state_id'],
+            (int) $data['city_id']
         );
 
         $database = db_connect();
@@ -107,23 +128,23 @@ final class BasicDetailsService
                 'date_of_birth' =>
                 $data['date_of_birth'],
 
-                'marital_status' =>
-                $data['marital_status'],
+                'marital_status_id' =>
+                (int) $data['marital_status_id'],
 
-                'height_cm' =>
-                (int) $data['height_cm'],
+                'height_id' =>
+                (int) $data['height_id'],
 
-                'mother_tongue' =>
-                $data['mother_tongue'],
+                'mother_tongue_id' =>
+                (int) $data['mother_tongue_id'],
 
-                'current_city' =>
-                $data['current_city'],
+                'country_id' =>
+                (int) $data['country_id'],
 
-                'current_state' =>
-                $data['current_state'],
+                'state_id' =>
+                (int) $data['state_id'],
 
-                'country_code' =>
-                $data['country_code'],
+                'city_id' =>
+                (int) $data['city_id'],
             ];
 
             $existing = $this
@@ -209,12 +230,12 @@ final class BasicDetailsService
         $values = [
             $user['full_name'] ?? null,
             $details['date_of_birth'] ?? null,
-            $details['marital_status'] ?? null,
-            $details['height_cm'] ?? null,
-            $details['mother_tongue'] ?? null,
-            $details['current_city'] ?? null,
-            $details['current_state'] ?? null,
-            $details['country_code'] ?? null,
+            $details['marital_status_id'] ?? null,
+            $details['height_id'] ?? null,
+            $details['mother_tongue_id'] ?? null,
+            $details['country_id'] ?? null,
+            $details['state_id'] ?? null,
+            $details['city_id'] ?? null,
         ];
 
         $completed = count(array_filter(

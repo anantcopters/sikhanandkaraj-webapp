@@ -260,14 +260,10 @@ $location = implode(
 
                             <strong class="fw-medium text-break">
                                 <?= esc(
-                                    trim(
-                                        (string) (
-                                            $user['full_name']
-                                            ?? ''
-                                        )
-                                    ) !== ''
-                                        ? (string) $user['full_name']
-                                        : 'Not added'
+                                    (string) (
+                                        $details['marital_status_name']
+                                        ?? 'Not added'
+                                    )
                                 ) ?>
                             </strong>
                         </div>
@@ -338,9 +334,12 @@ $location = implode(
                             </span>
 
                             <strong class="fw-medium">
-                                <?= esc($formatHeight(
-                                    $details['height_cm'] ?? null
-                                )) ?>
+                                <?= esc(
+                                    (string) (
+                                        $details['height_display_name']
+                                        ?? 'Not added'
+                                    )
+                                ) ?>
                             </strong>
                         </div>
                     </div>
@@ -359,10 +358,12 @@ $location = implode(
                             </span>
 
                             <strong class="fw-medium">
-                                <?= esc($formatEnum(
-                                    $details['mother_tongue']
-                                        ?? ''
-                                )) ?>
+                                <?= esc(
+                                    (string) (
+                                        $details['mother_tongue_name']
+                                        ?? 'Not added'
+                                    )
+                                ) ?>
                             </strong>
                         </div>
                     </div>
@@ -381,24 +382,25 @@ $location = implode(
                             </span>
 
                             <strong class="fw-medium text-break">
-                                <?php if (
-                                    !empty($details['current_city'])
-                                ): ?>
-                                    <?= esc(
-                                        (string) $details['current_city']
-                                    ) ?>
+                                <?php
+                                $locationParts = array_filter([
+                                    trim(
+                                        (string) ($details['city_name'] ?? '')
+                                    ),
+                                    trim(
+                                        (string) ($details['state_name'] ?? '')
+                                    ),
+                                    trim(
+                                        (string) ($details['country_name'] ?? '')
+                                    ),
+                                ]);
 
-                                    <?php if (
-                                        !empty($details['current_state'])
-                                    ): ?>
-                                        ,
-                                        <?= esc(
-                                            (string) $details['current_state']
-                                        ) ?>
-                                    <?php endif; ?>
-                                <?php else: ?>
-                                    Not added
-                                <?php endif; ?>
+                                $location = $locationParts !== []
+                                    ? implode(', ', $locationParts)
+                                    : 'Not added';
+                                ?>
+
+                                <?= esc($location) ?>
                             </strong>
                         </div>
                     </div>

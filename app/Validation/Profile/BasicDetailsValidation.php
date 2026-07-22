@@ -59,100 +59,87 @@ final class BasicDetailsValidation
                 ],
             ],
 
-            'marital_status' => [
+            'marital_status_id' => [
                 'label' => 'Marital status',
                 'rules' => [
                     'required',
-                    'in_list[NEVER_MARRIED,DIVORCED,WIDOWED,ANNULLED,AWAITING_DIVORCE]',
+                    'is_natural_no_zero',
                 ],
                 'errors' => [
                     'required' =>
                     'Please select your marital status.',
-                    'in_list' =>
+                    'is_natural_no_zero' =>
                     'Please select a valid marital status.',
                 ],
             ],
 
-            'height_cm' => [
+            'height_id' => [
                 'label' => 'Height',
                 'rules' => [
                     'required',
-                    'integer',
-                    'greater_than_equal_to[120]',
-                    'less_than_equal_to[220]',
+                    'is_natural_no_zero',
                 ],
                 'errors' => [
                     'required' =>
                     'Please select your height.',
-                    'integer' =>
+                    'is_natural_no_zero' =>
                     'Please select a valid height.',
-                    'greater_than_equal_to' =>
-                    'Height must be at least 120 cm.',
-                    'less_than_equal_to' =>
-                    'Height cannot exceed 220 cm.',
                 ],
             ],
 
-            'mother_tongue' => [
+            'mother_tongue_id' => [
                 'label' => 'Mother tongue',
                 'rules' => [
                     'required',
-                    'in_list[PUNJABI,HINDI,ENGLISH,URDU,OTHER]',
+                    'is_natural_no_zero',
                 ],
                 'errors' => [
                     'required' =>
                     'Please select your mother tongue.',
-                    'in_list' =>
+                    'is_natural_no_zero' =>
                     'Please select a valid mother tongue.',
                 ],
             ],
 
-            'current_city' => [
-                'label' => 'Current city',
-                'rules' => [
-                    'required',
-                    'min_length[2]',
-                    'max_length[100]',
-                    'regex_match[/^[\p{L}\p{M} .\'-]+$/u]',
-                ],
-                'errors' => [
-                    'required' =>
-                    'Please enter your current city.',
-                    'regex_match' =>
-                    'Current city contains unsupported characters.',
-                ],
-            ],
-
-            'current_state' => [
-                'label' => 'Current state',
-                'rules' => [
-                    'required',
-                    'min_length[2]',
-                    'max_length[100]',
-                    'regex_match[/^[\p{L}\p{M} .\'-]+$/u]',
-                ],
-                'errors' => [
-                    'required' =>
-                    'Please enter your current state.',
-                    'regex_match' =>
-                    'Current state contains unsupported characters.',
-                ],
-            ],
-
-            'country_code' => [
+            'country_id' => [
                 'label' => 'Country',
                 'rules' => [
                     'required',
-                    'exact_length[2]',
-                    'alpha',
+                    'is_natural_no_zero',
                 ],
                 'errors' => [
                     'required' =>
-                    'Please select your country.',
-                    'exact_length' =>
+                    'Country is required.',
+                    'is_natural_no_zero' =>
                     'Please select a valid country.',
-                    'alpha' =>
-                    'Please select a valid country.',
+                ],
+            ],
+
+            'state_id' => [
+                'label' => 'State',
+                'rules' => [
+                    'required',
+                    'is_natural_no_zero',
+                ],
+                'errors' => [
+                    'required' =>
+                    'Please select your state.',
+                    'is_natural_no_zero' =>
+                    'Please select a valid state.',
+                ],
+            ],
+
+            'city_id' => [
+                'label' => 'City',
+                'rules' => [
+                    'required',
+                    'is_natural_no_zero',
+                ],
+                'errors' => [
+                    'required' =>
+                    'Please select your city.',
+                    'is_natural_no_zero' =>
+                    'Please select a valid city.',
                 ],
             ],
         ];

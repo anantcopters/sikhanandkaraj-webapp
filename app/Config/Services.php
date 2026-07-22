@@ -24,6 +24,13 @@ use App\Models\AdminAuditLogModel;
 use App\Services\Admin\Audit\AdminAuditService;
 use App\Models\MemberBasicDetailModel;
 use App\Services\Profile\BasicDetailsService;
+use App\Models\MasterCityModel;
+use App\Models\MasterCountryModel;
+use App\Models\MasterHeightModel;
+use App\Models\MasterMaritalStatusModel;
+use App\Models\MasterMotherTongueModel;
+use App\Models\MasterStateModel;
+use App\Services\Profile\ProfileMasterDataService;
 
 
 /**
@@ -232,7 +239,30 @@ class Services extends BaseService
 
         return new BasicDetailsService(
             new UserModel(),
-            new MemberBasicDetailModel()
+            new MemberBasicDetailModel(),
+            static::profileMasterDataService(false)
+        );
+    }
+
+    /**
+     * Return profile master-data service.
+     */
+    public static function profileMasterDataService(
+        bool $getShared = true
+    ): ProfileMasterDataService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'profileMasterDataService'
+            );
+        }
+
+        return new ProfileMasterDataService(
+            new MasterMaritalStatusModel(),
+            new MasterHeightModel(),
+            new MasterMotherTongueModel(),
+            new MasterCountryModel(),
+            new MasterStateModel(),
+            new MasterCityModel()
         );
     }
 }

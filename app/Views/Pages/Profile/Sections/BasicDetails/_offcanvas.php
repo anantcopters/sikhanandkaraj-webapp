@@ -8,6 +8,7 @@ declare(strict_types=1);
  * @var array<string, mixed>      $user
  * @var array<string, mixed>|null $basicDetails
  * @var array<string, string>     $validationErrors
+ * @var array<string, string>     $masterData
  */
 
 $member = is_array($user ?? null)
@@ -109,30 +110,55 @@ $maximumDateOfBirth = date(
     strtotime('-18 years')
 );
 
-$motherTongues = [
-    'PUNJABI' => 'Punjabi',
-    'HINDI' => 'Hindi',
-    'ENGLISH' => 'English',
-    'URDU' => 'Urdu',
-    'OTHER' => 'Other',
-];
+$resolvedMasterData = is_array($masterData ?? null)
+    ? $masterData
+    : [];
 
-$maritalStatuses = [
-    'NEVER_MARRIED' => 'Never married',
-    'DIVORCED' => 'Divorced',
-    'WIDOWED' => 'Widowed',
-    'ANNULLED' => 'Marriage annulled',
-    'AWAITING_DIVORCE' => 'Awaiting divorce',
-];
+$maritalStatuses = is_array(
+    $resolvedMasterData['maritalStatuses'] ?? null
+)
+    ? $resolvedMasterData['maritalStatuses']
+    : [];
 
-$countries = [
-    'IN' => 'India',
-    'CA' => 'Canada',
-    'GB' => 'United Kingdom',
-    'US' => 'United States',
-    'AU' => 'Australia',
-    'NZ' => 'New Zealand',
-];
+$heights = is_array(
+    $resolvedMasterData['heights'] ?? null
+)
+    ? $resolvedMasterData['heights']
+    : [];
+
+$motherTongues = is_array(
+    $resolvedMasterData['motherTongues'] ?? null
+)
+    ? $resolvedMasterData['motherTongues']
+    : [];
+
+$states = is_array(
+    $resolvedMasterData['states'] ?? null
+)
+    ? $resolvedMasterData['states']
+    : [];
+
+$cities = is_array(
+    $resolvedMasterData['cities'] ?? null
+)
+    ? $resolvedMasterData['cities']
+    : [];
+
+$country = is_array(
+    $resolvedMasterData['country'] ?? null
+)
+    ? $resolvedMasterData['country']
+    : [];
+
+$selectedStateId = $fieldValue(
+    'state_id',
+    $details['state_id'] ?? ''
+);
+
+$selectedCityId = $fieldValue(
+    'city_id',
+    $details['city_id'] ?? ''
+);
 ?>
 
 <div
@@ -314,51 +340,51 @@ $countries = [
 
                 <div class="col-12 col-md-6">
                     <label
-                        for="maritalStatus"
+                        for="maritalStatusId"
                         class="form-label fw-medium">
                         Marital status
-
                         <span class="text-danger">*</span>
                     </label>
 
                     <select
                         class="form-select <?= isset(
-                                                $errors['marital_status']
-                                            )
-                                                ? 'is-invalid'
-                                                : '' ?>"
-                        id="maritalStatus"
-                        name="marital_status"
+                                                $errors['marital_status_id']
+                                            ) ? 'is-invalid' : '' ?>"
+                        id="maritalStatusId"
+                        name="marital_status_id"
+                        data-choice
+                        data-choice-search="false"
                         required>
                         <option value="">
                             Select marital status
                         </option>
 
                         <?php foreach (
-                            $maritalStatuses
-                            as $value => $label
+                            $maritalStatuses as $status
                         ): ?>
                             <option
                                 value="<?= esc(
-                                            $value,
+                                            (string) $status['id'],
                                             'attr'
                                         ) ?>"
                                 <?= $isSelected(
-                                    'marital_status',
-                                    $value,
-                                    $details['marital_status'] ?? ''
+                                    'marital_status_id',
+                                    (string) $status['id'],
+                                    $details['marital_status_id'] ?? ''
                                 ) ?>>
-                                <?= esc($label) ?>
+                                <?= esc(
+                                    (string) $status['name']
+                                ) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
 
                     <?php if (
-                        isset($errors['marital_status'])
+                        isset($errors['marital_status_id'])
                     ): ?>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback d-block">
                             <?= esc(
-                                $errors['marital_status']
+                                $errors['marital_status_id']
                             ) ?>
                         </div>
                     <?php endif; ?>
@@ -366,108 +392,99 @@ $countries = [
 
                 <div class="col-12 col-md-6">
                     <label
-                        for="heightCm"
+                        for="heightId"
                         class="form-label fw-medium">
                         Height
-
                         <span class="text-danger">*</span>
                     </label>
 
                     <select
                         class="form-select <?= isset(
-                                                $errors['height_cm']
-                                            )
-                                                ? 'is-invalid'
-                                                : '' ?>"
-                        id="heightCm"
-                        name="height_cm"
+                                                $errors['height_id']
+                                            ) ? 'is-invalid' : '' ?>"
+                        id="heightId"
+                        name="height_id"
+                        data-choice
+                        data-choice-search="true"
+                        data-choice-search-placeholder="Search height"
                         required>
                         <option value="">
                             Select height
                         </option>
 
-                        <?php for (
-                            $heightCm = 120;
-                            $heightCm <= 220;
-                            $heightCm++
-                        ): ?>
+                        <?php foreach ($heights as $height): ?>
                             <option
                                 value="<?= esc(
-                                            (string) $heightCm,
+                                            (string) $height['id'],
                                             'attr'
                                         ) ?>"
                                 <?= $isSelected(
-                                    'height_cm',
-                                    (string) $heightCm,
-                                    $details['height_cm'] ?? ''
+                                    'height_id',
+                                    (string) $height['id'],
+                                    $details['height_id'] ?? ''
                                 ) ?>>
                                 <?= esc(
-                                    $formatHeight(
-                                        $heightCm
-                                    )
+                                    (string) $height['display_name']
                                 ) ?>
                             </option>
-                        <?php endfor; ?>
+                        <?php endforeach; ?>
                     </select>
 
                     <?php if (
-                        isset($errors['height_cm'])
+                        isset($errors['height_id'])
                     ): ?>
-                        <div class="invalid-feedback">
-                            <?= esc(
-                                $errors['height_cm']
-                            ) ?>
+                        <div class="invalid-feedback d-block">
+                            <?= esc($errors['height_id']) ?>
                         </div>
                     <?php endif; ?>
                 </div>
 
                 <div class="col-12 col-md-6">
                     <label
-                        for="motherTongue"
+                        for="motherTongueId"
                         class="form-label fw-medium">
                         Mother tongue
-
                         <span class="text-danger">*</span>
                     </label>
 
                     <select
                         class="form-select <?= isset(
-                                                $errors['mother_tongue']
-                                            )
-                                                ? 'is-invalid'
-                                                : '' ?>"
-                        id="motherTongue"
-                        name="mother_tongue"
+                                                $errors['mother_tongue_id']
+                                            ) ? 'is-invalid' : '' ?>"
+                        id="motherTongueId"
+                        name="mother_tongue_id"
+                        data-choice
                         required>
                         <option value="">
                             Select mother tongue
                         </option>
 
                         <?php foreach (
-                            $motherTongues
-                            as $value => $label
+                            $motherTongues as $tongue
                         ): ?>
                             <option
                                 value="<?= esc(
-                                            $value,
+                                            (string) $tongue['id'],
                                             'attr'
                                         ) ?>"
                                 <?= $isSelected(
-                                    'mother_tongue',
-                                    $value,
-                                    $details['mother_tongue'] ?? ''
+                                    'mother_tongue_id',
+                                    (string) $tongue['id'],
+                                    $details['mother_tongue_id'] ?? ''
                                 ) ?>>
-                                <?= esc($label) ?>
+                                <?= esc(
+                                    (string) $tongue['name']
+                                ) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
 
                     <?php if (
-                        isset($errors['mother_tongue'])
+                        isset($errors['mother_tongue_id'])
                     ): ?>
-                        <div class="invalid-feedback">
+                        <div class="invalid-feedback d-block">
                             <?= esc(
-                                $errors['mother_tongue']
+                                $errors['mother_tongue_id']
                             ) ?>
                         </div>
                     <?php endif; ?>
@@ -475,133 +492,145 @@ $countries = [
 
                 <div class="col-12 col-md-6">
                     <label
-                        for="currentCity"
+                        for="stateId"
                         class="form-label fw-medium">
-                        Current city
-
-                        <span class="text-danger">*</span>
-                    </label>
-
-                    <input
-                        type="text"
-                        class="form-control <?= isset(
-                                                $errors['current_city']
-                                            )
-                                                ? 'is-invalid'
-                                                : '' ?>"
-                        id="currentCity"
-                        name="current_city"
-                        value="<?= esc(
-                                    $fieldValue(
-                                        'current_city',
-                                        $details['current_city'] ?? ''
-                                    ),
-                                    'attr'
-                                ) ?>"
-                        maxlength="100"
-                        autocomplete="address-level2"
-                        required>
-
-                    <?php if (
-                        isset($errors['current_city'])
-                    ): ?>
-                        <div class="invalid-feedback">
-                            <?= esc(
-                                $errors['current_city']
-                            ) ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-                <div class="col-12 col-md-6">
-                    <label
-                        for="currentState"
-                        class="form-label fw-medium">
-                        Current state
-
-                        <span class="text-danger">*</span>
-                    </label>
-
-                    <input
-                        type="text"
-                        class="form-control <?= isset(
-                                                $errors['current_state']
-                                            )
-                                                ? 'is-invalid'
-                                                : '' ?>"
-                        id="currentState"
-                        name="current_state"
-                        value="<?= esc(
-                                    $fieldValue(
-                                        'current_state',
-                                        $details['current_state'] ?? ''
-                                    ),
-                                    'attr'
-                                ) ?>"
-                        maxlength="100"
-                        autocomplete="address-level1"
-                        required>
-
-                    <?php if (
-                        isset($errors['current_state'])
-                    ): ?>
-                        <div class="invalid-feedback">
-                            <?= esc(
-                                $errors['current_state']
-                            ) ?>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-                <div class="col-12">
-                    <label
-                        for="countryCode"
-                        class="form-label fw-medium">
-                        Country
-
+                        State
                         <span class="text-danger">*</span>
                     </label>
 
                     <select
                         class="form-select <?= isset(
-                                                $errors['country_code']
-                                            )
-                                                ? 'is-invalid'
-                                                : '' ?>"
-                        id="countryCode"
-                        name="country_code"
-                        autocomplete="country"
+                                                $errors['state_id']
+                                            ) ? 'is-invalid' : '' ?>"
+                        id="stateId"
+                        name="state_id"
+                        data-choice
+                        data-choice-search="true"
+                        data-choice-search-placeholder="Search state"
                         required>
                         <option value="">
-                            Select country
+                            Select state
                         </option>
 
-                        <?php foreach (
-                            $countries
-                            as $code => $country
-                        ): ?>
+                        <?php foreach ($states as $state): ?>
                             <option
                                 value="<?= esc(
-                                            $code,
+                                            (string) $state['id'],
                                             'attr'
                                         ) ?>"
                                 <?= $isSelected(
-                                    'country_code',
-                                    $code,
-                                    $details['country_code'] ?? 'IN'
+                                    'state_id',
+                                    (string) $state['id'],
+                                    $details['state_id'] ?? ''
                                 ) ?>>
-                                <?= esc($country) ?>
+                                <?= esc(
+                                    (string) $state['name']
+                                ) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
 
                     <?php if (
-                        isset($errors['country_code'])
+                        isset($errors['state_id'])
                     ): ?>
-                        <div class="invalid-feedback">
-                            <?= esc(
-                                $errors['country_code']
-                            ) ?>
+                        <div class="invalid-feedback d-block">
+                            <?= esc($errors['state_id']) ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label
+                        for="cityId"
+                        class="form-label fw-medium">
+                        City
+                        <span class="text-danger">*</span>
+                    </label>
+
+                    <select
+                        class="form-select <?= isset(
+                                                $errors['city_id']
+                                            ) ? 'is-invalid' : '' ?>"
+                        id="cityId"
+                        name="city_id"
+                        data-choice
+                        data-choice-search="true"
+                        data-choice-search-placeholder="Search city"
+                        data-cities-url="<?= esc(
+                                                site_url('profile/master/cities'),
+                                                'attr'
+                                            ) ?>"
+                        data-selected-city="<?= esc(
+                                                $selectedCityId,
+                                                'attr'
+                                            ) ?>"
+                        <?= $selectedStateId === ''
+                            ? 'disabled'
+                            : '' ?>
+                        required>
+                        <option value="">
+                            <?= $selectedStateId === ''
+                                ? 'Select state first'
+                                : 'Select city' ?>
+                        </option>
+
+                        <?php foreach ($cities as $city): ?>
+                            <option
+                                value="<?= esc(
+                                            (string) $city['id'],
+                                            'attr'
+                                        ) ?>"
+                                <?= $isSelected(
+                                    'city_id',
+                                    (string) $city['id'],
+                                    $details['city_id'] ?? ''
+                                ) ?>>
+                                <?= esc(
+                                    (string) $city['name']
+                                ) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+
+                    <?php if (
+                        isset($errors['city_id'])
+                    ): ?>
+                        <div class="invalid-feedback d-block">
+                            <?= esc($errors['city_id']) ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label
+                        for="countryName"
+                        class="form-label fw-medium">
+                        Country
+                    </label>
+
+                    <input
+                        type="text"
+                        class="form-control bg-light"
+                        id="countryName"
+                        value="<?= esc(
+                                    (string) ($country['name'] ?? 'India'),
+                                    'attr'
+                                ) ?>"
+                        readonly>
+
+                    <input
+                        type="hidden"
+                        name="country_id"
+                        value="<?= esc(
+                                    (string) ($country['id'] ?? ''),
+                                    'attr'
+                                ) ?>">
+
+                    <?php if (
+                        isset($errors['country_id'])
+                    ): ?>
+                        <div class="invalid-feedback d-block">
+                            <?= esc($errors['country_id']) ?>
                         </div>
                     <?php endif; ?>
                 </div>

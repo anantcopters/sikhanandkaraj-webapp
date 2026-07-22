@@ -136,6 +136,14 @@ $routes->group('', [
     );
 
     $routes->get(
+        'profile/master/cities/(:num)',
+        'ProfileMasterController::cities/$1',
+        [
+            'as' => 'web.profile.master.cities',
+        ]
+    );
+
+    $routes->get(
         'email/verify/(:segment)',
         'EmailVerificationController::verify/$1',
         [
