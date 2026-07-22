@@ -464,7 +464,7 @@ $this->section('content');
 
                                 <td>
                                     <span
-                                        class="badge fs-12 
+                                        class="badge fs-12 p-2 
                                         <?= esc(
                                             $badgeClass,
                                             'attr'

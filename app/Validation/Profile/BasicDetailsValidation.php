@@ -16,10 +16,7 @@ final class BasicDetailsValidation
      */
     public static function rules(): array
     {
-        $maximumDateOfBirth = date(
-            'Y-m-d',
-            strtotime('-18 years')
-        );
+
 
         return [
             'full_name' => [
@@ -47,15 +44,12 @@ final class BasicDetailsValidation
                 'rules' => [
                     'required',
                     'valid_date[Y-m-d]',
-                    'less_than_equal_to[' . $maximumDateOfBirth . ']',
                 ],
                 'errors' => [
                     'required' =>
                     'Please select your date of birth.',
                     'valid_date' =>
                     'Please enter a valid date of birth.',
-                    'less_than_equal_to' =>
-                    'The member must be at least 18 years old.',
                 ],
             ],
 

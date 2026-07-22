@@ -224,17 +224,42 @@ final class ProfileController extends BaseController
                     'Your basic profile information has been saved.',
                 ]);
         } catch (DomainException $exception) {
-            return redirect()
+            $message = $exception->getMessage();
+
+            $dateOfBirthErrors = [
+                'Please enter a valid date of birth.',
+                'The member must be at least 18 years old.',
+            ];
+
+            $redirect = redirect()
                 ->to(route_to('web.profile.edit') . '#basic-details')
                 ->withInput()
-                ->with('validationErrors', [
-                    'date_of_birth' =>
-                    $exception->getMessage(),
-                ])
                 ->with(
                     'openProfileSection',
                     'basic-details'
                 );
+
+            if (in_array(
+                $message,
+                $dateOfBirthErrors,
+                true
+            )) {
+                return $redirect->with(
+                    'validationErrors',
+                    [
+                        'date_of_birth' => $message,
+                    ]
+                );
+            }
+
+            return $redirect->with(
+                'formAlert',
+                [
+                    'type' => 'danger',
+                    'title' => 'Details not saved',
+                    'message' => $message,
+                ]
+            );
         } catch (Throwable $exception) {
             log_message(
                 'error',
@@ -286,6 +311,39 @@ final class ProfileController extends BaseController
      */
     private function basicDetailsInput(): array
     {
+        $birthDay = trim(
+            (string) $this->request->getPost(
+                'birth_day'
+            )
+        );
+
+        $birthMonth = trim(
+            (string) $this->request->getPost(
+                'birth_month'
+            )
+        );
+
+        $birthYear = trim(
+            (string) $this->request->getPost(
+                'birth_year'
+            )
+        );
+
+        $dateOfBirth = '';
+
+        if (
+            ctype_digit($birthDay)
+            && ctype_digit($birthMonth)
+            && ctype_digit($birthYear)
+        ) {
+            $dateOfBirth = sprintf(
+                '%04d-%02d-%02d',
+                (int) $birthYear,
+                (int) $birthMonth,
+                (int) $birthDay
+            );
+        }
+
         return [
             'full_name' => preg_replace(
                 '/\s+/u',
@@ -297,11 +355,7 @@ final class ProfileController extends BaseController
                 )
             ) ?? '',
 
-            'date_of_birth' => trim(
-                (string) $this->request->getPost(
-                    'date_of_birth'
-                )
-            ),
+            'date_of_birth' => $dateOfBirth,
 
             'marital_status_id' => trim(
                 (string) $this->request->getPost(

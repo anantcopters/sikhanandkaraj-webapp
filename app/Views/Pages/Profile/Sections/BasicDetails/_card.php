@@ -150,19 +150,20 @@ $location = implode(
                         <?php if (
                             $percentage === 100
                         ): ?>
-                            <span
+                            <!-- <span
                                 class="badge bg-success-subtle
-                                            text-success">
+                                            text-success p-2">
                                 <i
                                     class="ri-checkbox-circle-line
                                                 me-1"
                                     aria-hidden="true"></i>
 
                                 Complete
-                            </span>
+                            </span> -->
+                            <i class="ri-checkbox-circle-line text-success fs-18 float-end align-middle"></i>
                         <?php else: ?>
                             <span
-                                class="badge bg-primary">
+                                class="badge bg-primary p-2">
                                 <?= esc(
                                     (string) $remainingFields
                                 ) ?>
@@ -200,48 +201,48 @@ $location = implode(
             </button>
         </div>
 
-
-
-
         <!-- Completion progress -->
-        <div class="profile-progress mt-3">
-            <div
-                class="d-flex align-items-center
-                            justify-content-between gap-3 mb-1">
-                <span class="text-muted fs-12">
-                    Section completion
-                </span>
-
-                <span class="fw-semibold fs-12">
-                    <?= esc(
-                        (string) $completedFields
-                    ) ?>
-                    of
-                    <?= esc(
-                        (string) $totalFields
-                    ) ?>
-                </span>
-            </div>
-
-            <div
-                class="progress"
-                role="progressbar"
-                aria-label="Basic details completion"
-                aria-valuenow="<?= esc(
-                                    (string) $percentage,
-                                    'attr'
-                                ) ?>"
-                aria-valuemin="0"
-                aria-valuemax="100"
-                style="height: 8px;">
+        <?php if ($percentage < 100): ?>
+            <!-- Show progress only while this section is incomplete. -->
+            <div class="profile-progress mt-3">
                 <div
-                    class="progress-bar"
-                    style="width: <?= esc(
+                    class="d-flex align-items-center
+                justify-content-between gap-3 mb-1">
+                    <span class="text-muted fs-12">
+                        Section completion
+                    </span>
+
+                    <span class="fw-semibold fs-12">
+                        <?= esc(
+                            (string) $completedFields
+                        ) ?>
+                        of
+                        <?= esc(
+                            (string) $totalFields
+                        ) ?>
+                    </span>
+                </div>
+
+                <div
+                    class="progress"
+                    role="progressbar"
+                    aria-label="Basic details completion"
+                    aria-valuenow="<?= esc(
                                         (string) $percentage,
                                         'attr'
-                                    ) ?>%;"></div>
+                                    ) ?>"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    style="height: 8px;">
+                    <div
+                        class="progress-bar"
+                        style="width: <?= esc(
+                                            (string) $percentage,
+                                            'attr'
+                                        ) ?>%;"></div>
+                </div>
             </div>
-        </div>
+        <?php endif; ?>
 
 
         <div class="card-body p-3 p-md-4">

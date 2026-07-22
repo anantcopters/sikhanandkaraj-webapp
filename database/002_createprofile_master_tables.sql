@@ -497,4 +497,11 @@ CREATE INDEX IF NOT EXISTS idx_member_basic_state_city
         city_id
     );
 
+ALTER TABLE member_basic_details DROP COLUMN marital_status, 
+    DROP column height_cm, 
+    DROP column mother_tongue, 
+    DROP column current_city, 
+    DROP column current_state, 
+    DROP column country_code; 
+
 COMMIT;

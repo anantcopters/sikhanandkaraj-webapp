@@ -37,6 +37,33 @@ document.addEventListener('DOMContentLoaded', () => {
         'dateOfBirthError'
     );
 
+    function setDateOfBirthError(message) {
+        if (!dateOfBirthError) {
+            return;
+        }
+
+        dateOfBirthError.textContent = message;
+        dateOfBirthError.classList.toggle(
+            'd-block',
+            message !== ''
+        );
+
+        [
+            birthDay,
+            birthMonth,
+            birthYear
+        ].forEach((field) => {
+            if (!field) {
+                return;
+            }
+
+            field.classList.toggle(
+                'is-invalid',
+                message !== ''
+            );
+        });
+    }
+
     function synchronizeDateOfBirth() {
         if (
             !dateOfBirth
@@ -378,33 +405,6 @@ function initializeStateCityDependency() {
             selectedCityId
         );
     }
-}
-
-function setDateOfBirthError(message) {
-    if (!dateOfBirthError) {
-        return;
-    }
-
-    dateOfBirthError.textContent = message;
-    dateOfBirthError.classList.toggle(
-        'd-block',
-        message !== ''
-    );
-
-    [
-        birthDay,
-        birthMonth,
-        birthYear
-    ].forEach((field) => {
-        if (!field) {
-            return;
-        }
-
-        field.classList.toggle(
-            'is-invalid',
-            message !== ''
-        );
-    });
 }
 
 document.addEventListener(

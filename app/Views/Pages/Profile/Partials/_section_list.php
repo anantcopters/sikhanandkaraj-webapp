@@ -61,7 +61,7 @@ $sections = is_array($upcomingSections ?? null)
                             </div>
 
                             <span
-                                class="badge bg-light
+                                class="badge bg-light p-2
                                     text-muted border">
                                 Coming next
                             </span>

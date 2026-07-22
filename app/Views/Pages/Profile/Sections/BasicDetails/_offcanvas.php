@@ -400,6 +400,7 @@ $countryHasError = isset(
 
                             <select
                                 id="birthDay"
+                                name="birth_day"
                                 class="form-select <?= $dateOfBirthHasError
                                                         ? 'is-invalid'
                                                         : '' ?>"
@@ -450,6 +451,7 @@ $countryHasError = isset(
 
                             <select
                                 id="birthMonth"
+                                name="birth_month"
                                 class="form-select <?= $dateOfBirthHasError
                                                         ? 'is-invalid'
                                                         : '' ?>"
@@ -505,6 +507,7 @@ $countryHasError = isset(
 
                             <select
                                 id="birthYear"
+                                name="birth_year"
                                 class="form-select <?= $dateOfBirthHasError
                                                         ? 'is-invalid'
                                                         : '' ?>"
@@ -908,6 +911,7 @@ $countryHasError = isset(
                     </div>
 
                     <div class="col-7">
+
                         <button
                             type="submit"
                             class="registration-form__submit
