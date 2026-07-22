@@ -914,8 +914,8 @@ $countryHasError = isset(
 
                         <button
                             type="submit"
-                            class="registration-form__submit
-                                fs-14 fw-semibold"
+                            class="btn registration-form__submit
+                                fs-14 fw-semibold text-uppercase"
                             id="saveBasicDetailsButton">
                             <span
                                 class="registration-submit__label">
