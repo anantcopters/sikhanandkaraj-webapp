@@ -1211,3 +1211,83 @@ form[aria-busy="true"] {
         font-size: 2.15rem;
     }
 }
+
+/* ==========================================================================
+   Member profile completion
+   ========================================================================== */
+
+/**
+ * Circular profile-completion indicator.
+ *
+ * The percentage is supplied through --profile-progress from the view.
+ */
+.profile-completion-circle {
+    --profile-progress: 0;
+
+    width: 92px;
+    height: 92px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 92px;
+    border-radius: 50%;
+    background:
+        conic-gradient(var(--sak-primary) calc(var(--profile-progress) * 1%),
+            rgba(174, 21, 54, 0.12) 0);
+}
+
+.profile-completion-circle::before {
+    content: "";
+    grid-area: 1 / 1;
+    width: 74px;
+    height: 74px;
+    border-radius: 50%;
+    background-color: var(--vz-card-bg);
+}
+
+.profile-completion-circle__value {
+    position: relative;
+    z-index: 1;
+    grid-area: 1 / 1;
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.1;
+}
+
+.profile-completion-circle__value strong {
+    color: var(--sak-primary);
+    font-size: 1.2rem;
+}
+
+.profile-completion-circle__value span {
+    margin-top: 0.2rem;
+    color: var(--vz-secondary-color);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+}
+
+@media (max-width: 575.98px) {
+    .profile-completion-circle {
+        width: 78px;
+        height: 78px;
+        flex-basis: 78px;
+    }
+
+    .profile-completion-circle::before {
+        width: 62px;
+        height: 62px;
+    }
+
+    .profile-completion-circle__value strong {
+        font-size: 1rem;
+    }
+
+    .profile-completion-circle__value span {
+        font-size: 0.58rem;
+    }
+}
+
+.h-80 {
+  height: 80% !important;
+}

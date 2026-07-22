@@ -22,6 +22,8 @@ use App\Services\Admin\Authentication\AdminLoginService;
 use App\Services\Email\EmailQueueService;
 use App\Models\AdminAuditLogModel;
 use App\Services\Admin\Audit\AdminAuditService;
+use App\Models\MemberBasicDetailModel;
+use App\Services\Profile\BasicDetailsService;
 
 
 /**
@@ -213,6 +215,24 @@ class Services extends BaseService
 
         return new AdminAuditService(
             new AdminAuditLogModel($database)
+        );
+    }
+
+    /**
+     * Return the Basic Details profile service.
+     */
+    public static function basicDetailsService(
+        bool $getShared = true
+    ): BasicDetailsService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'basicDetailsService'
+            );
+        }
+
+        return new BasicDetailsService(
+            new UserModel(),
+            new MemberBasicDetailModel()
         );
     }
 }

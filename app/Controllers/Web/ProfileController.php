@@ -1,0 +1,411 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Controllers\Web;
+
+use App\Controllers\BaseController;
+use App\Services\Dashboard\MemberDashboardDataService;
+use App\Services\Profile\BasicDetailsService;
+use App\Validation\Profile\BasicDetailsValidation;
+use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\RedirectResponse;
+use DomainException;
+use Throwable;
+
+/**
+ * Displays and updates authenticated member profile sections.
+ */
+final class ProfileController extends BaseController
+{
+    /**
+     * Display the member profile completion journey.
+     */
+    public function edit(): string
+    {
+        $userId = $this->authenticatedUserId();
+
+        /** @var BasicDetailsService $basicDetailsService */
+        $basicDetailsService = service(
+            'basicDetailsService'
+        );
+
+        $basicProfile = $basicDetailsService->getForUser(
+            $userId
+        );
+
+        /*
+         * Reuse the existing dashboard service instead of creating
+         * another profile-completion calculation.
+         */
+        $dashboardData = (
+            new MemberDashboardDataService()
+        )->getDashboardData($userId);
+
+        $profileCompletion = is_array(
+            $dashboardData['profileCompletion'] ?? null
+        )
+            ? $dashboardData['profileCompletion']
+            : [
+                'percentage' => 0,
+                'completedSteps' => 0,
+                'totalSteps' => 0,
+            ];
+
+        $profileImage = trim(
+            (string) (
+                $dashboardData['profileImage'] ?? ''
+            )
+        );
+
+        $overallProfileSummary = $this
+            ->buildProfileSummary(
+                $profileCompletion,
+                $profileImage
+            );
+
+        return view(
+            'Pages/Profile/Edit',
+            [
+                'pageTitle' => 'Complete Your Profile',
+
+                'user' => $basicProfile['user'],
+
+                'basicDetails' =>
+                $basicProfile['basicDetails'],
+
+                'basicDetailsCompletion' =>
+                $basicProfile['completion'],
+
+                'profileCompletion' =>
+                $profileCompletion,
+
+                'profileImage' =>
+                $profileImage,
+
+                'overallProfileSummary' =>
+                $overallProfileSummary,
+
+                'validationErrors' =>
+                session('validationErrors') ?? [],
+
+                'formAlert' =>
+                session('formAlert'),
+
+                'upcomingSections' =>
+                $this->upcomingProfileSections(),
+
+                'pageScripts' => [
+                    'assets/js/pages/profile-basic-details.js',
+                ],
+            ]
+        );
+    }
+
+    /**
+     * Build presentation-ready profile summary values.
+     *
+     * @param array<string, mixed> $profileCompletion
+     *
+     * @return array<string, mixed>
+     */
+    private function buildProfileSummary(
+        array $profileCompletion,
+        string $profileImage
+    ): array {
+        $percentage = max(
+            0,
+            min(
+                100,
+                (int) (
+                    $profileCompletion['percentage'] ?? 0
+                )
+            )
+        );
+
+        $completedSteps = max(
+            0,
+            (int) (
+                $profileCompletion['completedSteps'] ?? 0
+            )
+        );
+
+        $totalSteps = max(
+            0,
+            (int) (
+                $profileCompletion['totalSteps'] ?? 0
+            )
+        );
+
+        $pendingSections = max(
+            0,
+            $totalSteps - $completedSteps
+        );
+
+        if ($percentage >= 80) {
+            $visibilityLabel = 'High';
+            $visibilityClass = 'success';
+        } elseif ($percentage >= 50) {
+            $visibilityLabel = 'Medium';
+            $visibilityClass = 'warning';
+        } else {
+            $visibilityLabel = 'Low';
+            $visibilityClass = 'danger';
+        }
+
+        return [
+            'percentage' => $percentage,
+            'completedSteps' => $completedSteps,
+            'totalSteps' => $totalSteps,
+            'pendingSections' => $pendingSections,
+            'hasProfilePhoto' => $profileImage !== '',
+            'visibilityLabel' => $visibilityLabel,
+            'visibilityClass' => $visibilityClass,
+        ];
+    }
+
+    /**
+     * Save the Basic Details profile section.
+     */
+    public function updateBasicDetails(): RedirectResponse
+    {
+        $userId = $this->authenticatedUserId();
+
+        $input = $this->basicDetailsInput();
+
+        $validation = service('validation');
+
+        $validation->setRules(
+            BasicDetailsValidation::rules()
+        );
+
+        if (!$validation->run($input)) {
+            return redirect()
+                ->to(route_to('web.profile.edit') . '#basic-details')
+                ->withInput()
+                ->with(
+                    'validationErrors',
+                    $validation->getErrors()
+                )
+                ->with(
+                    'openProfileSection',
+                    'basic-details'
+                );
+        }
+
+        $validatedData = $validation->getValidated();
+
+        try {
+            /** @var BasicDetailsService $service */
+            $service = service('basicDetailsService');
+
+            $service->save(
+                $userId,
+                $validatedData
+            );
+
+            /*
+             * The header reads this session value, so keep it current.
+             */
+            session()->set(
+                'auth_user_name',
+                $validatedData['full_name']
+            );
+
+            return redirect()
+                ->to(route_to('web.profile.edit') . '#basic-details')
+                ->with('formAlert', [
+                    'type' => 'success',
+                    'title' => 'Basic details updated',
+                    'message' =>
+                    'Your basic profile information has been saved.',
+                ]);
+        } catch (DomainException $exception) {
+            return redirect()
+                ->to(route_to('web.profile.edit') . '#basic-details')
+                ->withInput()
+                ->with('validationErrors', [
+                    'date_of_birth' =>
+                    $exception->getMessage(),
+                ])
+                ->with(
+                    'openProfileSection',
+                    'basic-details'
+                );
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Basic profile update failed for user {userId}: '
+                    . '{message}',
+                [
+                    'userId' => $userId,
+                    'message' => $exception->getMessage(),
+                ]
+            );
+
+            return redirect()
+                ->to(route_to('web.profile.edit') . '#basic-details')
+                ->withInput()
+                ->with('formAlert', [
+                    'type' => 'danger',
+                    'title' => 'Details not saved',
+                    'message' =>
+                    'We could not save your details. '
+                        . 'Please try again.',
+                ])
+                ->with(
+                    'openProfileSection',
+                    'basic-details'
+                );
+        }
+    }
+
+    /**
+     * Resolve the authenticated user identifier.
+     */
+    private function authenticatedUserId(): int
+    {
+        $userId = session('auth_user_id');
+
+        if (!is_numeric($userId)) {
+            session()->destroy();
+
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        return (int) $userId;
+    }
+
+    /**
+     * Read and normalize only expected Basic Details fields.
+     *
+     * Gender and profile-created-for are deliberately excluded because
+     * read-only browser fields must never be trusted during an update.
+     *
+     * @return array<string, string>
+     */
+    private function basicDetailsInput(): array
+    {
+        return [
+            'full_name' => preg_replace(
+                '/\s+/u',
+                ' ',
+                trim(
+                    (string) $this->request->getPost(
+                        'full_name'
+                    )
+                )
+            ) ?? '',
+
+            'date_of_birth' => trim(
+                (string) $this->request->getPost(
+                    'date_of_birth'
+                )
+            ),
+
+            'marital_status' => strtoupper(trim(
+                (string) $this->request->getPost(
+                    'marital_status'
+                )
+            )),
+
+            'height_cm' => trim(
+                (string) $this->request->getPost(
+                    'height_cm'
+                )
+            ),
+
+            'mother_tongue' => strtoupper(trim(
+                (string) $this->request->getPost(
+                    'mother_tongue'
+                )
+            )),
+
+            'current_city' => preg_replace(
+                '/\s+/u',
+                ' ',
+                trim(
+                    (string) $this->request->getPost(
+                        'current_city'
+                    )
+                )
+            ) ?? '',
+
+            'current_state' => preg_replace(
+                '/\s+/u',
+                ' ',
+                trim(
+                    (string) $this->request->getPost(
+                        'current_state'
+                    )
+                )
+            ) ?? '',
+
+            'country_code' => strtoupper(trim(
+                (string) $this->request->getPost(
+                    'country_code'
+                )
+            )),
+        ];
+    }
+
+    /**
+     * Return profile modules that are not yet available.
+     *
+     * @return array<int, array<string, string>>
+     */
+    private function upcomingProfileSections(): array
+    {
+        return [
+            [
+                'key' => 'photos',
+                'title' => 'Profile Photos',
+                'description' =>
+                'Add and manage photos visible to other members.',
+                'icon' => 'ri-image-line',
+            ],
+            [
+                'key' => 'education-profession',
+                'title' => 'Education & Profession',
+                'description' =>
+                'Share your education, work and career details.',
+                'icon' => 'ri-graduation-cap-line',
+            ],
+            [
+                'key' => 'family',
+                'title' => 'Family Details',
+                'description' =>
+                'Tell members about your family background.',
+                'icon' => 'ri-group-line',
+            ],
+            [
+                'key' => 'sikh-details',
+                'title' => 'Sikh & Religious Details',
+                'description' =>
+                'Add Sikh practices and religious preferences.',
+                'icon' => 'ri-community-line',
+            ],
+            [
+                'key' => 'lifestyle',
+                'title' => 'Lifestyle',
+                'description' =>
+                'Share habits, interests and lifestyle choices.',
+                'icon' => 'ri-leaf-line',
+            ],
+            [
+                'key' => 'about-me',
+                'title' => 'About Me',
+                'description' =>
+                'Introduce yourself in your own words.',
+                'icon' => 'ri-file-user-line',
+            ],
+            [
+                'key' => 'partner-preferences',
+                'title' => 'Partner Preferences',
+                'description' =>
+                'Describe the partner you are looking for.',
+                'icon' => 'ri-heart-search-line',
+            ],
+        ];
+    }
+}

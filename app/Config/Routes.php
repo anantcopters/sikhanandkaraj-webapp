@@ -108,6 +108,15 @@ $routes->group('', [
         ]
     );
 
+    $routes->post(
+        'profile/basic-details',
+        'ProfileController::updateBasicDetails',
+        [
+            'as' => 'web.profile.basic-details.update',
+            'filter' => 'webAuth',
+        ]
+    );
+
     $routes->get(
         'account/settings',
         'AccountSettingsController::index',
