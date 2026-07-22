@@ -31,44 +31,56 @@ $this->section('content');
                 'formAlert' => $formAlert ?? null,
             ]
         ) ?>
+        <div class="row g-4 align-items-start">
+            <div class="col-12 col-lg-4">
+                <?= view(
+                    'Pages/Profile/Partials/_profile_sidebar',
+                    [
+                        'user' => $user ?? [],
+                        'overallProfileSummary' =>
+                        $overallProfileSummary ?? [],
+                    ]
+                ) ?>
+            </div>
+            <div class="col-12 col-lg-8">
+                <?= view(
+                    'Pages/Profile/Partials/_completion_summary',
+                    [
+                        'overallProfileSummary' =>
+                        $overallProfileSummary ?? [],
+                    ]
+                ) ?>
 
-        <?= view(
-            'Pages/Profile/Partials/_completion_summary',
-            [
-                'overallProfileSummary' =>
-                $overallProfileSummary ?? [],
-            ]
-        ) ?>
+                <div class="mb-3">
+                    <h2 class="fs-18 fw-semibold mb-1">
+                        Profile Sections
+                    </h2>
 
-        <div class="mb-3">
-            <h2 class="fs-18 fw-semibold mb-1">
-                Profile Sections
-            </h2>
+                    <p class="text-muted fs-13 mb-0">
+                        Complete each section separately.
+                    </p>
+                </div>
 
-            <p class="text-muted fs-13 mb-0">
-                Complete each section separately.
-            </p>
+                <?= view(
+                    'Pages/Profile/Sections/BasicDetails/_card',
+                    [
+                        'user' => $user ?? [],
+                        'basicDetails' => $basicDetails ?? [],
+                        'basicDetailsCompletion' =>
+                        $basicDetailsCompletion ?? [],
+                    ]
+                ) ?>
+
+                <?= view(
+                    'Pages/Profile/Partials/_section_list',
+                    [
+                        'upcomingSections' =>
+                        $upcomingSections ?? [],
+                    ]
+                ) ?>
+
+            </div>
         </div>
-
-        <?= view(
-            'Pages/Profile/Sections/BasicDetails/_card',
-            [
-                'user' => $user ?? [],
-                'basicDetails' => $basicDetails ?? [],
-                'basicDetailsCompletion' =>
-                $basicDetailsCompletion ?? [],
-            ]
-        ) ?>
-
-        <?= view(
-            'Pages/Profile/Partials/_section_list',
-            [
-                'upcomingSections' =>
-                $upcomingSections ?? [],
-            ]
-        ) ?>
-
-    </div>
 </section>
 
 <?= view(
