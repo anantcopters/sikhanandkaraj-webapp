@@ -105,7 +105,7 @@ if ($resolvedLoggedInName === '') {
                                     aria-hidden="true">
 
                                     <div class="flex-shrink-0">
-                                        <i class="ri-user-line display-6 text-muted"></i>
+                                        <i class="ri-user-line fs-2"></i>
                                     </div>
                                 </span>
 

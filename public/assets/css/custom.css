@@ -1289,5 +1289,49 @@ form[aria-busy="true"] {
 }
 
 .h-80 {
-  height: 80% !important;
+    height: 80% !important;
+}
+
+/* ==========================================================================
+   Member profile editor
+   ========================================================================== */
+
+/**
+ * Provide sufficient desktop width for profile forms while retaining a
+ * full-width editor on small screens.
+ */
+.profile-offcanvas {
+    --bs-offcanvas-width: 620px;
+}
+
+/**
+ * Keep form actions visible while scrolling through longer profile forms.
+ */
+.profile-offcanvas__footer {
+    position: sticky;
+    bottom: -1rem;
+    z-index: 2;
+    margin-right: -1rem;
+    margin-left: -1rem;
+    padding: 1rem;
+    border-top: 1px solid var(--vz-border-color);
+    background-color: var(--vz-card-bg);
+}
+
+/**
+ * Apply the application brand colour to profile completion progress bars.
+ */
+.profile-progress .progress-bar {
+    background-color: var(--sak-primary);
+}
+
+.profile-offcanvas__footer .registration-form__submit {
+    min-height: 42px;
+    padding: 0.625rem 1rem;
+}
+
+@media (max-width: 575.98px) {
+    .profile-offcanvas {
+        --bs-offcanvas-width: 100%;
+    }
 }
