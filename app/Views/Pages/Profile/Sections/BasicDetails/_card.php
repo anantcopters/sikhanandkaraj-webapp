@@ -183,14 +183,14 @@ $location = implode(
                 </div>
             </div>
 
-            <button
-                type="button"
+            <a
+                href="<?= url_to(
+                            'web.profile.basic-details'
+                        ) ?>"
                 class="btn btn-outline-primary
-                            d-inline-flex align-items-center
-                            justify-content-center gap-1"
-                data-bs-toggle="offcanvas"
-                data-bs-target="#basicDetailsOffcanvas"
-                aria-controls="basicDetailsOffcanvas">
+        d-inline-flex align-items-center
+        justify-content-center gap-1">
+
                 <i
                     class="ri-edit-line"
                     aria-hidden="true"></i>
@@ -198,7 +198,7 @@ $location = implode(
                 <?= $completedFields > 1
                     ? 'Edit details'
                     : 'Add details' ?>
-            </button>
+            </a>
         </div>
 
         <!-- Completion progress -->

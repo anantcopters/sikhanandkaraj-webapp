@@ -19,6 +19,51 @@ use Throwable;
 final class ProfileController extends BaseController
 {
     /**
+     * Display the Basic Details add/edit page.
+     */
+    public function basicDetails(): string
+    {
+        $userId = $this->authenticatedUserId();
+
+        /** @var BasicDetailsService $basicDetailsService */
+        $basicDetailsService = service(
+            'basicDetailsService'
+        );
+
+        $basicProfile = $basicDetailsService->getForUser(
+            $userId
+        );
+
+        return view(
+            'Pages/Profile/Sections/BasicDetails/Edit',
+            [
+                'pageTitle' => 'Basic Details',
+
+                'user' => $basicProfile['user'],
+
+                'basicDetails' =>
+                $basicProfile['basicDetails'],
+
+                'basicDetailsCompletion' =>
+                $basicProfile['completion'],
+
+                'masterData' =>
+                $basicProfile['masterData'],
+
+                'validationErrors' =>
+                session('validationErrors') ?? [],
+
+                'formAlert' =>
+                session('formAlert'),
+
+                'pageScripts' => [
+                    'assets/js/pages/profile-basic-details.js',
+                ],
+            ]
+        );
+    }
+
+    /**
      * Display the member profile completion journey.
      */
     public function edit(): string
@@ -77,9 +122,6 @@ final class ProfileController extends BaseController
                 'basicDetailsCompletion' =>
                 $basicProfile['completion'],
 
-                'masterData' =>
-                $basicProfile['masterData'],
-
                 'profileCompletion' =>
                 $profileCompletion,
 
@@ -89,18 +131,11 @@ final class ProfileController extends BaseController
                 'overallProfileSummary' =>
                 $overallProfileSummary,
 
-                'validationErrors' =>
-                session('validationErrors') ?? [],
-
                 'formAlert' =>
                 session('formAlert'),
 
                 'upcomingSections' =>
                 $this->upcomingProfileSections(),
-
-                'pageScripts' => [
-                    'assets/js/pages/profile-basic-details.js',
-                ],
             ]
         );
     }
@@ -184,15 +219,11 @@ final class ProfileController extends BaseController
 
         if (!$validation->run($input)) {
             return redirect()
-                ->to(route_to('web.profile.edit') . '#basic-details')
+                ->to(route_to('web.profile.basic-details'))
                 ->withInput()
                 ->with(
                     'validationErrors',
                     $validation->getErrors()
-                )
-                ->with(
-                    'openProfileSection',
-                    'basic-details'
                 );
         }
 
@@ -232,12 +263,8 @@ final class ProfileController extends BaseController
             ];
 
             $redirect = redirect()
-                ->to(route_to('web.profile.edit') . '#basic-details')
-                ->withInput()
-                ->with(
-                    'openProfileSection',
-                    'basic-details'
-                );
+                ->to(route_to('web.profile.basic-details'))
+                ->withInput();
 
             if (in_array(
                 $message,
@@ -272,7 +299,7 @@ final class ProfileController extends BaseController
             );
 
             return redirect()
-                ->to(route_to('web.profile.edit') . '#basic-details')
+                ->to(route_to('web.profile.basic-details'))
                 ->withInput()
                 ->with('formAlert', [
                     'type' => 'danger',
@@ -280,11 +307,7 @@ final class ProfileController extends BaseController
                     'message' =>
                     'We could not save your details. '
                         . 'Please try again.',
-                ])
-                ->with(
-                    'openProfileSection',
-                    'basic-details'
-                );
+                ]);
         }
     }
 

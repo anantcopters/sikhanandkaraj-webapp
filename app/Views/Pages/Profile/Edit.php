@@ -83,14 +83,4 @@ $this->section('content');
         </div>
 </section>
 
-<?= view(
-    'Pages/Profile/Sections/BasicDetails/_offcanvas',
-    [
-        'user' => $user ?? [],
-        'basicDetails' => $basicDetails ?? [],
-        'validationErrors' =>
-        $validationErrors ?? [],
-    ]
-) ?>
-
 <?php $this->endSection(); ?>

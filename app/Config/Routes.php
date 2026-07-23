@@ -108,6 +108,18 @@ $routes->group('', [
         ]
     );
 
+    /*
+    * Basic Details.
+    */
+    $routes->get(
+        'profile/basic-details',
+        'ProfileController::basicDetails',
+        [
+            'as' => 'web.profile.basic-details',
+            'filter' => 'webAuth',
+        ]
+    );
+
     $routes->post(
         'profile/basic-details',
         'ProfileController::updateBasicDetails',
