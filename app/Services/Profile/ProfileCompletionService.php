@@ -5,17 +5,14 @@ declare(strict_types=1);
 namespace App\Services\Profile;
 
 /**
- * Calculates overall member profile completion from implemented sections.
- *
- * Add each new profile section here when that section becomes functional.
+ * Calculates overall member profile completion.
  */
 final class ProfileCompletionService
 {
     /**
-     * Build overall completion from individual section completion values.
-     *
      * @param array<string, int> $basicDetailsCompletion
      * @param array<string, int> $educationProfessionCompletion
+     * @param array<string, int> $familyDetailsCompletion
      *
      * @return array{
      *     percentage: int,
@@ -25,14 +22,20 @@ final class ProfileCompletionService
      */
     public function calculate(
         array $basicDetailsCompletion,
-        array $educationProfessionCompletion
+        array $educationProfessionCompletion,
+        array $familyDetailsCompletion
     ): array {
         $sections = [
             $this->isSectionComplete(
                 $basicDetailsCompletion
             ),
+
             $this->isSectionComplete(
                 $educationProfessionCompletion
+            ),
+
+            $this->isSectionComplete(
+                $familyDetailsCompletion
             ),
         ];
 
@@ -46,22 +49,20 @@ final class ProfileCompletionService
             )
         );
 
-        $percentage = $totalSteps > 0
-            ? (int) round(
-                ($completedSteps / $totalSteps) * 100
-            )
-            : 0;
-
         return [
-            'percentage' => $percentage,
+            'percentage' => $totalSteps > 0
+                ? (int) round(
+                    ($completedSteps / $totalSteps) * 100
+                )
+                : 0,
+
             'completedSteps' => $completedSteps,
+
             'totalSteps' => $totalSteps,
         ];
     }
 
     /**
-     * Determine whether one profile section is complete.
-     *
      * @param array<string, int> $completion
      */
     private function isSectionComplete(

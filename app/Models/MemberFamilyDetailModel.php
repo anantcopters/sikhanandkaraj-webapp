@@ -1,0 +1,109 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Models;
+
+use CodeIgniter\Model;
+
+/**
+ * Handles the member Family Details profile section.
+ */
+final class MemberFamilyDetailModel extends Model
+{
+    protected $table = 'member_family_details';
+
+    protected $primaryKey = 'id';
+
+    protected $returnType = 'array';
+
+    protected $useAutoIncrement = true;
+
+    protected $allowedFields = [
+        'user_id',
+        'family_value',
+        'family_type',
+        'family_status',
+        'father_occupation_id',
+        'mother_occupation_id',
+        'brothers_count',
+        'married_brothers_count',
+        'sisters_count',
+        'married_sisters_count',
+        'country_id',
+        'state_id',
+        'city_id',
+    ];
+
+    protected $useTimestamps = true;
+
+    protected $dateFormat = 'datetime';
+
+    protected $createdField = 'created_at';
+
+    protected $updatedField = 'updated_at';
+
+    protected $skipValidation = true;
+
+    /**
+     * Find one member's details with readable master values.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findForUser(int $userId): ?array
+    {
+        $record = $this
+            ->select([
+                'member_family_details.*',
+
+                'father_occupation.name '
+                    . 'AS father_occupation_name',
+
+                'mother_occupation.name '
+                    . 'AS mother_occupation_name',
+
+                'master_countries.name AS country_name',
+                'master_states.name AS state_name',
+                'master_cities.name AS city_name',
+            ])
+            ->join(
+                'master_family_occupations father_occupation',
+                'father_occupation.id = '
+                    . 'member_family_details.father_occupation_id',
+                'left'
+            )
+            ->join(
+                'master_family_occupations mother_occupation',
+                'mother_occupation.id = '
+                    . 'member_family_details.mother_occupation_id',
+                'left'
+            )
+            ->join(
+                'master_countries',
+                'master_countries.id = '
+                    . 'member_family_details.country_id',
+                'left'
+            )
+            ->join(
+                'master_states',
+                'master_states.id = '
+                    . 'member_family_details.state_id',
+                'left'
+            )
+            ->join(
+                'master_cities',
+                'master_cities.id = '
+                    . 'member_family_details.city_id',
+                'left'
+            )
+            ->where(
+                'member_family_details.user_id',
+                $userId
+            )
+            ->first();
+
+        return is_array($record)
+            ? $record
+            : null;
+    }
+}

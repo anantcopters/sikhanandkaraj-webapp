@@ -13,6 +13,7 @@ use App\Models\MasterStateModel;
 use App\Models\MasterAnnualIncomeModel;
 use App\Models\MasterEducationModel;
 use App\Models\MasterOccupationModel;
+use App\Models\MasterFamilyOccupationModel;
 use DomainException;
 
 /**
@@ -29,7 +30,8 @@ final class ProfileMasterDataService
         private readonly MasterCityModel $cityModel,
         private readonly MasterEducationModel $educationModel,
         private readonly MasterOccupationModel $occupationModel,
-        private readonly MasterAnnualIncomeModel $annualIncomeModel
+        private readonly MasterAnnualIncomeModel $annualIncomeModel,
+        private readonly MasterFamilyOccupationModel $familyOccupationModel
     ) {}
 
     /**
@@ -252,6 +254,167 @@ final class ProfileMasterDataService
         if (!is_array($annualIncome)) {
             throw new \DomainException(
                 'Please select a valid annual income.'
+            );
+        }
+    }
+
+    /**
+     * Return master and enum values required by Family Details.
+     *
+     * @return array<string, mixed>
+     */
+    public function familyDetailsOptions(
+        ?int $selectedStateId = null
+    ): array {
+        $india = $this->countryModel->findIndia();
+
+        if (!is_array($india)) {
+            throw new DomainException(
+                'India master data is not configured.'
+            );
+        }
+
+        return [
+            'country' => $india,
+
+            'states' =>
+            $this->stateModel->activeForCountry(
+                (int) $india['id']
+            ),
+
+            'cities' => $selectedStateId !== null
+                ? $this->cityModel->activeForState(
+                    $selectedStateId
+                )
+                : [],
+
+            'familyOccupations' =>
+            $this->familyOccupationModel->activeOptions(),
+
+            'familyValues' => [
+                [
+                    'value' => 'ORTHODOX',
+                    'label' => 'Orthodox',
+                ],
+                [
+                    'value' => 'TRADITIONAL',
+                    'label' => 'Traditional',
+                ],
+                [
+                    'value' => 'MODERATE',
+                    'label' => 'Moderate',
+                ],
+                [
+                    'value' => 'LIBERAL',
+                    'label' => 'Liberal',
+                ],
+            ],
+
+            'familyTypes' => [
+                [
+                    'value' => 'JOINT_FAMILY',
+                    'label' => 'Joint Family',
+                ],
+                [
+                    'value' => 'NUCLEAR_FAMILY',
+                    'label' => 'Nuclear Family',
+                ],
+                [
+                    'value' => 'OTHERS',
+                    'label' => 'Others',
+                ],
+            ],
+
+            'familyStatuses' => [
+                [
+                    'value' => 'MIDDLE_CLASS',
+                    'label' => 'Middle Class',
+                ],
+                [
+                    'value' => 'UPPER_MIDDLE_CLASS',
+                    'label' => 'Upper Middle Class',
+                ],
+                [
+                    'value' => 'HIGH_CLASS',
+                    'label' => 'High Class',
+                ],
+                [
+                    'value' => 'RICH_AFFLUENT',
+                    'label' => 'Rich / Affluent',
+                ],
+            ],
+
+            'siblingCounts' => range(0, 10),
+        ];
+    }
+
+    /**
+     * Validate Family Details master-data relationships.
+     */
+    public function assertValidFamilySelection(
+        ?int $fatherOccupationId,
+        ?int $motherOccupationId,
+        int $countryId,
+        int $stateId,
+        int $cityId
+    ): void {
+        $india = $this->countryModel->findIndia();
+
+        if (
+            !is_array($india)
+            || (int) $india['id'] !== $countryId
+        ) {
+            throw new DomainException(
+                'Please select a valid country.'
+            );
+        }
+
+        foreach (
+            [
+                "father's" => $fatherOccupationId,
+                "mother's" => $motherOccupationId,
+            ] as $parent => $occupationId
+        ) {
+            if ($occupationId === null) {
+                continue;
+            }
+
+            $occupation = $this->familyOccupationModel
+                ->where('id', $occupationId)
+                ->where('is_active', true)
+                ->first();
+
+            if (!is_array($occupation)) {
+                throw new DomainException(
+                    sprintf(
+                        'Please select a valid %s occupation.',
+                        $parent
+                    )
+                );
+            }
+        }
+
+        $state = $this->stateModel
+            ->where('id', $stateId)
+            ->where('country_id', $countryId)
+            ->where('is_active', true)
+            ->first();
+
+        if (!is_array($state)) {
+            throw new DomainException(
+                'Please select a valid family state.'
+            );
+        }
+
+        $city = $this->cityModel
+            ->where('id', $cityId)
+            ->where('state_id', $stateId)
+            ->where('is_active', true)
+            ->first();
+
+        if (!is_array($city)) {
+            throw new DomainException(
+                'Please select a valid family city for the selected state.'
             );
         }
     }

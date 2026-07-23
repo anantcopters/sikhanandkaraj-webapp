@@ -150,6 +150,27 @@ $routes->group('', [
         ]
     );
 
+    /*
+    * Family Details.
+    */ 
+    $routes->get(
+        'profile/family-details',
+        'ProfileController::familyDetails',
+        [
+            'as' => 'web.profile.family-details',
+            'filter' => 'webAuth',
+        ]
+    );
+
+    $routes->post(
+        'profile/family-details',
+        'ProfileController::updateFamilyDetails',
+        [
+            'as' => 'web.profile.family-details.update',
+            'filter' => 'webAuth',
+        ]
+    );
+
     $routes->get(
         'account/settings',
         'AccountSettingsController::index',

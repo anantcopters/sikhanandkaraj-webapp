@@ -10,6 +10,8 @@ use App\Services\Profile\EducationProfessionService;
 use App\Services\Profile\ProfileCompletionService;
 use App\Validation\Profile\BasicDetailsValidation;
 use App\Validation\Profile\EducationProfessionValidation;
+use App\Services\Profile\FamilyDetailsService;
+use App\Validation\Profile\FamilyDetailsValidation;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
@@ -95,20 +97,28 @@ final class ProfileController extends BaseController
             'profileCompletionService'
         );
 
-        /*
-     * Calculate overall completion only from sections which are
-     * currently implemented and usable.
-     */
-        $profileCompletion = $completionService->calculate(
-            $basicProfile['completion'],
-            $educationProfile['completion']
+        /** @var FamilyDetailsService $familyService */
+        $familyService = service('familyDetailsService');
+
+        $familyProfile = $familyService->getForUser(
+            $userId
         );
 
         /*
-     * Profile photo is not implemented in this flow yet.
-     * Replace this value with the photo service result once the
-     * profile-photo module is connected.
-     */
+        * Calculate overall completion only from sections which are
+        * currently implemented and usable.
+        */
+        $profileCompletion = $completionService->calculate(
+            $basicProfile['completion'],
+            $educationProfile['completion'],
+            $familyProfile['completion']
+        );
+
+        /*
+        * Profile photo is not implemented in this flow yet.
+        * Replace this value with the photo service result once the
+        * profile-photo module is connected.
+        */
         $profileImage = '';
 
         $overallProfileSummary = $this
@@ -131,12 +141,19 @@ final class ProfileController extends BaseController
             )
         ) === 100;
 
+        $familyDetailsComplete = (
+            (int) (
+                $familyProfile['completion']['percentage']
+                ?? 0
+            )
+        ) === 100;
+
         /*
-     * Determine where the Continue Profile button should send
-     * the user.
-     *
-     * NULL means all currently implemented sections are complete.
-     */
+        * Determine where the Continue Profile button should send
+        * the user.
+        *
+        * NULL means all currently implemented sections are complete.
+        */
         if (!$basicDetailsComplete) {
             $nextProfileSection = [
                 'title' => 'Basic Details',
@@ -147,6 +164,11 @@ final class ProfileController extends BaseController
                 'title' => 'Education & Profession',
                 'route' =>
                 'web.profile.education-profession',
+            ];
+        } elseif (!$familyDetailsComplete) {
+            $nextProfileSection = [
+                'title' => 'Family Details',
+                'route' => 'web.profile.family-details',
             ];
         } else {
             $nextProfileSection = null;
@@ -179,6 +201,12 @@ final class ProfileController extends BaseController
 
                 'overallProfileSummary' =>
                 $overallProfileSummary,
+
+                'familyDetails' =>
+                $familyProfile['familyDetails'],
+
+                'familyDetailsCompletion' =>
+                $familyProfile['completion'],
 
                 'formAlert' =>
                 session('formAlert'),
@@ -478,20 +506,8 @@ final class ProfileController extends BaseController
     private function upcomingProfileSections(): array
     {
         return [
-            [
-                'key' => 'photos',
-                'title' => 'Profile Photos',
-                'description' =>
-                'Add and manage photos visible to other members.',
-                'icon' => 'ri-image-line',
-            ],
-            [
-                'key' => 'family',
-                'title' => 'Family Details',
-                'description' =>
-                'Tell members about your family background.',
-                'icon' => 'ri-group-line',
-            ],
+            
+            
             [
                 'key' => 'sikh-details',
                 'title' => 'Sikh & Religious Details',
@@ -513,13 +529,7 @@ final class ProfileController extends BaseController
                 'Introduce yourself in your own words.',
                 'icon' => 'ri-file-user-line',
             ],
-            [
-                'key' => 'partner-preferences',
-                'title' => 'Partner Preferences',
-                'description' =>
-                'Describe the partner you are looking for.',
-                'icon' => 'ri-heart-search-line',
-            ],
+            
         ];
     }
 
@@ -717,6 +727,215 @@ final class ProfileController extends BaseController
             'annual_income_id' => trim(
                 (string) $this->request->getPost(
                     'annual_income_id'
+                )
+            ),
+        ];
+    }
+
+    /**
+     * Display the Family Details add/edit page.
+     */
+    public function familyDetails(): string
+    {
+        $userId = $this->authenticatedUserId();
+
+        /** @var FamilyDetailsService $service */
+        $service = service('familyDetailsService');
+
+        $profile = $service->getForUser($userId);
+
+        return view(
+            'Pages/Profile/Sections/FamilyDetails/Edit',
+            [
+                'pageTitle' => 'Family Details',
+
+                'user' => $profile['user'],
+
+                'familyDetails' =>
+                $profile['familyDetails'],
+
+                'familyDetailsCompletion' =>
+                $profile['completion'],
+
+                'masterData' =>
+                $profile['masterData'],
+
+                'validationErrors' =>
+                session('validationErrors') ?? [],
+
+                'formAlert' =>
+                session('formAlert'),
+
+                'pageScripts' => [
+                    'assets/js/pages/profile-family-details.js',
+                ],
+            ]
+        );
+    }
+
+    /**
+     * Save the Family Details profile section.
+     */
+    public function updateFamilyDetails(): RedirectResponse
+    {
+        $userId = $this->authenticatedUserId();
+
+        $input = $this->familyDetailsInput();
+
+        $validation = service('validation');
+
+        $validation->setRules(
+            FamilyDetailsValidation::rules()
+        );
+
+        if (!$validation->run($input)) {
+            return redirect()
+                ->to(route_to('web.profile.family-details'))
+                ->withInput()
+                ->with(
+                    'validationErrors',
+                    $validation->getErrors()
+                );
+        }
+
+        $validatedData = $validation->getValidated();
+
+        try {
+            /** @var FamilyDetailsService $service */
+            $service = service('familyDetailsService');
+
+            $service->save(
+                $userId,
+                $validatedData
+            );
+
+            return redirect()
+                ->to(
+                    route_to('web.profile.edit')
+                        . '#family-details'
+                )
+                ->with('formAlert', [
+                    'type' => 'success',
+                    'title' => 'Family details updated',
+                    'message' =>
+                    'Your family information has been saved.',
+                ]);
+        } catch (DomainException $exception) {
+            return redirect()
+                ->to(route_to('web.profile.family-details'))
+                ->withInput()
+                ->with('formAlert', [
+                    'type' => 'danger',
+                    'title' => 'Details not saved',
+                    'message' => $exception->getMessage(),
+                ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Family details update failed for user '
+                    . '{userId}: {message}',
+                [
+                    'userId' => $userId,
+                    'message' => $exception->getMessage(),
+                ]
+            );
+
+            return redirect()
+                ->to(route_to('web.profile.family-details'))
+                ->withInput()
+                ->with('formAlert', [
+                    'type' => 'danger',
+                    'title' => 'Details not saved',
+                    'message' =>
+                    'We could not save your family details. '
+                        . 'Please try again.',
+                ]);
+        }
+    }
+
+    /**
+     * Read and normalize expected Family Details fields.
+     *
+     * @return array<string, string>
+     */
+    private function familyDetailsInput(): array
+    {
+        return [
+            'family_value' => strtoupper(
+                trim(
+                    (string) $this->request->getPost(
+                        'family_value'
+                    )
+                )
+            ),
+
+            'family_type' => strtoupper(
+                trim(
+                    (string) $this->request->getPost(
+                        'family_type'
+                    )
+                )
+            ),
+
+            'family_status' => strtoupper(
+                trim(
+                    (string) $this->request->getPost(
+                        'family_status'
+                    )
+                )
+            ),
+
+            'father_occupation_id' => trim(
+                (string) $this->request->getPost(
+                    'father_occupation_id'
+                )
+            ),
+
+            'mother_occupation_id' => trim(
+                (string) $this->request->getPost(
+                    'mother_occupation_id'
+                )
+            ),
+
+            'brothers_count' => trim(
+                (string) $this->request->getPost(
+                    'brothers_count'
+                )
+            ),
+
+            'married_brothers_count' => trim(
+                (string) $this->request->getPost(
+                    'married_brothers_count'
+                )
+            ),
+
+            'sisters_count' => trim(
+                (string) $this->request->getPost(
+                    'sisters_count'
+                )
+            ),
+
+            'married_sisters_count' => trim(
+                (string) $this->request->getPost(
+                    'married_sisters_count'
+                )
+            ),
+
+            'country_id' => trim(
+                (string) $this->request->getPost(
+                    'country_id'
+                )
+            ),
+
+            'state_id' => trim(
+                (string) $this->request->getPost(
+                    'state_id'
+                )
+            ),
+
+            'city_id' => trim(
+                (string) $this->request->getPost(
+                    'city_id'
                 )
             ),
         ];

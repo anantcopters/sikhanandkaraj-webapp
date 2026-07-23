@@ -95,6 +95,17 @@ $this->section('content');
                 ) ?>
 
                 <?= view(
+                    'Pages/Profile/Sections/FamilyDetails/_card',
+                    [
+                        'familyDetails' =>
+                        $familyDetails ?? [],
+
+                        'familyDetailsCompletion' =>
+                        $familyDetailsCompletion ?? [],
+                    ]
+                ) ?>
+
+                <?= view(
                     'Pages/Profile/Partials/_section_list',
                     [
                         'upcomingSections' =>

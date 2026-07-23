@@ -37,6 +37,9 @@ use App\Models\MasterOccupationModel;
 use App\Models\MemberEducationProfessionDetailModel;
 use App\Services\Profile\EducationProfessionService;
 use App\Services\Profile\ProfileCompletionService;
+use App\Models\MasterFamilyOccupationModel;
+use App\Models\MemberFamilyDetailModel;
+use App\Services\Profile\FamilyDetailsService;
 
 
 /**
@@ -275,7 +278,8 @@ class Services extends BaseService
             new MasterCityModel($database),
             new MasterEducationModel($database),
             new MasterOccupationModel($database),
-            new MasterAnnualIncomeModel($database)
+            new MasterAnnualIncomeModel($database),
+            new MasterFamilyOccupationModel($database)
         );
     }
 
@@ -298,6 +302,28 @@ class Services extends BaseService
             new MemberEducationProfessionDetailModel(
                 $database
             ),
+            static::profileMasterDataService(false),
+            $database
+        );
+    }
+
+    /**
+     * Return the Family Details profile service.
+     */
+    public static function familyDetailsService(
+        bool $getShared = true
+    ): FamilyDetailsService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'familyDetailsService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new FamilyDetailsService(
+            new UserModel($database),
+            new MemberFamilyDetailModel($database),
             static::profileMasterDataService(false),
             $database
         );
