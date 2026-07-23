@@ -6,6 +6,7 @@ declare(strict_types=1);
  * Overall member profile completion summary.
  *
  * @var array<string, mixed> $overallProfileSummary
+ * @var array<string, mixed> $nextProfileSection
  */
 
 $summary = is_array($overallProfileSummary ?? null)
@@ -112,20 +113,21 @@ if (!in_array(
             </div>
 
             <?php if ($percentage < 100): ?>
-                <button
-                    type="button"
+                <a
+                    href="<?= url_to(
+                                $nextProfileSection['route']
+                            ) ?>"
                     class="btn btn-outline-primary
-                                d-inline-flex align-items-center
-                                justify-content-center gap-1"
-                    data-bs-toggle="offcanvas"
-                    data-bs-target="#basicDetailsOffcanvas"
-                    aria-controls="basicDetailsOffcanvas">
+        d-inline-flex
+        align-items-center
+        justify-content-center
+        gap-2">
                     <i
                         class="ri-arrow-right-line"
                         aria-hidden="true"></i>
 
                     Continue Profile
-                </button>
+                </a>
             <?php else: ?>
                 <span
                     class="badge bg-success-subtle

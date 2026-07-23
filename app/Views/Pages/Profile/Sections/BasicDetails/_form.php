@@ -193,10 +193,6 @@ $fullNameHasError = isset(
     $errors['full_name']
 );
 
-$dateOfBirthHasError = isset(
-    $errors['date_of_birth']
-);
-
 $maritalStatusHasError = isset(
     $errors['marital_status_id']
 );
@@ -236,7 +232,7 @@ $countryHasError = isset(
     <?= csrf_field() ?>
 
     <div class="row g-3">
-        <div class="col-8">
+        <div class="col-12 col-sm-8">
             <label
                 for="fullName"
                 class="form-label fw-medium">
@@ -277,7 +273,7 @@ $countryHasError = isset(
                 'errors' => $errors,
             ]) ?>
         </div>
-        <div class="col-4">
+        <div class="col-12 col-sm-4">
             <label
                 for="memberGender"
                 class="form-label fw-medium">
@@ -302,7 +298,7 @@ $countryHasError = isset(
         </div>
 
 
-        <div class="col-12 col-lg-6">
+        <div class="col-12 col-sm-4 col-lg-4">
             <label
                 for="profileCreatedFor"
                 class="form-label fw-medium">
@@ -322,32 +318,7 @@ $countryHasError = isset(
                 readonly>
         </div>
 
-        <?php
-        $dateOfBirthHasError = isset(
-            $errors['date_of_birth']
-        );
-
-        $storedDateOfBirth = $fieldValue(
-            'date_of_birth',
-            $details['date_of_birth'] ?? ''
-        );
-
-        $dateParts = preg_match(
-            '/^\d{4}-\d{2}-\d{2}$/',
-            $storedDateOfBirth
-        ) === 1
-            ? explode('-', $storedDateOfBirth)
-            : ['', '', ''];
-
-        $selectedBirthYear = $dateParts[0] ?? '';
-        $selectedBirthMonth = $dateParts[1] ?? '';
-        $selectedBirthDay = $dateParts[2] ?? '';
-
-        $maximumBirthYear = (int) date('Y') - 18;
-        $minimumBirthYear = $maximumBirthYear - 82;
-        ?>
-
-        <div class="col-12 col-lg-6">
+        <div class="col-12 col-sm-8 col-lg-8">
             <label class="form-label fw-medium">
                 Date of birth
                 <span class="text-danger">*</span>
@@ -374,8 +345,6 @@ $countryHasError = isset(
                             ? 'aria-invalid="true"'
                             : '' ?>
                         aria-describedby="dateOfBirthError"
-                        data-choice
-                        data-choice-search="false"
                         data-error-required="Please select day."
                         data-validation-ignore
                         required>
@@ -425,8 +394,6 @@ $countryHasError = isset(
                             ? 'aria-invalid="true"'
                             : '' ?>
                         aria-describedby="dateOfBirthError"
-                        data-choice
-                        data-choice-search="false"
                         data-error-required="Please select month."
                         data-validation-ignore
                         required>
@@ -481,8 +448,6 @@ $countryHasError = isset(
                             ? 'aria-invalid="true"'
                             : '' ?>
                         aria-describedby="dateOfBirthError"
-                        data-choice
-                        data-choice-search="true"
                         data-choice-position="bottom"
                         data-choice-search-placeholder="Search year"
                         data-error-required="Please select year."
@@ -534,7 +499,7 @@ $countryHasError = isset(
                 aria-live="polite"></div>
         </div>
 
-        <div class="col-6 col-lg-4">
+        <div class="col-12 col-sm-6 col-lg-4">
             <label
                 for="maritalStatusId"
                 class="form-label fw-medium">
@@ -591,7 +556,7 @@ $countryHasError = isset(
             ]) ?>
         </div>
 
-        <div class="col-6 col-lg-4">
+        <div class="col-12 col-sm-6 col-lg-4">
             <label
                 for="heightId"
                 class="form-label fw-medium">
@@ -651,7 +616,7 @@ $countryHasError = isset(
             ]) ?>
         </div>
 
-        <div class="col-6 col-lg-4">
+        <div class="col-12 col-sm-6 col-lg-4">
             <label
                 for="motherTongueId"
                 class="form-label fw-medium">
@@ -707,7 +672,7 @@ $countryHasError = isset(
             ]) ?>
         </div>
 
-        <div class="col-6 col-lg-4">
+        <div class="col-12 col-sm-6 col-lg-4">
             <label
                 for="stateId"
                 class="form-label fw-medium">
@@ -762,7 +727,7 @@ $countryHasError = isset(
             ]) ?>
         </div>
 
-        <div class="col-6 col-lg-4">
+        <div class="col-12 col-sm-6 col-lg-4">
             <label
                 for="cityId"
                 class="form-label fw-medium">
@@ -830,7 +795,7 @@ $countryHasError = isset(
             ]) ?>
         </div>
 
-        <div class="col-6 col-lg-4">
+        <div class="col-12 col-sm-6 col-lg-4">
             <label
                 for="countryName"
                 class="form-label fw-medium">
@@ -866,14 +831,14 @@ $countryHasError = isset(
     </div>
 
     <div class="row g-2 mt-4">
-        <div class="col-12 col-sm-6 col-md-3 ms-md-auto">
+        <div class="col-12 col-sm-6 col-md-3 ms-md-auto order-2 order-sm-1">
             <a
                 href="<?= url_to('web.profile.edit') ?>"
                 class="btn btn-outline-danger fs-14 fw-medium w-100">
                 Cancel
             </a>
         </div>
-        <div class="col-12 col-sm-6 col-md-3">
+        <div class="col-12 col-sm-6 col-md-3 order-1 order-sm-2">
             <button
                 type="submit"
                 class="btn registration-form__submit

@@ -109,6 +109,17 @@ final class ProfileController extends BaseController
                 $profileImage
             );
 
+        /**
+         * Next profile section.
+         *
+         * Until additional sections are implemented,
+         * continue profile always opens Basic Details.
+         */
+        $nextProfileSection = [
+            'title' => 'Basic Details',
+            'route' => 'web.profile.basic-details',
+        ];
+
         return view(
             'Pages/Profile/Edit',
             [
@@ -136,6 +147,8 @@ final class ProfileController extends BaseController
 
                 'upcomingSections' =>
                 $this->upcomingProfileSections(),
+
+                'nextProfileSection' => $nextProfileSection,
             ]
         );
     }
