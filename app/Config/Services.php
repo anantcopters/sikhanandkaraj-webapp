@@ -31,6 +31,11 @@ use App\Models\MasterMaritalStatusModel;
 use App\Models\MasterMotherTongueModel;
 use App\Models\MasterStateModel;
 use App\Services\Profile\ProfileMasterDataService;
+use App\Models\MasterAnnualIncomeModel;
+use App\Models\MasterEducationModel;
+use App\Models\MasterOccupationModel;
+use App\Models\MemberEducationProfessionDetailModel;
+use App\Services\Profile\EducationProfessionService;
 
 
 /**
@@ -262,7 +267,29 @@ class Services extends BaseService
             new MasterMotherTongueModel(),
             new MasterCountryModel(),
             new MasterStateModel(),
-            new MasterCityModel()
+            new MasterCityModel(),
+            new MasterEducationModel(),
+            new MasterOccupationModel(),
+            new MasterAnnualIncomeModel()
+        );
+    }
+
+    /**
+     * Return the Education & Profession profile service.
+     */
+    public static function educationProfessionService(
+        bool $getShared = true
+    ): EducationProfessionService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'educationProfessionService'
+            );
+        }
+
+        return new EducationProfessionService(
+            new UserModel(),
+            new MemberEducationProfessionDetailModel(),
+            static::profileMasterDataService(false)
         );
     }
 }

@@ -10,6 +10,9 @@ use App\Models\MasterHeightModel;
 use App\Models\MasterMaritalStatusModel;
 use App\Models\MasterMotherTongueModel;
 use App\Models\MasterStateModel;
+use App\Models\MasterAnnualIncomeModel;
+use App\Models\MasterEducationModel;
+use App\Models\MasterOccupationModel;
 use DomainException;
 
 /**
@@ -23,7 +26,10 @@ final class ProfileMasterDataService
         private readonly MasterMotherTongueModel $motherTongueModel,
         private readonly MasterCountryModel $countryModel,
         private readonly MasterStateModel $stateModel,
-        private readonly MasterCityModel $cityModel
+        private readonly MasterCityModel $cityModel,
+        private readonly MasterEducationModel $educationModel,
+        private readonly MasterOccupationModel $occupationModel,
+        private readonly MasterAnnualIncomeModel $annualIncomeModel
     ) {}
 
     /**
@@ -150,6 +156,102 @@ final class ProfileMasterDataService
         if (!is_array($city)) {
             throw new DomainException(
                 'Please select a valid city for the selected state.'
+            );
+        }
+    }
+
+    /**
+     * Return master data required by Education & Profession.
+     *
+     * @return array<string, mixed>
+     */
+    public function educationProfessionOptions(): array
+    {
+        return [
+            'educations' =>
+            $this->educationModel->activeOptions(),
+
+            'occupations' =>
+            $this->occupationModel->activeOptions(),
+
+            'annualIncomes' =>
+            $this->annualIncomeModel->activeOptions(),
+
+            /*
+         * Keep enum values centralized here rather than duplicating
+         * them in the view and service.
+         */
+            'employmentTypes' => [
+                [
+                    'value' => 'GOVERNMENT_PSU',
+                    'label' => 'Government / PSU',
+                ],
+                [
+                    'value' => 'PRIVATE',
+                    'label' => 'Private',
+                ],
+                [
+                    'value' => 'BUSINESS',
+                    'label' => 'Business',
+                ],
+                [
+                    'value' => 'DEFENSE',
+                    'label' => 'Defense',
+                ],
+                [
+                    'value' => 'SELF_EMPLOYED',
+                    'label' => 'Self Employed',
+                ],
+                [
+                    'value' => 'NOT_WORKING',
+                    'label' => 'Not Working',
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * Verify that submitted Education & Profession masters are active.
+     */
+    public function assertValidEducationProfessionSelection(
+        int $educationId,
+        int $occupationId,
+        ?int $annualIncomeId
+    ): void {
+        $education = $this->educationModel
+            ->where('id', $educationId)
+            ->where('is_active', true)
+            ->first();
+
+        if (!is_array($education)) {
+            throw new \DomainException(
+                'Please select a valid highest education.'
+            );
+        }
+
+        $occupation = $this->occupationModel
+            ->where('id', $occupationId)
+            ->where('is_active', true)
+            ->first();
+
+        if (!is_array($occupation)) {
+            throw new \DomainException(
+                'Please select a valid occupation.'
+            );
+        }
+
+        if ($annualIncomeId === null) {
+            return;
+        }
+
+        $annualIncome = $this->annualIncomeModel
+            ->where('id', $annualIncomeId)
+            ->where('is_active', true)
+            ->first();
+
+        if (!is_array($annualIncome)) {
+            throw new \DomainException(
+                'Please select a valid annual income.'
             );
         }
     }

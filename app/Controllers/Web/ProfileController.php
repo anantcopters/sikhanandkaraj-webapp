@@ -8,6 +8,8 @@ use App\Controllers\BaseController;
 use App\Services\Dashboard\MemberDashboardDataService;
 use App\Services\Profile\BasicDetailsService;
 use App\Validation\Profile\BasicDetailsValidation;
+use App\Services\Profile\EducationProfessionService;
+use App\Validation\Profile\EducationProfessionValidation;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
@@ -79,6 +81,15 @@ final class ProfileController extends BaseController
             $userId
         );
 
+        /** @var EducationProfessionService $educationService */
+        $educationService = service(
+            'educationProfessionService'
+        );
+
+        $educationProfile = $educationService->getForUser(
+            $userId
+        );
+
         /*
          * Reuse the existing dashboard service instead of creating
          * another profile-completion calculation.
@@ -115,10 +126,37 @@ final class ProfileController extends BaseController
          * Until additional sections are implemented,
          * continue profile always opens Basic Details.
          */
-        $nextProfileSection = [
-            'title' => 'Basic Details',
-            'route' => 'web.profile.basic-details',
-        ];
+        $basicDetailsComplete = (
+            (int) (
+                $basicProfile['completion']['percentage'] ?? 0
+            )
+        ) === 100;
+
+        $educationProfessionComplete = (
+            (int) (
+                $educationProfile['completion']['percentage'] ?? 0
+            )
+        ) === 100;
+
+        if (!$basicDetailsComplete) {
+            $nextProfileSection = [
+                'title' => 'Basic Details',
+                'route' => 'web.profile.basic-details',
+            ];
+        } elseif (!$educationProfessionComplete) {
+            $nextProfileSection = [
+                'title' => 'Education & Profession',
+                'route' => 'web.profile.education-profession',
+            ];
+        } else {
+            /*
+     * Point this to the next implemented profile section later.
+     */
+            $nextProfileSection = [
+                'title' => 'Education & Profession',
+                'route' => 'web.profile.education-profession',
+            ];
+        }
 
         return view(
             'Pages/Profile/Edit',
@@ -135,6 +173,12 @@ final class ProfileController extends BaseController
 
                 'profileCompletion' =>
                 $profileCompletion,
+
+                'educationProfession' =>
+                $educationProfile['educationProfession'],
+
+                'educationProfessionCompletion' =>
+                $educationProfile['completion'],
 
                 'profileImage' =>
                 $profileImage,
@@ -447,13 +491,6 @@ final class ProfileController extends BaseController
                 'icon' => 'ri-image-line',
             ],
             [
-                'key' => 'education-profession',
-                'title' => 'Education & Profession',
-                'description' =>
-                'Share your education, work and career details.',
-                'icon' => 'ri-graduation-cap-line',
-            ],
-            [
                 'key' => 'family',
                 'title' => 'Family Details',
                 'description' =>
@@ -489,5 +526,212 @@ final class ProfileController extends BaseController
                 'icon' => 'ri-heart-search-line',
             ],
         ];
+    }
+
+    /**
+     * Display the Education & Profession add/edit page.
+     */
+    public function educationProfession(): string
+    {
+        $userId = $this->authenticatedUserId();
+
+        /** @var EducationProfessionService $service */
+        $service = service(
+            'educationProfessionService'
+        );
+
+        $profile = $service->getForUser($userId);
+
+        return view(
+            'Pages/Profile/Sections/EducationProfession/Edit',
+            [
+                'pageTitle' => 'Education & Profession',
+
+                'user' => $profile['user'],
+
+                'educationProfession' =>
+                $profile['educationProfession'],
+
+                'educationProfessionCompletion' =>
+                $profile['completion'],
+
+                'masterData' =>
+                $profile['masterData'],
+
+                'validationErrors' =>
+                session('validationErrors') ?? [],
+
+                'formAlert' =>
+                session('formAlert'),
+            ]
+        );
+    }
+
+    /**
+     * Save the Education & Profession profile section.
+     */
+    public function updateEducationProfession(): RedirectResponse
+    {
+        $userId = $this->authenticatedUserId();
+
+        $input = $this->educationProfessionInput();
+
+        $validation = service('validation');
+
+        $validation->setRules(
+            EducationProfessionValidation::rules()
+        );
+
+        if (!$validation->run($input)) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.profile.education-profession'
+                    )
+                )
+                ->withInput()
+                ->with(
+                    'validationErrors',
+                    $validation->getErrors()
+                );
+        }
+
+        $validatedData = $validation->getValidated();
+
+        try {
+            /** @var EducationProfessionService $service */
+            $service = service(
+                'educationProfessionService'
+            );
+
+            $service->save(
+                $userId,
+                $validatedData
+            );
+
+            return redirect()
+                ->to(
+                    route_to('web.profile.edit')
+                        . '#education-profession'
+                )
+                ->with('formAlert', [
+                    'type' => 'success',
+                    'title' =>
+                    'Education and profession updated',
+                    'message' =>
+                    'Your education and professional '
+                        . 'information has been saved.',
+                ]);
+        } catch (DomainException $exception) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.profile.education-profession'
+                    )
+                )
+                ->withInput()
+                ->with('formAlert', [
+                    'type' => 'danger',
+                    'title' => 'Details not saved',
+                    'message' => $exception->getMessage(),
+                ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Education and profession update failed '
+                    . 'for user {userId}: {message}',
+                [
+                    'userId' => $userId,
+                    'message' => $exception->getMessage(),
+                ]
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.profile.education-profession'
+                    )
+                )
+                ->withInput()
+                ->with('formAlert', [
+                    'type' => 'danger',
+                    'title' => 'Details not saved',
+                    'message' =>
+                    'We could not save your details. '
+                        . 'Please try again.',
+                ]);
+        }
+    }
+
+    /**
+     * Read and normalize expected Education & Profession fields.
+     *
+     * @return array<string, string>
+     */
+    private function educationProfessionInput(): array
+    {
+        return [
+            'highest_education_id' => trim(
+                (string) $this->request->getPost(
+                    'highest_education_id'
+                )
+            ),
+
+            'education_detail' => $this->normalizeProfileText(
+                $this->request->getPost(
+                    'education_detail'
+                )
+            ),
+
+            'college_institution' => $this->normalizeProfileText(
+                $this->request->getPost(
+                    'college_institution'
+                )
+            ),
+
+            'employed_in' => strtoupper(
+                trim(
+                    (string) $this->request->getPost(
+                        'employed_in'
+                    )
+                )
+            ),
+
+            'occupation_id' => trim(
+                (string) $this->request->getPost(
+                    'occupation_id'
+                )
+            ),
+
+            'occupation_detail' => $this->normalizeProfileText(
+                $this->request->getPost(
+                    'occupation_detail'
+                )
+            ),
+
+            'organization' => $this->normalizeProfileText(
+                $this->request->getPost(
+                    'organization'
+                )
+            ),
+
+            'annual_income_id' => trim(
+                (string) $this->request->getPost(
+                    'annual_income_id'
+                )
+            ),
+        ];
+    }
+
+    /**
+     * Normalize profile text while preserving safe readable spacing.
+     */
+    private function normalizeProfileText(mixed $value): string
+    {
+        return preg_replace(
+            '/\s+/u',
+            ' ',
+            trim((string) $value)
+        ) ?? '';
     }
 }

@@ -129,6 +129,27 @@ $routes->group('', [
         ]
     );
 
+    /*
+    * Education & Profession.
+    */
+    $routes->get(
+        'profile/education-profession',
+        'ProfileController::educationProfession',
+        [
+            'as' => 'web.profile.education-profession',
+            'filter' => 'webAuth',
+        ]
+    );
+
+    $routes->post(
+        'profile/education-profession',
+        'ProfileController::updateEducationProfession',
+        [
+            'as' => 'web.profile.education-profession.update',
+            'filter' => 'webAuth',
+        ]
+    );
+
     $routes->get(
         'account/settings',
         'AccountSettingsController::index',
