@@ -6,6 +6,7 @@ namespace App\Services\Profile;
 
 use App\Models\MemberEducationProfessionDetailModel;
 use App\Models\UserModel;
+use CodeIgniter\Database\BaseConnection;
 use DomainException;
 use RuntimeException;
 use Throwable;
@@ -15,6 +16,15 @@ use Throwable;
  */
 final class EducationProfessionService
 {
+    /**
+     * Supported employment types.
+     *
+     * These values must remain synchronized with:
+     *
+     * 1. EducationProfessionValidation
+     * 2. The database CHECK constraint
+     * 3. ProfileMasterDataService employment options
+     */
     private const EMPLOYMENT_TYPES = [
         'GOVERNMENT_PSU',
         'PRIVATE',
@@ -27,11 +37,12 @@ final class EducationProfessionService
     public function __construct(
         private readonly UserModel $userModel,
         private readonly MemberEducationProfessionDetailModel $detailModel,
-        private readonly ProfileMasterDataService $masterDataService
+        private readonly ProfileMasterDataService $masterDataService,
+        private readonly BaseConnection $database
     ) {}
 
     /**
-     * Return data required to display the section.
+     * Return all data required to display this profile section.
      *
      * @return array{
      *     user: array<string, mixed>,
@@ -61,12 +72,10 @@ final class EducationProfessionService
 
             'educationProfession' => $details,
 
-            'masterData' =>
-            $this->masterDataService
+            'masterData' => $this->masterDataService
                 ->educationProfessionOptions(),
 
-            'completion' =>
-            $this->calculateCompletion($details),
+            'completion' => $this->calculateCompletion($details),
         ];
     }
 
@@ -79,8 +88,16 @@ final class EducationProfessionService
         int $userId,
         array $data
     ): void {
+        $user = $this->userModel->find($userId);
+
+        if (!is_array($user)) {
+            throw new DomainException(
+                'The member account could not be found.'
+            );
+        }
+
         $employedIn = strtoupper(
-            trim((string) $data['employed_in'])
+            trim((string) ($data['employed_in'] ?? ''))
         );
 
         if (!in_array(
@@ -93,65 +110,70 @@ final class EducationProfessionService
             );
         }
 
-        $annualIncomeId = $this->nullableInteger(
-            $data['annual_income_id'] ?? null
+        $highestEducationId = $this->requiredInteger(
+            $data['highest_education_id'] ?? null,
+            'Please select your highest education.'
         );
 
+        $occupationId = $this->requiredInteger(
+            $data['occupation_id'] ?? null,
+            'Please select your occupation.'
+        );
+
+        $annualIncomeId = $this->nullableInteger(
+            $data['annual_income_id'] ?? null,
+            'Please select a valid annual income.'
+        );
+
+        /*
+         * Ensure selected master records exist and are active.
+         * This prevents inactive or manually submitted IDs
+         * from being stored.
+         */
         $this->masterDataService
             ->assertValidEducationProfessionSelection(
-                (int) $data['highest_education_id'],
-                (int) $data['occupation_id'],
+                $highestEducationId,
+                $occupationId,
                 $annualIncomeId
             );
 
-        $database = db_connect();
+        $profileData = [
+            'user_id' => $userId,
 
-        $database->transException(true);
-        $database->transStart();
+            'highest_education_id' =>
+            $highestEducationId,
+
+            'education_detail' =>
+            $this->nullableText(
+                $data['education_detail'] ?? null
+            ),
+
+            'college_institution' =>
+            $this->nullableText(
+                $data['college_institution'] ?? null
+            ),
+
+            'employed_in' => $employedIn,
+
+            'occupation_id' => $occupationId,
+
+            'occupation_detail' =>
+            $this->nullableText(
+                $data['occupation_detail'] ?? null
+            ),
+
+            'organization' =>
+            $this->nullableText(
+                $data['organization'] ?? null
+            ),
+
+            'annual_income_id' => $annualIncomeId,
+        ];
+
+        $this->database->transException(true);
+        $this->database->transStart();
 
         try {
-            $user = $this->userModel->find($userId);
-
-            if (!is_array($user)) {
-                throw new DomainException(
-                    'The member account could not be found.'
-                );
-            }
-
-            $profileData = [
-                'user_id' => $userId,
-
-                'highest_education_id' =>
-                (int) $data['highest_education_id'],
-
-                'education_detail' =>
-                $this->nullableText(
-                    $data['education_detail'] ?? null
-                ),
-
-                'college_institution' =>
-                $this->nullableText(
-                    $data['college_institution'] ?? null
-                ),
-
-                'employed_in' => $employedIn,
-
-                'occupation_id' =>
-                (int) $data['occupation_id'],
-
-                'occupation_detail' =>
-                $this->nullableText(
-                    $data['occupation_detail'] ?? null
-                ),
-
-                'organization' =>
-                $this->nullableText(
-                    $data['organization'] ?? null
-                ),
-
-                'annual_income_id' => $annualIncomeId,
-            ];
-
             $existing = $this->detailModel
                 ->findForUser($userId);
 
@@ -174,9 +196,20 @@ final class EducationProfessionService
                 );
             }
 
-            $database->transComplete();
+            $this->database->transComplete();
+
+            if ($this->database->transStatus() === false) {
+                throw new RuntimeException(
+                    'Education and profession details '
+                        . 'could not be saved.'
+                );
+            }
         } catch (Throwable $exception) {
-            $database->transRollback();
+            /*
+             * transRollback() is safe here even when CI4 has already
+             * marked the transaction as failed.
+             */
+            $this->database->transRollback();
 
             throw $exception;
         }
@@ -199,10 +232,12 @@ final class EducationProfessionService
     }
 
     /**
-     * Return a positive integer or NULL.
+     * Convert a required numeric master ID.
      */
-    private function nullableInteger(mixed $value): ?int
-    {
+    private function requiredInteger(
+        mixed $value,
+        string $errorMessage
+    ): int {
         $normalized = trim((string) $value);
 
         if (
@@ -210,17 +245,50 @@ final class EducationProfessionService
             || !ctype_digit($normalized)
             || (int) $normalized <= 0
         ) {
-            return null;
+            throw new DomainException($errorMessage);
         }
 
         return (int) $normalized;
     }
 
     /**
-     * Calculate completion for this section.
+     * Convert an optional numeric master ID.
      *
-     * Optional fields contribute to profile richness and therefore
-     * are included in section completion.
+     * Empty value becomes NULL. Invalid non-empty input throws
+     * an exception rather than silently becoming NULL.
+     */
+    private function nullableInteger(
+        mixed $value,
+        string $errorMessage
+    ): ?int {
+        $normalized = trim((string) $value);
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (
+            !ctype_digit($normalized)
+            || (int) $normalized <= 0
+        ) {
+            throw new DomainException($errorMessage);
+        }
+
+        return (int) $normalized;
+    }
+
+    /**
+     * Calculate whether this section is complete.
+     *
+     * Only mandatory fields determine section completion.
+     * Optional fields improve profile richness but must not prevent
+     * the member from completing the section.
+     *
+     * Mandatory fields:
+     *
+     * 1. Highest education
+     * 2. Employed in
+     * 3. Occupation
      *
      * @param array<string, mixed>|null $details
      *
@@ -233,25 +301,22 @@ final class EducationProfessionService
     private function calculateCompletion(
         ?array $details
     ): array {
-        $values = [
+        $requiredValues = [
             $details['highest_education_id'] ?? null,
-            $details['education_detail'] ?? null,
-            $details['college_institution'] ?? null,
             $details['employed_in'] ?? null,
             $details['occupation_id'] ?? null,
-            $details['occupation_detail'] ?? null,
-            $details['organization'] ?? null,
-            $details['annual_income_id'] ?? null,
         ];
 
-        $completed = count(array_filter(
-            $values,
-            static fn(mixed $value): bool =>
-            $value !== null
-                && trim((string) $value) !== ''
-        ));
+        $completed = count(
+            array_filter(
+                $requiredValues,
+                static fn(mixed $value): bool =>
+                $value !== null
+                    && trim((string) $value) !== ''
+            )
+        );
 
-        $total = count($values);
+        $total = count($requiredValues);
 
         return [
             'completed' => $completed,

@@ -112,32 +112,53 @@ if (!in_array(
                 </div>
             </div>
 
-            <?php if ($percentage < 100): ?>
+            <?php
+            $nextSection = is_array(
+                $nextProfileSection ?? null
+            )
+                ? $nextProfileSection
+                : null;
+            ?>
+
+            <?php if ($nextSection !== null): ?>
                 <a
                     href="<?= url_to(
-                                $nextProfileSection['route']
+                                (string) $nextSection['route']
                             ) ?>"
-                    class="btn btn-outline-primary
-        d-inline-flex
-        align-items-center
-        justify-content-center
-        gap-2">
+                    class="btn btn-primary
+            d-inline-flex align-items-center
+            justify-content-center gap-1">
+
+                    Continue with
+                    <?= esc(
+                        (string) $nextSection['title']
+                    ) ?>
+
                     <i
                         class="ri-arrow-right-line"
                         aria-hidden="true"></i>
-
-                    Continue Profile
                 </a>
             <?php else: ?>
-                <span
-                    class="badge bg-success-subtle
-                                text-success fs-13 px-3 py-2">
+                <div
+                    class="alert alert-success
+            d-flex align-items-start gap-2 mb-0"
+                    role="status">
+
                     <i
-                        class="ri-checkbox-circle-line me-1"
+                        class="ri-checkbox-circle-line fs-20"
                         aria-hidden="true"></i>
 
-                    Profile completed
-                </span>
+                    <div>
+                        <strong class="d-block">
+                            Current sections completed
+                        </strong>
+
+                        <span class="fs-13">
+                            You have completed all profile sections
+                            currently available.
+                        </span>
+                    </div>
+                </div>
             <?php endif; ?>
         </div>
 

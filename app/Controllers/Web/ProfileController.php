@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
-use App\Services\Dashboard\MemberDashboardDataService;
 use App\Services\Profile\BasicDetailsService;
-use App\Validation\Profile\BasicDetailsValidation;
 use App\Services\Profile\EducationProfessionService;
+use App\Services\Profile\ProfileCompletionService;
+use App\Validation\Profile\BasicDetailsValidation;
 use App\Validation\Profile\EducationProfessionValidation;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
@@ -90,29 +90,26 @@ final class ProfileController extends BaseController
             $userId
         );
 
-        /*
-         * Reuse the existing dashboard service instead of creating
-         * another profile-completion calculation.
-         */
-        $dashboardData = (
-            new MemberDashboardDataService()
-        )->getDashboardData($userId);
-
-        $profileCompletion = is_array(
-            $dashboardData['profileCompletion'] ?? null
-        )
-            ? $dashboardData['profileCompletion']
-            : [
-                'percentage' => 0,
-                'completedSteps' => 0,
-                'totalSteps' => 0,
-            ];
-
-        $profileImage = trim(
-            (string) (
-                $dashboardData['profileImage'] ?? ''
-            )
+        /** @var ProfileCompletionService $completionService */
+        $completionService = service(
+            'profileCompletionService'
         );
+
+        /*
+     * Calculate overall completion only from sections which are
+     * currently implemented and usable.
+     */
+        $profileCompletion = $completionService->calculate(
+            $basicProfile['completion'],
+            $educationProfile['completion']
+        );
+
+        /*
+     * Profile photo is not implemented in this flow yet.
+     * Replace this value with the photo service result once the
+     * profile-photo module is connected.
+     */
+        $profileImage = '';
 
         $overallProfileSummary = $this
             ->buildProfileSummary(
@@ -120,24 +117,26 @@ final class ProfileController extends BaseController
                 $profileImage
             );
 
-        /**
-         * Next profile section.
-         *
-         * Until additional sections are implemented,
-         * continue profile always opens Basic Details.
-         */
         $basicDetailsComplete = (
             (int) (
-                $basicProfile['completion']['percentage'] ?? 0
+                $basicProfile['completion']['percentage']
+                ?? 0
             )
         ) === 100;
 
         $educationProfessionComplete = (
             (int) (
-                $educationProfile['completion']['percentage'] ?? 0
+                $educationProfile['completion']['percentage']
+                ?? 0
             )
         ) === 100;
 
+        /*
+     * Determine where the Continue Profile button should send
+     * the user.
+     *
+     * NULL means all currently implemented sections are complete.
+     */
         if (!$basicDetailsComplete) {
             $nextProfileSection = [
                 'title' => 'Basic Details',
@@ -146,16 +145,11 @@ final class ProfileController extends BaseController
         } elseif (!$educationProfessionComplete) {
             $nextProfileSection = [
                 'title' => 'Education & Profession',
-                'route' => 'web.profile.education-profession',
+                'route' =>
+                'web.profile.education-profession',
             ];
         } else {
-            /*
-     * Point this to the next implemented profile section later.
-     */
-            $nextProfileSection = [
-                'title' => 'Education & Profession',
-                'route' => 'web.profile.education-profession',
-            ];
+            $nextProfileSection = null;
         }
 
         return view(
@@ -171,14 +165,14 @@ final class ProfileController extends BaseController
                 'basicDetailsCompletion' =>
                 $basicProfile['completion'],
 
-                'profileCompletion' =>
-                $profileCompletion,
-
                 'educationProfession' =>
                 $educationProfile['educationProfession'],
 
                 'educationProfessionCompletion' =>
                 $educationProfile['completion'],
+
+                'profileCompletion' =>
+                $profileCompletion,
 
                 'profileImage' =>
                 $profileImage,
@@ -192,7 +186,8 @@ final class ProfileController extends BaseController
                 'upcomingSections' =>
                 $this->upcomingProfileSections(),
 
-                'nextProfileSection' => $nextProfileSection,
+                'nextProfileSection' =>
+                $nextProfileSection,
             ]
         );
     }
@@ -563,6 +558,10 @@ final class ProfileController extends BaseController
 
                 'formAlert' =>
                 session('formAlert'),
+
+                'pageScripts' => [
+                    'assets/js/pages/profile-education-profession.js',
+                ],
             ]
         );
     }

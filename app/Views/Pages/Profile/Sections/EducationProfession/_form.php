@@ -365,6 +365,10 @@ $annualIncomeHasError = isset(
                     $occupationId = (string) (
                         $occupation['id'] ?? ''
                     );
+
+                    $occupationCode = (string) (
+                        $occupation['code'] ?? ''
+                    );
                     ?>
 
                     <option
@@ -372,6 +376,10 @@ $annualIncomeHasError = isset(
                                     $occupationId,
                                     'attr'
                                 ) ?>"
+                        data-code="<?= esc(
+                                        $occupationCode,
+                                        'attr'
+                                    ) ?>"
                         <?= $isSelected(
                             'occupation_id',
                             $occupationId,

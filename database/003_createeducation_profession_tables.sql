@@ -265,6 +265,30 @@ SET
     updated_at = CURRENT_TIMESTAMP;
 
 
+INSERT INTO master_occupations (
+    code,
+    name,
+    display_order,
+    is_active,
+    created_at,
+    updated_at
+)
+VALUES (
+    'NOT_APPLICABLE',
+    'Not Applicable',
+    60,
+    TRUE,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+)
+ON CONFLICT (code) DO UPDATE
+SET
+    name = EXCLUDED.name,
+    display_order = EXCLUDED.display_order,
+    is_active = TRUE,
+    updated_at = CURRENT_TIMESTAMP;
+
+
 -- ============================================================
 -- Seed: Annual Income
 -- 1 lakh = 100000 INR

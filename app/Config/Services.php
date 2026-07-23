@@ -36,6 +36,7 @@ use App\Models\MasterEducationModel;
 use App\Models\MasterOccupationModel;
 use App\Models\MemberEducationProfessionDetailModel;
 use App\Services\Profile\EducationProfessionService;
+use App\Services\Profile\ProfileCompletionService;
 
 
 /**
@@ -242,9 +243,11 @@ class Services extends BaseService
             );
         }
 
+        $database = db_connect();
+
         return new BasicDetailsService(
-            new UserModel(),
-            new MemberBasicDetailModel(),
+            new UserModel($database),
+            new MemberBasicDetailModel($database),
             static::profileMasterDataService(false)
         );
     }
@@ -261,16 +264,18 @@ class Services extends BaseService
             );
         }
 
+        $database = db_connect();
+
         return new ProfileMasterDataService(
-            new MasterMaritalStatusModel(),
-            new MasterHeightModel(),
-            new MasterMotherTongueModel(),
-            new MasterCountryModel(),
-            new MasterStateModel(),
-            new MasterCityModel(),
-            new MasterEducationModel(),
-            new MasterOccupationModel(),
-            new MasterAnnualIncomeModel()
+            new MasterMaritalStatusModel($database),
+            new MasterHeightModel($database),
+            new MasterMotherTongueModel($database),
+            new MasterCountryModel($database),
+            new MasterStateModel($database),
+            new MasterCityModel($database),
+            new MasterEducationModel($database),
+            new MasterOccupationModel($database),
+            new MasterAnnualIncomeModel($database)
         );
     }
 
@@ -286,10 +291,30 @@ class Services extends BaseService
             );
         }
 
+        $database = db_connect();
+
         return new EducationProfessionService(
-            new UserModel(),
-            new MemberEducationProfessionDetailModel(),
-            static::profileMasterDataService(false)
+            new UserModel($database),
+            new MemberEducationProfessionDetailModel(
+                $database
+            ),
+            static::profileMasterDataService(false),
+            $database
         );
+    }
+
+    /**
+     * Return the overall profile completion service.
+     */
+    public static function profileCompletionService(
+        bool $getShared = true
+    ): ProfileCompletionService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'profileCompletionService'
+            );
+        }
+
+        return new ProfileCompletionService();
     }
 }

@@ -5,10 +5,12 @@ declare(strict_types=1);
 /**
  * Member profile completion journey.
  *
- * @var array<string, mixed>      $user
- * @var array<string, mixed>|null $basicDetails
- * @var array<string, int>        $basicDetailsCompletion
- * @var array<string, mixed>      $overallProfileSummary
+ * @var array<string, mixed>       $user
+ * @var array<string, mixed>|null  $basicDetails
+ * @var array<string, int>         $basicDetailsCompletion
+ * @var array<string, mixed>|null  $educationProfession
+ * @var array<string, int>         $educationProfessionCompletion
+ * @var array<string, mixed>       $overallProfileSummary
  * @var array<string, string>|null $formAlert
  * @var array<int, array<string, string>> $upcomingSections
  */
@@ -30,23 +32,29 @@ $this->section('content');
                 'formAlert' => $formAlert ?? null,
             ]
         ) ?>
+
         <div class="row g-4 align-items-start">
             <div class="col-12 col-lg-4">
                 <?= view(
                     'Pages/Profile/Partials/_profile_sidebar',
                     [
                         'user' => $user ?? [],
+
                         'overallProfileSummary' =>
                         $overallProfileSummary ?? [],
                     ]
                 ) ?>
             </div>
+
             <div class="col-12 col-lg-8">
                 <?= view(
                     'Pages/Profile/Partials/_completion_summary',
                     [
                         'overallProfileSummary' =>
                         $overallProfileSummary ?? [],
+
+                        'nextProfileSection' =>
+                        $nextProfileSection ?? null,
                     ]
                 ) ?>
 
@@ -64,9 +72,25 @@ $this->section('content');
                     'Pages/Profile/Sections/BasicDetails/_card',
                     [
                         'user' => $user ?? [],
-                        'basicDetails' => $basicDetails ?? [],
+
+                        'basicDetails' =>
+                        $basicDetails ?? [],
+
                         'basicDetailsCompletion' =>
                         $basicDetailsCompletion ?? [],
+                    ]
+                ) ?>
+
+                <?= view(
+                    'Pages/Profile/Sections/'
+                        . 'EducationProfession/_card',
+                    [
+                        'educationProfession' =>
+                        $educationProfession ?? [],
+
+                        'educationProfessionCompletion' =>
+                        $educationProfessionCompletion
+                            ?? [],
                     ]
                 ) ?>
 
@@ -77,9 +101,9 @@ $this->section('content');
                         $upcomingSections ?? [],
                     ]
                 ) ?>
-
             </div>
         </div>
+    </div>
 </section>
 
 <?php $this->endSection(); ?>
