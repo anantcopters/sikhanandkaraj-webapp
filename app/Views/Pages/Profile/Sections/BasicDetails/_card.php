@@ -118,18 +118,36 @@ $location = implode(
 ?>
 
 <div
-    class="card border shadow-none mb-3"
+    class="card border shadow-none mb-3
+        <?= $percentage === 100
+            ? 'ribbon-box right'
+            : '' ?>"
     id="basic-details">
-    <div class="card-body p-3 p-md-4">
+
+    <div
+        class="card-body p-3 p-md-4
+            <?= $percentage === 100
+                ? 'pt-5'
+                : '' ?>">
+
+        <?php if ($percentage === 100): ?>
+            <div
+                class="ribbon-two ribbon-two-success"
+                aria-label="Basic Details completed">
+                <span>Completed</span>
+            </div>
+        <?php endif; ?>
+
         <div
             class="d-flex flex-column flex-md-row
                 align-items-md-start
                 justify-content-between gap-3">
-            <div
-                class="d-flex align-items-start gap-3">
+
+            <div class="d-flex align-items-start gap-3">
                 <div
                     class="avatar-sm flex-shrink-0"
                     aria-hidden="true">
+
                     <span
                         class="avatar-title rounded-circle
                             bg-primary-subtle
@@ -142,28 +160,13 @@ $location = implode(
                     <div
                         class="d-flex flex-wrap
                             align-items-center gap-2 mb-1">
-                        <h3
-                            class="fs-16 fw-semibold mb-0">
+
+                        <h3 class="fs-16 fw-semibold mb-0">
                             Basic Details
                         </h3>
 
-                        <?php if (
-                            $percentage === 100
-                        ): ?>
-                            <!-- <span
-                                class="badge bg-success-subtle
-                                            text-success p-2">
-                                <i
-                                    class="ri-checkbox-circle-line
-                                                me-1"
-                                    aria-hidden="true"></i>
-
-                                Complete
-                            </span> -->
-                            <i class="ri-checkbox-circle-line text-success fs-18 float-end align-middle"></i>
-                        <?php else: ?>
-                            <span
-                                class="badge bg-primary p-2">
+                        <?php if ($percentage < 100): ?>
+                            <span class="badge bg-primary p-2">
                                 <?= esc(
                                     (string) $remainingFields
                                 ) ?>
@@ -174,6 +177,7 @@ $location = implode(
                                 remaining
                             </span>
                         <?php endif; ?>
+
                     </div>
 
                     <p class="text-muted fs-13 mb-0">
@@ -188,8 +192,8 @@ $location = implode(
                             'web.profile.basic-details'
                         ) ?>"
                 class="btn btn-outline-primary
-        d-inline-flex align-items-center
-        justify-content-center gap-1">
+                    d-inline-flex align-items-center
+                    justify-content-center gap-1">
 
                 <i
                     class="ri-edit-line"
