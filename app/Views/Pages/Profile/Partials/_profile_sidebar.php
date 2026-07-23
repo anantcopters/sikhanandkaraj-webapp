@@ -41,7 +41,7 @@ $isIdentityVerified = (bool) (
 
     <!-- Profile photo -->
     <section
-        class="card border shadow-none mb-0"
+        class="card border border-danger border-opacity-25 shadow-none mb-0"
         aria-labelledby="profilePhotoTitle">
 
         <div class="card-body p-3">
@@ -123,7 +123,7 @@ $isIdentityVerified = (bool) (
 
     <!-- Kundali details -->
     <section
-        class="card border shadow-none mb-0"
+        class="card border border-danger border-opacity-25 shadow-none mb-0"
         aria-labelledby="kundaliDetailsTitle">
 
         <div class="card-body p-3">
@@ -195,7 +195,7 @@ $isIdentityVerified = (bool) (
 
     <!-- Trust and verification -->
     <section
-        class="card border shadow-none mb-0"
+        class="card border border-danger border-opacity-25 shadow-none mb-0"
         aria-labelledby="trustVerificationTitle">
 
         <div class="card-body p-3">

@@ -194,7 +194,7 @@ $matchSections = [
         <div class="row g-4">
             <aside class="col-12 col-lg-4 col-xl-3">
                 <div class="dashboard-sidebar">
-                    <div class="card border-0 shadow-sm">
+                    <div class="card border border-danger border-opacity-25 shadow-sm">
                         <div class="card-body p-4 pb-1 text-center">
 
                             <?php if ($resolvedProfileImage !== ''): ?>
@@ -370,7 +370,7 @@ $matchSections = [
 
             <div class="col-12 col-lg-8 col-xl-9">
 
-                <section class="card border-0 shadow-sm mb-4">
+                <section class="card border border-danger border-opacity-25 shadow-sm mb-4">
                     <div class="card-body p-4">
                         <div
                             class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2 mb-3">
@@ -473,7 +473,7 @@ $matchSections = [
                                                         $shortcutUrl,
                                                         'attr'
                                                     ) ?>"
-                                            class="card h-80 border text-decoration-none mb-1 <?= $shortcut['class'] ?>">
+                                            class="card h-80 border border-danger border-opacity-25 text-decoration-none mb-1 <?= $shortcut['class'] ?>">
 
                                             <div class="card-body p-3">
                                                 <div
@@ -530,7 +530,7 @@ $matchSections = [
                         : [];
                     ?>
 
-                    <section class="card border-0 shadow-sm mb-4">
+                    <section class="card border border-danger border-opacity-25 shadow-sm mb-4">
                         <div class="card-body p-4">
                             <div
                                 class="d-flex align-items-start justify-content-between gap-3 mb-3">
@@ -603,7 +603,7 @@ $matchSections = [
                                         ?>
 
                                         <article
-                                            class="card dashboard-profile-card border">
+                                            class="card dashboard-profile-card border border-danger border-opacity-25">
 
                                             <div class="card-body p-3">
                                                 <div

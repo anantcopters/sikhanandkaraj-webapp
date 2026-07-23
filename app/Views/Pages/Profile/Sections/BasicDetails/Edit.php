@@ -55,7 +55,7 @@ $this->section('content');
                     </div>
                 </div>
 
-                <div class="card border shadow-none mb-0">
+                <div class="card border border-danger border-opacity-25 shadow-none mb-0">
                     <div class="card-body p-3 p-md-4">
 
                         <?= view(

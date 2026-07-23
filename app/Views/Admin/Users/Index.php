@@ -82,7 +82,7 @@ $this->section('content');
         ]
     ) ?>
 
-    <div class="card">
+    <div class="card border-danger border-opacity-25">
         <div class="card-body p-0">
 
             <div class="table-responsive">

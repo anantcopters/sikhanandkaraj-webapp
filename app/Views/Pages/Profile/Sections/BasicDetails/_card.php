@@ -118,7 +118,7 @@ $location = implode(
 ?>
 
 <div
-    class="card border shadow-none mb-3
+    class="card border border-danger border-opacity-25 shadow-none mb-3
         <?= $percentage === 100
             ? 'ribbon-box right'
             : '' ?>"

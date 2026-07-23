@@ -16,7 +16,7 @@ $sections = is_array($upcomingSections ?? null)
         <?php foreach ($sections as $section): ?>
             <div class="col-12 col-md-6">
                 <article
-                    class="card border shadow-none h-100">
+                    class="card border border-danger border-opacity-25 shadow-none h-100">
                     <div class="card-body p-3">
                         <div
                             class="d-flex align-items-start

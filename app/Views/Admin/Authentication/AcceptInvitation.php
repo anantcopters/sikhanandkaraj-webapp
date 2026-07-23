@@ -29,7 +29,7 @@ $this->section('content');
                 <div
                     class="col-md-8 col-lg-6 col-xl-5">
 
-                    <div class="card mt-4">
+                    <div class="card border-danger border-opacity-25 mt-4">
                         <div class="card-body p-4">
 
                             <div class="text-center mt-2">

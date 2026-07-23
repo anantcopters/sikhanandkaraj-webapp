@@ -64,7 +64,7 @@ if (!in_array(
 ?>
 
 <section
-    class="card border-0 shadow-sm mb-4"
+    class="card border border-danger border-opacity-25 shadow-sm mb-4"
     aria-labelledby="profileCompletionTitle">
     <div class="card-body p-3 p-md-4">
         <div

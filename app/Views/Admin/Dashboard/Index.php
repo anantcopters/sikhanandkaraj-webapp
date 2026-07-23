@@ -140,7 +140,7 @@ $this->section('content');
             </div>
 
             <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card card-animate h-100">
+                <div class="card border-danger border-opacity-25 card-animate h-100">
                     <div class="card-body">
                         <div
                             class="d-flex align-items-center
@@ -175,7 +175,7 @@ $this->section('content');
             </div>
 
             <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card card-animate h-100">
+                <div class="card border-danger border-opacity-25 card-animate h-100">
                     <div class="card-body">
                         <div
                             class="d-flex align-items-center
@@ -210,7 +210,7 @@ $this->section('content');
             </div>
 
             <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card card-animate h-100">
+                <div class="card border-danger border-opacity-25 card-animate h-100">
                     <div class="card-body">
                         <div
                             class="d-flex align-items-center
@@ -246,7 +246,7 @@ $this->section('content');
 
         </div>
     <?php else: ?>
-        <div class="card">
+        <div class="card border-danger border-opacity-25">
             <div class="card-body text-center py-5">
                 <div class="avatar-md mx-auto mb-3">
                     <div
@@ -270,7 +270,7 @@ $this->section('content');
         </div>
     <?php endif; ?>
 
-    <div class="card">
+    <div class="card border-danger border-opacity-25">
 
         <div
             class="card-header
