@@ -232,7 +232,7 @@ $displayValue = static function (
                             <strong
                                 class="fw-medium text-break">
                                 <?= esc($displayValue(
-                                    $details['education_name'] ?? null
+                                    $details['highest_education_name'] ?? null
                                 )) ?>
                             </strong>
                         </div>
@@ -351,7 +351,7 @@ $displayValue = static function (
                             <strong
                                 class="fw-medium text-break">
                                 <?= esc($displayValue(
-                                    $details['annual_income_name'] ?? null
+                                    $details['annual_income_display_name'] ?? null
                                 )) ?>
                             </strong>
                         </div>

@@ -314,27 +314,5 @@ if (!in_array(
             </div>
 
         </div>
-
-        <?php if (!$hasProfilePhoto): ?>
-            <div
-                class="alert alert-warning
-                            d-flex align-items-start gap-2 mt-3 mb-0"
-                role="alert">
-                <i
-                    class="ri-image-add-line fs-20"
-                    aria-hidden="true"></i>
-
-                <div>
-                    <strong class="d-block mb-1">
-                        Add a profile photo
-                    </strong>
-
-                    <span class="fs-13">
-                        Profiles with a clear photo usually
-                        receive more attention from members.
-                    </span>
-                </div>
-            </div>
-        <?php endif; ?>
     </div>
 </section>

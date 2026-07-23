@@ -149,7 +149,11 @@ $annualIncomeHasError = isset(
                 class="form-select <?= $educationHasError
                                         ? 'is-invalid'
                                         : '' ?>"
+                <?= $educationHasError
+                    ? 'aria-invalid="true"'
+                    : '' ?>
                 aria-describedby="highestEducationError"
+                data-choice
                 data-choice-position="bottom"
                 data-choice-search-placeholder="Search education"
                 data-error-required="Please select your highest education."
@@ -293,6 +297,10 @@ $annualIncomeHasError = isset(
                 class="form-select <?= $employedInHasError
                                         ? 'is-invalid'
                                         : '' ?>"
+                <?= $employedInHasError
+                    ? 'aria-invalid="true"'
+                    : '' ?>
+                data-choice
                 aria-describedby="employedInError"
                 data-error-required="Please select where you are employed."
                 required>
@@ -350,6 +358,10 @@ $annualIncomeHasError = isset(
                 class="form-select <?= $occupationHasError
                                         ? 'is-invalid'
                                         : '' ?>"
+                <?= $occupationHasError
+                    ? 'aria-invalid="true"'
+                    : '' ?>
+                data-choice
                 aria-describedby="occupationError"
                 data-choice-position="bottom"
                 data-choice-search-placeholder="Search occupation"
@@ -451,7 +463,14 @@ $annualIncomeHasError = isset(
                 class="form-select <?= $annualIncomeHasError
                                         ? 'is-invalid'
                                         : '' ?>"
-                aria-describedby="annualIncomeError">
+                <?= $annualIncomeHasError
+                    ? 'aria-invalid="true"'
+                    : '' ?>
+                data-choice
+                aria-describedby="annualIncomeError"
+                data-choice-position="bottom"
+                data-choice-search-placeholder="Search annual income"
+                data-error-required="Please select your annual income.">
 
                 <option value="">
                     Prefer not to specify
@@ -530,39 +549,41 @@ $annualIncomeHasError = isset(
             ]) ?>
         </div>
 
-        <div class="col-12">
-            <div
-                class="d-flex flex-column flex-sm-row
-                    justify-content-end gap-2 pt-2">
-
+        <div class="row g-2 mt-4">
+            <div class="col-12 col-sm-6 col-md-3 ms-md-auto order-2 order-sm-1">
                 <a
-                    href="<?= url_to(
-                                'web.profile.edit'
-                            ) ?>"
-                    class="btn btn-light">
+                    href="<?= url_to('web.profile.edit') ?>"
+                    class="btn btn-outline-danger fs-14 fw-medium w-100">
                     Cancel
                 </a>
-
+            </div>
+            <div class="col-12 col-sm-6 col-md-3 order-1 order-sm-2">
                 <button
                     type="submit"
-                    class="registration-form__submit">
-
-                    <span class="registration-submit__label">
-                        Save &amp; Continue
+                    class="btn registration-form__submit
+                                fs-14 fw-semibold text-uppercase" id="saveEducationProfessionButton">
+                    <span
+                        class="registration-submit__label">
+                        Save Details
                     </span>
 
                     <span
-                        class="registration-submit__loading"
+                        class="registration-submit__loading
+                                    d-none"
                         aria-hidden="true">
-
                         <span
-                            class="spinner-border spinner-border-sm"
-                            role="status"></span>
+                            class="spinner-border
+                                        spinner-border-sm"
+                            role="status"
+                            aria-hidden="true"></span>
 
-                        Saving...
+                        <span>
+                            Saving...
+                        </span>
                     </span>
                 </button>
             </div>
+
         </div>
 
     </div>
