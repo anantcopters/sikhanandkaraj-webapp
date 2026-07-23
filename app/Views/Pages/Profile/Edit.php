@@ -9,7 +9,6 @@ declare(strict_types=1);
  * @var array<string, mixed>|null $basicDetails
  * @var array<string, int>        $basicDetailsCompletion
  * @var array<string, mixed>      $overallProfileSummary
- * @var array<string, string>     $validationErrors
  * @var array<string, string>|null $formAlert
  * @var array<int, array<string, string>> $upcomingSections
  */

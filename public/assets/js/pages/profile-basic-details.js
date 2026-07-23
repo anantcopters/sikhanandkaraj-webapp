@@ -1,10 +1,7 @@
 'use strict';
 
 document.addEventListener('DOMContentLoaded', () => {
-    const editor = document.getElementById(
-        'basicDetailsOffcanvas'
-    );
-
+    
     const form = document.getElementById(
         'basicDetailsForm'
     );
@@ -153,19 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     });
 
-    /**
-     * Reopen the editor when server-side validation fails.
-     */
-    if (
-        editor
-        && editor.dataset.openOnError === 'true'
-        && window.bootstrap
-    ) {
-        bootstrap.Offcanvas
-            .getOrCreateInstance(editor)
-            .show();
-    }
-
+    
     /**
      * Show the member's calculated age as helper text.
      */

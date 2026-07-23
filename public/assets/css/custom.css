@@ -485,11 +485,6 @@
         border-radius: 20px;
     }
 
-    .registration-form__submit {
-        min-height: 55px;
-        border-radius: 14px;
-    }
-
     .registration-form__terms {
         margin-top: 18px;
     }

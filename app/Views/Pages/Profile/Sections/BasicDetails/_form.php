@@ -3,12 +3,14 @@
 declare(strict_types=1);
 
 /**
- * Basic Details editing offcanvas.
+ * Basic Details add/edit form.
+ *
+ * This partial is rendered inside the dedicated Basic Details page.
  *
  * @var array<string, mixed>      $user
  * @var array<string, mixed>|null $basicDetails
  * @var array<string, string>     $validationErrors
- * @var array<string, string>     $masterData
+ * @var array<string, mixed>      $masterData
  */
 
 $member = is_array($user ?? null)
@@ -863,46 +865,41 @@ $countryHasError = isset(
         </div>
     </div>
 
-    <div class="profile-offcanvas__footer mt-4">
-        <div class="col-12">
-            <div class="text-end">
-                <a
-                    href="<?= url_to('web.profile.edit') ?>"
-                    type="button"
-                    class="btn btn-outline-danger fs-14 fw-medium">
-                    Cancel
-                </a>
-                <button
-                    type="submit"
-                    class="btn registration-form__submit w-25
+    <div class="row g-2 mt-4">
+        <div class="col-12 col-sm-6 col-md-3 ms-md-auto">
+            <a
+                href="<?= url_to('web.profile.edit') ?>"
+                class="btn btn-outline-danger fs-14 fw-medium w-100">
+                Cancel
+            </a>
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+            <button
+                type="submit"
+                class="btn registration-form__submit
                                 fs-14 fw-semibold text-uppercase"
-                    id="saveBasicDetailsButton">
-                    <span
-                        class="registration-submit__label">
-                        Save Details
-                    </span>
+                id="saveBasicDetailsButton">
+                <span
+                    class="registration-submit__label">
+                    Save Details
+                </span>
 
-                    <span
-                        class="registration-submit__loading
+                <span
+                    class="registration-submit__loading
                                     d-none"
-                        aria-hidden="true">
-                        <span
-                            class="spinner-border
+                    aria-hidden="true">
+                    <span
+                        class="spinner-border
                                         spinner-border-sm"
-                            role="status"
-                            aria-hidden="true"></span>
+                        role="status"
+                        aria-hidden="true"></span>
 
-                        <span>
-                            Saving...
-                        </span>
+                    <span>
+                        Saving...
                     </span>
-                </button>
-            </div>
+                </span>
+            </button>
         </div>
 
-
-        <div class="row g-2">
-            
-        </div>
     </div>
 </form>
