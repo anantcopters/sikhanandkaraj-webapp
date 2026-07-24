@@ -54,7 +54,7 @@ $this->section('content');
         <?= view(
             'Pages/Profile/Partials/_feedback_alert',
             [
-                'formAlert' => $formAlert ?? null,
+                'formAlert' => $formAlert,
             ]
         ) ?>
 
@@ -94,14 +94,13 @@ $this->section('content');
                                 . 'SikhReligiousDetails/_form',
                             [
                                 'sikhReligiousDetails' =>
-                                $sikhReligiousDetails
-                                    ?? [],
+                                $sikhReligiousDetails,
 
                                 'masterData' =>
-                                $masterData ?? [],
+                                $masterData,
 
                                 'validationErrors' =>
-                                $validationErrors ?? [],
+                                $validationErrors,
                             ]
                         ) ?>
                     </div>

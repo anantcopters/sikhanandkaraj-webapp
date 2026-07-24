@@ -21,6 +21,19 @@ $percentage = (int) (
     $completion['percentage'] ?? 0
 );
 
+$completedFields = (int) (
+    $completion['completed'] ?? 0
+);
+
+$totalFields = (int) (
+    $completion['total'] ?? 0
+);
+
+$remainingFields = max(
+    0,
+    $totalFields - $completedFields
+);
+
 $display = static function (mixed $value): string {
     $value = trim((string) $value);
 
@@ -57,7 +70,7 @@ $dosh = $doshLabels[(string) ($details['has_dosh'] ?? '')] ?? 'Not added';
 ?>
 
 <div
-    class="card border shadow-none mb-3
+    class="card border border-danger border-opacity-25 shadow-none mb-3
         <?= $percentage === 100
             ? 'ribbon-box right'
             : '' ?>"
@@ -74,10 +87,11 @@ $dosh = $doshLabels[(string) ($details['has_dosh'] ?? '')] ?? 'Not added';
                 <span>Completed</span>
             </div>
         <?php endif; ?>
-        
+
         <div
             class="d-flex flex-column flex-md-row
-                justify-content-between gap-3">
+        align-items-md-start
+        justify-content-between gap-3">
 
             <div class="d-flex align-items-start gap-3">
                 <div class="avatar-sm flex-shrink-0">
@@ -91,9 +105,26 @@ $dosh = $doshLabels[(string) ($details['has_dosh'] ?? '')] ?? 'Not added';
                 </div>
 
                 <div>
-                    <h3 class="fs-16 fw-semibold mb-1">
-                        Sikh &amp; Religious Details
-                    </h3>
+                    <div
+                        class="d-flex flex-wrap
+            align-items-center gap-2 mb-1">
+
+                        <h3 class="fs-16 fw-semibold mb-0">
+                            Sikh &amp; Religious Details
+                        </h3>
+                        <?php if ($percentage < 100): ?>
+                            <span class="badge bg-primary p-2">
+                                <?= esc(
+                                    (string) $remainingFields
+                                ) ?>
+
+                                <?= $remainingFields === 1
+                                    ? 'field'
+                                    : 'fields' ?>
+                                remaining
+                            </span>
+                        <?php endif; ?>
+                    </div>
 
                     <p class="text-muted fs-13 mb-0">
                         Community, birthplace and optional
@@ -111,7 +142,7 @@ $dosh = $doshLabels[(string) ($details['has_dosh'] ?? '')] ?? 'Not added';
 
                 <i class="ri-edit-line"></i>
 
-                <?= $percentage > 0
+                <?= $completedFields > 0
                     ? 'Edit details'
                     : 'Add details' ?>
             </a>
@@ -125,16 +156,19 @@ $dosh = $doshLabels[(string) ($details['has_dosh'] ?? '')] ?? 'Not added';
                     'value' => $display(
                         $details['community_name'] ?? null
                     ),
+                    'icon'  => 'ri-group-line',
                 ],
                 [
                     'label' => 'Sub-community',
                     'value' => $display(
                         $details['subcommunity_name'] ?? null
                     ),
+                    'icon'  => 'ri-team-line',
                 ],
                 [
                     'label' => 'Birth time',
                     'value' => $birthTime,
+                    'icon'  => 'ri-time-line',
                 ],
                 [
                     'label' => 'Place of birth',
@@ -146,43 +180,61 @@ $dosh = $doshLabels[(string) ($details['has_dosh'] ?? '')] ?? 'Not added';
                             $details['birth_country_name'] ?? '',
                         ])
                     ) ?: 'Not added',
+                    'icon'  => 'ri-map-pin-line',
                 ],
                 [
                     'label' => 'Gotra',
                     'value' => $display(
                         $details['gotra'] ?? null
                     ),
+                    'icon'  => 'ri-book-3-line',
                 ],
                 [
                     'label' => 'Raashi / Moon sign',
                     'value' => $display(
                         $details['moon_sign_name'] ?? null
                     ),
+                    'icon'  => 'ri-moon-line',
                 ],
                 [
                     'label' => 'Birth star',
                     'value' => $display(
                         $details['birth_star_name'] ?? null
                     ),
+                    'icon'  => 'ri-star-line',
                 ],
                 [
                     'label' => 'Dosh',
                     'value' => $dosh,
+                    'icon'  => 'ri-scales-3-line',
                 ],
             ];
             ?>
 
             <?php foreach ($items as $item): ?>
                 <div class="col-12 col-sm-6 col-lg-4">
-                    <span
-                        class="text-muted fs-12
-                            d-block mb-1">
-                        <?= esc($item['label']) ?>
-                    </span>
+                    <div class="d-flex align-items-start gap-2">
+                        <i
+                            class="<?= esc(
+                                        $item['icon'],
+                                        'attr'
+                                    ) ?> text-primary fs-18"
+                            aria-hidden="true">
+                        </i>
 
-                    <strong class="fw-medium">
-                        <?= esc($item['value']) ?>
-                    </strong>
+                        <div class="min-w-0">
+                            <span
+                                class="text-muted fs-12
+                d-block mb-1">
+                                <?= esc($item['label']) ?>
+                            </span>
+
+                            <strong
+                                class="fw-medium text-break">
+                                <?= esc($item['value']) ?>
+                            </strong>
+                        </div>
+                    </div>
                 </div>
             <?php endforeach; ?>
         </div>

@@ -2,21 +2,28 @@
 
 declare(strict_types=1);
 
-/** @var array<string, mixed> $sikhReligiousDetails */
-/** @var array<string, mixed> $masterData */
-/** @var array<string, string> $validationErrors */
+/** @var array<string, mixed>|null $sikhReligiousDetails */
+/** @var array<string, mixed>|null $masterData */
+/** @var array<string, string>|null $validationErrors */
 
-$details = is_array($sikhReligiousDetails ?? null)
-    ? $sikhReligiousDetails
-    : [];
+$sikhReligiousDetails = isset($sikhReligiousDetails)
+    && is_array($sikhReligiousDetails)
+        ? $sikhReligiousDetails
+        : [];
 
-$errors = is_array($validationErrors ?? null)
-    ? $validationErrors
-    : [];
+$masterData = isset($masterData)
+    && is_array($masterData)
+        ? $masterData
+        : [];
 
-$options = is_array($masterData ?? null)
-    ? $masterData
-    : [];
+$validationErrors = isset($validationErrors)
+    && is_array($validationErrors)
+        ? $validationErrors
+        : [];
+
+$details = $sikhReligiousDetails;
+$errors = $validationErrors;
+$options = $masterData;
 
 $communities = $options['communities'] ?? [];
 $subcommunities = $options['subcommunities'] ?? [];
