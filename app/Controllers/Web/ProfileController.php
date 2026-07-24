@@ -14,6 +14,8 @@ use App\Services\Profile\FamilyDetailsService;
 use App\Validation\Profile\FamilyDetailsValidation;
 use App\Services\Profile\SikhReligiousDetailsService;
 use App\Validation\Profile\SikhReligiousDetailsValidation;
+use App\Services\Profile\LifestyleService;
+use App\Validation\Profile\LifestyleValidation;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
@@ -115,6 +117,13 @@ final class ProfileController extends BaseController
             $userId
         );
 
+        /** @var LifestyleService $lifestyleService */
+        $lifestyleService = service('lifestyleService');
+
+        $lifestyleProfile = $lifestyleService->getForUser(
+            $userId
+        );
+
         /*
         * Calculate overall completion only from sections which are
         * currently implemented and usable.
@@ -123,7 +132,8 @@ final class ProfileController extends BaseController
             $basicProfile['completion'],
             $educationProfile['completion'],
             $familyProfile['completion'],
-            $religiousProfile['completion']
+            $religiousProfile['completion'],
+            $lifestyleProfile['completion']
         );
 
         /*
@@ -167,6 +177,13 @@ final class ProfileController extends BaseController
             )
         ) === 100;
 
+        $lifestyleComplete = (
+            (int) (
+                $lifestyleProfile['completion']['percentage']
+                ?? 0
+            )
+        ) === 100;
+
         /*
         * Determine where the Continue Profile button should send
         * the user.
@@ -194,6 +211,11 @@ final class ProfileController extends BaseController
                 'title' => 'Sikh & Religious Details',
                 'route' =>
                 'web.profile.sikh-religious-details',
+            ];
+        } elseif (!$lifestyleComplete) {
+            $nextProfileSection = [
+                'title' => 'Lifestyle',
+                'route' => 'web.profile.lifestyle',
             ];
         } else {
             $nextProfileSection = null;
@@ -238,6 +260,12 @@ final class ProfileController extends BaseController
 
                 'sikhReligiousDetailsCompletion' =>
                 $religiousProfile['completion'],
+
+                'lifestyleDetails' =>
+                $lifestyleProfile['selectedDetails'],
+
+                'lifestyleCompletion' =>
+                $lifestyleProfile['completion'],
 
                 'formAlert' =>
                 session('formAlert'),
@@ -423,6 +451,138 @@ final class ProfileController extends BaseController
     }
 
     /**
+     * Display the Lifestyle add/edit page.
+     */
+    public function lifestyle(): string
+    {
+        $userId = $this->authenticatedUserId();
+
+        /** @var LifestyleService $service */
+        $service = service('lifestyleService');
+
+        $profile = $service->getForUser($userId);
+
+        return view(
+            'Pages/Profile/Sections/Lifestyle/Edit',
+            [
+                'pageTitle' => 'Lifestyle',
+                'user' => $profile['user'],
+                'categories' => $profile['categories'],
+                'optionsByCategory' =>
+                $profile['optionsByCategory'],
+                'selectedOptionIds' =>
+                $profile['selectedOptionIds'],
+                'lifestyleCompletion' =>
+                $profile['completion'],
+                'validationErrors' =>
+                session('validationErrors') ?? [],
+                'formAlert' => session('formAlert'),
+                'pageScripts' => [
+                    'assets/js/pages/profile-lifestyle.js',
+                ],
+            ]
+        );
+    }
+
+    /**
+     * Save the member's Lifestyle selections.
+     */
+    public function updateLifestyle(): RedirectResponse
+    {
+        $userId = $this->authenticatedUserId();
+
+        $input = $this->lifestyleInput();
+
+        $validation = service('validation');
+
+        $validation->setRules(
+            LifestyleValidation::rules()
+        );
+
+        if (!$validation->run($input)) {
+            return redirect()
+                ->to(route_to('web.profile.lifestyle'))
+                ->withInput()
+                ->with(
+                    'validationErrors',
+                    $validation->getErrors()
+                );
+        }
+
+        try {
+            /** @var LifestyleService $service */
+            $service = service('lifestyleService');
+
+            $service->save(
+                $userId,
+                $input['lifestyle_option_ids']
+            );
+
+            return redirect()
+                ->to(
+                    route_to('web.profile.edit')
+                        . '#lifestyle'
+                )
+                ->with('formAlert', [
+                    'type' => 'success',
+                    'title' => 'Lifestyle updated',
+                    'message' =>
+                    'Your interests and lifestyle choices '
+                        . 'have been saved.',
+                ]);
+        } catch (DomainException $exception) {
+            return redirect()
+                ->to(route_to('web.profile.lifestyle'))
+                ->withInput()
+                ->with('formAlert', [
+                    'type' => 'danger',
+                    'title' => 'Lifestyle not saved',
+                    'message' => $exception->getMessage(),
+                ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Lifestyle update failed for user {userId}: '
+                    . '{message}',
+                [
+                    'userId' => $userId,
+                    'message' => $exception->getMessage(),
+                ]
+            );
+
+            return redirect()
+                ->to(route_to('web.profile.lifestyle'))
+                ->withInput()
+                ->with('formAlert', [
+                    'type' => 'danger',
+                    'title' => 'Lifestyle not saved',
+                    'message' =>
+                    'We could not save your lifestyle details. '
+                        . 'Please try again.',
+                ]);
+        }
+    }
+
+    /**
+     * Read and normalize Lifestyle option IDs.
+     *
+     * @return array{lifestyle_option_ids: list<int|string>}
+     */
+    private function lifestyleInput(): array
+    {
+        $submitted = $this->request->getPost(
+            'lifestyle_option_ids'
+        );
+
+        return [
+            'lifestyle_option_ids' =>
+            is_array($submitted)
+                ? array_values($submitted)
+                : [],
+        ];
+    }
+
+    /**
      * Resolve the authenticated user identifier.
      */
     private function authenticatedUserId(): int
@@ -539,13 +699,6 @@ final class ProfileController extends BaseController
         return [
 
 
-            [
-                'key' => 'lifestyle',
-                'title' => 'Lifestyle',
-                'description' =>
-                'Share habits, interests and lifestyle choices.',
-                'icon' => 'ri-leaf-line',
-            ],
             [
                 'key' => 'about-me',
                 'title' => 'About Me',

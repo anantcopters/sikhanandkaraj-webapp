@@ -203,6 +203,27 @@ $routes->group('', [
         ]
     );
 
+    /*
+    * Lifestyle.
+    */
+    $routes->get(
+        'profile/lifestyle',
+        'ProfileController::lifestyle',
+        [
+            'as' => 'web.profile.lifestyle',
+            'filter' => 'webAuth',
+        ]
+    );
+
+    $routes->post(
+        'profile/lifestyle',
+        'ProfileController::updateLifestyle',
+        [
+            'as' => 'web.profile.lifestyle.update',
+            'filter' => 'webAuth',
+        ]
+    );
+
     $routes->get(
         'account/settings',
         'AccountSettingsController::index',

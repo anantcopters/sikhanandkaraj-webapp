@@ -46,6 +46,10 @@ use App\Models\MasterSikhCommunityModel;
 use App\Models\MasterSikhSubcommunityModel;
 use App\Models\MemberSikhReligiousDetailModel;
 use App\Services\Profile\SikhReligiousDetailsService;
+use App\Models\MasterLifestyleCategoryModel;
+use App\Models\MasterLifestyleOptionModel;
+use App\Models\MemberLifestyleOptionModel;
+use App\Services\Profile\LifestyleService;
 
 
 /**
@@ -374,6 +378,29 @@ class Services extends BaseService
             new MasterCountryModel($database),
             new MasterStateModel($database),
             new MasterCityModel($database),
+            $database
+        );
+    }
+
+    /**
+     * Return Lifestyle profile service.
+     */
+    public static function lifestyleService(
+        bool $getShared = true
+    ): LifestyleService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'lifestyleService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new LifestyleService(
+            new UserModel($database),
+            new MasterLifestyleCategoryModel($database),
+            new MasterLifestyleOptionModel($database),
+            new MemberLifestyleOptionModel($database),
             $database
         );
     }

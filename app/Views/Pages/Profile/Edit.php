@@ -15,6 +15,21 @@ declare(strict_types=1);
  * @var array<int, array<string, string>> $upcomingSections
  */
 
+/**
+ * @var list<array<string, mixed>> $lifestyleDetails
+ * @var array<string, int> $lifestyleCompletion
+ */
+
+$lifestyleDetails = isset($lifestyleDetails)
+    && is_array($lifestyleDetails)
+    ? $lifestyleDetails
+    : [];
+
+$lifestyleCompletion = isset($lifestyleCompletion)
+    && is_array($lifestyleCompletion)
+    ? $lifestyleCompletion
+    : [];
+
 $this->extend('Layouts/Main');
 $this->section('content');
 ?>
@@ -104,6 +119,15 @@ $this->section('content');
 
                         'sikhReligiousDetailsCompletion' =>
                         $sikhReligiousDetailsCompletion ?? [],
+                    ]
+                ) ?>
+
+                <?= view(
+                    'Pages/Profile/Sections/Lifestyle/_card',
+                    [
+                        'lifestyleDetails' => $lifestyleDetails,
+                        'lifestyleCompletion' =>
+                        $lifestyleCompletion,
                     ]
                 ) ?>
 
