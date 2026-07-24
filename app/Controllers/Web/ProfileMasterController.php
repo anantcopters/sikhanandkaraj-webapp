@@ -6,6 +6,7 @@ namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
 use App\Services\Profile\ProfileMasterDataService;
+use App\Models\MasterSikhSubcommunityModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
 /**
@@ -41,6 +42,35 @@ final class ProfileMasterController extends BaseController
         return $this->response->setJSON([
             'status' => 'success',
             'data' => $cities,
+        ]);
+    }
+
+    /**
+     * Return active Sikh sub-communities for one community.
+     */
+    public function sikhSubcommunities(
+        int $communityId
+    ): ResponseInterface {
+        if ($communityId <= 0) {
+            return $this->response->setJSON([
+                'data' => [],
+            ]);
+        }
+
+        $model = new MasterSikhSubcommunityModel();
+
+        $rows = $model->activeForCommunity($communityId);
+
+        $data = array_map(
+            static fn(array $row): array => [
+                'value' => (string) $row['id'],
+                'label' => (string) $row['name'],
+            ],
+            $rows
+        );
+
+        return $this->response->setJSON([
+            'data' => $data,
         ]);
     }
 }

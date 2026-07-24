@@ -13,6 +13,7 @@ final class ProfileCompletionService
      * @param array<string, int> $basicDetailsCompletion
      * @param array<string, int> $educationProfessionCompletion
      * @param array<string, int> $familyDetailsCompletion
+     * @param array<string, int> $sikhReligiousDetailsCompletion
      *
      * @return array{
      *     percentage: int,
@@ -23,19 +24,21 @@ final class ProfileCompletionService
     public function calculate(
         array $basicDetailsCompletion,
         array $educationProfessionCompletion,
-        array $familyDetailsCompletion
+        array $familyDetailsCompletion,
+        array $sikhReligiousDetailsCompletion
     ): array {
         $sections = [
             $this->isSectionComplete(
                 $basicDetailsCompletion
             ),
-
             $this->isSectionComplete(
                 $educationProfessionCompletion
             ),
-
             $this->isSectionComplete(
                 $familyDetailsCompletion
+            ),
+            $this->isSectionComplete(
+                $sikhReligiousDetailsCompletion
             ),
         ];
 
@@ -57,7 +60,6 @@ final class ProfileCompletionService
                 : 0,
 
             'completedSteps' => $completedSteps,
-
             'totalSteps' => $totalSteps,
         ];
     }

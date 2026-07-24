@@ -40,6 +40,12 @@ use App\Services\Profile\ProfileCompletionService;
 use App\Models\MasterFamilyOccupationModel;
 use App\Models\MemberFamilyDetailModel;
 use App\Services\Profile\FamilyDetailsService;
+use App\Models\MasterBirthStarModel;
+use App\Models\MasterMoonSignModel;
+use App\Models\MasterSikhCommunityModel;
+use App\Models\MasterSikhSubcommunityModel;
+use App\Models\MemberSikhReligiousDetailModel;
+use App\Services\Profile\SikhReligiousDetailsService;
 
 
 /**
@@ -342,5 +348,33 @@ class Services extends BaseService
         }
 
         return new ProfileCompletionService();
+    }
+
+    /**
+     * Return Sikh and Religious Details profile service.
+     */
+    public static function sikhReligiousDetailsService(
+        bool $getShared = true
+    ): SikhReligiousDetailsService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'sikhReligiousDetailsService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new SikhReligiousDetailsService(
+            new UserModel($database),
+            new MemberSikhReligiousDetailModel($database),
+            new MasterSikhCommunityModel($database),
+            new MasterSikhSubcommunityModel($database),
+            new MasterMoonSignModel($database),
+            new MasterBirthStarModel($database),
+            new MasterCountryModel($database),
+            new MasterStateModel($database),
+            new MasterCityModel($database),
+            $database
+        );
     }
 }

@@ -106,6 +106,18 @@ $this->section('content');
                 ) ?>
 
                 <?= view(
+                    'Pages/Profile/Sections/'
+                        . 'SikhReligiousDetails/_card',
+                    [
+                        'sikhReligiousDetails' =>
+                        $sikhReligiousDetails ?? [],
+
+                        'sikhReligiousDetailsCompletion' =>
+                        $sikhReligiousDetailsCompletion ?? [],
+                    ]
+                ) ?>
+
+                <?= view(
                     'Pages/Profile/Partials/_section_list',
                     [
                         'upcomingSections' =>
