@@ -185,19 +185,6 @@ final class SikhReligiousDetailsService
             );
         }
 
-        if (
-            $birthMeridiem !== null
-            && !in_array(
-                $birthMeridiem,
-                ['AM', 'PM'],
-                true
-            )
-        ) {
-            throw new DomainException(
-                'Please select AM or PM.'
-            );
-        }
-
         $countryId = $this->requiredPositiveInteger(
             $data['birth_country_id'] ?? null,
             'Please select a valid country of birth.'
@@ -344,12 +331,6 @@ final class SikhReligiousDetailsService
             );
         }
 
-        if ($communityId === null) {
-            throw new DomainException(
-                'Please select a community before '
-                    . 'selecting a sub-community.'
-            );
-        }
 
         $subcommunity = $this->subcommunityModel
             ->where('id', $subcommunityId)
@@ -417,7 +398,8 @@ final class SikhReligiousDetailsService
     }
 
     /**
-     * Only birthplace is mandatory for section completion.
+     * Calculate completion using all mandatory Sikh, birth-time
+     * and birthplace fields.
      *
      * @param array<string, mixed>|null $details
      *

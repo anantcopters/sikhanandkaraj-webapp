@@ -5,7 +5,6 @@ declare(strict_types=1);
 /** @var array<string, mixed> $sikhReligiousDetails */
 /** @var array<string, mixed> $masterData */
 /** @var array<string, string> $validationErrors */
-/** @var array<string, mixed>|null $formAlert */
 
 $details = is_array($sikhReligiousDetails ?? null)
     ? $sikhReligiousDetails

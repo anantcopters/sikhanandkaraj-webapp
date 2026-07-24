@@ -54,6 +54,12 @@ final class SikhReligiousDetailsValidation
                 'errors' => [
                     'required' =>
                     'Please select the birth hour.',
+                    'integer' =>
+                    'Please select a valid birth hour.',
+                    'greater_than_equal_to' =>
+                    'Please select a valid birth hour.',
+                    'less_than_equal_to' =>
+                    'Please select a valid birth hour.',
                 ],
             ],
 
@@ -68,6 +74,12 @@ final class SikhReligiousDetailsValidation
                 'errors' => [
                     'required' =>
                     'Please select the birth minute.',
+                    'integer' =>
+                    'Please select a valid birth hour.',
+                    'greater_than_equal_to' =>
+                    'Please select a valid birth hour.',
+                    'less_than_equal_to' =>
+                    'Please select a valid birth hour.',
                 ],
             ],
 

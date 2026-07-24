@@ -2,6 +2,49 @@
 
 declare(strict_types=1);
 
+/** @var string|null $pageTitle */
+/** @var array<string, mixed>|null $user */
+/** @var array<string, mixed>|null $sikhReligiousDetails */
+/** @var array<string, mixed>|null $sikhReligiousDetailsCompletion */
+/** @var array<string, mixed>|null $masterData */
+/** @var array<string, string>|null $validationErrors */
+/** @var array<string, mixed>|null $formAlert */
+
+$pageTitle = isset($pageTitle)
+    ? (string) $pageTitle
+    : 'Sikh & Religious Details';
+
+$user = isset($user) && is_array($user)
+    ? $user
+    : [];
+
+$sikhReligiousDetails = isset($sikhReligiousDetails)
+    && is_array($sikhReligiousDetails)
+    ? $sikhReligiousDetails
+    : [];
+
+$sikhReligiousDetailsCompletion = isset(
+    $sikhReligiousDetailsCompletion
+)
+    && is_array($sikhReligiousDetailsCompletion)
+    ? $sikhReligiousDetailsCompletion
+    : [];
+
+$masterData = isset($masterData)
+    && is_array($masterData)
+    ? $masterData
+    : [];
+
+$validationErrors = isset($validationErrors)
+    && is_array($validationErrors)
+    ? $validationErrors
+    : [];
+
+$formAlert = isset($formAlert)
+    && is_array($formAlert)
+    ? $formAlert
+    : null;
+
 $this->extend('Layouts/Main');
 $this->section('content');
 ?>
