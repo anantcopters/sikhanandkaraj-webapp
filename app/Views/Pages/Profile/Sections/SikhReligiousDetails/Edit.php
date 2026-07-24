@@ -76,15 +76,31 @@ $this->section('content');
                         Back to Profile
                     </a>
 
-                    <h1 class="fs-22 fw-semibold mb-1">
-                        Sikh &amp; Religious Details
-                    </h1>
+                    <div class="d-flex align-items-center gap-2 mt-2">
+                        <div
+                            class="avatar-sm flex-shrink-0"
+                            aria-hidden="true">
 
-                    <p class="text-muted mb-0">
-                        Share your community and birthplace
-                        information. Astrological details are
-                        optional.
-                    </p>
+                            <span
+                                class="avatar-title rounded-circle
+                            bg-primary-subtle text-primary">
+
+                                <i class="ri-service-line fs-20"></i>
+                            </span>
+                        </div>
+
+                        <div>
+                            <h2 class="fs-16 fw-semibold mb-1">
+                                Sikh &amp; Religious Details
+                            </h2>
+
+                            <p class="text-muted fs-13 mb-0">
+                                Share your community and birthplace
+                                information. Astrological details are
+                                optional.
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="card border shadow-none mb-0">

@@ -45,16 +45,31 @@ $this->section('content');
 
                             Back to Profile
                         </a>
+                        <div class="d-flex align-items-center gap-2 mt-2">
+                            <div
+                                class="avatar-sm flex-shrink-0"
+                                aria-hidden="true">
 
-                        <h1 class="fs-22 fw-semibold mb-1">
-                            Education &amp; Profession
-                        </h1>
+                                <span
+                                    class="avatar-title rounded-circle
+                            bg-primary-subtle text-primary">
 
-                        <p class="text-muted mb-0">
-                            Add your educational and professional
-                            information. Fields marked with an
-                            asterisk (*) are required.
-                        </p>
+                                    <i class="ri-graduation-cap-line fs-20"></i>
+                                </span>
+                            </div>
+
+                            <div>
+                                <h2 class="fs-16 fw-semibold mb-1">
+                                    Education &amp; Profession
+                                </h2>
+
+                                <p class="text-muted fs-13 mb-0">
+                                    Add your educational and professional
+                                    information. Fields marked with an
+                                    asterisk (*) are required.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

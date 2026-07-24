@@ -389,6 +389,7 @@ $selectedCityId = $fieldValue(
         <?php endforeach; ?>
 
         <div class="col-12">
+            <hr class="my-2 mb-3">
             <h2 class="fs-16 fw-semibold mb-0 mt-2">
                 Family Location
             </h2>

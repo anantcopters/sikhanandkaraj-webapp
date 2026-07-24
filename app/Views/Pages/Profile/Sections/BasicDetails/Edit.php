@@ -44,14 +44,30 @@ $this->section('content');
                             Back to Profile
                         </a>
 
-                        <h1 class="fs-22 fw-semibold mb-1">
-                            Basic Details
-                        </h1>
+                        <div class="d-flex align-items-center gap-2 mt-2">
+                            <div
+                                class="avatar-sm flex-shrink-0"
+                                aria-hidden="true">
 
-                        <p class="text-muted mb-0">
-                            Fields marked with an asterisk (*)
-                            are required.
-                        </p>
+                                <span
+                                    class="avatar-title rounded-circle
+                            bg-primary-subtle text-primary">
+
+                                    <i class="ri-user-line fs-20"></i>
+                                </span>
+                            </div>
+
+                            <div>
+                                <h2 class="fs-16 fw-semibold mb-1">
+                                    Basic Details
+                                </h2>
+
+                                <p class="text-muted fs-13 mb-0">
+                                    Personal, marital and current
+                                    location information.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

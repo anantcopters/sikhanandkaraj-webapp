@@ -34,17 +34,7 @@ $this->section('content');
         ) ?>
 
         <div class="row g-4 align-items-start">
-            <div class="col-12 col-lg-4">
-                <?= view(
-                    'Pages/Profile/Partials/_profile_sidebar',
-                    [
-                        'user' => $user ?? [],
 
-                        'overallProfileSummary' =>
-                        $overallProfileSummary ?? [],
-                    ]
-                ) ?>
-            </div>
 
             <div class="col-12 col-lg-8">
                 <?= view(
@@ -122,6 +112,17 @@ $this->section('content');
                     [
                         'upcomingSections' =>
                         $upcomingSections ?? [],
+                    ]
+                ) ?>
+            </div>
+            <div class="col-12 col-lg-4">
+                <?= view(
+                    'Pages/Profile/Partials/_profile_sidebar',
+                    [
+                        'user' => $user ?? [],
+
+                        'overallProfileSummary' =>
+                        $overallProfileSummary ?? [],
                     ]
                 ) ?>
             </div>

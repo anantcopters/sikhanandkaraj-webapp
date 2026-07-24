@@ -8,18 +8,18 @@ declare(strict_types=1);
 
 $sikhReligiousDetails = isset($sikhReligiousDetails)
     && is_array($sikhReligiousDetails)
-        ? $sikhReligiousDetails
-        : [];
+    ? $sikhReligiousDetails
+    : [];
 
 $masterData = isset($masterData)
     && is_array($masterData)
-        ? $masterData
-        : [];
+    ? $masterData
+    : [];
 
 $validationErrors = isset($validationErrors)
     && is_array($validationErrors)
-        ? $validationErrors
-        : [];
+    ? $validationErrors
+    : [];
 
 $details = $sikhReligiousDetails;
 $errors = $validationErrors;
@@ -102,32 +102,6 @@ $selectedBirthCity = $value(
     <?= csrf_field() ?>
 
     <div class="row g-3">
-
-        <div class="col-12">
-            <div class="d-flex align-items-start gap-2">
-                <div
-                    class="avatar-sm flex-shrink-0"
-                    aria-hidden="true">
-
-                    <span
-                        class="avatar-title rounded-circle
-                            bg-primary-subtle text-primary">
-
-                        <i class="ri-service-line fs-20"></i>
-                    </span>
-                </div>
-
-                <div>
-                    <h2 class="fs-16 fw-semibold mb-1">
-                        Sikh Community
-                    </h2>
-
-                    <p class="text-muted fs-13 mb-0">
-                        Select your Sikh community and related sub-community.
-                    </p>
-                </div>
-            </div>
-        </div>
 
         <div class="col-12 col-md-6">
             <label
@@ -263,7 +237,7 @@ $selectedBirthCity = $value(
         </div>
 
         <div class="col-12">
-            <hr class="my-2">
+            <hr class="my-2 mb-3">
 
             <h2 class="fs-16 fw-semibold mb-1">
                 Birth Details
@@ -589,7 +563,7 @@ $selectedBirthCity = $value(
         </div>
 
         <div class="col-12">
-            <hr class="my-2">
+            <hr class="my-2 mb-3">
 
             <h2 class="fs-16 fw-semibold mb-1">
                 Optional Astrological Details
@@ -699,9 +673,10 @@ $selectedBirthCity = $value(
 
         <div class="col-12">
             <fieldset>
-                <legend class="form-label fw-medium">
+                <hr class="my-2 mb-3">
+                <h2 class="fs-16 fw-semibold mb-3">
                     Have dosh?
-                </legend>
+                </h2>
 
                 <div class="d-flex flex-wrap gap-3">
                     <?php foreach (

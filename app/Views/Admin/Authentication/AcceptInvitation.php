@@ -112,7 +112,7 @@ $this->section('content');
                                             </button>
                                         </div>
 
-                                        <div class="form-text">
+                                        <div class="form-text  color-pink">
                                             Minimum 10 characters with
                                             uppercase, lowercase, number and
                                             special character.

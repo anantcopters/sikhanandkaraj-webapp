@@ -292,7 +292,7 @@ $countryHasError = isset(
                         ) ?>"
                 readonly>
 
-            <div class="form-text">
+            <div class="form-text color-pink">
                 Contact support if this is incorrect.
             </div>
         </div>
@@ -494,7 +494,7 @@ $countryHasError = isset(
             ]) ?>
 
             <div
-                class="form-text"
+                class="form-text color-pink"
                 id="memberAgePreview"
                 aria-live="polite"></div>
         </div>

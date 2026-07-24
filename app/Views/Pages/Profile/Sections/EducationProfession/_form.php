@@ -261,7 +261,7 @@ $annualIncomeHasError = isset(
 
             <div
                 id="educationDetailHelp"
-                class="form-text">
+                class="form-text  color-pink">
                 Maximum 500 characters.
             </div>
 
@@ -538,7 +538,7 @@ $annualIncomeHasError = isset(
 
             <div
                 id="occupationDetailHelp"
-                class="form-text">
+                class="form-text  color-pink">
                 Maximum 500 characters.
             </div>
 

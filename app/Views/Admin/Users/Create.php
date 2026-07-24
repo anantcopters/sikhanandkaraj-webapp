@@ -157,7 +157,7 @@ $this->section('content');
                                         required>
                                 </div>
 
-                                <div class="form-text">
+                                <div class="form-text color-pink">
                                     Mobile will be marked verified.
                                 </div>
 
