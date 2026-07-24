@@ -41,12 +41,12 @@ if (is_array($submittedIds)) {
 <form
     action="<?= url_to('web.profile.lifestyle.update') ?>"
     method="post"
-    id="lifestyle-form"
+    id="lifestyleForm"
     novalidate>
 
     <?= csrf_field() ?>
 
-    <div class="profile-section-intro mb-4">
+    <div class="mb-4">
         <h3 class="fs-16 fw-semibold mb-1">
             Choose what describes you
         </h3>
@@ -64,21 +64,24 @@ if (is_array($submittedIds)) {
     <?php else: ?>
 
         <ul
-            class="nav nav-pills flex-nowrap
-        overflow-auto gap-2 mb-4"
-            id="lifestyle-tabs"
+            class="nav nav-tabs flex-nowrap
+        overflow-auto mb-4"
+            id="lifestyleTabs"
             role="tablist">
 
             <?php foreach ($categories as $index => $category): ?>
                 <?php
                 $categoryId = (int) ($category['id'] ?? 0);
+
                 $categoryName = (string) (
                     $category['name'] ?? ''
                 );
+
                 $iconClass = (string) (
                     $category['icon_class']
                     ?? 'ri-checkbox-circle-line'
                 );
+
                 $isActive = $index === 0;
                 ?>
 
@@ -87,16 +90,15 @@ if (is_array($submittedIds)) {
                     role="presentation">
 
                     <button
-                        class="nav-link d-inline-flex
-        align-items-center gap-2
-        <?= $isActive
-                    ? 'active'
-                    : 'bg-info-subtle text-info' ?>"
+                        class="nav-link d-flex align-items-center
+                    gap-1
+                    py-2 px-3 text-nowrap
+                    <?= $isActive ? 'active' : '' ?>"
                         id="lifestyle-tab-<?= esc(
                                                 (string) $categoryId,
                                                 'attr'
                                             ) ?>"
-                        data-bs-toggle="pill"
+                        data-bs-toggle="tab"
                         data-bs-target="#lifestyle-panel-<?= esc(
                                                                 (string) $categoryId,
                                                                 'attr'
@@ -115,22 +117,12 @@ if (is_array($submittedIds)) {
                             class="<?= esc(
                                         $iconClass,
                                         'attr'
-                                    ) ?>"
+                                    ) ?> fs-16"
                             aria-hidden="true">
                         </i>
 
-                        <?= esc($categoryName) ?>
-
-                        <span
-                            class="avatar-xs flex-shrink-0"
-                            aria-hidden="true">
-
-                            <span
-                                class="avatar-title rounded-circle
-            bg-info-subtle text-info">
-
-                                <i class="<?= esc($iconClass, 'attr') ?>"></i>
-                            </span>
+                        <span class="fw-normal">
+                            <?= esc($categoryName) ?>
                         </span>
                     </button>
                 </li>
@@ -172,17 +164,19 @@ if (is_array($submittedIds)) {
                         </h4>
 
                         <span
-                            class="badge rounded-pill bg-info text-white"
-                            data-tab-selected-count="<?= esc(
+                            class="badge rounded
+        bg-info-subtle text-body p-2"
+                            data-panel-selected-count="<?= esc(
                                                             (string) $categoryId,
                                                             'attr'
                                                         ) ?>">
 
-                            0
+                            0 selected
                         </span>
                     </div>
 
                     <div class="d-flex flex-wrap gap-2">
+
                         <?php foreach ($categoryOptions as $option): ?>
                             <?php
                             $optionId = (int) ($option['id'] ?? 0);
