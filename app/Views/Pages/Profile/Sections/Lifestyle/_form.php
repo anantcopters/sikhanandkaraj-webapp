@@ -207,6 +207,7 @@ if (is_array($submittedIds)) {
                                                             (string) $optionId,
                                                             'attr'
                                                         ) ?>"
+                                data-lifestyle-option
                                 data-category-id="<?= esc(
                                                         (string) $categoryId,
                                                         'attr'
