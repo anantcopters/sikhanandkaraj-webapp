@@ -6,7 +6,28 @@ declare(strict_types=1);
  * Profile sidebar cards.
  *
  * @var array<string, mixed> $overallProfileSummary
+ * @var string $aboutMe
+ * @var array<string, int> $aboutMeCompletion
  */
+
+$aboutMe = isset($aboutMe)
+    ? trim((string) $aboutMe)
+    : '';
+
+$aboutMeCompletion = isset($aboutMeCompletion)
+    && is_array($aboutMeCompletion)
+    ? $aboutMeCompletion
+    : [];
+
+$hasAboutMe = $aboutMe !== '';
+
+$aboutMeWordCount = $hasAboutMe
+    ? preg_match_all(
+        "/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/u",
+        $aboutMe,
+        $aboutMeWords
+    )
+    : 0;
 
 $summary = is_array($overallProfileSummary ?? null)
     ? $overallProfileSummary
@@ -38,6 +59,127 @@ $isIdentityVerified = (bool) (
 ?>
 
 <div class="d-flex flex-column gap-3">
+
+    <!-- About Me -->
+    <section
+        class="card border border-danger
+        border-opacity-25 shadow-none mb-0"
+        id="about-me"
+        aria-labelledby="aboutMeTitle">
+
+        <div class="card-body p-3">
+            <div
+                class="d-flex align-items-start
+                justify-content-between gap-3 mb-3">
+
+                <div class="d-flex align-items-start gap-3">
+                    <div class="avatar-sm flex-shrink-0">
+                        <span
+                            class="avatar-title rounded-circle
+                            bg-info-subtle text-info fs-20"
+                            aria-hidden="true">
+
+                            <i class="ri-double-quotes-l"></i>
+                        </span>
+                    </div>
+
+                    <div>
+                        <h2
+                            class="fs-15 fw-semibold mb-1"
+                            id="aboutMeTitle">
+
+                            About Me
+                        </h2>
+
+                        <p class="text-muted fs-13 mb-0">
+                            A short introduction helps members
+                            understand you better.
+                        </p>
+                    </div>
+                </div>
+
+                <?php if ($hasAboutMe): ?>
+                    <span
+                        class="badge bg-success-subtle
+                        text-success">
+
+                        Added
+                    </span>
+                <?php else: ?>
+                    <span
+                        class="badge bg-warning-subtle
+                        text-warning p-2">
+
+                        Pending
+                    </span>
+                <?php endif; ?>
+            </div>
+
+            <?php if ($hasAboutMe): ?>
+                <div
+                    class="border rounded bg-light-subtle
+                    p-3 mb-3">
+
+                    <p
+                        class="text-body fs-13 lh-lg
+                        text-break mb-0">
+
+                        <?= nl2br(esc($aboutMe)) ?>
+                    </p>
+                </div>
+
+                <div
+                    class="d-flex align-items-center
+                    justify-content-between gap-2 mb-3">
+
+                    <span class="text-muted fs-12">
+                        Plain text only
+                    </span>
+
+                    <span class="text-muted fs-12">
+                        <?= esc((string) $aboutMeWordCount) ?>
+                        <?= $aboutMeWordCount === 1
+                            ? 'word'
+                            : 'words' ?>
+                    </span>
+                </div>
+            <?php else: ?>
+                <div
+                    class="border border-dashed rounded
+                    text-center p-3 mb-3">
+
+                    <i
+                        class="ri-chat-smile-3-line
+                        text-info fs-24 d-block mb-2"
+                        aria-hidden="true">
+                    </i>
+
+                    <p class="text-muted fs-13 mb-0">
+                        Tell others about your personality,
+                        values, interests and outlook on life.
+                    </p>
+                </div>
+            <?php endif; ?>
+
+            <a
+                href="<?= url_to('web.profile.about-me') ?>"
+                class="btn btn-outline-primary btn-sm
+                w-100 d-inline-flex align-items-center
+                justify-content-center gap-1">
+
+                <i
+                    class="<?= $hasAboutMe
+                                ? 'ri-edit-line'
+                                : 'ri-add-line' ?>"
+                    aria-hidden="true">
+                </i>
+
+                <?= $hasAboutMe
+                    ? 'Edit About Me'
+                    : 'Add About Me' ?>
+            </a>
+        </div>
+    </section>
 
     <!-- Profile photo -->
     <section

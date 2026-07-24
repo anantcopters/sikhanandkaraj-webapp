@@ -13,6 +13,8 @@ declare(strict_types=1);
  * @var array<string, mixed>       $overallProfileSummary
  * @var array<string, string>|null $formAlert
  * @var array<int, array<string, string>> $upcomingSections
+ * @var string $aboutMe
+ *  @var array<string, int> $aboutMeCompletion
  */
 
 /**
@@ -28,6 +30,15 @@ $lifestyleDetails = isset($lifestyleDetails)
 $lifestyleCompletion = isset($lifestyleCompletion)
     && is_array($lifestyleCompletion)
     ? $lifestyleCompletion
+    : [];
+
+$aboutMe = isset($aboutMe)
+    ? trim((string) $aboutMe)
+    : '';
+
+$aboutMeCompletion = isset($aboutMeCompletion)
+    && is_array($aboutMeCompletion)
+    ? $aboutMeCompletion
     : [];
 
 $this->extend('Layouts/Main');
@@ -131,13 +142,21 @@ $this->section('content');
                     ]
                 ) ?>
 
-                <?= view(
-                    'Pages/Profile/Partials/_section_list',
-                    [
-                        'upcomingSections' =>
-                        $upcomingSections ?? [],
-                    ]
-                ) ?>
+                <?php
+                $upcomingSections = isset($upcomingSections)
+                    && is_array($upcomingSections)
+                    ? $upcomingSections
+                    : [];
+                ?>
+
+                <?php if ($upcomingSections !== []): ?>
+                    <?= view(
+                        'Pages/Profile/Partials/_section_list',
+                        [
+                            'upcomingSections' => $upcomingSections,
+                        ]
+                    ) ?>
+                <?php endif; ?>
             </div>
             <div class="col-12 col-lg-4">
                 <?= view(
@@ -147,6 +166,11 @@ $this->section('content');
 
                         'overallProfileSummary' =>
                         $overallProfileSummary ?? [],
+
+                        'aboutMe' => $aboutMe ?? '',
+
+                        'aboutMeCompletion' =>
+                        $aboutMeCompletion ?? [],
                     ]
                 ) ?>
             </div>

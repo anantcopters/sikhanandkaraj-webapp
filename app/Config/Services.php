@@ -50,6 +50,7 @@ use App\Models\MasterLifestyleCategoryModel;
 use App\Models\MasterLifestyleOptionModel;
 use App\Models\MemberLifestyleOptionModel;
 use App\Services\Profile\LifestyleService;
+use App\Services\Profile\AboutMeService;
 
 
 /**
@@ -290,6 +291,26 @@ class Services extends BaseService
             new MasterOccupationModel($database),
             new MasterAnnualIncomeModel($database),
             new MasterFamilyOccupationModel($database)
+        );
+    }
+
+    /**
+     * Return the About Me profile service.
+     */
+    public static function aboutMeService(
+        bool $getShared = true
+    ): AboutMeService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'aboutMeService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new AboutMeService(
+            new UserModel($database),
+            new MemberBasicDetailModel($database)
         );
     }
 

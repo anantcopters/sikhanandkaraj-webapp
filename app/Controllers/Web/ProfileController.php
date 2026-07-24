@@ -16,6 +16,8 @@ use App\Services\Profile\SikhReligiousDetailsService;
 use App\Validation\Profile\SikhReligiousDetailsValidation;
 use App\Services\Profile\LifestyleService;
 use App\Validation\Profile\LifestyleValidation;
+use App\Services\Profile\AboutMeService;
+use App\Validation\Profile\AboutMeValidation;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
@@ -124,6 +126,13 @@ final class ProfileController extends BaseController
             $userId
         );
 
+        /** @var AboutMeService $aboutMeService */
+        $aboutMeService = service('aboutMeService');
+
+        $aboutMeProfile = $aboutMeService->getForUser(
+            $userId
+        );
+
         /*
         * Calculate overall completion only from sections which are
         * currently implemented and usable.
@@ -133,7 +142,8 @@ final class ProfileController extends BaseController
             $educationProfile['completion'],
             $familyProfile['completion'],
             $religiousProfile['completion'],
-            $lifestyleProfile['completion']
+            $lifestyleProfile['completion'],
+            $aboutMeProfile['completion']
         );
 
         /*
@@ -184,6 +194,13 @@ final class ProfileController extends BaseController
             )
         ) === 100;
 
+        $aboutMeComplete = (
+            (int) (
+                $aboutMeProfile['completion']['percentage']
+                ?? 0
+            )
+        ) === 100;
+
         /*
         * Determine where the Continue Profile button should send
         * the user.
@@ -216,6 +233,11 @@ final class ProfileController extends BaseController
             $nextProfileSection = [
                 'title' => 'Lifestyle',
                 'route' => 'web.profile.lifestyle',
+            ];
+        } elseif (!$aboutMeComplete) {
+            $nextProfileSection = [
+                'title' => 'About Me',
+                'route' => 'web.profile.about-me',
             ];
         } else {
             $nextProfileSection = null;
@@ -267,11 +289,13 @@ final class ProfileController extends BaseController
                 'lifestyleCompletion' =>
                 $lifestyleProfile['completion'],
 
+                'aboutMe' => $aboutMeProfile['aboutMe'],
+
+                'aboutMeCompletion' =>
+                $aboutMeProfile['completion'],
+
                 'formAlert' =>
                 session('formAlert'),
-
-                'upcomingSections' =>
-                $this->upcomingProfileSections(),
 
                 'nextProfileSection' =>
                 $nextProfileSection,
@@ -686,27 +710,6 @@ final class ProfileController extends BaseController
                     'city_id'
                 )
             ),
-        ];
-    }
-
-    /**
-     * Return profile modules that are not yet available.
-     *
-     * @return array<int, array<string, string>>
-     */
-    private function upcomingProfileSections(): array
-    {
-        return [
-
-
-            [
-                'key' => 'about-me',
-                'title' => 'About Me',
-                'description' =>
-                'Introduce yourself in your own words.',
-                'icon' => 'ri-file-user-line',
-            ],
-
         ];
     }
 
@@ -1165,6 +1168,118 @@ final class ProfileController extends BaseController
                     'title' => 'Details not saved',
                     'message' =>
                     'We could not save your details. '
+                        . 'Please try again.',
+                ]);
+        }
+    }
+
+    /**
+     * Display the About Me add/edit page.
+     */
+    public function aboutMe(): string
+    {
+        $userId = $this->authenticatedUserId();
+
+        /** @var AboutMeService $service */
+        $service = service('aboutMeService');
+
+        $profile = $service->getForUser($userId);
+
+        return view(
+            'Pages/Profile/Sections/AboutMe/Edit',
+            [
+                'pageTitle' => 'About Me',
+                'user' => $profile['user'],
+                'aboutMe' => $profile['aboutMe'],
+                'aboutMeCompletion' =>
+                $profile['completion'],
+                'validationErrors' =>
+                session('validationErrors') ?? [],
+                'formAlert' => session('formAlert'),
+                'pageScripts' => [
+                    'assets/js/pages/profile-about-me.js',
+                ],
+            ]
+        );
+    }
+
+    /**
+     * Save the member's About Me introduction.
+     */
+    public function updateAboutMe(): RedirectResponse
+    {
+        $userId = $this->authenticatedUserId();
+
+        $input = [
+            'about_me' => trim(
+                (string) $this->request->getPost('about_me')
+            ),
+        ];
+
+        $validation = service('validation');
+
+        $validation->setRules(
+            AboutMeValidation::rules()
+        );
+
+        if (!$validation->run($input)) {
+            return redirect()
+                ->to(route_to('web.profile.about-me'))
+                ->withInput()
+                ->with(
+                    'validationErrors',
+                    $validation->getErrors()
+                );
+        }
+
+        try {
+            /** @var AboutMeService $service */
+            $service = service('aboutMeService');
+
+            $service->save(
+                $userId,
+                (string) $input['about_me']
+            );
+
+            return redirect()
+                ->to(
+                    route_to('web.profile.edit')
+                        . '#about-me'
+                )
+                ->with('formAlert', [
+                    'type' => 'success',
+                    'title' => 'About Me updated',
+                    'message' =>
+                    'Your profile introduction has been saved.',
+                ]);
+        } catch (DomainException $exception) {
+            return redirect()
+                ->to(route_to('web.profile.about-me'))
+                ->withInput()
+                ->with('formAlert', [
+                    'type' => 'danger',
+                    'title' => 'About Me not saved',
+                    'message' => $exception->getMessage(),
+                ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'About Me update failed for user {userId}: '
+                    . '{message}',
+                [
+                    'userId' => $userId,
+                    'message' => $exception->getMessage(),
+                ]
+            );
+
+            return redirect()
+                ->to(route_to('web.profile.about-me'))
+                ->withInput()
+                ->with('formAlert', [
+                    'type' => 'danger',
+                    'title' => 'About Me not saved',
+                    'message' =>
+                    'We could not save your introduction. '
                         . 'Please try again.',
                 ]);
         }

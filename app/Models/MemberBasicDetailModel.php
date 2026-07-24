@@ -28,6 +28,7 @@ final class MemberBasicDetailModel extends Model
         'country_id',
         'state_id',
         'city_id',
+        'about_me',
     ];
 
     protected $useTimestamps = true;

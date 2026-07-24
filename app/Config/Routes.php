@@ -224,6 +224,27 @@ $routes->group('', [
         ]
     );
 
+    /*
+    * About Me.
+    */
+    $routes->get(
+        'profile/about-me',
+        'ProfileController::aboutMe',
+        [
+            'as' => 'web.profile.about-me',
+            'filter' => 'webAuth',
+        ]
+    );
+
+    $routes->post(
+        'profile/about-me',
+        'ProfileController::updateAboutMe',
+        [
+            'as' => 'web.profile.about-me.update',
+            'filter' => 'webAuth',
+        ]
+    );
+
     $routes->get(
         'account/settings',
         'AccountSettingsController::index',
