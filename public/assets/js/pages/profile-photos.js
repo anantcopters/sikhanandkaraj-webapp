@@ -346,16 +346,23 @@ document.addEventListener('DOMContentLoaded', () => {
                         event.preventDefault();
                         event.stopPropagation();
 
+                        form.reportValidity();
+
+                        return;
+                    }
+
+                    const formId =
+                        form.getAttribute('id');
+
+                    if (!formId) {
                         return;
                     }
 
                     const saveButton =
-                        event.submitter
-                            instanceof HTMLButtonElement
-                            ? event.submitter
-                            : form.querySelector(
-                                '[data-photo-visibility-button]'
-                            );
+                        document.querySelector(
+                            '[data-photo-visibility-button]'
+                            + '[form="' + formId + '"]'
+                        );
 
                     if (
                         !(saveButton
@@ -453,6 +460,12 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (event.defaultPrevented) {
                             return;
                         }
+
+                        showButtonLoading(
+                            deleteButton,
+                            '[data-delete-label]',
+                            '[data-delete-loading]'
+                        );
 
                         deleteButton.disabled = true;
 

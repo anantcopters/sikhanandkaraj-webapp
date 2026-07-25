@@ -607,233 +607,243 @@ $this->section('content');
                                                             </i>
                                                         </div>
 
+                                                        <!-- Photo visibility form -->
                                                         <form
                                                             method="post"
                                                             action="<?= url_to(
                                                                         'web.profile.photos.visibility',
                                                                         $photoId
                                                                     ) ?>"
+                                                            id="photo-visibility-form-<?= esc(
+                                                                                            (string) $photoId,
+                                                                                            'attr'
+                                                                                        ) ?>"
                                                             class="mb-0"
                                                             data-photo-visibility-form>
 
                                                             <?= csrf_field() ?>
 
-                                                            <div class="row g-2 align-items-end">
-                                                                <div class="col-12">
-                                                                    <label
-                                                                        for="photo-visibility-<?= esc(
-                                                                                                    (string) $photoId,
-                                                                                                    'attr'
-                                                                                                ) ?>"
-                                                                        class="form-label fw-semibold fs-12">
+                                                            <label
+                                                                for="photo-visibility-<?= esc(
+                                                                                            (string) $photoId,
+                                                                                            'attr'
+                                                                                        ) ?>"
+                                                                class="form-label fw-semibold fs-12">
 
-                                                                        Photo visibility
-                                                                    </label>
+                                                                Photo visibility
+                                                            </label>
 
-                                                                    <select
-                                                                        name="visibility"
-                                                                        id="photo-visibility-<?= esc(
-                                                                                                    (string) $photoId,
-                                                                                                    'attr'
-                                                                                                ) ?>"
-                                                                        class="form-select"
-                                                                        data-photo-visibility-choice
-                                                                        data-choice-search="false"
-                                                                        required>
+                                                            <select
+                                                                name="visibility"
+                                                                id="photo-visibility-<?= esc(
+                                                                                            (string) $photoId,
+                                                                                            'attr'
+                                                                                        ) ?>"
+                                                                class="form-select"
+                                                                data-photo-visibility-choice
+                                                                data-choice-search="false"
+                                                                required>
 
-                                                                        <option
-                                                                            value="PUBLIC"
-                                                                            <?= $visibility === 'PUBLIC'
-                                                                                ? 'selected'
-                                                                                : '' ?>>
+                                                                <option
+                                                                    value="PUBLIC"
+                                                                    <?= $visibility === 'PUBLIC'
+                                                                        ? 'selected'
+                                                                        : '' ?>>
 
-                                                                            Public
-                                                                        </option>
+                                                                    Public
+                                                                </option>
 
-                                                                        <option
-                                                                            value="INTERESTED_MEMBERS"
-                                                                            <?= $visibility ===
-                                                                                'INTERESTED_MEMBERS'
-                                                                                ? 'selected'
-                                                                                : '' ?>>
+                                                                <option
+                                                                    value="INTERESTED_MEMBERS"
+                                                                    <?= $visibility === 'INTERESTED_MEMBERS'
+                                                                        ? 'selected'
+                                                                        : '' ?>>
 
-                                                                            Interested members only
-                                                                        </option>
-                                                                    </select>
-                                                                </div>
-                                                                <div class="mt-3">
-                                                                    <div class="row g-2">
+                                                                    Interested members only
+                                                                </option>
+                                                            </select>
+                                                        </form>
 
-                                                                        <!-- Set as main / current main -->
-                                                                        <div class="col-12 col-md-6">
-                                                                            <?php if ($isPrimary): ?>
-                                                                                <button
-                                                                                    type="button"
-                                                                                    class="btn btn-success btn-sm
-                        w-100 h-100
-                        d-inline-flex align-items-center
+                                                        <!-- Photo actions -->
+                                                        <div class="mt-3">
+
+                                                            <!-- Normal actions -->
+                                                            <div class="row g-2">
+
+                                                                <div class="col-12 col-md-6">
+                                                                    <?php if ($isPrimary): ?>
+                                                                        <button
+                                                                            type="button"
+                                                                            class="btn btn-success btn-sm
+                        w-100 d-inline-flex
+                        align-items-center
                         justify-content-center gap-2"
-                                                                                    disabled
-                                                                                    aria-label="This is your main profile photo">
+                                                                            disabled
+                                                                            aria-label="This is your main profile photo">
 
-                                                                                    <i
-                                                                                        class="ri-star-fill"
-                                                                                        aria-hidden="true">
-                                                                                    </i>
+                                                                            <i
+                                                                                class="ri-star-fill"
+                                                                                aria-hidden="true">
+                                                                            </i>
 
-                                                                                    Main Photo
-                                                                                </button>
-                                                                            <?php else: ?>
-                                                                                <form
-                                                                                    method="post"
-                                                                                    action="<?= url_to(
-                                                                                                'web.profile.photos.primary',
-                                                                                                $photoId
-                                                                                            ) ?>"
-                                                                                    class="h-100"
-                                                                                    data-photo-primary-form>
+                                                                            Main Photo
+                                                                        </button>
+                                                                    <?php else: ?>
+                                                                        <form
+                                                                            method="post"
+                                                                            action="<?= url_to(
+                                                                                        'web.profile.photos.primary',
+                                                                                        $photoId
+                                                                                    ) ?>"
+                                                                            data-photo-primary-form>
 
-                                                                                    <?= csrf_field() ?>
+                                                                            <?= csrf_field() ?>
 
-                                                                                    <button
-                                                                                        type="submit"
-                                                                                        class="btn btn-outline-primary btn-sm
-                            w-100 h-100
-                            d-inline-flex align-items-center
-                            justify-content-center gap-2"
-                                                                                        data-photo-primary-button>
-
-                                                                                        <span
-                                                                                            class="d-inline-flex align-items-center gap-1"
-                                                                                            data-primary-label>
-
-                                                                                            <i
-                                                                                                class="ri-star-line"
-                                                                                                aria-hidden="true">
-                                                                                            </i>
-
-                                                                                            Set as Main
-                                                                                        </span>
-
-                                                                                        <span
-                                                                                            class="d-none align-items-center gap-1"
-                                                                                            data-primary-loading
-                                                                                            aria-live="polite">
-
-                                                                                            <span
-                                                                                                class="spinner-border spinner-border-sm"
-                                                                                                aria-hidden="true">
-                                                                                            </span>
-
-                                                                                            Setting...
-                                                                                        </span>
-                                                                                    </button>
-                                                                                </form>
-                                                                            <?php endif; ?>
-                                                                        </div>
-
-                                                                        <!-- Save visibility -->
-                                                                        <div class="col-12 col-md-6">
                                                                             <button
                                                                                 type="submit"
-                                                                                form="photo-visibility-form-<?= esc(
-                                                                                                                (string) $photoId,
-                                                                                                                'attr'
-                                                                                                            ) ?>"
-                                                                                class="btn btn-outline-secondary btn-sm
-                    w-100 h-100
-                    d-inline-flex align-items-center
-                    justify-content-center gap-2"
-                                                                                data-photo-visibility-button>
+                                                                                class="btn btn-outline-primary btn-sm
+                            w-100 d-inline-flex
+                            align-items-center
+                            justify-content-center gap-2"
+                                                                                data-photo-primary-button>
 
                                                                                 <span
-                                                                                    class="d-inline-flex align-items-center gap-1"
-                                                                                    data-visibility-label>
+                                                                                    class="d-inline-flex
+                                align-items-center gap-1"
+                                                                                    data-primary-label>
 
                                                                                     <i
-                                                                                        class="ri-save-line"
+                                                                                        class="ri-star-line"
                                                                                         aria-hidden="true">
                                                                                     </i>
 
-                                                                                    Save Visibility
+                                                                                    Set as Main
                                                                                 </span>
 
                                                                                 <span
-                                                                                    class="d-none align-items-center gap-1"
-                                                                                    data-visibility-loading
+                                                                                    class="d-none
+                                align-items-center gap-1"
+                                                                                    data-primary-loading
                                                                                     aria-live="polite">
 
                                                                                     <span
-                                                                                        class="spinner-border spinner-border-sm"
+                                                                                        class="spinner-border
+                                    spinner-border-sm"
                                                                                         aria-hidden="true">
                                                                                     </span>
 
-                                                                                    Saving...
+                                                                                    Setting...
                                                                                 </span>
                                                                             </button>
-                                                                        </div>
+                                                                        </form>
+                                                                    <?php endif; ?>
+                                                                </div>
 
-                                                                        <!-- Delete -->
-                                                                        <div class="d-flex justify-content-end mt-2">
-                                                                            <form
-                                                                                method="post"
-                                                                                action="<?= url_to(
-                                                                                            'web.profile.photos.delete',
-                                                                                            $photoId
-                                                                                        ) ?>"
-                                                                                class="h-100"
-                                                                                data-photo-delete-form
-                                                                                data-confirm-form
-                                                                                data-confirm-title="Delete this photo?"
-                                                                                data-confirm-message="This photo will be permanently removed from your profile. This action cannot be undone."
-                                                                                data-confirm-button-text="Delete Photo"
-                                                                                data-confirm-loading-text="Deleting photo..."
-                                                                                data-confirm-button-class="btn-danger"
-                                                                                data-confirm-icon="ri-delete-bin-line">
+                                                                <div class="col-12 col-md-6">
+                                                                    <button
+                                                                        type="submit"
+                                                                        form="photo-visibility-form-<?= esc(
+                                                                                                        (string) $photoId,
+                                                                                                        'attr'
+                                                                                                    ) ?>"
+                                                                        class="btn btn-outline-secondary btn-sm
+                    w-100 d-inline-flex
+                    align-items-center
+                    justify-content-center gap-2"
+                                                                        data-photo-visibility-button>
 
-                                                                                <?= csrf_field() ?>
+                                                                        <span
+                                                                            class="d-inline-flex
+                        align-items-center gap-1"
+                                                                            data-visibility-label>
 
-                                                                                <button
-                                                                                    type="submit"
-                                                                                    class="btn btn-outline-danger btn-sm
-                        w-100 h-100
-                        d-inline-flex align-items-center
-                        justify-content-center gap-2"
-                                                                                    data-photo-delete-button>
+                                                                            <i
+                                                                                class="ri-save-line"
+                                                                                aria-hidden="true">
+                                                                            </i>
 
-                                                                                    <span
-                                                                                        class="d-inline-flex align-items-center gap-1"
-                                                                                        data-delete-label>
+                                                                            Save Visibility
+                                                                        </span>
 
-                                                                                        <i
-                                                                                            class="ri-delete-bin-line"
-                                                                                            aria-hidden="true">
-                                                                                        </i>
+                                                                        <span
+                                                                            class="d-none
+                        align-items-center gap-1"
+                                                                            data-visibility-loading
+                                                                            aria-live="polite">
 
-                                                                                        Delete
-                                                                                    </span>
+                                                                            <span
+                                                                                class="spinner-border
+                            spinner-border-sm"
+                                                                                aria-hidden="true">
+                                                                            </span>
 
-                                                                                    <span
-                                                                                        class="d-none align-items-center gap-1"
-                                                                                        data-delete-loading
-                                                                                        aria-live="polite">
-
-                                                                                        <span
-                                                                                            class="spinner-border spinner-border-sm"
-                                                                                            aria-hidden="true">
-                                                                                        </span>
-
-                                                                                        Deleting...
-                                                                                    </span>
-                                                                                </button>
-                                                                            </form>
-                                                                        </div>
-
-                                                                    </div>
+                                                                            Saving...
+                                                                        </span>
+                                                                    </button>
                                                                 </div>
 
                                                             </div>
-                                                        </form>
+
+                                                            <!-- Destructive action -->
+                                                            <div class="row g-2 mt-0">
+                                                                <div class="col-12 d-flex justify-content-end">
+                                                                    <form
+                                                                        method="post"
+                                                                        action="<?= url_to(
+                                                                                    'web.profile.photos.delete',
+                                                                                    $photoId
+                                                                                ) ?>"
+                                                                        data-photo-delete-form
+                                                                        data-confirm-form
+                                                                        data-confirm-title="Delete this photo?"
+                                                                        data-confirm-message="This photo will be permanently removed from your profile. This action cannot be undone."
+                                                                        data-confirm-button-text="Delete Photo"
+                                                                        data-confirm-loading-text="Deleting photo..."
+                                                                        data-confirm-button-class="btn-danger"
+                                                                        data-confirm-icon="ri-delete-bin-line">
+
+                                                                        <?= csrf_field() ?>
+
+                                                                        <button
+                                                                            type="submit"
+                                                                            class="btn btn-outline-danger btn-sm
+                        d-inline-flex align-items-center
+                        justify-content-center gap-2"
+                                                                            data-photo-delete-button>
+
+                                                                            <span
+                                                                                class="d-inline-flex
+                            align-items-center gap-1"
+                                                                                data-delete-label>
+
+                                                                                <i
+                                                                                    class="ri-delete-bin-line"
+                                                                                    aria-hidden="true">
+                                                                                </i>
+
+                                                                                Delete Photo
+                                                                            </span>
+
+                                                                            <span
+                                                                                class="d-none
+                            align-items-center gap-1"
+                                                                                data-delete-loading
+                                                                                aria-live="polite">
+
+                                                                                <span
+                                                                                    class="spinner-border
+                                spinner-border-sm"
+                                                                                    aria-hidden="true">
+                                                                                </span>
+
+                                                                                Deleting...
+                                                                            </span>
+                                                                        </button>
+                                                                    </form>
+                                                                </div>
+                                                            </div>
+
+                                                        </div>
 
                                                     </div>
                                                 </article>
