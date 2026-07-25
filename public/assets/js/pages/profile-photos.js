@@ -9,6 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
         'profile-photo-input'
     );
 
+    const previewWrapper = document.getElementById(
+        'profile-photo-preview-wrapper'
+    );
+
     const preview = document.getElementById(
         'profile-photo-preview'
     );
@@ -25,28 +29,40 @@ document.addEventListener('DOMContentLoaded', () => {
         'profile-photo-spinner'
     );
 
-    if (photoInput && preview && fileName) {
-        photoInput.addEventListener('change', () => {
-            const [file] = photoInput.files;
+    let currentObjectUrl = null;
 
-            if (!file) {
-                preview.src = '';
-                preview.classList.add('d-none');
+    if (
+        photoInput
+        && previewWrapper
+        && preview
+        && fileName
+    ) {
+        photoInput.addEventListener('change', () => {
+            const selectedFile = photoInput.files
+                ? photoInput.files[0]
+                : null;
+
+            if (currentObjectUrl !== null) {
+                URL.revokeObjectURL(currentObjectUrl);
+                currentObjectUrl = null;
+            }
+
+            if (!selectedFile) {
+                preview.removeAttribute('src');
+                previewWrapper.classList.add('d-none');
                 fileName.textContent = 'No photo selected';
 
                 return;
             }
 
-            fileName.textContent = file.name;
+            fileName.textContent = selectedFile.name;
 
-            const objectUrl = URL.createObjectURL(file);
+            currentObjectUrl = URL.createObjectURL(
+                selectedFile
+            );
 
-            preview.onload = () => {
-                URL.revokeObjectURL(objectUrl);
-            };
-
-            preview.src = objectUrl;
-            preview.classList.remove('d-none');
+            preview.src = currentObjectUrl;
+            previewWrapper.classList.remove('d-none');
         });
     }
 
@@ -58,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document
-        .querySelectorAll('.profile-photo-delete-form')
+        .querySelectorAll('[data-photo-delete-form]')
         .forEach((form) => {
             form.addEventListener('submit', (event) => {
                 const confirmed = window.confirm(
@@ -70,4 +86,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         });
+
+    window.addEventListener('beforeunload', () => {
+        if (currentObjectUrl !== null) {
+            URL.revokeObjectURL(currentObjectUrl);
+        }
+    });
 });

@@ -245,7 +245,6 @@ final class MemberPhotoService
         } catch (Throwable $exception) {
             if (
                 $this->database->transStatus() !== false
-                || $this->database->transDepth() > 0
             ) {
                 $this->database->transRollback();
             }

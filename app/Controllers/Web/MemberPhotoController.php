@@ -326,4 +326,21 @@ final class MemberPhotoController extends BaseController
                 'message' => $message,
             ]);
     }
+
+    
+    /**
+     * Resolve the authenticated user identifier.
+     */
+    private function authenticatedUserId(): int
+    {
+        $userId = session('auth_user_id');
+
+        if (!is_numeric($userId)) {
+            session()->destroy();
+
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        return (int) $userId;
+    }
 }

@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 /**
+ * Member photo-management page.
+ *
  * @var array<string, mixed>       $user
  * @var list<array<string, mixed>> $photos
  * @var int                        $photoCount
@@ -21,15 +23,15 @@ $photos = isset($photos) && is_array($photos)
     : [];
 
 $photoCount = isset($photoCount)
-    ? (int) $photoCount
+    ? max(0, (int) $photoCount)
     : count($photos);
 
 $maximumPhotos = isset($maximumPhotos)
-    ? (int) $maximumPhotos
+    ? max(1, (int) $maximumPhotos)
     : 5;
 
 $remainingPhotos = isset($remainingPhotos)
-    ? (int) $remainingPhotos
+    ? max(0, (int) $remainingPhotos)
     : max(0, $maximumPhotos - $photoCount);
 
 $validationErrors = isset($validationErrors)
@@ -37,7 +39,8 @@ $validationErrors = isset($validationErrors)
     ? $validationErrors
     : [];
 
-$formAlert = isset($formAlert) && is_array($formAlert)
+$formAlert = isset($formAlert)
+    && is_array($formAlert)
     ? $formAlert
     : null;
 
@@ -45,7 +48,7 @@ $this->extend('Layouts/Main');
 $this->section('content');
 ?>
 
-<section class="profile-photos-page py-3 py-lg-4">
+<section class="py-3 py-lg-4">
     <div class="container">
 
         <?= view(
@@ -61,13 +64,13 @@ $this->section('content');
                 <div
                     class="d-flex flex-column flex-md-row
                         align-items-md-center
-                        justify-content-between gap-3 mb-3">
+                        justify-content-between gap-3 mb-4">
 
                     <div>
                         <a
                             href="<?= url_to('web.profile.edit') ?>"
                             class="d-inline-flex align-items-center
-                                gap-1 text-primary fw-medium mb-2">
+                                gap-1 text-primary fw-medium mb-3">
 
                             <i
                                 class="ri-arrow-left-line"
@@ -77,22 +80,15 @@ $this->section('content');
                             Back to Profile
                         </a>
 
-                        <div
-                            class="d-flex align-items-center
-                                gap-2 mt-2">
-
+                        <div class="d-flex align-items-center gap-3">
                             <div
-                                class="avatar-sm flex-shrink-0"
+                                class="avatar-sm rounded-circle
+                                    bg-danger-subtle text-danger
+                                    d-flex align-items-center
+                                    justify-content-center"
                                 aria-hidden="true">
 
-                                <span
-                                    class="avatar-title rounded-circle
-                                        bg-danger-subtle text-danger">
-
-                                    <i
-                                        class="ri-image-add-line fs-20">
-                                    </i>
-                                </span>
+                                <i class="ri-image-add-line fs-20"></i>
                             </div>
 
                             <div>
@@ -101,17 +97,14 @@ $this->section('content');
                                 </h1>
 
                                 <p class="text-muted fs-13 mb-0">
-                                    Upload up to five photos and choose
+                                    Upload up to five photos and select
                                     your main profile photo.
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    <div
-                        class="profile-photos-page__count
-                            text-md-end">
-
+                    <div class="text-md-end">
                         <span class="fw-semibold">
                             <?= esc((string) $photoCount) ?>
                             of
@@ -127,20 +120,16 @@ $this->section('content');
                 <div class="row g-3 g-lg-4">
 
                     <div class="col-12 col-lg-4">
-                        <div
-                            class="card border border-danger
-                                border-opacity-25 shadow-none
-                                profile-photo-upload-card">
-
+                        <div class="card border shadow-none">
                             <div class="card-body p-3 p-md-4">
 
                                 <h2 class="fs-16 fw-semibold mb-1">
-                                    Add a photo
+                                    Add a Photo
                                 </h2>
 
                                 <p class="text-muted fs-13 mb-3">
                                     JPEG, PNG or WEBP. Maximum 10 MB.
-                                    Minimum 400 × 400 pixels.
+                                    Minimum size 400 × 400 pixels.
                                 </p>
 
                                 <?php if ($remainingPhotos > 0): ?>
@@ -156,161 +145,146 @@ $this->section('content');
 
                                         <?= csrf_field() ?>
 
-                                        <div
-                                            class="profile-photo-dropzone
-                                                mb-3"
-                                            id="profile-photo-dropzone">
+                                        <div class="mb-3">
+                                            <label
+                                                for="profile-photo-input"
+                                                class="form-label
+                                                    fw-semibold fs-13">
+                                                Select Photo
+                                            </label>
 
                                             <input
                                                 type="file"
                                                 name="photo"
                                                 id="profile-photo-input"
-                                                class="profile-photo-dropzone__input"
+                                                class="form-control
+                                                    <?= isset(
+                                                        $validationErrors['photo']
+                                                    )
+                                                        ? 'is-invalid'
+                                                        : '' ?>"
                                                 accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                                                 required>
 
-                                            <label
-                                                for="profile-photo-input"
-                                                class="profile-photo-dropzone__label">
+                                            <?php if (
+                                                isset(
+                                                    $validationErrors['photo']
+                                                )
+                                            ): ?>
+                                                <div
+                                                    class="invalid-feedback">
+                                                    <?= esc(
+                                                        $validationErrors['photo']
+                                                    ) ?>
+                                                </div>
+                                            <?php endif; ?>
 
-                                                <span
-                                                    class="profile-photo-dropzone__icon">
+                                            <div
+                                                class="form-text"
+                                                id="profile-photo-file-name">
+                                                No photo selected
+                                            </div>
+                                        </div>
 
-                                                    <i
-                                                        class="ri-upload-cloud-2-line"
-                                                        aria-hidden="true">
-                                                    </i>
-                                                </span>
-
-                                                <span
-                                                    class="fw-semibold
-                                                        d-block mb-1">
-
-                                                    Choose a photo
-                                                </span>
-
-                                                <span
-                                                    class="text-muted
-                                                        fs-12 d-block">
-
-                                                    Tap or click to browse
-                                                </span>
-                                            </label>
+                                        <div
+                                            id="profile-photo-preview-wrapper"
+                                            class="border rounded p-2 mb-3
+                                                text-center d-none">
 
                                             <img
                                                 src=""
                                                 alt="Selected photo preview"
                                                 id="profile-photo-preview"
-                                                class="profile-photo-dropzone__preview d-none">
+                                                class="img-fluid rounded">
                                         </div>
-
-                                        <?php if (
-                                            isset(
-                                                $validationErrors['photo']
-                                            )
-                                        ): ?>
-
-                                            <div
-                                                class="invalid-feedback
-                                                    d-block mb-3">
-
-                                                <?= esc(
-                                                    $validationErrors['photo']
-                                                ) ?>
-                                            </div>
-
-                                        <?php endif; ?>
-
-                                        <p
-                                            class="profile-photo-file-name
-                                                text-muted fs-12 mb-3"
-                                            id="profile-photo-file-name">
-                                            No photo selected
-                                        </p>
 
                                         <fieldset class="mb-3">
                                             <legend
-                                                class="form-label fs-13
-                                                    fw-semibold mb-2">
-
+                                                class="form-label
+                                                    fw-semibold fs-13 mb-2">
                                                 Who can view this photo?
                                             </legend>
 
-                                            <div
-                                                class="profile-photo-visibility-options">
+                                            <div class="form-check mb-2">
+                                                <input
+                                                    class="form-check-input"
+                                                    type="radio"
+                                                    name="visibility"
+                                                    value="PUBLIC"
+                                                    id="photo-visibility-public"
+                                                    <?= old(
+                                                        'visibility',
+                                                        'PUBLIC'
+                                                    ) === 'PUBLIC'
+                                                        ? 'checked'
+                                                        : '' ?>>
 
                                                 <label
-                                                    class="profile-photo-visibility-option">
+                                                    class="form-check-label"
+                                                    for="photo-visibility-public">
 
-                                                    <input
-                                                        type="radio"
-                                                        name="visibility"
-                                                        value="PUBLIC"
-                                                        <?= old(
-                                                            'visibility',
-                                                            'PUBLIC'
-                                                        ) === 'PUBLIC'
-                                                            ? 'checked'
-                                                            : '' ?>>
-
-                                                    <span>
-                                                        <strong>
-                                                            Public
-                                                        </strong>
-
-                                                        <small>
-                                                            Visible to
-                                                            eligible members.
-                                                        </small>
+                                                    <span
+                                                        class="fw-semibold
+                                                            fs-13 d-block">
+                                                        Public
                                                     </span>
-                                                </label>
 
-                                                <label
-                                                    class="profile-photo-visibility-option">
-
-                                                    <input
-                                                        type="radio"
-                                                        name="visibility"
-                                                        value="INTERESTED_MEMBERS"
-                                                        <?= old(
-                                                            'visibility'
-                                                        ) ===
-                                                            'INTERESTED_MEMBERS'
-                                                            ? 'checked'
-                                                            : '' ?>>
-
-                                                    <span>
-                                                        <strong>
-                                                            Interested
-                                                            members only
-                                                        </strong>
-
-                                                        <small>
-                                                            Restrict viewing
-                                                            to members with
-                                                            approved interest.
-                                                        </small>
+                                                    <span
+                                                        class="text-muted
+                                                            fs-12">
+                                                        Visible to eligible
+                                                        members.
                                                     </span>
                                                 </label>
                                             </div>
-                                        </fieldset>
 
-                                        <?php if (
-                                            isset(
-                                                $validationErrors['visibility']
-                                            )
-                                        ): ?>
+                                            <div class="form-check">
+                                                <input
+                                                    class="form-check-input"
+                                                    type="radio"
+                                                    name="visibility"
+                                                    value="INTERESTED_MEMBERS"
+                                                    id="photo-visibility-interested"
+                                                    <?= old(
+                                                        'visibility'
+                                                    ) ===
+                                                        'INTERESTED_MEMBERS'
+                                                        ? 'checked'
+                                                        : '' ?>>
 
-                                            <div
-                                                class="invalid-feedback
-                                                    d-block mb-3">
+                                                <label
+                                                    class="form-check-label"
+                                                    for="photo-visibility-interested">
 
-                                                <?= esc(
+                                                    <span
+                                                        class="fw-semibold
+                                                            fs-13 d-block">
+                                                        Interested Members
+                                                    </span>
+
+                                                    <span
+                                                        class="text-muted
+                                                            fs-12">
+                                                        Visible only after an
+                                                        approved interest.
+                                                    </span>
+                                                </label>
+                                            </div>
+
+                                            <?php if (
+                                                isset(
                                                     $validationErrors['visibility']
-                                                ) ?>
-                                            </div>
-
-                                        <?php endif; ?>
+                                                )
+                                            ): ?>
+                                                <div
+                                                    class="invalid-feedback
+                                                        d-block mt-2">
+                                                    <?= esc(
+                                                        $validationErrors['visibility']
+                                                    ) ?>
+                                                </div>
+                                            <?php endif; ?>
+                                        </fieldset>
 
                                         <div class="form-check mb-3">
                                             <input
@@ -324,17 +298,16 @@ $this->section('content');
                                                     : '' ?>>
 
                                             <label
-                                                class="form-check-label
-                                                    fs-13"
+                                                class="form-check-label fs-13"
                                                 for="profile-photo-primary">
-
                                                 Make this my main photo
                                             </label>
                                         </div>
 
                                         <div
                                             class="alert alert-warning
-                                                py-2 px-3 fs-12 mb-3">
+                                                py-2 px-3 fs-12 mb-3"
+                                            role="alert">
 
                                             <i
                                                 class="ri-time-line me-1"
@@ -342,7 +315,7 @@ $this->section('content');
                                             </i>
 
                                             New photos remain pending until
-                                            approved by the administrator.
+                                            administrator approval.
                                         </div>
 
                                         <button
@@ -350,13 +323,10 @@ $this->section('content');
                                             class="btn btn-primary w-100
                                                 d-inline-flex
                                                 align-items-center
-                                                justify-content-center
-                                                gap-2"
+                                                justify-content-center gap-2"
                                             id="profile-photo-submit">
 
-                                            <span>
-                                                Upload photo
-                                            </span>
+                                            <span>Upload Photo</span>
 
                                             <span
                                                 class="spinner-border
@@ -379,7 +349,10 @@ $this->section('content');
                                         </i>
 
                                         You have uploaded the maximum of
-                                        five photos. Delete a photo before
+                                        <?= esc(
+                                            (string) $maximumPhotos
+                                        ) ?>
+                                        photos. Delete a photo before
                                         uploading another.
                                     </div>
 
@@ -390,67 +363,54 @@ $this->section('content');
                     </div>
 
                     <div class="col-12 col-lg-8">
-                        <div
-                            class="card border border-danger
-                                border-opacity-25 shadow-none">
-
+                        <div class="card border shadow-none">
                             <div class="card-body p-3 p-md-4">
 
-                                <div
-                                    class="d-flex align-items-center
-                                        justify-content-between
-                                        gap-2 mb-3">
+                                <div class="mb-3">
+                                    <h2 class="fs-16 fw-semibold mb-1">
+                                        Your Photos
+                                    </h2>
 
-                                    <div>
-                                        <h2
-                                            class="fs-16 fw-semibold mb-1">
-                                            Your photos
-                                        </h2>
-
-                                        <p class="text-muted fs-13 mb-0">
-                                            Select a main photo, update
-                                            visibility or delete a photo.
-                                        </p>
-                                    </div>
+                                    <p class="text-muted fs-13 mb-0">
+                                        Select a main photo, update its
+                                        visibility or delete it.
+                                    </p>
                                 </div>
 
                                 <?php if ($photos === []): ?>
 
                                     <div
-                                        class="profile-photos-empty
-                                            text-center">
+                                        class="border rounded
+                                            text-center p-4 p-md-5">
 
                                         <div
-                                            class="profile-photos-empty__icon"
+                                            class="avatar-lg rounded-circle
+                                                bg-light text-muted
+                                                d-inline-flex
+                                                align-items-center
+                                                justify-content-center mb-3"
                                             aria-hidden="true">
 
                                             <i
-                                                class="ri-image-line">
+                                                class="ri-image-line fs-24">
                                             </i>
                                         </div>
 
-                                        <h3
-                                            class="fs-15 fw-semibold mb-1">
-                                            No photos uploaded
+                                        <h3 class="fs-15 fw-semibold mb-1">
+                                            No Photos Uploaded
                                         </h3>
 
-                                        <p
-                                            class="text-muted fs-13 mb-0">
-                                            Upload your first photo to
-                                            improve your profile.
+                                        <p class="text-muted fs-13 mb-0">
+                                            Upload your first clear and
+                                            recent photograph.
                                         </p>
                                     </div>
 
                                 <?php else: ?>
 
-                                    <div
-                                        class="row g-3"
-                                        id="member-photo-grid">
+                                    <div class="row g-3">
 
-                                        <?php foreach (
-                                            $photos as $photo
-                                        ): ?>
-
+                                        <?php foreach ($photos as $photo): ?>
                                             <?php
                                             $photoId = (int) (
                                                 $photo['id'] ?? 0
@@ -475,27 +435,23 @@ $this->section('content');
                                                 ?? false
                                             );
 
-                                            $thumbnailUrl = (string) (
-                                                $photo['signedUrls']['thumbnailUrl']
-                                                ?? ''
+                                            $thumbnailUrl = trim(
+                                                (string) (
+                                                    $photo['signedUrls']['thumbnailUrl']
+                                                    ?? ''
+                                                )
                                             );
 
                                             $statusClass = match ($status) {
-                                                'APPROVED' =>
-                                                'success',
-                                                'REJECTED' =>
-                                                'danger',
-                                                default =>
-                                                'warning',
+                                                'APPROVED' => 'success',
+                                                'REJECTED' => 'danger',
+                                                default => 'warning',
                                             };
 
                                             $statusLabel = match ($status) {
-                                                'APPROVED' =>
-                                                'Approved',
-                                                'REJECTED' =>
-                                                'Rejected',
-                                                default =>
-                                                'Pending approval',
+                                                'APPROVED' => 'Approved',
+                                                'REJECTED' => 'Rejected',
+                                                default => 'Pending Approval',
                                             };
                                             ?>
 
@@ -503,45 +459,58 @@ $this->section('content');
                                                 class="col-12 col-sm-6">
 
                                                 <article
-                                                    class="profile-photo-card">
+                                                    class="card h-100
+                                                        border shadow-none">
 
                                                     <div
-                                                        class="profile-photo-card__media">
-
-                                                        <?php if (
-                                                            $thumbnailUrl
-                                                            !== ''
-                                                        ): ?>
-
-                                                            <img
-                                                                src="<?= esc(
-                                                                            $thumbnailUrl
-                                                                        ) ?>"
-                                                                alt="Member photo"
-                                                                loading="lazy">
-
-                                                        <?php else: ?>
-
-                                                            <div
-                                                                class="profile-photo-card__placeholder">
-
-                                                                <i
-                                                                    class="ri-image-line"
-                                                                    aria-hidden="true">
-                                                                </i>
-                                                            </div>
-
-                                                        <?php endif; ?>
+                                                        class="card-body p-3">
 
                                                         <div
-                                                            class="profile-photo-card__badges">
+                                                            class="ratio
+                                                                ratio-1x1
+                                                                bg-light
+                                                                border rounded
+                                                                overflow-hidden
+                                                                mb-3">
+
+                                                            <?php if (
+                                                                $thumbnailUrl
+                                                                !== ''
+                                                            ): ?>
+                                                                <img
+                                                                    src="<?= esc(
+                                                                                $thumbnailUrl
+                                                                            ) ?>"
+                                                                    alt="Member photo"
+                                                                    class="w-100 h-100
+                                                                        object-fit-cover"
+                                                                    loading="lazy">
+                                                            <?php else: ?>
+                                                                <div
+                                                                    class="d-flex
+                                                                        align-items-center
+                                                                        justify-content-center
+                                                                        text-muted">
+
+                                                                    <i
+                                                                        class="ri-image-line
+                                                                            fs-24"
+                                                                        aria-hidden="true">
+                                                                    </i>
+                                                                </div>
+                                                            <?php endif; ?>
+                                                        </div>
+
+                                                        <div
+                                                            class="d-flex
+                                                                flex-wrap
+                                                                gap-2 mb-3">
 
                                                             <span
                                                                 class="badge
                                                                     text-bg-<?= esc(
                                                                                 $statusClass
                                                                             ) ?>">
-
                                                                 <?= esc(
                                                                     $statusLabel
                                                                 ) ?>
@@ -550,25 +519,20 @@ $this->section('content');
                                                             <?php if (
                                                                 $isPrimary
                                                             ): ?>
-
                                                                 <span
                                                                     class="badge
                                                                         text-bg-primary">
 
                                                                     <i
-                                                                        class="ri-star-fill me-1"
+                                                                        class="ri-star-fill
+                                                                            me-1"
                                                                         aria-hidden="true">
                                                                     </i>
 
                                                                     Main
                                                                 </span>
-
                                                             <?php endif; ?>
                                                         </div>
-                                                    </div>
-
-                                                    <div
-                                                        class="profile-photo-card__body">
 
                                                         <div
                                                             class="d-flex
@@ -586,7 +550,6 @@ $this->section('content');
                                                                 <span
                                                                     class="fw-medium
                                                                         fs-13">
-
                                                                     <?= $visibility
                                                                         ===
                                                                         'INTERESTED_MEMBERS'
@@ -610,7 +573,6 @@ $this->section('content');
                                                         <?php if (
                                                             !$isPrimary
                                                         ): ?>
-
                                                             <form
                                                                 method="post"
                                                                 action="<?= url_to(
@@ -628,14 +590,14 @@ $this->section('content');
                                                                         btn-sm w-100">
 
                                                                     <i
-                                                                        class="ri-star-line me-1"
+                                                                        class="ri-star-line
+                                                                            me-1"
                                                                         aria-hidden="true">
                                                                     </i>
 
-                                                                    Make main photo
+                                                                    Make Main Photo
                                                                 </button>
                                                             </form>
-
                                                         <?php endif; ?>
 
                                                         <form
@@ -644,44 +606,47 @@ $this->section('content');
                                                                         'web.profile.photos.visibility',
                                                                         $photoId
                                                                     ) ?>"
-                                                            class="d-flex
-                                                                gap-2 mb-2">
+                                                            class="mb-2">
 
                                                             <?= csrf_field() ?>
 
-                                                            <select
-                                                                name="visibility"
-                                                                class="form-select
-                                                                    form-select-sm"
-                                                                aria-label="Photo visibility">
+                                                            <div
+                                                                class="input-group
+                                                                    input-group-sm">
 
-                                                                <option
-                                                                    value="PUBLIC"
-                                                                    <?= $visibility
-                                                                        === 'PUBLIC'
-                                                                        ? 'selected'
-                                                                        : '' ?>>
-                                                                    Public
-                                                                </option>
+                                                                <select
+                                                                    name="visibility"
+                                                                    class="form-select"
+                                                                    aria-label="Photo visibility">
 
-                                                                <option
-                                                                    value="INTERESTED_MEMBERS"
-                                                                    <?= $visibility
-                                                                        ===
-                                                                        'INTERESTED_MEMBERS'
-                                                                        ? 'selected'
-                                                                        : '' ?>>
-                                                                    Interested only
-                                                                </option>
-                                                            </select>
+                                                                    <option
+                                                                        value="PUBLIC"
+                                                                        <?= $visibility
+                                                                            ===
+                                                                            'PUBLIC'
+                                                                            ? 'selected'
+                                                                            : '' ?>>
+                                                                        Public
+                                                                    </option>
 
-                                                            <button
-                                                                type="submit"
-                                                                class="btn
-                                                                    btn-outline-secondary
-                                                                    btn-sm">
-                                                                Save
-                                                            </button>
+                                                                    <option
+                                                                        value="INTERESTED_MEMBERS"
+                                                                        <?= $visibility
+                                                                            ===
+                                                                            'INTERESTED_MEMBERS'
+                                                                            ? 'selected'
+                                                                            : '' ?>>
+                                                                        Interested Only
+                                                                    </option>
+                                                                </select>
+
+                                                                <button
+                                                                    type="submit"
+                                                                    class="btn
+                                                                        btn-outline-secondary">
+                                                                    Save
+                                                                </button>
+                                                            </div>
                                                         </form>
 
                                                         <form
@@ -690,7 +655,7 @@ $this->section('content');
                                                                         'web.profile.photos.delete',
                                                                         $photoId
                                                                     ) ?>"
-                                                            class="profile-photo-delete-form">
+                                                            data-photo-delete-form>
 
                                                             <?= csrf_field() ?>
 
@@ -701,18 +666,21 @@ $this->section('content');
                                                                     btn-sm w-100">
 
                                                                 <i
-                                                                    class="ri-delete-bin-line me-1"
+                                                                    class="ri-delete-bin-line
+                                                                        me-1"
                                                                     aria-hidden="true">
                                                                 </i>
 
-                                                                Delete photo
+                                                                Delete Photo
                                                             </button>
                                                         </form>
+
                                                     </div>
                                                 </article>
                                             </div>
 
                                         <?php endforeach; ?>
+
                                     </div>
 
                                 <?php endif; ?>
@@ -722,11 +690,9 @@ $this->section('content');
                     </div>
                 </div>
 
-                <div
-                    class="alert alert-light border mt-3 mb-0
-                        profile-photo-guidelines">
-
+                <div class="alert alert-light border mt-3 mb-0">
                     <div class="d-flex gap-2">
+
                         <i
                             class="ri-shield-check-line
                                 text-success fs-18"
@@ -735,7 +701,7 @@ $this->section('content');
 
                         <div>
                             <h2 class="fs-14 fw-semibold mb-1">
-                                Photo guidelines
+                                Photo Guidelines
                             </h2>
 
                             <p class="text-muted fs-12 mb-0">
