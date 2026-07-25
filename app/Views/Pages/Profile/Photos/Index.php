@@ -56,12 +56,7 @@ $this->section('content');
 <section class="py-3 py-lg-4">
     <div class="container">
 
-        <?= view(
-            'Pages/Profile/Partials/_feedback_alert',
-            [
-                'formAlert' => $formAlert,
-            ]
-        ) ?>
+
 
         <div class="row justify-content-center">
             <div class="col-12 col-xl-10">
@@ -69,7 +64,7 @@ $this->section('content');
                 <div
                     class="d-flex flex-column flex-md-row
                         align-items-md-center
-                        justify-content-between gap-3 mb-4">
+                        justify-content-between gap-3 mb-3">
 
                     <div>
                         <a
@@ -128,11 +123,33 @@ $this->section('content');
                         </span>
                     </div>
                 </div>
+                <div class="alert alert-light border mt-0 mb-3">
+                    <div class="d-flex gap-2">
 
+                        <i
+                            class="ri-shield-check-line
+                                text-success fs-18"
+                            aria-hidden="true">
+                        </i>
+
+                        <div>
+                            <h2 class="fs-14 fw-semibold mb-1">
+                                Photo Guidelines
+                            </h2>
+
+                            <p class="text-muted fs-12 mb-0">
+                                Upload a recent, clear photograph showing
+                                your face. Avoid group photos, screenshots,
+                                contact details, offensive content and
+                                heavily edited images.
+                            </p>
+                        </div>
+                    </div>
+                </div>
                 <div class="row g-3 g-lg-4">
 
                     <div class="col-12 col-lg-4">
-                        <div class="card border shadow-none">
+                        <div class="card border border-danger border-opacity-25 shadow-none">
                             <div class="card-body p-3 p-md-4">
 
                                 <h2 class="fs-16 fw-semibold mb-1">
@@ -193,7 +210,7 @@ $this->section('content');
                                             <?php endif; ?>
 
                                             <div
-                                                class="form-text"
+                                                class="form-text color-pink"
                                                 id="profile-photo-file-name">
                                                 No photo selected
                                             </div>
@@ -257,7 +274,7 @@ $this->section('content');
                                                 </option>
                                             </select>
 
-                                            <div class="form-text">
+                                            <div class="form-text color-pink">
                                                 Public photos are visible to eligible members.
                                                 Interested-only photos are shown after an approved
                                                 interest.
@@ -290,7 +307,7 @@ $this->section('content');
                                             </label>
                                         </div>
 
-                                        <p class="text-muted fs-12 mb-3">
+                                        <p class="fs-12 mb-3 color-pink">
                                             Only one photo can be your main profile photo.
                                             Selecting another photo as main will replace the
                                             current selection.
@@ -298,7 +315,7 @@ $this->section('content');
 
                                         <div
                                             class="alert alert-warning
-                                                py-2 px-3 fs-12 mb-3"
+                                                py-2 px-2 fw-medium fs-12 mb-3"
                                             role="alert">
 
                                             <i
@@ -307,32 +324,34 @@ $this->section('content');
                                             </i>
 
                                             New photos remain pending until
-                                            administrator approval.
+                                            approval.
                                         </div>
-
                                         <button
                                             type="submit"
-                                            class="btn btn-primary w-100
-        d-inline-flex align-items-center
-        justify-content-center gap-2"
+                                            class="btn registration-form__submit
+                                fs-14 fw-semibold text-uppercase"
                                             id="profile-photo-submit">
-
-                                            <span class="registration-submit__label">
+                                            <span
+                                                class="registration-submit__label">
                                                 Upload Photo
                                             </span>
 
                                             <span
-                                                class="registration-submit__loading d-none"
-                                                aria-live="polite">
-
+                                                class="registration-submit__loading
+                                    d-none"
+                                                aria-hidden="true">
                                                 <span
-                                                    class="spinner-border spinner-border-sm me-1"
-                                                    aria-hidden="true">
-                                                </span>
+                                                    class="spinner-border
+                                        spinner-border-sm"
+                                                    role="status"
+                                                    aria-hidden="true"></span>
 
-                                                Uploading photo...
+                                                <span>
+                                                    Uploading photo...
+                                                </span>
                                             </span>
                                         </button>
+
                                     </form>
 
                                 <?php else: ?>
@@ -361,9 +380,14 @@ $this->section('content');
                     </div>
 
                     <div class="col-12 col-lg-8">
-                        <div class="card border shadow-none">
+                        <div class="card border border-danger border-opacity-25 shadow-none">
                             <div class="card-body p-3 p-md-4">
-
+                                <?= view(
+                                    'Pages/Profile/Partials/_feedback_alert',
+                                    [
+                                        'formAlert' => $formAlert,
+                                    ]
+                                ) ?>
                                 <div class="mb-3">
                                     <h2 class="fs-16 fw-semibold mb-1">
                                         Your Photos
@@ -457,8 +481,7 @@ $this->section('content');
                                                 class="col-12 col-sm-6">
 
                                                 <article
-                                                    class="card h-100
-                                                        border shadow-none">
+                                                    class="card border border-danger border-opacity-25 shadow-none">
 
                                                     <div
                                                         class="card-body p-3">
@@ -506,9 +529,9 @@ $this->section('content');
 
                                                             <span
                                                                 class="badge
-                                                                    text-bg-<?= esc(
-                                                                                $statusClass
-                                                                            ) ?>">
+                                                                    text-body p-2 bg-<?= esc(
+                                                                                            $statusClass
+                                                                                        ) ?>">
                                                                 <?= esc(
                                                                     $statusLabel
                                                                 ) ?>
@@ -519,7 +542,7 @@ $this->section('content');
                                                             ): ?>
                                                                 <span
                                                                     class="badge
-                                                                        text-bg-primary">
+                                                                        text-white p-2 bg-primary">
 
                                                                     <i
                                                                         class="ri-star-fill
@@ -570,7 +593,7 @@ $this->section('content');
 
                                                         <?php if ($isPrimary): ?>
                                                             <span
-                                                                class="badge bg-primary-subtle text-primary">
+                                                                class="badge bg-primary-subtle text-body p-2">
 
                                                                 Main profile photo
                                                             </span>
@@ -641,33 +664,33 @@ $this->section('content');
                                                                 </button>
                                                             </div>
                                                         </form>
+                                                        <div class="d-flex justify-content-end">
+                                                            <form
+                                                                method="post"
+                                                                action="<?= url_to(
+                                                                            'web.profile.photos.delete',
+                                                                            $photoId
+                                                                        ) ?>"
+                                                                data-photo-delete-form>
 
-                                                        <form
-                                                            method="post"
-                                                            action="<?= url_to(
-                                                                        'web.profile.photos.delete',
-                                                                        $photoId
-                                                                    ) ?>"
-                                                            data-photo-delete-form>
+                                                                <?= csrf_field() ?>
 
-                                                            <?= csrf_field() ?>
-
-                                                            <button
-                                                                type="submit"
-                                                                class="btn
+                                                                <button
+                                                                    type="submit"
+                                                                    class="btn
                                                                     btn-outline-danger
-                                                                    btn-sm w-100">
+                                                                    btn-md">
 
-                                                                <i
-                                                                    class="ri-delete-bin-line
+                                                                    <i
+                                                                        class="ri-delete-bin-line
                                                                         me-1"
-                                                                    aria-hidden="true">
-                                                                </i>
+                                                                        aria-hidden="true">
+                                                                    </i>
 
-                                                                Delete Photo
-                                                            </button>
-                                                        </form>
-
+                                                                    Delete Photo
+                                                                </button>
+                                                            </form>
+                                                        </div>
                                                     </div>
                                                 </article>
                                             </div>
@@ -683,29 +706,7 @@ $this->section('content');
                     </div>
                 </div>
 
-                <div class="alert alert-light border mt-3 mb-0">
-                    <div class="d-flex gap-2">
 
-                        <i
-                            class="ri-shield-check-line
-                                text-success fs-18"
-                            aria-hidden="true">
-                        </i>
-
-                        <div>
-                            <h2 class="fs-14 fw-semibold mb-1">
-                                Photo Guidelines
-                            </h2>
-
-                            <p class="text-muted fs-12 mb-0">
-                                Upload a recent, clear photograph showing
-                                your face. Avoid group photos, screenshots,
-                                contact details, offensive content and
-                                heavily edited images.
-                            </p>
-                        </div>
-                    </div>
-                </div>
 
             </div>
         </div>

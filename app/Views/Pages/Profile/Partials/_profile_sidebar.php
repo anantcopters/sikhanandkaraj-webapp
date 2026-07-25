@@ -115,14 +115,14 @@ $approvedPhotoCount = max(
                 <?php if ($hasAboutMe): ?>
                     <span
                         class="badge bg-success-subtle
-                        text-success">
+                        text-body p-2">
 
                         Added
                     </span>
                 <?php else: ?>
                     <span
                         class="badge bg-warning-subtle
-                        text-warning p-2">
+                        text-body p-2">
 
                         Pending
                     </span>
@@ -132,7 +132,7 @@ $approvedPhotoCount = max(
             <?php if ($hasAboutMe): ?>
                 <div
                     class="border rounded bg-light-subtle
-                    p-3 mb-3">
+                    p-3 mb-2">
 
                     <p
                         class="text-body fs-13 lh-lg
@@ -174,24 +174,23 @@ $approvedPhotoCount = max(
                     </p>
                 </div>
             <?php endif; ?>
+            <div class="d-flex justify-content-end">
+                <a
+                    href="<?= url_to('web.profile.about-me') ?>"
+                    class="btn btn-outline-primary">
 
-            <a
-                href="<?= url_to('web.profile.about-me') ?>"
-                class="btn btn-outline-primary btn-sm
-                w-100 d-inline-flex align-items-center
-                justify-content-center gap-1">
+                    <i
+                        class="<?= $hasAboutMe
+                                    ? 'ri-edit-line'
+                                    : 'ri-add-line' ?>"
+                        aria-hidden="true">
+                    </i>
 
-                <i
-                    class="<?= $hasAboutMe
-                                ? 'ri-edit-line'
-                                : 'ri-add-line' ?>"
-                    aria-hidden="true">
-                </i>
-
-                <?= $hasAboutMe
-                    ? 'Edit About Me'
-                    : 'Add About Me' ?>
-            </a>
+                    <?= $hasAboutMe
+                        ? 'Edit About Me'
+                        : 'Add About Me' ?>
+                </a>
+            </div>
         </div>
     </section>
 
@@ -251,14 +250,14 @@ $approvedPhotoCount = max(
                         <?php if ($hasUploadedPhoto): ?>
                             <span
                                 class="badge bg-success-subtle
-                                text-success">
+                                text-body p-2">
 
                                 Added
                             </span>
                         <?php else: ?>
                             <span
                                 class="badge bg-warning-subtle
-                                text-warning">
+                                text-body p-2">
 
                                 Pending
                             </span>
@@ -271,7 +270,7 @@ $approvedPhotoCount = max(
 
                         <span
                             class="badge bg-light text-body
-                            border fw-medium">
+                            border fw-medium p-2">
 
                             <?= esc((string) $approvedPhotoCount) ?>
                             approved
@@ -294,24 +293,23 @@ $approvedPhotoCount = max(
                             administrator approval.
                         </p>
                     <?php endif; ?>
+                    <div class="d-flex justify-content-end">
+                        <a
+                            href="<?= url_to('web.profile.photos') ?>"
+                            class="btn btn-outline-primary mt-3">
 
-                    <a
-                        href="<?= url_to('web.profile.photos') ?>"
-                        class="btn btn-outline-primary btn-sm
-                        d-inline-flex align-items-center
-                        gap-1 mt-3">
+                            <i
+                                class="<?= $hasUploadedPhoto
+                                            ? 'ri-image-edit-line'
+                                            : 'ri-image-add-line' ?>"
+                                aria-hidden="true">
+                            </i>
 
-                        <i
-                            class="<?= $hasUploadedPhoto
-                                        ? 'ri-image-edit-line'
-                                        : 'ri-image-add-line' ?>"
-                            aria-hidden="true">
-                        </i>
-
-                        <?= $hasUploadedPhoto
-                            ? 'Manage photos'
-                            : 'Upload photo' ?>
-                    </a>
+                            <?= $hasUploadedPhoto
+                                ? 'Manage photos'
+                                : 'Upload photo' ?>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -354,38 +352,37 @@ $approvedPhotoCount = max(
                 <?php if ($kundaliCompleted): ?>
                     <span
                         class="badge bg-success-subtle
-                            text-success">
+                            text-body p-2">
                         Complete
                     </span>
                 <?php else: ?>
                     <span
                         class="badge bg-warning-subtle
-                            text-warning p-2">
+                            text-body p-2">
                         Pending
                     </span>
                 <?php endif; ?>
             </div>
+            <div class="d-flex justify-content-end">
+                <button
+                    type="button"
+                    class="btn btn-outline-primary
+                    mt-3"
+                    data-bs-toggle="offcanvas"
+                    data-bs-target="#kundaliDetailsOffcanvas"
+                    aria-controls="kundaliDetailsOffcanvas">
 
-            <button
-                type="button"
-                class="btn btn-outline-primary
-                    btn-sm w-100 d-inline-flex
-                    align-items-center
-                    justify-content-center gap-1 mt-3"
-                data-bs-toggle="offcanvas"
-                data-bs-target="#kundaliDetailsOffcanvas"
-                aria-controls="kundaliDetailsOffcanvas">
+                    <i
+                        class="<?= $kundaliCompleted
+                                    ? 'ri-edit-line'
+                                    : 'ri-add-line' ?>"
+                        aria-hidden="true"></i>
 
-                <i
-                    class="<?= $kundaliCompleted
-                                ? 'ri-edit-line'
-                                : 'ri-add-line' ?>"
-                    aria-hidden="true"></i>
-
-                <?= $kundaliCompleted
-                    ? 'Edit kundali details'
-                    : 'Add kundali details' ?>
-            </button>
+                    <?= $kundaliCompleted
+                        ? 'Edit kundali details'
+                        : 'Add kundali details' ?>
+                </button>
+            </div>
         </div>
     </section>
 
@@ -439,7 +436,7 @@ $approvedPhotoCount = max(
                 <?php if ($isMobileVerified): ?>
                     <span
                         class="badge bg-success-subtle
-                            text-success">
+                            text-body p-2">
                         <i
                             class="ri-checkbox-circle-line me-1"
                             aria-hidden="true"></i>
@@ -473,7 +470,7 @@ $approvedPhotoCount = max(
                 <?php if ($isEmailVerified): ?>
                     <span
                         class="badge bg-success-subtle
-                            text-success">
+                            text-body p-2">
                         <i
                             class="ri-checkbox-circle-line me-1"
                             aria-hidden="true"></i>
@@ -507,7 +504,7 @@ $approvedPhotoCount = max(
                 <?php if ($isIdentityVerified): ?>
                     <span
                         class="badge bg-success-subtle
-                            text-success">
+                            text-body p-2">
                         <i
                             class="ri-checkbox-circle-line me-1"
                             aria-hidden="true"></i>

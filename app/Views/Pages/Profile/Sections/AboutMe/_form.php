@@ -61,7 +61,7 @@ $aboutMeValue = (string) old(
                 align-items-sm-center
                 justify-content-between gap-1 mt-2">
 
-            <span class="text-muted fs-12">
+            <span class="color-pink fs-12">
                 Plain text only. Links and website addresses
                 are not allowed.
             </span>

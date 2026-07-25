@@ -261,13 +261,13 @@ $matchSections = [
 
                                     <?php if ($isEmailVerified): ?>
                                         <span
-                                            class="badge bg-success-subtle text-success p-2">
+                                            class="badge bg-success-subtle text-body p-2">
 
                                             Verified
                                         </span>
                                     <?php else: ?>
                                         <span
-                                            class="badge bg-warning-subtle text-warning p-2">
+                                            class="badge bg-warning-subtle text-body p-2">
 
                                             Pending
                                         </span>
@@ -300,13 +300,13 @@ $matchSections = [
 
                                     <?php if ($isMobileVerified): ?>
                                         <span
-                                            class="badge bg-success-subtle text-success p-2">
+                                            class="badge bg-success-subtle text-body p-2">
 
                                             Verified
                                         </span>
                                     <?php else: ?>
                                         <span
-                                            class="badge bg-warning-subtle text-warning p-2">
+                                            class="badge bg-warning-subtle text-body p-2">
 
                                             Pending
                                         </span>
