@@ -18,7 +18,7 @@ use App\Services\Profile\LifestyleService;
 use App\Validation\Profile\LifestyleValidation;
 use App\Services\Profile\AboutMeService;
 use App\Validation\Profile\AboutMeValidation;
-use App\Services\Profile\MemberPhotoService;
+use App\Services\Profile\MemberPhotoUrlService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
@@ -147,17 +147,12 @@ final class ProfileController extends BaseController
             $aboutMeProfile['completion']
         );
 
-        /** @var MemberPhotoService $memberPhotoService */
-        $memberPhotoService = service(
-            'memberPhotoService'
+        /** @var MemberPhotoUrlService $memberPhotoUrlService */
+        $memberPhotoUrlService = service(
+            'memberPhotoUrlService'
         );
 
-        /*
-         * Only an approved main photo may appear as the member's
-         * visible profile image. Pending photos remain visible only
-         * to their owner on the management page.
-         */
-        $profileImage = $memberPhotoService
+        $profileImage = $memberPhotoUrlService
             ->getApprovedPrimaryUrl(
                 $userId,
                 'medium'

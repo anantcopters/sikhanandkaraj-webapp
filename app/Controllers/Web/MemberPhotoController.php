@@ -50,96 +50,110 @@ final class MemberPhotoController extends BaseController
     {
         $memberId = $this->authenticatedUserId();
 
-        /** @var MemberMedia $config */
-        $config = config('MemberMedia');
-
         $validation = service('validation');
 
-        $validation->setRules(
-            MemberPhotoValidation::uploadRules(
-                $config->profileMaxSizeKb
-            )
-        );
+        $validationRules = [
+            'photo' => [
+                'label' => 'Photo',
+                'rules' => [
+                    'uploaded[photo]',
+                    'is_image[photo]',
+                    'mime_in[photo,image/jpeg,image/png,image/webp]',
+                    'ext_in[photo,jpg,jpeg,png,webp]',
+                    'max_size[photo,10240]',
+                    'min_dims[photo,400,400]',
+                    'max_dims[photo,8000,8000]',
+                ],
+            ],
 
-        $input = [
-            'photo' => $this->request->getFile('photo'),
-            'visibility' =>
-            strtoupper(
-                trim(
-                    (string) $this->request
-                        ->getPost('visibility')
-                )
-            ),
-            'is_primary' =>
-            $this->request->getPost('is_primary')
-                !== null
-                ? '1'
-                : '0',
+            'visibility' => [
+                'label' => 'Photo visibility',
+                'rules' => [
+                    'required',
+                    'in_list[PUBLIC,INTERESTED_MEMBERS]',
+                ],
+            ],
         ];
 
-        if (!$validation->run($input)) {
+        $validation->setRules($validationRules);
+
+        /*
+     * Pass only scalar POST data. The photo is retrieved by CI4's
+     * file-validation rules directly from the request.
+     */
+        if (
+            !$validation->run([
+                'visibility' => $this->request->getPost(
+                    'visibility'
+                ),
+            ])
+        ) {
             return redirect()
-                ->to(route_to('web.profile.photos'))
+                ->back()
                 ->withInput()
                 ->with(
-                    'validationErrors',
+                    'errors',
                     $validation->getErrors()
                 );
         }
 
-        $uploadedFile = $this->request
-            ->getFile('photo');
+        $uploadedFile = $this->request->getFile('photo');
 
         if (
             $uploadedFile === null
             || !$uploadedFile->isValid()
-            || $uploadedFile->hasMoved()
         ) {
             return redirect()
-                ->to(route_to('web.profile.photos'))
+                ->back()
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Photo not uploaded',
-                    'message' =>
-                    'Please select a valid photo and try again.',
-                ]);
+                ->with(
+                    'error',
+                    $uploadedFile?->getErrorString()
+                        ?? 'Please select a valid photo.'
+                );
         }
 
-        try {
-            /** @var MemberPhotoService $service */
-            $service = service('memberPhotoService');
+        $visibility = (string) $this->request->getPost(
+            'visibility'
+        );
 
-            $service->upload(
+        $makePrimary = $this->request->getPost(
+            'make_primary'
+        ) === '1';
+
+        try {
+            /** @var MemberPhotoService $memberPhotoService */
+            $memberPhotoService = service(
+                'memberPhotoService'
+            );
+
+            $memberPhotoService->upload(
                 $memberId,
                 $uploadedFile,
-                $input['visibility'],
-                $input['is_primary'] === '1'
+                $visibility,
+                $makePrimary
             );
 
             return redirect()
-                ->to(route_to('web.profile.photos'))
-                ->with('formAlert', [
-                    'type' => 'success',
-                    'title' => 'Photo uploaded',
-                    'message' =>
-                    'Your photo has been uploaded and '
-                        . 'is pending approval.',
-                ]);
+                ->to(route_to('member.photos.index'))
+                ->with(
+                    'success',
+                    'Your photo was uploaded successfully '
+                        . 'and is pending approval.'
+                );
         } catch (DomainException $exception) {
             return redirect()
-                ->to(route_to('web.profile.photos'))
+                ->back()
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Photo not uploaded',
-                    'message' => $exception->getMessage(),
-                ]);
+                ->with(
+                    'error',
+                    $exception->getMessage()
+                );
         } catch (Throwable $exception) {
             log_message(
                 'error',
-                'Member photo upload request failed for '
-                    . 'member {memberId}: {message}',
+                'Member photo upload failed for member '
+                    . '{memberId}: {message}',
                 [
                     'memberId' => $memberId,
                     'message' => $exception->getMessage(),
@@ -147,15 +161,13 @@ final class MemberPhotoController extends BaseController
             );
 
             return redirect()
-                ->to(route_to('web.profile.photos'))
+                ->back()
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Photo not uploaded',
-                    'message' =>
-                    'We could not upload your photo. '
-                        . 'Please try again.',
-                ]);
+                ->with(
+                    'error',
+                    'The photo could not be uploaded. '
+                        . 'Please try again.'
+                );
         }
     }
 
@@ -327,7 +339,7 @@ final class MemberPhotoController extends BaseController
             ]);
     }
 
-    
+
     /**
      * Resolve the authenticated user identifier.
      */

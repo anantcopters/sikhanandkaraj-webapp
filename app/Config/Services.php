@@ -58,6 +58,7 @@ use App\Services\Aws\MediaPathService;
 use App\Services\Aws\S3Service;
 use App\Services\Media\ImageProcessorService;
 use App\Services\Profile\MemberPhotoService;
+use App\Services\Profile\MemberPhotoUrlService;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
 use Config\MemberMedia;
@@ -451,7 +452,7 @@ class Services extends BaseService
         /** @var MemberMedia $config */
         $config = config('MemberMedia');
 
-        $config->assertConfigured();
+        $config->assertS3Configured();
 
         $options = [
             'version' => 'latest',
@@ -490,7 +491,7 @@ class Services extends BaseService
         /** @var MemberMedia $config */
         $config = config('MemberMedia');
 
-        $config->assertConfigured();
+        $config->assertCloudFrontConfigured();
 
         $options = [
             'version' => 'latest',
@@ -613,6 +614,27 @@ class Services extends BaseService
             new MemberPhotoModel($database),
             static::awsMediaService(false),
             $database,
+            $config
+        );
+    }
+
+    public static function memberPhotoUrlService(
+        bool $getShared = true
+    ): MemberPhotoUrlService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberPhotoUrlService'
+            );
+        }
+
+        $database = db_connect();
+
+        /** @var MemberMedia $config */
+        $config = config('MemberMedia');
+
+        return new MemberPhotoUrlService(
+            new MemberPhotoModel($database),
+            static::cloudFrontService(false),
             $config
         );
     }

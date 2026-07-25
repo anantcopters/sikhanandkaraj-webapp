@@ -167,11 +167,19 @@ final class MemberMedia extends BaseConfig
     /**
      * Fail early when media configuration is incomplete.
      */
-    public function assertConfigured(): void
+    public function assertS3Configured(): void
     {
         $required = [
             'AWS region' => $this->awsRegion,
             'S3 bucket' => $this->s3Bucket,
+        ];
+
+        $this->assertRequiredValues($required);
+    }
+
+    public function assertCloudFrontConfigured(): void
+    {
+        $required = [
             'CloudFront domain' => $this->cloudFrontDomain,
             'CloudFront key-pair ID' =>
             $this->cloudFrontKeyPairId,
@@ -179,6 +187,14 @@ final class MemberMedia extends BaseConfig
             $this->cloudFrontPrivateKeyPath,
         ];
 
+        $this->assertRequiredValues($required);
+    }
+
+    /**
+     * @param array<string, string> $required
+     */
+    private function assertRequiredValues(array $required): void
+    {
         foreach ($required as $label => $value) {
             if ($value === '') {
                 throw new RuntimeException(
