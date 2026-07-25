@@ -429,7 +429,7 @@ $this->section('content');
                                             );
 
                                             $isPrimary = (bool) (
-                                                $photo['make_primary']
+                                                $photo['is_primary']
                                                 ?? false
                                             );
 
