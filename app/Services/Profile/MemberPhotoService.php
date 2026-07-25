@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Profile;
 
+use App\Support\BooleanValue;
 use App\Models\MemberPhotoModel;
 use App\Models\UserModel;
 use App\Services\Aws\AwsMediaService;
@@ -30,6 +31,9 @@ final class MemberPhotoService
     /**
      * Return member photos with short-lived signed thumbnail URLs.
      *
+     * If active photos exist but none is marked as primary, the earliest
+     * uploaded active photo is automatically selected as the main photo.
+     *
      * @return array{
      *     user:array<string, mixed>,
      *     photos:list<array<string, mixed>>,
@@ -49,43 +53,69 @@ final class MemberPhotoService
             );
         }
 
+        /*
+     * Always load the complete active-photo collection first.
+     */
         $photos = $this
             ->photoModel
-            ->findPrimaryForMember($memberId);
+            ->findActiveForMember($memberId);
 
         /*
-        * Repair legacy or manually changed data where active photos exist
-        * but no photo is selected as the main profile photo.
-        */
-        if (
-            $photos !== []
-            && $this->photoModel->findFirstActiveForMember(
-                $memberId
-            ) === null
-        ) {
-            $this->setPrimary(
-                $memberId,
-                (int) $photos[0]['id']
-            );
-
-            /*
-            * Reload so the returned list contains the updated
-            * is_primary value and correct ordering.
-            */
-            $photos = $this
+     * Repair legacy or manually modified data where active photos
+     * exist but none is marked as the main profile photo.
+     */
+        if ($photos !== []) {
+            $primaryPhoto = $this
                 ->photoModel
-                ->findActiveForMember($memberId);
+                ->findPrimaryForMember($memberId);
+
+            if ($primaryPhoto === null) {
+                $firstPhoto = $this
+                    ->photoModel
+                    ->findFirstActiveForMember($memberId);
+
+                if ($firstPhoto !== null) {
+                    $this->setPrimary(
+                        $memberId,
+                        (int) $firstPhoto['id']
+                    );
+
+                    /*
+                 * Reload so the returned collection contains the
+                 * updated is_primary value and primary-first ordering.
+                 */
+                    $photos = $this
+                        ->photoModel
+                        ->findActiveForMember($memberId);
+                }
+            }
         }
 
         foreach ($photos as &$photo) {
+            /*
+         * Defensive protection against an unexpected repository result.
+         */
+            if (!is_array($photo)) {
+                continue;
+            }
+
+            /*
+            * Normalize PostgreSQL boolean representations before the data
+            * reaches controllers and views.
+            */
+            $photo['is_primary'] = BooleanValue::fromDatabase(
+                $photo['is_primary'] ?? false
+            );
+
             try {
                 $photo['signedUrls'] = $this
                     ->awsMediaService
                     ->profilePhotoUrls($photo);
             } catch (Throwable $exception) {
                 /*
-                 * One unavailable image must not break the complete page.
-                 */
+             * One unavailable image must not prevent the complete
+             * Manage Photos page from loading.
+             */
                 $photo['signedUrls'] = [
                     'originalUrl' => '',
                     'mediumUrl' => '',
@@ -97,8 +127,9 @@ final class MemberPhotoService
                     'Photo URL generation failed for '
                         . 'photo {photoId}: {message}',
                     [
-                        'photoId' =>
-                        (int) ($photo['id'] ?? 0),
+                        'photoId' => (int) (
+                            $photo['id'] ?? 0
+                        ),
                         'message' =>
                         $exception->getMessage(),
                     ]
@@ -433,15 +464,22 @@ final class MemberPhotoService
          * remaining photo. It remains pending/approved according to its
          * existing moderation status.
          */
-        if ((bool) $photo['is_primary']) {
-            $remaining = $this
-                ->photoModel
-                ->findActiveForMember($memberId);
+        $deletedPhotoWasPrimary =
+            BooleanValue::fromDatabase(
+                $photo['is_primary'] ?? false
+            );
 
-            if ($remaining !== []) {
+        if ($deletedPhotoWasPrimary) {
+            $firstRemainingPhoto = $this
+                ->photoModel
+                ->findFirstActiveForMember(
+                    $memberId
+                );
+
+            if ($firstRemainingPhoto !== null) {
                 $this->setPrimary(
                     $memberId,
-                    (int) $remaining[0]['id']
+                    (int) $firstRemainingPhoto['id']
                 );
             }
         }

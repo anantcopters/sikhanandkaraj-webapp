@@ -336,47 +336,150 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document
         .querySelectorAll(
+            '[data-photo-visibility-form]'
+        )
+        .forEach((form) => {
+            form.addEventListener(
+                'submit',
+                (event) => {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+
+                        return;
+                    }
+
+                    const saveButton =
+                        event.submitter
+                            instanceof HTMLButtonElement
+                            ? event.submitter
+                            : form.querySelector(
+                                '[data-photo-visibility-button]'
+                            );
+
+                    if (
+                        !(saveButton
+                            instanceof HTMLButtonElement)
+                    ) {
+                        return;
+                    }
+
+                    window.setTimeout(() => {
+                        if (event.defaultPrevented) {
+                            return;
+                        }
+
+                        showButtonLoading(
+                            saveButton,
+                            '[data-visibility-label]',
+                            '[data-visibility-loading]'
+                        );
+                    }, 0);
+                }
+            );
+        });
+
+    document
+        .querySelectorAll(
+            '[data-photo-primary-form]'
+        )
+        .forEach((form) => {
+            form.addEventListener(
+                'submit',
+                (event) => {
+                    const primaryButton =
+                        event.submitter
+                            instanceof HTMLButtonElement
+                            ? event.submitter
+                            : form.querySelector(
+                                '[data-photo-primary-button]'
+                            );
+
+                    if (
+                        !(primaryButton
+                            instanceof HTMLButtonElement)
+                    ) {
+                        return;
+                    }
+
+                    window.setTimeout(() => {
+                        if (event.defaultPrevented) {
+                            return;
+                        }
+
+                        showButtonLoading(
+                            primaryButton,
+                            '[data-primary-label]',
+                            '[data-primary-loading]'
+                        );
+                    }, 0);
+                }
+            );
+        });
+
+    document
+        .querySelectorAll(
             '[data-photo-delete-form]'
         )
         .forEach((form) => {
             form.addEventListener(
                 'submit',
                 (event) => {
-                    const confirmed =
-                        window.confirm(
-                            'Delete this photo permanently?'
-                        );
-
-                    if (!confirmed) {
-                        event.preventDefault();
-
+                    /*
+                     * The reusable confirmation component intercepts the
+                     * first submission. This handler runs only after the
+                     * member confirms deletion.
+                     */
+                    if (event.defaultPrevented) {
                         return;
                     }
 
                     const deleteButton =
-                        form.querySelector(
-                            '[data-photo-delete-button]'
-                        );
+                        event.submitter
+                            instanceof HTMLButtonElement
+                            ? event.submitter
+                            : form.querySelector(
+                                '[data-photo-delete-button]'
+                            );
 
                     if (
                         !(deleteButton
-                            instanceof
-                            HTMLButtonElement)
+                            instanceof HTMLButtonElement)
                     ) {
                         return;
                     }
 
                     window.setTimeout(() => {
-                        if (
-                            event.defaultPrevented
-                        ) {
+                        if (event.defaultPrevented) {
                             return;
                         }
 
-                        showButtonLoading(
-                            deleteButton,
-                            '[data-delete-label]',
-                            '[data-delete-loading]'
+                        deleteButton.disabled = true;
+
+                        deleteButton.setAttribute(
+                            'aria-busy',
+                            'true'
+                        );
+
+                        deleteButton
+                            .querySelector(
+                                '[data-delete-label]'
+                            )
+                            ?.classList.add(
+                                'd-none'
+                            );
+
+                        const loadingElement =
+                            deleteButton.querySelector(
+                                '[data-delete-loading]'
+                            );
+
+                        loadingElement?.classList.remove(
+                            'd-none'
+                        );
+
+                        loadingElement?.classList.add(
+                            'd-inline-flex'
                         );
                     }, 0);
                 }
