@@ -1331,3 +1331,195 @@ form[aria-busy="true"] {
         --bs-offcanvas-width: 100%;
     }
 }
+
+/* ==========================================================================
+   Member profile photos
+   ========================================================================== */
+
+.profile-photos-page__count {
+    min-width: 7rem;
+}
+
+.profile-photo-upload-card {
+    position: sticky;
+    top: 1rem;
+}
+
+.profile-photo-dropzone {
+    position: relative;
+    min-height: 15rem;
+    overflow: hidden;
+    border: 1px dashed rgba(174, 21, 54, 0.45);
+    border-radius: 0.75rem;
+    background: rgba(174, 21, 54, 0.025);
+}
+
+.profile-photo-dropzone__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.profile-photo-dropzone__label {
+    display: flex;
+    min-height: 15rem;
+    padding: 1.5rem;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+    cursor: pointer;
+}
+
+.profile-photo-dropzone__icon {
+    display: inline-flex;
+    width: 3rem;
+    height: 3rem;
+    margin-bottom: 0.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(174, 21, 54, 0.1);
+    color: #ae1536;
+    font-size: 1.4rem;
+}
+
+.profile-photo-dropzone__preview {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+.profile-photo-file-name {
+    min-height: 1.2rem;
+    overflow-wrap: anywhere;
+}
+
+.profile-photo-visibility-options {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.profile-photo-visibility-option {
+    display: flex;
+    padding: 0.75rem;
+    gap: 0.65rem;
+    align-items: flex-start;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+
+.profile-photo-visibility-option:has(input:checked) {
+    border-color: rgba(174, 21, 54, 0.55);
+    background: rgba(174, 21, 54, 0.035);
+}
+
+.profile-photo-visibility-option input {
+    margin-top: 0.2rem;
+}
+
+.profile-photo-visibility-option strong,
+.profile-photo-visibility-option small {
+    display: block;
+}
+
+.profile-photo-visibility-option small {
+    margin-top: 0.15rem;
+    color: var(--bs-secondary-color);
+    font-size: 0.75rem;
+    line-height: 1.35;
+}
+
+.profile-photos-empty {
+    padding: 3rem 1rem;
+    border: 1px dashed var(--bs-border-color);
+    border-radius: 0.75rem;
+}
+
+.profile-photos-empty__icon {
+    display: inline-flex;
+    width: 3.5rem;
+    height: 3.5rem;
+    margin-bottom: 0.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(174, 21, 54, 0.08);
+    color: #ae1536;
+    font-size: 1.5rem;
+}
+
+.profile-photo-card {
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.75rem;
+    background: var(--bs-body-bg);
+}
+
+.profile-photo-card__media {
+    position: relative;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: var(--bs-tertiary-bg);
+}
+
+.profile-photo-card__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-photo-card__placeholder {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    color: var(--bs-secondary-color);
+    font-size: 2rem;
+}
+
+.profile-photo-card__badges {
+    position: absolute;
+    top: 0.65rem;
+    right: 0.65rem;
+    left: 0.65rem;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    pointer-events: none;
+}
+
+.profile-photo-card__body {
+    padding: 0.9rem;
+}
+
+.profile-photo-guidelines {
+    background: var(--bs-tertiary-bg);
+}
+
+@media (max-width: 991.98px) {
+    .profile-photo-upload-card {
+        position: static;
+    }
+}
+
+@media (max-width: 575.98px) {
+
+    .profile-photo-dropzone,
+    .profile-photo-dropzone__label {
+        min-height: 13rem;
+    }
+
+    .profile-photo-card__body {
+        padding: 0.8rem;
+    }
+}

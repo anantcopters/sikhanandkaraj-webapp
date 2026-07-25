@@ -51,6 +51,16 @@ use App\Models\MasterLifestyleOptionModel;
 use App\Models\MemberLifestyleOptionModel;
 use App\Services\Profile\LifestyleService;
 use App\Services\Profile\AboutMeService;
+use App\Models\MemberPhotoModel;
+use App\Services\Aws\AwsMediaService;
+use App\Services\Aws\CloudFrontService;
+use App\Services\Aws\MediaPathService;
+use App\Services\Aws\S3Service;
+use App\Services\Media\ImageProcessorService;
+use App\Services\Profile\MemberPhotoService;
+use Aws\CloudFront\CloudFrontClient;
+use Aws\S3\S3Client;
+use Config\MemberMedia;
 
 
 /**
@@ -423,6 +433,187 @@ class Services extends BaseService
             new MasterLifestyleOptionModel($database),
             new MemberLifestyleOptionModel($database),
             $database
+        );
+    }
+
+    /**
+     * Return the configured S3 client.
+     */
+    public static function memberMediaS3Client(
+        bool $getShared = true
+    ): S3Client {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMediaS3Client'
+            );
+        }
+
+        /** @var MemberMedia $config */
+        $config = config('MemberMedia');
+
+        $config->assertConfigured();
+
+        $options = [
+            'version' => 'latest',
+            'region' => $config->awsRegion,
+        ];
+
+        /*
+         * Explicit credentials are used only when both values exist.
+         * Otherwise the AWS SDK uses EC2 IAM role/default chain.
+         */
+        if (
+            $config->awsAccessKey !== ''
+            && $config->awsSecretKey !== ''
+        ) {
+            $options['credentials'] = [
+                'key' => $config->awsAccessKey,
+                'secret' => $config->awsSecretKey,
+            ];
+        }
+
+        return new S3Client($options);
+    }
+
+    /**
+     * Return the configured CloudFront client.
+     */
+    public static function memberMediaCloudFrontClient(
+        bool $getShared = true
+    ): CloudFrontClient {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMediaCloudFrontClient'
+            );
+        }
+
+        /** @var MemberMedia $config */
+        $config = config('MemberMedia');
+
+        $config->assertConfigured();
+
+        $options = [
+            'version' => 'latest',
+            'region' => $config->awsRegion,
+        ];
+
+        if (
+            $config->awsAccessKey !== ''
+            && $config->awsSecretKey !== ''
+        ) {
+            $options['credentials'] = [
+                'key' => $config->awsAccessKey,
+                'secret' => $config->awsSecretKey,
+            ];
+        }
+
+        return new CloudFrontClient($options);
+    }
+
+    public static function s3Service(
+        bool $getShared = true
+    ): S3Service {
+        if ($getShared) {
+            return static::getSharedInstance(
+                's3Service'
+            );
+        }
+
+        /** @var MemberMedia $config */
+        $config = config('MemberMedia');
+
+        return new S3Service(
+            static::memberMediaS3Client(false),
+            $config
+        );
+    }
+
+    public static function cloudFrontService(
+        bool $getShared = true
+    ): CloudFrontService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'cloudFrontService'
+            );
+        }
+
+        /** @var MemberMedia $config */
+        $config = config('MemberMedia');
+
+        return new CloudFrontService(
+            static::memberMediaCloudFrontClient(false),
+            $config
+        );
+    }
+
+    public static function mediaPathService(
+        bool $getShared = true
+    ): MediaPathService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'mediaPathService'
+            );
+        }
+
+        return new MediaPathService();
+    }
+
+    public static function imageProcessorService(
+        bool $getShared = true
+    ): ImageProcessorService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'imageProcessorService'
+            );
+        }
+
+        /** @var MemberMedia $config */
+        $config = config('MemberMedia');
+
+        return new ImageProcessorService($config);
+    }
+
+    public static function awsMediaService(
+        bool $getShared = true
+    ): AwsMediaService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'awsMediaService'
+            );
+        }
+
+        /** @var MemberMedia $config */
+        $config = config('MemberMedia');
+
+        return new AwsMediaService(
+            static::s3Service(false),
+            static::cloudFrontService(false),
+            static::mediaPathService(false),
+            static::imageProcessorService(false),
+            $config
+        );
+    }
+
+    public static function memberPhotoService(
+        bool $getShared = true
+    ): MemberPhotoService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberPhotoService'
+            );
+        }
+
+        $database = db_connect();
+
+        /** @var MemberMedia $config */
+        $config = config('MemberMedia');
+
+        return new MemberPhotoService(
+            new UserModel($database),
+            new MemberPhotoModel($database),
+            static::awsMediaService(false),
+            $database,
+            $config
         );
     }
 }

@@ -18,6 +18,7 @@ use App\Services\Profile\LifestyleService;
 use App\Validation\Profile\LifestyleValidation;
 use App\Services\Profile\AboutMeService;
 use App\Validation\Profile\AboutMeValidation;
+use App\Services\Profile\MemberPhotoService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
@@ -146,12 +147,21 @@ final class ProfileController extends BaseController
             $aboutMeProfile['completion']
         );
 
+        /** @var MemberPhotoService $memberPhotoService */
+        $memberPhotoService = service(
+            'memberPhotoService'
+        );
+
         /*
-        * Profile photo is not implemented in this flow yet.
-        * Replace this value with the photo service result once the
-        * profile-photo module is connected.
-        */
-        $profileImage = '';
+         * Only an approved main photo may appear as the member's
+         * visible profile image. Pending photos remain visible only
+         * to their owner on the management page.
+         */
+        $profileImage = $memberPhotoService
+            ->getApprovedPrimaryUrl(
+                $userId,
+                'medium'
+            );
 
         $overallProfileSummary = $this
             ->buildProfileSummary(
@@ -207,7 +217,14 @@ final class ProfileController extends BaseController
         *
         * NULL means all currently implemented sections are complete.
         */
-        if (!$basicDetailsComplete) {
+        $hasApprovedProfilePhoto = $profileImage !== '';
+
+        if (!$hasApprovedProfilePhoto) {
+            $nextProfileSection = [
+                'title' => 'Profile Photo',
+                'route' => 'web.profile.photos',
+            ];
+        } elseif (!$basicDetailsComplete) {
             $nextProfileSection = [
                 'title' => 'Basic Details',
                 'route' => 'web.profile.basic-details',

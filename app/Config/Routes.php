@@ -245,6 +245,54 @@ $routes->group('', [
         ]
     );
 
+    /*
+     * Member photos.
+     */
+    $routes->get(
+        'profile/photos',
+        'MemberPhotoController::index',
+        [
+            'as' => 'web.profile.photos',
+            'filter' => 'webAuth',
+        ]
+    );
+
+    $routes->post(
+        'profile/photos',
+        'MemberPhotoController::upload',
+        [
+            'as' => 'web.profile.photos.upload',
+            'filter' => 'webAuth',
+        ]
+    );
+
+    $routes->post(
+        'profile/photos/(:num)/primary',
+        'MemberPhotoController::makePrimary/$1',
+        [
+            'as' => 'web.profile.photos.primary',
+            'filter' => 'webAuth',
+        ]
+    );
+
+    $routes->post(
+        'profile/photos/(:num)/visibility',
+        'MemberPhotoController::updateVisibility/$1',
+        [
+            'as' => 'web.profile.photos.visibility',
+            'filter' => 'webAuth',
+        ]
+    );
+
+    $routes->post(
+        'profile/photos/(:num)/delete',
+        'MemberPhotoController::delete/$1',
+        [
+            'as' => 'web.profile.photos.delete',
+            'filter' => 'webAuth',
+        ]
+    );
+
     $routes->get(
         'account/settings',
         'AccountSettingsController::index',
@@ -421,10 +469,28 @@ $routes->group(API_ROUTE_PREFIX, [
 });
 
 // -----------------------------------------------------------------------------
-// Development-only error previews
+// Development-only routes
 // -----------------------------------------------------------------------------
 
 if (ENVIRONMENT === 'development') {
+    $routes->group(
+        'development',
+        [
+            'namespace' => 'App\Controllers\Development',
+        ],
+        static function (
+            RouteCollection $routes
+        ): void {
+            $routes->get(
+                'member-media-test',
+                'MemberMediaTestController::index',
+                [
+                    'as' => 'development.member-media-test',
+                ]
+            );
+        }
+    );
+
     $routes->group(
         '_preview/errors',
         static function (
