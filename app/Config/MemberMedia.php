@@ -49,14 +49,15 @@ final class MemberMedia extends BaseConfig
     public int $maximumHeight;
 
     /**
-     * Supported server-verified MIME types.
+     * Supported server-verified source image MIME types.
+     *
+     * Members may upload JPEG or PNG files only.
      *
      * @var array<string, string>
      */
     public array $allowedImageMimeTypes = [
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
-        'image/webp' => 'webp',
     ];
 
     public function __construct()

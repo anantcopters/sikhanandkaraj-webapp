@@ -65,7 +65,7 @@ final class ImageProcessorService
 
         if ($extension === null) {
             throw new RuntimeException(
-                'Only JPEG, PNG and WEBP photos are allowed.'
+                'Only JPEG and PNG photos are allowed.'
             );
         }
 
@@ -239,7 +239,6 @@ final class ImageProcessorService
         $image = match ($mimeType) {
             'image/jpeg' => @imagecreatefromjpeg($path),
             'image/png' => @imagecreatefrompng($path),
-            'image/webp' => @imagecreatefromwebp($path),
             default => false,
         };
 

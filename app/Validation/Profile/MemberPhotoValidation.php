@@ -22,7 +22,7 @@ final class MemberPhotoValidation
                     'uploaded[photo]',
                     'max_size[photo,' . $maximumSizeKb . ']',
                     'is_image[photo]',
-                    'mime_in[photo,image/jpeg,image/png,image/webp]',
+                    'mime_in[photo,image/jpeg,image/png]',
                     'ext_in[photo,jpg,jpeg,png,webp]',
                 ],
                 'errors' => [
@@ -33,9 +33,9 @@ final class MemberPhotoValidation
                     'is_image' =>
                     'The selected file is not a valid image.',
                     'mime_in' =>
-                    'Only JPEG, PNG and WEBP photos are allowed.',
+                    'Only JPEG and PNG photos are allowed.',
                     'ext_in' =>
-                    'Only JPEG, PNG and WEBP photos are allowed.',
+                    'Only JPEG and PNG photos are allowed.',
                 ],
             ],
 

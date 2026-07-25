@@ -128,7 +128,7 @@ $this->section('content');
                                 </h2>
 
                                 <p class="text-muted fs-13 mb-3">
-                                    JPEG, PNG or WEBP. Maximum 10 MB.
+                                    JPEG or PNG. Maximum 10 MB.
                                     Minimum size 400 × 400 pixels.
                                 </p>
 
@@ -163,7 +163,7 @@ $this->section('content');
                                                     )
                                                         ? 'is-invalid'
                                                         : '' ?>"
-                                                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
                                                 required>
 
                                             <?php if (

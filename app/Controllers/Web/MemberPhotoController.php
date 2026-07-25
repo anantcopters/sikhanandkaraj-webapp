@@ -58,8 +58,8 @@ final class MemberPhotoController extends BaseController
                 'rules' => [
                     'uploaded[photo]',
                     'is_image[photo]',
-                    'mime_in[photo,image/jpeg,image/png,image/webp]',
-                    'ext_in[photo,jpg,jpeg,png,webp]',
+                    'mime_in[photo,image/jpeg,image/png]',
+                    'ext_in[photo,jpg,jpeg,png]',
                     'max_size[photo,10240]',
                     'min_dims[photo,400,400]',
                     'max_dims[photo,8000,8000]',
@@ -135,7 +135,7 @@ final class MemberPhotoController extends BaseController
             );
 
             return redirect()
-                ->to(route_to('member.photos.index'))
+                ->to(route_to('web.profile.edit'))
                 ->with(
                     'success',
                     'Your photo was uploaded successfully '
