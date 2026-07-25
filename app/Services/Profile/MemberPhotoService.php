@@ -51,7 +51,31 @@ final class MemberPhotoService
 
         $photos = $this
             ->photoModel
-            ->findActiveForMember($memberId);
+            ->findPrimaryForMember($memberId);
+
+        /*
+        * Repair legacy or manually changed data where active photos exist
+        * but no photo is selected as the main profile photo.
+        */
+        if (
+            $photos !== []
+            && $this->photoModel->findFirstActiveForMember(
+                $memberId
+            ) === null
+        ) {
+            $this->setPrimary(
+                $memberId,
+                (int) $photos[0]['id']
+            );
+
+            /*
+            * Reload so the returned list contains the updated
+            * is_primary value and correct ordering.
+            */
+            $photos = $this
+                ->photoModel
+                ->findActiveForMember($memberId);
+        }
 
         foreach ($photos as &$photo) {
             try {

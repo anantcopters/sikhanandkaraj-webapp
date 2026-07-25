@@ -71,6 +71,47 @@ final class MemberPhotoModel extends Model
     }
 
     /**
+     * Find the currently selected active main photo.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findPrimaryForMember(
+        int $memberId
+    ): ?array {
+        $photo = $this
+            ->where('member_id', $memberId)
+            ->where('is_primary', true)
+            ->where('deleted_at', null)
+            ->where('status !=', 'DELETED')
+            ->first();
+
+        return is_array($photo)
+            ? $photo
+            : null;
+    }
+
+    /**
+     * Find the earliest active member photo.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findFirstActiveForMember(
+        int $memberId
+    ): ?array {
+        $photo = $this
+            ->where('member_id', $memberId)
+            ->where('deleted_at', null)
+            ->where('status !=', 'DELETED')
+            ->orderBy('created_at', 'ASC')
+            ->orderBy('id', 'ASC')
+            ->first();
+
+        return is_array($photo)
+            ? $photo
+            : null;
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public function findOwnedActivePhoto(

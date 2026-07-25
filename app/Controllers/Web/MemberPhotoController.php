@@ -135,13 +135,10 @@ final class MemberPhotoController extends BaseController
                 $makePrimary
             );
 
-            return redirect()
-                ->to(route_to('web.profile.edit'))
-                ->with(
-                    'success',
-                    'Your photo was uploaded successfully '
-                        . 'and is pending approval.'
-                );
+            return $this->successRedirect(
+                'Photo uploaded',
+                'Your photo was uploaded successfully and is pending approval.'
+            );
         } catch (DomainException $exception) {
             return redirect()
                 ->back()

@@ -9,9 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
         'profile-photo-input'
     );
 
-    const visibilitySelect = document.getElementById(
-        'profile-photo-visibility'
-    );
+    const uploadVisibilitySelect =
+        document.getElementById(
+            'profile-photo-visibility'
+        );
 
     const previewWrapper = document.getElementById(
         'profile-photo-preview-wrapper'
@@ -44,56 +45,80 @@ document.addEventListener('DOMContentLoaded', () => {
         'png'
     ];
 
-    const maximumFileSize = 10 * 1024 * 1024;
+    const maximumFileSize =
+        10 * 1024 * 1024;
 
     let currentObjectUrl = null;
 
     /**
-     * Initialize the project-standard Choices.js wrapper.
+     * Initialize the upload visibility Choices field.
      */
-    if (visibilitySelect) {
+    if (uploadVisibilitySelect) {
         window.SelectChoice?.create(
-            visibilitySelect
+            uploadVisibilitySelect
         );
     }
 
     /**
-     * Display or clear the file-field error.
+     * Initialize each uploaded photo visibility field.
+     */
+    document
+        .querySelectorAll(
+            '[data-photo-visibility-choice]'
+        )
+        .forEach((selectElement) => {
+            window.SelectChoice?.create(
+                selectElement
+            );
+        });
+
+    /**
+     * Display or clear file validation feedback.
      *
      * @param {string} message
      */
     function setPhotoError(message) {
-        if (!photoInput || !photoError) {
+        if (!photoInput) {
             return;
         }
 
         photoInput.setCustomValidity(message);
 
-        photoError.textContent = message !== ''
-            ? message
-            : 'Please select a valid JPEG or PNG photo.';
-
         photoInput.classList.toggle(
             'is-invalid',
             message !== ''
         );
+
+        if (!photoError) {
+            return;
+        }
+
+        photoError.textContent = message !== ''
+            ? message
+            : 'Please select a valid JPEG or PNG photo.';
     }
 
     /**
-     * Clear the current preview URL safely.
+     * Remove the browser-created preview URL.
      */
     function clearPreview() {
         if (currentObjectUrl !== null) {
-            URL.revokeObjectURL(currentObjectUrl);
+            URL.revokeObjectURL(
+                currentObjectUrl
+            );
+
             currentObjectUrl = null;
         }
 
         preview?.removeAttribute('src');
-        previewWrapper?.classList.add('d-none');
+
+        previewWrapper?.classList.add(
+            'd-none'
+        );
     }
 
     /**
-     * Validate the selected photo before form submission.
+     * Validate the selected upload before submission.
      *
      * @returns {boolean}
      */
@@ -102,9 +127,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
 
-        const selectedFile = photoInput.files
-            ? photoInput.files[0]
-            : null;
+        const selectedFile =
+            photoInput.files?.[0] ?? null;
 
         if (!selectedFile) {
             setPhotoError(
@@ -117,11 +141,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const extension = selectedFile.name
             .split('.')
             .pop()
-            ?.toLowerCase() || '';
+            ?.toLowerCase() ?? '';
 
         if (
-            !allowedMimeTypes.includes(selectedFile.type)
-            || !allowedExtensions.includes(extension)
+            !allowedMimeTypes.includes(
+                selectedFile.type
+            )
+            || !allowedExtensions.includes(
+                extension
+            )
         ) {
             setPhotoError(
                 'Only JPEG, JPG and PNG photos are allowed.'
@@ -130,7 +158,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return false;
         }
 
-        if (selectedFile.size > maximumFileSize) {
+        if (
+            selectedFile.size >
+            maximumFileSize
+        ) {
             setPhotoError(
                 'The photo must not exceed 10 MB.'
             );
@@ -143,39 +174,82 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
-    photoInput?.addEventListener('change', () => {
-        clearPreview();
+    /**
+     * Toggle a submit button loading state.
+     *
+     * @param {HTMLButtonElement} button
+     * @param {string} labelSelector
+     * @param {string} loadingSelector
+     */
+    function showButtonLoading(
+        button,
+        labelSelector,
+        loadingSelector
+    ) {
+        button.disabled = true;
 
-        const selectedFile = photoInput.files
-            ? photoInput.files[0]
-            : null;
+        button.setAttribute(
+            'aria-busy',
+            'true'
+        );
 
-        if (!selectedFile) {
-            if (fileName) {
-                fileName.textContent =
-                    'No photo selected';
+        button
+            .querySelector(labelSelector)
+            ?.classList.add('d-none');
+
+        const loadingElement =
+            button.querySelector(
+                loadingSelector
+            );
+
+        loadingElement?.classList.remove(
+            'd-none'
+        );
+
+        loadingElement?.classList.add(
+            'd-inline-flex'
+        );
+    }
+
+    photoInput?.addEventListener(
+        'change',
+        () => {
+            clearPreview();
+
+            const selectedFile =
+                photoInput.files?.[0] ?? null;
+
+            if (!selectedFile) {
+                if (fileName) {
+                    fileName.textContent =
+                        'No photo selected';
+                }
+
+                setPhotoError('');
+
+                return;
             }
 
-            setPhotoError('');
+            if (fileName) {
+                fileName.textContent =
+                    selectedFile.name;
+            }
 
-            return;
-        }
+            if (!validateSelectedPhoto()) {
+                return;
+            }
 
-        if (fileName) {
-            fileName.textContent = selectedFile.name;
-        }
+            if (
+                !preview
+                || !previewWrapper
+            ) {
+                return;
+            }
 
-        if (!validateSelectedPhoto()) {
-            return;
-        }
-
-        if (
-            preview
-            && previewWrapper
-        ) {
-            currentObjectUrl = URL.createObjectURL(
-                selectedFile
-            );
+            currentObjectUrl =
+                URL.createObjectURL(
+                    selectedFile
+                );
 
             preview.src = currentObjectUrl;
 
@@ -183,38 +257,54 @@ document.addEventListener('DOMContentLoaded', () => {
                 'd-none'
             );
         }
-    });
+    );
 
     uploadForm?.addEventListener(
         'submit',
         (event) => {
-            uploadForm.classList.add(
-                'was-validated'
-            );
-
+            /*
+             * Do not add was-validated to the whole form.
+             * It incorrectly applies green valid styling to
+             * the optional main-photo checkbox.
+             */
             const photoIsValid =
                 validateSelectedPhoto();
 
+            const visibilityIsValid =
+                uploadVisibilitySelect
+                    ? uploadVisibilitySelect
+                        .checkValidity()
+                    : false;
+
             if (
                 !photoIsValid
+                || !visibilityIsValid
                 || !uploadForm.checkValidity()
             ) {
                 event.preventDefault();
                 event.stopPropagation();
+
+                if (!visibilityIsValid) {
+                    uploadVisibilitySelect
+                        ?.classList.add(
+                            'is-invalid'
+                        );
+                }
 
                 photoInput?.focus();
 
                 return;
             }
 
+            uploadVisibilitySelect
+                ?.classList.remove(
+                    'is-invalid'
+                );
+
             if (!submitButton) {
                 return;
             }
 
-            /*
-             * Delay the loading state until all synchronous validation
-             * handlers have finished.
-             */
             window.setTimeout(() => {
                 if (
                     event.defaultPrevented
@@ -223,25 +313,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                submitButton.disabled = true;
-
-                submitButton.setAttribute(
-                    'aria-busy',
-                    'true'
+                showButtonLoading(
+                    submitButton,
+                    '.registration-submit__label',
+                    '.registration-submit__loading'
                 );
-
-                submitButton
-                    .querySelector(
-                        '.registration-submit__label'
-                    )
-                    ?.classList.add('d-none');
-
-                submitButton
-                    .querySelector(
-                        '.registration-submit__loading'
-                    )
-                    ?.classList.remove('d-none');
             }, 0);
+        }
+    );
+
+    uploadVisibilitySelect?.addEventListener(
+        'change',
+        () => {
+            uploadVisibilitySelect
+                .classList.toggle(
+                    'is-invalid',
+                    !uploadVisibilitySelect
+                        .checkValidity()
+                );
         }
     );
 
@@ -253,13 +342,43 @@ document.addEventListener('DOMContentLoaded', () => {
             form.addEventListener(
                 'submit',
                 (event) => {
-                    const confirmed = window.confirm(
-                        'Delete this photo permanently?'
-                    );
+                    const confirmed =
+                        window.confirm(
+                            'Delete this photo permanently?'
+                        );
 
                     if (!confirmed) {
                         event.preventDefault();
+
+                        return;
                     }
+
+                    const deleteButton =
+                        form.querySelector(
+                            '[data-photo-delete-button]'
+                        );
+
+                    if (
+                        !(deleteButton
+                            instanceof
+                            HTMLButtonElement)
+                    ) {
+                        return;
+                    }
+
+                    window.setTimeout(() => {
+                        if (
+                            event.defaultPrevented
+                        ) {
+                            return;
+                        }
+
+                        showButtonLoading(
+                            deleteButton,
+                            '[data-delete-label]',
+                            '[data-delete-loading]'
+                        );
+                    }, 0);
                 }
             );
         });

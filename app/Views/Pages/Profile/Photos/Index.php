@@ -196,18 +196,15 @@ $this->section('content');
                                                 accept=".jpg,.jpeg,.png,image/jpeg,image/png"
                                                 required>
 
-                                            <?php if (
-                                                isset(
+                                            <div
+                                                class="invalid-feedback"
+                                                id="profile-photo-error">
+
+                                                <?= esc(
                                                     $validationErrors['photo']
-                                                )
-                                            ): ?>
-                                                <div
-                                                    class="invalid-feedback">
-                                                    <?= esc(
-                                                        $validationErrors['photo']
-                                                    ) ?>
-                                                </div>
-                                            <?php endif; ?>
+                                                        ?? 'Please select a valid JPEG or PNG photo.'
+                                                ) ?>
+                                            </div>
 
                                             <div
                                                 class="form-text color-pink"
@@ -622,46 +619,63 @@ $this->section('content');
                                                                         'web.profile.photos.visibility',
                                                                         $photoId
                                                                     ) ?>"
-                                                            class="mb-2">
+                                                            class="mb-2"
+                                                            data-photo-visibility-form>
 
                                                             <?= csrf_field() ?>
 
-                                                            <div
-                                                                class="input-group
-                                                                    input-group-sm">
+                                                            <div class="row g-2 align-items-end">
+                                                                <div class="col-12">
+                                                                    <label
+                                                                        for="photo-visibility-<?= esc(
+                                                                                                    (string) $photoId,
+                                                                                                    'attr'
+                                                                                                ) ?>"
+                                                                        class="form-label fw-semibold fs-12">
 
-                                                                <select
-                                                                    name="visibility"
-                                                                    class="form-select"
-                                                                    aria-label="Photo visibility">
+                                                                        Photo visibility
+                                                                    </label>
 
-                                                                    <option
-                                                                        value="PUBLIC"
-                                                                        <?= $visibility
-                                                                            ===
-                                                                            'PUBLIC'
-                                                                            ? 'selected'
-                                                                            : '' ?>>
-                                                                        Public
-                                                                    </option>
+                                                                    <select
+                                                                        name="visibility"
+                                                                        id="photo-visibility-<?= esc(
+                                                                                                    (string) $photoId,
+                                                                                                    'attr'
+                                                                                                ) ?>"
+                                                                        class="form-select"
+                                                                        data-photo-visibility-choice
+                                                                        data-choice-search="false"
+                                                                        required>
 
-                                                                    <option
-                                                                        value="INTERESTED_MEMBERS"
-                                                                        <?= $visibility
-                                                                            ===
-                                                                            'INTERESTED_MEMBERS'
-                                                                            ? 'selected'
-                                                                            : '' ?>>
-                                                                        Interested Only
-                                                                    </option>
-                                                                </select>
+                                                                        <option
+                                                                            value="PUBLIC"
+                                                                            <?= $visibility === 'PUBLIC'
+                                                                                ? 'selected'
+                                                                                : '' ?>>
 
-                                                                <button
-                                                                    type="submit"
-                                                                    class="btn
-                                                                        btn-outline-secondary">
-                                                                    Save
-                                                                </button>
+                                                                            Public
+                                                                        </option>
+
+                                                                        <option
+                                                                            value="INTERESTED_MEMBERS"
+                                                                            <?= $visibility ===
+                                                                                'INTERESTED_MEMBERS'
+                                                                                ? 'selected'
+                                                                                : '' ?>>
+
+                                                                            Interested members only
+                                                                        </option>
+                                                                    </select>
+                                                                </div>
+
+                                                                <div class="col-12 d-flex justify-content-end">
+                                                                    <button
+                                                                        type="submit"
+                                                                        class="btn btn-outline-secondary btn-sm">
+
+                                                                        Save Visibility
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </form>
                                                         <div class="d-flex justify-content-end">
@@ -677,17 +691,35 @@ $this->section('content');
 
                                                                 <button
                                                                     type="submit"
-                                                                    class="btn
-                                                                    btn-outline-danger
-                                                                    btn-md">
+                                                                    class="btn btn-outline-danger btn-md
+                d-inline-flex align-items-center
+                justify-content-center gap-2"
+                                                                    data-photo-delete-button>
 
-                                                                    <i
-                                                                        class="ri-delete-bin-line
-                                                                        me-1"
-                                                                        aria-hidden="true">
-                                                                    </i>
+                                                                    <span
+                                                                        class="d-inline-flex align-items-center"
+                                                                        data-delete-label>
 
-                                                                    Delete Photo
+                                                                        <i
+                                                                            class="ri-delete-bin-line me-1"
+                                                                            aria-hidden="true">
+                                                                        </i>
+
+                                                                        Delete Photo
+                                                                    </span>
+
+                                                                    <span
+                                                                        class="d-none align-items-center"
+                                                                        data-delete-loading
+                                                                        aria-live="polite">
+
+                                                                        <span
+                                                                            class="spinner-border spinner-border-sm me-1"
+                                                                            aria-hidden="true">
+                                                                        </span>
+
+                                                                        Deleting photo...
+                                                                    </span>
                                                                 </button>
                                                             </form>
                                                         </div>
