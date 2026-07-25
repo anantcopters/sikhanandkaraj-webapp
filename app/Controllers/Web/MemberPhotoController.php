@@ -34,6 +34,7 @@ final class MemberPhotoController extends BaseController
                 'user' => $data['user'],
                 'photos' => $data['photos'],
                 'photoCount' => $data['count'],
+                'approvedPhotoCount' => $data['approvedCount'],
                 'maximumPhotos' => $data['maximum'],
                 'remainingPhotos' => $data['remaining'],
                 'validationErrors' =>
@@ -92,7 +93,7 @@ final class MemberPhotoController extends BaseController
                 ->back()
                 ->withInput()
                 ->with(
-                    'errors',
+                    'validationErrors',
                     $validation->getErrors()
                 );
         }

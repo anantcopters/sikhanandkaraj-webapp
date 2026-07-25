@@ -56,6 +56,20 @@ $isEmailVerified = (bool) (
 $isIdentityVerified = (bool) (
     $summary['isIdentityVerified'] ?? false
 );
+
+$hasUploadedPhoto = (bool) (
+    $summary['hasUploadedPhoto'] ?? false
+);
+
+$uploadedPhotoCount = max(
+    0,
+    (int) ($summary['uploadedPhotoCount'] ?? 0)
+);
+
+$approvedPhotoCount = max(
+    0,
+    (int) ($summary['approvedPhotoCount'] ?? 0)
+);
 ?>
 
 <div class="d-flex flex-column gap-3">
@@ -183,7 +197,8 @@ $isIdentityVerified = (bool) (
 
     <!-- Profile photo -->
     <section
-        class="card border border-danger border-opacity-25 shadow-none mb-0"
+        class="card border border-danger
+        border-opacity-25 shadow-none mb-0"
         aria-labelledby="profilePhotoTitle">
 
         <div class="card-body p-3">
@@ -199,14 +214,16 @@ $isIdentityVerified = (bool) (
                                         $profilePhotoUrl,
                                         'attr'
                                     ) ?>"
-                            alt="Profile photo"
+                            alt="Approved main profile photo"
                             class="rounded-circle img-thumbnail
-                                object-fit-cover w-100 h-100">
+                            object-fit-cover w-100 h-100"
+                            loading="lazy">
                     <?php else: ?>
                         <span
                             class="avatar-title rounded-circle
-                                bg-light text-primary fs-28"
+                            bg-light text-primary fs-28"
                             aria-hidden="true">
+
                             <i class="ri-user-3-line"></i>
                         </span>
                     <?php endif; ?>
@@ -215,49 +232,86 @@ $isIdentityVerified = (bool) (
                 <div class="flex-grow-1">
                     <div
                         class="d-flex align-items-start
-                            justify-content-between gap-2">
+                        justify-content-between gap-2">
 
                         <div>
                             <h2
                                 class="fs-15 fw-semibold mb-1"
                                 id="profilePhotoTitle">
+
                                 Profile photo
                             </h2>
 
                             <p class="text-muted fs-13 mb-0">
-                                Add a clear and recent photo to
-                                improve profile visibility.
+                                Add clear and recent photos to improve
+                                your profile visibility.
                             </p>
                         </div>
 
-                        <?php if ($hasProfilePhoto): ?>
+                        <?php if ($hasUploadedPhoto): ?>
                             <span
                                 class="badge bg-success-subtle
-                                    text-success">
+                                text-success">
+
                                 Added
+                            </span>
+                        <?php else: ?>
+                            <span
+                                class="badge bg-warning-subtle
+                                text-warning">
+
+                                Pending
                             </span>
                         <?php endif; ?>
                     </div>
 
-                    <button
-                        type="button"
-                        class="btn btn-outline-primary
-                            btn-sm d-inline-flex
-                            align-items-center gap-1 mt-3"
-                        data-bs-toggle="offcanvas"
-                        data-bs-target="#profilePhotoOffcanvas"
-                        aria-controls="profilePhotoOffcanvas">
+                    <div
+                        class="d-flex flex-wrap align-items-center
+                        gap-2 mt-3">
+
+                        <span
+                            class="badge bg-light text-body
+                            border fw-medium">
+
+                            <?= esc((string) $approvedPhotoCount) ?>
+                            approved
+                        </span>
+
+                        <span
+                            class="text-muted fs-12">
+
+                            <?= esc((string) $uploadedPhotoCount) ?>
+                            of 5 uploaded
+                        </span>
+                    </div>
+
+                    <?php if (
+                        $hasUploadedPhoto
+                        && !$hasProfilePhoto
+                    ): ?>
+                        <p class="text-warning fs-12 mb-0 mt-2">
+                            Your main photo will appear here after
+                            administrator approval.
+                        </p>
+                    <?php endif; ?>
+
+                    <a
+                        href="<?= url_to('web.profile.photos') ?>"
+                        class="btn btn-outline-primary btn-sm
+                        d-inline-flex align-items-center
+                        gap-1 mt-3">
 
                         <i
-                            class="<?= $hasProfilePhoto
+                            class="<?= $hasUploadedPhoto
                                         ? 'ri-image-edit-line'
                                         : 'ri-image-add-line' ?>"
-                            aria-hidden="true"></i>
+                            aria-hidden="true">
+                        </i>
 
-                        <?= $hasProfilePhoto
-                            ? 'Change photo'
+                        <?= $hasUploadedPhoto
+                            ? 'Manage photos'
                             : 'Upload photo' ?>
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>

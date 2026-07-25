@@ -134,4 +134,17 @@ final class MemberPhotoModel extends Model
 
         return is_array($photo) ? $photo : null;
     }
+
+    /**
+     * Count approved, active profile photos belonging to a member.
+     */
+    public function countApprovedForMember(
+        int $memberId
+    ): int {
+        return $this
+            ->where('member_id', $memberId)
+            ->where('status', 'APPROVED')
+            ->where('deleted_at', null)
+            ->countAllResults();
+    }
 }

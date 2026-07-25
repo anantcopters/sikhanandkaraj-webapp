@@ -34,6 +34,7 @@ final class MemberPhotoService
      *     user:array<string, mixed>,
      *     photos:list<array<string, mixed>>,
      *     count:int,
+     *     approvedCount:int,
      *     maximum:int,
      *     remaining:int
      * }
@@ -85,10 +86,15 @@ final class MemberPhotoService
 
         $count = count($photos);
 
+        $approvedCount = $this
+            ->photoModel
+            ->countApprovedForMember($memberId);
+
         return [
             'user' => $user,
             'photos' => $photos,
             'count' => $count,
+            'approvedCount' => $approvedCount,
             'maximum' => $this->config->profileMaxFiles,
             'remaining' => max(
                 0,
@@ -444,6 +450,39 @@ final class MemberPhotoService
             default =>
             $urls['mediumUrl'],
         };
+    }
+
+    /**
+     * Return photo-count information for profile presentation.
+     *
+     * A pending photo counts toward profile-journey completion because
+     * the member has completed the upload action. Public display still
+     * requires an approved main photo.
+     *
+     * @return array{
+     *     uploadedCount:int,
+     *     approvedCount:int,
+     *     hasUploadedPhoto:bool
+     * }
+     */
+    public function getPhotoSummary(
+        int $memberId
+    ): array {
+        $this->assertMemberExists($memberId);
+
+        $uploadedCount = $this
+            ->photoModel
+            ->countActiveForMember($memberId);
+
+        $approvedCount = $this
+            ->photoModel
+            ->countApprovedForMember($memberId);
+
+        return [
+            'uploadedCount' => $uploadedCount,
+            'approvedCount' => $approvedCount,
+            'hasUploadedPhoto' => $uploadedCount > 0,
+        ];
     }
 
     /**

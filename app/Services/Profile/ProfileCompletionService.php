@@ -12,6 +12,10 @@ final class ProfileCompletionService
     /**
      * Calculate completion across all implemented profile sections.
      *
+     * Photo completion is based on at least one active uploaded photo.
+     * Approval is a moderation state and does not block the member's
+     * profile-completion journey.
+     *
      * @param array<string, int> $basicDetailsCompletion
      * @param array<string, int> $educationProfessionCompletion
      * @param array<string, int> $familyDetailsCompletion
@@ -20,9 +24,9 @@ final class ProfileCompletionService
      * @param array<string, int> $aboutMeCompletion
      *
      * @return array{
-     *     percentage: int,
-     *     completedSteps: int,
-     *     totalSteps: int
+     *     percentage:int,
+     *     completedSteps:int,
+     *     totalSteps:int
      * }
      */
     public function calculate(
@@ -31,7 +35,8 @@ final class ProfileCompletionService
         array $familyDetailsCompletion,
         array $sikhReligiousDetailsCompletion,
         array $lifestyleCompletion,
-        array $aboutMeCompletion
+        array $aboutMeCompletion,
+        bool $hasUploadedPhoto
     ): array {
         $sections = [
             $this->isSectionComplete(
@@ -52,6 +57,7 @@ final class ProfileCompletionService
             $this->isSectionComplete(
                 $aboutMeCompletion
             ),
+            $hasUploadedPhoto,
         ];
 
         $totalSteps = count($sections);
@@ -59,8 +65,7 @@ final class ProfileCompletionService
         $completedSteps = count(
             array_filter(
                 $sections,
-                static fn(bool $complete): bool =>
-                $complete
+                static fn(bool $complete): bool => $complete
             )
         );
 
@@ -70,9 +75,7 @@ final class ProfileCompletionService
                     ($completedSteps / $totalSteps) * 100
                 )
                 : 0,
-
             'completedSteps' => $completedSteps,
-
             'totalSteps' => $totalSteps,
         ];
     }

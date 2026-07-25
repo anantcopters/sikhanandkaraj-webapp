@@ -11,6 +11,7 @@ declare(strict_types=1);
  * @var int                        $maximumPhotos
  * @var int                        $remainingPhotos
  * @var array<string, string>      $validationErrors
+ * @var int $approvedPhotoCount
  * @var array<string, string>|null $formAlert
  */
 
@@ -25,6 +26,10 @@ $photos = isset($photos) && is_array($photos)
 $photoCount = isset($photoCount)
     ? max(0, (int) $photoCount)
     : count($photos);
+
+$approvedPhotoCount = isset($approvedPhotoCount)
+    ? max(0, (int) $approvedPhotoCount)
+    : 0;
 
 $maximumPhotos = isset($maximumPhotos)
     ? max(1, (int) $maximumPhotos)
@@ -114,6 +119,13 @@ $this->section('content');
                         <span class="text-muted fs-13 d-block">
                             photos uploaded
                         </span>
+
+                        <span class="text-success fs-12 d-block mt-1">
+                            <?= esc((string) $approvedPhotoCount) ?>
+                            <?= $approvedPhotoCount === 1
+                                ? 'photo approved'
+                                : 'photos approved' ?>
+                        </span>
                     </div>
                 </div>
 
@@ -141,7 +153,8 @@ $this->section('content');
                                                 ) ?>"
                                         enctype="multipart/form-data"
                                         id="profile-photo-upload-form"
-                                        novalidate>
+                                        novalidate
+                                        data-profile-photo-form>
 
                                         <?= csrf_field() ?>
 
@@ -198,111 +211,90 @@ $this->section('content');
                                                 class="img-fluid rounded">
                                         </div>
 
-                                        <fieldset class="mb-3">
-                                            <legend
-                                                class="form-label
-                                                    fw-semibold fs-13 mb-2">
-                                                Who can view this photo?
-                                            </legend>
+                                        <div class="mb-3">
+                                            <label
+                                                for="profile-photo-visibility"
+                                                class="form-label fw-semibold fs-13">
 
-                                            <div class="form-check mb-2">
-                                                <input
-                                                    class="form-check-input"
-                                                    type="radio"
-                                                    name="visibility"
+                                                Who can view this photo?
+                                            </label>
+
+                                            <select
+                                                name="visibility"
+                                                id="profile-photo-visibility"
+                                                class="form-select
+            <?= isset($validationErrors['visibility'])
+                                        ? 'is-invalid'
+                                        : '' ?>"
+                                                data-choice
+                                                data-choice-search="false"
+                                                required>
+
+                                                <option value="">
+                                                    Select photo visibility
+                                                </option>
+
+                                                <option
                                                     value="PUBLIC"
-                                                    id="photo-visibility-public"
                                                     <?= old(
                                                         'visibility',
                                                         'PUBLIC'
                                                     ) === 'PUBLIC'
-                                                        ? 'checked'
+                                                        ? 'selected'
                                                         : '' ?>>
 
-                                                <label
-                                                    class="form-check-label"
-                                                    for="photo-visibility-public">
+                                                    Public
+                                                </option>
 
-                                                    <span
-                                                        class="fw-semibold
-                                                            fs-13 d-block">
-                                                        Public
-                                                    </span>
-
-                                                    <span
-                                                        class="text-muted
-                                                            fs-12">
-                                                        Visible to eligible
-                                                        members.
-                                                    </span>
-                                                </label>
-                                            </div>
-
-                                            <div class="form-check">
-                                                <input
-                                                    class="form-check-input"
-                                                    type="radio"
-                                                    name="visibility"
+                                                <option
                                                     value="INTERESTED_MEMBERS"
-                                                    id="photo-visibility-interested"
-                                                    <?= old(
-                                                        'visibility'
-                                                    ) ===
+                                                    <?= old('visibility') ===
                                                         'INTERESTED_MEMBERS'
-                                                        ? 'checked'
+                                                        ? 'selected'
                                                         : '' ?>>
 
-                                                <label
-                                                    class="form-check-label"
-                                                    for="photo-visibility-interested">
+                                                    Interested members only
+                                                </option>
+                                            </select>
 
-                                                    <span
-                                                        class="fw-semibold
-                                                            fs-13 d-block">
-                                                        Interested Members
-                                                    </span>
-
-                                                    <span
-                                                        class="text-muted
-                                                            fs-12">
-                                                        Visible only after an
-                                                        approved interest.
-                                                    </span>
-                                                </label>
+                                            <div class="form-text">
+                                                Public photos are visible to eligible members.
+                                                Interested-only photos are shown after an approved
+                                                interest.
                                             </div>
 
-                                            <?php if (
-                                                isset(
+                                            <div class="invalid-feedback">
+                                                <?= esc(
                                                     $validationErrors['visibility']
-                                                )
-                                            ): ?>
-                                                <div
-                                                    class="invalid-feedback
-                                                        d-block mt-2">
-                                                    <?= esc(
-                                                        $validationErrors['visibility']
-                                                    ) ?>
-                                                </div>
-                                            <?php endif; ?>
-                                        </fieldset>
+                                                        ?? 'Please select who can view this photo.'
+                                                ) ?>
+                                            </div>
+                                        </div>
 
-                                        <div class="form-check mb-3">
+                                        <div class="form-check mb-2">
                                             <input
                                                 class="form-check-input"
                                                 type="checkbox"
-                                                name="is_primary"
+                                                name="make_primary"
                                                 value="1"
                                                 id="profile-photo-primary"
-                                                <?= old('is_primary')
+                                                <?= old('make_primary')
                                                     ? 'checked'
                                                     : '' ?>>
 
                                             <label
-                                                class="form-check-label fs-13"
+                                                class="form-check-label fs-13 fw-medium"
                                                 for="profile-photo-primary">
-                                                Make this my main photo
+
+                                                Set as my main profile photo
                                             </label>
                                         </div>
+
+                                        <p class="text-muted fs-12 mb-3">
+                                            Only one photo can be your main profile photo.
+                                            Selecting another photo as main will replace the
+                                            current selection.
+                                        </p>
 
                                         <div
                                             class="alert alert-warning
@@ -321,18 +313,24 @@ $this->section('content');
                                         <button
                                             type="submit"
                                             class="btn btn-primary w-100
-                                                d-inline-flex
-                                                align-items-center
-                                                justify-content-center gap-2"
+        d-inline-flex align-items-center
+        justify-content-center gap-2"
                                             id="profile-photo-submit">
 
-                                            <span>Upload Photo</span>
+                                            <span class="registration-submit__label">
+                                                Upload Photo
+                                            </span>
 
                                             <span
-                                                class="spinner-border
-                                                    spinner-border-sm d-none"
-                                                id="profile-photo-spinner"
-                                                aria-hidden="true">
+                                                class="registration-submit__loading d-none"
+                                                aria-live="polite">
+
+                                                <span
+                                                    class="spinner-border spinner-border-sm me-1"
+                                                    aria-hidden="true">
+                                                </span>
+
+                                                Uploading photo...
                                             </span>
                                         </button>
                                     </form>
@@ -372,8 +370,8 @@ $this->section('content');
                                     </h2>
 
                                     <p class="text-muted fs-13 mb-0">
-                                        Select a main photo, update its
-                                        visibility or delete it.
+                                        Only one photo can be selected as your main profile photo.
+                                        Selecting a different main photo will replace the current one.
                                     </p>
                                 </div>
 
@@ -431,7 +429,7 @@ $this->section('content');
                                             );
 
                                             $isPrimary = (bool) (
-                                                $photo['is_primary']
+                                                $photo['make_primary']
                                                 ?? false
                                             );
 
@@ -570,32 +568,27 @@ $this->section('content');
                                                             </i>
                                                         </div>
 
-                                                        <?php if (
-                                                            !$isPrimary
-                                                        ): ?>
+                                                        <?php if ($isPrimary): ?>
+                                                            <span
+                                                                class="badge bg-primary-subtle text-primary">
+
+                                                                Main profile photo
+                                                            </span>
+                                                        <?php else: ?>
                                                             <form
                                                                 method="post"
                                                                 action="<?= url_to(
                                                                             'web.profile.photos.primary',
                                                                             $photoId
-                                                                        ) ?>"
-                                                                class="mb-2">
+                                                                        ) ?>">
 
                                                                 <?= csrf_field() ?>
 
                                                                 <button
                                                                     type="submit"
-                                                                    class="btn
-                                                                        btn-outline-primary
-                                                                        btn-sm w-100">
+                                                                    class="btn btn-outline-primary btn-sm">
 
-                                                                    <i
-                                                                        class="ri-star-line
-                                                                            me-1"
-                                                                        aria-hidden="true">
-                                                                    </i>
-
-                                                                    Make Main Photo
+                                                                    Set as Main Photo
                                                                 </button>
                                                             </form>
                                                         <?php endif; ?>

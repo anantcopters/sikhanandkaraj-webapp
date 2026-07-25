@@ -19,6 +19,7 @@ use App\Validation\Profile\LifestyleValidation;
 use App\Services\Profile\AboutMeService;
 use App\Validation\Profile\AboutMeValidation;
 use App\Services\Profile\MemberPhotoUrlService;
+use App\Services\Profile\MemberPhotoService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
@@ -134,6 +135,13 @@ final class ProfileController extends BaseController
             $userId
         );
 
+        /** @var MemberPhotoService $memberPhotoService */
+        $memberPhotoService = service('memberPhotoService');
+
+        $photoSummary = $memberPhotoService->getPhotoSummary(
+            $userId
+        );
+
         /*
         * Calculate overall completion only from sections which are
         * currently implemented and usable.
@@ -144,7 +152,8 @@ final class ProfileController extends BaseController
             $familyProfile['completion'],
             $religiousProfile['completion'],
             $lifestyleProfile['completion'],
-            $aboutMeProfile['completion']
+            $aboutMeProfile['completion'],
+            $photoSummary['hasUploadedPhoto']
         );
 
         /** @var MemberPhotoUrlService $memberPhotoUrlService */
@@ -161,7 +170,8 @@ final class ProfileController extends BaseController
         $overallProfileSummary = $this
             ->buildProfileSummary(
                 $profileCompletion,
-                $profileImage
+                $profileImage,
+                $photoSummary
             );
 
         $basicDetailsComplete = (
@@ -212,9 +222,11 @@ final class ProfileController extends BaseController
         *
         * NULL means all currently implemented sections are complete.
         */
-        $hasApprovedProfilePhoto = $profileImage !== '';
+        $hasUploadedProfilePhoto = (
+            $photoSummary['hasUploadedPhoto'] ?? false
+        ) === true;
 
-        if (!$hasApprovedProfilePhoto) {
+        if (!$hasUploadedProfilePhoto) {
             $nextProfileSection = [
                 'title' => 'Profile Photo',
                 'route' => 'web.profile.photos',
@@ -319,12 +331,18 @@ final class ProfileController extends BaseController
      * Build presentation-ready profile summary values.
      *
      * @param array<string, mixed> $profileCompletion
+     * @param array{
+     *     uploadedCount:int,
+     *     approvedCount:int,
+     *     hasUploadedPhoto:bool
+     * } $photoSummary
      *
      * @return array<string, mixed>
      */
     private function buildProfileSummary(
         array $profileCompletion,
-        string $profileImage
+        string $profileImage,
+        array $photoSummary
     ): array {
         $percentage = max(
             0,
@@ -371,7 +389,34 @@ final class ProfileController extends BaseController
             'completedSteps' => $completedSteps,
             'totalSteps' => $totalSteps,
             'pendingSections' => $pendingSections,
+
+            /*
+         * Uploaded photos determine profile-journey completion.
+         */
+            'hasUploadedPhoto' => (
+                $photoSummary['hasUploadedPhoto'] ?? false
+            ) === true,
+
+            'uploadedPhotoCount' => max(
+                0,
+                (int) (
+                    $photoSummary['uploadedCount'] ?? 0
+                )
+            ),
+
+            'approvedPhotoCount' => max(
+                0,
+                (int) (
+                    $photoSummary['approvedCount'] ?? 0
+                )
+            ),
+
+            /*
+         * Only an approved primary photo may be displayed.
+         */
             'hasProfilePhoto' => $profileImage !== '',
+            'profilePhotoUrl' => $profileImage,
+
             'visibilityLabel' => $visibilityLabel,
             'visibilityClass' => $visibilityClass,
         ];

@@ -21,7 +21,6 @@ declare(strict_types=1);
  * @var array<int, array<string, string>> $upcomingSections
  * @var string                            $aboutMe
  * @var array<string, int>                $aboutMeCompletion
- * @var string                            $profileImage
  */
 
 $user = isset($user) && is_array($user)
@@ -99,12 +98,6 @@ $upcomingSections = isset($upcomingSections)
     ? $upcomingSections
     : [];
 
-$profileImage = isset($profileImage)
-    ? trim((string) $profileImage)
-    : '';
-
-$hasApprovedProfileImage = $profileImage !== '';
-
 $this->extend('Layouts/Main');
 $this->section('content');
 ?>
@@ -144,91 +137,6 @@ $this->section('content');
                     <p class="text-muted fs-13 mb-0">
                         Complete each section separately.
                     </p>
-                </div>
-
-                <div class="card border shadow-none mb-3">
-                    <div class="card-body p-3 p-md-4">
-
-                        <div
-                            class="d-flex flex-column flex-sm-row
-                                align-items-sm-center
-                                justify-content-between gap-3">
-
-                            <div class="d-flex align-items-center gap-3">
-
-                                <div class="flex-shrink-0">
-                                    <?php if ($hasApprovedProfileImage): ?>
-                                        <img
-                                            src="<?= esc($profileImage) ?>"
-                                            alt="Profile photo"
-                                            class="avatar-lg rounded-circle
-                                                object-fit-cover border"
-                                            loading="lazy">
-                                    <?php else: ?>
-                                        <div
-                                            class="avatar-lg rounded-circle
-                                                bg-light border d-flex
-                                                align-items-center
-                                                justify-content-center
-                                                text-muted"
-                                            aria-hidden="true">
-
-                                            <i class="ri-user-3-line fs-24"></i>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-
-                                <div>
-                                    <div
-                                        class="d-flex align-items-center
-                                            flex-wrap gap-2 mb-1">
-
-                                        <h3 class="fs-16 fw-semibold mb-0">
-                                            Profile Photos
-                                        </h3>
-
-                                        <?php if (
-                                            $hasApprovedProfileImage
-                                        ): ?>
-                                            <span
-                                                class="badge
-                                                    text-bg-success">
-                                                Approved
-                                            </span>
-                                        <?php else: ?>
-                                            <span
-                                                class="badge
-                                                    text-bg-warning">
-                                                Pending
-                                            </span>
-                                        <?php endif; ?>
-                                    </div>
-
-                                    <p class="text-muted fs-13 mb-0">
-                                        Upload up to five photos, choose
-                                        your main photo and control who can
-                                        view each photo.
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div class="flex-shrink-0">
-                                <a
-                                    href="<?= url_to(
-                                                'web.profile.photos'
-                                            ) ?>"
-                                    class="btn btn-outline-primary btn-sm">
-
-                                    <i
-                                        class="ri-image-edit-line me-1"
-                                        aria-hidden="true">
-                                    </i>
-
-                                    Manage Photos
-                                </a>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <?= view(
