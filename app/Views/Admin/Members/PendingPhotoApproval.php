@@ -346,11 +346,11 @@ $this->section('content');
                                         <form
                                             method="post"
                                             action="<?= route_to(
-                                                        'admin.members.photos'
-                                                            . '.approve-all',
+                                                        'admin.members.photos.approve-all',
                                                         $memberId
                                                     ) ?>"
                                             class="mb-0"
+                                            data-confirm-form
                                             data-moderation-form
                                             data-action-type="approve-all"
                                             data-member-id="<?= esc(
@@ -358,7 +358,11 @@ $this->section('content');
                                                                 'attr'
                                                             ) ?>"
                                             data-confirm-title="Approve all photos?"
-                                            data-confirm-message="Approve every pending photo for this member?">
+                                            data-confirm-message="Approve every pending photo for this member?"
+                                            data-confirm-button-text="Approve All"
+                                            data-confirm-button-class="btn-success"
+                                            data-confirm-icon="ri-checkbox-circle-line"
+                                            data-confirm-loading-text="Approving...">
 
                                             <?= csrf_field() ?>
 

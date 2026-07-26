@@ -78,21 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
         '[data-photo-uploaded-at]'
     );
 
-    const confirmationTitle =
-        confirmationModalElement.querySelector(
-            '#confirmationModalTitle'
-        );
-
-    const confirmationMessage =
-        confirmationModalElement.querySelector(
-            '[data-confirmation-message]'
-        );
-
-    const confirmationSubmit =
-        confirmationModalElement.querySelector(
-            '[data-confirmation-submit]'
-        );
-
     const carousel = bootstrap.Carousel.getOrCreateInstance(
         carouselElement,
         {
@@ -103,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let currentPhotos = [];
     let currentIndex = 0;
-    let pendingForm = null;
 
     function escapeHtml(value) {
         const element = document.createElement('div');
@@ -211,61 +195,76 @@ document.addEventListener('DOMContentLoaded', () => {
             ? photo.approve_url
             : photo.reject_url;
 
-        const title = action === 'approve'
+        const isApprove = action === 'approve';
+
+        const title = isApprove
             ? 'Approve photo?'
             : 'Reject photo?';
 
-        const message = action === 'approve'
+        const message = isApprove
             ? 'Approve this member photo?'
             : 'Reject this member photo?';
 
+        const loadingText = isApprove
+            ? 'Approving...'
+            : 'Rejecting...';
+
         return `
-            <form
-                method="post"
-                action="${escapeHtml(actionUrl)}"
-                class="mb-0"
-                data-moderation-form
-                data-action-type="${escapeHtml(action)}"
-                data-photo-id="${escapeHtml(photo.id)}"
-                data-confirm-title="${escapeHtml(title)}"
-                data-confirm-message="${escapeHtml(message)}">
+        <form
+            method="post"
+            action="${escapeHtml(actionUrl)}"
+            class="mb-0"
+            data-confirm-form
+            data-moderation-form
+            data-action-type="${escapeHtml(action)}"
+            data-photo-id="${escapeHtml(photo.id)}"
+            data-confirm-title="${escapeHtml(title)}"
+            data-confirm-message="${escapeHtml(message)}"
+            data-confirm-button-text="${escapeHtml(buttonText)}"
+            data-confirm-button-class="${escapeHtml(buttonClass)}"
+            data-confirm-icon="${escapeHtml(iconClass)}"
+            data-confirm-loading-text="${escapeHtml(loadingText)}">
 
-                <input
-                    type="hidden"
-                    name="${escapeHtml(window.csrfTokenName || '')}"
-                    value="${escapeHtml(window.csrfTokenHash || '')}">
+            <input
+                type="hidden"
+                name="${escapeHtml(
+            window.csrfTokenName || ''
+        )}"
+                value="${escapeHtml(
+            window.csrfTokenHash || ''
+        )}">
 
-                <button
-                    type="submit"
-                    class="btn ${buttonClass}
-                        btn-sm registration-form__submit">
+            <button
+                type="submit"
+                class="btn ${escapeHtml(buttonClass)}
+                    btn-sm registration-form__submit">
 
-                    <span
-                        class="registration-submit__label">
+                <span
+                    class="registration-submit__label">
 
-                        <i
-                            class="${iconClass} me-1"
-                            aria-hidden="true">
-                        </i>
-
-                        ${escapeHtml(buttonText)}
-                    </span>
-
-                    <span
-                        class="registration-submit__loading d-none"
+                    <i
+                        class="${escapeHtml(iconClass)} me-1"
                         aria-hidden="true">
+                    </i>
 
-                        <span
-                            class="spinner-border spinner-border-sm"
-                            role="status"
-                            aria-hidden="true">
-                        </span>
+                    ${escapeHtml(buttonText)}
+                </span>
 
-                        <span>Processing...</span>
+                <span
+                    class="registration-submit__loading d-none"
+                    aria-hidden="true">
+
+                    <span
+                        class="spinner-border spinner-border-sm"
+                        role="status"
+                        aria-hidden="true">
                     </span>
-                </button>
-            </form>
-        `;
+
+                    <span>${escapeHtml(loadingText)}</span>
+                </span>
+            </button>
+        </form>
+    `;
     }
 
     function renderActions(photo) {
@@ -460,54 +459,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function openConfirmation(form) {
-        pendingForm = form;
-
-        confirmationTitle.textContent =
-            form.dataset.confirmTitle
-            || 'Confirm action';
-
-        confirmationMessage.textContent =
-            form.dataset.confirmMessage
-            || 'Are you sure you want to continue?';
-
-        const submitButton = form.querySelector(
-            'button[type="submit"]'
-        );
-
-        const isReject =
-            form.dataset.actionType === 'reject';
-
-        confirmationSubmit.className =
-            `btn ${isReject
-                ? 'btn-danger'
-                : 'btn-primary'
-            } registration-form__submit`;
-
-        const label =
-            confirmationSubmit.querySelector(
-                '.registration-submit__label'
-            );
-
-        if (label) {
-            label.textContent =
-                isReject
-                    ? 'Reject'
-                    : 'Confirm';
-        }
-
-        setLoading(confirmationSubmit, false);
-        setLoading(submitButton, false);
-
-        confirmationModal.show();
-    }
-
     async function submitModeration(form) {
         const formButton = form.querySelector(
             'button[type="submit"]'
         );
 
-        setLoading(confirmationSubmit, true);
         setLoading(formButton, true);
 
         try {
@@ -538,22 +494,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 );
             }
 
-            confirmationModal.hide();
-
-            const actionType =
-                form.dataset.actionType;
+            const actionType = form.dataset.actionType;
 
             if (actionType === 'approve-all') {
-                const memberId =
-                    form.dataset.memberId;
+                const memberId = form.dataset.memberId;
 
                 document.querySelector(
-                    `[data-member-row="${CSS.escape(memberId)}"]`
+                    `[data-member-row="${CSS.escape(memberId)
+                    }"]`
                 )?.remove();
 
-                /*
-                 * The modal may already be open for this member.
-                 */
                 photoModal.hide();
             } else {
                 const photoId = Number(
@@ -568,60 +518,80 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (currentPhotos.length === 0) {
                     contentPanel.classList.add('d-none');
                     emptyPanel.classList.remove('d-none');
+
+                    const currentMemberId =
+                        photoModalElement.dataset.memberId;
+
+                    if (currentMemberId) {
+                        document.querySelector(
+                            `[data-member-row="${CSS.escape(currentMemberId)
+                            }"]`
+                        )?.remove();
+                    }
                 } else {
-                    carouselInner
-                        .querySelector(
-                            `[data-photo-index="${currentIndex}"]`
-                        )
-                        ?.remove();
-
-                    currentIndex = Math.min(
-                        currentIndex,
-                        currentPhotos.length - 1
-                    );
-
-                    /*
-                     * Re-render to normalize Bootstrap active items
-                     * and indexes after a moderation action.
-                     */
                     renderPhotos({
                         member: {
                             full_name:
                                 modalTitle.textContent,
-                            profile_ref_number: '',
-                            age: '',
-                            gender: '',
-                            location: ''
+                            profile_ref_number:
+                                modalSubtitle.dataset.reference
+                                || '',
+                            age:
+                                modalSubtitle.dataset.age
+                                || '',
+                            gender:
+                                modalSubtitle.dataset.gender
+                                || '',
+                            location:
+                                modalSubtitle.dataset.location
+                                || ''
                         },
                         photos: currentPhotos
                     });
                 }
             }
 
-            const feedbackEvent = new CustomEvent(
-                'feedback:show',
-                {
-                    detail: {
-                        type: 'success',
-                        title:
-                            payload.title
-                            || 'Action completed',
-                        message:
-                            payload.message
-                            || 'The action was completed.'
-                    }
-                }
-            );
-
-            document.dispatchEvent(feedbackEvent);
+            if (
+                window.AppFeedbackModal
+                && typeof window.AppFeedbackModal.show
+                === 'function'
+            ) {
+                window.AppFeedbackModal.show({
+                    type: 'success',
+                    title:
+                        payload.title
+                        || 'Action completed',
+                    message:
+                        payload.message
+                        || 'The action was completed.'
+                });
+            }
         } catch (error) {
-            setLoading(confirmationSubmit, false);
             setLoading(formButton, false);
 
-            confirmationMessage.textContent =
+            if (
+                window.AppFeedbackModal
+                && typeof window.AppFeedbackModal.show
+                === 'function'
+            ) {
+                window.AppFeedbackModal.show({
+                    type: 'error',
+                    title: 'Action not completed',
+                    message:
+                        error instanceof Error
+                            ? error.message
+                            : 'The action could not be completed.'
+                });
+
+                return;
+            }
+
+            errorPanel.textContent =
                 error instanceof Error
                     ? error.message
                     : 'The action could not be completed.';
+
+            errorPanel.classList.remove('d-none');
         }
     }
 
@@ -659,28 +629,26 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener(
         'submit',
         (event) => {
-            const form = event.target.closest(
-                '[data-moderation-form]'
-            );
+            const form = event.target;
 
-            if (!form) {
+            if (
+                !(form instanceof HTMLFormElement)
+                || !form.matches(
+                    '[data-moderation-form]'
+                )
+            ) {
                 return;
             }
 
+            /*
+             * The shared confirmation-modal.js runs first in capturing
+             * mode. The first submit is stopped there. After confirmation,
+             * it calls requestSubmit(), allowing this handler to perform
+             * the AJAX request.
+             */
             event.preventDefault();
 
-            openConfirmation(form);
-        }
-    );
-
-    confirmationSubmit.addEventListener(
-        'click',
-        () => {
-            if (!pendingForm) {
-                return;
-            }
-
-            submitModeration(pendingForm);
+            submitModeration(form);
         }
     );
 
@@ -691,14 +659,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 Number(event.to) || 0;
 
             updateCurrentPhotoDetails();
-        }
-    );
-
-    confirmationModalElement.addEventListener(
-        'hidden.bs.modal',
-        () => {
-            pendingForm = null;
-            setLoading(confirmationSubmit, false);
         }
     );
 });

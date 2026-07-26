@@ -69,7 +69,6 @@ final class MemberPhotoApprovalController extends BaseController
                 'pageScripts' => [
                     'assets/js/pages/'
                         . 'admin-member-photo-approval.js',
-                    'assets/js/components/submit-loader.js',
                 ],
             ]
         );
