@@ -110,6 +110,93 @@ $pageScripts = $pageScripts ?? [];
                 </div>
             </div>
         </header>
+        <nav
+            class="navbar navbar-expand-md
+        bg-light border-bottom"
+            aria-label="Administrator navigation">
+
+            <div class="container-fluid px-3 px-lg-4">
+
+                <button
+                    class="navbar-toggler"
+                    type="button"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#adminNavigation"
+                    aria-controls="adminNavigation"
+                    aria-expanded="false"
+                    aria-label="Toggle administrator navigation">
+
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div
+                    class="collapse navbar-collapse"
+                    id="adminNavigation">
+
+                    <ul class="navbar-nav gap-md-1">
+
+                        <li class="nav-item">
+                            <a
+                                href="<?= route_to(
+                                            'admin.dashboard'
+                                        ) ?>"
+                                class="nav-link
+                            d-flex align-items-center gap-1 text-black fs-14">
+
+                                <i
+                                    class="ri-dashboard-line"
+                                    aria-hidden="true">
+                                </i>
+
+                                Dashboard
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a
+                                href="<?= route_to(
+                                            'admin.members.photo-approvals'
+                                        ) ?>"
+                                class="nav-link
+                            d-flex align-items-center gap-1 text-black fs-14">
+
+                                <i
+                                    class="ri-image-line"
+                                    aria-hidden="true">
+                                </i>
+
+                                Pending Approval
+                            </a>
+                        </li>
+
+                        <?php if (
+                            session('admin_role')
+                            === \App\Models\AdminUserModel::ROLE_SUPER_ADMIN
+                        ): ?>
+
+                            <li class="nav-item">
+                                <a
+                                    href="<?= route_to(
+                                                'admin.users.index'
+                                            ) ?>"
+                                    class="nav-link
+                                d-flex align-items-center gap-1 text-black fs-14">
+
+                                    <i
+                                        class="ri-admin-line"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    Administrators
+                                </a>
+                            </li>
+
+                        <?php endif; ?>
+
+                    </ul>
+                </div>
+            </div>
+        </nav>
     <?php endif; ?>
 
     <?php $isAuthenticated =

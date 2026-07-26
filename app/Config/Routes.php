@@ -448,6 +448,58 @@ $routes->group('admin', [
             );
         });
     });
+
+    /*
+    * Member photo approval.
+    *
+    * Both ADMIN and SUPER_ADMIN may access these routes because
+    * they are inside adminAuth but outside the superAdmin group.
+    */
+    $routes->group(
+        'members/photo-approvals',
+        static function (
+            RouteCollection $routes
+        ): void {
+            $routes->get(
+                '',
+                'MemberPhotoApprovalController::index',
+                [
+                    'as' =>
+                    'admin.members.photo-approvals',
+                ]
+            );
+
+            $routes->post(
+                'photos/(:num)/approve',
+                'MemberPhotoApprovalController'
+                    . '::approvePhoto/$1',
+                [
+                    'as' =>
+                    'admin.members.photos.approve',
+                ]
+            );
+
+            $routes->post(
+                'photos/(:num)/reject',
+                'MemberPhotoApprovalController'
+                    . '::rejectPhoto/$1',
+                [
+                    'as' =>
+                    'admin.members.photos.reject',
+                ]
+            );
+
+            $routes->post(
+                'members/(:num)/approve',
+                'MemberPhotoApprovalController'
+                    . '::approveMemberPhotos/$1',
+                [
+                    'as' =>
+                    'admin.members.photos.approve-all',
+                ]
+            );
+        }
+    );
 });
 
 // -----------------------------------------------------------------------------

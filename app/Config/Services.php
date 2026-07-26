@@ -59,6 +59,8 @@ use App\Services\Aws\S3Service;
 use App\Services\Media\ImageProcessorService;
 use App\Services\Profile\MemberPhotoService;
 use App\Services\Profile\MemberPhotoUrlService;
+use App\Models\AdminMemberPhotoApprovalModel;
+use App\Services\Admin\MemberPhotoApprovalService;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
 use Config\MemberMedia;
@@ -636,6 +638,38 @@ class Services extends BaseService
             new MemberPhotoModel($database),
             static::cloudFrontService(false),
             $config
+        );
+    }
+
+    /**
+     * Return the administrator member-photo moderation service.
+     */
+    public static function memberPhotoApprovalService(
+        bool $getShared = true
+    ): MemberPhotoApprovalService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberPhotoApprovalService'
+            );
+        }
+
+        $database = db_connect();
+
+        /** @var MemberMedia $mediaConfig */
+        $mediaConfig = config('MemberMedia');
+
+        return new MemberPhotoApprovalService(
+            new AdminMemberPhotoApprovalModel(
+                $database
+            ),
+            new MemberPhotoModel(
+                $database
+            ),
+            static::CloudFrontService(
+                false
+            ),
+            $mediaConfig,
+            $database
         );
     }
 }
