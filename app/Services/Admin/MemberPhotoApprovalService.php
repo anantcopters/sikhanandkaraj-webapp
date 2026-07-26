@@ -11,6 +11,7 @@ use App\Services\Admin\Audit\AdminAuditEvent;
 use App\Services\Admin\Audit\AdminAuditService;
 use App\Services\Aws\CloudFrontService;
 use CodeIgniter\Database\BaseConnection;
+use App\Support\BooleanValue;
 use Config\MemberMedia;
 use DomainException;
 use Throwable;
@@ -63,6 +64,15 @@ final class MemberPhotoApprovalService
         foreach ($photos as &$photo) {
             $photoId = (int) (
                 $photo['id'] ?? 0
+            );
+
+            /*
+            * PostgreSQL boolean values may be returned by the driver as
+            * booleans, integers or the strings "t"/"f". Normalize the value
+            * before JSON encoding so JavaScript receives true or false.
+            */
+            $photo['is_primary'] = BooleanValue::fromDatabase(
+                $photo['is_primary'] ?? false
             );
 
             $photo['signed_url'] = '';

@@ -50,11 +50,37 @@
         '[data-confirm-modal-loading]'
     );
 
-    const modal = bootstrap.Modal.getOrCreateInstance(
-        modalElement,
-        {
-            backdrop: 'static',
-            keyboard: true
+    /*
+    * Keep the reusable confirmation modal above any already-open
+    * application modal, such as the member photo review modal.
+    *
+    * Bootstrap normally gives all modals the same z-index, so the
+    * confirmation backdrop may otherwise appear behind the first modal.
+    */
+    const confirmationModalZIndex = 1080;
+    const confirmationBackdropZIndex = 1075;
+
+    modalElement.style.zIndex = String(
+        confirmationModalZIndex
+    );
+
+    modalElement.addEventListener(
+        'shown.bs.modal',
+        function () {
+            const backdrops = document.querySelectorAll(
+                '.modal-backdrop'
+            );
+
+            const confirmationBackdrop =
+                backdrops.length > 0
+                    ? backdrops[backdrops.length - 1]
+                    : null;
+
+            if (confirmationBackdrop instanceof HTMLElement) {
+                confirmationBackdrop.style.zIndex = String(
+                    confirmationBackdropZIndex
+                );
+            }
         }
     );
 

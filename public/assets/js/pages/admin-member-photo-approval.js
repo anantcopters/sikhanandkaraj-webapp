@@ -334,7 +334,7 @@ document.addEventListener('DOMContentLoaded', () => {
         statusPanel.innerHTML =
             statusBadge(photo.status)
             + (
-                photo.is_primary
+                photo.is_primary === true
                     ? `
                         <span
                             class="badge
@@ -555,15 +555,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const actionType = form.dataset.actionType;
 
+            let shouldRefreshPage = false;
+
             if (actionType === 'approve-all') {
-                const memberId = form.dataset.memberId;
+                const memberId = form.dataset.memberId || '';
 
-                document.querySelector(
-                    `[data-member-row="${CSS.escape(memberId)
-                    }"]`
-                )?.remove();
+                if (memberId !== '') {
+                    document.querySelector(
+                        `[data-member-row="${CSS.escape(memberId)
+                        }"]`
+                    )?.remove();
+                }
 
-                photoModal.hide();
+                shouldRefreshPage = true;
             } else {
                 const photoId = Number(
                     form.dataset.photoId
@@ -580,6 +584,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const remainingPendingCount =
                     pendingPhotoCount();
 
+                /*
+                 * Once no pending photos remain for this member, close the
+                 * photo-review popup and refresh the listing after feedback.
+                 */
                 if (remainingPendingCount === 0) {
                     if (currentMemberId !== '') {
                         document.querySelector(
@@ -587,9 +595,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             }"]`
                         )?.remove();
                     }
-                }
 
-                if (currentPhotos.length === 0) {
+                    shouldRefreshPage = true;
+                } else if (currentPhotos.length === 0) {
                     contentPanel.classList.add('d-none');
                     emptyPanel.classList.remove('d-none');
                 } else {
@@ -616,6 +624,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            if (shouldRefreshPage) {
+                photoModal.hide();
+            }
+
             if (
                 window.AppFeedbackModal
                 && typeof window.AppFeedbackModal.show
@@ -628,8 +640,27 @@ document.addEventListener('DOMContentLoaded', () => {
                         || 'Action completed',
                     message:
                         payload.message
-                        || 'The action was completed.'
+                        || 'The action was completed.',
+
+                    /*
+                     * Refresh only after the administrator closes the success
+                     * message, preventing a sudden page reload.
+                     */
+                    onClose: shouldRefreshPage
+                        ? function () {
+                            window.location.reload();
+                        }
+                        : null
                 });
+
+                return;
+            }
+
+            /*
+             * Fallback when the shared feedback component is unavailable.
+             */
+            if (shouldRefreshPage) {
+                window.location.reload();
             }
         } catch (error) {
             setLoading(formButton, false);
