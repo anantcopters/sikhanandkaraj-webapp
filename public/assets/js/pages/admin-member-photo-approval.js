@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const normalized = String(status || '').toUpperCase();
 
         let badgeClass =
-            'bg-warning-subtle text-warning';
+            'bg-warning-subtle text-black';
 
         if (normalized === 'APPROVED') {
             badgeClass =
@@ -209,6 +209,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const actionUrl = action === 'approve'
             ? photo.approve_url
             : photo.reject_url;
+
+        /*
+        * Never generate a form without an explicit endpoint. An empty
+        * form action causes the browser to submit to the current page.
+        */
+        if (
+            typeof actionUrl !== 'string'
+            || actionUrl.trim() === ''
+        ) {
+            return '';
+        }
 
         const isApprove = action === 'approve';
 
@@ -252,7 +263,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <button
                 type="submit"
                 class="btn ${escapeHtml(buttonClass)}
-                    btn-sm registration-form__submit">
+                    btn-sm d-inline-flex
+        align-items-center gap-1">
 
                 <span
                     class="registration-submit__label">
@@ -327,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span
                             class="badge
                                 bg-primary-subtle
-                                text-primary p-2 ms-1">
+                                text-black p-2 ms-1">
                             Main Photo
                         </span>
                     `

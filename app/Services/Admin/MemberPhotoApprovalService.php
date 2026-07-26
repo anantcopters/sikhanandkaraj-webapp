@@ -61,7 +61,33 @@ final class MemberPhotoApprovalService
             ->findPhotosForMember($memberId);
 
         foreach ($photos as &$photo) {
+            $photoId = (int) (
+                $photo['id'] ?? 0
+            );
+
             $photo['signed_url'] = '';
+
+            /*
+            * Provide explicit moderation endpoints to the AJAX client.
+            *
+            * Without these URLs, a dynamically generated form has an empty
+            * action and the browser submits it to the current listing URL.
+            */
+            $photo['approve_url'] =
+                $photoId > 0
+                ? route_to(
+                    'admin.members.photos.approve',
+                    $photoId
+                )
+                : '';
+
+            $photo['reject_url'] =
+                $photoId > 0
+                ? route_to(
+                    'admin.members.photos.reject',
+                    $photoId
+                )
+                : '';
 
             $objectKey = trim(
                 (string) (

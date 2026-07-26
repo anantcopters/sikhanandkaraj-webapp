@@ -369,32 +369,18 @@ $this->section('content');
                                             <button
                                                 type="submit"
                                                 class="btn
-                                                    btn-soft-success
-                                                    btn-sm
-                                                    registration-form__submit"
+        btn-soft-success
+        btn-sm
+        d-inline-flex
+        align-items-center
+        justify-content-center"
                                                 title="Approve all pending photos"
                                                 aria-label="Approve all pending photos">
 
-                                                <span
-                                                    class="registration-submit__label">
-
-                                                    <i
-                                                        class="ri-checkbox-circle-line"
-                                                        aria-hidden="true">
-                                                    </i>
-                                                </span>
-
-                                                <span
-                                                    class="registration-submit__loading
-                                                        d-none"
+                                                <i
+                                                    class="ri-checkbox-circle-line"
                                                     aria-hidden="true">
-
-                                                    <span
-                                                        class="spinner-border
-                                                            spinner-border-sm"
-                                                        role="status">
-                                                    </span>
-                                                </span>
+                                                </i>
                                             </button>
                                         </form>
                                     </div>

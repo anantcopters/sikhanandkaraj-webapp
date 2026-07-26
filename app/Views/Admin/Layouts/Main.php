@@ -93,7 +93,7 @@ $pageScripts = $pageScripts ?? [];
                                     'admin.dashboard'
                                 ) ?>"
                         class="navbar-brand
-                        text-decoration-none me-3">
+                        text-decoration-none me-lg-3 py-0">
 
                         <span
                             class="d-block fs-18
@@ -126,8 +126,10 @@ $pageScripts = $pageScripts ?? [];
 
                         <ul
                             class="navbar-nav
-                            nav-underline me-auto
-                            mt-3 mt-lg-0">
+            nav-underline
+            mx-lg-auto
+            gap-2
+            mt-2 mt-lg-0">
 
                             <li class="nav-item">
                                 <a
@@ -135,21 +137,28 @@ $pageScripts = $pageScripts ?? [];
                                                 'admin.dashboard'
                                             ) ?>"
                                     class="nav-link
-                                    d-flex align-items-center
-                                    gap-1
-                                    <?= $dashboardActive
-                                        ? 'active text-primary fw-semibold'
-                                        : '' ?>"
+                    d-flex align-items-center
+                    gap-2
+                    py-1 py-lg-2
+                    <?= $dashboardActive
+                        ? 'active text-primary'
+                        : '' ?>"
                                     <?= $dashboardActive
                                         ? 'aria-current="page"'
                                         : '' ?>>
 
                                     <i
-                                        class="ri-dashboard-line"
+                                        class="ri-layout-grid-line
+                        fw-normal flex-shrink-0"
                                         aria-hidden="true">
                                     </i>
 
-                                    Dashboard
+                                    <span
+                                        class="<?= $dashboardActive
+                                                    ? 'fw-semibold'
+                                                    : '' ?>">
+                                        Dashboard
+                                    </span>
                                 </a>
                             </li>
 
@@ -160,21 +169,28 @@ $pageScripts = $pageScripts ?? [];
                                                     . '.photo-approvals'
                                             ) ?>"
                                     class="nav-link
-                                    d-flex align-items-center
-                                    gap-1
-                                    <?= $pendingApprovalActive
-                                        ? 'active text-primary fw-semibold'
-                                        : '' ?>"
+                    d-flex align-items-center
+                    gap-2
+                    py-1 py-lg-2
+                    <?= $pendingApprovalActive
+                        ? 'active text-primary'
+                        : '' ?>"
                                     <?= $pendingApprovalActive
                                         ? 'aria-current="page"'
                                         : '' ?>>
 
                                     <i
-                                        class="ri-image-line"
+                                        class="ri-image-line
+                        fw-normal flex-shrink-0"
                                         aria-hidden="true">
                                     </i>
 
-                                    Pending Approval
+                                    <span
+                                        class="<?= $pendingApprovalActive
+                                                    ? 'fw-semibold'
+                                                    : '' ?>">
+                                        Pending Approval
+                                    </span>
                                 </a>
                             </li>
 
@@ -185,21 +201,28 @@ $pageScripts = $pageScripts ?? [];
                                                     'admin.users.index'
                                                 ) ?>"
                                         class="nav-link
-                                        d-flex align-items-center
-                                        gap-1
-                                        <?= $administratorActive
-                                            ? 'active text-primary fw-semibold'
-                                            : '' ?>"
+                        d-flex align-items-center
+                        gap-2
+                        py-1 py-lg-2
+                        <?= $administratorActive
+                                    ? 'active text-primary'
+                                    : '' ?>"
                                         <?= $administratorActive
                                             ? 'aria-current="page"'
                                             : '' ?>>
 
                                         <i
-                                            class="ri-admin-line"
+                                            class="ri-user-settings-line
+                            fw-normal flex-shrink-0"
                                             aria-hidden="true">
                                         </i>
 
-                                        Administrators
+                                        <span
+                                            class="<?= $administratorActive
+                                                        ? 'fw-semibold'
+                                                        : '' ?>">
+                                            Administrators
+                                        </span>
                                     </a>
                                 </li>
                             <?php endif; ?>
@@ -207,17 +230,21 @@ $pageScripts = $pageScripts ?? [];
 
                         <div
                             class="d-flex flex-column
-                            flex-lg-row align-items-lg-center
-                            gap-2 mt-3 mt-lg-0">
+            flex-lg-row
+            align-items-lg-center
+            gap-2
+            mt-2 mt-lg-0">
 
                             <span
                                 class="text-muted
-                                text-truncate
-                                mw-100">
+                text-truncate
+                mw-100
+                py-1 py-lg-0">
 
                                 <i
                                     class="ri-user-line
-                                    align-middle me-1"
+                    fw-normal
+                    align-middle me-1"
                                     aria-hidden="true">
                                 </i>
 
@@ -240,12 +267,13 @@ $pageScripts = $pageScripts ?? [];
                                 <button
                                     type="submit"
                                     class="btn
-                                    btn-soft-secondary
-                                    btn-sm w-100">
+                    btn-soft-secondary
+                    btn-sm w-100">
 
                                     <i
                                         class="ri-logout-box-r-line
-                                        align-middle me-1"
+                        fw-normal
+                        align-middle me-1"
                                         aria-hidden="true">
                                     </i>
 

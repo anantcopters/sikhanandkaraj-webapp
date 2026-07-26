@@ -17,7 +17,7 @@ declare(strict_types=1);
 
         <div class="modal-content">
 
-            <div class="modal-header">
+            <div class="modal-header bg-info-subtle py-2">
 
                 <div>
                     <h5
@@ -42,7 +42,7 @@ declare(strict_types=1);
                 </button>
             </div>
 
-            <div class="modal-body">
+            <div class="modal-body pt-2">
 
                 <div
                     class="text-center py-5"
