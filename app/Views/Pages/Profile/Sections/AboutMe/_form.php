@@ -145,7 +145,7 @@ $aboutMeValue = (string) old(
                     fs-14 fw-semibold text-uppercase">
 
                 <span class="registration-submit__label">
-                    Save Details
+                    Save
                 </span>
 
                 <span

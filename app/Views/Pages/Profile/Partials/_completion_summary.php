@@ -150,12 +150,11 @@ if (!in_array(
 
                     <div>
                         <strong class="d-block">
-                            Current sections completed
+                            Profile details completed
                         </strong>
 
                         <span class="fs-13">
-                            You have completed all profile sections
-                            currently available.
+                            You have completed all guided profile sections.
                         </span>
                     </div>
                 </div>
