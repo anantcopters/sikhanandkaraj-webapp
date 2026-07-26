@@ -9,6 +9,7 @@ use App\Models\AdminMemberPhotoApprovalModel;
 use App\Services\Admin\MemberPhotoApprovalService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
+use CodeIgniter\HTTP\ResponseInterface;
 use DomainException;
 use Throwable;
 
@@ -50,24 +51,6 @@ final class MemberPhotoApprovalController extends BaseController
                 'pendingPhotoMembers'
             );
 
-        /** @var MemberPhotoApprovalService $service */
-        $service = service(
-            'memberPhotoApprovalService'
-        );
-
-        foreach ($members as &$member) {
-            $memberId = (int) (
-                $member['member_id'] ?? 0
-            );
-
-            $member['photos'] =
-                $service->getMemberPhotos(
-                    $memberId
-                );
-        }
-
-        unset($member);
-
         return view(
             'Admin/Members/PendingPhotoApproval',
             [
@@ -86,9 +69,72 @@ final class MemberPhotoApprovalController extends BaseController
                 'pageScripts' => [
                     'assets/js/pages/'
                         . 'admin-member-photo-approval.js',
+                    'assets/js/components/submit-loader.js',
                 ],
             ]
         );
+    }
+
+    /**
+     * Return member photos for the Bootstrap modal through AJAX.
+     */
+    public function memberPhotos(
+        int $memberId
+    ): ResponseInterface {
+        try {
+            /** @var MemberPhotoApprovalService $service */
+            $service = service(
+                'memberPhotoApprovalService'
+            );
+
+            $review = $service
+                ->getMemberPhotoReview($memberId);
+
+            return $this->response
+                ->setJSON([
+                    'status' => 'success',
+                    'data' => $review,
+                    'csrf' => [
+                        'name' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+        } catch (DomainException $exception) {
+            return $this->response
+                ->setStatusCode(404)
+                ->setJSON([
+                    'status' => 'error',
+                    'message' =>
+                    $exception->getMessage(),
+                    'csrf' => [
+                        'name' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Admin photo AJAX load failed for '
+                    . 'member {memberId}: {message}',
+                [
+                    'memberId' => $memberId,
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'status' => 'error',
+                    'message' =>
+                    'The member photos could not be loaded.',
+                    'csrf' => [
+                        'name' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+        }
     }
 
     /**
@@ -96,7 +142,7 @@ final class MemberPhotoApprovalController extends BaseController
      */
     public function approvePhoto(
         int $photoId
-    ): RedirectResponse {
+    ): RedirectResponse|ResponseInterface {
         $adminId = $this->authenticatedAdminId();
 
         try {
@@ -105,29 +151,25 @@ final class MemberPhotoApprovalController extends BaseController
                 'memberPhotoApprovalService'
             );
 
-            $service->approvePhoto(
+            $result = $service->approvePhoto(
                 $photoId,
                 $adminId
             );
 
-            return redirect()
-                ->back()
-                ->with('formAlert', [
-                    'type' => 'success',
-                    'title' => 'Photo approved',
-                    'message' =>
-                    'The member photo has been approved.',
-                ]);
+            return $this->actionResponse(
+                true,
+                'Photo approved',
+                'The member photo has been approved.',
+                $result
+            );
         } catch (DomainException $exception) {
-            return redirect()
-                ->back()
-                ->with('formAlert', [
-                    'type' => 'warning',
-                    'title' =>
-                    'Photo not approved',
-                    'message' =>
-                    $exception->getMessage(),
-                ]);
+            return $this->actionResponse(
+                false,
+                'Photo not approved',
+                $exception->getMessage(),
+                [],
+                409
+            );
         } catch (Throwable $exception) {
             log_message(
                 'error',
@@ -140,16 +182,14 @@ final class MemberPhotoApprovalController extends BaseController
                 ]
             );
 
-            return redirect()
-                ->back()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' =>
-                    'Photo not approved',
-                    'message' =>
-                    'The photo could not be approved. '
-                        . 'Please try again.',
-                ]);
+            return $this->actionResponse(
+                false,
+                'Photo not approved',
+                'The photo could not be approved. '
+                    . 'Please try again.',
+                [],
+                500
+            );
         }
     }
 
@@ -158,9 +198,13 @@ final class MemberPhotoApprovalController extends BaseController
      */
     public function rejectPhoto(
         int $photoId
-    ): RedirectResponse {
+    ): RedirectResponse|ResponseInterface {
         $adminId = $this->authenticatedAdminId();
 
+        /*
+         * The reason field remains supported in the service and DB,
+         * although the current interface no longer asks for it.
+         */
         $reason = trim(
             (string) $this->request
                 ->getPost('rejection_reason')
@@ -172,30 +216,26 @@ final class MemberPhotoApprovalController extends BaseController
                 'memberPhotoApprovalService'
             );
 
-            $service->rejectPhoto(
+            $result = $service->rejectPhoto(
                 $photoId,
                 $adminId,
                 $reason
             );
 
-            return redirect()
-                ->back()
-                ->with('formAlert', [
-                    'type' => 'success',
-                    'title' => 'Photo rejected',
-                    'message' =>
-                    'The member photo has been rejected.',
-                ]);
+            return $this->actionResponse(
+                true,
+                'Photo rejected',
+                'The member photo has been rejected.',
+                $result
+            );
         } catch (DomainException $exception) {
-            return redirect()
-                ->back()
-                ->with('formAlert', [
-                    'type' => 'warning',
-                    'title' =>
-                    'Photo not rejected',
-                    'message' =>
-                    $exception->getMessage(),
-                ]);
+            return $this->actionResponse(
+                false,
+                'Photo not rejected',
+                $exception->getMessage(),
+                [],
+                409
+            );
         } catch (Throwable $exception) {
             log_message(
                 'error',
@@ -208,25 +248,23 @@ final class MemberPhotoApprovalController extends BaseController
                 ]
             );
 
-            return redirect()
-                ->back()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' =>
-                    'Photo not rejected',
-                    'message' =>
-                    'The photo could not be rejected. '
-                        . 'Please try again.',
-                ]);
+            return $this->actionResponse(
+                false,
+                'Photo not rejected',
+                'The photo could not be rejected. '
+                    . 'Please try again.',
+                [],
+                500
+            );
         }
     }
 
     /**
-     * Quickly approve all pending photos for one member.
+     * Approve all pending photos for one member.
      */
     public function approveMemberPhotos(
         int $memberId
-    ): RedirectResponse {
+    ): RedirectResponse|ResponseInterface {
         $adminId = $this->authenticatedAdminId();
 
         try {
@@ -235,36 +273,33 @@ final class MemberPhotoApprovalController extends BaseController
                 'memberPhotoApprovalService'
             );
 
-            $approvedCount =
-                $service->approvePendingForMember(
+            $result = $service
+                ->approvePendingForMember(
                     $memberId,
                     $adminId
                 );
 
-            return redirect()
-                ->back()
-                ->with('formAlert', [
-                    'type' => 'success',
-                    'title' =>
-                    'Member photos approved',
-                    'message' =>
-                    $approvedCount
-                        . ' pending photo'
-                        . ($approvedCount === 1
-                            ? ''
-                            : 's')
-                        . ' approved.',
-                ]);
+            $approvedCount = (int) (
+                $result['approvedCount'] ?? 0
+            );
+
+            return $this->actionResponse(
+                true,
+                'Member photos approved',
+                $approvedCount
+                    . ' pending photo'
+                    . ($approvedCount === 1 ? '' : 's')
+                    . ' approved.',
+                $result
+            );
         } catch (DomainException $exception) {
-            return redirect()
-                ->back()
-                ->with('formAlert', [
-                    'type' => 'warning',
-                    'title' =>
-                    'Photos not approved',
-                    'message' =>
-                    $exception->getMessage(),
-                ]);
+            return $this->actionResponse(
+                false,
+                'Photos not approved',
+                $exception->getMessage(),
+                [],
+                409
+            );
         } catch (Throwable $exception) {
             log_message(
                 'error',
@@ -277,22 +312,59 @@ final class MemberPhotoApprovalController extends BaseController
                 ]
             );
 
-            return redirect()
-                ->back()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' =>
-                    'Photos not approved',
-                    'message' =>
-                    'The member photos could not be '
-                        . 'approved. Please try again.',
-                ]);
+            return $this->actionResponse(
+                false,
+                'Photos not approved',
+                'The member photos could not be approved. '
+                    . 'Please try again.',
+                [],
+                500
+            );
         }
     }
 
     /**
-     * Return the authenticated administrator ID.
+     * Return JSON for AJAX requests or preserve normal redirect flow.
+     *
+     * @param array<string, mixed> $data
      */
+    private function actionResponse(
+        bool $successful,
+        string $title,
+        string $message,
+        array $data = [],
+        int $statusCode = 200
+    ): RedirectResponse|ResponseInterface {
+        if ($this->request->isAJAX()) {
+            return $this->response
+                ->setStatusCode($statusCode)
+                ->setJSON([
+                    'status' =>
+                    $successful
+                        ? 'success'
+                        : 'error',
+                    'title' => $title,
+                    'message' => $message,
+                    'data' => $data,
+                    'csrf' => [
+                        'name' => csrf_token(),
+                        'hash' => csrf_hash(),
+                    ],
+                ]);
+        }
+
+        return redirect()
+            ->back()
+            ->with('formAlert', [
+                'type' =>
+                $successful
+                    ? 'success'
+                    : 'danger',
+                'title' => $title,
+                'message' => $message,
+            ]);
+    }
+
     private function authenticatedAdminId(): int
     {
         $adminId = session('admin_user_id');

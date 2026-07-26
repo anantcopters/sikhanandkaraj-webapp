@@ -3,11 +3,9 @@
 declare(strict_types=1);
 
 /**
- * Pending member photo approval list.
- *
  * @var list<array<string, mixed>> $members
- * @var \CodeIgniter\Pager\Pager  $pager
- * @var string                    $search
+ * @var \CodeIgniter\Pager\Pager $pager
+ * @var string $search
  * @var array<string, string>|null $formAlert
  */
 
@@ -43,7 +41,6 @@ $this->section('content');
                         Review and moderate member profile photos.
                     </p>
                 </div>
-
             </div>
         </div>
     </div>
@@ -67,7 +64,7 @@ $this->section('content');
 
                 <div class="row g-2 align-items-end">
 
-                    <div class="col-12 col-md-6 col-lg-4">
+                    <div class="col-12 col-md-6 col-xl-4">
 
                         <label
                             for="memberSearch"
@@ -106,6 +103,11 @@ $this->section('content');
                             type="submit"
                             class="btn btn-primary w-100">
 
+                            <i
+                                class="ri-search-line me-1"
+                                aria-hidden="true">
+                            </i>
+
                             Search
                         </button>
                     </div>
@@ -114,14 +116,15 @@ $this->section('content');
 
                         <a
                             href="<?= route_to(
-                                        'admin.members.photo-approvals'
+                                        'admin.members'
+                                            . '.photo-approvals'
                                     ) ?>"
-                            class="btn btn-soft-secondary w-100">
+                            class="btn
+                                btn-soft-secondary w-100">
 
                             Reset
                         </a>
                     </div>
-
                 </div>
             </form>
         </div>
@@ -131,8 +134,8 @@ $this->section('content');
             <div class="table-responsive">
 
                 <table
-                    class="table table-hover table-nowrap
-                        align-middle mb-0">
+                    class="table table-hover
+                        table-nowrap align-middle mb-0">
 
                     <thead class="table-light">
                         <tr>
@@ -156,7 +159,8 @@ $this->section('content');
                                     <div class="text-center py-5">
 
                                         <div
-                                            class="avatar-md mx-auto mb-3">
+                                            class="avatar-md
+                                                mx-auto mb-3">
 
                                             <span
                                                 class="avatar-title
@@ -190,41 +194,28 @@ $this->section('content');
                                 $member['member_id'] ?? 0
                             );
 
-                            $photos = isset($member['photos'])
-                                && is_array($member['photos'])
-                                ? $member['photos']
-                                : [];
-
-                            $modalId =
-                                'memberPhotoModal' . $memberId;
-
                             $age = is_numeric(
                                 $member['age'] ?? null
                             )
                                 ? (int) $member['age']
                                 : null;
 
-                            $gender = trim(
-                                (string) (
-                                    $member['gender'] ?? ''
-                                )
-                            );
-
-                            $location = trim(
-                                (string) (
-                                    $member['location'] ?? ''
-                                )
-                            );
-
                             $createdAt = trim(
                                 (string) (
-                                    $member['profile_created_at']
-                                    ?? ''
+                                    $member['profile_created_at'] ?? ''
                                 )
+                            );
+
+                            $pendingCount = (int) (
+                                $member['pending_photo_count'] ?? 0
                             );
                             ?>
 
-                            <tr>
+                            <tr
+                                data-member-row="<?= esc(
+                                                        (string) $memberId,
+                                                        'attr'
+                                                    ) ?>">
 
                                 <td>
                                     <span class="fw-semibold">
@@ -254,6 +245,15 @@ $this->section('content');
                                 </td>
 
                                 <td>
+                                    <?php
+                                    $gender = trim(
+                                        (string) (
+                                            $member['gender']
+                                            ?? ''
+                                        )
+                                    );
+                                    ?>
+
                                     <?= $gender !== ''
                                         ? esc(
                                             ucwords(
@@ -264,6 +264,15 @@ $this->section('content');
                                 </td>
 
                                 <td>
+                                    <?php
+                                    $location = trim(
+                                        (string) (
+                                            $member['location']
+                                            ?? ''
+                                        )
+                                    );
+                                    ?>
+
                                     <?= $location !== ''
                                         ? esc($location)
                                         : '—' ?>
@@ -284,13 +293,13 @@ $this->section('content');
                                     <span
                                         class="badge
                                             bg-warning-subtle
-                                            text-warning p-2">
+                                            text-warning p-2"
+                                        data-pending-count>
 
-                                        <?= esc(
-                                            (string) (
-                                                $member['pending_photo_count'] ?? 0
-                                            )
-                                        ) ?>
+                                        Pending
+                                        (<?= esc(
+                                                (string) $pendingCount
+                                            ) ?>)
                                     </span>
                                 </td>
 
@@ -305,19 +314,28 @@ $this->section('content');
                                             class="btn
                                                 btn-soft-secondary
                                                 btn-sm"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#<?= esc(
-                                                                    $modalId,
+                                            data-photo-review
+                                            data-member-id="<?= esc(
+                                                                (string) $memberId,
+                                                                'attr'
+                                                            ) ?>"
+                                            data-member-name="<?= esc(
+                                                                    (string) (
+                                                                        $member['full_name'] ?? ''
+                                                                    ),
                                                                     'attr'
                                                                 ) ?>"
+                                            data-photo-url="<?= esc(
+                                                                route_to(
+                                                                    'admin.members'
+                                                                        . '.photo-approvals'
+                                                                        . '.photos',
+                                                                    $memberId
+                                                                ),
+                                                                'attr'
+                                                            ) ?>"
                                             title="View photos"
-                                            aria-label="View photos for <?= esc(
-                                                                            (string) (
-                                                                                $member['full_name']
-                                                                                ?? ''
-                                                                            ),
-                                                                            'attr'
-                                                                        ) ?>">
+                                            aria-label="View member photos">
 
                                             <i
                                                 class="ri-eye-line"
@@ -332,8 +350,15 @@ $this->section('content');
                                                             . '.approve-all',
                                                         $memberId
                                                     ) ?>"
-                                            data-confirm-form
-                                            data-confirm-message="Approve all pending photos for this member?">
+                                            class="mb-0"
+                                            data-moderation-form
+                                            data-action-type="approve-all"
+                                            data-member-id="<?= esc(
+                                                                (string) $memberId,
+                                                                'attr'
+                                                            ) ?>"
+                                            data-confirm-title="Approve all photos?"
+                                            data-confirm-message="Approve every pending photo for this member?">
 
                                             <?= csrf_field() ?>
 
@@ -341,32 +366,38 @@ $this->section('content');
                                                 type="submit"
                                                 class="btn
                                                     btn-soft-success
-                                                    btn-sm"
+                                                    btn-sm
+                                                    registration-form__submit"
                                                 title="Approve all pending photos"
                                                 aria-label="Approve all pending photos">
 
-                                                <i
-                                                    class="ri-checkbox-circle-line"
+                                                <span
+                                                    class="registration-submit__label">
+
+                                                    <i
+                                                        class="ri-checkbox-circle-line"
+                                                        aria-hidden="true">
+                                                    </i>
+                                                </span>
+
+                                                <span
+                                                    class="registration-submit__loading
+                                                        d-none"
                                                     aria-hidden="true">
-                                                </i>
+
+                                                    <span
+                                                        class="spinner-border
+                                                            spinner-border-sm"
+                                                        role="status">
+                                                    </span>
+                                                </span>
                                             </button>
                                         </form>
-
                                     </div>
                                 </td>
                             </tr>
 
-                            <?= view(
-                                'Admin/Members/_PhotoApprovalModal',
-                                [
-                                    'member' => $member,
-                                    'photos' => $photos,
-                                    'modalId' => $modalId,
-                                ]
-                            ) ?>
-
                         <?php endforeach; ?>
-
                     </tbody>
                 </table>
             </div>
@@ -375,15 +406,17 @@ $this->section('content');
         <?php if ($members !== []): ?>
             <div
                 class="card-footer
-                    d-flex flex-column flex-sm-row
-                    align-items-sm-center
+                    d-flex flex-column
+                    flex-sm-row align-items-sm-center
                     justify-content-between gap-3">
 
                 <span class="text-muted fs-13">
-                    Showing 20 members per page
+                    20 members per page
                 </span>
 
                 <div>
+                    <?php $pager->only(['search']); ?>
+
                     <?= $pager->links(
                         'pendingPhotoMembers',
                         'default_full'
@@ -391,8 +424,29 @@ $this->section('content');
                 </div>
             </div>
         <?php endif; ?>
-
     </div>
 </div>
 
+<?= view(
+    'Admin/Members/_PhotoReviewModal'
+) ?>
+<script>
+    window.csrfTokenName =
+        <?= json_encode(
+            csrf_token(),
+            JSON_HEX_TAG
+                | JSON_HEX_AMP
+                | JSON_HEX_APOS
+                | JSON_HEX_QUOT
+        ) ?>;
+
+    window.csrfTokenHash =
+        <?= json_encode(
+            csrf_hash(),
+            JSON_HEX_TAG
+                | JSON_HEX_AMP
+                | JSON_HEX_APOS
+                | JSON_HEX_QUOT
+        ) ?>;
+</script>
 <?php $this->endSection(); ?>

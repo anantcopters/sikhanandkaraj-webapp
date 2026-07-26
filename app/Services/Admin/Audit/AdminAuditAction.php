@@ -39,5 +39,14 @@ final class AdminAuditAction
     public const ACCESS_DENIED =
     'ADMIN_ACCESS_DENIED';
 
+    public const MEMBER_PHOTO_APPROVED =
+    'MEMBER_PHOTO_APPROVED';
+
+    public const MEMBER_PHOTO_REJECTED =
+    'MEMBER_PHOTO_REJECTED';
+
+    public const MEMBER_PHOTOS_BULK_APPROVED =
+    'MEMBER_PHOTOS_BULK_APPROVED';
+
     private function __construct() {}
 }

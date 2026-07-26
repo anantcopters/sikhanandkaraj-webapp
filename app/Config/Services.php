@@ -665,10 +665,21 @@ class Services extends BaseService
             new MemberPhotoModel(
                 $database
             ),
+
+            /*
+         * Retain the exact existing CloudFront service factory name.
+         * The latest implementation currently uses CloudFrontService().
+         */
             static::CloudFrontService(
                 false
             ),
+
             $mediaConfig,
+
+            static::adminAuditService(
+                false
+            ),
+
             $database
         );
     }

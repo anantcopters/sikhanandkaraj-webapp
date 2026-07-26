@@ -36,3 +36,26 @@ CREATE INDEX IF NOT EXISTS idx_users_full_name_lower_search
     WHERE deleted_at IS NULL;
 
 COMMIT;
+
+BEGIN;
+
+CREATE INDEX IF NOT EXISTS
+    idx_member_photos_pending_member_created
+ON member_photos (
+    member_id,
+    created_at ASC
+)
+WHERE status = 'PENDING'
+  AND deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS
+    idx_users_profile_ref_active
+ON users (profile_ref_number)
+WHERE deleted_at IS NULL;
+
+CREATE INDEX IF NOT EXISTS
+    idx_users_full_name_lower_active
+ON users (LOWER(full_name))
+WHERE deleted_at IS NULL;
+
+COMMIT;

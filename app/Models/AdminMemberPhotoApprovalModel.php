@@ -8,9 +8,6 @@ use CodeIgniter\Model;
 
 /**
  * Provides administrator-facing member photo moderation queries.
- *
- * This model is intentionally separate from MemberPhotoModel because
- * the existing model is primarily ownership-scoped for member actions.
  */
 final class AdminMemberPhotoApprovalModel extends Model
 {
@@ -25,14 +22,14 @@ final class AdminMemberPhotoApprovalModel extends Model
     protected $skipValidation = true;
 
     /**
-     * Apply the pending-photo member listing query.
-     *
-     * The caller may invoke paginate() after this method.
+     * Apply the member list query for members having pending photos.
      */
     public function pendingMembers(
         string $search
     ): self {
-        $search = trim($search);
+        $search = mb_strtolower(
+            trim($search)
+        );
 
         $this->select(
             "
@@ -55,11 +52,11 @@ final class AdminMemberPhotoApprovalModel extends Model
                 NULLIF(master_states.name, '')
             ) AS location,
 
-            COUNT(member_photos.id) AS pending_photo_count,
+            COUNT(member_photos.id)::INTEGER
+                AS pending_photo_count,
 
-            MIN(
-                member_photos.created_at
-            ) AS oldest_pending_photo_at
+            MIN(member_photos.created_at)
+                AS oldest_pending_photo_at
             ",
             false
         );
@@ -75,6 +72,9 @@ final class AdminMemberPhotoApprovalModel extends Model
             false
         );
 
+        /*
+         * The latest schema uses user_id in member_basic_details.
+         */
         $this->join(
             'member_basic_details',
             'member_basic_details.user_id = users.id',
@@ -83,13 +83,15 @@ final class AdminMemberPhotoApprovalModel extends Model
 
         $this->join(
             'master_cities',
-            'master_cities.id = member_basic_details.city_id',
+            'master_cities.id = '
+                . 'member_basic_details.city_id',
             'left'
         );
 
         $this->join(
             'master_states',
-            'master_states.id = member_basic_details.state_id',
+            'master_states.id = '
+                . 'member_basic_details.state_id',
             'left'
         );
 
@@ -99,22 +101,21 @@ final class AdminMemberPhotoApprovalModel extends Model
         );
 
         if ($search !== '') {
-            $this->groupStart()
-                ->like(
-                    'LOWER(users.full_name)',
-                    mb_strtolower($search),
-                    'both',
-                    null,
-                    true
+            $escapedSearch = $this->db
+                ->escapeLikeString($search);
+
+            $this->where(
+                "
+                (
+                    LOWER(users.full_name)
+                        LIKE '%{$escapedSearch}%'
+                    OR LOWER(users.profile_ref_number)
+                        LIKE '%{$escapedSearch}%'
                 )
-                ->orLike(
-                    'LOWER(users.profile_ref_number)',
-                    mb_strtolower($search),
-                    'both',
-                    null,
-                    true
-                )
-                ->groupEnd();
+                ",
+                null,
+                false
+            );
         }
 
         $this->groupBy([
@@ -143,10 +144,72 @@ final class AdminMemberPhotoApprovalModel extends Model
     }
 
     /**
-     * Return active photos for a member.
+     * Return basic member information used in the AJAX modal.
      *
-     * Approved photos are included for context, but only PENDING
-     * photos should expose moderation buttons in the view.
+     * @return array<string, mixed>|null
+     */
+    public function findMemberSummary(
+        int $memberId
+    ): ?array {
+        $member = $this->db
+            ->table('users')
+            ->select(
+                "
+                users.id AS member_id,
+                users.profile_ref_number,
+                users.full_name,
+                users.gender,
+
+                EXTRACT(
+                    YEAR FROM AGE(
+                        CURRENT_DATE,
+                        member_basic_details.date_of_birth
+                    )
+                )::INTEGER AS age,
+
+                CONCAT_WS(
+                    ', ',
+                    NULLIF(master_cities.name, ''),
+                    NULLIF(master_states.name, '')
+                ) AS location
+                ",
+                false
+            )
+            ->join(
+                'member_basic_details',
+                'member_basic_details.user_id = users.id',
+                'left'
+            )
+            ->join(
+                'master_cities',
+                'master_cities.id = '
+                    . 'member_basic_details.city_id',
+                'left'
+            )
+            ->join(
+                'master_states',
+                'master_states.id = '
+                    . 'member_basic_details.state_id',
+                'left'
+            )
+            ->where(
+                'users.id',
+                $memberId
+            )
+            ->where(
+                'users.deleted_at',
+                null
+            )
+            ->get()
+            ->getRowArray();
+
+        return is_array($member)
+            ? $member
+            : null;
+    }
+
+    /**
+     * Return active member photos for moderation.
      *
      * @return list<array<string, mixed>>
      */
@@ -158,9 +221,10 @@ final class AdminMemberPhotoApprovalModel extends Model
             ->select([
                 'id',
                 'member_id',
+                'uuid',
                 'medium_object_key',
-                'thumbnail_object_key',
                 'original_object_key',
+                'thumbnail_object_key',
                 'status',
                 'visibility',
                 'is_primary',
@@ -179,6 +243,17 @@ final class AdminMemberPhotoApprovalModel extends Model
                 'DELETED'
             )
             ->orderBy(
+                "
+                CASE
+                    WHEN status = 'PENDING' THEN 0
+                    WHEN status = 'APPROVED' THEN 1
+                    ELSE 2
+                END
+                ",
+                '',
+                false
+            )
+            ->orderBy(
                 'is_primary',
                 'DESC'
             )
@@ -191,7 +266,7 @@ final class AdminMemberPhotoApprovalModel extends Model
     }
 
     /**
-     * Find one pending photo without trusting a member-supplied ID.
+     * Find a pending photo.
      *
      * @return array<string, mixed>|null
      */
@@ -200,6 +275,12 @@ final class AdminMemberPhotoApprovalModel extends Model
     ): ?array {
         $photo = $this->db
             ->table('member_photos')
+            ->select([
+                'id',
+                'member_id',
+                'status',
+                'is_primary',
+            ])
             ->where(
                 'id',
                 $photoId
@@ -221,13 +302,16 @@ final class AdminMemberPhotoApprovalModel extends Model
     }
 
     /**
-     * Check whether a member still has pending photos.
+     * Return pending photo IDs for a member.
+     *
+     * @return list<int>
      */
-    public function memberHasPendingPhotos(
+    public function pendingPhotoIdsForMember(
         int $memberId
-    ): bool {
-        return $this->db
+    ): array {
+        $rows = $this->db
             ->table('member_photos')
+            ->select('id')
             ->where(
                 'member_id',
                 $memberId
@@ -240,6 +324,19 @@ final class AdminMemberPhotoApprovalModel extends Model
                 'deleted_at',
                 null
             )
-            ->countAllResults() > 0;
+            ->orderBy(
+                'id',
+                'ASC'
+            )
+            ->get()
+            ->getResultArray();
+
+        return array_values(
+            array_map(
+                static fn(array $row): int =>
+                (int) ($row['id'] ?? 0),
+                $rows
+            )
+        );
     }
 }

@@ -450,11 +450,11 @@ $routes->group('admin', [
     });
 
     /*
-    * Member photo approval.
-    *
-    * Both ADMIN and SUPER_ADMIN may access these routes because
-    * they are inside adminAuth but outside the superAdmin group.
-    */
+ * Member photo moderation.
+ *
+ * Both ADMIN and SUPER_ADMIN may access these routes because this
+ * group is protected by adminAuth but is outside the superAdmin group.
+ */
     $routes->group(
         'members/photo-approvals',
         static function (
@@ -466,6 +466,20 @@ $routes->group('admin', [
                 [
                     'as' =>
                     'admin.members.photo-approvals',
+                ]
+            );
+
+            /*
+         * AJAX endpoint. Signed CloudFront URLs are generated only
+         * when an administrator opens the member photo modal.
+         */
+            $routes->get(
+                'members/(:num)/photos',
+                'MemberPhotoApprovalController'
+                    . '::memberPhotos/$1',
+                [
+                    'as' =>
+                    'admin.members.photo-approvals.photos',
                 ]
             );
 

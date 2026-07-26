@@ -52,38 +52,179 @@ $pageScripts = $pageScripts ?? [];
     <?php if (
         session('admin_is_authenticated') === true
     ): ?>
-        <header id="page-topbar" style="position: inherit;">
-            <div class="layout-width">
-                <div class="navbar-header px-4">
-                    <div class="w-100 public-navbar__container mx-0 px-0">
+        <?php
+        $currentPath = trim(
+            service('uri')->getPath(),
+            '/'
+        );
 
-                        <div class="d-flex align-items-center">
-                            <a
-                                href="<?= route_to(
-                                            'admin.dashboard'
-                                        ) ?>"
-                                class="text-decoration-none">
+        $dashboardActive =
+            $currentPath === 'admin/dashboard';
 
-                                <span class="d-block fs-18
-                                fw-semibold text-primary">
-                                    Sikh Anand Karaj
-                                </span>
+        $pendingApprovalActive =
+            str_starts_with(
+                $currentPath,
+                'admin/members/photo-approvals'
+            );
 
-                                <span
-                                    class="d-block fs-11 text-muted
-                                text-uppercase">
-                                    Administration
-                                </span>
-                            </a>
-                        </div>
+        $administratorActive =
+            str_starts_with(
+                $currentPath,
+                'admin/users'
+            );
 
-                        <div class="d-flex align-items-center gap-2">
+        $isSuperAdmin =
+            session('admin_role')
+            === \App\Models\AdminUserModel::ROLE_SUPER_ADMIN;
+        ?>
+
+        <header
+            id="page-topbar"
+            class="position-static border-bottom">
+
+            <nav
+                class="navbar navbar-expand-lg bg-white py-2"
+                aria-label="Administrator navigation">
+
+                <div class="container-fluid px-3 px-lg-4">
+
+                    <a
+                        href="<?= route_to(
+                                    'admin.dashboard'
+                                ) ?>"
+                        class="navbar-brand
+                        text-decoration-none me-3">
+
+                        <span
+                            class="d-block fs-18
+                            fw-semibold text-primary">
+                            Sikh Anand Karaj
+                        </span>
+
+                        <span
+                            class="d-block fs-11
+                            text-muted text-uppercase">
+                            Administration
+                        </span>
+                    </a>
+
+                    <button
+                        type="button"
+                        class="navbar-toggler"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#adminNavbar"
+                        aria-controls="adminNavbar"
+                        aria-expanded="false"
+                        aria-label="Toggle administrator navigation">
+
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    <div
+                        class="collapse navbar-collapse"
+                        id="adminNavbar">
+
+                        <ul
+                            class="navbar-nav
+                            nav-underline me-auto
+                            mt-3 mt-lg-0">
+
+                            <li class="nav-item">
+                                <a
+                                    href="<?= route_to(
+                                                'admin.dashboard'
+                                            ) ?>"
+                                    class="nav-link
+                                    d-flex align-items-center
+                                    gap-1
+                                    <?= $dashboardActive
+                                        ? 'active text-primary fw-semibold'
+                                        : '' ?>"
+                                    <?= $dashboardActive
+                                        ? 'aria-current="page"'
+                                        : '' ?>>
+
+                                    <i
+                                        class="ri-dashboard-line"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    Dashboard
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a
+                                    href="<?= route_to(
+                                                'admin.members'
+                                                    . '.photo-approvals'
+                                            ) ?>"
+                                    class="nav-link
+                                    d-flex align-items-center
+                                    gap-1
+                                    <?= $pendingApprovalActive
+                                        ? 'active text-primary fw-semibold'
+                                        : '' ?>"
+                                    <?= $pendingApprovalActive
+                                        ? 'aria-current="page"'
+                                        : '' ?>>
+
+                                    <i
+                                        class="ri-image-line"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    Pending Approval
+                                </a>
+                            </li>
+
+                            <?php if ($isSuperAdmin): ?>
+                                <li class="nav-item">
+                                    <a
+                                        href="<?= route_to(
+                                                    'admin.users.index'
+                                                ) ?>"
+                                        class="nav-link
+                                        d-flex align-items-center
+                                        gap-1
+                                        <?= $administratorActive
+                                            ? 'active text-primary fw-semibold'
+                                            : '' ?>"
+                                        <?= $administratorActive
+                                            ? 'aria-current="page"'
+                                            : '' ?>>
+
+                                        <i
+                                            class="ri-admin-line"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        Administrators
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                        </ul>
+
+                        <div
+                            class="d-flex flex-column
+                            flex-lg-row align-items-lg-center
+                            gap-2 mt-3 mt-lg-0">
 
                             <span
-                                class="d-none d-md-inline-block
-                            text-muted">
+                                class="text-muted
+                                text-truncate
+                                mw-100">
+
+                                <i
+                                    class="ri-user-line
+                                    align-middle me-1"
+                                    aria-hidden="true">
+                                </i>
+
                                 <?= esc(
-                                    session('admin_user_name')
+                                    (string) session(
+                                        'admin_user_name'
+                                    )
                                 ) ?>
                             </span>
 
@@ -91,112 +232,31 @@ $pageScripts = $pageScripts ?? [];
                                 action="<?= route_to(
                                             'admin.logout'
                                         ) ?>"
-                                method="post">
+                                method="post"
+                                class="mb-0">
+
                                 <?= csrf_field() ?>
 
                                 <button
                                     type="submit"
-                                    class="btn btn-soft-secondary btn-sm">
+                                    class="btn
+                                    btn-soft-secondary
+                                    btn-sm w-100">
+
                                     <i
                                         class="ri-logout-box-r-line
-                                    align-middle me-1">
-                                    </i>
-                                    Logout
-                                </button>
-                            </form>
-
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </header>
-        <nav
-            class="navbar navbar-expand-md
-        bg-light border-bottom"
-            aria-label="Administrator navigation">
-
-            <div class="container-fluid px-3 px-lg-4">
-
-                <button
-                    class="navbar-toggler"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#adminNavigation"
-                    aria-controls="adminNavigation"
-                    aria-expanded="false"
-                    aria-label="Toggle administrator navigation">
-
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-
-                <div
-                    class="collapse navbar-collapse"
-                    id="adminNavigation">
-
-                    <ul class="navbar-nav gap-md-1">
-
-                        <li class="nav-item">
-                            <a
-                                href="<?= route_to(
-                                            'admin.dashboard'
-                                        ) ?>"
-                                class="nav-link
-                            d-flex align-items-center gap-1 text-black fs-14">
-
-                                <i
-                                    class="ri-dashboard-line"
-                                    aria-hidden="true">
-                                </i>
-
-                                Dashboard
-                            </a>
-                        </li>
-
-                        <li class="nav-item">
-                            <a
-                                href="<?= route_to(
-                                            'admin.members.photo-approvals'
-                                        ) ?>"
-                                class="nav-link
-                            d-flex align-items-center gap-1 text-black fs-14">
-
-                                <i
-                                    class="ri-image-line"
-                                    aria-hidden="true">
-                                </i>
-
-                                Pending Approval
-                            </a>
-                        </li>
-
-                        <?php if (
-                            session('admin_role')
-                            === \App\Models\AdminUserModel::ROLE_SUPER_ADMIN
-                        ): ?>
-
-                            <li class="nav-item">
-                                <a
-                                    href="<?= route_to(
-                                                'admin.users.index'
-                                            ) ?>"
-                                    class="nav-link
-                                d-flex align-items-center gap-1 text-black fs-14">
-
-                                    <i
-                                        class="ri-admin-line"
+                                        align-middle me-1"
                                         aria-hidden="true">
                                     </i>
 
-                                    Administrators
-                                </a>
-                            </li>
-
-                        <?php endif; ?>
-
-                    </ul>
+                                    Logout
+                                </button>
+                            </form>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </nav>
+            </nav>
+        </header>
     <?php endif; ?>
 
     <?php $isAuthenticated =
@@ -211,6 +271,7 @@ $pageScripts = $pageScripts ?? [];
         <?= $this->renderSection('content') ?>
     </main>
     <?= view('Components/FeedbackModal') ?>
+    <?= view('Components/ConfirmationModal') ?>
     <script
         src="<?= base_url(
                     'assets/js/bootstrap.bundle.min.js'
