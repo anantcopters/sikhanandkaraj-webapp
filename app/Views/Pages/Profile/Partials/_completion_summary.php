@@ -122,17 +122,17 @@ if (!in_array(
 
             <?php if ($nextSection !== null): ?>
                 <a
-                    href="<?= url_to(
-                                (string) $nextSection['route']
+                    href="<?= esc(
+                                url_to(
+                                    (string) $nextSection['route']
+                                ) . '?journey=1',
+                                'attr'
                             ) ?>"
                     class="btn btn-primary
             d-inline-flex align-items-center
             justify-content-center gap-1">
 
-                    Continue with
-                    <?= esc(
-                        (string) $nextSection['title']
-                    ) ?>
+                    Complete Profile
 
                     <i
                         class="ri-arrow-right-line"

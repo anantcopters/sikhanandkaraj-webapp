@@ -216,16 +216,22 @@ $cityHasError = isset(
 $countryHasError = isset(
     $errors['country_id']
 );
+
+$isJourney = ($isProfileJourney ?? false) === true;
+
+$formAction = url_to(
+    'web.profile.basic-details.update'
+);
+
+if ($isJourney) {
+    $formAction .= '?journey=1';
+}
+
 ?>
-
-
-
 
 <form
     method="post"
-    action="<?= url_to(
-                'web.profile.basic-details.update'
-            ) ?>"
+    action="<?= esc($formAction, 'attr') ?>"
     id="basicDetailsForm"
     data-validate
     novalidate>
@@ -844,9 +850,10 @@ $countryHasError = isset(
                 class="btn registration-form__submit
                                 fs-14 fw-semibold text-uppercase"
                 id="saveBasicDetailsButton">
-                <span
-                    class="registration-submit__label">
-                    Save Details
+                <span class="registration-submit__label">
+                    <?= $isJourney
+                        ? 'Save and Continue'
+                        : 'Save' ?>
                 </span>
 
                 <span

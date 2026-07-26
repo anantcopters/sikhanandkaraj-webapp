@@ -108,6 +108,8 @@ $this->section('content');
                                 'aboutMe' => $aboutMe,
                                 'validationErrors' =>
                                 $validationErrors,
+                                'isProfileJourney' =>
+                                $isProfileJourney ?? false,
                             ]
                         ) ?>
 

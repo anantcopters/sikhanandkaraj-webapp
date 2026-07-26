@@ -77,6 +77,9 @@ $this->section('content');
 
                                 'validationErrors' =>
                                 $validationErrors ?? [],
+
+                                'isProfileJourney' =>
+                                $isProfileJourney ?? false,
                             ]
                         ) ?>
 

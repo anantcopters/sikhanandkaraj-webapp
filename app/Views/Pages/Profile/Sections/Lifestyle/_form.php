@@ -36,10 +36,20 @@ if (is_array($submittedIds)) {
         $submittedIds
     );
 }
+
+$isJourney = ($isProfileJourney ?? false) === true;
+
+$formAction = url_to(
+    'web.profile.lifestyle.update'
+);
+
+if ($isJourney) {
+    $formAction .= '?journey=1';
+}
 ?>
 
 <form
-    action="<?= url_to('web.profile.lifestyle.update') ?>"
+    action="<?= esc($formAction, 'attr') ?>"
     method="post"
     id="lifestyleForm"
     novalidate>
@@ -267,7 +277,9 @@ if (is_array($submittedIds)) {
                 fs-14 fw-semibold text-uppercase">
 
                     <span class="registration-submit__label">
-                        Save Details
+                        <?= $isJourney
+                            ? 'Save and Continue'
+                            : 'Save' ?>
                     </span>
 
                     <span

@@ -68,6 +68,9 @@ final class ProfileController extends BaseController
                 'formAlert' =>
                 session('formAlert'),
 
+                'isProfileJourney' =>
+                $this->isProfileJourney(),
+
                 'pageScripts' => [
                     'assets/js/pages/profile-basic-details.js',
                 ],
@@ -217,21 +220,10 @@ final class ProfileController extends BaseController
         ) === 100;
 
         /*
-        * Determine where the Continue Profile button should send
-        * the user.
-        *
-        * NULL means all currently implemented sections are complete.
+        * Profile photo is deliberately excluded from the guided profile
+        * journey. It remains available through its independent screen.
         */
-        $hasUploadedProfilePhoto = (
-            $photoSummary['hasUploadedPhoto'] ?? false
-        ) === true;
-
-        if (!$hasUploadedProfilePhoto) {
-            $nextProfileSection = [
-                'title' => 'Profile Photo',
-                'route' => 'web.profile.photos',
-            ];
-        } elseif (!$basicDetailsComplete) {
+        if (!$basicDetailsComplete) {
             $nextProfileSection = [
                 'title' => 'Basic Details',
                 'route' => 'web.profile.basic-details',
@@ -439,7 +431,11 @@ final class ProfileController extends BaseController
 
         if (!$validation->run($input)) {
             return redirect()
-                ->to(route_to('web.profile.basic-details'))
+                ->to(
+                    $this->profileSectionUrl(
+                        'web.profile.basic-details'
+                    )
+                )
                 ->withInput()
                 ->with(
                     'validationErrors',
@@ -466,8 +462,14 @@ final class ProfileController extends BaseController
                 $validatedData['full_name']
             );
 
+            $redirectUrl = $this->isProfileJourney()
+                ? $this->profileSectionUrl(
+                    'web.profile.education-profession'
+                )
+                : route_to('web.profile.edit') . '#basic-details';
+
             return redirect()
-                ->to(route_to('web.profile.edit') . '#basic-details')
+                ->to($redirectUrl)
                 ->with('formAlert', [
                     'type' => 'success',
                     'title' => 'Basic details updated',
@@ -483,7 +485,11 @@ final class ProfileController extends BaseController
             ];
 
             $redirect = redirect()
-                ->to(route_to('web.profile.basic-details'))
+                ->to(
+                    $this->profileSectionUrl(
+                        'web.profile.basic-details'
+                    )
+                )
                 ->withInput();
 
             if (in_array(
@@ -519,7 +525,11 @@ final class ProfileController extends BaseController
             );
 
             return redirect()
-                ->to(route_to('web.profile.basic-details'))
+                ->to(
+                    $this->profileSectionUrl(
+                        'web.profile.basic-details'
+                    )
+                )
                 ->withInput()
                 ->with('formAlert', [
                     'type' => 'danger',
@@ -558,6 +568,7 @@ final class ProfileController extends BaseController
                 'validationErrors' =>
                 session('validationErrors') ?? [],
                 'formAlert' => session('formAlert'),
+                'isProfileJourney' => $this->isProfileJourney(),
                 'pageScripts' => [
                     'assets/js/pages/profile-lifestyle.js',
                 ],
@@ -582,7 +593,12 @@ final class ProfileController extends BaseController
 
         if (!$validation->run($input)) {
             return redirect()
-                ->to(route_to('web.profile.lifestyle'))
+                ->to(
+                    $this->profileSectionUrl(
+                        'web.profile.lifestyle'
+                    )
+                )
+
                 ->withInput()
                 ->with(
                     'validationErrors',
@@ -599,11 +615,16 @@ final class ProfileController extends BaseController
                 $input['lifestyle_option_ids']
             );
 
-            return redirect()
-                ->to(
-                    route_to('web.profile.edit')
-                        . '#lifestyle'
+            $redirectUrl = $this->isProfileJourney()
+                ? $this->profileSectionUrl(
+                    'web.profile.about-me'
                 )
+                : route_to('web.profile.edit')
+                . '#lifestyle';
+
+
+            return redirect()
+                ->to($redirectUrl)
                 ->with('formAlert', [
                     'type' => 'success',
                     'title' => 'Lifestyle updated',
@@ -613,7 +634,11 @@ final class ProfileController extends BaseController
                 ]);
         } catch (DomainException $exception) {
             return redirect()
-                ->to(route_to('web.profile.lifestyle'))
+                ->to(
+                    $this->profileSectionUrl(
+                        'web.profile.lifestyle'
+                    )
+                )
                 ->withInput()
                 ->with('formAlert', [
                     'type' => 'danger',
@@ -632,7 +657,11 @@ final class ProfileController extends BaseController
             );
 
             return redirect()
-                ->to(route_to('web.profile.lifestyle'))
+                ->to(
+                    $this->profileSectionUrl(
+                        'web.profile.lifestyle'
+                    )
+                )
                 ->withInput()
                 ->with('formAlert', [
                     'type' => 'danger',
@@ -661,6 +690,30 @@ final class ProfileController extends BaseController
                 ? array_values($submitted)
                 : [],
         ];
+    }
+
+    /**
+     * Determine whether the current request belongs to the guided
+     * profile-completion journey.
+     */
+    private function isProfileJourney(): bool
+    {
+        return $this->request->getGet('journey') === '1';
+    }
+
+    /**
+     * Build a profile-section URL while preserving journey mode.
+     */
+    private function profileSectionUrl(
+        string $routeName
+    ): string {
+        $url = route_to($routeName);
+
+        if (!$this->isProfileJourney()) {
+            return $url;
+        }
+
+        return $url . '?journey=1';
     }
 
     /**
@@ -806,6 +859,8 @@ final class ProfileController extends BaseController
                 'formAlert' =>
                 session('formAlert'),
 
+                'isProfileJourney' => $this->isProfileJourney(),
+
                 'pageScripts' => [
                     'assets/js/pages/profile-education-profession.js',
                 ],
@@ -831,7 +886,7 @@ final class ProfileController extends BaseController
         if (!$validation->run($input)) {
             return redirect()
                 ->to(
-                    route_to(
+                    $this->profileSectionUrl(
                         'web.profile.education-profession'
                     )
                 )
@@ -855,11 +910,15 @@ final class ProfileController extends BaseController
                 $validatedData
             );
 
-            return redirect()
-                ->to(
-                    route_to('web.profile.edit')
-                        . '#education-profession'
+            $redirectUrl = $this->isProfileJourney()
+                ? $this->profileSectionUrl(
+                    'web.profile.family-details'
                 )
+                : route_to('web.profile.edit')
+                . '#education-profession';
+
+            return redirect()
+                ->to($redirectUrl)
                 ->with('formAlert', [
                     'type' => 'success',
                     'title' =>
@@ -871,7 +930,7 @@ final class ProfileController extends BaseController
         } catch (DomainException $exception) {
             return redirect()
                 ->to(
-                    route_to(
+                    $this->profileSectionUrl(
                         'web.profile.education-profession'
                     )
                 )
@@ -894,7 +953,7 @@ final class ProfileController extends BaseController
 
             return redirect()
                 ->to(
-                    route_to(
+                    $this->profileSectionUrl(
                         'web.profile.education-profession'
                     )
                 )
@@ -1003,6 +1062,8 @@ final class ProfileController extends BaseController
                 'formAlert' =>
                 session('formAlert'),
 
+                'isProfileJourney' => $this->isProfileJourney(),
+
                 'pageScripts' => [
                     'assets/js/pages/profile-family-details.js',
                 ],
@@ -1027,7 +1088,11 @@ final class ProfileController extends BaseController
 
         if (!$validation->run($input)) {
             return redirect()
-                ->to(route_to('web.profile.family-details'))
+                ->to(
+                    $this->profileSectionUrl(
+                        'web.profile.family-details'
+                    )
+                )
                 ->withInput()
                 ->with(
                     'validationErrors',
@@ -1046,11 +1111,15 @@ final class ProfileController extends BaseController
                 $validatedData
             );
 
-            return redirect()
-                ->to(
-                    route_to('web.profile.edit')
-                        . '#family-details'
+            $redirectUrl = $this->isProfileJourney()
+                ? $this->profileSectionUrl(
+                    'web.profile.sikh-religious-details'
                 )
+                : route_to('web.profile.edit')
+                . '#family-details';
+
+            return redirect()
+                ->to($redirectUrl)
                 ->with('formAlert', [
                     'type' => 'success',
                     'title' => 'Family details updated',
@@ -1059,7 +1128,11 @@ final class ProfileController extends BaseController
                 ]);
         } catch (DomainException $exception) {
             return redirect()
-                ->to(route_to('web.profile.family-details'))
+                ->to(
+                    $this->profileSectionUrl(
+                        'web.profile.family-details'
+                    )
+                )
                 ->withInput()
                 ->with('formAlert', [
                     'type' => 'danger',
@@ -1078,7 +1151,11 @@ final class ProfileController extends BaseController
             );
 
             return redirect()
-                ->to(route_to('web.profile.family-details'))
+                ->to(
+                    $this->profileSectionUrl(
+                        'web.profile.family-details'
+                    )
+                )
                 ->withInput()
                 ->with('formAlert', [
                     'type' => 'danger',
@@ -1128,6 +1205,8 @@ final class ProfileController extends BaseController
                 'formAlert' =>
                 session('formAlert'),
 
+                'isProfileJourney' => $this->isProfileJourney(),
+
                 'pageScripts' => [
                     'assets/js/pages/'
                         . 'profile-sikh-religious-details.js',
@@ -1154,7 +1233,7 @@ final class ProfileController extends BaseController
         if (!$validation->run($input)) {
             return redirect()
                 ->to(
-                    route_to(
+                    $this->profileSectionUrl(
                         'web.profile.sikh-religious-details'
                     )
                 )
@@ -1176,11 +1255,15 @@ final class ProfileController extends BaseController
                 $validation->getValidated()
             );
 
-            return redirect()
-                ->to(
-                    route_to('web.profile.edit')
-                        . '#sikh-religious-details'
+            $redirectUrl = $this->isProfileJourney()
+                ? $this->profileSectionUrl(
+                    'web.profile.lifestyle'
                 )
+                : route_to('web.profile.edit')
+                . '#sikh-religious-details';
+
+            return redirect()
+                ->to($redirectUrl)
                 ->with('formAlert', [
                     'type' => 'success',
                     'title' =>
@@ -1192,7 +1275,7 @@ final class ProfileController extends BaseController
         } catch (DomainException $exception) {
             return redirect()
                 ->to(
-                    route_to(
+                    $this->profileSectionUrl(
                         'web.profile.sikh-religious-details'
                     )
                 )
@@ -1215,7 +1298,7 @@ final class ProfileController extends BaseController
 
             return redirect()
                 ->to(
-                    route_to(
+                    $this->profileSectionUrl(
                         'web.profile.sikh-religious-details'
                     )
                 )
@@ -1253,6 +1336,7 @@ final class ProfileController extends BaseController
                 'validationErrors' =>
                 session('validationErrors') ?? [],
                 'formAlert' => session('formAlert'),
+                'isProfileJourney' => $this->isProfileJourney(),
                 'pageScripts' => [
                     'assets/js/pages/profile-about-me.js',
                 ],
@@ -1281,7 +1365,11 @@ final class ProfileController extends BaseController
 
         if (!$validation->run($input)) {
             return redirect()
-                ->to(route_to('web.profile.about-me'))
+                ->to(
+                    $this->profileSectionUrl(
+                        'web.profile.about-me'
+                    )
+                )
                 ->withInput()
                 ->with(
                     'validationErrors',
@@ -1311,7 +1399,11 @@ final class ProfileController extends BaseController
                 ]);
         } catch (DomainException $exception) {
             return redirect()
-                ->to(route_to('web.profile.about-me'))
+                ->to(
+                    $this->profileSectionUrl(
+                        'web.profile.about-me'
+                    )
+                )
                 ->withInput()
                 ->with('formAlert', [
                     'type' => 'danger',
@@ -1330,7 +1422,11 @@ final class ProfileController extends BaseController
             );
 
             return redirect()
-                ->to(route_to('web.profile.about-me'))
+                ->to(
+                    $this->profileSectionUrl(
+                        'web.profile.about-me'
+                    )
+                )
                 ->withInput()
                 ->with('formAlert', [
                     'type' => 'danger',

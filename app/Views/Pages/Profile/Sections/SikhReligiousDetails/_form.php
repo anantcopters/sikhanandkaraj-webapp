@@ -88,13 +88,21 @@ $selectedBirthCity = $value(
     'birth_city_id',
     $details['birth_city_id'] ?? ''
 );
+
+$isJourney = ($isProfileJourney ?? false) === true;
+
+$formAction = url_to(
+    'web.profile.sikh-religious-details.update'
+);
+
+if ($isJourney) {
+    $formAction .= '?journey=1';
+}
 ?>
 
 <form
     method="post"
-    action="<?= url_to(
-                'web.profile.sikh-religious-details.update'
-            ) ?>"
+    action="<?= esc($formAction, 'attr') ?>"
     id="sikhReligiousDetailsForm"
     data-validate
     novalidate>
@@ -762,7 +770,9 @@ $selectedBirthCity = $value(
                     fs-14 fw-semibold text-uppercase">
 
                 <span class="registration-submit__label">
-                    Save Details
+                    <?= $isJourney
+                        ? 'Save and Continue'
+                        : 'Save' ?>
                 </span>
 
                 <span

@@ -79,13 +79,21 @@ $selectedCityId = $fieldValue(
     'city_id',
     $details['city_id'] ?? ''
 );
+
+$isJourney = ($isProfileJourney ?? false) === true;
+
+$formAction = url_to(
+    'web.profile.family-details.update'
+);
+
+if ($isJourney) {
+    $formAction .= '?journey=1';
+}
 ?>
 
 <form
     method="post"
-    action="<?= url_to(
-                'web.profile.family-details.update'
-            ) ?>"
+    action="<?= esc($formAction, 'attr') ?>"
     id="familyDetailsForm"
     data-validate
     novalidate>
@@ -569,7 +577,9 @@ $selectedCityId = $fieldValue(
                     fs-14 fw-semibold text-uppercase">
 
                 <span class="registration-submit__label">
-                    Save Details
+                    <?= $isJourney
+                        ? 'Save and Continue'
+                        : 'Save' ?>
                 </span>
 
                 <span
@@ -587,4 +597,4 @@ $selectedCityId = $fieldValue(
             </button>
         </div>
     </div>
-</form> 
+</form>

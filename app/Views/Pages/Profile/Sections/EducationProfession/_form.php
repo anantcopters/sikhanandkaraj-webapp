@@ -113,13 +113,21 @@ $organizationHasError = isset(
 $annualIncomeHasError = isset(
     $errors['annual_income_id']
 );
+
+$isJourney = ($isProfileJourney ?? false) === true;
+
+$formAction = url_to(
+    'web.profile.education-profession.update'
+);
+
+if ($isJourney) {
+    $formAction .= '?journey=1';
+}
 ?>
 
 <form
     method="post"
-    action="<?= url_to(
-                'web.profile.education-profession.update'
-            ) ?>"
+    action="<?= esc($formAction, 'attr') ?>"
     id="educationProfessionForm"
     data-validate
     novalidate>
@@ -562,9 +570,10 @@ $annualIncomeHasError = isset(
                     type="submit"
                     class="btn registration-form__submit
                                 fs-14 fw-semibold text-uppercase" id="saveEducationProfessionButton">
-                    <span
-                        class="registration-submit__label">
-                        Save Details
+                    <span class="registration-submit__label">
+                        <?= $isJourney
+                            ? 'Save and Continue'
+                            : 'Save' ?>
                     </span>
 
                     <span

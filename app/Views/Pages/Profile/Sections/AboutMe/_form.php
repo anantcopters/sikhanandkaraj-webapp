@@ -7,6 +7,16 @@ declare(strict_types=1);
  * @var array<string, string> $validationErrors
  */
 
+$isJourney = ($isProfileJourney ?? false) === true;
+
+$formAction = url_to(
+    'web.profile.about-me.update'
+);
+
+if ($isJourney) {
+    $formAction .= '?journey=1';
+}
+
 $aboutMe = isset($aboutMe)
     ? (string) $aboutMe
     : '';
@@ -24,7 +34,7 @@ $aboutMeValue = (string) old(
 ?>
 
 <form
-    action="<?= url_to('web.profile.about-me.update') ?>"
+    action="<?= esc($formAction, 'attr') ?>"
     method="post"
     id="aboutMeForm"
     data-validate

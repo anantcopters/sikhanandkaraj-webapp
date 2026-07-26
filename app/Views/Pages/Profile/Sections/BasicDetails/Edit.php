@@ -84,6 +84,9 @@ $this->section('content');
                                 $masterData ?? [],
                                 'validationErrors' =>
                                 $validationErrors ?? [],
+
+                                'isProfileJourney' =>
+                                $isProfileJourney ?? false,
                             ]
                         ) ?>
 

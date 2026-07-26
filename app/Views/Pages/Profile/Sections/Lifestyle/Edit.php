@@ -129,6 +129,8 @@ $this->section('content');
                                 $selectedOptionIds,
                                 'validationErrors' =>
                                 $validationErrors,
+                                'isProfileJourney' =>
+                                $isProfileJourney ?? false,
                             ]
                         ) ?>
 
