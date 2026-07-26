@@ -5,22 +5,16 @@ document.addEventListener('DOMContentLoaded', () => {
         'memberPhotoReviewModal'
     );
 
-    const confirmationModalElement = document.getElementById(
-        'confirmationModal'
-    );
-
-    if (!photoModalElement || !confirmationModalElement) {
+    if (
+        !photoModalElement
+        || typeof bootstrap === 'undefined'
+    ) {
         return;
     }
 
     const photoModal = bootstrap.Modal.getOrCreateInstance(
         photoModalElement
     );
-
-    const confirmationModal =
-        bootstrap.Modal.getOrCreateInstance(
-            confirmationModalElement
-        );
 
     const modalTitle = photoModalElement.querySelector(
         '[data-photo-modal-title]'
@@ -95,10 +89,18 @@ document.addEventListener('DOMContentLoaded', () => {
         return element.innerHTML;
     }
 
+    /**
+     * Update existing forms and values used by dynamically created forms.
+     *
+     * @param {{name?: string, hash?: string}|null} csrf
+     */
     function updateCsrf(csrf) {
         if (!csrf || !csrf.name || !csrf.hash) {
             return;
         }
+
+        window.csrfTokenName = csrf.name;
+        window.csrfTokenHash = csrf.hash;
 
         document.querySelectorAll(
             `input[name="${CSS.escape(csrf.name)}"]`
@@ -155,6 +157,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         previousButton.disabled = true;
         nextButton.disabled = true;
+    }
+
+    /**
+     * Return the number of photos still awaiting moderation.
+     *
+     * @returns {number}
+     */
+    function pendingPhotoCount() {
+        return currentPhotos.filter(
+            (photo) =>
+                String(photo.status || '').toUpperCase()
+                === 'PENDING'
+        ).length;
     }
 
     function statusBadge(status) {
@@ -335,18 +350,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderPhotos(payload) {
         const member = payload.member || {};
+
         currentPhotos = Array.isArray(payload.photos)
             ? payload.photos
             : [];
 
+        const memberId = String(
+            member.member_id || ''
+        );
+
+        const reference = String(
+            member.profile_ref_number || ''
+        );
+
+        const age = member.age
+            ? String(member.age)
+            : '';
+
+        const gender = String(
+            member.gender || ''
+        );
+
+        const location = String(
+            member.location || ''
+        );
+
+        photoModalElement.dataset.memberId = memberId;
+
         modalTitle.textContent =
             member.full_name || 'Member photos';
 
+        /*
+         * Preserve member metadata when the carousel is re-rendered after
+         * an approve or reject action.
+         */
+        modalSubtitle.dataset.reference = reference;
+        modalSubtitle.dataset.age = age;
+        modalSubtitle.dataset.gender = gender;
+        modalSubtitle.dataset.location = location;
+
         const summaryParts = [
-            member.profile_ref_number || '',
-            member.age ? `${member.age} years` : '',
-            member.gender || '',
-            member.location || ''
+            reference,
+            age !== '' ? `${age} years` : '',
+            gender,
+            location
         ].filter(Boolean);
 
         modalSubtitle.textContent =
@@ -515,22 +562,28 @@ document.addEventListener('DOMContentLoaded', () => {
                         Number(photo.id) !== photoId
                 );
 
-                if (currentPhotos.length === 0) {
-                    contentPanel.classList.add('d-none');
-                    emptyPanel.classList.remove('d-none');
+                const currentMemberId =
+                    photoModalElement.dataset.memberId || '';
 
-                    const currentMemberId =
-                        photoModalElement.dataset.memberId;
+                const remainingPendingCount =
+                    pendingPhotoCount();
 
-                    if (currentMemberId) {
+                if (remainingPendingCount === 0) {
+                    if (currentMemberId !== '') {
                         document.querySelector(
                             `[data-member-row="${CSS.escape(currentMemberId)
                             }"]`
                         )?.remove();
                     }
+                }
+
+                if (currentPhotos.length === 0) {
+                    contentPanel.classList.add('d-none');
+                    emptyPanel.classList.remove('d-none');
                 } else {
                     renderPhotos({
                         member: {
+                            member_id: currentMemberId,
                             full_name:
                                 modalTitle.textContent,
                             profile_ref_number:
