@@ -3,26 +3,29 @@
 declare(strict_types=1);
 
 /**
- * Resolve server-side validation errors.
- *
- * @var array<string, string> $validationErrors
+ * @var string|null                $pageTitle
+ * @var array<string, string>|null $validationErrors
+ * @var array<string, string>|null $formAlert
+ * @var string|null                $loginIdentifier
  */
-$sessionValidationErrors = session('validationErrors');
 
-$validationErrors = is_array($sessionValidationErrors)
-    ? $sessionValidationErrors
+$pageTitle = isset($pageTitle)
+    ? trim((string) $pageTitle)
+    : 'Login';
+
+$validationErrors = isset($validationErrors)
+    && is_array($validationErrors)
+    ? $validationErrors
     : [];
 
-/**
- * Resolve any form-level message.
- *
- * @var array<string, string>|null $formAlert
- */
-$sessionFormAlert = session('formAlert');
-
-$formAlert = is_array($sessionFormAlert)
-    ? $sessionFormAlert
+$formAlert = isset($formAlert)
+    && is_array($formAlert)
+    ? $formAlert
     : null;
+
+$loginIdentifier = isset($loginIdentifier)
+    ? trim((string) $loginIdentifier)
+    : '';
 
 $identifierHasError = isset(
     $validationErrors['identifier']
@@ -89,7 +92,7 @@ $this->section('content');
                                     id="loginIdentifier"
                                     name="identifier"
                                     value="<?= esc(
-                                                session('loginIdentifier') ?? '',
+                                                $loginIdentifier,
                                                 'attr'
                                             ) ?>"
                                     class="form-control

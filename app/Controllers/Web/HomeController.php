@@ -43,6 +43,12 @@ final class HomeController extends BaseController
             [
                 'pageTitle' => 'Sikh Anand Karaj',
 
+                'validationErrors' =>
+                $this->readValidationErrors(),
+
+                'formAlert' =>
+                $this->readFormAlert(),
+
                 'pageScripts' => [
                     'assets/js/pages/home.js',
                     'assets/js/components/password-toggle.js',

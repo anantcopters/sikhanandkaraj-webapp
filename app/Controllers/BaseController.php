@@ -114,4 +114,18 @@ abstract class BaseController extends Controller
             ? $normalizedAlert
             : null;
     }
+
+    /**
+     * Return a scalar flashdata value as a string.
+     */
+    protected function readFlashString(
+        string $key,
+        string $default = ''
+    ): string {
+        $value = session($key);
+
+        return is_scalar($value)
+            ? (string) $value
+            : $default;
+    }
 }

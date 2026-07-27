@@ -41,6 +41,18 @@ final class AuthenticationController extends BaseController
             [
                 'pageTitle' => 'Login',
 
+                'validationErrors' =>
+                $this->readValidationErrors(),
+
+                'formAlert' =>
+                $this->readFormAlert(),
+
+                'loginIdentifier' =>
+                $this->readFlashString(
+                    'loginIdentifier'
+                ),
+
+
                 'pageScripts' => [
                     'assets/js/components/password-toggle.js',
                     'assets/js/components/submit-loader.js',

@@ -3,35 +3,24 @@
 declare(strict_types=1);
 
 /**
- * @var string|null $pageTitle
+ * @var string|null                $pageTitle
+ * @var array<string, string>|null $validationErrors
+ * @var array<string, string>|null $formAlert
  */
-$resolvedPageTitle = isset($pageTitle) && is_string($pageTitle)
+
+$resolvedPageTitle = isset($pageTitle)
+    && is_string($pageTitle)
     ? $pageTitle
     : 'Sikh Anand Karaj';
 
-/**
- * Resolve server-side validation errors once.
- *
- * The controller stores these errors in flashdata when redirecting back
- * after an unsuccessful form submission.
- *
- * @var array<string, string> $validationErrors
- */
-$sessionValidationErrors = session('validationErrors');
-
-$validationErrors = is_array($sessionValidationErrors)
-    ? $sessionValidationErrors
+$validationErrors = isset($validationErrors)
+    && is_array($validationErrors)
+    ? $validationErrors
     : [];
 
-/**
- * Resolve the form-level alert once.
- *
- * @var array<string, string>|null $formAlert
- */
-$sessionFormAlert = session('formAlert');
-
-$formAlert = is_array($sessionFormAlert)
-    ? $sessionFormAlert
+$formAlert = isset($formAlert)
+    && is_array($formAlert)
+    ? $formAlert
     : null;
 
 $this->extend('Layouts/Main');

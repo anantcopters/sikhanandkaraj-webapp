@@ -2,17 +2,30 @@
 
 declare(strict_types=1);
 
-$errors = session('validationErrors');
+/**
+ * @var string|null                $pageTitle
+ * @var array<string, string>|null $validationErrors
+ * @var array<string, string>|null $formAlert
+ * @var string|null                $adminLoginIdentifier
+ */
 
-$validationErrors = is_array($errors)
-    ? $errors
+$pageTitle = isset($pageTitle)
+    ? trim((string) $pageTitle)
+    : 'Administrator Login';
+
+$validationErrors = isset($validationErrors)
+    && is_array($validationErrors)
+    ? $validationErrors
     : [];
 
-$alert = session('formAlert');
-
-$formAlert = is_array($alert)
-    ? $alert
+$formAlert = isset($formAlert)
+    && is_array($formAlert)
+    ? $formAlert
     : null;
+
+$adminLoginIdentifier = isset($adminLoginIdentifier)
+    ? trim((string) $adminLoginIdentifier)
+    : '';
 
 $this->extend('Admin/Layouts/Main');
 $this->section('content');
@@ -91,9 +104,7 @@ $this->section('content');
                                             id="adminIdentifier"
                                             name="identifier"
                                             value="<?= esc(
-                                                        session(
-                                                            'adminLoginIdentifier'
-                                                        ) ?? '',
+                                                        $adminLoginIdentifier,
                                                         'attr'
                                                     ) ?>"
                                             placeholder="Email or mobile number"
