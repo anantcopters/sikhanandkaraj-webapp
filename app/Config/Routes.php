@@ -223,7 +223,7 @@ $routes->group('', [
                 ]
             );
 
-            $routes->post(
+            $routes->get(
                 'notifications/(:num)/open',
                 'NotificationController::open/$1',
                 [

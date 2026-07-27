@@ -12,6 +12,14 @@
         return;
     }
 
+    /*
+     * Create or reuse the Bootstrap modal instance used throughout this
+     * reusable confirmation component.
+     */
+    const modal = bootstrap.Modal.getOrCreateInstance(
+        modalElement
+    );
+
     const titleElement = document.getElementById(
         'appConfirmationModalTitle'
     );

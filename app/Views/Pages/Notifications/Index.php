@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Support\DateTimeFormatter;
+
 $pageTitle = $pageTitle ?? 'Notifications';
 
 $notifications = isset($notifications)
@@ -20,7 +22,7 @@ $unreadNotificationCount = isset(
 
 <?= $this->section('content') ?>
 
-<section class="py-4 py-lg-5">
+<section class="py-4 py-lg-4">
     <div class="container">
 
         <div
@@ -29,7 +31,7 @@ $unreadNotificationCount = isset(
             flex-sm-row
             align-items-sm-center
             justify-content-between
-            gap-3 mb-4">
+            gap-3 mb-3">
 
             <div>
                 <h1 class="h3 mb-1">
@@ -69,7 +71,7 @@ $unreadNotificationCount = isset(
             <?php endif; ?>
         </div>
 
-        <div class="card">
+        <div class="card border border-danger border-opacity-25">
 
             <?php if ($notifications === []): ?>
 
@@ -128,13 +130,9 @@ $unreadNotificationCount = isset(
                             )
                         );
 
-                        $createdAt = trim(
-                            (string) (
-                                $notification['created_at']
-                                ?? ''
-                            )
+                        $createdAt = DateTimeFormatter::indianDate(
+                            $notification['created_at'] ?? null
                         );
-
                         $readAt =
                             $notification['read_at']
                             ?? null;
@@ -179,10 +177,9 @@ $unreadNotificationCount = isset(
                                         $notificationId
                                     ) ?>"
                             class="list-group-item
-                            list-group-item-action
                             px-3 py-3
                             <?= $isUnread
-                                ? 'bg-light'
+                                ? ''
                                 : '' ?>">
 
                             <div
@@ -257,7 +254,7 @@ $unreadNotificationCount = isset(
                                         <?php if ($isUnread): ?>
                                             <span
                                                 class="badge
-                                                rounded-pill
+                                                
                                                 bg-primary
                                                 flex-shrink-0">
                                                 New
