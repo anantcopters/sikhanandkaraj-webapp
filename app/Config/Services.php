@@ -64,9 +64,12 @@ use App\Services\Admin\MemberPhotoApprovalService;
 use App\Services\Authentication\PasswordResetService;
 use App\Models\MemberNotificationModel;
 use App\Services\Notification\MemberNotificationService;
+use App\Services\Maintenance\TableCleanupService;
+use Config\TableCleanup;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
 use Config\MemberMedia;
+use Config\Database;
 
 
 /**
@@ -736,6 +739,26 @@ class Services extends BaseService
 
         return new MemberNotificationService(
             new MemberNotificationModel($database)
+        );
+    }
+
+    /**
+     * Return the reusable database cleanup service.
+     */
+    public static function tableCleanupService(
+        bool $getShared = true
+    ): TableCleanupService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'tableCleanupService'
+            );
+        }
+
+        return new TableCleanupService(
+            database: Database::connect(),
+            configuration: config(
+                TableCleanup::class
+            )
         );
     }
 }

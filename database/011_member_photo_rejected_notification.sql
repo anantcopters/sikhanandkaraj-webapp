@@ -28,4 +28,9 @@ ALTER TABLE member_notifications
         )
     );
 
+CREATE INDEX IF NOT EXISTS
+idx_member_notifications_read_cleanup
+ON member_notifications (read_at)
+WHERE read_at IS NOT NULL;
+
 COMMIT;
