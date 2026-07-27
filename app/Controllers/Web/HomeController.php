@@ -41,7 +41,7 @@ final class HomeController extends BaseController
         return view(
             'Pages/Home/Index',
             [
-                'pageTitle' => 'Sikh Anand Karaj',
+                'pageTitle' => 'SikhAnandKaraj',
 
                 'validationErrors' =>
                 $this->readValidationErrors(),

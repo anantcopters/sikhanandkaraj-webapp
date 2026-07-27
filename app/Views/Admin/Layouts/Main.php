@@ -20,7 +20,7 @@ $pageScripts = $pageScripts ?? [];
         content="width=device-width, initial-scale=1">
 
     <title>
-        <?= esc($pageTitle) ?> | Sikh Anand Karaj
+        <?= esc($pageTitle) ?> | SikhAnandKaraj
     </title>
 
     <link
@@ -98,7 +98,7 @@ $pageScripts = $pageScripts ?? [];
                         <span
                             class="d-block fs-18
                             fw-semibold text-primary">
-                            Sikh Anand Karaj
+                            SikhAnandKaraj
                         </span>
 
                         <span

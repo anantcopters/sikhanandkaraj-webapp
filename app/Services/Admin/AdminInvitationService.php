@@ -576,7 +576,7 @@ final class AdminInvitationService
         $this->emailQueueService->enqueue(
             recipientEmail: (string) $admin['email_address'],
             recipientName: (string) $admin['full_name'],
-            subject: 'Complete your Sikh Anand Karaj administrator account',
+            subject: 'Complete your SikhAnandKaraj administrator account',
             viewName: 'Emails/Admin/AdminInvitation',
             viewData: [
                 'adminName' =>

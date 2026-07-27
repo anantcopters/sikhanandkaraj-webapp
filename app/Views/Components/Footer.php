@@ -99,7 +99,7 @@
         <div class="text-center">
 
             <small class="text-muted">
-                © <?= esc(date('Y')) ?> Sikh Anand Karaj. All rights reserved.
+                © <?= esc(date('Y')) ?> SikhAnandKaraj. All rights reserved.
             </small>
 
         </div>

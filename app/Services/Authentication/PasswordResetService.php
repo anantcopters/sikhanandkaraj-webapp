@@ -775,7 +775,7 @@ final class PasswordResetService
                 new SmsMessage(
                     mobileNumber: $mobileNumber,
 
-                    message: 'Your Sikh Anand Karaj password reset OTP is '
+                    message: 'Your SikhAnandKaraj password reset OTP is '
                         . $otp
                         . '. It is valid for '
                         . self::OTP_EXPIRY_MINUTES

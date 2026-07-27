@@ -17,7 +17,7 @@ final class Site extends BaseConfig
     /**
      * Public application name displayed throughout the website.
      */
-    public string $name = 'Sikh Anand Karaj';
+    public string $name = 'SikhAnandKaraj';
 
     /**
      * Short application name used where space is limited.

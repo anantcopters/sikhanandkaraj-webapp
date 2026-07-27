@@ -11,7 +11,7 @@ declare(strict_types=1);
 $resolvedPageTitle = isset($pageTitle)
     && is_string($pageTitle)
     ? $pageTitle
-    : 'Sikh Anand Karaj';
+    : 'SikhAnandKaraj';
 
 $validationErrors = isset($validationErrors)
     && is_array($validationErrors)

@@ -70,7 +70,7 @@ declare(strict_types=1);
                                     margin: 0;
                                     font-size: 22px;
                                 ">
-                                Sikh Anand Karaj
+                                SikhAnandKaraj
                             </h1>
                         </td>
                     </tr>

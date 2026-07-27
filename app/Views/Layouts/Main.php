@@ -13,7 +13,7 @@
         content="width=device-width, initial-scale=1">
 
     <title>
-        <?= esc($pageTitle ?? 'Sikh Anand Karaj') ?>
+        <?= esc($pageTitle ?? 'SikhAnandKaraj') ?>
     </title>
 
     <link
