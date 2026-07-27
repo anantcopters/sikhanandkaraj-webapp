@@ -6,6 +6,8 @@ use CodeIgniter\Controller;
 use CodeIgniter\HTTP\RequestInterface;
 use CodeIgniter\HTTP\ResponseInterface;
 use Psr\Log\LoggerInterface;
+use App\Services\Notification\MemberNotificationService;
+use Throwable;
 
 /**
  * BaseController provides a convenient place for loading components
@@ -41,6 +43,65 @@ abstract class BaseController extends Controller
 
         // Preload any models, libraries, etc, here.
         // $this->session = service('session');
+
+        /*
+        * Public pages and administrator pages do not require member
+        * notification data.
+        */
+        if (
+            session('is_authenticated') !== true
+            || ! is_numeric(
+                session('auth_user_id')
+            )
+        ) {
+            return;
+        }
+
+        $memberUserId = (int) session(
+            'auth_user_id'
+        );
+
+        try {
+            /** @var MemberNotificationService $service */
+            $service = service(
+                'memberNotificationService'
+            );
+
+            $headerData = $service->getHeaderData(
+                $memberUserId
+            );
+
+            /*
+         * setData makes these values available to all views rendered during
+         * this request, including Components/Header.php.
+         */
+            service('renderer')->setData(
+                $headerData,
+                'raw'
+            );
+        } catch (Throwable $exception) {
+            /*
+         * Header notification failure must not prevent members from using
+         * the application.
+         */
+            log_message(
+                'error',
+                'Unable to prepare member notification header: {message}',
+                [
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+
+            service('renderer')->setData(
+                [
+                    'unreadNotificationCount' => 0,
+                    'unreadMessageCount' => 0,
+                    'recentNotifications' => [],
+                ],
+                'raw'
+            );
+        }
     }
 
     /**

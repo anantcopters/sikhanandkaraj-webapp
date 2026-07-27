@@ -62,6 +62,8 @@ use App\Services\Profile\MemberPhotoUrlService;
 use App\Models\AdminMemberPhotoApprovalModel;
 use App\Services\Admin\MemberPhotoApprovalService;
 use App\Services\Authentication\PasswordResetService;
+use App\Models\MemberNotificationModel;
+use App\Services\Notification\MemberNotificationService;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
 use Config\MemberMedia;
@@ -705,6 +707,25 @@ class Services extends BaseService
             ),
 
             $database
+        );
+    }
+
+    /**
+     * Return the shared member-notification service.
+     */
+    public static function memberNotificationService(
+        bool $getShared = true
+    ): MemberNotificationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberNotificationService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberNotificationService(
+            new MemberNotificationModel($database)
         );
     }
 }

@@ -3,17 +3,17 @@
 declare(strict_types=1);
 
 /**
- * Determine whether the current request belongs to an authenticated user.
+ * Check whether the current request belongs to an authenticated member.
  */
 $isAuthenticated =
     session('is_authenticated') === true
     && is_numeric(session('auth_user_id'));
 
 /**
- * The dashboard controller supplies loggedInUserName.
+ * Resolve the logged-in member name.
  *
- * Other authenticated pages may not supply it, so use the session value
- * or a safe fallback.
+ * DashboardController may provide $loggedInUserName. Other authenticated
+ * pages can safely use the member name stored in the session.
  */
 $resolvedLoggedInName = '';
 
@@ -37,11 +37,62 @@ if ($resolvedLoggedInName === '') {
 }
 
 /**
- * Display the first letter inside the avatar.
+ * Resolve the member profile reference.
  */
-// $userInitial = mb_strtoupper(
-//     mb_substr($resolvedLoggedInName, 0, 1)
-// );
+$profileReference = session('auth_profile_reference');
+
+$resolvedProfileReference = is_string($profileReference)
+    ? trim($profileReference)
+    : '';
+
+/**
+ * Notification and message counters.
+ *
+ * These values can be supplied globally through BaseController.
+ * Safe defaults ensure the header continues working until backend
+ * notification integration is completed.
+ */
+$unreadNotificationCount = isset($unreadNotificationCount)
+    && is_numeric($unreadNotificationCount)
+    ? max(0, (int) $unreadNotificationCount)
+    : 0;
+
+$unreadMessageCount = isset($unreadMessageCount)
+    && is_numeric($unreadMessageCount)
+    ? max(0, (int) $unreadMessageCount)
+    : 0;
+
+/**
+ * Determine the active navigation item.
+ */
+$currentPath = trim(
+    service('uri')->getPath(),
+    '/'
+);
+
+$homeActive =
+    $currentPath === 'dashboard';
+
+$matchesActive =
+    $currentPath === 'matches'
+    || str_starts_with(
+        $currentPath,
+        'matches/'
+    );
+
+$interestActive =
+    $currentPath === 'interests'
+    || str_starts_with(
+        $currentPath,
+        'interests/'
+    );
+
+$messagesActive =
+    $currentPath === 'messages'
+    || str_starts_with(
+        $currentPath,
+        'messages/'
+    );
 ?>
 
 <header class="public-header">
@@ -49,14 +100,20 @@ if ($resolvedLoggedInName === '') {
         class="navbar public-navbar"
         aria-label="Main website navigation">
 
-        <div class="container public-navbar__container
-                    <?= $isAuthenticated
-                        ? 'public-navbar__container--authenticated'
-                        : '' ?>">
+        <div
+            class="container public-navbar__container
+            position-relative
+            <?= $isAuthenticated
+                ? 'public-navbar__container--authenticated'
+                : '' ?>">
 
             <!-- Website logo -->
             <a
-                class="navbar-brand d-inline-flex align-items-center flex-shrink-0 m-0 p-0"
+                class="navbar-brand
+                d-inline-flex
+                align-items-center
+                flex-shrink-0
+                m-0 p-0"
                 href="<?= $isAuthenticated
                             ? url_to('web.dashboard')
                             : site_url('/') ?>"
@@ -70,114 +127,279 @@ if ($resolvedLoggedInName === '') {
                     class="public-navbar__logo">
             </a>
 
-            <div class="public-navbar__actions
-                <?= $isAuthenticated
-                    ? 'public-navbar__actions--authenticated'
-                    : '' ?>">
+            <?php if ($isAuthenticated): ?>
 
-                <?php if ($isAuthenticated): ?>
+                <!--
+                    Desktop navigation.
 
-                    <?php
-                    $profileReference = session(
-                        'auth_profile_reference'
-                    );
+                    This menu is shown from the Bootstrap lg breakpoint
+                    onwards and remains visually centred in the header.
+                -->
+                <ul
+                    class="navbar-nav
+                    nav-underline
+                    flex-row
+                    align-items-center
+                    gap-2
+                    position-absolute
+                    top-50 start-50
+                    translate-middle
+                    d-none d-lg-flex gap-4">
 
-                    $resolvedProfileReference =
-                        is_string($profileReference)
-                        ? trim($profileReference)
-                        : '';
-                    ?>
+                    <!-- Home -->
+                    <li class="nav-item">
+                        <a
+                            href="<?= url_to('web.dashboard') ?>"
+                            class="nav-link
+                            d-flex
+                            align-items-center
+                            gap-2
+                            py-1 py-lg-2 fs-14
+                            <?= $homeActive
+                                ? 'active text-primary'
+                                : '' ?>"
+                            <?= $homeActive
+                                ? 'aria-current="page"'
+                                : '' ?>>
 
-                    <div class="dropdown header-item topbar-user">
+                            <i
+                                class="ri-home-4-line
+                                fw-normal
+                                flex-shrink-0"
+                                aria-hidden="true">
+                            </i>
+
+                            <span
+                                class="<?= $homeActive
+                                            ? 'fw-semibold'
+                                            : '' ?>">
+                                Home
+                            </span>
+                        </a>
+                    </li>
+
+                    <!-- Matches -->
+                    <li class="nav-item">
+                        <a
+                            href="<?= site_url('matches') ?>"
+                            class="nav-link
+                            d-flex
+                            align-items-center
+                            gap-2
+                            py-1 py-lg-2 fs-14
+                            <?= $matchesActive
+                                ? 'active text-primary'
+                                : '' ?>"
+                            <?= $matchesActive
+                                ? 'aria-current="page"'
+                                : '' ?>>
+
+                            <i
+                                class="ri-heart-3-line
+                                fw-normal
+                                flex-shrink-0"
+                                aria-hidden="true">
+                            </i>
+
+                            <span
+                                class="<?= $matchesActive
+                                            ? 'fw-semibold'
+                                            : '' ?>">
+                                Matches
+                            </span>
+                        </a>
+                    </li>
+
+                    <!-- Interest -->
+                    <li class="nav-item">
+                        <a
+                            href="<?= site_url('interests') ?>"
+                            class="nav-link
+                            d-flex
+                            align-items-center
+                            gap-2
+                            py-1 py-lg-2 fs-14
+                            <?= $interestActive
+                                ? 'active text-primary'
+                                : '' ?>"
+                            <?= $interestActive
+                                ? 'aria-current="page"'
+                                : '' ?>>
+
+                            <i
+                                class="ri-heart-add-line
+                                fw-normal
+                                flex-shrink-0"
+                                aria-hidden="true">
+                            </i>
+
+                            <span
+                                class="<?= $interestActive
+                                            ? 'fw-semibold'
+                                            : '' ?>">
+                                Interest
+                            </span>
+                        </a>
+                    </li>
+
+                    <!-- Messages -->
+                    <li class="nav-item">
+                        <a
+                            href="<?= site_url('messages') ?>"
+                            class="nav-link
+                            d-flex
+                            align-items-center
+                            gap-2
+                            py-1 py-lg-2 fs-14
+                            <?= $messagesActive
+                                ? 'active text-primary'
+                                : '' ?>"
+                            <?= $messagesActive
+                                ? 'aria-current="page"'
+                                : '' ?>>
+
+                            <i
+                                class="ri-message-3-line
+                                fw-normal
+                                flex-shrink-0"
+                                aria-hidden="true">
+                            </i>
+
+                            <span
+                                class="<?= $messagesActive
+                                            ? 'fw-semibold'
+                                            : '' ?>">
+                                Messages
+                            </span>
+
+                            <?php if ($unreadMessageCount > 0): ?>
+                                <span
+                                    class="badge
+                                    rounded-pill
+                                    bg-danger">
+
+                                    <?= esc(
+                                        $unreadMessageCount > 99
+                                            ? '99+'
+                                            : (string) $unreadMessageCount
+                                    ) ?>
+
+                                    <span class="visually-hidden">
+                                        unread messages
+                                    </span>
+                                </span>
+                            <?php endif; ?>
+                        </a>
+                    </li>
+                </ul>
+
+                <div
+                    class="public-navbar__actions
+                    public-navbar__actions--authenticated
+                    ms-auto">
+
+                    <!--
+                        Desktop account dropdown.
+
+                        The user icon and surrounding account border have
+                        intentionally been removed for desktop screens.
+                    -->
+                    <div
+                        class="dropdown
+                        d-none d-lg-block">
 
                         <button
                             type="button"
-                            class="btn shadow-none"
-                            id="page-header-user-dropdown"
+                            class="btn
+                            shadow-none
+                            border-0
+                            bg-transparent
+                            p-0"
+                            id="desktop-member-dropdown"
                             data-bs-display="static"
                             data-bs-toggle="dropdown"
                             aria-haspopup="true"
                             aria-expanded="false">
 
                             <span class="d-flex align-items-center">
-                                <span
-                                    class="avatar-sm flex-shrink-0 d-inline-flex align-items-center justify-content-center"
-                                    aria-hidden="true">
 
-                                    <i
-                                        class="ri-user-line fs-2 lh-1"
-                                        aria-hidden="true"></i>
-                                </span>
-
-                                <span class="text-start ms-xl-2">
+                                <span class="text-start">
 
                                     <span
-                                        class="d-none d-xl-inline-block ms-1 fw-medium user-name-text">
-
-                                        <?= esc($resolvedLoggedInName) ?>
+                                        class="d-block
+                                        fw-medium
+                                        user-name-text">
+                                        <?= esc(
+                                            $resolvedLoggedInName
+                                        ) ?>
                                     </span>
 
                                     <?php if (
                                         $resolvedProfileReference !== ''
                                     ): ?>
                                         <span
-                                            class="d-none d-xl-block ms-1 fs-12 user-name-sub-text text-muted">
+                                            class="d-block
+                                            fs-12
+                                            user-name-sub-text
+                                            text-muted">
 
-                                            <?= esc($resolvedProfileReference) ?>
+                                            <?= esc(
+                                                $resolvedProfileReference
+                                            ) ?>
                                         </span>
                                     <?php endif; ?>
-
                                 </span>
 
-                                <span
-                                    class="mdi mdi-chevron-down d-none d-xl-inline-block ms-2 text-muted"
+                                <i
+                                    class="ri-arrow-down-s-line
+                                    text-muted
+                                    ms-2"
                                     aria-hidden="true">
-                                </span>
+                                </i>
                             </span>
                         </button>
 
                         <div
-                            class="dropdown-menu dropdown-menu-end"
-                            aria-labelledby="page-header-user-dropdown">
+                            class="dropdown-menu
+                            dropdown-menu-end"
+                            aria-labelledby="desktop-member-dropdown">
 
-                            <h6 class="dropdown-header fs-14">
-                                Welcome
-                                <?= esc($resolvedLoggedInName) ?>!
-                            </h6>
-
+                            <!-- Edit Profile -->
                             <a
                                 class="dropdown-item"
-                                href="<?= url_to('web.dashboard') ?>">
+                                href="<?= url_to(
+                                            'web.profile.edit'
+                                        ) ?>">
 
                                 <i
-                                    class="mdi mdi-view-dashboard-outline text-muted fs-16 align-middle me-1"
-                                    aria-hidden="true"></i>
-
-                                <span class="align-middle">
-                                    Dashboard
-                                </span>
-                            </a>
-
-                            <a
-                                class="dropdown-item"
-                                href="<?= url_to('web.profile.edit') ?>">
-
-                                <i
-                                    class="mdi mdi-account-edit-outline text-muted fs-16 align-middle me-1"
-                                    aria-hidden="true"></i>
+                                    class="ri-user-settings-line
+                                    text-muted
+                                    fs-16
+                                    align-middle
+                                    me-1"
+                                    aria-hidden="true">
+                                </i>
 
                                 <span class="align-middle">
                                     Edit Profile
                                 </span>
                             </a>
 
+                            <!-- Account Settings -->
                             <a
                                 class="dropdown-item"
-                                href="<?= url_to('web.account.settings') ?>">
+                                href="<?= url_to(
+                                            'web.account.settings'
+                                        ) ?>">
 
                                 <i
-                                    class="mdi mdi-cog-outline text-muted fs-16 align-middle me-1"
-                                    aria-hidden="true"></i>
+                                    class="ri-settings-3-line
+                                    text-muted
+                                    fs-16
+                                    align-middle
+                                    me-1"
+                                    aria-hidden="true">
+                                </i>
 
                                 <span class="align-middle">
                                     Account Settings
@@ -185,6 +407,8 @@ if ($resolvedLoggedInName === '') {
                             </a>
 
                             <div class="dropdown-divider"></div>
+
+                            <!-- Logout -->
                             <form
                                 method="post"
                                 action="<?= url_to('web.logout') ?>"
@@ -194,40 +418,376 @@ if ($resolvedLoggedInName === '') {
 
                                 <button
                                     type="submit"
-                                    class="dropdown-item border-0 bg-transparent w-100 text-start">
+                                    class="dropdown-item
+                                    border-0
+                                    bg-transparent
+                                    w-100
+                                    text-start">
 
                                     <i
-                                        class="mdi mdi-logout text-danger fs-16 align-middle me-1"
-                                        aria-hidden="true"></i>
+                                        class="ri-logout-box-r-line
+                                        text-danger
+                                        fs-16
+                                        align-middle
+                                        me-1"
+                                        aria-hidden="true">
+                                    </i>
 
                                     <span class="align-middle">
                                         Logout
                                     </span>
                                 </button>
                             </form>
-
                         </div>
                     </div>
 
-                <?php else: ?>
-                    <!-- Public header -->
-                    <span class="fs-16 fw-semibold lh-base text-dark text-nowrap hide-on-mobile-tablet">
+                    <!--
+                        Tablet and mobile account dropdown.
+
+                        Only the user icon is displayed in the header.
+                        Member name, reference, navigation and account actions
+                        are displayed inside the dropdown.
+                    -->
+                    <div
+                        class="dropdown
+                        header-item
+                        d-lg-none">
+
+                        <button
+                            type="button"
+                            class="btn
+                            btn-icon
+                            shadow-none
+                            border-0
+                            bg-transparent
+                            rounded-circle"
+                            id="mobile-member-dropdown"
+                            data-bs-display="static"
+                            data-bs-toggle="dropdown"
+                            aria-haspopup="true"
+                            aria-expanded="false"
+                            aria-label="Open member menu">
+
+                            <i
+                                class="ri-user-line fs-2"
+                                aria-hidden="true">
+                            </i>
+                        </button>
+
+                        <div
+                            class="dropdown-menu
+                            dropdown-menu-end"
+                            aria-labelledby="mobile-member-dropdown">
+
+                            <!-- Member identity -->
+                            <div class="dropdown-header">
+
+                                <span
+                                    class="d-block
+                                    fs-14
+                                    fw-semibold
+                                    text-dark">
+
+                                    <?= esc(
+                                        $resolvedLoggedInName
+                                    ) ?>
+                                </span>
+
+                                <?php if (
+                                    $resolvedProfileReference !== ''
+                                ): ?>
+                                    <span
+                                        class="d-block
+                                        fs-12
+                                        fw-normal
+                                        text-muted
+                                        mt-1">
+
+                                        <?= esc(
+                                            $resolvedProfileReference
+                                        ) ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="dropdown-divider"></div>
+
+                            <!-- Home -->
+                            <a
+                                href="<?= url_to(
+                                            'web.dashboard'
+                                        ) ?>"
+                                class="dropdown-item
+                                <?= $homeActive
+                                    ? 'active'
+                                    : '' ?>"
+                                <?= $homeActive
+                                    ? 'aria-current="page"'
+                                    : '' ?>>
+
+                                <i
+                                    class="ri-home-4-line
+                                    fs-16
+                                    align-middle
+                                    me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                <span class="align-middle">
+                                    Home
+                                </span>
+                            </a>
+
+                            <!-- Matches -->
+                            <a
+                                href="<?= site_url('matches') ?>"
+                                class="dropdown-item
+                                <?= $matchesActive
+                                    ? 'active'
+                                    : '' ?>"
+                                <?= $matchesActive
+                                    ? 'aria-current="page"'
+                                    : '' ?>>
+
+                                <i
+                                    class="ri-heart-3-line
+                                    fs-16
+                                    align-middle
+                                    me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                <span class="align-middle">
+                                    Matches
+                                </span>
+                            </a>
+
+                            <!-- Interest -->
+                            <a
+                                href="<?= site_url('interests') ?>"
+                                class="dropdown-item
+                                <?= $interestActive
+                                    ? 'active'
+                                    : '' ?>"
+                                <?= $interestActive
+                                    ? 'aria-current="page"'
+                                    : '' ?>>
+
+                                <i
+                                    class="ri-heart-add-line
+                                    fs-16
+                                    align-middle
+                                    me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                <span class="align-middle">
+                                    Interest
+                                </span>
+                            </a>
+
+                            <!-- Messages -->
+                            <a
+                                href="<?= site_url('messages') ?>"
+                                class="dropdown-item
+                                d-flex
+                                align-items-center
+                                <?= $messagesActive
+                                    ? 'active'
+                                    : '' ?>"
+                                <?= $messagesActive
+                                    ? 'aria-current="page"'
+                                    : '' ?>>
+
+                                <i
+                                    class="ri-message-3-line
+                                    fs-16
+                                    align-middle
+                                    me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                <span class="align-middle">
+                                    Messages
+                                </span>
+
+                                <?php if (
+                                    $unreadMessageCount > 0
+                                ): ?>
+                                    <span
+                                        class="badge
+                                        rounded-pill
+                                        bg-danger
+                                        ms-auto">
+
+                                        <?= esc(
+                                            $unreadMessageCount > 99
+                                                ? '99+'
+                                                : (string)
+                                                $unreadMessageCount
+                                        ) ?>
+
+                                        <span class="visually-hidden">
+                                            unread messages
+                                        </span>
+                                    </span>
+                                <?php endif; ?>
+                            </a>
+
+                            <div class="dropdown-divider"></div>
+
+                            <!-- Edit Profile -->
+                            <a
+                                class="dropdown-item"
+                                href="<?= url_to(
+                                            'web.profile.edit'
+                                        ) ?>">
+
+                                <i
+                                    class="ri-user-settings-line
+                                    text-muted
+                                    fs-16
+                                    align-middle
+                                    me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                <span class="align-middle">
+                                    Edit Profile
+                                </span>
+                            </a>
+
+                            <!-- Account Settings -->
+                            <a
+                                class="dropdown-item"
+                                href="<?= url_to(
+                                            'web.account.settings'
+                                        ) ?>">
+
+                                <i
+                                    class="ri-settings-3-line
+                                    text-muted
+                                    fs-16
+                                    align-middle
+                                    me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                <span class="align-middle">
+                                    Account Settings
+                                </span>
+                            </a>
+
+                            <div class="dropdown-divider"></div>
+
+                            <!-- Logout -->
+                            <form
+                                method="post"
+                                action="<?= url_to('web.logout') ?>"
+                                class="m-0">
+
+                                <?= csrf_field() ?>
+
+                                <button
+                                    type="submit"
+                                    class="dropdown-item
+                                    border-0
+                                    bg-transparent
+                                    w-100
+                                    text-start">
+
+                                    <i
+                                        class="ri-logout-box-r-line
+                                        text-danger
+                                        fs-16
+                                        align-middle
+                                        me-1"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <span class="align-middle">
+                                        Logout
+                                    </span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Notification bell -->
+                    <a
+                        href="<?= site_url('notifications') ?>"
+                        class="btn
+                        btn-icon
+                        btn-topbar
+                        btn-ghost-secondary
+                        rounded-circle
+                        position-relative"
+                        aria-label="View notifications">
+
+                        <i
+                            class="ri-notification-3-line fs-22"
+                            aria-hidden="true">
+                        </i>
+
+                        <?php if (
+                            $unreadNotificationCount > 0
+                        ): ?>
+                            <span
+                                class="position-absolute
+                                top-0 start-100
+                                translate-middle
+                                badge
+                                rounded-pill
+                                bg-danger">
+
+                                <?= esc(
+                                    $unreadNotificationCount > 99
+                                        ? '99+'
+                                        : (string)
+                                        $unreadNotificationCount
+                                ) ?>
+
+                                <span class="visually-hidden">
+                                    unread notifications
+                                </span>
+                            </span>
+                        <?php endif; ?>
+                    </a>
+                </div>
+
+            <?php else: ?>
+
+                <!-- Existing public header actions -->
+                <div class="public-navbar__actions">
+
+                    <span
+                        class="fs-16
+                        fw-semibold
+                        lh-base
+                        text-dark
+                        text-nowrap
+                        hide-on-mobile-tablet">
                         Already a member?
                     </span>
 
                     <a
                         href="<?= site_url('login') ?>"
-                        class="btn public-navbar__login fs-14">
+                        class="btn
+                        public-navbar__login
+                        fs-14">
                         Login
                     </a>
 
                     <a
                         href="tel:+919887005392"
-                        class="public-navbar__phone hide-on-mobile"
+                        class="public-navbar__phone
+                        hide-on-mobile"
                         aria-label="Call Sikh Anand Karaj at +91 98870 05320">
 
                         <span
-                            class="mdi mdi-phone-outline public-navbar__phone-icon"
+                            class="mdi
+                            mdi-phone-outline
+                            public-navbar__phone-icon"
                             aria-hidden="true">
                         </span>
 
@@ -235,10 +795,9 @@ if ($resolvedLoggedInName === '') {
                             +91 98870 05320
                         </span>
                     </a>
+                </div>
 
-                <?php endif; ?>
-
-            </div>
+            <?php endif; ?>
         </div>
     </nav>
 </header>

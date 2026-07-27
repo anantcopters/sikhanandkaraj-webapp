@@ -171,6 +171,69 @@ $routes->group('', [
         ]
     );
 
+    /*
+ * Authenticated member navigation.
+ */
+    $routes->group(
+        '',
+        [
+            'filter' => 'webAuth',
+        ],
+        static function (
+            RouteCollection $routes
+        ): void {
+            $routes->get(
+                'matches',
+                'MemberNavigationController::matches',
+                [
+                    'as' => 'web.matches',
+                ]
+            );
+
+            $routes->get(
+                'interests',
+                'MemberNavigationController::interests',
+                [
+                    'as' => 'web.interests',
+                ]
+            );
+
+            $routes->get(
+                'messages',
+                'MemberNavigationController::messages',
+                [
+                    'as' => 'web.messages',
+                ]
+            );
+
+            $routes->get(
+                'notifications',
+                'NotificationController::index',
+                [
+                    'as' => 'web.notifications',
+                ]
+            );
+
+            $routes->post(
+                'notifications/read-all',
+                'NotificationController::readAll',
+                [
+                    'as' =>
+                    'web.notifications.read-all',
+                ]
+            );
+
+            $routes->post(
+                'notifications/(:num)/open',
+                'NotificationController::open/$1',
+                [
+                    'as' =>
+                    'web.notifications.open',
+                ]
+            );
+        }
+    );
+
     $routes->get(
         'profile/edit',
         'ProfileController::edit',
