@@ -108,6 +108,7 @@ final class MemberNotificationService
             MemberNotificationModel::TYPE_INTEREST_REJECTED,
             MemberNotificationModel::TYPE_PROFILE_VIEW,
             MemberNotificationModel::TYPE_SHORTLISTED,
+            MemberNotificationModel::TYPE_PHOTO_REJECTED,
             MemberNotificationModel::TYPE_SYSTEM,
         ];
 

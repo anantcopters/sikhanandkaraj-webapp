@@ -10,6 +10,8 @@ use App\Services\Admin\Audit\AdminAuditAction;
 use App\Services\Admin\Audit\AdminAuditEvent;
 use App\Services\Admin\Audit\AdminAuditService;
 use App\Services\Aws\CloudFrontService;
+use App\Models\MemberNotificationModel;
+use App\Services\Notification\MemberNotificationService;
 use CodeIgniter\Database\BaseConnection;
 use App\Support\BooleanValue;
 use Config\MemberMedia;
@@ -27,6 +29,7 @@ final class MemberPhotoApprovalService
         private readonly CloudFrontService $cloudFrontService,
         private readonly MemberMedia $mediaConfig,
         private readonly AdminAuditService $auditService,
+        private readonly MemberNotificationService $notificationService,
         private readonly BaseConnection $database
     ) {}
 
@@ -252,12 +255,20 @@ final class MemberPhotoApprovalService
     }
 
     /**
-     * Reject one pending photo.
+     * Reject one pending member photo and notify its owner.
      *
-     * Rejection reason storage is retained but the current UI does
-     * not ask the administrator to enter a reason.
+     * The photo update, audit record and member notification are committed
+     * together. If any operation fails, the complete transaction is rolled back.
      *
-     * @return array<string, mixed>
+     * Rejection reason storage is retained, although the current administrator
+     * UI does not require a reason.
+     *
+     * @return array{
+     *     photoId:int,
+     *     memberId:int,
+     *     notificationId:int,
+     *     status:string
+     * }
      */
     public function rejectPhoto(
         int $photoId,
@@ -286,11 +297,33 @@ final class MemberPhotoApprovalService
             );
         }
 
+        /*
+     * member_photos.member_id stores the owning users.id value.
+     * It is therefore also the recipient_user_id used by
+     * member_notifications.
+     */
         $memberId = (int) (
             $photo['member_id'] ?? 0
         );
 
+        if ($memberId <= 0) {
+            throw new DomainException(
+                'The photo owner could not be identified.'
+            );
+        }
+
         $rejectedAt = date('Y-m-d H:i:s');
+
+        /*
+     * The current administrator UI does not collect a reason. Use a helpful
+     * generic message in that case, while supporting a supplied reason for
+     * future moderation workflows.
+     */
+        $notificationMessage = $reason !== ''
+            ? 'Your profile photo was not approved. Reason: '
+            . $reason
+            : 'Your profile photo was not approved. Please upload a clear, '
+            . 'recent photo that follows the profile photo guidelines.';
 
         $this->database->transBegin();
 
@@ -349,6 +382,25 @@ final class MemberPhotoApprovalService
                 ]
             );
 
+            /*
+         * actor_user_id is intentionally omitted.
+         *
+         * member_notifications.actor_user_id references users.id, whereas
+         * $adminId belongs to admin_users. Saving the administrator ID in
+         * actor_user_id would violate the foreign-key relationship.
+         */
+            $notificationId = $this->notificationService
+                ->create([
+                    'recipientUserId' => $memberId,
+                    'type' =>
+                    MemberNotificationModel::TYPE_PHOTO_REJECTED,
+                    'title' => 'Profile photo not approved',
+                    'message' => $notificationMessage,
+                    'entityType' => 'MEMBER_PHOTO',
+                    'entityId' => $photoId,
+                    'targetUrl' => '/profile/photos',
+                ]);
+
             if (
                 $this->database->transStatus() === false
             ) {
@@ -362,6 +414,7 @@ final class MemberPhotoApprovalService
             return [
                 'photoId' => $photoId,
                 'memberId' => $memberId,
+                'notificationId' => $notificationId,
                 'status' => 'REJECTED',
             ];
         } catch (Throwable $exception) {

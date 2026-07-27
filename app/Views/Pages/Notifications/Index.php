@@ -153,14 +153,21 @@ $unreadNotificationCount = isset(
                         $iconClass = match ($notificationType) {
                             'MESSAGE' =>
                             'ri-message-3-line',
+
                             'INTEREST_RECEIVED',
                             'INTEREST_ACCEPTED',
                             'INTEREST_REJECTED' =>
                             'ri-heart-3-line',
+
                             'PROFILE_VIEW' =>
                             'ri-eye-line',
+
                             'SHORTLISTED' =>
                             'ri-bookmark-line',
+
+                            'PHOTO_REJECTED' =>
+                            'ri-image-line',
+
                             default =>
                             'ri-notification-3-line',
                         };

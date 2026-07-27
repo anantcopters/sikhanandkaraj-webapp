@@ -688,14 +688,14 @@ class Services extends BaseService
             new AdminMemberPhotoApprovalModel(
                 $database
             ),
+
             new MemberPhotoModel(
                 $database
             ),
 
             /*
-         * Retain the exact existing CloudFront service factory name.
-         * The latest implementation currently uses CloudFrontService().
-         */
+            * Retain the exact existing CloudFront service factory name.
+            */
             static::CloudFrontService(
                 false
             ),
@@ -703,6 +703,16 @@ class Services extends BaseService
             $mediaConfig,
 
             static::adminAuditService(
+                false
+            ),
+
+            /*
+            * Notification creation remains behind its reusable service.
+            *
+            * Both services use the application's shared database connection, so the
+            * notification participates in the photo-rejection transaction.
+            */
+            static::memberNotificationService(
                 false
             ),
 

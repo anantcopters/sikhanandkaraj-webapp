@@ -32,6 +32,9 @@ final class MemberNotificationModel extends Model
     public const TYPE_SHORTLISTED =
     'SHORTLISTED';
 
+    public const TYPE_PHOTO_REJECTED =
+    'PHOTO_REJECTED';
+
     public const TYPE_SYSTEM =
     'SYSTEM';
 
