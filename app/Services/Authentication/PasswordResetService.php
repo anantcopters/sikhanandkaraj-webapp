@@ -23,7 +23,8 @@ use Throwable;
  * Handles forgot-password identification, OTP delivery, OTP verification
  * and final password replacement.
  *
- * This service intentionally does not inspect or change account_status.
+ * Password reset is permitted only for PENDING and APPROVED accounts.
+ * This service validates account status but never changes it.
  */
 final class PasswordResetService
 {
@@ -41,6 +42,16 @@ final class PasswordResetService
     private const SEND_LIMIT_PER_DAY = 5;
 
     private const SEND_WINDOW_HOURS = 24;
+
+    /**
+     * Account statuses that are eligible for password reset.
+     *
+     * @var list<string>
+     */
+    private const PASSWORD_RESET_ALLOWED_STATUSES = [
+        UserModel::STATUS_PENDING,
+        UserModel::STATUS_APPROVED,
+    ];
 
     public function __construct(
         private readonly UserModel $userModel,
@@ -87,6 +98,28 @@ final class PasswordResetService
         if ($userId <= 0) {
             return PasswordResetResult::failure(
                 'We could not find an account with these details.'
+            );
+        }
+
+        /**
+         * Load the account independently of the contact record.
+         *
+         * UserModel uses soft deletes, so deleted accounts are not returned by
+         * find() and are automatically ineligible for password reset.
+         */
+        $user = $this->userModel->find(
+            $userId
+        );
+
+        if (! is_array($user)) {
+            return PasswordResetResult::failure(
+                'We could not find an account with these details.'
+            );
+        }
+
+        if (! $this->isPasswordResetAllowedForUser($user)) {
+            return PasswordResetResult::failure(
+                'Password reset is available only for pending or approved accounts.'
             );
         }
 
@@ -889,20 +922,29 @@ final class PasswordResetService
     }
 
     /**
-     * Confirm that the reset mobile belongs to the supplied user and remains
+     * Confirm that the reset mobile belongs to an eligible user and remains
      * verified.
      *
-     * Account status is intentionally not inspected.
+     * This method is reused by resend, OTP verification and final password
+     * replacement, ensuring that an account becoming ineligible during the
+     * workflow cannot continue resetting its password.
      */
     private function isValidResetContact(
         int $userId,
         int $mobileContactId
     ): bool {
+        if ($userId <= 0 || $mobileContactId <= 0) {
+            return false;
+        }
+
         $user = $this->userModel->find(
             $userId
         );
 
-        if (! is_array($user)) {
+        if (
+            ! is_array($user)
+            || ! $this->isPasswordResetAllowedForUser($user)
+        ) {
             return false;
         }
 
@@ -918,6 +960,39 @@ final class PasswordResetService
 
         return BooleanValue::fromDatabase(
             $mobile['is_verified'] ?? false
+        );
+    }
+
+    /**
+     * Determine whether the supplied account may use password reset.
+     *
+     * Database status values are normalized before comparison so historical
+     * rows containing lowercase values or surrounding whitespace do not cause
+     * inconsistent authorization behaviour.
+     *
+     * Missing or unknown statuses are denied by default.
+     *
+     * @param array<string, mixed> $user
+     */
+    private function isPasswordResetAllowedForUser(
+        array $user
+    ): bool {
+        $accountStatus = strtoupper(
+            trim(
+                (string) (
+                    $user['account_status'] ?? ''
+                )
+            )
+        );
+
+        if ($accountStatus === '') {
+            return false;
+        }
+
+        return in_array(
+            $accountStatus,
+            self::PASSWORD_RESET_ALLOWED_STATUSES,
+            true
         );
     }
 

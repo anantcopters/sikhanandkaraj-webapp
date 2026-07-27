@@ -11,6 +11,16 @@ use CodeIgniter\Model;
  */
 final class UserModel extends Model
 {
+    /**
+     * Account has completed registration but is awaiting approval.
+     */
+    public const STATUS_PENDING = 'PENDING';
+
+    /**
+     * Account has been reviewed and approved.
+     */
+    public const STATUS_APPROVED = 'APPROVED';
+    
     protected $table = 'users';
 
     protected $primaryKey = 'id';
