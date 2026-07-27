@@ -422,27 +422,44 @@ final class PasswordResetService
              * This prevents a second concurrent request from using an OTP that
              * another request has already consumed.
              */
-            $currentVerification = $this->verificationModel
-                ->where('id', $verificationId)
-                ->where(
-                    'user_contact_id',
+            $currentVerification =
+                $this->verificationModel
+                ->lockVerifiedPasswordReset(
+                    $verificationId,
                     $mobileContactId
-                )
-                ->where(
-                    'purpose',
-                    ContactVerificationModel::PURPOSE_PASSWORD_RESET
-                )
-                ->where(
-                    'status',
-                    ContactVerificationModel::STATUS_VERIFIED
-                )
-                ->first();
+                );
 
             if (! is_array($currentVerification)) {
                 $this->database->transRollback();
 
                 return PasswordResetResult::failure(
                     'This password reset authorization has already been used.'
+                );
+            }
+
+            $lockedVerifiedAt = $this->parseUtcTimestamp(
+                (string) (
+                    $currentVerification['verified_at'] ?? ''
+                )
+            );
+
+            if (
+                $lockedVerifiedAt === null
+                || $lockedVerifiedAt < time() - 900
+            ) {
+                $this->verificationModel->update(
+                    $verificationId,
+                    [
+                        'status' =>
+                        ContactVerificationModel::STATUS_EXPIRED,
+                    ]
+                );
+
+                $this->commitOrFail();
+
+                return PasswordResetResult::failure(
+                    'Your password reset session has expired. '
+                        . 'Please request another OTP.'
                 );
             }
 
@@ -537,11 +554,20 @@ final class PasswordResetService
         );
     }
 
+    /**
+     * Create and deliver a password-reset OTP.
+     *
+     * Database creation is committed before contacting the external SMS provider,
+     * so a slow provider does not hold a database transaction open.
+     *
+     * When delivery fails, the newly created verification record is immediately
+     * marked DELIVERY_FAILED and cannot be verified or block resend.
+     */
     private function issueOtp(
         int $userId,
         int $mobileContactId
     ): PasswordResetResult {
-        if (!$this->isValidResetContact(
+        if (! $this->isValidResetContact(
             $userId,
             $mobileContactId
         )) {
@@ -550,22 +576,56 @@ final class PasswordResetService
             );
         }
 
+        $mobileContact = $this->contactModel->find(
+            $mobileContactId
+        );
+
+        if (! is_array($mobileContact)) {
+            return PasswordResetResult::failure(
+                'The verified mobile number could not be found.'
+            );
+        }
+
+        $mobileNumber = trim(
+            (string) (
+                $mobileContact['normalized_value'] ?? ''
+            )
+        );
+
+        if ($mobileNumber === '') {
+            return PasswordResetResult::failure(
+                'The verified mobile number could not be found.'
+            );
+        }
+
+        $otp = $this->generateOtp();
+
+        $now = new DateTimeImmutable(
+            'now',
+            new DateTimeZone('UTC')
+        );
+
+        $expiresAt = $now->add(
+            new DateInterval(
+                'PT' . self::OTP_EXPIRY_MINUTES . 'M'
+            )
+        );
+
+        $since = $now
+            ->sub(
+                new DateInterval(
+                    'PT' . self::SEND_WINDOW_HOURS . 'H'
+                )
+            )
+            ->format('Y-m-d H:i:sP');
+
+        $verificationId = null;
+
         $this->database->transBegin();
 
         try {
-            $since = (new DateTimeImmutable(
-                'now',
-                new DateTimeZone('UTC')
-            ))
-                ->sub(
-                    new DateInterval(
-                        'PT' . self::SEND_WINDOW_HOURS . 'H'
-                    )
-                )
-                ->format('Y-m-d H:i:sP');
-
             $issuedCount = $this->verificationModel
-                ->countIssuedSince(
+                ->countDeliveredOrPendingSince(
                     $mobileContactId,
                     ContactVerificationModel::PURPOSE_PASSWORD_RESET,
                     $since
@@ -580,117 +640,209 @@ final class PasswordResetService
                 );
             }
 
-            $this->verificationModel->cancelPendingForContact(
-                $mobileContactId,
-                ContactVerificationModel::PURPOSE_PASSWORD_RESET
-            );
-
-            $configuredOtp = trim(
-                (string) env('OTP_FIXED_VALUE')
-            );
-
-            $otp = $configuredOtp !== ''
-                ? $configuredOtp
-                : (string) random_int(1000, 9999);
-
-            $now = new DateTimeImmutable(
-                'now',
-                new DateTimeZone('UTC')
-            );
-
-            $expiresAt = $now->add(
-                new DateInterval(
-                    'PT' . self::OTP_EXPIRY_MINUTES . 'M'
-                )
-            );
-
+            /**
+             * Do not cancel the old pending OTP until the replacement record is
+             * successfully created.
+             */
             $verificationId = $this->verificationModel
                 ->insert([
-                    'user_contact_id' => $mobileContactId,
+                    'user_contact_id' =>
+                    $mobileContactId,
+
                     'purpose' =>
                     ContactVerificationModel::PURPOSE_PASSWORD_RESET,
-                    'otp_hash' => password_hash(
+
+                    'otp_hash' =>
+                    password_hash(
                         $otp,
                         PASSWORD_DEFAULT
                     ),
+
                     'expires_at' =>
                     $expiresAt->format('Y-m-d H:i:sP'),
-                    'attempt_count' => 0,
-                    'resend_count' => 0,
+
+                    'attempt_count' =>
+                    0,
+
+                    'resend_count' =>
+                    0,
+
                     'status' =>
                     ContactVerificationModel::STATUS_PENDING,
-                    'verified_at' => null,
+
+                    'verified_at' =>
+                    null,
                 ], true);
 
-            if (!is_numeric($verificationId)) {
+            if (! is_numeric($verificationId)) {
                 throw new RuntimeException(
                     'Unable to create the password reset OTP.'
                 );
             }
 
-            $this->commitOrFail();
+            /**
+             * Cancel older pending records only after the replacement record has
+             * been inserted successfully.
+             */
+            $olderPendingCancelled = $this->verificationModel
+                ->cancelOtherPendingForContact(
+                    $mobileContactId,
+                    ContactVerificationModel::PURPOSE_PASSWORD_RESET,
+                    (int) $verificationId
+                );
 
-            $mobileContact = $this->contactModel->find(
-                $mobileContactId
-            );
-
-            if (!is_array($mobileContact)) {
+            if (! $olderPendingCancelled) {
                 throw new RuntimeException(
-                    'The mobile contact could not be found.'
+                    'Unable to replace the previous password reset OTP.'
                 );
             }
 
+            $this->commitOrFail();
+        } catch (Throwable $exception) {
+            $this->database->transRollback();
+
+            throw $exception;
+        }
+
+        try {
             $smsResult = $this->smsProvider->send(
                 new SmsMessage(
-                    mobileNumber: (string) (
-                        $mobileContact['normalized_value'] ?? ''
-                    ),
+                    mobileNumber: $mobileNumber,
+
                     message: 'Your Sikh Anand Karaj password reset OTP is '
                         . $otp
                         . '. It is valid for '
                         . self::OTP_EXPIRY_MINUTES
                         . ' minutes.',
+
                     templateId: trim(
                         (string) env(
                             'sms.passwordResetTemplateId'
                         )
                     ) ?: null,
+
                     variables: [
-                        'otp' => $otp,
+                        'otp' =>
+                        $otp,
+
                         'expiry_minutes' =>
                         (string) self::OTP_EXPIRY_MINUTES,
                     ]
                 )
             );
-
-            if (!$smsResult->successful) {
-                log_message(
-                    'error',
-                    'Password reset OTP SMS failed: '
-                        . 'contact_id={contactId}, error={error}',
-                    [
-                        'contactId' => $mobileContactId,
-                        'error' =>
-                        $smsResult->errorMessage
-                            ?? 'Unknown SMS provider error',
-                    ]
-                );
-
-                return PasswordResetResult::failure(
-                    'We could not send the OTP. Please try again.'
-                );
-            }
-
-            return PasswordResetResult::success(
-                'OTP sent successfully.',
-                $userId,
-                $mobileContactId,
-                $expiresAt->getTimestamp()
-            );
         } catch (Throwable $exception) {
-            $this->database->transRollback();
+            $this->markOtpDeliveryFailed(
+                (int) $verificationId
+            );
 
             throw $exception;
+        }
+
+        if (! $smsResult->successful) {
+            $this->markOtpDeliveryFailed(
+                (int) $verificationId
+            );
+
+            log_message(
+                'error',
+                'Password reset OTP SMS failed: '
+                    . 'contact_id={contactId}, error={error}',
+                [
+                    'contactId' =>
+                    $mobileContactId,
+
+                    'error' =>
+                    $smsResult->errorMessage
+                        ?? 'Unknown SMS provider error',
+                ]
+            );
+
+            return PasswordResetResult::failure(
+                'We could not send the OTP. Please try again.'
+            );
+        }
+
+        return PasswordResetResult::success(
+            'OTP sent successfully.',
+            $userId,
+            $mobileContactId,
+            $expiresAt->getTimestamp()
+        );
+    }
+
+    /**
+     * Generate a valid four-digit OTP.
+     *
+     * OTP_FIXED_VALUE is allowed only outside production and must contain exactly
+     * four digits. An invalid configured value must never create an OTP that the
+     * verification method cannot accept.
+     */
+    private function generateOtp(): string
+    {
+        $configuredOtp = trim(
+            (string) env('OTP_FIXED_VALUE')
+        );
+
+        if ($configuredOtp === '') {
+            return (string) random_int(
+                10 ** (self::OTP_LENGTH - 1),
+                (10 ** self::OTP_LENGTH) - 1
+            );
+        }
+
+        if (ENVIRONMENT === 'production') {
+            log_message(
+                'critical',
+                'OTP_FIXED_VALUE must not be configured in production.'
+            );
+
+            throw new RuntimeException(
+                'OTP configuration is invalid.'
+            );
+        }
+
+        if (! preg_match(
+            '/^\d{' . self::OTP_LENGTH . '}$/',
+            $configuredOtp
+        )) {
+            throw new RuntimeException(
+                'OTP_FIXED_VALUE must contain exactly '
+                    . self::OTP_LENGTH
+                    . ' digits.'
+            );
+        }
+
+        return $configuredOtp;
+    }
+
+    /**
+     * Prevent an undelivered OTP from remaining usable.
+     */
+    private function markOtpDeliveryFailed(
+        int $verificationId
+    ): void {
+        if ($verificationId <= 0) {
+            return;
+        }
+
+        $updated = $this->verificationModel->update(
+            $verificationId,
+            [
+                'status' =>
+                ContactVerificationModel::STATUS_DELIVERY_FAILED,
+            ]
+        );
+
+        if ($updated === false) {
+            log_message(
+                'critical',
+                'Unable to mark failed password reset OTP delivery: '
+                    . 'verification_id={verificationId}',
+                [
+                    'verificationId' =>
+                    $verificationId,
+                ]
+            );
         }
     }
 

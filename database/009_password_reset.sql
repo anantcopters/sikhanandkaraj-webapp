@@ -8,13 +8,16 @@ ON contact_verifications (
 );
 
 ALTER TABLE contact_verifications
-DROP CONSTRAINT IF EXISTS chk_contact_verifications_purpose;
+DROP CONSTRAINT IF EXISTS contact_verifications_status_check;
 
 ALTER TABLE contact_verifications
-ADD CONSTRAINT chk_contact_verifications_purpose
+ADD CONSTRAINT contact_verifications_status_check
 CHECK (
-    purpose IN (
-        'REGISTER',
-        'PASSWORD_RESET'
+    status IN (
+        'PENDING',
+        'VERIFIED',
+        'EXPIRED',
+        'CANCELLED',
+        'DELIVERY_FAILED'
     )
 );
