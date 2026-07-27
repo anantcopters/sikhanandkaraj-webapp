@@ -5,6 +5,7 @@ declare(strict_types=1);
 /**
  * Local view variables.
  */
+
 $pageTitle = isset($pageTitle)
     ? (string) $pageTitle
     : 'Set New Password';
@@ -38,10 +39,10 @@ $passwordConfirmationHasError =
     $passwordConfirmationError !== '';
 
 $formAction = route_to(
-    'web.forgot-password.password.submit'
+    'web.forgot-password.password.update'
 );
 
-$cancelUrl = route_to(
+$cancelAction = route_to(
     'web.forgot-password.cancel'
 );
 
@@ -67,7 +68,7 @@ $this->section('content');
 
                 <?php if ($formAlert !== null): ?>
                     <?= view(
-                        'Components/Alert',
+                        'Components/Alerts/FormAlert',
                         [
                             'alert' => $formAlert,
                         ]
@@ -106,7 +107,9 @@ $this->section('content');
                                 class="password-field__toggle"
                                 data-password-toggle="password"
                                 aria-label="Show password">
-                                <i class="bi bi-eye"></i>
+                                <i
+                                    class="bi bi-eye"
+                                    aria-hidden="true"></i>
                             </button>
                         </div>
 
@@ -142,7 +145,9 @@ $this->section('content');
                                 class="password-field__toggle"
                                 data-password-toggle="password_confirmation"
                                 aria-label="Show confirmed password">
-                                <i class="bi bi-eye"></i>
+                                <i
+                                    class="bi bi-eye"
+                                    aria-hidden="true"></i>
                             </button>
                         </div>
 
@@ -177,11 +182,20 @@ $this->section('content');
                 </form>
 
                 <div class="registration-form__footer">
-                    <a
-                        href="<?= esc($cancelUrl, 'attr') ?>"
-                        class="registration-form__link">
-                        Cancel
-                    </a>
+                    <form
+                        action="<?= esc(
+                                    $cancelAction,
+                                    'attr'
+                                ) ?>"
+                        method="post">
+                        <?= csrf_field() ?>
+
+                        <button
+                            type="submit"
+                            class="registration-form__link-button">
+                            Cancel
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

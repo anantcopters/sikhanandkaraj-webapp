@@ -5,6 +5,7 @@ declare(strict_types=1);
 /**
  * Local view variables.
  */
+
 $pageTitle = isset($pageTitle)
     ? (string) $pageTitle
     : 'Forgot Password';
@@ -60,7 +61,7 @@ $this->section('content');
 
                 <?php if ($formAlert !== null): ?>
                     <?= view(
-                        'Components/Alert',
+                        'Components/Alerts/FormAlert',
                         [
                             'alert' => $formAlert,
                         ]
@@ -89,7 +90,10 @@ $this->section('content');
                                 <?= $identifierHasError
                                     ? 'is-invalid'
                                     : '' ?>"
-                            value="<?= esc($identifier, 'attr') ?>"
+                            value="<?= esc(
+                                        $identifier,
+                                        'attr'
+                                    ) ?>"
                             maxlength="254"
                             autocomplete="username"
                             required>

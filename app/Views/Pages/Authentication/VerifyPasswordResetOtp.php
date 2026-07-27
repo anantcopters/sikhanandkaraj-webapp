@@ -5,6 +5,7 @@ declare(strict_types=1);
 /**
  * Local view variables.
  */
+
 $pageTitle = isset($pageTitle)
     ? (string) $pageTitle
     : 'Verify OTP';
@@ -38,7 +39,7 @@ $resendAction = route_to(
     'web.forgot-password.resend'
 );
 
-$cancelUrl = route_to(
+$cancelAction = route_to(
     'web.forgot-password.cancel'
 );
 
@@ -56,13 +57,14 @@ $this->section('content');
                     </h1>
 
                     <p class="registration-form__description">
-                        Enter the OTP sent to your verified mobile number.
+                        Enter the four-digit OTP sent to your verified
+                        mobile number.
                     </p>
                 </div>
 
                 <?php if ($formAlert !== null): ?>
                     <?= view(
-                        'Components/Alert',
+                        'Components/Alerts/FormAlert',
                         [
                             'alert' => $formAlert,
                         ]
@@ -78,8 +80,8 @@ $this->section('content');
                         'resendAction' =>
                         $resendAction,
 
-                        'cancelUrl' =>
-                        $cancelUrl,
+                        'cancelAction' =>
+                        $cancelAction,
 
                         'expiresAtTimestamp' =>
                         $expiresAtTimestamp,

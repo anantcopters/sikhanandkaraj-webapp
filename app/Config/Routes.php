@@ -81,68 +81,76 @@ $routes->group('', [
         ]
     );
 
-    $routes->get(
+    $routes->group(
         'forgot-password',
-        'ForgotPasswordController::index',
         [
-            'as' => 'web.forgot-password',
-        ]
-    );
+            'namespace' => 'App\Controllers\Web',
+        ],
+        static function ($routes): void {
+            $routes->get(
+                '',
+                'ForgotPasswordController::index',
+                [
+                    'as' => 'web.forgot-password',
+                ]
+            );
 
-    $routes->post(
-        'forgot-password/send-otp',
-        'ForgotPasswordController::sendOtp',
-        [
-            'as' => 'web.forgot-password.send-otp',
-        ]
-    );
+            $routes->post(
+                'send-otp',
+                'ForgotPasswordController::sendOtp',
+                [
+                    'as' => 'web.forgot-password.send-otp',
+                ]
+            );
 
-    $routes->get(
-        'forgot-password/verify-otp',
-        'ForgotPasswordController::verifyPage',
-        [
-            'as' => 'web.forgot-password.verify',
-        ]
-    );
+            $routes->get(
+                'verify',
+                'ForgotPasswordController::verifyPage',
+                [
+                    'as' => 'web.forgot-password.verify',
+                ]
+            );
 
-    $routes->post(
-        'forgot-password/verify-otp',
-        'ForgotPasswordController::verifyOtp',
-        [
-            'as' => 'web.forgot-password.verify.submit',
-        ]
-    );
+            $routes->post(
+                'verify',
+                'ForgotPasswordController::verifyOtp',
+                [
+                    'as' => 'web.forgot-password.verify.submit',
+                ]
+            );
 
-    $routes->post(
-        'forgot-password/resend-otp',
-        'ForgotPasswordController::resendOtp',
-        [
-            'as' => 'web.forgot-password.resend',
-        ]
-    );
+            $routes->post(
+                'resend',
+                'ForgotPasswordController::resendOtp',
+                [
+                    'as' => 'web.forgot-password.resend',
+                ]
+            );
 
-    $routes->get(
-        'forgot-password/set-password',
-        'ForgotPasswordController::passwordPage',
-        [
-            'as' => 'web.forgot-password.password',
-        ]
-    );
+            $routes->get(
+                'password',
+                'ForgotPasswordController::passwordPage',
+                [
+                    'as' => 'web.forgot-password.password',
+                ]
+            );
 
-    $routes->post(
-        'forgot-password/set-password',
-        'ForgotPasswordController::updatePassword',
-        [
-            'as' => 'web.forgot-password.password.update',
-        ]
-    );
+            $routes->post(
+                'password',
+                'ForgotPasswordController::updatePassword',
+                [
+                    'as' => 'web.forgot-password.password.update',
+                ]
+            );
 
-    $routes->post(
-        'forgot-password/cancel',
-        'ForgotPasswordController::cancel',
-        [
-            'as' => 'web.forgot-password.cancel',
-        ]
+            $routes->post(
+                'cancel',
+                'ForgotPasswordController::cancel',
+                [
+                    'as' => 'web.forgot-password.cancel',
+                ]
+            );
+        }
     );
 
     $routes->post(

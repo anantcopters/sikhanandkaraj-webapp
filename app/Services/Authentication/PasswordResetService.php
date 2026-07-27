@@ -328,13 +328,17 @@ final class PasswordResetService
 
     /**
      * Replace the password after successful OTP verification.
+     *
+     * The password update and OTP consumption are performed in a single
+     * transaction. This prevents a verified OTP from remaining reusable when
+     * its consumption fails after the password has already changed.
      */
     public function resetPassword(
         int $userId,
         int $mobileContactId,
         string $password
     ): PasswordResetResult {
-        if (!$this->isValidResetContact(
+        if (! $this->isValidResetContact(
             $userId,
             $mobileContactId
         )) {
@@ -343,9 +347,11 @@ final class PasswordResetService
             );
         }
 
-        /*
+        /**
          * Verify that a PASSWORD_RESET OTP was actually verified for this
-         * mobile. A session flag alone must never authorize password change.
+         * mobile contact.
+         *
+         * A browser session flag alone must never authorize a password change.
          */
         $verifiedOtp = $this->verificationModel
             ->where(
@@ -363,13 +369,23 @@ final class PasswordResetService
             ->orderBy('id', 'DESC')
             ->first();
 
-        if (!is_array($verifiedOtp)) {
+        if (! is_array($verifiedOtp)) {
             return PasswordResetResult::failure(
                 'Please verify the OTP before setting a new password.'
             );
         }
 
-        /*
+        $verificationId = (int) (
+            $verifiedOtp['id'] ?? 0
+        );
+
+        if ($verificationId <= 0) {
+            return PasswordResetResult::failure(
+                'The password reset authorization is invalid.'
+            );
+        }
+
+        /**
          * Limit how long a verified OTP may authorize password replacement.
          */
         $verifiedAt = $this->parseUtcTimestamp(
@@ -397,34 +413,110 @@ final class PasswordResetService
             );
         }
 
-        $updated = $this->userModel->update(
-            $userId,
-            [
-                'password_hash' => $passwordHash,
-            ]
-        );
+        $this->database->transBegin();
 
-        if ($updated === false) {
-            throw new RuntimeException(
-                'Unable to update the password.'
+        try {
+            /**
+             * Recheck the OTP status inside the transaction.
+             *
+             * This prevents a second concurrent request from using an OTP that
+             * another request has already consumed.
+             */
+            $currentVerification = $this->verificationModel
+                ->where('id', $verificationId)
+                ->where(
+                    'user_contact_id',
+                    $mobileContactId
+                )
+                ->where(
+                    'purpose',
+                    ContactVerificationModel::PURPOSE_PASSWORD_RESET
+                )
+                ->where(
+                    'status',
+                    ContactVerificationModel::STATUS_VERIFIED
+                )
+                ->first();
+
+            if (! is_array($currentVerification)) {
+                $this->database->transRollback();
+
+                return PasswordResetResult::failure(
+                    'This password reset authorization has already been used.'
+                );
+            }
+
+            $passwordUpdated = $this->userModel->update(
+                $userId,
+                [
+                    'password_hash' => $passwordHash,
+                ]
             );
+
+            if ($passwordUpdated === false) {
+                throw new RuntimeException(
+                    'Unable to update the password.'
+                );
+            }
+
+            /**
+             * Consume the verified OTP authorization.
+             */
+            $verificationConsumed =
+                $this->verificationModel->update(
+                    $verificationId,
+                    [
+                        'status' =>
+                        ContactVerificationModel::STATUS_CANCELLED,
+                    ]
+                );
+
+            if ($verificationConsumed === false) {
+                throw new RuntimeException(
+                    'Unable to consume the password reset authorization.'
+                );
+            }
+
+            /**
+             * Cancel any other password-reset verification records for the same
+             * mobile contact so no older authorization can be reused.
+             */
+            $this->verificationModel
+                ->where(
+                    'user_contact_id',
+                    $mobileContactId
+                )
+                ->where(
+                    'purpose',
+                    ContactVerificationModel::PURPOSE_PASSWORD_RESET
+                )
+                ->where(
+                    'id !=',
+                    $verificationId
+                )
+                ->whereIn(
+                    'status',
+                    [
+                        ContactVerificationModel::STATUS_PENDING,
+                        ContactVerificationModel::STATUS_VERIFIED,
+                    ]
+                )
+                ->set([
+                    'status' =>
+                    ContactVerificationModel::STATUS_CANCELLED,
+                ])
+                ->update();
+
+            $this->commitOrFail();
+
+            return PasswordResetResult::success(
+                'Your password has been changed successfully.'
+            );
+        } catch (Throwable $exception) {
+            $this->database->transRollback();
+
+            throw $exception;
         }
-
-        /*
-         * Consume the authorization so browser back/refresh cannot reset the
-         * password again using the same OTP verification.
-         */
-        $this->verificationModel->update(
-            (int) $verifiedOtp['id'],
-            [
-                'status' =>
-                ContactVerificationModel::STATUS_CANCELLED,
-            ]
-        );
-
-        return PasswordResetResult::success(
-            'Your password has been changed successfully.'
-        );
     }
 
     public function getPendingExpiryTimestamp(

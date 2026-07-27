@@ -3,8 +3,18 @@
 declare(strict_types=1);
 
 /**
- * Local component variables.
+ * Reusable four-digit OTP verification form.
+ *
+ * Expected variables:
+ *
+ * @var string $verifyAction
+ * @var string $resendAction
+ * @var string $cancelAction
+ * @var int    $expiresAtTimestamp
+ * @var string $otpError
+ * @var bool   $otpHasError
  */
+
 $verifyAction = isset($verifyAction)
     ? (string) $verifyAction
     : '';
@@ -13,8 +23,8 @@ $resendAction = isset($resendAction)
     ? (string) $resendAction
     : '';
 
-$cancelUrl = isset($cancelUrl)
-    ? (string) $cancelUrl
+$cancelAction = isset($cancelAction)
+    ? (string) $cancelAction
     : '';
 
 $expiresAtTimestamp = isset($expiresAtTimestamp)
@@ -30,16 +40,25 @@ $otpHasError = isset($otpHasError)
     ? (bool) $otpHasError
     : false;
 
-$otpValue = trim(
-    (string) old('otp')
+$otpValue = preg_replace(
+    '/\D/',
+    '',
+    trim((string) old('otp'))
+);
+
+$otpValue = substr(
+    (string) $otpValue,
+    0,
+    4
 );
 ?>
 
 <form
+    id="passwordResetOtpForm"
     action="<?= esc($verifyAction, 'attr') ?>"
     method="post"
     class="registration-form__form"
-    data-otp-form
+    data-password-reset-otp-form
     data-expires-at="<?= esc(
                             (string) $expiresAtTimestamp,
                             'attr'
@@ -59,18 +78,27 @@ $otpValue = trim(
             id="otp"
             name="otp"
             class="registration-form__control
-                <?= $otpHasError
-                    ? 'is-invalid'
-                    : '' ?>"
+                <?= $otpHasError ? 'is-invalid' : '' ?>"
             value="<?= esc($otpValue, 'attr') ?>"
             inputmode="numeric"
             autocomplete="one-time-code"
-            maxlength="6"
-            pattern="[0-9]{6}"
+            maxlength="4"
+            minlength="4"
+            pattern="[0-9]{4}"
+            aria-describedby="otpHelp
+                <?= $otpHasError ? ' otpError' : '' ?>"
             required>
 
+        <div
+            id="otpHelp"
+            class="registration-form__help">
+            Enter the four-digit OTP sent to your verified mobile number.
+        </div>
+
         <?php if ($otpHasError): ?>
-            <div class="invalid-feedback">
+            <div
+                id="otpError"
+                class="invalid-feedback">
                 <?= esc($otpError) ?>
             </div>
         <?php endif; ?>
@@ -78,13 +106,17 @@ $otpValue = trim(
 
     <div
         class="registration-otp__timer"
-        data-otp-timer>
+        data-password-reset-otp-timer
+        aria-live="polite">
         OTP expires in
-        <span data-otp-countdown>--:--</span>
+        <span data-password-reset-otp-countdown>
+            --:--
+        </span>
     </div>
 
     <button
         type="submit"
+        id="verifyPasswordResetOtpButton"
         class="registration-form__submit">
         <span class="registration-submit__text">
             Verify OTP
@@ -105,20 +137,28 @@ $otpValue = trim(
 <div class="registration-otp__actions">
     <form
         action="<?= esc($resendAction, 'attr') ?>"
-        method="post">
+        method="post"
+        data-password-reset-resend-form>
         <?= csrf_field() ?>
 
         <button
             type="submit"
             class="registration-form__link-button"
-            data-resend-button>
+            data-password-reset-resend-button
+            disabled>
             Resend OTP
         </button>
     </form>
 
-    <a
-        href="<?= esc($cancelUrl, 'attr') ?>"
-        class="registration-form__link">
-        Cancel
-    </a>
+    <form
+        action="<?= esc($cancelAction, 'attr') ?>"
+        method="post">
+        <?= csrf_field() ?>
+
+        <button
+            type="submit"
+            class="registration-form__link-button">
+            Cancel
+        </button>
+    </form>
 </div>

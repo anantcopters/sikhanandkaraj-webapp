@@ -49,6 +49,14 @@ final class ForgotPasswordController extends BaseController
     private const RESET_SESSION_LIFETIME_SECONDS = 1800;
 
     /**
+     * Maximum time allowed to set a password after OTP verification.
+     *
+     * The service independently verifies the database OTP record. This
+     * controller-level limit prevents an old browser session from continuing.
+     */
+    private const VERIFIED_SESSION_LIFETIME_SECONDS = 900;
+
+    /**
      * Display the forgot-password identifier form.
      */
     public function index(): string
@@ -289,7 +297,7 @@ final class ForgotPasswordController extends BaseController
                     $this->readFormAlert(),
 
                     'pageScripts' => [
-                        'assets/js/pages/registration-otp.js',
+                        'assets/js/pages/password-reset-otp.js',
                     ],
                 ]
             );
@@ -728,28 +736,25 @@ final class ForgotPasswordController extends BaseController
     }
 
     /**
-     * Read and combine the four individual OTP form fields.
+     * Read the four-digit OTP submitted by the reusable OTP component.
      */
     private function readOtp(): string
     {
-        $digits = [];
+        $otp = trim(
+            (string) $this->request->getPost('otp')
+        );
 
-        for ($index = 1; $index <= 4; $index++) {
-            $digit = trim(
-                (string) $this->request->getPost(
-                    'otp_' . $index
-                )
-            );
-
-            $digits[] = preg_match(
-                '/^\d$/',
-                $digit
-            )
-                ? $digit
-                : '';
-        }
-
-        return implode('', $digits);
+        /**
+         * Remove spaces, hyphens and any other non-digit characters.
+         *
+         * Validation below still requires exactly four digits, so malformed
+         * input cannot be accepted after normalization.
+         */
+        return preg_replace(
+            '/\D/',
+            '',
+            $otp
+        ) ?? '';
     }
 
     /**
@@ -761,7 +766,8 @@ final class ForgotPasswordController extends BaseController
      *     userId: int,
      *     mobileContactId: int,
      *     otpVerified: bool,
-     *     startedAt: int
+     *     startedAt: int,
+     *     verifiedAt: int|null
      * }|null
      */
     private function getPendingResetSession(): ?array
@@ -782,6 +788,10 @@ final class ForgotPasswordController extends BaseController
             self::SESSION_STARTED_AT
         );
 
+        $verifiedAt = session(
+            self::SESSION_VERIFIED_AT
+        );
+
         if (
             ! is_numeric($userId)
             || ! is_numeric($mobileContactId)
@@ -792,10 +802,15 @@ final class ForgotPasswordController extends BaseController
             return null;
         }
 
+        $userIdValue = (int) $userId;
+        $mobileContactIdValue = (int) $mobileContactId;
         $startedAtTimestamp = (int) $startedAt;
+        $isOtpVerified = $otpVerified === true;
 
         if (
-            $startedAtTimestamp <= 0
+            $userIdValue <= 0
+            || $mobileContactIdValue <= 0
+            || $startedAtTimestamp <= 0
             || (
                 time() - $startedAtTimestamp
             ) > self::RESET_SESSION_LIFETIME_SECONDS
@@ -805,18 +820,44 @@ final class ForgotPasswordController extends BaseController
             return null;
         }
 
+        $verifiedAtTimestamp = null;
+
+        if ($isOtpVerified) {
+            if (! is_numeric($verifiedAt)) {
+                $this->clearResetSession();
+
+                return null;
+            }
+
+            $verifiedAtTimestamp = (int) $verifiedAt;
+
+            if (
+                $verifiedAtTimestamp <= 0
+                || (
+                    time() - $verifiedAtTimestamp
+                ) > self::VERIFIED_SESSION_LIFETIME_SECONDS
+            ) {
+                $this->clearResetSession();
+
+                return null;
+            }
+        }
+
         return [
             'userId' =>
-            (int) $userId,
+            $userIdValue,
 
             'mobileContactId' =>
-            (int) $mobileContactId,
+            $mobileContactIdValue,
 
             'otpVerified' =>
-            $otpVerified === true,
+            $isOtpVerified,
 
             'startedAt' =>
             $startedAtTimestamp,
+
+            'verifiedAt' =>
+            $verifiedAtTimestamp,
         ];
     }
 
