@@ -162,38 +162,6 @@ final class ContactVerificationModel extends Model
     }
 
     /**
-     * Cancel older pending OTPs while preserving the newly created record.
-     */
-    public function cancelOtherPendingForContact(
-        int $userContactId,
-        string $purpose,
-        int $excludedVerificationId
-    ): bool {
-        return $this
-            ->where(
-                'user_contact_id',
-                $userContactId
-            )
-            ->where(
-                'purpose',
-                $purpose
-            )
-            ->where(
-                'status',
-                self::STATUS_PENDING
-            )
-            ->where(
-                'id !=',
-                $excludedVerificationId
-            )
-            ->set([
-                'status' =>
-                self::STATUS_CANCELLED,
-            ])
-            ->update();
-    }
-
-    /**
      * Count OTP records that were delivered or are still awaiting delivery result.
      *
      * DELIVERY_FAILED records are excluded because no usable OTP reached the

@@ -31,6 +31,11 @@ final class PasswordResetService
 
     private const OTP_EXPIRY_MINUTES = 5;
 
+    /**
+     * Minimum time before another OTP can be issued.
+     */
+    private const OTP_RESEND_COOLDOWN_SECONDS = 120;
+
     private const VERIFY_ATTEMPT_LIMIT = 5;
 
     private const SEND_LIMIT_PER_DAY = 5;
@@ -150,22 +155,12 @@ final class PasswordResetService
         int $userId,
         int $mobileContactId
     ): PasswordResetResult {
-        if (!$this->isValidResetContact(
+        if (! $this->isValidResetContact(
             $userId,
             $mobileContactId
         )) {
             return PasswordResetResult::failure(
                 'The password reset request is no longer valid.'
-            );
-        }
-
-        $expiry = $this->getPendingExpiryTimestamp(
-            $mobileContactId
-        );
-
-        if ($expiry !== null && $expiry > time()) {
-            return PasswordResetResult::failure(
-                'Please wait until the current OTP expires.'
             );
         }
 
@@ -633,6 +628,37 @@ final class PasswordResetService
         $this->database->transBegin();
 
         try {
+            /**
+             * Check the latest pending OTP before issuing another one.
+             *
+             * OTP validity and resend cooldown are separate:
+             * - OTP remains valid for five minutes.
+             * - Another OTP may be requested after sixty seconds.
+             */
+            $pendingVerification = $this->verificationModel
+                ->findLatestPendingForContact(
+                    $mobileContactId,
+                    ContactVerificationModel::PURPOSE_PASSWORD_RESET
+                );
+
+            if (is_array($pendingVerification)) {
+                $cooldownRemaining = $this->getCooldownRemainingSeconds(
+                    $pendingVerification
+                );
+
+                if ($cooldownRemaining > 0) {
+                    $this->database->transRollback();
+
+                    return PasswordResetResult::failure(
+                        sprintf(
+                            'Please wait %d second%s before requesting another OTP.',
+                            $cooldownRemaining,
+                            $cooldownRemaining === 1 ? '' : 's'
+                        )
+                    );
+                }
+            }
+
             $issuedCount = $this->verificationModel
                 ->countDeliveredOrPendingSince(
                     $mobileContactId,
@@ -650,9 +676,24 @@ final class PasswordResetService
             }
 
             /**
-             * Do not cancel the old pending OTP until the replacement record is
-             * successfully created.
+             * Only one PENDING OTP is permitted for a contact and purpose.
+             *
+             * Cancel the previous OTP before inserting its replacement. Both
+             * operations are inside the same transaction, so cancellation is
+             * rolled back automatically when insertion fails.
              */
+            $pendingCancelled = $this->verificationModel
+                ->cancelPendingForContact(
+                    $mobileContactId,
+                    ContactVerificationModel::PURPOSE_PASSWORD_RESET
+                );
+
+            if (! $pendingCancelled) {
+                throw new RuntimeException(
+                    'Unable to cancel the previous password reset OTP.'
+                );
+            }
+
             $verificationId = $this->verificationModel
                 ->insert([
                     'user_contact_id' =>
@@ -686,23 +727,6 @@ final class PasswordResetService
             if (! is_numeric($verificationId)) {
                 throw new RuntimeException(
                     'Unable to create the password reset OTP.'
-                );
-            }
-
-            /**
-             * Cancel older pending records only after the replacement record has
-             * been inserted successfully.
-             */
-            $olderPendingCancelled = $this->verificationModel
-                ->cancelOtherPendingForContact(
-                    $mobileContactId,
-                    ContactVerificationModel::PURPOSE_PASSWORD_RESET,
-                    (int) $verificationId
-                );
-
-            if (! $olderPendingCancelled) {
-                throw new RuntimeException(
-                    'Unable to replace the previous password reset OTP.'
                 );
             }
 
@@ -924,5 +948,44 @@ final class PasswordResetService
                 'Unable to commit the password-reset transaction.'
             );
         }
+    }
+
+    /**
+     * Return the remaining resend cooldown in seconds.
+     *
+     * @param array<string, mixed> $verification
+     */
+    private function getCooldownRemainingSeconds(
+        array $verification
+    ): int {
+        $createdAt = trim(
+            (string) (
+                $verification['created_at'] ?? ''
+            )
+        );
+
+        if ($createdAt === '') {
+            return 0;
+        }
+
+        try {
+            $createdAtTimestamp = (
+                new DateTimeImmutable($createdAt)
+            )->getTimestamp();
+        } catch (Throwable) {
+            /*
+         * Do not permanently block the member because of malformed
+         * historical data.
+         */
+            return 0;
+        }
+
+        $resendAllowedAt = $createdAtTimestamp
+            + self::OTP_RESEND_COOLDOWN_SECONDS;
+
+        return max(
+            0,
+            $resendAllowedAt - time()
+        );
     }
 }
