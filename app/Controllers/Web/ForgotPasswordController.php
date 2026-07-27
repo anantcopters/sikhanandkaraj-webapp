@@ -8,6 +8,7 @@ use App\Controllers\BaseController;
 use App\Services\Authentication\PasswordResetService;
 use App\Validation\LoginValidation;
 use App\Validation\PasswordValidation;
+use App\Support\OtpInputNormalizer;
 use CodeIgniter\HTTP\RedirectResponse;
 use Throwable;
 
@@ -277,18 +278,48 @@ final class ForgotPasswordController extends BaseController
                 );
 
             return view(
-                'Pages/Authentication/VerifyPasswordResetOtp',
+                'Pages/Registration/VerifyOtp',
                 [
                     'pageTitle' =>
                     'Verify OTP',
 
+                    'heading' =>
+                    'Verify password reset OTP',
+
+                    'description' =>
+                    'Enter the four-digit OTP sent to your '
+                        . 'verified primary mobile number.',
+
                     /**
-                     * Explicitly provide every variable expected by the view.
-                     * The view must declare this as a local variable before
-                     * rendering the HTML.
+                     * Profile reference is intentionally hidden during password reset.
                      */
+                    'profileReference' =>
+                    null,
+
                     'expiresAtTimestamp' =>
                     $expiresAtTimestamp,
+
+                    'verifyAction' =>
+                    route_to(
+                        'web.forgot-password.verify.submit'
+                    ),
+
+                    'resendAction' =>
+                    route_to(
+                        'web.forgot-password.resend'
+                    ),
+
+                    'cancelAction' =>
+                    route_to(
+                        'web.forgot-password.cancel'
+                    ),
+
+                    'cancelLabel' =>
+                    'Cancel',
+
+                    'sendLimitMessage' =>
+                    'You can request a maximum of three '
+                        . 'password reset OTPs within 24 hours.',
 
                     'validationErrors' =>
                     $this->readValidationErrors(),
@@ -297,7 +328,7 @@ final class ForgotPasswordController extends BaseController
                     $this->readFormAlert(),
 
                     'pageScripts' => [
-                        'assets/js/pages/registration-form.js',
+                        'assets/js/pages/registration-otp.js',
                     ],
                 ]
             );
@@ -354,7 +385,7 @@ final class ForgotPasswordController extends BaseController
 
         $otp = $this->readOtp();
 
-        if (! preg_match('/^\d{4}$/', $otp)) {
+        if (! OtpInputNormalizer::isValid($otp)) {
             return redirect()
                 ->back()
                 ->withInput()
@@ -735,25 +766,25 @@ final class ForgotPasswordController extends BaseController
     }
 
     /**
-     * Read the four-digit OTP submitted by the reusable OTP component.
+     * Read and normalize the four submitted OTP digit fields.
      */
     private function readOtp(): string
     {
-        $otp = trim(
-            (string) $this->request->getPost('otp')
-        );
+        return OtpInputNormalizer::fromDigitFields(
+            [
+                'otp_1' =>
+                $this->request->getPost('otp_1'),
 
-        /**
-         * Remove spaces, hyphens and any other non-digit characters.
-         *
-         * Validation below still requires exactly four digits, so malformed
-         * input cannot be accepted after normalization.
-         */
-        return preg_replace(
-            '/\D/',
-            '',
-            $otp
-        ) ?? '';
+                'otp_2' =>
+                $this->request->getPost('otp_2'),
+
+                'otp_3' =>
+                $this->request->getPost('otp_3'),
+
+                'otp_4' =>
+                $this->request->getPost('otp_4'),
+            ]
+        );
     }
 
     /**
@@ -918,69 +949,5 @@ final class ForgotPasswordController extends BaseController
                 'Expires',
                 '0'
             );
-    }
-
-    /**
-     * Return validation errors passed through redirect flashdata.
-     *
-     * @return array<string, string>
-     */
-    private function readValidationErrors(): array
-    {
-        $validationErrors = session(
-            'validationErrors'
-        );
-
-        if (! is_array($validationErrors)) {
-            return [];
-        }
-
-        $normalizedErrors = [];
-
-        foreach ($validationErrors as $field => $message) {
-            if (
-                ! is_string($field)
-                || ! is_scalar($message)
-            ) {
-                continue;
-            }
-
-            $normalizedErrors[$field] =
-                (string) $message;
-        }
-
-        return $normalizedErrors;
-    }
-
-    /**
-     * Return the form alert passed through redirect flashdata.
-     *
-     * @return array<string, string>|null
-     */
-    private function readFormAlert(): ?array
-    {
-        $formAlert = session('formAlert');
-
-        if (! is_array($formAlert)) {
-            return null;
-        }
-
-        $normalizedAlert = [];
-
-        foreach ($formAlert as $key => $value) {
-            if (
-                ! is_string($key)
-                || ! is_scalar($value)
-            ) {
-                continue;
-            }
-
-            $normalizedAlert[$key] =
-                (string) $value;
-        }
-
-        return $normalizedAlert !== []
-            ? $normalizedAlert
-            : null;
-    }
+    }    
 }

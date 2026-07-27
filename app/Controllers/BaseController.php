@@ -42,4 +42,76 @@ abstract class BaseController extends Controller
         // Preload any models, libraries, etc, here.
         // $this->session = service('session');
     }
+
+    /**
+     * Return validation errors passed through redirect flashdata.
+     *
+     * Only string field names and scalar error messages are returned. This
+     * prevents unexpected session data from being passed directly to views.
+     *
+     * @return array<string, string>
+     */
+    protected function readValidationErrors(): array
+    {
+        $validationErrors = session(
+            'validationErrors'
+        );
+
+        if (! is_array($validationErrors)) {
+            return [];
+        }
+
+        $normalizedErrors = [];
+
+        foreach ($validationErrors as $field => $message) {
+            if (
+                ! is_string($field)
+                || ! is_scalar($message)
+            ) {
+                continue;
+            }
+
+            $normalizedErrors[$field] =
+                (string) $message;
+        }
+
+        return $normalizedErrors;
+    }
+
+    /**
+     * Return a form alert passed through redirect flashdata.
+     *
+     * Only string keys and scalar values are returned so arbitrary session
+     * structures are not passed directly to a view.
+     *
+     * @return array<string, string>|null
+     */
+    protected function readFormAlert(): ?array
+    {
+        $formAlert = session(
+            'formAlert'
+        );
+
+        if (! is_array($formAlert)) {
+            return null;
+        }
+
+        $normalizedAlert = [];
+
+        foreach ($formAlert as $key => $value) {
+            if (
+                ! is_string($key)
+                || ! is_scalar($value)
+            ) {
+                continue;
+            }
+
+            $normalizedAlert[$key] =
+                (string) $value;
+        }
+
+        return $normalizedAlert !== []
+            ? $normalizedAlert
+            : null;
+    }
 }

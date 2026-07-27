@@ -63,10 +63,10 @@ final class ProfileController extends BaseController
                 $basicProfile['masterData'],
 
                 'validationErrors' =>
-                session('validationErrors') ?? [],
+                $this->readValidationErrors() ?? [],
 
                 'formAlert' =>
-                session('formAlert'),
+                $this->readFormAlert(),
 
                 'isProfileJourney' =>
                 $this->isProfileJourney(),
@@ -311,7 +311,7 @@ final class ProfileController extends BaseController
                 $aboutMeProfile['completion'],
 
                 'formAlert' =>
-                session('formAlert'),
+                $this->readFormAlert(),
 
                 'nextProfileSection' =>
                 $nextProfileSection,
@@ -566,8 +566,10 @@ final class ProfileController extends BaseController
                 'lifestyleCompletion' =>
                 $profile['completion'],
                 'validationErrors' =>
-                session('validationErrors') ?? [],
-                'formAlert' => session('formAlert'),
+                $this->readValidationErrors() ?? [],
+
+                'formAlert' =>
+                $this->readFormAlert(),
                 'isProfileJourney' => $this->isProfileJourney(),
                 'pageScripts' => [
                     'assets/js/pages/profile-lifestyle.js',
@@ -854,10 +856,10 @@ final class ProfileController extends BaseController
                 $profile['masterData'],
 
                 'validationErrors' =>
-                session('validationErrors') ?? [],
+                $this->readValidationErrors() ?? [],
 
                 'formAlert' =>
-                session('formAlert'),
+                $this->readFormAlert(),
 
                 'isProfileJourney' => $this->isProfileJourney(),
 
@@ -1057,10 +1059,10 @@ final class ProfileController extends BaseController
                 $profile['masterData'],
 
                 'validationErrors' =>
-                session('validationErrors') ?? [],
+                $this->readValidationErrors() ?? [],
 
                 'formAlert' =>
-                session('formAlert'),
+                $this->readFormAlert(),
 
                 'isProfileJourney' => $this->isProfileJourney(),
 
@@ -1200,10 +1202,10 @@ final class ProfileController extends BaseController
                 $profile['masterData'],
 
                 'validationErrors' =>
-                session('validationErrors') ?? [],
+                $this->readValidationErrors() ?? [],
 
                 'formAlert' =>
-                session('formAlert'),
+                $this->readFormAlert(),
 
                 'isProfileJourney' => $this->isProfileJourney(),
 
@@ -1334,8 +1336,10 @@ final class ProfileController extends BaseController
                 'aboutMeCompletion' =>
                 $profile['completion'],
                 'validationErrors' =>
-                session('validationErrors') ?? [],
-                'formAlert' => session('formAlert'),
+                $this->readValidationErrors() ?? [],
+
+                'formAlert' =>
+                $this->readFormAlert(),
                 'isProfileJourney' => $this->isProfileJourney(),
                 'pageScripts' => [
                     'assets/js/pages/profile-about-me.js',

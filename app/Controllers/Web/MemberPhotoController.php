@@ -38,8 +38,10 @@ final class MemberPhotoController extends BaseController
                 'maximumPhotos' => $data['maximum'],
                 'remainingPhotos' => $data['remaining'],
                 'validationErrors' =>
-                session('validationErrors') ?? [],
-                'formAlert' => session('formAlert'),
+                $this->readValidationErrors() ?? [],
+
+                'formAlert' =>
+                $this->readFormAlert(),
                 'pageScripts' => [
                     'assets/js/pages/profile-photos.js',
                 ],

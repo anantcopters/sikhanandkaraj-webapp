@@ -64,7 +64,7 @@ final class MemberPhotoApprovalController extends BaseController
                 'search' => $search,
 
                 'formAlert' =>
-                session('formAlert'),
+                $this->readFormAlert(),
 
                 'pageScripts' => [
                     'assets/js/pages/'
