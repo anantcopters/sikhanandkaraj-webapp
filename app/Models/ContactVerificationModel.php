@@ -13,6 +13,8 @@ final class ContactVerificationModel extends Model
 {
     public const PURPOSE_REGISTER = 'REGISTER';
 
+    public const PURPOSE_PASSWORD_RESET = 'PASSWORD_RESET';
+
     public const STATUS_PENDING = 'PENDING';
 
     public const STATUS_VERIFIED = 'VERIFIED';

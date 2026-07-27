@@ -61,6 +61,7 @@ use App\Services\Profile\MemberPhotoService;
 use App\Services\Profile\MemberPhotoUrlService;
 use App\Models\AdminMemberPhotoApprovalModel;
 use App\Services\Admin\MemberPhotoApprovalService;
+use App\Services\Authentication\PasswordResetService;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
 use Config\MemberMedia;
@@ -185,6 +186,29 @@ class Services extends BaseService
         return new LoginService(
             new UserModel($database),
             new UserContactModel($database)
+        );
+    }
+
+    /**
+     * Return the member password-reset service.
+     */
+    public static function passwordResetService(
+        bool $getShared = true
+    ): PasswordResetService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'passwordResetService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new PasswordResetService(
+            new UserModel($database),
+            new UserContactModel($database),
+            new ContactVerificationModel($database),
+            $database,
+            static::smsProvider(false)
         );
     }
 

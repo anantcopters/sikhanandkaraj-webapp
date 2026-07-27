@@ -1,0 +1,711 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Authentication;
+
+use App\Models\ContactVerificationModel;
+use App\Models\UserContactModel;
+use App\Models\UserModel;
+use App\Services\Sms\SmsMessage;
+use App\Services\Sms\SmsProviderInterface;
+use CodeIgniter\Database\BaseConnection;
+use DateInterval;
+use DateTimeImmutable;
+use DateTimeZone;
+use RuntimeException;
+use Throwable;
+
+/**
+ * Handles forgot-password identification, OTP delivery, OTP verification
+ * and final password replacement.
+ *
+ * This service intentionally does not inspect or change account_status.
+ */
+final class PasswordResetService
+{
+    private const OTP_LENGTH = 4;
+
+    private const OTP_EXPIRY_MINUTES = 5;
+
+    private const VERIFY_ATTEMPT_LIMIT = 5;
+
+    private const SEND_LIMIT_PER_DAY = 5;
+
+    private const SEND_WINDOW_HOURS = 24;
+
+    public function __construct(
+        private readonly UserModel $userModel,
+        private readonly UserContactModel $contactModel,
+        private readonly ContactVerificationModel $verificationModel,
+        private readonly BaseConnection $database,
+        private readonly SmsProviderInterface $smsProvider
+    ) {}
+
+    /**
+     * Resolve the submitted email/mobile and send an OTP to the member's
+     * verified primary mobile.
+     */
+    public function requestOtp(
+        string $identifier
+    ): PasswordResetResult {
+        $identifier = trim($identifier);
+
+        if ($identifier === '') {
+            return PasswordResetResult::failure(
+                'Please enter your email address or mobile number.'
+            );
+        }
+
+        $identifierContact = $this->findIdentifierContact(
+            $identifier
+        );
+
+        /*
+         * A generic message can be used here to reduce account enumeration.
+         * The project requirement asks for a specific unverified-email error,
+         * so a verified contact that exists is handled explicitly below.
+         */
+        if ($identifierContact === null) {
+            return PasswordResetResult::failure(
+                'We could not find an account with these details.'
+            );
+        }
+
+        $userId = (int) (
+            $identifierContact['user_id'] ?? 0
+        );
+
+        if ($userId <= 0) {
+            return PasswordResetResult::failure(
+                'We could not find an account with these details.'
+            );
+        }
+
+        $identifierType = (string) (
+            $identifierContact['contact_type'] ?? ''
+        );
+
+        if (
+            $identifierType === UserContactModel::TYPE_EMAIL
+            && !$this->toBoolean(
+                $identifierContact['is_verified'] ?? false
+            )
+        ) {
+            return PasswordResetResult::failure(
+                'This email address has not been verified. '
+                    . 'Please enter your verified mobile number.'
+            );
+        }
+
+        if (
+            $identifierType === UserContactModel::TYPE_MOBILE
+            && !$this->toBoolean(
+                $identifierContact['is_verified'] ?? false
+            )
+        ) {
+            return PasswordResetResult::failure(
+                'This mobile number has not been verified.'
+            );
+        }
+
+        /*
+         * OTP always goes to the verified primary mobile, including when the
+         * member entered a verified email address.
+         */
+        $mobileContact = $this->contactModel
+            ->findPrimaryForUser(
+                $userId,
+                UserContactModel::TYPE_MOBILE
+            );
+
+        if (
+            !is_array($mobileContact)
+            || !$this->toBoolean(
+                $mobileContact['is_verified'] ?? false
+            )
+        ) {
+            return PasswordResetResult::failure(
+                'Password reset is available only after mobile verification.'
+            );
+        }
+
+        return $this->issueOtp(
+            $userId,
+            (int) $mobileContact['id']
+        );
+    }
+
+    /**
+     * Resend an OTP to the same password-reset mobile.
+     */
+    public function resendOtp(
+        int $userId,
+        int $mobileContactId
+    ): PasswordResetResult {
+        if (!$this->isValidResetContact(
+            $userId,
+            $mobileContactId
+        )) {
+            return PasswordResetResult::failure(
+                'The password reset request is no longer valid.'
+            );
+        }
+
+        $expiry = $this->getPendingExpiryTimestamp(
+            $mobileContactId
+        );
+
+        if ($expiry !== null && $expiry > time()) {
+            return PasswordResetResult::failure(
+                'Please wait until the current OTP expires.'
+            );
+        }
+
+        return $this->issueOtp(
+            $userId,
+            $mobileContactId
+        );
+    }
+
+    /**
+     * Verify password-reset OTP.
+     *
+     * This method does not authenticate the member and does not update
+     * mobile/email/account verification status.
+     */
+    public function verifyOtp(
+        int $userId,
+        int $mobileContactId,
+        string $submittedOtp
+    ): PasswordResetResult {
+        if (!preg_match('/^\d{4}$/', $submittedOtp)) {
+            return PasswordResetResult::failure(
+                'Please enter a valid four-digit OTP.'
+            );
+        }
+
+        if (!$this->isValidResetContact(
+            $userId,
+            $mobileContactId
+        )) {
+            return PasswordResetResult::failure(
+                'The password reset request is no longer valid.'
+            );
+        }
+
+        $this->database->transBegin();
+
+        try {
+            $verification = $this->verificationModel
+                ->findLatestPendingForContact(
+                    $mobileContactId,
+                    ContactVerificationModel::PURPOSE_PASSWORD_RESET
+                );
+
+            if ($verification === null) {
+                $this->database->transRollback();
+
+                return PasswordResetResult::failure(
+                    'The OTP is no longer valid. Please request a new OTP.'
+                );
+            }
+
+            $expiresAt = $this->parseUtcTimestamp(
+                (string) ($verification['expires_at'] ?? '')
+            );
+
+            if ($expiresAt === null || $expiresAt <= time()) {
+                $this->verificationModel->markExpired(
+                    (int) $verification['id']
+                );
+
+                $this->commitOrFail();
+
+                return PasswordResetResult::failure(
+                    'The OTP has expired. Please request a new OTP.'
+                );
+            }
+
+            $attemptCount = (int) (
+                $verification['attempt_count'] ?? 0
+            );
+
+            if ($attemptCount >= self::VERIFY_ATTEMPT_LIMIT) {
+                $this->verificationModel->update(
+                    (int) $verification['id'],
+                    [
+                        'status' =>
+                        ContactVerificationModel::STATUS_CANCELLED,
+                    ]
+                );
+
+                $this->commitOrFail();
+
+                return PasswordResetResult::failure(
+                    'Too many incorrect attempts. Please request a new OTP.'
+                );
+            }
+
+            $matches = password_verify(
+                $submittedOtp,
+                (string) ($verification['otp_hash'] ?? '')
+            );
+
+            if (!$matches) {
+                $this->verificationModel
+                    ->incrementAttemptCount(
+                        (int) $verification['id']
+                    );
+
+                $remaining = max(
+                    0,
+                    self::VERIFY_ATTEMPT_LIMIT
+                        - $attemptCount
+                        - 1
+                );
+
+                if ($remaining === 0) {
+                    $this->verificationModel->update(
+                        (int) $verification['id'],
+                        [
+                            'status' =>
+                            ContactVerificationModel::STATUS_CANCELLED,
+                        ]
+                    );
+                }
+
+                $this->commitOrFail();
+
+                return PasswordResetResult::failure(
+                    $remaining > 0
+                        ? 'Incorrect OTP. '
+                        . $remaining
+                        . ' attempt(s) remaining.'
+                        : 'Too many incorrect attempts. '
+                        . 'Please request a new OTP.'
+                );
+            }
+
+            $verifiedAt = (new DateTimeImmutable(
+                'now',
+                new DateTimeZone('UTC')
+            ))->format('Y-m-d H:i:sP');
+
+            $updated = $this->verificationModel->update(
+                (int) $verification['id'],
+                [
+                    'status' =>
+                    ContactVerificationModel::STATUS_VERIFIED,
+                    'verified_at' => $verifiedAt,
+                ]
+            );
+
+            if ($updated === false) {
+                throw new RuntimeException(
+                    'Unable to complete OTP verification.'
+                );
+            }
+
+            $this->verificationModel->cancelPendingForContact(
+                $mobileContactId,
+                ContactVerificationModel::PURPOSE_PASSWORD_RESET
+            );
+
+            $this->commitOrFail();
+
+            return PasswordResetResult::success(
+                'OTP verified successfully.',
+                $userId,
+                $mobileContactId
+            );
+        } catch (Throwable $exception) {
+            $this->database->transRollback();
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * Replace the password after successful OTP verification.
+     */
+    public function resetPassword(
+        int $userId,
+        int $mobileContactId,
+        string $password
+    ): PasswordResetResult {
+        if (!$this->isValidResetContact(
+            $userId,
+            $mobileContactId
+        )) {
+            return PasswordResetResult::failure(
+                'The password reset request is no longer valid.'
+            );
+        }
+
+        /*
+         * Verify that a PASSWORD_RESET OTP was actually verified for this
+         * mobile. A session flag alone must never authorize password change.
+         */
+        $verifiedOtp = $this->verificationModel
+            ->where(
+                'user_contact_id',
+                $mobileContactId
+            )
+            ->where(
+                'purpose',
+                ContactVerificationModel::PURPOSE_PASSWORD_RESET
+            )
+            ->where(
+                'status',
+                ContactVerificationModel::STATUS_VERIFIED
+            )
+            ->orderBy('id', 'DESC')
+            ->first();
+
+        if (!is_array($verifiedOtp)) {
+            return PasswordResetResult::failure(
+                'Please verify the OTP before setting a new password.'
+            );
+        }
+
+        /*
+         * Limit how long a verified OTP may authorize password replacement.
+         */
+        $verifiedAt = $this->parseUtcTimestamp(
+            (string) ($verifiedOtp['verified_at'] ?? '')
+        );
+
+        if (
+            $verifiedAt === null
+            || $verifiedAt < time() - 900
+        ) {
+            return PasswordResetResult::failure(
+                'Your password reset session has expired. '
+                    . 'Please request another OTP.'
+            );
+        }
+
+        $passwordHash = password_hash(
+            $password,
+            PASSWORD_DEFAULT
+        );
+
+        if ($passwordHash === false) {
+            throw new RuntimeException(
+                'Unable to securely hash the password.'
+            );
+        }
+
+        $updated = $this->userModel->update(
+            $userId,
+            [
+                'password_hash' => $passwordHash,
+            ]
+        );
+
+        if ($updated === false) {
+            throw new RuntimeException(
+                'Unable to update the password.'
+            );
+        }
+
+        /*
+         * Consume the authorization so browser back/refresh cannot reset the
+         * password again using the same OTP verification.
+         */
+        $this->verificationModel->update(
+            (int) $verifiedOtp['id'],
+            [
+                'status' =>
+                ContactVerificationModel::STATUS_CANCELLED,
+            ]
+        );
+
+        return PasswordResetResult::success(
+            'Your password has been changed successfully.'
+        );
+    }
+
+    public function getPendingExpiryTimestamp(
+        int $mobileContactId
+    ): ?int {
+        $verification = $this->verificationModel
+            ->findLatestPendingForContact(
+                $mobileContactId,
+                ContactVerificationModel::PURPOSE_PASSWORD_RESET
+            );
+
+        if ($verification === null) {
+            return null;
+        }
+
+        return $this->parseUtcTimestamp(
+            (string) ($verification['expires_at'] ?? '')
+        );
+    }
+
+    private function issueOtp(
+        int $userId,
+        int $mobileContactId
+    ): PasswordResetResult {
+        if (!$this->isValidResetContact(
+            $userId,
+            $mobileContactId
+        )) {
+            return PasswordResetResult::failure(
+                'The verified mobile number could not be found.'
+            );
+        }
+
+        $this->database->transBegin();
+
+        try {
+            $since = (new DateTimeImmutable(
+                'now',
+                new DateTimeZone('UTC')
+            ))
+                ->sub(
+                    new DateInterval(
+                        'PT' . self::SEND_WINDOW_HOURS . 'H'
+                    )
+                )
+                ->format('Y-m-d H:i:sP');
+
+            $issuedCount = $this->verificationModel
+                ->countIssuedSince(
+                    $mobileContactId,
+                    ContactVerificationModel::PURPOSE_PASSWORD_RESET,
+                    $since
+                );
+
+            if ($issuedCount >= self::SEND_LIMIT_PER_DAY) {
+                $this->database->transRollback();
+
+                return PasswordResetResult::failure(
+                    'The OTP request limit has been reached. '
+                        . 'Please try again later.'
+                );
+            }
+
+            $this->verificationModel->cancelPendingForContact(
+                $mobileContactId,
+                ContactVerificationModel::PURPOSE_PASSWORD_RESET
+            );
+
+            $configuredOtp = trim(
+                (string) env('OTP_FIXED_VALUE')
+            );
+
+            $otp = $configuredOtp !== ''
+                ? $configuredOtp
+                : (string) random_int(1000, 9999);
+
+            $now = new DateTimeImmutable(
+                'now',
+                new DateTimeZone('UTC')
+            );
+
+            $expiresAt = $now->add(
+                new DateInterval(
+                    'PT' . self::OTP_EXPIRY_MINUTES . 'M'
+                )
+            );
+
+            $verificationId = $this->verificationModel
+                ->insert([
+                    'user_contact_id' => $mobileContactId,
+                    'purpose' =>
+                    ContactVerificationModel::PURPOSE_PASSWORD_RESET,
+                    'otp_hash' => password_hash(
+                        $otp,
+                        PASSWORD_DEFAULT
+                    ),
+                    'expires_at' =>
+                    $expiresAt->format('Y-m-d H:i:sP'),
+                    'attempt_count' => 0,
+                    'resend_count' => 0,
+                    'status' =>
+                    ContactVerificationModel::STATUS_PENDING,
+                    'verified_at' => null,
+                ], true);
+
+            if (!is_numeric($verificationId)) {
+                throw new RuntimeException(
+                    'Unable to create the password reset OTP.'
+                );
+            }
+
+            $this->commitOrFail();
+
+            $mobileContact = $this->contactModel->find(
+                $mobileContactId
+            );
+
+            if (!is_array($mobileContact)) {
+                throw new RuntimeException(
+                    'The mobile contact could not be found.'
+                );
+            }
+
+            $smsResult = $this->smsProvider->send(
+                new SmsMessage(
+                    mobileNumber: (string) (
+                        $mobileContact['normalized_value'] ?? ''
+                    ),
+                    message: 'Your Sikh Anand Karaj password reset OTP is '
+                        . $otp
+                        . '. It is valid for '
+                        . self::OTP_EXPIRY_MINUTES
+                        . ' minutes.',
+                    templateId: trim(
+                        (string) env(
+                            'sms.passwordResetTemplateId'
+                        )
+                    ) ?: null,
+                    variables: [
+                        'otp' => $otp,
+                        'expiry_minutes' =>
+                        (string) self::OTP_EXPIRY_MINUTES,
+                    ]
+                )
+            );
+
+            if (!$smsResult->successful) {
+                log_message(
+                    'error',
+                    'Password reset OTP SMS failed: '
+                        . 'contact_id={contactId}, error={error}',
+                    [
+                        'contactId' => $mobileContactId,
+                        'error' =>
+                        $smsResult->errorMessage
+                            ?? 'Unknown SMS provider error',
+                    ]
+                );
+
+                return PasswordResetResult::failure(
+                    'We could not send the OTP. Please try again.'
+                );
+            }
+
+            return PasswordResetResult::success(
+                'OTP sent successfully.',
+                $userId,
+                $mobileContactId,
+                $expiresAt->getTimestamp()
+            );
+        } catch (Throwable $exception) {
+            $this->database->transRollback();
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * Find an email or mobile contact after normalizing its value.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function findIdentifierContact(
+        string $identifier
+    ): ?array {
+        if (filter_var(
+            $identifier,
+            FILTER_VALIDATE_EMAIL
+        ) !== false) {
+            return $this->contactModel
+                ->findByNormalizedValue(
+                    UserContactModel::TYPE_EMAIL,
+                    mb_strtolower($identifier)
+                );
+        }
+
+        $mobile = preg_replace(
+            '/\D+/',
+            '',
+            $identifier
+        );
+
+        if (!is_string($mobile)) {
+            return null;
+        }
+
+        /*
+         * Match the same normalized mobile convention used during
+         * registration. Adjust this line only if registration stores +91.
+         */
+        if (strlen($mobile) === 12 && str_starts_with(
+            $mobile,
+            '91'
+        )) {
+            $mobile = substr($mobile, 2);
+        }
+
+        if (!preg_match('/^[6-9]\d{9}$/', $mobile)) {
+            return null;
+        }
+
+        return $this->contactModel
+            ->findByNormalizedValue(
+                UserContactModel::TYPE_MOBILE,
+                $mobile
+            );
+    }
+
+    private function isValidResetContact(
+        int $userId,
+        int $mobileContactId
+    ): bool {
+        $user = $this->userModel->find($userId);
+
+        $mobile = $this->contactModel->findForUser(
+            $mobileContactId,
+            $userId,
+            UserContactModel::TYPE_MOBILE
+        );
+
+        return is_array($user)
+            && is_array($mobile)
+            && $this->toBoolean(
+                $mobile['is_verified'] ?? false
+            );
+    }
+
+    private function parseUtcTimestamp(
+        string $value
+    ): ?int {
+        if ($value === '') {
+            return null;
+        }
+
+        try {
+            return (new DateTimeImmutable(
+                $value,
+                new DateTimeZone('UTC')
+            ))->getTimestamp();
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private function commitOrFail(): void
+    {
+        if (
+            $this->database->transStatus() === false
+            || $this->database->transCommit() === false
+        ) {
+            throw new RuntimeException(
+                'Unable to commit the password-reset transaction.'
+            );
+        }
+    }
+
+    private function toBoolean(mixed $value): bool
+    {
+        return filter_var(
+            $value,
+            FILTER_VALIDATE_BOOLEAN
+        );
+    }
+}

@@ -127,7 +127,9 @@ $this->section('content');
                                     </label>
 
                                     <a
-                                        href="javascript:void(0);"
+                                        href="<?= route_to(
+                                                    'web.forgot-password'
+                                                ) ?>"
                                         class="text-muted fs-13">
                                         Forgot password?
                                     </a>

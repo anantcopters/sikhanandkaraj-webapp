@@ -81,6 +81,70 @@ $routes->group('', [
         ]
     );
 
+    $routes->get(
+        'forgot-password',
+        'ForgotPasswordController::index',
+        [
+            'as' => 'web.forgot-password',
+        ]
+    );
+
+    $routes->post(
+        'forgot-password/send-otp',
+        'ForgotPasswordController::sendOtp',
+        [
+            'as' => 'web.forgot-password.send-otp',
+        ]
+    );
+
+    $routes->get(
+        'forgot-password/verify-otp',
+        'ForgotPasswordController::verifyPage',
+        [
+            'as' => 'web.forgot-password.verify',
+        ]
+    );
+
+    $routes->post(
+        'forgot-password/verify-otp',
+        'ForgotPasswordController::verifyOtp',
+        [
+            'as' => 'web.forgot-password.verify.submit',
+        ]
+    );
+
+    $routes->post(
+        'forgot-password/resend-otp',
+        'ForgotPasswordController::resendOtp',
+        [
+            'as' => 'web.forgot-password.resend',
+        ]
+    );
+
+    $routes->get(
+        'forgot-password/set-password',
+        'ForgotPasswordController::passwordPage',
+        [
+            'as' => 'web.forgot-password.password',
+        ]
+    );
+
+    $routes->post(
+        'forgot-password/set-password',
+        'ForgotPasswordController::updatePassword',
+        [
+            'as' => 'web.forgot-password.password.update',
+        ]
+    );
+
+    $routes->post(
+        'forgot-password/cancel',
+        'ForgotPasswordController::cancel',
+        [
+            'as' => 'web.forgot-password.cancel',
+        ]
+    );
+
     $routes->post(
         'logout',
         'AuthenticationController::logout',

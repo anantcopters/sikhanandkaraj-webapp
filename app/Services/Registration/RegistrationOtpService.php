@@ -216,11 +216,7 @@ final class RegistrationOtpService
                 'OTP sent successfully.',
                 $expiresAt->getTimestamp()
             );
-
-            return RegistrationOtpResult::success(
-                'OTP sent successfully.',
-                $expiresAt->getTimestamp()
-            );
+            
         } catch (Throwable $exception) {
             $this->database->transRollback();
 
