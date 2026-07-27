@@ -67,9 +67,9 @@ final class MemberDashboardDataService
                 'class' => 'bg-primary-subtle shadow-none bg-opacity-10'
             ],
             [
-                'title' => 'Add horoscope details',
-                'description' => 'Complete your birth and horoscope information.',
-                'icon' => 'ri-moon-clear-line',
+                'title' => 'Add Education and Career',
+                'description' => 'Complete your education and career information.',
+                'icon' => 'ri-graduation-cap-line',
                 'url' => '#',
                 'class' => 'bg-success-subtle shadow-none bg-opacity-10'
             ],

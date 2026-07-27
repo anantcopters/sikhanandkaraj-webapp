@@ -165,14 +165,14 @@ $messagesActive =
                             <i
                                 class="ri-home-4-line
                                 fw-normal
-                                flex-shrink-0"
+                                flex-shrink-0 text-success"
                                 aria-hidden="true">
                             </i>
 
                             <span
                                 class="<?= $homeActive
                                             ? 'fw-semibold'
-                                            : '' ?>">
+                                            : 'text-black' ?>">
                                 Home
                             </span>
                         </a>
@@ -197,14 +197,14 @@ $messagesActive =
                             <i
                                 class="ri-heart-3-line
                                 fw-normal
-                                flex-shrink-0"
+                                flex-shrink-0 text-danger"
                                 aria-hidden="true">
                             </i>
 
                             <span
                                 class="<?= $matchesActive
                                             ? 'fw-semibold'
-                                            : '' ?>">
+                                            : 'text-black' ?>">
                                 Matches
                             </span>
                         </a>
@@ -229,14 +229,14 @@ $messagesActive =
                             <i
                                 class="ri-heart-add-line
                                 fw-normal
-                                flex-shrink-0"
+                                flex-shrink-0 text-warning"
                                 aria-hidden="true">
                             </i>
 
                             <span
                                 class="<?= $interestActive
                                             ? 'fw-semibold'
-                                            : '' ?>">
+                                            : 'text-black' ?>">
                                 Interest
                             </span>
                         </a>
@@ -261,14 +261,14 @@ $messagesActive =
                             <i
                                 class="ri-message-3-line
                                 fw-normal
-                                flex-shrink-0"
+                                flex-shrink-0 text-info"
                                 aria-hidden="true">
                             </i>
 
                             <span
                                 class="<?= $messagesActive
                                             ? 'fw-semibold'
-                                            : '' ?>">
+                                            : 'text-black' ?>">
                                 Messages
                             </span>
 

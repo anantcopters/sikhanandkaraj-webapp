@@ -473,7 +473,7 @@ $matchSections = [
                                                         $shortcutUrl,
                                                         'attr'
                                                     ) ?>"
-                                            class="card h-80 border border-danger border-opacity-25 text-decoration-none mb-1 <?= $shortcut['class'] ?>">
+                                            class="card border border-danger border-opacity-25 text-decoration-none mb-1 <?= $shortcut['class'] ?>">
 
                                             <div class="card-body p-3">
                                                 <div

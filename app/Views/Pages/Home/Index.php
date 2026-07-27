@@ -41,13 +41,8 @@ $this->section('content');
             <div class="col-12 col-lg-5">
                 <div class="registration-card">
 
-                    <div class="registration-card__header">
-                        <h1 class="fs-22 fw-normal mb-0 text-white text-center lh-base">
-                            Create a Matrimony Profile
-                        </h1>
-                    </div>
-
-                    <div class="registration-card__body">
+                    
+                    <div class="registration-card__body mt-4">
 
                         <h2 class="fs-20 fw-semibold text-center lh-base mt-0 mb-3">
                             Find your perfect match
