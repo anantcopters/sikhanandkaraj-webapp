@@ -21,3 +21,19 @@ CHECK (
         'DELIVERY_FAILED'
     )
 );
+
+ALTER TABLE contact_verifications
+DROP CONSTRAINT IF EXISTS chk_contact_verification_purpose;
+
+ALTER TABLE contact_verifications
+ADD CONSTRAINT chk_contact_verification_purpose
+CHECK (
+    purpose IN (
+        'REGISTER',
+        'PASSWORD_RESET',
+        'PENDING',
+        'VERIFIED',
+        'EXPIRED',
+        'CANCELLED'
+    )
+);

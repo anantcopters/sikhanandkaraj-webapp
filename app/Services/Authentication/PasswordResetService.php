@@ -11,6 +11,7 @@ use App\Services\Sms\SmsMessage;
 use App\Services\Sms\SmsProviderInterface;
 use App\Support\IndianMobileNormalizer;
 use App\Support\BooleanValue;
+use App\Support\OtpGenerator;
 use CodeIgniter\Database\BaseConnection;
 use DateInterval;
 use DateTimeImmutable;
@@ -604,7 +605,9 @@ final class PasswordResetService
             );
         }
 
-        $otp = $this->generateOtp();
+        $otp = OtpGenerator::generate(
+            self::OTP_LENGTH
+        );
 
         $now = new DateTimeImmutable(
             'now',
@@ -776,50 +779,6 @@ final class PasswordResetService
         );
     }
 
-    /**
-     * Generate a valid four-digit OTP.
-     *
-     * OTP_FIXED_VALUE is allowed only outside production and must contain exactly
-     * four digits. An invalid configured value must never create an OTP that the
-     * verification method cannot accept.
-     */
-    private function generateOtp(): string
-    {
-        $configuredOtp = trim(
-            (string) env('OTP_FIXED_VALUE')
-        );
-
-        if ($configuredOtp === '') {
-            return (string) random_int(
-                10 ** (self::OTP_LENGTH - 1),
-                (10 ** self::OTP_LENGTH) - 1
-            );
-        }
-
-        if (ENVIRONMENT === 'production') {
-            log_message(
-                'critical',
-                'OTP_FIXED_VALUE must not be configured in production.'
-            );
-
-            throw new RuntimeException(
-                'OTP configuration is invalid.'
-            );
-        }
-
-        if (! preg_match(
-            '/^\d{' . self::OTP_LENGTH . '}$/',
-            $configuredOtp
-        )) {
-            throw new RuntimeException(
-                'OTP_FIXED_VALUE must contain exactly '
-                    . self::OTP_LENGTH
-                    . ' digits.'
-            );
-        }
-
-        return $configuredOtp;
-    }
 
     /**
      * Prevent an undelivered OTP from remaining usable.

@@ -10,6 +10,8 @@ use App\Models\UserModel;
 use CodeIgniter\Database\BaseConnection;
 use App\Services\Sms\SmsMessage;
 use App\Services\Sms\SmsProviderInterface;
+use App\Support\BooleanValue;
+use App\Support\OtpGenerator;
 use DateInterval;
 use DateTimeImmutable;
 use RuntimeException;
@@ -60,7 +62,7 @@ final class RegistrationOtpService
                 );
             }
 
-            if ($this->toBoolean(
+            if (BooleanValue::fromDatabase(
                 $contact['is_verified'] ?? false
             )) {
                 $this->database->transRollback();
@@ -97,17 +99,10 @@ final class RegistrationOtpService
             }
 
             /**
-             * Development and QA environments use a fixed OTP
-             * to simplify testing.
-             *
-             * Production always generates a cryptographically
-             * secure random OTP.
+             * OTP generation is centralized so registration, password reset and any
+             * future OTP workflow follow the same environment and security rules.
              */
-            $fixedOtp = trim((string) env('OTP_FIXED_VALUE'));
-
-            $otp = $fixedOtp !== ''
-                ? $fixedOtp
-                : (string) random_int(1000, 9999);
+            $otp = OtpGenerator::generate();
 
             /**
              * Always generate and store OTP timestamps in UTC.
@@ -216,7 +211,6 @@ final class RegistrationOtpService
                 'OTP sent successfully.',
                 $expiresAt->getTimestamp()
             );
-            
         } catch (Throwable $exception) {
             $this->database->transRollback();
 
@@ -524,14 +518,6 @@ final class RegistrationOtpService
                 . date('d M Y, h:i A', $retryAfter)
                 . '.',
             $retryAfter
-        );
-    }
-
-    private function toBoolean(mixed $value): bool
-    {
-        return filter_var(
-            $value,
-            FILTER_VALIDATE_BOOLEAN
         );
     }
 
