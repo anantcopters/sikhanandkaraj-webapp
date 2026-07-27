@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 /**
  * Local view variables.
+ *
+ * @var string $pageTitle
+ * @var array<string, string> $validationErrors
+ * @var array<string, string>|null $formAlert
  */
 
 $pageTitle = isset($pageTitle)
@@ -37,103 +41,172 @@ $formAction = route_to(
     'web.forgot-password.send-otp'
 );
 
-$loginUrl = route_to('web.login');
+$loginUrl = route_to(
+    'web.login'
+);
 
 $this->extend('Layouts/Main');
 $this->section('content');
 ?>
 
-<section class="registration-page">
+<section class="py-4">
     <div class="container">
-        <div class="registration-page__content">
-            <div class="registration-form">
-                <div class="registration-form__header">
-                    <h1 class="registration-form__title">
-                        <?= esc($pageTitle) ?>
-                    </h1>
+        <div
+            class="row justify-content-center
+                align-items-center auth-content-height">
+            <div
+                class="col-12 col-sm-10 col-md-8
+                    col-lg-5 col-xl-5">
+                <div class="card border-0 shadow-lg mb-0">
+                    <div class="card-body p-4 p-md-5 pt-md-4">
 
-                    <p class="registration-form__description">
-                        Enter your registered email address or mobile
-                        number. The OTP will be sent only to your verified
-                        mobile number.
-                    </p>
-                </div>
+                        <div class="text-center mb-4">
+                            <h1 class="fs-24 fw-semibold mb-2">
+                                <?= esc($pageTitle) ?>
+                            </h1>
 
-                <?php if ($formAlert !== null): ?>
-                    <?= view(
-                        'Components/Alerts/FormAlert',
-                        [
-                            'alert' => $formAlert,
-                        ]
-                    ) ?>
-                <?php endif; ?>
+                            <p class="text-muted mb-0">
+                                Enter your registered email address or
+                                mobile number.
+                            </p>
+                        </div>
 
-                <form
-                    action="<?= esc($formAction, 'attr') ?>"
-                    method="post"
-                    class="registration-form__form"
-                    novalidate>
-                    <?= csrf_field() ?>
+                        <?= view(
+                            'Components/Alerts/FormAlert',
+                            [
+                                'alert' => $formAlert,
+                            ]
+                        ) ?>
 
-                    <div class="registration-form__group">
-                        <label
-                            for="identifier"
-                            class="registration-form__label">
-                            Email or mobile number
-                        </label>
-
-                        <input
-                            type="text"
-                            id="identifier"
-                            name="identifier"
-                            class="registration-form__control
-                                <?= $identifierHasError
-                                    ? 'is-invalid'
-                                    : '' ?>"
-                            value="<?= esc(
-                                        $identifier,
+                        <form
+                            id="forgotPasswordForm"
+                            action="<?= esc(
+                                        $formAction,
                                         'attr'
                                     ) ?>"
-                            maxlength="254"
-                            autocomplete="username"
-                            required>
+                            method="post"
+                            data-validate
+                            data-submit-loader
+                            novalidate
+                            autocomplete="on">
+                            <?= csrf_field() ?>
 
-                        <?php if ($identifierHasError): ?>
-                            <div class="invalid-feedback">
-                                <?= esc($identifierError) ?>
+                            <div class="mb-3">
+                                <label
+                                    for="forgotPasswordIdentifier"
+                                    class="form-label">
+                                    Email or Mobile Number
+                                </label>
+
+                                <input
+                                    type="text"
+                                    id="forgotPasswordIdentifier"
+                                    name="identifier"
+                                    value="<?= esc(
+                                                $identifier,
+                                                'attr'
+                                            ) ?>"
+                                    class="form-control
+                                        <?= $identifierHasError
+                                            ? 'is-invalid'
+                                            : '' ?>"
+                                    placeholder="Enter email or mobile number"
+                                    maxlength="254"
+                                    autocomplete="username"
+                                    data-error-required="Please enter your email address or mobile number."
+                                    data-error-pattern="Enter a valid email address or 10-digit Indian mobile number."
+                                    aria-describedby="forgotPasswordIdentifierError"
+                                    <?= $identifierHasError
+                                        ? 'aria-invalid="true"'
+                                        : '' ?>
+                                    required>
+
+                                <div
+                                    id="forgotPasswordIdentifierError"
+                                    class="invalid-feedback"
+                                    data-validation-error="identifier">
+                                    <?= esc($identifierError) ?>
+                                </div>
                             </div>
-                        <?php endif; ?>
+
+                            <div class="alert alert-light border mb-4">
+                                <div class="d-flex align-items-start">
+                                    <span
+                                        class="mdi mdi-information-outline
+                                            fs-20 me-2 text-primary"
+                                        aria-hidden="true"></span>
+
+                                    <p class="mb-0 fs-13 text-muted">
+                                        The OTP will be sent only to your
+                                        verified primary mobile number.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <button
+                                    type="submit"
+                                    class="btn
+                                        registration-form__submit
+                                        fs-16 fw-semibold text-uppercase"
+                                    data-submit-button>
+                                    <span
+                                        data-submit-idle
+                                        aria-hidden="false">
+                                        Send OTP
+                                    </span>
+
+                                    <span
+                                        class="registration-submit__loading d-none"
+                                        data-submit-loading
+                                        aria-hidden="true">
+                                        <span
+                                            class="spinner-border spinner-border-sm"
+                                            role="status"
+                                            aria-hidden="true"></span>
+
+                                        <span>
+                                            Sending OTP...
+                                        </span>
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="mt-4 text-center">
+                            <p class="mb-0 text-muted">
+                                Remember your password?
+
+                                <a
+                                    href="<?= esc(
+                                                $loginUrl,
+                                                'attr'
+                                            ) ?>"
+                                    class="fw-semibold
+                                        text-primary
+                                        text-decoration-underline">
+                                    Back to Login
+                                </a>
+                            </p>
+                        </div>
+
                     </div>
+                </div>
 
-                    <button
-                        type="submit"
-                        class="registration-form__submit">
-                        <span class="registration-submit__text">
-                            Send OTP
-                        </span>
+                <div class="text-center mt-4">
+                    <p class="text-muted mb-0 fs-13">
+                        <i
+                            class="ri-shield-check-line
+                                text-primary me-1"
+                            aria-hidden="true"></i>
 
-                        <span
-                            class="registration-submit__loading"
-                            hidden>
-                            <span
-                                class="spinner-border spinner-border-sm"
-                                aria-hidden="true"></span>
-
-                            Sending...
-                        </span>
-                    </button>
-                </form>
-
-                <div class="registration-form__footer">
-                    <a
-                        href="<?= esc($loginUrl, 'attr') ?>"
-                        class="registration-form__link">
-                        Back to login
-                    </a>
+                        Your password reset request is securely protected.
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<?php $this->endSection(); ?>
+<?php
+$this->endSection();

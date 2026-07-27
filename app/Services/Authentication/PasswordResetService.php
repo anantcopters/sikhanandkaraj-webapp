@@ -9,6 +9,8 @@ use App\Models\UserContactModel;
 use App\Models\UserModel;
 use App\Services\Sms\SmsMessage;
 use App\Services\Sms\SmsProviderInterface;
+use App\Support\IndianMobileNormalizer;
+use App\Support\BooleanValue;
 use CodeIgniter\Database\BaseConnection;
 use DateInterval;
 use DateTimeImmutable;
@@ -82,13 +84,17 @@ final class PasswordResetService
             );
         }
 
-        $identifierType = (string) (
-            $identifierContact['contact_type'] ?? ''
+        $identifierType = strtoupper(
+            trim(
+                (string) (
+                    $identifierContact['contact_type'] ?? ''
+                )
+            )
         );
 
         if (
             $identifierType === UserContactModel::TYPE_EMAIL
-            && !$this->toBoolean(
+            && ! BooleanValue::fromDatabase(
                 $identifierContact['is_verified'] ?? false
             )
         ) {
@@ -100,7 +106,7 @@ final class PasswordResetService
 
         if (
             $identifierType === UserContactModel::TYPE_MOBILE
-            && !$this->toBoolean(
+            && ! BooleanValue::fromDatabase(
                 $identifierContact['is_verified'] ?? false
             )
         ) {
@@ -120,8 +126,8 @@ final class PasswordResetService
             );
 
         if (
-            !is_array($mobileContact)
-            || !$this->toBoolean(
+            ! is_array($mobileContact)
+            || ! BooleanValue::fromDatabase(
                 $mobileContact['is_verified'] ?? false
             )
         ) {
@@ -849,15 +855,33 @@ final class PasswordResetService
     /**
      * Find an email or mobile contact after normalizing its value.
      *
+     * Mobile numbers are normalized using the same E.164-style convention used
+     * during registration and login:
+     *
+     * 9876543210     -> +919876543210
+     * 919876543210   -> +919876543210
+     * +91 98765 43210 -> +919876543210
+     *
      * @return array<string, mixed>|null
      */
     private function findIdentifierContact(
         string $identifier
     ): ?array {
-        if (filter_var(
-            $identifier,
-            FILTER_VALIDATE_EMAIL
-        ) !== false) {
+        $identifier = trim($identifier);
+
+        if ($identifier === '') {
+            return null;
+        }
+
+        /**
+         * Normalize email addresses exactly as registration and login do.
+         */
+        if (
+            filter_var(
+                $identifier,
+                FILTER_VALIDATE_EMAIL
+            ) !== false
+        ) {
             return $this->contactModel
                 ->findByNormalizedValue(
                     UserContactModel::TYPE_EMAIL,
@@ -865,43 +889,39 @@ final class PasswordResetService
                 );
         }
 
-        $mobile = preg_replace(
-            '/\D+/',
-            '',
-            $identifier
-        );
+        $normalizedMobile =
+            IndianMobileNormalizer::normalize(
+                $identifier
+            );
 
-        if (!is_string($mobile)) {
-            return null;
-        }
-
-        /*
-         * Match the same normalized mobile convention used during
-         * registration. Adjust this line only if registration stores +91.
-         */
-        if (strlen($mobile) === 12 && str_starts_with(
-            $mobile,
-            '91'
-        )) {
-            $mobile = substr($mobile, 2);
-        }
-
-        if (!preg_match('/^[6-9]\d{9}$/', $mobile)) {
+        if ($normalizedMobile === null) {
             return null;
         }
 
         return $this->contactModel
             ->findByNormalizedValue(
                 UserContactModel::TYPE_MOBILE,
-                $mobile
+                $normalizedMobile
             );
     }
 
+    /**
+     * Confirm that the reset mobile belongs to the supplied user and remains
+     * verified.
+     *
+     * Account status is intentionally not inspected.
+     */
     private function isValidResetContact(
         int $userId,
         int $mobileContactId
     ): bool {
-        $user = $this->userModel->find($userId);
+        $user = $this->userModel->find(
+            $userId
+        );
+
+        if (! is_array($user)) {
+            return false;
+        }
 
         $mobile = $this->contactModel->findForUser(
             $mobileContactId,
@@ -909,11 +929,13 @@ final class PasswordResetService
             UserContactModel::TYPE_MOBILE
         );
 
-        return is_array($user)
-            && is_array($mobile)
-            && $this->toBoolean(
-                $mobile['is_verified'] ?? false
-            );
+        if (! is_array($mobile)) {
+            return false;
+        }
+
+        return BooleanValue::fromDatabase(
+            $mobile['is_verified'] ?? false
+        );
     }
 
     private function parseUtcTimestamp(
@@ -943,13 +965,5 @@ final class PasswordResetService
                 'Unable to commit the password-reset transaction.'
             );
         }
-    }
-
-    private function toBoolean(mixed $value): bool
-    {
-        return filter_var(
-            $value,
-            FILTER_VALIDATE_BOOLEAN
-        );
     }
 }

@@ -7,6 +7,7 @@ namespace App\Services\Registration;
 use App\Models\UserContactModel;
 use App\Models\UserModel;
 use CodeIgniter\Database\BaseConnection;
+use App\Support\IndianMobileNormalizer;
 use App\Support\BooleanValue;
 use RuntimeException;
 use Throwable;
@@ -61,9 +62,19 @@ final class RegisterFreeService
      */
     public function register(array $data): RegisterFreeResult
     {
-        $mobile = $this->normalizeIndianMobile(
+        $mobile = IndianMobileNormalizer::normalize(
             (string) $data['mobile_number']
         );
+
+        if ($mobile === null) {
+            /**
+             * Controller validation should reject invalid mobile numbers before the
+             * service is called. This remains a defensive service-layer check.
+             */
+            throw new RuntimeException(
+                'A valid Indian mobile number is required.'
+            );
+        }
 
         $email = $this->normalizeEmail(
             (string) $data['email']
@@ -631,41 +642,6 @@ final class RegisterFreeService
                 'Unsupported profile relationship.'
             ),
         };
-    }
-
-    /**
-     * Normalize an Indian mobile number for consistent lookup/storage.
-     *
-     * The validated form supplies ten digits. The normalized database
-     * value is stored in an E.164-style format such as +919876543210.
-     */
-    private function normalizeIndianMobile(
-        string $mobileNumber
-    ): string {
-        $digits = preg_replace(
-            '/\D+/',
-            '',
-            $mobileNumber
-        ) ?? '';
-
-        /**
-         * Prevent accidentally duplicating the country code if this method
-         * receives a value that already includes 91.
-         */
-        if (
-            strlen($digits) === 12
-            && str_starts_with($digits, '91')
-        ) {
-            $digits = substr($digits, 2);
-        }
-
-        if (strlen($digits) !== 10) {
-            throw new RuntimeException(
-                'A valid ten-digit mobile number is required.'
-            );
-        }
-
-        return '+91' . $digits;
     }
 
     /**

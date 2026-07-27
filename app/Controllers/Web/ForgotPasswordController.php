@@ -297,7 +297,7 @@ final class ForgotPasswordController extends BaseController
                     $this->readFormAlert(),
 
                     'pageScripts' => [
-                        'assets/js/pages/password-reset-otp.js',
+                        'assets/js/pages/registration-form.js',
                     ],
                 ]
             );
@@ -595,7 +595,6 @@ final class ForgotPasswordController extends BaseController
                 $this->readFormAlert(),
 
                 'pageScripts' => [
-                    'assets/js/pages/password-toggle.js',
                     'assets/js/pages/registration-form.js',
                 ],
             ]

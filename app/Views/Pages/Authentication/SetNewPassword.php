@@ -3,7 +3,11 @@
 declare(strict_types=1);
 
 /**
- * Local view variables.
+ * Set-new-password screen.
+ *
+ * @var string                           $pageTitle
+ * @var array<string, string>            $validationErrors
+ * @var array<string, string>|null       $formAlert
  */
 
 $pageTitle = isset($pageTitle)
@@ -50,156 +54,232 @@ $this->extend('Layouts/Main');
 $this->section('content');
 ?>
 
-<section class="registration-page">
+<section class="py-4">
     <div class="container">
-        <div class="registration-page__content">
-            <div class="registration-form">
-                <div class="registration-form__header">
-                    <h1 class="registration-form__title">
-                        <?= esc($pageTitle) ?>
-                    </h1>
+        <div
+            class="row justify-content-center
+                align-items-center auth-content-height">
+            <div
+                class="col-12 col-sm-10 col-md-8
+                    col-lg-5 col-xl-5">
+                <div class="card border-0 shadow-lg mb-0">
+                    <div class="card-body p-4 p-md-5 pt-md-4">
 
-                    <p class="registration-form__description">
-                        Create a password containing at least 10
-                        characters, uppercase, lowercase, number and
-                        special character.
-                    </p>
+                        <div class="text-center mb-4">
+                            <div class="mb-3">
+                                <span
+                                    class="mdi mdi-lock-reset
+                                        fs-36 text-primary"
+                                    aria-hidden="true"></span>
+                            </div>
+
+                            <h1 class="fs-24 fw-semibold mb-2">
+                                <?= esc($pageTitle) ?>
+                            </h1>
+
+                            <p class="text-muted mb-0">
+                                Create a strong new password for your
+                                Sikh Anand Karaj account.
+                            </p>
+                        </div>
+
+                        <?= view(
+                            'Components/Alerts/FormAlert',
+                            [
+                                'alert' => $formAlert,
+                            ]
+                        ) ?>
+
+                        <form
+                            id="setNewPasswordForm"
+                            action="<?= esc(
+                                        $formAction,
+                                        'attr'
+                                    ) ?>"
+                            method="post"
+                            data-registration-form
+                            data-submit-loader
+                            data-password-form
+                            novalidate
+                            autocomplete="off">
+                            <?= csrf_field() ?>
+
+                            <div class="mb-3">
+                                <label
+                                    for="newPassword"
+                                    class="form-label">
+                                    New Password
+                                </label>
+
+                                <div class="password-field">
+                                    <input
+                                        type="password"
+                                        id="newPassword"
+                                        name="password"
+                                        class="form-control
+                                            password-field__input
+                                            <?= $passwordHasError
+                                                ? 'is-invalid'
+                                                : '' ?>"
+                                        placeholder="Enter your new password"
+                                        maxlength="128"
+                                        autocomplete="new-password"
+                                        aria-describedby="newPasswordHelp newPasswordError"
+                                        data-password
+                                        data-error-required="Please enter your new password."
+                                        data-error-invalid="Password must contain at least 10 characters, uppercase, lowercase, number and special character."
+                                        <?= $passwordHasError
+                                            ? 'aria-invalid="true"'
+                                            : '' ?>
+                                        required>
+
+                                    <button
+                                        type="button"
+                                        class="password-field__toggle"
+                                        data-password-toggle="newPassword"
+                                        aria-label="Show password"
+                                        aria-controls="newPassword"
+                                        aria-pressed="false">
+                                        <span
+                                            class="mdi
+                                                mdi-eye-off-outline"
+                                            aria-hidden="true"></span>
+                                    </button>
+                                </div>
+
+                                <div
+                                    id="newPasswordHelp"
+                                    class="form-text">
+                                    Minimum 10 characters with uppercase,
+                                    lowercase, number and special character.
+                                </div>
+
+                                <div
+                                    id="newPasswordError"
+                                    class="invalid-feedback d-block"
+                                    data-field-error="password">
+                                    <?= esc($passwordError) ?>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label
+                                    for="newPasswordConfirmation"
+                                    class="form-label">
+                                    Confirm New Password
+                                </label>
+
+                                <div class="password-field">
+                                    <input
+                                        type="password"
+                                        id="newPasswordConfirmation"
+                                        name="password_confirmation"
+                                        class="form-control
+                                            password-field__input
+                                            <?= $passwordConfirmationHasError
+                                                ? 'is-invalid'
+                                                : '' ?>"
+                                        placeholder="Re-enter your new password"
+                                        maxlength="128"
+                                        autocomplete="new-password"
+                                        aria-describedby="newPasswordConfirmationError"
+                                        data-password-confirmation
+                                        data-error-required="Please confirm your new password."
+                                        data-error-mismatch="Password confirmation does not match."
+                                        <?= $passwordConfirmationHasError
+                                            ? 'aria-invalid="true"'
+                                            : '' ?>
+                                        required>
+
+                                    <button
+                                        type="button"
+                                        class="password-field__toggle"
+                                        data-password-toggle="newPasswordConfirmation"
+                                        aria-label="Show password confirmation"
+                                        aria-controls="newPasswordConfirmation"
+                                        aria-pressed="false">
+                                        <span
+                                            class="mdi
+                                                mdi-eye-off-outline"
+                                            aria-hidden="true"></span>
+                                    </button>
+                                </div>
+
+                                <div
+                                    id="newPasswordConfirmationError"
+                                    class="invalid-feedback d-block"
+                                    data-field-error="password_confirmation">
+                                    <?= esc(
+                                        $passwordConfirmationError
+                                    ) ?>
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <button
+                                    type="submit"
+                                    class="btn
+                                        registration-form__submit
+                                        fs-16 fw-semibold text-uppercase"
+                                    data-submit-button>
+                                    <span
+                                        data-submit-idle
+                                        aria-hidden="false">
+                                        Reset Password
+                                    </span>
+
+                                    <span
+                                        class="registration-submit__loading d-none"
+                                        data-submit-loading
+                                        aria-hidden="true">
+                                        <span
+                                            class="spinner-border spinner-border-sm"
+                                            role="status"
+                                            aria-hidden="true"></span>
+
+                                        <span>
+                                            Updating Password...
+                                        </span>
+                                    </span>
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="mt-4 text-center">
+                            <form
+                                action="<?= esc(
+                                            $cancelAction,
+                                            'attr'
+                                        ) ?>"
+                                method="post">
+                                <?= csrf_field() ?>
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-link p-0
+                                        text-muted text-decoration-underline">
+                                    Cancel Password Reset
+                                </button>
+                            </form>
+                        </div>
+
+                    </div>
                 </div>
 
-                <?php if ($formAlert !== null): ?>
-                    <?= view(
-                        'Components/Alerts/FormAlert',
-                        [
-                            'alert' => $formAlert,
-                        ]
-                    ) ?>
-                <?php endif; ?>
+                <div class="text-center mt-4">
+                    <p class="text-muted mb-0 fs-13">
+                        <i
+                            class="ri-shield-check-line
+                                text-primary me-1"
+                            aria-hidden="true"></i>
 
-                <form
-                    action="<?= esc($formAction, 'attr') ?>"
-                    method="post"
-                    class="registration-form__form"
-                    novalidate>
-                    <?= csrf_field() ?>
-
-                    <div class="registration-form__group">
-                        <label
-                            for="password"
-                            class="registration-form__label">
-                            New password
-                        </label>
-
-                        <div class="password-field">
-                            <input
-                                type="password"
-                                id="password"
-                                name="password"
-                                class="registration-form__control
-                                    <?= $passwordHasError
-                                        ? 'is-invalid'
-                                        : '' ?>"
-                                maxlength="128"
-                                autocomplete="new-password"
-                                required>
-
-                            <button
-                                type="button"
-                                class="password-field__toggle"
-                                data-password-toggle="password"
-                                aria-label="Show password">
-                                <i
-                                    class="bi bi-eye"
-                                    aria-hidden="true"></i>
-                            </button>
-                        </div>
-
-                        <?php if ($passwordHasError): ?>
-                            <div class="invalid-feedback d-block">
-                                <?= esc($passwordError) ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-
-                    <div class="registration-form__group">
-                        <label
-                            for="password_confirmation"
-                            class="registration-form__label">
-                            Confirm password
-                        </label>
-
-                        <div class="password-field">
-                            <input
-                                type="password"
-                                id="password_confirmation"
-                                name="password_confirmation"
-                                class="registration-form__control
-                                    <?= $passwordConfirmationHasError
-                                        ? 'is-invalid'
-                                        : '' ?>"
-                                maxlength="128"
-                                autocomplete="new-password"
-                                required>
-
-                            <button
-                                type="button"
-                                class="password-field__toggle"
-                                data-password-toggle="password_confirmation"
-                                aria-label="Show confirmed password">
-                                <i
-                                    class="bi bi-eye"
-                                    aria-hidden="true"></i>
-                            </button>
-                        </div>
-
-                        <?php if (
-                            $passwordConfirmationHasError
-                        ): ?>
-                            <div class="invalid-feedback d-block">
-                                <?= esc(
-                                    $passwordConfirmationError
-                                ) ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-
-                    <button
-                        type="submit"
-                        class="registration-form__submit">
-                        <span class="registration-submit__text">
-                            Reset Password
-                        </span>
-
-                        <span
-                            class="registration-submit__loading"
-                            hidden>
-                            <span
-                                class="spinner-border spinner-border-sm"
-                                aria-hidden="true"></span>
-
-                            Updating...
-                        </span>
-                    </button>
-                </form>
-
-                <div class="registration-form__footer">
-                    <form
-                        action="<?= esc(
-                                    $cancelAction,
-                                    'attr'
-                                ) ?>"
-                        method="post">
-                        <?= csrf_field() ?>
-
-                        <button
-                            type="submit"
-                            class="registration-form__link-button">
-                            Cancel
-                        </button>
-                    </form>
+                        Your new password will be securely encrypted.
+                    </p>
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<?php $this->endSection(); ?>
+<?php
+$this->endSection();
