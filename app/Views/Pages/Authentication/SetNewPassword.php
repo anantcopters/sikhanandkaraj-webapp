@@ -149,7 +149,7 @@ $this->section('content');
 
                                 <div
                                     id="newPasswordHelp"
-                                    class="form-text">
+                                    class="form-text color-pink">
                                     Minimum 10 characters with uppercase,
                                     lowercase, number and special character.
                                 </div>
@@ -244,23 +244,21 @@ $this->section('content');
                                 </button>
                             </div>
                         </form>
-
                         <div class="mt-4 text-center">
-                            <form
-                                action="<?= esc(
+                            <p class="mb-0 text-muted">
+                                Remember your password?
+
+                                <a
+                                    href="<?= esc(
                                             $cancelAction,
                                             'attr'
                                         ) ?>"
-                                method="post">
-                                <?= csrf_field() ?>
-
-                                <button
-                                    type="submit"
-                                    class="btn btn-link p-0
-                                        text-muted text-decoration-underline">
-                                    Cancel Password Reset
-                                </button>
-                            </form>
+                                    class="fw-semibold
+                                        text-primary
+                                        text-decoration-underline">
+                                    Back to Login
+                                </a>
+                            </p>
                         </div>
 
                     </div>

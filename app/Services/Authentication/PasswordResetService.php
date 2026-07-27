@@ -29,7 +29,7 @@ final class PasswordResetService
 {
     private const OTP_LENGTH = 4;
 
-    private const OTP_EXPIRY_MINUTES = 5;
+    private const OTP_EXPIRY_MINUTES = 3;
 
     /**
      * Minimum time before another OTP can be issued.

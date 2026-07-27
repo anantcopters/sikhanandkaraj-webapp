@@ -78,6 +78,7 @@ final class ForgotPasswordController extends BaseController
 
                 'pageScripts' => [
                     'assets/js/pages/registration-form.js',
+                    'assets/js/components/submit-loader.js',
                 ],
             ]
         );
@@ -329,6 +330,7 @@ final class ForgotPasswordController extends BaseController
 
                     'pageScripts' => [
                         'assets/js/pages/registration-otp.js',
+                        'assets/js/components/submit-loader.js',
                     ],
                 ]
             );

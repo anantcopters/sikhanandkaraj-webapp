@@ -113,6 +113,7 @@ final class RegistrationVerificationController extends BaseController
 
                 'pageScripts' => [
                     'assets/js/pages/registration-otp.js',
+                    'assets/js/components/submit-loader.js',
                 ],
             ]
         );

@@ -296,32 +296,37 @@ $this->section('content');
                             <button
                                 type="submit"
                                 class="btn btn-primary w-100 mt-4
-                                    d-inline-flex align-items-center
-                                    justify-content-center gap-2"
+        d-inline-flex align-items-center
+        justify-content-center gap-2"
                                 id="verifyOtpButton"
+                                data-submit-button
                                 <?= $isExpired
                                     ? 'disabled'
                                     : '' ?>>
 
                                 <span
-                                    class="mdi mdi-shield-check-outline
-                                        fs-18"
-                                    aria-hidden="true">
-                                </span>
+                                    class="d-inline-flex align-items-center gap-2"
+                                    data-submit-idle
+                                    aria-hidden="false">
 
-                                <span data-submit-idle>
-                                    Verify OTP
+                                    <span
+                                        class="mdi mdi-shield-check-outline fs-18"
+                                        aria-hidden="true">
+                                    </span>
+
+                                    <span>
+                                        Verify OTP
+                                    </span>
                                 </span>
 
                                 <span
                                     class="registration-submit__loading
-                                        d-none"
-                                    data-otp-submit-loading
+            d-none align-items-center gap-2"
+                                    data-submit-loading
                                     aria-hidden="true">
 
                                     <span
-                                        class="spinner-border
-                                            spinner-border-sm"
+                                        class="spinner-border spinner-border-sm"
                                         role="status"
                                         aria-hidden="true">
                                     </span>
