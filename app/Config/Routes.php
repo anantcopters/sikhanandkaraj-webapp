@@ -581,15 +581,96 @@ $routes->group('admin', [
                     'as' => 'admin.users.suspend',
                 ]
             );
+
+            $routes->get(
+                '',
+                'FieldOfficerController::index',
+                [
+                    'as' =>
+                    'admin.field-officers.index',
+                ]
+            );
+
+            $routes->get(
+                'create',
+                'FieldOfficerController::create',
+                [
+                    'as' =>
+                    'admin.field-officers.create',
+                ]
+            );
+
+            $routes->post(
+                '',
+                'FieldOfficerController::store',
+                [
+                    'as' =>
+                    'admin.field-officers.store',
+                ]
+            );
+
+            $routes->get(
+                '(:num)/edit',
+                'FieldOfficerController::edit/$1',
+                [
+                    'as' =>
+                    'admin.field-officers.edit',
+                ]
+            );
+
+            $routes->post(
+                '(:num)',
+                'FieldOfficerController::update/$1',
+                [
+                    'as' =>
+                    'admin.field-officers.update',
+                ]
+            );
+
+            $routes->get(
+                'master/states/(:num)',
+                'FieldOfficerController::states/$1',
+                [
+                    'as' =>
+                    'admin.field-officers.master.states',
+                ]
+            );
+
+            $routes->get(
+                'master/cities/(:num)',
+                'FieldOfficerController::cities/$1',
+                [
+                    'as' =>
+                    'admin.field-officers.master.cities',
+                ]
+            );
+
+            $routes->post(
+                '(:num)/activate',
+                'FieldOfficerController::activate/$1',
+                [
+                    'as' =>
+                    'admin.field-officers.activate',
+                ]
+            );
+
+            $routes->post(
+                '(:num)/deactivate',
+                'FieldOfficerController::deactivate/$1',
+                [
+                    'as' =>
+                    'admin.field-officers.deactivate',
+                ]
+            );
         });
     });
 
     /*
- * Member photo moderation.
- *
- * Both ADMIN and SUPER_ADMIN may access these routes because this
- * group is protected by adminAuth but is outside the superAdmin group.
- */
+    * Member photo moderation.
+    *
+    * Both ADMIN and SUPER_ADMIN may access these routes because this
+    * group is protected by adminAuth but is outside the superAdmin group.
+    */
     $routes->group(
         'members/photo-approvals',
         static function (

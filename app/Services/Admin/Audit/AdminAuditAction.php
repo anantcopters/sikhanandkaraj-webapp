@@ -48,5 +48,20 @@ final class AdminAuditAction
     public const MEMBER_PHOTOS_BULK_APPROVED =
     'MEMBER_PHOTOS_BULK_APPROVED';
 
+    public const FIELD_OFFICER_CREATED =
+    'FIELD_OFFICER_CREATED';
+
+    public const FIELD_OFFICER_UPDATED =
+    'FIELD_OFFICER_UPDATED';
+
+    public const FIELD_OFFICER_ACTIVATED =
+    'FIELD_OFFICER_ACTIVATED';
+
+    public const FIELD_OFFICER_DEACTIVATED =
+    'FIELD_OFFICER_DEACTIVATED';
+
+    public const FIELD_OFFICER_ACTIVATION_DENIED =
+    'FIELD_OFFICER_ACTIVATION_DENIED';
+
     private function __construct() {}
 }

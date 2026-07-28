@@ -458,4 +458,68 @@ final class ProfileMasterDataService
             throw new DomainException($message);
         }
     }
+
+    /**
+     * Check whether an active country exists.
+     */
+    public function countryExists(int $countryId): bool
+    {
+        if ($countryId <= 0) {
+            return false;
+        }
+
+        return $this->countryModel
+            ->where('id', $countryId)
+            ->where('is_active', true)
+            ->first() !== null;
+    }
+
+    /**
+     * Check whether an active state belongs to an active country.
+     */
+    public function stateBelongsToCountry(
+        int $stateId,
+        int $countryId
+    ): bool {
+        if ($stateId <= 0 || $countryId <= 0) {
+            return false;
+        }
+
+        return $this->stateModel
+            ->where('id', $stateId)
+            ->where('country_id', $countryId)
+            ->where('is_active', true)
+            ->first() !== null;
+    }
+
+    /**
+     * Check whether an active city belongs to an active state.
+     */
+    public function cityBelongsToState(
+        int $cityId,
+        int $stateId
+    ): bool {
+        if ($cityId <= 0 || $stateId <= 0) {
+            return false;
+        }
+
+        return $this->cityModel
+            ->where('id', $cityId)
+            ->where('state_id', $stateId)
+            ->where('is_active', true)
+            ->first() !== null;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function statesForCountry(int $countryId): array
+    {
+        return $this->stateModel
+            ->where('country_id', $countryId)
+            ->where('is_active', true)
+            ->orderBy('display_order', 'ASC')
+            ->orderBy('name', 'ASC')
+            ->findAll();
+    }
 }

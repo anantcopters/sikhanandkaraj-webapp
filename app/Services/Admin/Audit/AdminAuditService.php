@@ -277,6 +277,7 @@ final class AdminAuditService
             'invitation_url',
             'csrf_token',
             'smtp_pass',
+            'upi_id',
         ];
 
         $sanitized = [];

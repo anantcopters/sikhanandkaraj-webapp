@@ -73,6 +73,12 @@ $pageScripts = $pageScripts ?? [];
                 'admin/users'
             );
 
+        $fieldOfficerActive =
+            str_starts_with(
+                $currentPath,
+                'admin/field-officers'
+            );
+
         $isSuperAdmin =
             session('admin_role')
             === \App\Models\AdminUserModel::ROLE_SUPER_ADMIN;
@@ -229,6 +235,36 @@ $pageScripts = $pageScripts ?? [];
                                                         ? 'fw-semibold'
                                                         : '' ?>">
                                             Administrators
+                                        </span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a
+                                        href="<?= route_to(
+                                                    'admin.field-officers.index'
+                                                ) ?>"
+                                        class="nav-link
+            d-flex align-items-center
+            gap-2
+            py-1 py-lg-2
+            <?= $fieldOfficerActive
+                                    ? 'active text-primary'
+                                    : '' ?>"
+                                        <?= $fieldOfficerActive
+                                            ? 'aria-current="page"'
+                                            : '' ?>>
+
+                                        <i
+                                            class="ri-user-location-line
+                fw-normal flex-shrink-0"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        <span
+                                            class="<?= $fieldOfficerActive
+                                                        ? 'fw-semibold'
+                                                        : '' ?>">
+                                            Field Officers
                                         </span>
                                     </a>
                                 </li>

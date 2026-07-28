@@ -68,6 +68,8 @@ use App\Services\Maintenance\TableCleanupService;
 use App\Models\MasterFamilyStatusModel;
 use App\Models\MasterFamilyTypeModel;
 use App\Models\MasterFamilyValueModel;
+use App\Models\FieldOfficerModel;
+use App\Services\Admin\FieldOfficerService;
 use Config\TableCleanup;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
@@ -767,6 +769,28 @@ class Services extends BaseService
             configuration: config(
                 TableCleanup::class
             )
+        );
+    }
+
+    /**
+     * Return the Field Officer management service.
+     */
+    public static function fieldOfficerService(
+        bool $getShared = true
+    ): FieldOfficerService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'fieldOfficerService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new FieldOfficerService(
+            new FieldOfficerModel($database),
+            static::profileMasterDataService(false),
+            static::adminAuditService(false),
+            $database
         );
     }
 }
