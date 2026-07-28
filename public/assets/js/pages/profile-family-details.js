@@ -4,8 +4,8 @@
  * Family Details page behaviour.
  *
  * Handles:
- * - Community -> Sub-community dependency.
- * - State -> City dependency.
+ * - Community to Sub-community dependency.
+ * - State to City dependency.
  * - Married sibling count constraints.
  */
 document.addEventListener('DOMContentLoaded', () => {
@@ -25,6 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
         'familyCityId'
     );
 
+    /**
+     * Clear a dependent select and restore its placeholder.
+     *
+     * @param {HTMLSelectElement|null} select
+     * @param {string} placeholder
+     * @param {boolean} disabled
+     */
     const resetSelect = (
         select,
         placeholder,
@@ -51,23 +58,40 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     };
 
+    /**
+     * Append API records to a select.
+     *
+     * Supports the standard value/label response while retaining
+     * compatibility with id/name records.
+     *
+     * @param {HTMLSelectElement} select
+     * @param {Array<object>} records
+     * @param {string} selectedValue
+     */
     const appendOptions = (
         select,
         records,
         selectedValue = ''
     ) => {
         records.forEach((record) => {
-            const option = document.createElement('option');
-
-            option.value = String(
+            const value = String(
                 record.value ?? record.id ?? ''
             );
 
-            option.textContent = String(
+            const label = String(
                 record.label ?? record.name ?? ''
             );
 
-            if (option.value === String(selectedValue)) {
+            if (value === '' || label === '') {
+                return;
+            }
+
+            const option = document.createElement('option');
+
+            option.value = value;
+            option.textContent = label;
+
+            if (value === String(selectedValue)) {
                 option.selected = true;
             }
 
@@ -75,10 +99,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    /**
+     * Load child master options for a selected parent.
+     *
+     * @param {object} configuration
+     * @param {HTMLSelectElement} configuration.parentSelect
+     * @param {HTMLSelectElement} configuration.childSelect
+     * @param {string} configuration.placeholder
+     * @param {string} configuration.selectedValue
+     */
     const loadDependentOptions = async ({
         parentSelect,
         childSelect,
-        urlTemplate,
         placeholder,
         selectedValue = '',
     }) => {
@@ -88,6 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const parentId = String(
             parentSelect.value ?? ''
+        ).trim();
+
+        const urlTemplate = String(
+            parentSelect.dataset
+                .dependentUrlTemplate ?? ''
         ).trim();
 
         resetSelect(
@@ -105,17 +142,24 @@ document.addEventListener('DOMContentLoaded', () => {
             encodeURIComponent(parentId)
         );
 
-        childSelect.disabled = true;
+        /*
+         * Reject an invalid or incompletely configured URL template.
+         */
+        if (
+            resolvedUrl.includes('__PARENT_ID__')
+            || resolvedUrl === urlTemplate
+        ) {
+            console.error(
+                'Dependent master URL template is invalid.'
+            );
+
+            return;
+        }
 
         try {
             const requestUrl = new URL(
                 resolvedUrl,
                 window.location.origin
-            );
-
-            requestUrl.searchParams.set(
-                'parent_id',
-                parentId
             );
 
             const response = await fetch(
@@ -133,7 +177,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 throw new Error(
-                    'Dependent master request failed.'
+                    `Dependent master request failed: `
+                    + `${response.status}`
                 );
             }
 
@@ -163,46 +208,71 @@ document.addEventListener('DOMContentLoaded', () => {
                 true
             );
 
-            console.error(error);
+            console.error(
+                'Unable to load dependent master data.',
+                error
+            );
         }
     };
 
+    /*
+     * Community to Sub-community.
+     */
     if (communitySelect && subcommunitySelect) {
         communitySelect.addEventListener(
             'change',
             () => {
+                const selectedValue = String(
+                    subcommunitySelect.dataset
+                        .selectedValue ?? ''
+                );
+
                 void loadDependentOptions({
                     parentSelect: communitySelect,
                     childSelect: subcommunitySelect,
-                    urlTemplate:
-                        communitySelect.dataset
-                            .subcommunityUrlTemplate ?? '',
                     placeholder: 'Select sub-community',
-                    selectedValue:
-                        subcommunitySelect.dataset
-                            .selectedValue ?? '',
+                    selectedValue,
                 });
 
+                /*
+                 * The stored value is used only for initial reload.
+                 * It must not be reused after a manual parent change.
+                 */
                 subcommunitySelect.dataset.selectedValue = '';
             }
         );
     }
 
+    /*
+     * State to City.
+     */
     if (stateSelect && citySelect) {
         stateSelect.addEventListener(
             'change',
             () => {
+                const selectedValue = String(
+                    citySelect.dataset
+                        .selectedValue ?? ''
+                );
+
                 void loadDependentOptions({
                     parentSelect: stateSelect,
                     childSelect: citySelect,
-                    urlTemplate:
-                        stateSelect.dataset.cityUrlTemplate ?? '',
                     placeholder: 'Select city',
+                    selectedValue,
                 });
+
+                citySelect.dataset.selectedValue = '';
             }
         );
     }
 
+    /**
+     * Restrict married siblings to the selected total.
+     *
+     * @param {string} totalId
+     * @param {string} marriedId
+     */
     const validateSiblingCount = (
         totalId,
         marriedId

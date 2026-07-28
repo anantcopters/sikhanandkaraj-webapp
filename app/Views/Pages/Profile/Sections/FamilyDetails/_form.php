@@ -221,9 +221,9 @@ if ($isJourney) {
                 data-choice-search="true"
                 data-choice-search-placeholder="Search community"
                 data-choice-position="bottom"
-                data-subcommunity-url-template="<?= esc(
+                data-dependent-url-template="<?= esc(
                                                     site_url(
-                                                        'profile/master/sikh-subcommunities/__COMMUNITY_ID__'
+                                                        'profile/master/sikh-subcommunities/__PARENT_ID__'
                                                     ),
                                                     'attr'
                                                 ) ?>"
@@ -294,12 +294,12 @@ if ($isJourney) {
                     : '' ?>>
 
                 <option value="">
-                    Select sub-community
+                    <?= $selectedCommunityId === ''
+                        ? 'Select community first'
+                        : 'Select sub-community' ?>
                 </option>
 
-                <?php foreach (
-                    $subcommunities as $subcommunity
-                ): ?>
+                <?php foreach ($subcommunities as $subcommunity): ?>
                     <?php
                     $subcommunityId = (string) (
                         $subcommunity['id'] ?? ''
@@ -515,6 +515,7 @@ if ($isJourney) {
 
         <div class="col-12">
             <hr class="my-2 mb-3">
+
             <h2 class="fs-16 fw-semibold mb-0 mt-2">
                 Family Location
             </h2>
@@ -524,6 +525,7 @@ if ($isJourney) {
             <label
                 for="familyStateId"
                 class="form-label fw-medium">
+
                 State
                 <span class="text-danger">*</span>
             </label>
@@ -536,6 +538,12 @@ if ($isJourney) {
                 data-choice-search="true"
                 data-choice-search-placeholder="Search state"
                 data-choice-position="bottom"
+                data-dependent-url-template="<?= esc(
+                                                    site_url(
+                                                        'profile/master/cities/__PARENT_ID__'
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
                 data-error-required="Please select your family state."
                 required>
 
@@ -555,6 +563,7 @@ if ($isJourney) {
                             $stateId,
                             $details['state_id'] ?? ''
                         ) ?>>
+
                         <?= esc(
                             (string) ($state['name'] ?? '')
                         ) ?>
@@ -576,6 +585,7 @@ if ($isJourney) {
             <label
                 for="familyCityId"
                 class="form-label fw-medium">
+
                 City
                 <span class="text-danger">*</span>
             </label>
@@ -588,21 +598,15 @@ if ($isJourney) {
                 data-choice-search="true"
                 data-choice-search-placeholder="Search city"
                 data-choice-position="bottom"
-                data-city-url-template="<?= esc(
-                                            site_url(
-                                                'profile/master/cities/__PARENT_ID__'
-                                            ),
+                data-selected-value="<?= esc(
+                                            $selectedCityId,
                                             'attr'
                                         ) ?>"
-                data-selected-city="<?= esc(
-                                        $selectedCityId,
-                                        'attr'
-                                    ) ?>"
                 data-error-required="Please select your family city."
+                required
                 <?= $selectedStateId === ''
                     ? 'disabled'
-                    : '' ?>
-                required>
+                    : '' ?>>
 
                 <option value="">
                     <?= $selectedStateId === ''
@@ -620,8 +624,9 @@ if ($isJourney) {
                         <?= $isSelected(
                             'city_id',
                             $cityId,
-                            $details['city_id'] ?? ''
+                            $selectedCityId
                         ) ?>>
+
                         <?= esc(
                             (string) ($city['name'] ?? '')
                         ) ?>
