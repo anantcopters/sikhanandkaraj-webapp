@@ -449,6 +449,11 @@ th {
 
 label {
   display: inline-block;
+  letter-spacing: 0.7px;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  color: #4A4A54;
 }
 
 button {
@@ -2347,7 +2352,7 @@ progress {
   }
 }
 .form-label {
-  margin-bottom: 0.5rem;
+  margin-bottom: 6px !important;
 }
 
 .col-form-label {

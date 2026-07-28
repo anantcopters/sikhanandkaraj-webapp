@@ -19,104 +19,253 @@ use Throwable;
  */
 final class PrelaunchProfileController extends BaseController
 {
+    /**
+     * Display the standalone pre-launch profile collection form.
+     */
     public function index(): string
     {
-        /** @var ProfileMasterDataService $masterService */
-        $masterService = service(
-            'profileMasterDataService'
-        );
+        $config = config('Prelaunch');
 
-        $selectedStateId = (int) old(
-            'state_id',
-            0
-        );
+        if (!$config->profileEntryEnabled) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException
+                ::forPageNotFound();
+        }
 
-        $masterData =
-            $masterService->basicDetailsOptions(
-                $selectedStateId > 0
-                    ? $selectedStateId
-                    : null
+        try {
+            /** @var ProfileMasterDataService $masterService */
+            $masterService = service(
+                'profileMasterDataService'
             );
 
-        /*
-         * Reuse existing profile master-data methods.
-         * Add a prelaunchOptions() aggregator to the current service if
-         * no existing method already returns all these datasets.
-         */
-        return view(
-            'Prelaunch/Profile/Index',
-            [
-                'pageTitle' =>
-                'Create Pre-launch Profile',
+            $selectedStateId = (int) old(
+                'state_id',
+                0
+            );
 
-                'validationErrors' =>
-                session('validationErrors') ?? [],
+            $selectedCommunityId = (int) old(
+                'sikh_community_id',
+                0
+            );
 
-                'formAlert' =>
-                session('formAlert'),
+            $basicDetails =
+                $masterService->basicDetailsOptions(
+                    $selectedStateId > 0
+                        ? $selectedStateId
+                        : null
+                );
 
-                'maritalStatuses' =>
-                $masterData['maritalStatuses']
-                    ?? $masterData['marital_statuses']
-                    ?? [],
+            $educationProfession =
+                $masterService
+                ->educationProfessionOptions();
 
-                'heights' =>
-                $masterData['heights']
-                    ?? [],
+            $familyDetails =
+                $masterService->familyDetailsOptions(
+                    $selectedStateId > 0
+                        ? $selectedStateId
+                        : null,
+                    $selectedCommunityId > 0
+                        ? $selectedCommunityId
+                        : null
+                );
 
-                'motherTongues' =>
-                $masterData['motherTongues']
-                    ?? $masterData['mother_tongues']
-                    ?? [],
+            return view(
+                'Prelaunch/Profile/Index',
+                [
+                    'pageTitle' =>
+                    'Create Pre-launch Profile',
 
-                'countries' =>
-                isset($masterData['country'])
-                    && is_array($masterData['country'])
-                    ? [$masterData['country']]
-                    : ($masterData['countries'] ?? []),
+                    'validationErrors' =>
+                    session('validationErrors')
+                        ?? [],
 
-                'states' =>
-                $masterData['states']
-                    ?? [],
+                    'formAlert' =>
+                    session('formAlert'),
 
-                'cities' =>
-                $masterData['cities']
-                    ?? [],
+                    'maritalStatuses' =>
+                    $basicDetails['maritalStatuses']
+                        ?? [],
 
-                'educations' =>
-                $masterData['educations']
-                    ?? [],
+                    'heights' =>
+                    $basicDetails['heights']
+                        ?? [],
 
-                'occupations' =>
-                $masterData['occupations']
-                    ?? [],
+                    'motherTongues' =>
+                    $basicDetails['motherTongues']
+                        ?? [],
 
-                'familyValues' =>
-                $masterData['familyValues']
-                    ?? [],
+                    'countries' =>
+                    isset($basicDetails['country'])
+                        && is_array(
+                            $basicDetails['country']
+                        )
+                        ? [
+                            $basicDetails['country'],
+                        ]
+                        : [],
 
-                'familyTypes' =>
-                $masterData['familyTypes']
-                    ?? [],
+                    'states' =>
+                    $basicDetails['states']
+                        ?? [],
 
-                'familyStatuses' =>
-                $masterData['familyStatuses']
-                    ?? [],
+                    'cities' =>
+                    $basicDetails['cities']
+                        ?? [],
 
-                'communities' =>
-                $masterData['communities']
-                    ?? [],
+                    'educations' =>
+                    $educationProfession['educations']
+                        ?? [],
 
-                'subcommunities' =>
-                $masterData['subcommunities']
-                    ?? [],
+                    'occupations' =>
+                    $educationProfession['occupations']
+                        ?? [],
 
-                'pageScripts' => [
-                    'assets/js/pages/prelaunch-profile-form.js',
-                    'assets/js/components/submit-loader.js',
-                ],
-            ]
-        );
+                    'employmentTypes' =>
+                    $educationProfession['employmentTypes']
+                        ?? [],
+
+                    'familyValues' =>
+                    $familyDetails['familyValues']
+                        ?? [],
+
+                    'familyTypes' =>
+                    $familyDetails['familyTypes']
+                        ?? [],
+
+                    'familyStatuses' =>
+                    $familyDetails['familyStatuses']
+                        ?? [],
+
+                    'communities' =>
+                    $familyDetails['communities']
+                        ?? [],
+
+                    'subcommunities' =>
+                    $familyDetails['subcommunities']
+                        ?? [],
+
+                    'pageScripts' => [
+                        'assets/js/pages/prelaunch-profile-form.js',
+                        'assets/js/components/submit-loader.js',
+                    ],
+                ]
+            );
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Unable to render standalone pre-launch form. '
+                    . 'Exception: {exception}. Message: {message}. '
+                    . 'File: {file}. Line: {line}.',
+                [
+                    'exception' =>
+                    $exception::class,
+
+                    'message' =>
+                    $exception->getMessage(),
+
+                    'file' =>
+                    $exception->getFile(),
+
+                    'line' =>
+                    $exception->getLine(),
+                ]
+            );
+
+            if (ENVIRONMENT === 'development') {
+                throw $exception;
+            }
+
+            throw \CodeIgniter\Exceptions\PageNotFoundException
+                ::forPageNotFound();
+        }
+    }
+
+    /**
+     * Return active sub-communities for the selected community.
+     *
+     * This endpoint is intentionally public because the standalone
+     * pre-launch profile form does not require member authentication.
+     */
+    public function subcommunities(
+        int $communityId
+    ): ResponseInterface {
+        if ($communityId <= 0) {
+            return $this->response
+                ->setStatusCode(422)
+                ->setJSON([
+                    'successful' => false,
+                    'message' =>
+                    'Please select a valid community.',
+                    'items' => [],
+                ]);
+        }
+
+        try {
+            /** @var ProfileMasterDataService $masterService */
+            $masterService = service(
+                'profileMasterDataService'
+            );
+
+            $familyOptions =
+                $masterService->familyDetailsOptions(
+                    null,
+                    $communityId
+                );
+
+            $subcommunities = is_array(
+                $familyOptions['subcommunities']
+                    ?? null
+            )
+                ? $familyOptions['subcommunities']
+                : [];
+
+            return $this->response->setJSON([
+                'successful' => true,
+                'items' => array_values(
+                    array_map(
+                        static function (
+                            array $subcommunity
+                        ): array {
+                            return [
+                                'id' => (int) (
+                                    $subcommunity['id']
+                                    ?? 0
+                                ),
+                                'name' => (string) (
+                                    $subcommunity['name']
+                                    ?? $subcommunity['label']
+                                    ?? ''
+                                ),
+                            ];
+                        },
+                        $subcommunities
+                    )
+                ),
+            ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Unable to load pre-launch '
+                    . 'sub-communities. '
+                    . 'Community: {communityId}. '
+                    . 'Message: {message}.',
+                [
+                    'communityId' =>
+                    $communityId,
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'successful' => false,
+                    'message' =>
+                    'Sub-communities could not be loaded.',
+                    'items' => [],
+                ]);
+        }
     }
 
     /**

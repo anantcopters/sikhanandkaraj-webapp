@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS prelaunch_profiles (
                 'GOVERNMENT_PSU',
                 'PRIVATE',
                 'BUSINESS',
-                'DEFENCE',
+                'DEFENSE',
                 'SELF_EMPLOYED',
                 'NOT_WORKING'
             )

@@ -916,6 +916,16 @@ $routes->group(
     static function (
         RouteCollection $routes
     ): void {
+
+        $routes->get(
+            'master/subcommunities/(:num)',
+            'PrelaunchProfileController::subcommunities/$1',
+            [
+                'as' =>
+                'prelaunch.master.subcommunities',
+            ]
+        );
+
         $routes->get(
             'profile',
             'PrelaunchProfileController::index',

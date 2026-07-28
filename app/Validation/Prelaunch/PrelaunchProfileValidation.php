@@ -89,7 +89,7 @@ final class PrelaunchProfileValidation
                     'label' => 'Employed in',
                     'rules' => [
                         'required',
-                        'in_list[GOVERNMENT_PSU,PRIVATE,BUSINESS,DEFENCE,SELF_EMPLOYED,NOT_WORKING]',
+                        'in_list[GOVERNMENT_PSU,PRIVATE,BUSINESS,DEFENSE,SELF_EMPLOYED,NOT_WORKING]',
                     ],
                 ],
 

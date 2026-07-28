@@ -15,7 +15,7 @@ $alert = is_array($formAlert ?? null)
     ? $formAlert
     : null;
 
-$this->extend('Admin/Layouts/Main');
+$this->extend('Layouts/Main');
 $this->section('content');
 /*
  * This is intentionally a single-page pre-launch profile form.
