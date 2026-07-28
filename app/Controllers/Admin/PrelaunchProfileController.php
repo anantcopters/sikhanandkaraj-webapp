@@ -27,7 +27,7 @@ final class PrelaunchProfileController extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException
                 ::forPageNotFound();
         }
-        
+
         /** @var PrelaunchAdminReviewService $service */
         $service = service(
             'prelaunchAdminReviewService'
@@ -67,9 +67,19 @@ final class PrelaunchProfileController extends BaseController
         );
     }
 
+    /**
+     * Display one pre-launch profile for administrator review.
+     */
     public function review(
         int $profileId
     ): string {
+        $config = config('Prelaunch');
+
+        if (!$config->profileEntryEnabled) {
+            throw PageNotFoundException
+                ::forPageNotFound();
+        }
+
         try {
             /** @var PrelaunchAdminReviewService $service */
             $service = service(
@@ -80,17 +90,36 @@ final class PrelaunchProfileController extends BaseController
                 $profileId
             );
 
+            $profile = $reviewData['profile'];
+            $photos = $reviewData['photos'];
+            $photoSummary =
+                $reviewData['photoSummary'];
+
             return view(
                 'Admin/Prelaunch/Profiles/Review',
                 [
                     'pageTitle' =>
                     'Review Pre-launch Profile',
 
+                    /*
+                 * Fully resolved record containing profile columns,
+                 * master-data labels and Field Officer information.
+                 */
                     'profile' =>
-                    $reviewData['profile'],
+                    $profile,
 
+                    /*
+                 * List of all three pre-launch photo records.
+                 */
                     'photos' =>
-                    $reviewData['photos'],
+                    $photos,
+
+                    /*
+                 * Used to display photo counts and to disable profile
+                 * approval until exactly three photos are approved.
+                 */
+                    'photoSummary' =>
+                    $photoSummary,
 
                     'validationErrors' =>
                     session('validationErrors')
@@ -104,8 +133,21 @@ final class PrelaunchProfileController extends BaseController
                     ],
                 ]
             );
-        } catch (Throwable) {
-            throw PageNotFoundException::forPageNotFound();
+        } catch (Throwable $exception) {
+            log_message(
+                'notice',
+                'Pre-launch profile review failed for profile {profileId}: {message}',
+                [
+                    'profileId' =>
+                    $profileId,
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+
+            throw PageNotFoundException
+                ::forPageNotFound();
         }
     }
 

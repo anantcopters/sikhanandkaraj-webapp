@@ -107,44 +107,111 @@ final class PrelaunchProfileModel extends Model
     }
 
     /**
-     * Return admin review rows with resolved master names.
+     * Return pre-launch profiles for the administrator list.
      *
      * @return list<array<string, mixed>>
      */
     public function listForAdmin(
         ?string $status = null
     ): array {
-        $builder = $this
+        $builder = $this->adminDetailsBuilder();
+
+        if ($status !== null) {
+            $builder->where(
+                'prelaunch_profiles.status',
+                $status
+            );
+        }
+
+        return $builder
+            ->orderBy(
+                'prelaunch_profiles.created_at',
+                'DESC'
+            )
+            ->findAll();
+    }
+
+    /**
+     * Return one fully resolved profile for administrator review.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findForAdmin(
+        int $profileId
+    ): ?array {
+        if ($profileId <= 0) {
+            return null;
+        }
+
+        $record = $this
+            ->adminDetailsBuilder()
+            ->where(
+                'prelaunch_profiles.id',
+                $profileId
+            )
+            ->first();
+
+        return is_array($record)
+            ? $record
+            : null;
+    }
+
+    /**
+     * Build the common administrator profile details query.
+     *
+     * Keeping the joins in one method prevents the list and review
+     * screens from resolving master data differently.
+     */
+    private function adminDetailsBuilder(): self
+    {
+        return $this
             ->select([
                 'prelaunch_profiles.*',
+
                 'field_officers.officer_code',
                 'field_officers.full_name AS field_officer_name',
+                'field_officers.account_status AS field_officer_status',
+
+                'master_countries.name AS country_name',
                 'master_states.name AS state_name',
                 'master_cities.name AS city_name',
+
                 'master_marital_statuses.name AS marital_status_name',
                 'master_heights.label AS height_name',
                 'master_mother_tongues.name AS mother_tongue_name',
+
                 'master_educations.name AS education_name',
                 'master_occupations.name AS occupation_name',
+
                 'master_family_values.name AS family_value_name',
                 'master_family_types.name AS family_type_name',
                 'master_family_statuses.name AS family_status_name',
+
                 'master_sikh_communities.name AS community_name',
                 'master_sikh_subcommunities.name AS subcommunity_name',
             ])
             ->join(
                 'field_officers',
-                'field_officers.id = prelaunch_profiles.field_officer_id',
+                'field_officers.id = '
+                    . 'prelaunch_profiles.field_officer_id',
+                'inner'
+            )
+            ->join(
+                'master_countries',
+                'master_countries.id = '
+                    . 'prelaunch_profiles.country_id',
                 'inner'
             )
             ->join(
                 'master_states',
-                'master_states.id = prelaunch_profiles.state_id',
+                'master_states.id = '
+                    . 'prelaunch_profiles.state_id',
                 'inner'
             )
             ->join(
                 'master_cities',
-                'master_cities.id = prelaunch_profiles.city_id',
+                'master_cities.id = '
+                    . 'prelaunch_profiles.city_id',
                 'inner'
             )
             ->join(
@@ -155,7 +222,8 @@ final class PrelaunchProfileModel extends Model
             )
             ->join(
                 'master_heights',
-                'master_heights.id = prelaunch_profiles.height_id',
+                'master_heights.id = '
+                    . 'prelaunch_profiles.height_id',
                 'inner'
             )
             ->join(
@@ -206,44 +274,5 @@ final class PrelaunchProfileModel extends Model
                     . 'prelaunch_profiles.sikh_subcommunity_id',
                 'inner'
             );
-
-        if ($status !== null) {
-            $builder->where(
-                'prelaunch_profiles.status',
-                $status
-            );
-        }
-
-        return $builder
-            ->orderBy(
-                'prelaunch_profiles.created_at',
-                'DESC'
-            )
-            ->findAll();
-    }
-
-    /**
-     * Return one complete record for admin review.
-     *
-     * @return array<string, mixed>|null
-     */
-    public function findForAdmin(int $profileId): ?array
-    {
-        $rows = $this
-            ->listForAdminById($profileId);
-
-        return $rows[0] ?? null;
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function listForAdminById(int $profileId): array
-    {
-        return array_values(array_filter(
-            $this->listForAdmin(),
-            static fn(array $row): bool =>
-            (int) ($row['id'] ?? 0) === $profileId
-        ));
     }
 }

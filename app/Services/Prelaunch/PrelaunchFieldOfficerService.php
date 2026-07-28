@@ -8,7 +8,7 @@ use App\Models\FieldOfficerModel;
 use RuntimeException;
 
 /**
- * Resolves and validates Field Officers for pre-launch data entry.
+ * Resolves and validates Field Officers used during pre-launch entry.
  */
 final class PrelaunchFieldOfficerService
 {
@@ -17,13 +17,23 @@ final class PrelaunchFieldOfficerService
     ) {}
 
     /**
-     * @return array<string, mixed>
+     * Verify an active Field Officer by code.
+     *
+     * @return array{
+     *     id: int,
+     *     officer_code: string,
+     *     full_name: string,
+     *     country_name: string,
+     *     state_name: string,
+     *     city_name: string,
+     *     location: string
+     * }
      */
     public function verifyCode(
         string $officerCode
     ): array {
-        $normalizedCode = mb_strtoupper(
-            trim($officerCode)
+        $normalizedCode = $this->normalizeCode(
+            $officerCode
         );
 
         if ($normalizedCode === '') {
@@ -32,8 +42,21 @@ final class PrelaunchFieldOfficerService
             );
         }
 
+        if (
+            preg_match(
+                '/^[A-Z0-9-]{4,20}$/',
+                $normalizedCode
+            ) !== 1
+        ) {
+            throw new RuntimeException(
+                'Please enter a valid Field Officer code.'
+            );
+        }
+
         $fieldOfficer = $this->fieldOfficerModel
-            ->findActiveByCode($normalizedCode);
+            ->findActiveByCode(
+                $normalizedCode
+            );
 
         if ($fieldOfficer === null) {
             throw new RuntimeException(
@@ -41,34 +64,112 @@ final class PrelaunchFieldOfficerService
             );
         }
 
+        $countryName = trim(
+            (string) (
+                $fieldOfficer['country_name']
+                ?? ''
+            )
+        );
+
+        $stateName = trim(
+            (string) (
+                $fieldOfficer['state_name']
+                ?? ''
+            )
+        );
+
+        $cityName = trim(
+            (string) (
+                $fieldOfficer['city_name']
+                ?? ''
+            )
+        );
+
+        $location = implode(
+            ', ',
+            array_filter(
+                [
+                    $cityName,
+                    $stateName,
+                    $countryName,
+                ],
+                static fn(
+                    string $value
+                ): bool => $value !== ''
+            )
+        );
+
         return [
-            'id' => (int) $fieldOfficer['id'],
+            'id' =>
+            (int) $fieldOfficer['id'],
+
             'officer_code' =>
             (string) $fieldOfficer['officer_code'],
+
             'full_name' =>
             (string) $fieldOfficer['full_name'],
+
+            'country_name' =>
+            $countryName,
+
             'state_name' =>
-            (string) $fieldOfficer['state_name'],
+            $stateName,
+
             'city_name' =>
-            (string) $fieldOfficer['city_name'],
+            $cityName,
+
+            'location' =>
+            $location,
         ];
     }
 
+    /**
+     * Revalidate the submitted hidden ID against the submitted code.
+     *
+     * Hidden form fields are user-controlled and must never be trusted
+     * without this server-side verification.
+     *
+     * @return array{
+     *     id: int,
+     *     officer_code: string,
+     *     full_name: string,
+     *     country_name: string,
+     *     state_name: string,
+     *     city_name: string,
+     *     location: string
+     * }
+     */
     public function assertVerifiedOfficer(
         int $fieldOfficerId,
         string $officerCode
-    ): void {
+    ): array {
+        if ($fieldOfficerId <= 0) {
+            throw new RuntimeException(
+                'Please verify the Field Officer before saving the profile.'
+            );
+        }
+
         $fieldOfficer = $this->verifyCode(
             $officerCode
         );
 
         if (
-            (int) $fieldOfficer['id']
+            $fieldOfficer['id']
             !== $fieldOfficerId
         ) {
             throw new RuntimeException(
-                'The verified Field Officer no longer matches the selected code.'
+                'The verified Field Officer no longer matches the entered code. Please verify it again.'
             );
         }
+
+        return $fieldOfficer;
+    }
+
+    private function normalizeCode(
+        string $officerCode
+    ): string {
+        return mb_strtoupper(
+            trim($officerCode)
+        );
     }
 }

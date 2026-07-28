@@ -373,10 +373,21 @@ $this->section('content');
                             Saving remains disabled until the server confirms
                             an active Field Officer for the entered code.
                         -->
+                        <!--
+    Section 4: Field Officer verification.
+
+    The hidden Field Officer ID is populated only after successful
+    server-side verification. It is revalidated during final save.
+-->
                         <fieldset class="mb-4">
                             <legend class="h5 mb-3">
                                 Field Officer verification
                             </legend>
+
+                            <p class="text-muted mb-3">
+                                Enter the Field Officer code and verify it before
+                                saving the profile.
+                            </p>
 
                             <div class="row g-3 align-items-end">
                                 <div class="col-12 col-md-8">
@@ -384,32 +395,56 @@ $this->section('content');
                                         for="field_officer_code"
                                         class="form-label">
                                         Field Officer code
+                                        <span
+                                            class="text-danger"
+                                            aria-hidden="true">
+                                            *
+                                        </span>
                                     </label>
 
                                     <input
                                         type="text"
                                         class="form-control text-uppercase <?= isset(
                                                                                 $errors['field_officer_code']
-                                                                            ) ? 'is-invalid' : '' ?>"
+                                                                            )
+                                                                                || isset(
+                                                                                    $errors['verified_field_officer_id']
+                                                                                )
+                                                                                ? 'is-invalid'
+                                                                                : '' ?>"
                                         id="field_officer_code"
                                         name="field_officer_code"
                                         value="<?= esc(
                                                     old('field_officer_code')
                                                 ) ?>"
+                                        minlength="4"
                                         maxlength="20"
+                                        pattern="[A-Za-z0-9-]+"
                                         autocomplete="off"
+                                        aria-describedby="field-officer-help"
                                         required>
 
+                                    <!--
+                This is a convenience value only. The backend verifies
+                it against the submitted officer code before saving.
+            -->
                                     <input
                                         type="hidden"
                                         id="verified_field_officer_id"
                                         name="verified_field_officer_id"
                                         value="">
 
+                                    <div
+                                        id="field-officer-help"
+                                        class="form-text">
+                                        Enter the code provided by the Field Officer.
+                                    </div>
+
                                     <div class="invalid-feedback">
                                         <?= esc(
                                             $errors['field_officer_code']
-                                                ?? 'Please verify the Field Officer.'
+                                                ?? $errors['verified_field_officer_id']
+                                                ?? 'Please enter and verify a valid Field Officer code.'
                                         ) ?>
                                     </div>
                                 </div>
@@ -419,10 +454,23 @@ $this->section('content');
                                         type="button"
                                         class="btn btn-outline-primary w-100"
                                         id="verify-field-officer"
-                                        data-url="<?= route_to(
-                                                        'prelaunch.field-officer.verify'
-                                                    ) ?>">
-                                        Verify Field Officer
+                                        data-verification-url="<?= route_to(
+                                                                    'prelaunch.field-officer.verify'
+                                                                ) ?>">
+                                        <span
+                                            id="verify-field-officer-label">
+                                            Verify Field Officer
+                                        </span>
+
+                                        <span
+                                            id="verify-field-officer-loading"
+                                            class="d-none">
+                                            <span
+                                                class="spinner-border spinner-border-sm me-1"
+                                                aria-hidden="true"></span>
+
+                                            Verifying...
+                                        </span>
                                     </button>
                                 </div>
 
@@ -431,7 +479,26 @@ $this->section('content');
                                         class="alert alert-secondary d-none mb-0"
                                         id="field-officer-result"
                                         role="status"
-                                        aria-live="polite"></div>
+                                        aria-live="polite">
+                                        <div class="d-flex align-items-start gap-2">
+                                            <i
+                                                class="bi bi-person-check"
+                                                aria-hidden="true"></i>
+
+                                            <div>
+                                                <strong
+                                                    id="verified-field-officer-name"></strong>
+
+                                                <div
+                                                    class="small"
+                                                    id="verified-field-officer-code"></div>
+
+                                                <div
+                                                    class="small"
+                                                    id="verified-field-officer-location"></div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </fieldset>

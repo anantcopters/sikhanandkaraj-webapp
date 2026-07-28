@@ -8,6 +8,7 @@ use App\Models\Prelaunch\PrelaunchPhotoModel;
 use App\Models\Prelaunch\PrelaunchProfileModel;
 use App\Services\Admin\Audit\AdminAuditEvent;
 use App\Services\Admin\Audit\AdminAuditService;
+use App\Services\Admin\Audit\AdminAuditAction;
 use CodeIgniter\Database\BaseConnection;
 use RuntimeException;
 use Throwable;
@@ -35,28 +36,92 @@ final class PrelaunchAdminReviewService
     }
 
     /**
+     * Return all local variables required by the review screen.
+     *
      * @return array{
      *     profile: array<string, mixed>,
-     *     photos: list<array<string, mixed>>
+     *     photos: list<array<string, mixed>>,
+     *     photoSummary: array{
+     *         total: int,
+     *         pending: int,
+     *         approved: int,
+     *         rejected: int,
+     *         allApproved: bool
+     *     }
      * }
      */
     public function reviewData(
         int $profileId
     ): array {
         $profile = $this->profileModel
-            ->find($profileId);
+            ->findForAdmin(
+                $profileId
+            );
 
-        if (!is_array($profile)) {
+        if ($profile === null) {
             throw new RuntimeException(
                 'The pre-launch profile was not found.'
             );
         }
 
+        $photos = $this->photoModel
+            ->findByProfile(
+                $profileId
+            );
+
+        $approvedCount = 0;
+        $rejectedCount = 0;
+        $pendingCount = 0;
+
+        foreach ($photos as $photo) {
+            $status = (string) (
+                $photo['approval_status']
+                ?? ''
+            );
+
+            if (
+                $status
+                === PrelaunchPhotoModel::STATUS_APPROVED
+            ) {
+                $approvedCount++;
+                continue;
+            }
+
+            if (
+                $status
+                === PrelaunchPhotoModel::STATUS_REJECTED
+            ) {
+                $rejectedCount++;
+                continue;
+            }
+
+            $pendingCount++;
+        }
+
         return [
-            'profile' => $profile,
+            'profile' =>
+            $profile,
+
             'photos' =>
-            $this->photoModel
-                ->findByProfile($profileId),
+            $photos,
+
+            'photoSummary' => [
+                'total' =>
+                count($photos),
+
+                'pending' =>
+                $pendingCount,
+
+                'approved' =>
+                $approvedCount,
+
+                'rejected' =>
+                $rejectedCount,
+
+                'allApproved' =>
+                count($photos) === 3
+                    && $approvedCount === 3,
+            ],
         ];
     }
 
@@ -106,7 +171,7 @@ final class PrelaunchAdminReviewService
         );
 
         $this->recordAudit(
-            'PRELAUNCH_PROFILE_APPROVED',
+            AdminAuditAction::PRELAUNCH_PROFILE_APPROVED,
             $profileId,
             (string) $profile['profile_reference'],
             [
@@ -156,7 +221,7 @@ final class PrelaunchAdminReviewService
         );
 
         $this->recordAudit(
-            'PRELAUNCH_PROFILE_REJECTED',
+            AdminAuditAction::PRELAUNCH_PROFILE_REJECTED,
             $profileId,
             (string) $profile['profile_reference'],
             [
@@ -233,7 +298,7 @@ final class PrelaunchAdminReviewService
         );
 
         $this->recordAudit(
-            'PRELAUNCH_PHOTO_STATUS_CHANGED',
+            AdminAuditAction::PRELAUNCH_PHOTO_STATUS_CHANGED,
             $photoId,
             (string) $profile['profile_reference'],
             [
@@ -355,7 +420,7 @@ final class PrelaunchAdminReviewService
             $this->database->transCommit();
 
             $this->recordAudit(
-                'PRELAUNCH_PROFILE_CONTACT_UPDATED',
+                AdminAuditAction::PRELAUNCH_PROFILE_CONTACT_UPDATED,
                 $profileId,
                 (string) $profile['profile_reference'],
                 $beforeData,
@@ -398,8 +463,8 @@ final class PrelaunchAdminReviewService
     }
 
     /**
-     * Replace the string action with an enum case once the following
-     * cases are added to AdminAuditAction.
+     * Record a pre-launch administrator action using the existing
+     * centralized administrator audit service.
      *
      * @param array<string, mixed> $before
      * @param array<string, mixed> $after
@@ -412,11 +477,6 @@ final class PrelaunchAdminReviewService
         array $after,
         string $description
     ): void {
-        /*
-         * Add the corresponding enum cases to AdminAuditAction and pass
-         * the enum value here, following the existing FieldOfficerService
-         * audit pattern.
-         */
         $this->auditService->record(
             new AdminAuditEvent(
                 action: $action,

@@ -119,40 +119,158 @@ final class PrelaunchProfileController extends BaseController
         );
     }
 
+    /**
+     * Verify an active Field Officer for the public pre-launch form.
+     */
     public function verifyFieldOfficer(): ResponseInterface
     {
+        $config = config('Prelaunch');
+
+        if (!$config->profileEntryEnabled) {
+            throw \CodeIgniter\Exceptions\PageNotFoundException
+                ::forPageNotFound();
+        }
+
+        if (!$this->request->isAJAX()) {
+            return $this->response
+                ->setStatusCode(400)
+                ->setJSON([
+                    'successful' => false,
+                    'message' =>
+                    'Invalid Field Officer verification request.',
+                    'csrfName' =>
+                    csrf_token(),
+                    'csrfHash' =>
+                    csrf_hash(),
+                ]);
+        }
+
+        $officerCode = mb_strtoupper(
+            trim(
+                (string) $this->request->getPost(
+                    'field_officer_code'
+                )
+            )
+        );
+
+        $validation = service('validation');
+
+        $validation->setRules([
+            'field_officer_code' => [
+                'label' => 'Field Officer code',
+                'rules' => [
+                    'required',
+                    'min_length[4]',
+                    'max_length[20]',
+                    'regex_match[/^[A-Z0-9-]+$/]',
+                ],
+                'errors' => [
+                    'required' =>
+                    'Please enter a Field Officer code.',
+
+                    'min_length' =>
+                    'Please enter a valid Field Officer code.',
+
+                    'max_length' =>
+                    'The Field Officer code cannot exceed 20 characters.',
+
+                    'regex_match' =>
+                    'The Field Officer code may contain only letters, numbers and hyphens.',
+                ],
+            ],
+        ]);
+
+        if (
+            !$validation->run([
+                'field_officer_code' =>
+                $officerCode,
+            ])
+        ) {
+            return $this->response
+                ->setStatusCode(422)
+                ->setJSON([
+                    'successful' => false,
+                    'message' =>
+                    $validation->getError(
+                        'field_officer_code'
+                    ),
+                    'csrfName' =>
+                    csrf_token(),
+                    'csrfHash' =>
+                    csrf_hash(),
+                ]);
+        }
+
         try {
-
-            $config = config('Prelaunch');
-
-            if (!$config->profileEntryEnabled) {
-                throw \CodeIgniter\Exceptions\PageNotFoundException
-                    ::forPageNotFound();
-            }
-
             /** @var PrelaunchFieldOfficerService $service */
             $service = service(
                 'prelaunchFieldOfficerService'
             );
 
             $fieldOfficer = $service->verifyCode(
-                (string) $this->request->getPost(
-                    'field_officer_code'
-                )
+                $officerCode
             );
 
             return $this->response->setJSON([
-                'successful' => true,
-                'fieldOfficer' => $fieldOfficer,
-                'csrfHash' => csrf_hash(),
+                'successful' =>
+                true,
+
+                'message' =>
+                'Field Officer verified successfully.',
+
+                'fieldOfficer' => [
+                    'id' =>
+                    $fieldOfficer['id'],
+
+                    'officerCode' =>
+                    $fieldOfficer['officer_code'],
+
+                    'fullName' =>
+                    $fieldOfficer['full_name'],
+
+                    'countryName' =>
+                    $fieldOfficer['country_name'],
+
+                    'stateName' =>
+                    $fieldOfficer['state_name'],
+
+                    'cityName' =>
+                    $fieldOfficer['city_name'],
+
+                    'location' =>
+                    $fieldOfficer['location'],
+                ],
+
+                'csrfName' =>
+                csrf_token(),
+
+                'csrfHash' =>
+                csrf_hash(),
             ]);
         } catch (Throwable $exception) {
+            log_message(
+                'notice',
+                'Pre-launch Field Officer verification failed: {message}',
+                [
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+
             return $this->response
                 ->setStatusCode(422)
                 ->setJSON([
-                    'successful' => false,
-                    'message' => $exception->getMessage(),
-                    'csrfHash' => csrf_hash(),
+                    'successful' =>
+                    false,
+
+                    'message' =>
+                    $exception->getMessage(),
+
+                    'csrfName' =>
+                    csrf_token(),
+
+                    'csrfHash' =>
+                    csrf_hash(),
                 ]);
         }
     }
@@ -166,7 +284,7 @@ final class PrelaunchProfileController extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException
                 ::forPageNotFound();
         }
-        
+
         $input = $this->input();
 
         $validation = service('validation');
