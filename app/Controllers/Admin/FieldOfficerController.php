@@ -85,8 +85,8 @@ final class FieldOfficerController extends BaseController
                 'cities' => [],
 
                 'pageScripts' => [
-                    'assets/js/components/submit-loader.js',
                     'assets/js/pages/admin-field-officer-form.js',
+                    'assets/js/components/submit-loader.js',
                 ],
             ]
         );

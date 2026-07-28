@@ -179,41 +179,6 @@ document.addEventListener(
             );
         }
 
-        /*
-        * Show browser validation feedback only when the form is invalid.
-        *
-        * Do not add Bootstrap's was-validated class for a valid submission,
-        * because that displays green validation ticks not used elsewhere in
-        * the application.
-        */
-        form.addEventListener(
-            'submit',
-            function (event) {
-                if (form.checkValidity()) {
-                    return;
-                }
-
-                event.preventDefault();
-                event.stopPropagation();
-
-                form.classList.add(
-                    'was-validated'
-                );
-
-                const firstInvalidField =
-                    form.querySelector(
-                        ':invalid'
-                    );
-
-                if (
-                    firstInvalidField
-                    instanceof HTMLElement
-                ) {
-                    firstInvalidField.focus();
-                }
-            }
-        );
-
         const mobileInput =
             form.querySelector(
                 'input[name="mobile_number"]'
