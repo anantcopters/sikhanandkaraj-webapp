@@ -9,15 +9,16 @@ $this->section('content');
 <section class="py-3 py-lg-4">
     <div class="container">
 
-        <?= view(
-            'Pages/Profile/Partials/_feedback_alert',
-            [
-                'formAlert' => $formAlert ?? null,
-            ]
-        ) ?>
+
 
         <div class="row justify-content-center">
             <div class="col-12 col-lg-10 col-xl-8">
+                <?= view(
+                    'Pages/Profile/Partials/_feedback_alert',
+                    [
+                        'formAlert' => $formAlert ?? null,
+                    ]
+                ) ?>
 
                 <div class="d-flex align-items-start gap-3 mb-3">
                     <div>

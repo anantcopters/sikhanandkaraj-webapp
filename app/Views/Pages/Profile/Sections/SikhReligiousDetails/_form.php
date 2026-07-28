@@ -185,7 +185,7 @@ if ($isJourney) {
                 data-choice-position="bottom"
                 data-subcommunities-url="<?= esc(
                                                 site_url(
-                                                    'profile/master/sikh-subcommunities'
+                                                    'profile/master/subcommunities'
                                                 ),
                                                 'attr'
                                             ) ?>"

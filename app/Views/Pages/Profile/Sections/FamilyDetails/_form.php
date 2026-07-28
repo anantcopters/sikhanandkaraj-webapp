@@ -223,7 +223,7 @@ if ($isJourney) {
                 data-choice-position="bottom"
                 data-dependent-url-template="<?= esc(
                                                     site_url(
-                                                        'profile/master/sikh-subcommunities/__PARENT_ID__'
+                                                        'profile/master/subcommunities/__PARENT_ID__'
                                                     ),
                                                     'attr'
                                                 ) ?>"
