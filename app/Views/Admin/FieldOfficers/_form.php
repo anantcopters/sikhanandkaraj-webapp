@@ -74,7 +74,7 @@ $selectedCity = (string) (
 
     <div class="row g-3">
         <?php if (!$editing): ?>
-            <div class="col-12">
+            <div class="col-12 col-md-6">
                 <label
                     for="fieldOfficerName"
                     class="form-label">
@@ -110,7 +110,7 @@ $selectedCity = (string) (
                 </div>
             </div>
 
-            <div class="col-12">
+            <div class="col-12 col-md-6">
                 <label
                     for="fieldOfficerMobile"
                     class="form-label">
@@ -181,6 +181,8 @@ $selectedCity = (string) (
                                     )
                                         ? 'is-invalid'
                                         : '' ?>"
+                data-choice
+                data-choice-search="false"
                 required>
 
                 <option value="">
@@ -243,6 +245,8 @@ $selectedCity = (string) (
                                     )
                                         ? 'is-invalid'
                                         : '' ?>"
+                data-choice
+                data-choice-search="true"
                 data-state-select
                 required>
 
@@ -306,6 +310,8 @@ $selectedCity = (string) (
                                     )
                                         ? 'is-invalid'
                                         : '' ?>"
+                data-choice
+                data-choice-search="true"
                 data-city-select
                 required>
 
@@ -352,7 +358,7 @@ $selectedCity = (string) (
             </div>
         </div>
 
-        <div class="col-12">
+        <div class="col-12 col-md-6">
             <label
                 for="fieldOfficerAddress"
                 class="form-label">
@@ -388,7 +394,7 @@ $selectedCity = (string) (
             </div>
         </div>
 
-        <div class="col-12">
+        <div class="col-12 col-md-6">
             <label
                 for="fieldOfficerUpi"
                 class="form-label">
@@ -424,12 +430,16 @@ $selectedCity = (string) (
                 ) ?>
             </div>
 
-            <?php if (!$editing): ?>
-                <div class="form-text color-pink">
+            <div class="form-text color-pink">
+                <?php if ($editing): ?>
+                    A valid UPI ID keeps the Field Officer
+                    active. Removing it will make the account
+                    inactive.
+                <?php else: ?>
                     Providing a valid UPI ID will create
                     this Field Officer in active status.
-                </div>
-            <?php endif; ?>
+                <?php endif; ?>
+            </div>
         </div>
     </div>
 

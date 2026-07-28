@@ -179,7 +179,7 @@ $this->section('content');
                                     <span
                                         class="badge
                                 bg-primary-subtle
-                                text-primary">
+                                text-primary p-2">
 
                                         <?= esc(
                                             (string) $fieldOfficer['officer_code']
@@ -206,7 +206,7 @@ $this->section('content');
                                         <span
                                             class="badge
                                     bg-success-subtle
-                                    text-success">
+                                    text-black p-2">
 
                                             Active
                                         </span>
@@ -214,7 +214,7 @@ $this->section('content');
                                         <span
                                             class="badge
                                     bg-secondary-subtle
-                                    text-secondary">
+                                    text-black p-2">
 
                                             Inactive
                                         </span>
@@ -282,46 +282,56 @@ $this->section('content');
                                                 </button>
                                             </form>
                                         <?php else: ?>
-                                            <form
-                                                action="<?= route_to(
-                                                            'admin.field-officers.activate',
-                                                            (int) $fieldOfficer['id']
-                                                        ) ?>"
-                                                method="post"
-                                                class="d-inline"
-                                                data-confirm-form
-                                                data-confirm-title="Activate Field Officer?"
-                                                data-confirm-message="<?= esc(
-                                                                            $hasUpiId
-                                                                                ? 'Do you want to make '
-                                                                                . (string) $fieldOfficer['full_name']
-                                                                                . ' active?'
-                                                                                : 'This Field Officer does not have a UPI ID. Activation will not be allowed until a valid UPI ID is added.',
-                                                                            'attr'
-                                                                        ) ?>"
-                                                data-confirm-button-text="Make Active"
-                                                data-confirm-loading-text="Activating..."
-                                                data-confirm-button-class="btn-success"
-                                                data-confirm-icon="ri-user-follow-line">
+                                            <?php if ($hasUpiId): ?>
+                                                <form
+                                                    action="<?= route_to(
+                                                                'admin.field-officers.activate',
+                                                                (int) $fieldOfficer['id']
+                                                            ) ?>"
+                                                    method="post"
+                                                    class="d-inline"
+                                                    data-confirm-form
+                                                    data-confirm-title="Activate Field Officer?"
+                                                    data-confirm-message="<?= esc(
+                                                                                'Do you want to make '
+                                                                                    . (string) $fieldOfficer['full_name']
+                                                                                    . ' active?',
+                                                                                'attr'
+                                                                            ) ?>"
+                                                    data-confirm-button-text="Make Active"
+                                                    data-confirm-loading-text="Activating..."
+                                                    data-confirm-button-class="btn-success"
+                                                    data-confirm-icon="ri-user-follow-line">
 
-                                                <?= csrf_field() ?>
+                                                    <?= csrf_field() ?>
 
+                                                    <button
+                                                        type="submit"
+                                                        class="btn btn-soft-success btn-sm"
+                                                        title="Make active"
+                                                        aria-label="Make Field Officer active">
+
+                                                        <i
+                                                            class="ri-user-follow-line"
+                                                            aria-hidden="true">
+                                                        </i>
+                                                    </button>
+                                                </form>
+                                            <?php else: ?>
                                                 <button
-                                                    type="submit"
-                                                    class="btn
-                                            btn-soft-success
-                                            btn-sm"
-                                                    title="<?= $hasUpiId
-                                                                ? 'Make active'
-                                                                : 'UPI ID required before activation' ?>"
-                                                    aria-label="Make Field Officer active">
+                                                    type="button"
+                                                    class="btn btn-soft-secondary btn-sm"
+                                                    title="UPI ID required"
+                                                    aria-label="UPI ID required before activation"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#fieldOfficerUpiRequiredModal">
 
                                                     <i
-                                                        class="ri-user-follow-line"
+                                                        class="ri-information-line"
                                                         aria-hidden="true">
                                                     </i>
                                                 </button>
-                                            </form>
+                                            <?php endif; ?>
                                         <?php endif; ?>
                                     </div>
                                 </td>

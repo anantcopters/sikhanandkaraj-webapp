@@ -354,7 +354,11 @@ $pageScripts = $pageScripts ?? [];
                     'assets/js/components/confirmation-modal.js'
                 ) ?>">
     </script>
+    <script src="<?= base_url('assets/js/choices.min.js') ?>"></script>
 
+    <script src="<?= base_url(
+                        'assets/js/components/select-choice.js'
+                    ) ?>"></script>
     <?php
     /**
      * Load JavaScript required only by the current page.

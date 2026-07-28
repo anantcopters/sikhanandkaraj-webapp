@@ -24,7 +24,8 @@ document.addEventListener(
         ).replace(/\/$/, '');
 
         /**
-         * Safely replace select options.
+         * Replace native city options and rebuild the existing
+         * project Choices.js component.
          *
          * @param {HTMLSelectElement} select
          * @param {Array<{value: string, label: string}>} options
@@ -35,7 +36,13 @@ document.addEventListener(
             options,
             placeholder
         ) {
-            select.innerHTML = '';
+            /*
+             * Follow the existing project pattern used by Basic Details:
+             * destroy Choices, update native options and recreate Choices.
+             */
+            window.SelectChoice?.destroy(select);
+
+            select.replaceChildren();
 
             const placeholderOption =
                 document.createElement(
@@ -45,6 +52,8 @@ document.addEventListener(
             placeholderOption.value = '';
             placeholderOption.textContent =
                 placeholder;
+
+            placeholderOption.selected = true;
 
             select.appendChild(
                 placeholderOption
@@ -68,6 +77,11 @@ document.addEventListener(
                     );
                 }
             );
+
+            select.disabled =
+                options.length === 0;
+
+            window.SelectChoice?.create(select);
         }
 
         /**
@@ -121,15 +135,19 @@ document.addEventListener(
                     const stateId =
                         stateSelect.value;
 
-                    populateSelect(
-                        citySelect,
-                        [],
-                        'Select City'
-                    );
-
                     if (!stateId) {
+                        populateSelect(
+                            citySelect,
+                            [],
+                            'Select City'
+                        );
+
                         return;
                     }
+
+                    window.SelectChoice?.destroy(
+                        citySelect
+                    );
 
                     citySelect.disabled = true;
 
@@ -156,28 +174,43 @@ document.addEventListener(
                             [],
                             'Unable to Load Cities'
                         );
-                    } finally {
-                        citySelect.disabled =
-                            false;
                     }
                 }
             );
         }
 
         /*
-         * Client-side validation complements server validation.
-         */
+        * Show browser validation feedback only when the form is invalid.
+        *
+        * Do not add Bootstrap's was-validated class for a valid submission,
+        * because that displays green validation ticks not used elsewhere in
+        * the application.
+        */
         form.addEventListener(
             'submit',
             function (event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
+                if (form.checkValidity()) {
+                    return;
                 }
+
+                event.preventDefault();
+                event.stopPropagation();
 
                 form.classList.add(
                     'was-validated'
                 );
+
+                const firstInvalidField =
+                    form.querySelector(
+                        ':invalid'
+                    );
+
+                if (
+                    firstInvalidField
+                    instanceof HTMLElement
+                ) {
+                    firstInvalidField.focus();
+                }
             }
         );
 

@@ -89,4 +89,8 @@ ON field_officers (
 )
 WHERE deleted_at IS NULL;
 
+ALTER TABLE field_officers
+ADD CONSTRAINT uq_field_officers_officer_code
+UNIQUE (officer_code);
+
 COMMIT;

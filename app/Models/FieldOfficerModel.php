@@ -145,4 +145,18 @@ final class FieldOfficerModel extends Model
 
         return $builder->first() !== null;
     }
+
+    /**
+     * Check whether a Field Officer code already exists.
+     */
+    public function officerCodeExists(
+        string $officerCode
+    ): bool {
+        return $this
+            ->where(
+                'officer_code',
+                trim($officerCode)
+            )
+            ->first() !== null;
+    }
 }
