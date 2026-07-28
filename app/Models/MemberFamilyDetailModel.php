@@ -21,9 +21,11 @@ final class MemberFamilyDetailModel extends Model
 
     protected $allowedFields = [
         'user_id',
-        'family_value',
-        'family_type',
-        'family_status',
+        'family_value_id',
+        'family_type_id',
+        'family_status_id',
+        'community_id',
+        'subcommunity_id',
         'father_occupation_id',
         'mother_occupation_id',
         'brothers_count',
@@ -46,7 +48,7 @@ final class MemberFamilyDetailModel extends Model
     protected $skipValidation = true;
 
     /**
-     * Find one member's details with readable master values.
+     * Find one member's Family Details with readable master values.
      *
      * @return array<string, mixed>|null
      */
@@ -55,6 +57,13 @@ final class MemberFamilyDetailModel extends Model
         $record = $this
             ->select([
                 'member_family_details.*',
+
+                'family_value.name AS family_value_name',
+                'family_type.name AS family_type_name',
+                'family_status.name AS family_status_name',
+
+                'community.name AS community_name',
+                'subcommunity.name AS subcommunity_name',
 
                 'father_occupation.name '
                     . 'AS father_occupation_name',
@@ -66,6 +75,36 @@ final class MemberFamilyDetailModel extends Model
                 'master_states.name AS state_name',
                 'master_cities.name AS city_name',
             ])
+            ->join(
+                'master_family_values family_value',
+                'family_value.id = '
+                    . 'member_family_details.family_value_id',
+                'left'
+            )
+            ->join(
+                'master_family_types family_type',
+                'family_type.id = '
+                    . 'member_family_details.family_type_id',
+                'left'
+            )
+            ->join(
+                'master_family_statuses family_status',
+                'family_status.id = '
+                    . 'member_family_details.family_status_id',
+                'left'
+            )
+            ->join(
+                'master_sikh_communities community',
+                'community.id = '
+                    . 'member_family_details.community_id',
+                'left'
+            )
+            ->join(
+                'master_sikh_subcommunities subcommunity',
+                'subcommunity.id = '
+                    . 'member_family_details.subcommunity_id',
+                'left'
+            )
             ->join(
                 'master_family_occupations father_occupation',
                 'father_occupation.id = '

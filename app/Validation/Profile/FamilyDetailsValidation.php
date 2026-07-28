@@ -15,47 +15,30 @@ final class FamilyDetailsValidation
     public static function rules(): array
     {
         return [
-            'family_value' => [
-                'label' => 'Family value',
-                'rules' => [
-                    'required',
-                    'in_list[ORTHODOX,TRADITIONAL,MODERATE,LIBERAL]',
-                ],
-                'errors' => [
-                    'required' =>
-                    'Please select your family value.',
-                    'in_list' =>
-                    'Please select a valid family value.',
-                ],
-            ],
+            'family_value_id' => self::requiredMaster(
+                'Family value',
+                'Please select your family value.'
+            ),
 
-            'family_type' => [
-                'label' => 'Family type',
-                'rules' => [
-                    'required',
-                    'in_list[JOINT_FAMILY,NUCLEAR_FAMILY,OTHERS]',
-                ],
-                'errors' => [
-                    'required' =>
-                    'Please select your family type.',
-                    'in_list' =>
-                    'Please select a valid family type.',
-                ],
-            ],
+            'family_type_id' => self::requiredMaster(
+                'Family type',
+                'Please select your family type.'
+            ),
 
-            'family_status' => [
-                'label' => 'Family status',
-                'rules' => [
-                    'required',
-                    'in_list[MIDDLE_CLASS,UPPER_MIDDLE_CLASS,HIGH_CLASS,RICH_AFFLUENT]',
-                ],
-                'errors' => [
-                    'required' =>
-                    'Please select your family status.',
-                    'in_list' =>
-                    'Please select a valid family status.',
-                ],
-            ],
+            'family_status_id' => self::requiredMaster(
+                'Family status',
+                'Please select your family status.'
+            ),
+
+            'community_id' => self::requiredMaster(
+                'Community',
+                'Please select your community.'
+            ),
+
+            'subcommunity_id' => self::requiredMaster(
+                'Sub-community',
+                'Please select your sub-community.'
+            ),
 
             'father_occupation_id' => [
                 'label' => "Father's occupation",
@@ -81,76 +64,74 @@ final class FamilyDetailsValidation
                 ],
             ],
 
-            'brothers_count' => [
-                'label' => 'Number of brothers',
-                'rules' => [
-                    'required',
-                    'integer',
-                    'greater_than_equal_to[0]',
-                    'less_than_equal_to[10]',
-                ],
-            ],
+            'brothers_count' => self::siblingCountRules(
+                'Number of brothers'
+            ),
 
-            'married_brothers_count' => [
-                'label' => 'Married brothers',
-                'rules' => [
-                    'required',
-                    'integer',
-                    'greater_than_equal_to[0]',
-                    'less_than_equal_to[10]',
-                ],
-            ],
+            'married_brothers_count' =>
+            self::siblingCountRules(
+                'Married brothers'
+            ),
 
-            'sisters_count' => [
-                'label' => 'Number of sisters',
-                'rules' => [
-                    'required',
-                    'integer',
-                    'greater_than_equal_to[0]',
-                    'less_than_equal_to[10]',
-                ],
-            ],
+            'sisters_count' => self::siblingCountRules(
+                'Number of sisters'
+            ),
 
-            'married_sisters_count' => [
-                'label' => 'Married sisters',
-                'rules' => [
-                    'required',
-                    'integer',
-                    'greater_than_equal_to[0]',
-                    'less_than_equal_to[10]',
-                ],
-            ],
+            'married_sisters_count' =>
+            self::siblingCountRules(
+                'Married sisters'
+            ),
 
-            'country_id' => [
-                'label' => 'Country',
-                'rules' => [
-                    'required',
-                    'is_natural_no_zero',
-                ],
-            ],
+            'country_id' => self::requiredMaster(
+                'Country',
+                'Please select a valid country.'
+            ),
 
-            'state_id' => [
-                'label' => 'State',
-                'rules' => [
-                    'required',
-                    'is_natural_no_zero',
-                ],
-                'errors' => [
-                    'required' =>
-                    'Please select your family state.',
-                ],
-            ],
+            'state_id' => self::requiredMaster(
+                'State',
+                'Please select your family state.'
+            ),
 
-            'city_id' => [
-                'label' => 'City',
-                'rules' => [
-                    'required',
-                    'is_natural_no_zero',
-                ],
-                'errors' => [
-                    'required' =>
-                    'Please select your family city.',
-                ],
+            'city_id' => self::requiredMaster(
+                'City',
+                'Please select your family city.'
+            ),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function requiredMaster(
+        string $label,
+        string $requiredMessage
+    ): array {
+        return [
+            'label' => $label,
+            'rules' => [
+                'required',
+                'is_natural_no_zero',
+            ],
+            'errors' => [
+                'required' => $requiredMessage,
+                'is_natural_no_zero' => $requiredMessage,
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function siblingCountRules(
+        string $label
+    ): array {
+        return [
+            'label' => $label,
+            'rules' => [
+                'required',
+                'integer',
+                'greater_than_equal_to[0]',
+                'less_than_equal_to[10]',
             ],
         ];
     }

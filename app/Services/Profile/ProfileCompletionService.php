@@ -10,16 +10,17 @@ namespace App\Services\Profile;
 final class ProfileCompletionService
 {
     /**
-     * Calculate completion across all implemented profile sections.
+     * Calculate completion across visible profile sections.
+     *
+     * Sikh & Religious Details is intentionally excluded because that section
+     * is no longer part of the member profile UI or guided journey.
      *
      * Photo completion is based on at least one active uploaded photo.
-     * Approval is a moderation state and does not block the member's
-     * profile-completion journey.
+     * Approval is a moderation state and does not block completion.
      *
      * @param array<string, int> $basicDetailsCompletion
      * @param array<string, int> $educationProfessionCompletion
      * @param array<string, int> $familyDetailsCompletion
-     * @param array<string, int> $sikhReligiousDetailsCompletion
      * @param array<string, int> $lifestyleCompletion
      * @param array<string, int> $aboutMeCompletion
      *
@@ -33,7 +34,6 @@ final class ProfileCompletionService
         array $basicDetailsCompletion,
         array $educationProfessionCompletion,
         array $familyDetailsCompletion,
-        array $sikhReligiousDetailsCompletion,
         array $lifestyleCompletion,
         array $aboutMeCompletion,
         bool $hasUploadedPhoto
@@ -49,9 +49,6 @@ final class ProfileCompletionService
                 $familyDetailsCompletion
             ),
             $this->isSectionComplete(
-                $sikhReligiousDetailsCompletion
-            ),
-            $this->isSectionComplete(
                 $lifestyleCompletion
             ),
             $this->isSectionComplete(
@@ -65,7 +62,8 @@ final class ProfileCompletionService
         $completedSteps = count(
             array_filter(
                 $sections,
-                static fn(bool $complete): bool => $complete
+                static fn(bool $complete): bool =>
+                $complete
             )
         );
 
@@ -75,14 +73,14 @@ final class ProfileCompletionService
                     ($completedSteps / $totalSteps) * 100
                 )
                 : 0,
+
             'completedSteps' => $completedSteps,
+
             'totalSteps' => $totalSteps,
         ];
     }
 
     /**
-     * Determine whether a profile section is fully complete.
-     *
      * @param array<string, int> $completion
      */
     private function isSectionComplete(

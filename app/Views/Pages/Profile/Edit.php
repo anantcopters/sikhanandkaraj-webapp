@@ -176,18 +176,6 @@ $this->section('content');
                 ) ?>
 
                 <?= view(
-                    'Pages/Profile/Sections/'
-                        . 'SikhReligiousDetails/_card',
-                    [
-                        'sikhReligiousDetails' =>
-                        $sikhReligiousDetails,
-
-                        'sikhReligiousDetailsCompletion' =>
-                        $sikhReligiousDetailsCompletion,
-                    ]
-                ) ?>
-
-                <?= view(
                     'Pages/Profile/Sections/Lifestyle/_card',
                     [
                         'lifestyleDetails' =>

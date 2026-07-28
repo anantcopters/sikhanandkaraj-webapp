@@ -12,8 +12,6 @@ use App\Validation\Profile\BasicDetailsValidation;
 use App\Validation\Profile\EducationProfessionValidation;
 use App\Services\Profile\FamilyDetailsService;
 use App\Validation\Profile\FamilyDetailsValidation;
-use App\Services\Profile\SikhReligiousDetailsService;
-use App\Validation\Profile\SikhReligiousDetailsValidation;
 use App\Services\Profile\LifestyleService;
 use App\Validation\Profile\LifestyleValidation;
 use App\Services\Profile\AboutMeService;
@@ -115,15 +113,6 @@ final class ProfileController extends BaseController
             $userId
         );
 
-        /** @var SikhReligiousDetailsService $religiousService */
-        $religiousService = service(
-            'sikhReligiousDetailsService'
-        );
-
-        $religiousProfile = $religiousService->getForUser(
-            $userId
-        );
-
         /** @var LifestyleService $lifestyleService */
         $lifestyleService = service('lifestyleService');
 
@@ -153,7 +142,6 @@ final class ProfileController extends BaseController
             $basicProfile['completion'],
             $educationProfile['completion'],
             $familyProfile['completion'],
-            $religiousProfile['completion'],
             $lifestyleProfile['completion'],
             $aboutMeProfile['completion'],
             $photoSummary['hasUploadedPhoto']
@@ -198,13 +186,6 @@ final class ProfileController extends BaseController
             )
         ) === 100;
 
-        $sikhReligiousDetailsComplete = (
-            (int) (
-                $religiousProfile['completion']['percentage']
-                ?? 0
-            )
-        ) === 100;
-
         $lifestyleComplete = (
             (int) (
                 $lifestyleProfile['completion']['percentage']
@@ -238,12 +219,6 @@ final class ProfileController extends BaseController
             $nextProfileSection = [
                 'title' => 'Family Details',
                 'route' => 'web.profile.family-details',
-            ];
-        } elseif (!$sikhReligiousDetailsComplete) {
-            $nextProfileSection = [
-                'title' => 'Sikh & Religious Details',
-                'route' =>
-                'web.profile.sikh-religious-details',
             ];
         } elseif (!$lifestyleComplete) {
             $nextProfileSection = [
@@ -292,12 +267,6 @@ final class ProfileController extends BaseController
 
                 'familyDetailsCompletion' =>
                 $familyProfile['completion'],
-
-                'sikhReligiousDetails' =>
-                $religiousProfile['sikhReligiousDetails'],
-
-                'sikhReligiousDetailsCompletion' =>
-                $religiousProfile['completion'],
 
                 'lifestyleDetails' =>
                 $lifestyleProfile['selectedDetails'],
@@ -1115,7 +1084,7 @@ final class ProfileController extends BaseController
 
             $redirectUrl = $this->isProfileJourney()
                 ? $this->profileSectionUrl(
-                    'web.profile.sikh-religious-details'
+                    'web.profile.lifestyle'
                 )
                 : route_to('web.profile.edit')
                 . '#family-details';
@@ -1172,148 +1141,148 @@ final class ProfileController extends BaseController
     /**
      * Display Sikh and Religious Details.
      */
-    public function sikhReligiousDetails(): string
-    {
-        $userId = $this->authenticatedUserId();
+    // public function sikhReligiousDetails(): string
+    // {
+    //     $userId = $this->authenticatedUserId();
 
-        /** @var SikhReligiousDetailsService $service */
-        $service = service(
-            'sikhReligiousDetailsService'
-        );
+    //     /** @var SikhReligiousDetailsService $service */
+    //     $service = service(
+    //         'sikhReligiousDetailsService'
+    //     );
 
-        $profile = $service->getForUser($userId);
+    //     $profile = $service->getForUser($userId);
 
-        return view(
-            'Pages/Profile/Sections/'
-                . 'SikhReligiousDetails/Edit',
-            [
-                'pageTitle' =>
-                'Sikh & Religious Details',
+    //     return view(
+    //         'Pages/Profile/Sections/'
+    //             . 'SikhReligiousDetails/Edit',
+    //         [
+    //             'pageTitle' =>
+    //             'Sikh & Religious Details',
 
-                'user' => $profile['user'],
+    //             'user' => $profile['user'],
 
-                'sikhReligiousDetails' =>
-                $profile['sikhReligiousDetails'],
+    //             'sikhReligiousDetails' =>
+    //             $profile['sikhReligiousDetails'],
 
-                'sikhReligiousDetailsCompletion' =>
-                $profile['completion'],
+    //             'sikhReligiousDetailsCompletion' =>
+    //             $profile['completion'],
 
-                'masterData' =>
-                $profile['masterData'],
+    //             'masterData' =>
+    //             $profile['masterData'],
 
-                'validationErrors' =>
-                $this->readValidationErrors() ?? [],
+    //             'validationErrors' =>
+    //             $this->readValidationErrors() ?? [],
 
-                'formAlert' =>
-                $this->readFormAlert(),
+    //             'formAlert' =>
+    //             $this->readFormAlert(),
 
-                'isProfileJourney' => $this->isProfileJourney(),
+    //             'isProfileJourney' => $this->isProfileJourney(),
 
-                'pageScripts' => [
-                    'assets/js/pages/'
-                        . 'profile-sikh-religious-details.js',
-                ],
-            ]
-        );
-    }
+    //             'pageScripts' => [
+    //                 'assets/js/pages/'
+    //                     . 'profile-sikh-religious-details.js',
+    //             ],
+    //         ]
+    //     );
+    // }
 
     /**
      * Save Sikh and Religious Details.
      */
-    public function updateSikhReligiousDetails(): RedirectResponse
-    {
-        $userId = $this->authenticatedUserId();
+    // public function updateSikhReligiousDetails(): RedirectResponse
+    // {
+    //     $userId = $this->authenticatedUserId();
 
-        $input = $this->sikhReligiousDetailsInput();
+    //     $input = $this->sikhReligiousDetailsInput();
 
-        $validation = service('validation');
+    //     $validation = service('validation');
 
-        $validation->setRules(
-            SikhReligiousDetailsValidation::rules()
-        );
+    //     $validation->setRules(
+    //         SikhReligiousDetailsValidation::rules()
+    //     );
 
-        if (!$validation->run($input)) {
-            return redirect()
-                ->to(
-                    $this->profileSectionUrl(
-                        'web.profile.sikh-religious-details'
-                    )
-                )
-                ->withInput()
-                ->with(
-                    'validationErrors',
-                    $validation->getErrors()
-                );
-        }
+    //     if (!$validation->run($input)) {
+    //         return redirect()
+    //             ->to(
+    //                 $this->profileSectionUrl(
+    //                     'web.profile.sikh-religious-details'
+    //                 )
+    //             )
+    //             ->withInput()
+    //             ->with(
+    //                 'validationErrors',
+    //                 $validation->getErrors()
+    //             );
+    //     }
 
-        try {
-            /** @var SikhReligiousDetailsService $service */
-            $service = service(
-                'sikhReligiousDetailsService'
-            );
+    //     try {
+    //         /** @var SikhReligiousDetailsService $service */
+    //         $service = service(
+    //             'sikhReligiousDetailsService'
+    //         );
 
-            $service->save(
-                $userId,
-                $validation->getValidated()
-            );
+    //         $service->save(
+    //             $userId,
+    //             $validation->getValidated()
+    //         );
 
-            $redirectUrl = $this->isProfileJourney()
-                ? $this->profileSectionUrl(
-                    'web.profile.lifestyle'
-                )
-                : route_to('web.profile.edit')
-                . '#sikh-religious-details';
+    //         $redirectUrl = $this->isProfileJourney()
+    //             ? $this->profileSectionUrl(
+    //                 'web.profile.lifestyle'
+    //             )
+    //             : route_to('web.profile.edit')
+    //             . '#sikh-religious-details';
 
-            return redirect()
-                ->to($redirectUrl)
-                ->with('formAlert', [
-                    'type' => 'success',
-                    'title' =>
-                    'Sikh and religious details updated',
-                    'message' =>
-                    'Your Sikh, birthplace and optional '
-                        . 'astrological details have been saved.',
-                ]);
-        } catch (DomainException $exception) {
-            return redirect()
-                ->to(
-                    $this->profileSectionUrl(
-                        'web.profile.sikh-religious-details'
-                    )
-                )
-                ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Details not saved',
-                    'message' => $exception->getMessage(),
-                ]);
-        } catch (Throwable $exception) {
-            log_message(
-                'error',
-                'Sikh religious details update failed '
-                    . 'for user {userId}: {message}',
-                [
-                    'userId' => $userId,
-                    'message' => $exception->getMessage(),
-                ]
-            );
+    //         return redirect()
+    //             ->to($redirectUrl)
+    //             ->with('formAlert', [
+    //                 'type' => 'success',
+    //                 'title' =>
+    //                 'Sikh and religious details updated',
+    //                 'message' =>
+    //                 'Your Sikh, birthplace and optional '
+    //                     . 'astrological details have been saved.',
+    //             ]);
+    //     } catch (DomainException $exception) {
+    //         return redirect()
+    //             ->to(
+    //                 $this->profileSectionUrl(
+    //                     'web.profile.sikh-religious-details'
+    //                 )
+    //             )
+    //             ->withInput()
+    //             ->with('formAlert', [
+    //                 'type' => 'danger',
+    //                 'title' => 'Details not saved',
+    //                 'message' => $exception->getMessage(),
+    //             ]);
+    //     } catch (Throwable $exception) {
+    //         log_message(
+    //             'error',
+    //             'Sikh religious details update failed '
+    //                 . 'for user {userId}: {message}',
+    //             [
+    //                 'userId' => $userId,
+    //                 'message' => $exception->getMessage(),
+    //             ]
+    //         );
 
-            return redirect()
-                ->to(
-                    $this->profileSectionUrl(
-                        'web.profile.sikh-religious-details'
-                    )
-                )
-                ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Details not saved',
-                    'message' =>
-                    'We could not save your details. '
-                        . 'Please try again.',
-                ]);
-        }
-    }
+    //         return redirect()
+    //             ->to(
+    //                 $this->profileSectionUrl(
+    //                     'web.profile.sikh-religious-details'
+    //                 )
+    //             )
+    //             ->withInput()
+    //             ->with('formAlert', [
+    //                 'type' => 'danger',
+    //                 'title' => 'Details not saved',
+    //                 'message' =>
+    //                 'We could not save your details. '
+    //                     . 'Please try again.',
+    //             ]);
+    //     }
+    // }
 
     /**
      * Display the About Me add/edit page.
@@ -1445,84 +1414,84 @@ final class ProfileController extends BaseController
     /**
      * @return array<string, string>
      */
-    private function sikhReligiousDetailsInput(): array
-    {
-        return [
-            'community_id' => trim(
-                (string) $this->request->getPost(
-                    'community_id'
-                )
-            ),
+    // private function sikhReligiousDetailsInput(): array
+    // {
+    //     return [
+    //         'community_id' => trim(
+    //             (string) $this->request->getPost(
+    //                 'community_id'
+    //             )
+    //         ),
 
-            'subcommunity_id' => trim(
-                (string) $this->request->getPost(
-                    'subcommunity_id'
-                )
-            ),
+    //         'subcommunity_id' => trim(
+    //             (string) $this->request->getPost(
+    //                 'subcommunity_id'
+    //             )
+    //         ),
 
-            'birth_hour' => trim(
-                (string) $this->request->getPost(
-                    'birth_hour'
-                )
-            ),
+    //         'birth_hour' => trim(
+    //             (string) $this->request->getPost(
+    //                 'birth_hour'
+    //             )
+    //         ),
 
-            'birth_minute' => trim(
-                (string) $this->request->getPost(
-                    'birth_minute'
-                )
-            ),
+    //         'birth_minute' => trim(
+    //             (string) $this->request->getPost(
+    //                 'birth_minute'
+    //             )
+    //         ),
 
-            'birth_meridiem' => strtoupper(
-                trim(
-                    (string) $this->request->getPost(
-                        'birth_meridiem'
-                    )
-                )
-            ),
+    //         'birth_meridiem' => strtoupper(
+    //             trim(
+    //                 (string) $this->request->getPost(
+    //                     'birth_meridiem'
+    //                 )
+    //             )
+    //         ),
 
-            'birth_country_id' => trim(
-                (string) $this->request->getPost(
-                    'birth_country_id'
-                )
-            ),
+    //         'birth_country_id' => trim(
+    //             (string) $this->request->getPost(
+    //                 'birth_country_id'
+    //             )
+    //         ),
 
-            'birth_state_id' => trim(
-                (string) $this->request->getPost(
-                    'birth_state_id'
-                )
-            ),
+    //         'birth_state_id' => trim(
+    //             (string) $this->request->getPost(
+    //                 'birth_state_id'
+    //             )
+    //         ),
 
-            'birth_city_id' => trim(
-                (string) $this->request->getPost(
-                    'birth_city_id'
-                )
-            ),
+    //         'birth_city_id' => trim(
+    //             (string) $this->request->getPost(
+    //                 'birth_city_id'
+    //             )
+    //         ),
 
-            'gotra' => $this->normalizeProfileText(
-                $this->request->getPost('gotra')
-            ),
+    //         'gotra' => $this->normalizeProfileText(
+    //             $this->request->getPost('gotra')
+    //         ),
 
-            'moon_sign_id' => trim(
-                (string) $this->request->getPost(
-                    'moon_sign_id'
-                )
-            ),
+    //         'moon_sign_id' => trim(
+    //             (string) $this->request->getPost(
+    //                 'moon_sign_id'
+    //             )
+    //         ),
 
-            'birth_star_id' => trim(
-                (string) $this->request->getPost(
-                    'birth_star_id'
-                )
-            ),
+    //         'birth_star_id' => trim(
+    //             (string) $this->request->getPost(
+    //                 'birth_star_id'
+    //             )
+    //         ),
 
-            'has_dosh' => strtoupper(
-                trim(
-                    (string) $this->request->getPost(
-                        'has_dosh'
-                    )
-                )
-            ),
-        ];
-    }
+    //         'has_dosh' => strtoupper(
+    //             trim(
+    //                 (string) $this->request->getPost(
+    //                     'has_dosh'
+    //                 )
+    //             )
+    //         ),
+    //     ];
+    // }
 
     /**
      * Read and normalize expected Family Details fields.
@@ -1532,27 +1501,33 @@ final class ProfileController extends BaseController
     private function familyDetailsInput(): array
     {
         return [
-            'family_value' => strtoupper(
-                trim(
-                    (string) $this->request->getPost(
-                        'family_value'
-                    )
+            'family_value_id' => trim(
+                (string) $this->request->getPost(
+                    'family_value_id'
                 )
             ),
 
-            'family_type' => strtoupper(
-                trim(
-                    (string) $this->request->getPost(
-                        'family_type'
-                    )
+            'family_type_id' => trim(
+                (string) $this->request->getPost(
+                    'family_type_id'
                 )
             ),
 
-            'family_status' => strtoupper(
-                trim(
-                    (string) $this->request->getPost(
-                        'family_status'
-                    )
+            'family_status_id' => trim(
+                (string) $this->request->getPost(
+                    'family_status_id'
+                )
+            ),
+
+            'community_id' => trim(
+                (string) $this->request->getPost(
+                    'community_id'
+                )
+            ),
+
+            'subcommunity_id' => trim(
+                (string) $this->request->getPost(
+                    'subcommunity_id'
                 )
             ),
 

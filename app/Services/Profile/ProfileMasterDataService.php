@@ -14,6 +14,12 @@ use App\Models\MasterAnnualIncomeModel;
 use App\Models\MasterEducationModel;
 use App\Models\MasterOccupationModel;
 use App\Models\MasterFamilyOccupationModel;
+use App\Models\MasterFamilyStatusModel;
+use App\Models\MasterFamilyTypeModel;
+use App\Models\MasterFamilyValueModel;
+use App\Models\MasterSikhCommunityModel;
+use App\Models\MasterSikhSubcommunityModel;
+use App\Models\AbstractActiveMasterModel;
 use DomainException;
 
 /**
@@ -31,7 +37,12 @@ final class ProfileMasterDataService
         private readonly MasterEducationModel $educationModel,
         private readonly MasterOccupationModel $occupationModel,
         private readonly MasterAnnualIncomeModel $annualIncomeModel,
-        private readonly MasterFamilyOccupationModel $familyOccupationModel
+        private readonly MasterFamilyOccupationModel $familyOccupationModel,
+        private readonly MasterFamilyValueModel $familyValueModel,
+        private readonly MasterFamilyTypeModel $familyTypeModel,
+        private readonly MasterFamilyStatusModel $familyStatusModel,
+        private readonly MasterSikhCommunityModel $communityModel,
+        private readonly MasterSikhSubcommunityModel $subcommunityModel
     ) {}
 
     /**
@@ -259,12 +270,13 @@ final class ProfileMasterDataService
     }
 
     /**
-     * Return master and enum values required by Family Details.
+     * Return master values required by Family Details.
      *
      * @return array<string, mixed>
      */
     public function familyDetailsOptions(
-        ?int $selectedStateId = null
+        ?int $selectedStateId = null,
+        ?int $selectedCommunityId = null
     ): array {
         $india = $this->countryModel->findIndia();
 
@@ -291,73 +303,87 @@ final class ProfileMasterDataService
             'familyOccupations' =>
             $this->familyOccupationModel->activeOptions(),
 
-            'familyValues' => [
-                [
-                    'value' => 'ORTHODOX',
-                    'label' => 'Orthodox',
-                ],
-                [
-                    'value' => 'TRADITIONAL',
-                    'label' => 'Traditional',
-                ],
-                [
-                    'value' => 'MODERATE',
-                    'label' => 'Moderate',
-                ],
-                [
-                    'value' => 'LIBERAL',
-                    'label' => 'Liberal',
-                ],
-            ],
+            'familyValues' =>
+            $this->familyValueModel->activeOptions(),
 
-            'familyTypes' => [
-                [
-                    'value' => 'JOINT_FAMILY',
-                    'label' => 'Joint Family',
-                ],
-                [
-                    'value' => 'NUCLEAR_FAMILY',
-                    'label' => 'Nuclear Family',
-                ],
-                [
-                    'value' => 'OTHERS',
-                    'label' => 'Others',
-                ],
-            ],
+            'familyTypes' =>
+            $this->familyTypeModel->activeOptions(),
 
-            'familyStatuses' => [
-                [
-                    'value' => 'MIDDLE_CLASS',
-                    'label' => 'Middle Class',
-                ],
-                [
-                    'value' => 'UPPER_MIDDLE_CLASS',
-                    'label' => 'Upper Middle Class',
-                ],
-                [
-                    'value' => 'HIGH_CLASS',
-                    'label' => 'High Class',
-                ],
-                [
-                    'value' => 'RICH_AFFLUENT',
-                    'label' => 'Rich / Affluent',
-                ],
-            ],
+            'familyStatuses' =>
+            $this->familyStatusModel->activeOptions(),
+
+            'communities' =>
+            $this->communityModel->activeOptions(),
+
+            'subcommunities' =>
+            $selectedCommunityId !== null
+                ? $this->subcommunityModel
+                ->activeForCommunity(
+                    $selectedCommunityId
+                )
+                : [],
 
             'siblingCounts' => range(0, 10),
         ];
     }
 
     /**
-     * Validate Family Details master-data relationships.
+     * Verify all Family Details master-data relationships.
      */
     public function assertValidFamilySelection(
+        int $familyValueId,
+        int $familyTypeId,
+        int $familyStatusId,
+        int $communityId,
+        int $subcommunityId,
         ?int $fatherOccupationId,
         ?int $motherOccupationId,
         int $countryId,
         int $stateId,
         int $cityId
     ): void {
+        $this->assertActiveMaster(
+            $this->familyValueModel,
+            $familyValueId,
+            'Please select a valid family value.'
+        );
+
+        $this->assertActiveMaster(
+            $this->familyTypeModel,
+            $familyTypeId,
+            'Please select a valid family type.'
+        );
+
+        $this->assertActiveMaster(
+            $this->familyStatusModel,
+            $familyStatusId,
+            'Please select a valid family status.'
+        );
+
+        $community = $this->communityModel
+            ->where('id', $communityId)
+            ->where('is_active', true)
+            ->first();
+
+        if (!is_array($community)) {
+            throw new DomainException(
+                'Please select a valid community.'
+            );
+        }
+
+        $subcommunity = $this->subcommunityModel
+            ->where('id', $subcommunityId)
+            ->where('community_id', $communityId)
+            ->where('is_active', true)
+            ->first();
+
+        if (!is_array($subcommunity)) {
+            throw new DomainException(
+                'Please select a valid sub-community '
+                    . 'for the selected community.'
+            );
+        }
+
         $india = $this->countryModel->findIndia();
 
         if (
@@ -414,8 +440,22 @@ final class ProfileMasterDataService
 
         if (!is_array($city)) {
             throw new DomainException(
-                'Please select a valid family city for the selected state.'
+                'Please select a valid family city '
+                    . 'for the selected state.'
             );
+        }
+    }
+
+    /**
+     * Validate a simple active master record.
+     */
+    private function assertActiveMaster(
+        AbstractActiveMasterModel $model,
+        int $id,
+        string $message
+    ): void {
+        if (!is_array($model->findActive($id))) {
+            throw new DomainException($message);
         }
     }
 }

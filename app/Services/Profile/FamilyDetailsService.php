@@ -16,26 +16,6 @@ use Throwable;
  */
 final class FamilyDetailsService
 {
-    private const FAMILY_VALUES = [
-        'ORTHODOX',
-        'TRADITIONAL',
-        'MODERATE',
-        'LIBERAL',
-    ];
-
-    private const FAMILY_TYPES = [
-        'JOINT_FAMILY',
-        'NUCLEAR_FAMILY',
-        'OTHERS',
-    ];
-
-    private const FAMILY_STATUSES = [
-        'MIDDLE_CLASS',
-        'UPPER_MIDDLE_CLASS',
-        'HIGH_CLASS',
-        'RICH_AFFLUENT',
-    ];
-
     public function __construct(
         private readonly UserModel $userModel,
         private readonly MemberFamilyDetailModel $detailModel,
@@ -44,7 +24,7 @@ final class FamilyDetailsService
     ) {}
 
     /**
-     * Return all data required for the Family Details page/card.
+     * Return all data needed by the Family Details page and profile card.
      *
      * @return array<string, mixed>
      */
@@ -60,10 +40,13 @@ final class FamilyDetailsService
 
         $details = $this->detailModel->findForUser($userId);
 
-        $selectedStateId = is_array($details)
-            && is_numeric($details['state_id'] ?? null)
-            ? (int) $details['state_id']
-            : null;
+        $selectedStateId = $this->existingInteger(
+            $details['state_id'] ?? null
+        );
+
+        $selectedCommunityId = $this->existingInteger(
+            $details['community_id'] ?? null
+        );
 
         return [
             'user' => $user,
@@ -73,7 +56,8 @@ final class FamilyDetailsService
             'masterData' =>
             $this->masterDataService
                 ->familyDetailsOptions(
-                    $selectedStateId
+                    $selectedStateId,
+                    $selectedCommunityId
                 ),
 
             'completion' =>
@@ -98,47 +82,30 @@ final class FamilyDetailsService
             );
         }
 
-        $familyValue = strtoupper(
-            trim((string) ($data['family_value'] ?? ''))
+        $familyValueId = $this->requiredInteger(
+            $data['family_value_id'] ?? null,
+            'Please select a valid family value.'
         );
 
-        $familyType = strtoupper(
-            trim((string) ($data['family_type'] ?? ''))
+        $familyTypeId = $this->requiredInteger(
+            $data['family_type_id'] ?? null,
+            'Please select a valid family type.'
         );
 
-        $familyStatus = strtoupper(
-            trim((string) ($data['family_status'] ?? ''))
+        $familyStatusId = $this->requiredInteger(
+            $data['family_status_id'] ?? null,
+            'Please select a valid family status.'
         );
 
-        if (!in_array(
-            $familyValue,
-            self::FAMILY_VALUES,
-            true
-        )) {
-            throw new DomainException(
-                'Please select a valid family value.'
-            );
-        }
+        $communityId = $this->requiredInteger(
+            $data['community_id'] ?? null,
+            'Please select a valid community.'
+        );
 
-        if (!in_array(
-            $familyType,
-            self::FAMILY_TYPES,
-            true
-        )) {
-            throw new DomainException(
-                'Please select a valid family type.'
-            );
-        }
-
-        if (!in_array(
-            $familyStatus,
-            self::FAMILY_STATUSES,
-            true
-        )) {
-            throw new DomainException(
-                'Please select a valid family status.'
-            );
-        }
+        $subcommunityId = $this->requiredInteger(
+            $data['subcommunity_id'] ?? null,
+            'Please select a valid sub-community.'
+        );
 
         $fatherOccupationId = $this->nullableInteger(
             $data['father_occupation_id'] ?? null,
@@ -172,13 +139,15 @@ final class FamilyDetailsService
 
         if ($marriedBrothersCount > $brothersCount) {
             throw new DomainException(
-                'Married brothers cannot exceed the total number of brothers.'
+                'Married brothers cannot exceed '
+                    . 'the total number of brothers.'
             );
         }
 
         if ($marriedSistersCount > $sistersCount) {
             throw new DomainException(
-                'Married sisters cannot exceed the total number of sisters.'
+                'Married sisters cannot exceed '
+                    . 'the total number of sisters.'
             );
         }
 
@@ -199,6 +168,11 @@ final class FamilyDetailsService
 
         $this->masterDataService
             ->assertValidFamilySelection(
+                $familyValueId,
+                $familyTypeId,
+                $familyStatusId,
+                $communityId,
+                $subcommunityId,
                 $fatherOccupationId,
                 $motherOccupationId,
                 $countryId,
@@ -208,9 +182,11 @@ final class FamilyDetailsService
 
         $profileData = [
             'user_id' => $userId,
-            'family_value' => $familyValue,
-            'family_type' => $familyType,
-            'family_status' => $familyStatus,
+            'family_value_id' => $familyValueId,
+            'family_type_id' => $familyTypeId,
+            'family_status_id' => $familyStatusId,
+            'community_id' => $communityId,
+            'subcommunity_id' => $subcommunityId,
             'father_occupation_id' =>
             $fatherOccupationId,
             'mother_occupation_id' =>
@@ -233,17 +209,15 @@ final class FamilyDetailsService
             $existing = $this->detailModel
                 ->findForUser($userId);
 
-            if (is_array($existing)) {
-                $saved = $this->detailModel->update(
+            $saved = is_array($existing)
+                ? $this->detailModel->update(
                     (int) $existing['id'],
                     $profileData
-                );
-            } else {
-                $saved = $this->detailModel->insert(
+                )
+                : $this->detailModel->insert(
                     $profileData,
                     false
                 );
-            }
 
             if ($saved === false) {
                 throw new RuntimeException(
@@ -302,6 +276,21 @@ final class FamilyDetailsService
         return (int) $normalized;
     }
 
+    private function existingInteger(mixed $value): ?int
+    {
+        $normalized = trim((string) $value);
+
+        if (
+            $normalized === ''
+            || !ctype_digit($normalized)
+            || (int) $normalized <= 0
+        ) {
+            return null;
+        }
+
+        return (int) $normalized;
+    }
+
     private function siblingCount(
         mixed $value,
         string $message
@@ -321,7 +310,7 @@ final class FamilyDetailsService
     }
 
     /**
-     * Calculate completion using mandatory profile information.
+     * Calculate completion using mandatory Family Details.
      *
      * @param array<string, mixed>|null $details
      *
@@ -331,9 +320,11 @@ final class FamilyDetailsService
         ?array $details
     ): array {
         $requiredValues = [
-            $details['family_value'] ?? null,
-            $details['family_type'] ?? null,
-            $details['family_status'] ?? null,
+            $details['family_value_id'] ?? null,
+            $details['family_type_id'] ?? null,
+            $details['family_status_id'] ?? null,
+            $details['community_id'] ?? null,
+            $details['subcommunity_id'] ?? null,
             $details['country_id'] ?? null,
             $details['state_id'] ?? null,
             $details['city_id'] ?? null,
@@ -343,8 +334,8 @@ final class FamilyDetailsService
             array_filter(
                 $requiredValues,
                 static fn(mixed $value): bool =>
-                $value !== null
-                    && trim((string) $value) !== ''
+                is_numeric($value)
+                    && (int) $value > 0
             )
         );
 

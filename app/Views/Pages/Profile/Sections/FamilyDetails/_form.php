@@ -3,8 +3,6 @@
 declare(strict_types=1);
 
 /**
- * Family Detail add/edit form.
- *
  * @var array<string, mixed>|null $familyDetails
  * @var array<string, string>     $validationErrors
  * @var array<string, mixed>      $masterData
@@ -25,6 +23,8 @@ $options = is_array($masterData ?? null)
 $familyValues = $options['familyValues'] ?? [];
 $familyTypes = $options['familyTypes'] ?? [];
 $familyStatuses = $options['familyStatuses'] ?? [];
+$communities = $options['communities'] ?? [];
+$subcommunities = $options['subcommunities'] ?? [];
 $familyOccupations = $options['familyOccupations'] ?? [];
 $siblingCounts = $options['siblingCounts'] ?? range(0, 10);
 $country = $options['country'] ?? [];
@@ -44,18 +44,6 @@ $fieldValue = static function (
     return $oldValue !== null
         ? (string) $oldValue
         : (string) $storedValue;
-};
-
-$isChecked = static function (
-    string $field,
-    string $option,
-    mixed $storedValue = ''
-) use ($fieldValue): string {
-    return strtoupper(
-        trim($fieldValue($field, $storedValue))
-    ) === strtoupper($option)
-        ? 'checked'
-        : '';
 };
 
 $isSelected = static function (
@@ -78,6 +66,16 @@ $selectedStateId = $fieldValue(
 $selectedCityId = $fieldValue(
     'city_id',
     $details['city_id'] ?? ''
+);
+
+$selectedCommunityId = $fieldValue(
+    'community_id',
+    $details['community_id'] ?? ''
+);
+
+$selectedSubcommunityId = $fieldValue(
+    'subcommunity_id',
+    $details['subcommunity_id'] ?? ''
 );
 
 $isJourney = ($isProfileJourney ?? false) === true;
@@ -103,121 +101,240 @@ if ($isJourney) {
     <div class="row g-3">
 
         <?php
-        $radioGroups = [
+        $familyMasterFields = [
             [
-                'name' => 'family_value',
+                'id' => 'familyValueId',
+                'name' => 'family_value_id',
                 'label' => 'Family value',
+                'placeholder' => 'Select family value',
                 'options' => $familyValues,
-                'stored' => $details['family_value'] ?? '',
-                'error' => 'Please select your family value.',
+                'stored' => $details['family_value_id'] ?? '',
+                'requiredMessage' =>
+                'Please select your family value.',
             ],
             [
-                'name' => 'family_type',
+                'id' => 'familyTypeId',
+                'name' => 'family_type_id',
                 'label' => 'Family type',
+                'placeholder' => 'Select family type',
                 'options' => $familyTypes,
-                'stored' => $details['family_type'] ?? '',
-                'error' => 'Please select your family type.',
+                'stored' => $details['family_type_id'] ?? '',
+                'requiredMessage' =>
+                'Please select your family type.',
             ],
             [
-                'name' => 'family_status',
+                'id' => 'familyStatusId',
+                'name' => 'family_status_id',
                 'label' => 'Family status',
+                'placeholder' => 'Select family status',
                 'options' => $familyStatuses,
-                'stored' => $details['family_status'] ?? '',
-                'error' => 'Please select your family status.',
+                'stored' => $details['family_status_id'] ?? '',
+                'requiredMessage' =>
+                'Please select your family status.',
             ],
         ];
         ?>
 
-        <?php foreach ($radioGroups as $group): ?>
-            <?php
-            $fieldName = (string) $group['name'];
-            $errorId = $fieldName . 'Error';
-            ?>
+        <?php foreach ($familyMasterFields as $field): ?>
+            <div class="col-12 col-md-4">
+                <label
+                    for="<?= esc($field['id'], 'attr') ?>"
+                    class="form-label fw-medium">
 
-            <div class="col-12">
-                <fieldset>
-                    <legend class="form-label fw-medium fs-14">
-                        <?= esc((string) $group['label']) ?>
-                        <span class="text-danger">*</span>
-                    </legend>
+                    <?= esc($field['label']) ?>
+                    <span class="text-danger">*</span>
+                </label>
 
-                    <div class="d-flex flex-wrap gap-3">
-                        <?php foreach ($group['options'] as $index => $option): ?>
-                            <?php
-                            $optionValue = (string) (
-                                $option['value'] ?? ''
-                            );
-
-                            $optionId = $fieldName
-                                . ucfirst(strtolower(
-                                    str_replace(
-                                        '_',
-                                        '',
-                                        $optionValue
-                                    )
-                                ));
-                            ?>
-
-                            <div class="form-check">
-                                <input
-                                    type="radio"
-                                    class="form-check-input"
-                                    id="<?= esc(
-                                            $optionId,
-                                            'attr'
-                                        ) ?>"
-                                    name="<?= esc(
-                                                $fieldName,
+                <select
+                    id="<?= esc($field['id'], 'attr') ?>"
+                    name="<?= esc($field['name'], 'attr') ?>"
+                    class="form-select"
+                    data-choice
+                    data-choice-search="false"
+                    data-choice-position="bottom"
+                    data-error-required="<?= esc(
+                                                $field['requiredMessage'],
                                                 'attr'
                                             ) ?>"
-                                    value="<?= esc(
-                                                $optionValue,
-                                                'attr'
-                                            ) ?>"
-                                    data-error-required="<?= esc(
-                                                                (string) $group['error'],
-                                                                'attr'
-                                                            ) ?>"
-                                    aria-describedby="<?= esc(
-                                                            $errorId,
-                                                            'attr'
-                                                        ) ?>"
-                                    <?= $isChecked(
-                                        $fieldName,
-                                        $optionValue,
-                                        $group['stored']
-                                    ) ?>
-                                    <?= $index === 0
-                                        ? 'required'
-                                        : '' ?>>
+                    required>
 
-                                <label
-                                    class="form-check-label"
-                                    for="<?= esc(
-                                                $optionId,
-                                                'attr'
-                                            ) ?>">
-                                    <?= esc(
-                                        (string) (
-                                            $option['label'] ?? ''
-                                        )
-                                    ) ?>
-                                </label>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
+                    <option value="">
+                        <?= esc($field['placeholder']) ?>
+                    </option>
 
-                    <?= view(
-                        'Components/Forms/FieldError',
-                        [
-                            'field' => $fieldName,
-                            'errorId' => $errorId,
-                            'errors' => $errors,
-                        ]
-                    ) ?>
-                </fieldset>
+                    <?php foreach ($field['options'] as $option): ?>
+                        <?php
+                        $optionId = (string) (
+                            $option['id'] ?? ''
+                        );
+                        ?>
+
+                        <option
+                            value="<?= esc($optionId, 'attr') ?>"
+                            <?= $isSelected(
+                                $field['name'],
+                                $optionId,
+                                $field['stored']
+                            ) ?>>
+
+                            <?= esc(
+                                (string) ($option['name'] ?? '')
+                            ) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+
+                <?= view(
+                    'Components/Forms/FieldError',
+                    [
+                        'field' => $field['name'],
+                        'errorId' =>
+                        $field['name'] . 'Error',
+                        'errors' => $errors,
+                    ]
+                ) ?>
             </div>
         <?php endforeach; ?>
+
+        <div class="col-12">
+            <hr class="my-2 mb-3">
+
+            <h2 class="fs-16 fw-semibold mb-0 mt-2">
+                Community Details
+            </h2>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <label
+                for="familyCommunityId"
+                class="form-label fw-medium">
+
+                Community
+                <span class="text-danger">*</span>
+            </label>
+
+            <select
+                id="familyCommunityId"
+                name="community_id"
+                class="form-select"
+                data-choice
+                data-choice-search="true"
+                data-choice-search-placeholder="Search community"
+                data-choice-position="bottom"
+                data-subcommunity-url="<?= esc(
+                                            url_to(
+                                                'web.profile.sikh-subcommunities'
+                                            ),
+                                            'attr'
+                                        ) ?>"
+                data-error-required="Please select your community."
+                required>
+
+                <option value="">
+                    Select community
+                </option>
+
+                <?php foreach ($communities as $community): ?>
+                    <?php
+                    $communityId = (string) (
+                        $community['id'] ?? ''
+                    );
+                    ?>
+
+                    <option
+                        value="<?= esc($communityId, 'attr') ?>"
+                        <?= $isSelected(
+                            'community_id',
+                            $communityId,
+                            $selectedCommunityId
+                        ) ?>>
+
+                        <?= esc(
+                            (string) ($community['name'] ?? '')
+                        ) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' => 'community_id',
+                    'errorId' => 'communityIdError',
+                    'errors' => $errors,
+                ]
+            ) ?>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <label
+                for="familySubcommunityId"
+                class="form-label fw-medium">
+
+                Sub-community
+                <span class="text-danger">*</span>
+            </label>
+
+            <select
+                id="familySubcommunityId"
+                name="subcommunity_id"
+                class="form-select"
+                data-choice
+                data-choice-search="true"
+                data-choice-search-placeholder="Search sub-community"
+                data-choice-position="bottom"
+                data-selected-value="<?= esc(
+                                            $selectedSubcommunityId,
+                                            'attr'
+                                        ) ?>"
+                data-error-required="Please select your sub-community."
+                required
+                <?= $selectedCommunityId === ''
+                    ? 'disabled'
+                    : '' ?>>
+
+                <option value="">
+                    Select sub-community
+                </option>
+
+                <?php foreach (
+                    $subcommunities as $subcommunity
+                ): ?>
+                    <?php
+                    $subcommunityId = (string) (
+                        $subcommunity['id'] ?? ''
+                    );
+                    ?>
+
+                    <option
+                        value="<?= esc(
+                                    $subcommunityId,
+                                    'attr'
+                                ) ?>"
+                        <?= $isSelected(
+                            'subcommunity_id',
+                            $subcommunityId,
+                            $selectedSubcommunityId
+                        ) ?>>
+
+                        <?= esc(
+                            (string) (
+                                $subcommunity['name'] ?? ''
+                            )
+                        ) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' => 'subcommunity_id',
+                    'errorId' => 'subcommunityIdError',
+                    'errors' => $errors,
+                ]
+            ) ?>
+        </div>
 
         <?php
         $parentFields = [

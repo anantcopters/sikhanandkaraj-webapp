@@ -65,6 +65,9 @@ use App\Services\Authentication\PasswordResetService;
 use App\Models\MemberNotificationModel;
 use App\Services\Notification\MemberNotificationService;
 use App\Services\Maintenance\TableCleanupService;
+use App\Models\MasterFamilyStatusModel;
+use App\Models\MasterFamilyTypeModel;
+use App\Models\MasterFamilyValueModel;
 use Config\TableCleanup;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
@@ -332,7 +335,12 @@ class Services extends BaseService
             new MasterEducationModel($database),
             new MasterOccupationModel($database),
             new MasterAnnualIncomeModel($database),
-            new MasterFamilyOccupationModel($database)
+            new MasterFamilyOccupationModel($database),
+            new MasterFamilyValueModel($database),
+            new MasterFamilyTypeModel($database),
+            new MasterFamilyStatusModel($database),
+            new MasterSikhCommunityModel($database),
+            new MasterSikhSubcommunityModel($database)
         );
     }
 

@@ -309,24 +309,24 @@ $routes->group('', [
     /*
     * Sikh & Religious Details.
     */
-    $routes->get(
-        'profile/sikh-religious-details',
-        'ProfileController::sikhReligiousDetails',
-        [
-            'as' => 'web.profile.sikh-religious-details',
-            'filter' => 'webAuth',
-        ]
-    );
+    // $routes->get(
+    //     'profile/sikh-religious-details',
+    //     'ProfileController::sikhReligiousDetails',
+    //     [
+    //         'as' => 'web.profile.sikh-religious-details',
+    //         'filter' => 'webAuth',
+    //     ]
+    // );
 
-    $routes->post(
-        'profile/sikh-religious-details',
-        'ProfileController::updateSikhReligiousDetails',
-        [
-            'as' =>
-            'web.profile.sikh-religious-details.update',
-            'filter' => 'webAuth',
-        ]
-    );
+    // $routes->post(
+    //     'profile/sikh-religious-details',
+    //     'ProfileController::updateSikhReligiousDetails',
+    //     [
+    //         'as' =>
+    //         'web.profile.sikh-religious-details.update',
+    //         'filter' => 'webAuth',
+    //     ]
+    // );
 
     $routes->get(
         'profile/master/sikh-subcommunities/(:num)',
