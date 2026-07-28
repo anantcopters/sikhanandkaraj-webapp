@@ -63,7 +63,10 @@ final class FieldOfficerService
     }
 
     /**
-     * Create a Field Officer as INACTIVE.
+     * Create a Field Officer.
+     *
+     * A valid UPI ID makes the Field Officer active immediately.
+     * Without a UPI ID, the Field Officer starts inactive.
      *
      * @param array<string, mixed> $input
      */
@@ -77,13 +80,19 @@ final class FieldOfficerService
             );
         }
 
-        $mobileNumber = $this->normalizeMobileNumber(
-            (string) ($input['mobile_number'] ?? '')
-        );
+        $mobileNumber =
+            $this->normalizeMobileNumber(
+                (string) (
+                    $input['mobile_number']
+                    ?? ''
+                )
+            );
 
         if (
             $this->fieldOfficerModel
-            ->mobileExists($mobileNumber)
+            ->mobileExists(
+                $mobileNumber
+            )
         ) {
             throw new RuntimeException(
                 'A Field Officer with this mobile number already exists.'
@@ -112,45 +121,77 @@ final class FieldOfficerService
             $input['upi_id'] ?? null
         );
 
+        /*
+     * UPI validation has already run through
+     * FieldOfficerValidation. Presence therefore means
+     * the Field Officer meets the activation condition.
+     */
+        $initialStatus =
+            $upiId !== null
+            ? FieldOfficerModel::STATUS_ACTIVE
+            : FieldOfficerModel::STATUS_INACTIVE;
+
+        $activatedAt =
+            $initialStatus
+            === FieldOfficerModel::STATUS_ACTIVE
+            ? date('Y-m-d H:i:s')
+            : null;
+
         $this->database->transBegin();
 
         try {
             $officerCode =
                 $this->generateOfficerCode();
 
-            $inserted = $this
-                ->fieldOfficerModel
-                ->insert([
-                    'officer_code' =>
-                    $officerCode,
-                    'full_name' => trim(
-                        (string) (
-                            $input['full_name'] ?? ''
-                        )
-                    ),
-                    'mobile_number' =>
-                    $mobileNumber,
-                    'country_id' =>
-                    $countryId,
-                    'state_id' =>
-                    $stateId,
-                    'city_id' =>
-                    $cityId,
-                    'address' =>
-                    $this->nullableText(
-                        $input['address'] ?? null
-                    ),
-                    'upi_id' =>
-                    $upiId,
-                    'account_status' =>
-                    FieldOfficerModel::STATUS_INACTIVE,
-                    'activated_at' =>
-                    null,
-                    'deactivated_at' =>
-                    null,
-                    'created_by' =>
-                    $createdBy,
-                ], true);
+            $inserted =
+                $this->fieldOfficerModel
+                ->insert(
+                    [
+                        'officer_code' =>
+                        $officerCode,
+
+                        'full_name' => trim(
+                            (string) (
+                                $input['full_name']
+                                ?? ''
+                            )
+                        ),
+
+                        'mobile_number' =>
+                        $mobileNumber,
+
+                        'country_id' =>
+                        $countryId,
+
+                        'state_id' =>
+                        $stateId,
+
+                        'city_id' =>
+                        $cityId,
+
+                        'address' =>
+                        $this->nullableText(
+                            $input['address']
+                                ?? null
+                        ),
+
+                        'upi_id' =>
+                        $upiId,
+
+                        'account_status' =>
+                        $initialStatus,
+
+                        'activated_at' =>
+                        $activatedAt,
+
+                        'deactivated_at' =>
+                        null,
+
+                        'created_by' =>
+                        $createdBy,
+                    ],
+                    true
+                );
 
             if ($inserted === false) {
                 throw new RuntimeException(
@@ -169,45 +210,112 @@ final class FieldOfficerService
 
             $this->database->transCommit();
 
-            $fieldOfficerId = (int) $inserted;
+            $fieldOfficerId =
+                (int) $inserted;
 
-            /*
-             * Audit is recorded after commit. Audit failure must not
-             * roll back an already completed business transaction.
-             */
             $this->auditService->record(
                 new AdminAuditEvent(
-                    action: AdminAuditAction::FIELD_OFFICER_CREATED,
+                    action: AdminAuditAction
+                    ::FIELD_OFFICER_CREATED,
+
                     targetType: 'FIELD_OFFICER',
+
                     targetId: $fieldOfficerId,
+
                     targetLabel: $officerCode,
-                    description: 'Field Officer was created in inactive status.',
+
+                    description: $initialStatus
+                        === FieldOfficerModel
+                        ::STATUS_ACTIVE
+                        ? 'Field Officer was created in active status because a UPI ID was provided.'
+                        : 'Field Officer was created in inactive status because no UPI ID was provided.',
+
                     afterData: [
                         'officer_code' =>
                         $officerCode,
-                        'full_name' =>
-                        trim(
+
+                        'full_name' => trim(
                             (string) (
-                                $input['full_name'] ?? ''
+                                $input['full_name']
+                                ?? ''
                             )
                         ),
+
                         'mobile_number' =>
                         $this->maskMobile(
                             $mobileNumber
                         ),
+
                         'country_id' =>
                         $countryId,
+
                         'state_id' =>
                         $stateId,
+
                         'city_id' =>
                         $cityId,
+
                         'upi_id_present' =>
                         $upiId !== null,
+
                         'account_status' =>
-                        FieldOfficerModel::STATUS_INACTIVE,
+                        $initialStatus,
+
+                        'activated_at' =>
+                        $activatedAt,
                     ]
                 )
             );
+
+            /*
+         * Record a separate activation event so audit reports can
+         * consistently count every activation, including activation
+         * performed during initial creation.
+         */
+            if (
+                $initialStatus
+                === FieldOfficerModel::STATUS_ACTIVE
+            ) {
+                $this->auditService->record(
+                    new AdminAuditEvent(
+                        action: AdminAuditAction
+                        ::FIELD_OFFICER_ACTIVATED,
+
+                        targetType: 'FIELD_OFFICER',
+
+                        targetId: $fieldOfficerId,
+
+                        targetLabel: $officerCode,
+
+                        description: 'Field Officer was activated during creation because a valid UPI ID was supplied.',
+
+                        beforeData: [
+                            'account_status' =>
+                            null,
+
+                            'upi_id_present' =>
+                            true,
+                        ],
+
+                        afterData: [
+                            'account_status' =>
+                            FieldOfficerModel
+                            ::STATUS_ACTIVE,
+
+                            'activated_at' =>
+                            $activatedAt,
+
+                            'upi_id_present' =>
+                            true,
+                        ],
+
+                        metadata: [
+                            'activation_source' =>
+                            'FIELD_OFFICER_CREATION',
+                        ]
+                    )
+                );
+            }
 
             return $fieldOfficerId;
         } catch (Throwable $exception) {

@@ -189,4 +189,38 @@ abstract class BaseController extends Controller
             ? (string) $value
             : $default;
     }
+
+    /**
+     * Return normalized array flashdata.
+     *
+     * Only string keys and scalar values are retained. This prevents
+     * arbitrary session structures from being passed directly to views.
+     *
+     * @return array<string, string>
+     */
+    protected function readArrayFlashData(
+        string $key
+    ): array {
+        $value = session($key);
+
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $normalizedData = [];
+
+        foreach ($value as $field => $fieldValue) {
+            if (
+                ! is_string($field)
+                || ! is_scalar($fieldValue)
+            ) {
+                continue;
+            }
+
+            $normalizedData[$field] =
+                (string) $fieldValue;
+        }
+
+        return $normalizedData;
+    }
 }

@@ -2,9 +2,21 @@
 
 declare(strict_types=1);
 
-$alert = session('formAlert');
-$formAlert = is_array($alert)
-    ? $alert
+/**
+ * @var list<array<string, mixed>> $fieldOfficers
+ * @var array<string, string>|null $formAlert
+ */
+
+$resolvedFieldOfficers = is_array(
+    $fieldOfficers ?? null
+)
+    ? $fieldOfficers
+    : [];
+
+$resolvedFormAlert = is_array(
+    $formAlert ?? null
+)
+    ? $formAlert
     : null;
 
 $this->extend('Admin/Layouts/Main');
@@ -52,7 +64,7 @@ $this->section('content');
     <?= view(
         'Components/Alerts/FormAlert',
         [
-            'alert' => $formAlert,
+            'alert' => $resolvedFormAlert,
         ]
     ) ?>
 
@@ -106,7 +118,7 @@ $this->section('content');
 
                             <tbody>
                                 <?php if (
-                                    $fieldOfficers === []
+                                    $resolvedFieldOfficers === []
                                 ): ?>
                                     <tr>
                                         <td
@@ -121,7 +133,7 @@ $this->section('content');
                                 <?php endif; ?>
 
                                 <?php foreach (
-                                    $fieldOfficers
+                                    $resolvedFieldOfficers
                                     as $fieldOfficer
                                 ): ?>
                                     <?php

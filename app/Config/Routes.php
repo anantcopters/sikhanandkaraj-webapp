@@ -628,15 +628,6 @@ $routes->group('admin', [
             );
 
             $routes->get(
-                'master/states/(:num)',
-                'FieldOfficerController::states/$1',
-                [
-                    'as' =>
-                    'admin.field-officers.master.states',
-                ]
-            );
-
-            $routes->get(
                 'master/cities/(:num)',
                 'FieldOfficerController::cities/$1',
                 [

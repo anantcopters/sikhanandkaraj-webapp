@@ -2,28 +2,56 @@
 
 declare(strict_types=1);
 
-$errors = session('validationErrors');
-$validationErrors = is_array($errors)
-    ? $errors
-    : [];
+/**
+ * @var array<string, mixed> $fieldOfficer
+ * @var array<string, mixed> $formInput
+ * @var array<string, string> $validationErrors
+ * @var array<string, string>|null $formAlert
+ * @var list<array<string, mixed>> $countries
+ * @var list<array<string, mixed>> $states
+ * @var list<array<string, mixed>> $cities
+ */
 
-$input = session('fieldOfficerFormInput');
-
-$formInput = is_array($input)
-    ? array_merge($fieldOfficer, $input)
+$formInput = is_array(
+    $formInput ?? null
+)
+    ? $formInput
     : $fieldOfficer;
 
-$alert = session('formAlert');
-$formAlert = is_array($alert)
-    ? $alert
+$validationErrors = is_array(
+    $validationErrors ?? null
+)
+    ? $validationErrors
+    : [];
+
+$formAlert = is_array(
+    $formAlert ?? null
+)
+    ? $formAlert
     : null;
 
-$this->extend('Admin/Layouts/Main');
-$this->section('content');
-?>
-<?php
+$countries = is_array(
+    $countries ?? null
+)
+    ? $countries
+    : [];
+
+$states = is_array(
+    $states ?? null
+)
+    ? $states
+    : [];
+
+$cities = is_array(
+    $cities ?? null
+)
+    ? $cities
+    : [];
+
 $isInactive =
-    (string) $fieldOfficer['account_status']
+    (string) (
+        $fieldOfficer['account_status'] ?? ''
+    )
     === \App\Models\FieldOfficerModel::STATUS_INACTIVE;
 
 $hasUpiId =
@@ -32,42 +60,18 @@ $hasUpiId =
             $fieldOfficer['upi_id'] ?? ''
         )
     ) !== '';
+
+$this->extend('Admin/Layouts/Main');
+$this->section('content');
 ?>
 
-<?php if (
-    $isInactive
-    && !$hasUpiId
-): ?>
-    <div
-        class="alert alert-warning
-            d-flex align-items-start
-            gap-2"
-        role="alert">
-
-        <i
-            class="ri-information-line
-                fs-20 flex-shrink-0"
-            aria-hidden="true">
-        </i>
-
-        <div>
-            <h6 class="alert-heading mb-1">
-                UPI ID required for activation
-            </h6>
-
-            <p class="mb-0">
-                Add a valid UPI ID before attempting
-                to activate this Field Officer.
-            </p>
-        </div>
-    </div>
-<?php endif; ?>
 <div class="container-fluid">
     <div class="row">
         <div class="col-12">
             <div
                 class="page-title-box
-                    d-sm-flex align-items-center
+                    d-sm-flex
+                    align-items-center
                     justify-content-between">
 
                 <div>
@@ -81,7 +85,10 @@ $hasUpiId =
                     </p>
                 </div>
 
-                <div class="page-title-right mt-3 mt-sm-0">
+                <div
+                    class="page-title-right
+                        mt-3 mt-sm-0">
+
                     <a
                         href="<?= route_to(
                                     'admin.field-officers.index'
@@ -90,7 +97,8 @@ $hasUpiId =
 
                         <i
                             class="ri-arrow-left-line
-                                align-middle me-1">
+                                align-middle me-1"
+                            aria-hidden="true">
                         </i>
 
                         Back to Field Officers
@@ -101,7 +109,11 @@ $hasUpiId =
     </div>
 
     <div class="row justify-content-center">
-        <div class="col-md-10 col-lg-8 col-xl-7">
+        <div
+            class="col-md-10
+                col-lg-8
+                col-xl-7">
+
             <div
                 class="card border-danger
                     border-opacity-25">
@@ -118,75 +130,129 @@ $hasUpiId =
                     <?= view(
                         'Components/Alerts/FormAlert',
                         [
-                            'alert' => $formAlert,
+                            'alert' =>
+                            $formAlert,
                         ]
                     ) ?>
 
+                    <?php if (
+                        $isInactive
+                        && !$hasUpiId
+                    ): ?>
+                        <div
+                            class="alert alert-warning
+                                d-flex align-items-start
+                                gap-2"
+                            role="alert">
+
+                            <i
+                                class="ri-information-line
+                                    fs-20 flex-shrink-0"
+                                aria-hidden="true">
+                            </i>
+
+                            <div>
+                                <h6
+                                    class="alert-heading
+                                        mb-1">
+
+                                    UPI ID required for activation
+                                </h6>
+
+                                <p class="mb-0">
+                                    Add a valid UPI ID before
+                                    activating this Field Officer.
+                                </p>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
                     <div class="row g-3 mb-4">
-                        <div class="row g-3 mb-4">
-                            <div class="col-12 col-md-4">
-                                <label class="form-label">
-                                    Field Officer Code
-                                </label>
+                        <div class="col-12 col-md-4">
+                            <label
+                                for="fieldOfficerCode"
+                                class="form-label">
 
-                                <input
-                                    type="text"
-                                    class="form-control"
-                                    value="<?= esc(
-                                                (string) $fieldOfficer['officer_code'],
-                                                'attr'
-                                            ) ?>"
-                                    readonly>
-                            </div>
+                                Field Officer Code
+                            </label>
 
-                            <div class="col-12 col-md-4">
-                                <label class="form-label">
-                                    Mobile Number
-                                </label>
+                            <input
+                                type="text"
+                                id="fieldOfficerCode"
+                                class="form-control bg-light"
+                                value="<?= esc(
+                                            (string) $fieldOfficer['officer_code'],
+                                            'attr'
+                                        ) ?>"
+                                readonly>
+                        </div>
 
-                                <input
-                                    type="text"
-                                    class="form-control"
-                                    value="<?= esc(
-                                                (string) $fieldOfficer['mobile_number'],
-                                                'attr'
-                                            ) ?>"
-                                    readonly>
-                            </div>
+                        <div class="col-12 col-md-4">
+                            <label
+                                for="fieldOfficerReadonlyMobile"
+                                class="form-label">
 
-                            <div class="col-12 col-md-4">
-                                <label class="form-label">
-                                    Status
-                                </label>
+                                Mobile Number
+                            </label>
 
-                                <input
-                                    type="text"
-                                    class="form-control"
-                                    value="<?= esc(
-                                                ucfirst(
-                                                    strtolower(
-                                                        (string) $fieldOfficer['account_status']
-                                                    )
-                                                ),
-                                                'attr'
-                                            ) ?>"
-                                    readonly>
-                            </div>
+                            <input
+                                type="text"
+                                id="fieldOfficerReadonlyMobile"
+                                class="form-control bg-light"
+                                value="<?= esc(
+                                            (string) $fieldOfficer['mobile_number'],
+                                            'attr'
+                                        ) ?>"
+                                readonly>
+                        </div>
+
+                        <div class="col-12 col-md-4">
+                            <label
+                                for="fieldOfficerStatus"
+                                class="form-label">
+
+                                Status
+                            </label>
+
+                            <input
+                                type="text"
+                                id="fieldOfficerStatus"
+                                class="form-control bg-light"
+                                value="<?= esc(
+                                            ucfirst(
+                                                strtolower(
+                                                    (string) $fieldOfficer['account_status']
+                                                )
+                                            ),
+                                            'attr'
+                                        ) ?>"
+                                readonly>
                         </div>
                     </div>
 
                     <?= view(
-                        'Admin/FieldOfficers/_Form',
+                        'Admin/FieldOfficers/_form',
                         [
-                            'formInput' => $formInput,
+                            'formInput' =>
+                            $formInput,
+
                             'validationErrors' =>
                             $validationErrors,
+
                             'countries' =>
-                            $countries ?? [],
-                            'states' => $states ?? [],
-                            'cities' => $cities ?? [],
-                            'isEdit' => true,
-                            'formAction' => route_to(
+                            $countries,
+
+                            'states' =>
+                            $states,
+
+                            'cities' =>
+                            $cities,
+
+                            'isEdit' =>
+                            true,
+
+                            'formAction' =>
+                            route_to(
                                 'admin.field-officers.update',
                                 (int) $fieldOfficer['id']
                             ),

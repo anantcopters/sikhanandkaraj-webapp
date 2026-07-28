@@ -12,31 +12,56 @@ declare(strict_types=1);
  * @var string $formAction
  */
 
+$resolvedFormInput =
+    is_array($formInput ?? null)
+    ? $formInput
+    : [];
+
+$errors =
+    is_array($validationErrors ?? null)
+    ? $validationErrors
+    : [];
+
+$resolvedCountries =
+    is_array($countries ?? null)
+    ? $countries
+    : [];
+
+$resolvedStates =
+    is_array($states ?? null)
+    ? $states
+    : [];
+
+$resolvedCities =
+    is_array($cities ?? null)
+    ? $cities
+    : [];
+
+$editing =
+    ($isEdit ?? false) === true;
+
 $selectedCountry = (string) (
-    $formInput['country_id'] ?? ''
+    $resolvedFormInput['country_id'] ?? ''
 );
 
 $selectedState = (string) (
-    $formInput['state_id'] ?? ''
+    $resolvedFormInput['state_id'] ?? ''
 );
 
 $selectedCity = (string) (
-    $formInput['city_id'] ?? ''
+    $resolvedFormInput['city_id'] ?? ''
 );
 ?>
 
 <form
-    action="<?= esc($formAction, 'attr') ?>"
+    action="<?= esc(
+                $formAction,
+                'attr'
+            ) ?>"
     method="post"
     data-validate
     data-submit-loader
     data-field-officer-form
-    data-states-url="<?= esc(
-                            site_url(
-                                'admin/field-officers/master/states'
-                            ),
-                            'attr'
-                        ) ?>"
     data-cities-url="<?= esc(
                             site_url(
                                 'admin/field-officers/master/cities'
@@ -48,37 +73,38 @@ $selectedCity = (string) (
     <?= csrf_field() ?>
 
     <div class="row g-3">
-
-        <?php if (!$isEdit): ?>
+        <?php if (!$editing): ?>
             <div class="col-12">
                 <label
                     for="fieldOfficerName"
                     class="form-label">
+
                     Name
+                    <span class="text-danger">*</span>
                 </label>
 
                 <input
                     type="text"
                     id="fieldOfficerName"
                     name="full_name"
-                    class="form-control
-                        <?= isset(
-                            $validationErrors['full_name']
-                        )
-                            ? 'is-invalid'
-                            : '' ?>"
+                    class="form-control <?= isset(
+                                            $errors['full_name']
+                                        )
+                                            ? 'is-invalid'
+                                            : '' ?>"
                     value="<?= esc(
-                                $formInput['full_name'] ?? '',
+                                $resolvedFormInput['full_name'] ?? '',
                                 'attr'
                             ) ?>"
                     minlength="2"
                     maxlength="150"
                     pattern="[\p{L}\p{M} .'-]+"
+                    autocomplete="name"
                     required>
 
                 <div class="invalid-feedback">
                     <?= esc(
-                        $validationErrors['full_name']
+                        $errors['full_name']
                             ?? 'Enter the Field Officer name.'
                     ) ?>
                 </div>
@@ -88,7 +114,9 @@ $selectedCity = (string) (
                 <label
                     for="fieldOfficerMobile"
                     class="form-label">
+
                     Mobile Number
+                    <span class="text-danger">*</span>
                 </label>
 
                 <div class="input-group">
@@ -100,14 +128,13 @@ $selectedCity = (string) (
                         type="tel"
                         id="fieldOfficerMobile"
                         name="mobile_number"
-                        class="form-control
-                            <?= isset(
-                                $validationErrors['mobile_number']
-                            )
-                                ? 'is-invalid'
-                                : '' ?>"
+                        class="form-control <?= isset(
+                                                $errors['mobile_number']
+                                            )
+                                                ? 'is-invalid'
+                                                : '' ?>"
                         value="<?= esc(
-                                    $formInput['mobile_number'] ?? '',
+                                    $resolvedFormInput['mobile_number'] ?? '',
                                     'attr'
                                 ) ?>"
                         inputmode="numeric"
@@ -120,17 +147,18 @@ $selectedCity = (string) (
 
                 <?php if (
                     isset(
-                        $validationErrors['mobile_number']
+                        $errors['mobile_number']
                     )
                 ): ?>
                     <div class="text-danger fs-13 mt-1">
                         <?= esc(
-                            $validationErrors['mobile_number']
+                            $errors['mobile_number']
                         ) ?>
                     </div>
                 <?php else: ?>
                     <div class="form-text">
-                        Enter a unique 10-digit Indian mobile number.
+                        Enter a unique 10-digit Indian
+                        mobile number.
                     </div>
                 <?php endif; ?>
             </div>
@@ -140,37 +168,51 @@ $selectedCity = (string) (
             <label
                 for="fieldOfficerCountry"
                 class="form-label">
+
                 Country
+                <span class="text-danger">*</span>
             </label>
 
             <select
                 id="fieldOfficerCountry"
                 name="country_id"
-                class="form-select
-                    <?= isset(
-                        $validationErrors['country_id']
-                    )
-                        ? 'is-invalid'
-                        : '' ?>"
-                data-country-select
+                class="form-select <?= isset(
+                                        $errors['country_id']
+                                    )
+                                        ? 'is-invalid'
+                                        : '' ?>"
                 required>
 
                 <option value="">
                     Select Country
                 </option>
 
-                <?php foreach ($countries as $country): ?>
+                <?php foreach (
+                    $resolvedCountries
+                    as $country
+                ): ?>
+                    <?php
+                    $countryId =
+                        (string) (
+                            $country['id'] ?? ''
+                        );
+                    ?>
+
                     <option
                         value="<?= esc(
-                                    (string) $country['id'],
+                                    $countryId,
                                     'attr'
                                 ) ?>"
                         <?= $selectedCountry
-                            === (string) $country['id']
+                            === $countryId
                             ? 'selected'
                             : '' ?>>
+
                         <?= esc(
-                            (string) $country['name']
+                            (string) (
+                                $country['name']
+                                ?? ''
+                            )
                         ) ?>
                     </option>
                 <?php endforeach; ?>
@@ -178,7 +220,7 @@ $selectedCity = (string) (
 
             <div class="invalid-feedback">
                 <?= esc(
-                    $validationErrors['country_id']
+                    $errors['country_id']
                         ?? 'Select a country.'
                 ) ?>
             </div>
@@ -188,18 +230,19 @@ $selectedCity = (string) (
             <label
                 for="fieldOfficerState"
                 class="form-label">
+
                 State
+                <span class="text-danger">*</span>
             </label>
 
             <select
                 id="fieldOfficerState"
                 name="state_id"
-                class="form-select
-                    <?= isset(
-                        $validationErrors['state_id']
-                    )
-                        ? 'is-invalid'
-                        : '' ?>"
+                class="form-select <?= isset(
+                                        $errors['state_id']
+                                    )
+                                        ? 'is-invalid'
+                                        : '' ?>"
                 data-state-select
                 required>
 
@@ -207,18 +250,32 @@ $selectedCity = (string) (
                     Select State
                 </option>
 
-                <?php foreach ($states as $state): ?>
+                <?php foreach (
+                    $resolvedStates
+                    as $state
+                ): ?>
+                    <?php
+                    $stateId =
+                        (string) (
+                            $state['id'] ?? ''
+                        );
+                    ?>
+
                     <option
                         value="<?= esc(
-                                    (string) $state['id'],
+                                    $stateId,
                                     'attr'
                                 ) ?>"
                         <?= $selectedState
-                            === (string) $state['id']
+                            === $stateId
                             ? 'selected'
                             : '' ?>>
+
                         <?= esc(
-                            (string) $state['name']
+                            (string) (
+                                $state['name']
+                                ?? ''
+                            )
                         ) ?>
                     </option>
                 <?php endforeach; ?>
@@ -226,7 +283,7 @@ $selectedCity = (string) (
 
             <div class="invalid-feedback">
                 <?= esc(
-                    $validationErrors['state_id']
+                    $errors['state_id']
                         ?? 'Select a state.'
                 ) ?>
             </div>
@@ -236,18 +293,19 @@ $selectedCity = (string) (
             <label
                 for="fieldOfficerCity"
                 class="form-label">
+
                 City
+                <span class="text-danger">*</span>
             </label>
 
             <select
                 id="fieldOfficerCity"
                 name="city_id"
-                class="form-select
-                    <?= isset(
-                        $validationErrors['city_id']
-                    )
-                        ? 'is-invalid'
-                        : '' ?>"
+                class="form-select <?= isset(
+                                        $errors['city_id']
+                                    )
+                                        ? 'is-invalid'
+                                        : '' ?>"
                 data-city-select
                 required>
 
@@ -255,18 +313,32 @@ $selectedCity = (string) (
                     Select City
                 </option>
 
-                <?php foreach ($cities as $city): ?>
+                <?php foreach (
+                    $resolvedCities
+                    as $city
+                ): ?>
+                    <?php
+                    $cityId =
+                        (string) (
+                            $city['id'] ?? ''
+                        );
+                    ?>
+
                     <option
                         value="<?= esc(
-                                    (string) $city['id'],
+                                    $cityId,
                                     'attr'
                                 ) ?>"
                         <?= $selectedCity
-                            === (string) $city['id']
+                            === $cityId
                             ? 'selected'
                             : '' ?>>
+
                         <?= esc(
-                            (string) $city['name']
+                            (string) (
+                                $city['name']
+                                ?? ''
+                            )
                         ) ?>
                     </option>
                 <?php endforeach; ?>
@@ -274,7 +346,7 @@ $selectedCity = (string) (
 
             <div class="invalid-feedback">
                 <?= esc(
-                    $validationErrors['city_id']
+                    $errors['city_id']
                         ?? 'Select a city.'
                 ) ?>
             </div>
@@ -284,6 +356,7 @@ $selectedCity = (string) (
             <label
                 for="fieldOfficerAddress"
                 class="form-label">
+
                 Address
                 <span class="text-muted">
                     (Optional)
@@ -293,21 +366,20 @@ $selectedCity = (string) (
             <textarea
                 id="fieldOfficerAddress"
                 name="address"
-                class="form-control
-                    <?= isset(
-                        $validationErrors['address']
-                    )
-                        ? 'is-invalid'
-                        : '' ?>"
+                class="form-control <?= isset(
+                                        $errors['address']
+                                    )
+                                        ? 'is-invalid'
+                                        : '' ?>"
                 rows="3"
                 maxlength="500"><?= esc(
-                                    $formInput['address'] ?? ''
+                                    $resolvedFormInput['address'] ?? ''
                                 ) ?></textarea>
 
             <div class="invalid-feedback">
                 <?= esc(
-                    $validationErrors['address']
-                        ?? ''
+                    $errors['address']
+                        ?? 'Enter a valid address.'
                 ) ?>
             </div>
 
@@ -320,6 +392,7 @@ $selectedCity = (string) (
             <label
                 for="fieldOfficerUpi"
                 class="form-label">
+
                 UPI ID
                 <span class="text-muted">
                     (Optional)
@@ -330,42 +403,54 @@ $selectedCity = (string) (
                 type="text"
                 id="fieldOfficerUpi"
                 name="upi_id"
-                class="form-control
-                    <?= isset(
-                        $validationErrors['upi_id']
-                    )
-                        ? 'is-invalid'
-                        : '' ?>"
+                class="form-control <?= isset(
+                                        $errors['upi_id']
+                                    )
+                                        ? 'is-invalid'
+                                        : '' ?>"
                 value="<?= esc(
-                            $formInput['upi_id'] ?? '',
+                            $resolvedFormInput['upi_id'] ?? '',
                             'attr'
                         ) ?>"
                 maxlength="150"
                 pattern="[A-Za-z0-9._-]{2,256}@[A-Za-z][A-Za-z0-9.-]{1,63}"
+                autocomplete="off"
                 placeholder="name@bank">
 
             <div class="invalid-feedback">
                 <?= esc(
-                    $validationErrors['upi_id']
+                    $errors['upi_id']
                         ?? 'Enter a valid UPI ID.'
                 ) ?>
             </div>
+
+            <?php if (!$editing): ?>
+                <div class="form-text">
+                    Providing a valid UPI ID will create
+                    this Field Officer in active status.
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 
     <div
-        class="mt-4 d-grid
-            d-sm-flex justify-content-sm-end">
+        class="mt-4
+            d-grid
+            d-sm-flex
+            justify-content-sm-end">
 
         <button
             type="submit"
-            class="btn registration-form__submit
-                fs-16 fw-semibold
-                w-100 w-sm-auto"
+            class="btn
+                registration-form__submit
+                fs-16
+                fw-semibold
+                w-100
+                w-sm-auto"
             data-submit-button>
 
             <span data-submit-idle>
-                <?= $isEdit
+                <?= $editing
                     ? 'Save Changes'
                     : 'Add Field Officer' ?>
             </span>
@@ -377,12 +462,15 @@ $selectedCity = (string) (
 
                 <span
                     class="spinner-border
-                        spinner-border-sm">
+                        spinner-border-sm"
+                    aria-hidden="true">
                 </span>
 
-                <?= $isEdit
-                    ? 'Saving changes...'
-                    : 'Creating Field Officer...' ?>
+                <span class="ms-1">
+                    <?= $editing
+                        ? 'Saving changes...'
+                        : 'Creating Field Officer...' ?>
+                </span>
             </span>
         </button>
     </div>

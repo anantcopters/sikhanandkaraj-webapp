@@ -509,17 +509,4 @@ final class ProfileMasterDataService
             ->where('is_active', true)
             ->first() !== null;
     }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    public function statesForCountry(int $countryId): array
-    {
-        return $this->stateModel
-            ->where('country_id', $countryId)
-            ->where('is_active', true)
-            ->orderBy('display_order', 'ASC')
-            ->orderBy('name', 'ASC')
-            ->findAll();
-    }
 }

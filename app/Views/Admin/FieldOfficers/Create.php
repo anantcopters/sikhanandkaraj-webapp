@@ -2,23 +2,50 @@
 
 declare(strict_types=1);
 
-$errors = session('validationErrors');
-$validationErrors = is_array($errors)
-    ? $errors
+/**
+ * @var array<string, string> $formInput
+ * @var array<string, string> $validationErrors
+ * @var array<string, string>|null $formAlert
+ * @var list<array<string, mixed>> $countries
+ * @var list<array<string, mixed>> $states
+ * @var list<array<string, mixed>> $cities
+ */
+
+$formInput = is_array(
+    $formInput ?? null
+)
+    ? $formInput
     : [];
 
-$input = session('fieldOfficerFormInput');
-$formInput = is_array($input)
-    ? $input
+$validationErrors = is_array(
+    $validationErrors ?? null
+)
+    ? $validationErrors
     : [];
 
-$alert = session('formAlert');
-$formAlert = is_array($alert)
-    ? $alert
+$formAlert = is_array(
+    $formAlert ?? null
+)
+    ? $formAlert
     : null;
 
-$states = [];
-$cities = [];
+$countries = is_array(
+    $countries ?? null
+)
+    ? $countries
+    : [];
+
+$states = is_array(
+    $states ?? null
+)
+    ? $states
+    : [];
+
+$cities = is_array(
+    $cities ?? null
+)
+    ? $cities
+    : [];
 
 $this->extend('Admin/Layouts/Main');
 $this->section('content');
@@ -29,7 +56,8 @@ $this->section('content');
         <div class="col-12">
             <div
                 class="page-title-box
-                    d-sm-flex align-items-center
+                    d-sm-flex
+                    align-items-center
                     justify-content-between">
 
                 <div>
@@ -43,7 +71,10 @@ $this->section('content');
                     </p>
                 </div>
 
-                <div class="page-title-right mt-3 mt-sm-0">
+                <div
+                    class="page-title-right
+                        mt-3 mt-sm-0">
+
                     <a
                         href="<?= route_to(
                                     'admin.field-officers.index'
@@ -52,7 +83,8 @@ $this->section('content');
 
                         <i
                             class="ri-arrow-left-line
-                                align-middle me-1">
+                                align-middle me-1"
+                            aria-hidden="true">
                         </i>
 
                         Back to Field Officers
@@ -63,7 +95,11 @@ $this->section('content');
     </div>
 
     <div class="row justify-content-center">
-        <div class="col-md-10 col-lg-8 col-xl-7">
+        <div
+            class="col-md-10
+                col-lg-8
+                col-xl-7">
+
             <div
                 class="card border-danger
                     border-opacity-25">
@@ -78,22 +114,54 @@ $this->section('content');
                     <?= view(
                         'Components/Alerts/FormAlert',
                         [
-                            'alert' => $formAlert,
+                            'alert' =>
+                            $formAlert,
                         ]
                     ) ?>
 
+                    <div
+                        class="alert alert-info
+                            d-flex align-items-start
+                            gap-2"
+                        role="alert">
+
+                        <i
+                            class="ri-information-line
+                                fs-20 flex-shrink-0"
+                            aria-hidden="true">
+                        </i>
+
+                        <div>
+                            A Field Officer created with a valid
+                            UPI ID will be active immediately.
+                            Without a UPI ID, the Field Officer
+                            will be created inactive.
+                        </div>
+                    </div>
+
                     <?= view(
-                        'Admin/FieldOfficers/_Form',
+                        'Admin/FieldOfficers/_form',
                         [
-                            'formInput' => $formInput,
+                            'formInput' =>
+                            $formInput,
+
                             'validationErrors' =>
                             $validationErrors,
+
                             'countries' =>
-                            $countries ?? [],
-                            'states' => $states,
-                            'cities' => $cities,
-                            'isEdit' => false,
-                            'formAction' => route_to(
+                            $countries,
+
+                            'states' =>
+                            $states,
+
+                            'cities' =>
+                            $cities,
+
+                            'isEdit' =>
+                            false,
+
+                            'formAction' =>
+                            route_to(
                                 'admin.field-officers.store'
                             ),
                         ]
