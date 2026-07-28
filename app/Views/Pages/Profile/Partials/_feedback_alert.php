@@ -25,7 +25,7 @@ $alertMessage = trim(
 
 <div
     class="alert alert-<?= esc($alertType, 'attr') ?>
-        alert-dismissible fade show mb-4"
+        alert-dismissible fade show mb-3"
     role="alert">
     <?php if ($alertTitle !== ''): ?>
         <strong>

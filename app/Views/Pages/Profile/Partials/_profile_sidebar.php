@@ -147,7 +147,7 @@ $approvedPhotoCount = max(
                     justify-content-between gap-2 mb-3">
 
                     <span class="text-muted fs-12">
-                        Plain text only
+                        &nbsp;
                     </span>
 
                     <span class="text-muted fs-12">
@@ -288,7 +288,7 @@ $approvedPhotoCount = max(
                         $hasUploadedPhoto
                         && !$hasProfilePhoto
                     ): ?>
-                        <p class="text-warning fs-12 mb-0 mt-2">
+                        <p class="color-pink fs-12 mb-0 mt-2">
                             Your main photo will appear here after
                             administrator approval.
                         </p>

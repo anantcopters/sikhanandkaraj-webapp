@@ -7,8 +7,17 @@
  * - Community to Sub-community dependency.
  * - State to City dependency.
  * - Married sibling count constraints.
+ * - Submit-button loading state.
  */
 document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById(
+        'familyDetailsForm'
+    );
+
+    const submitButton = document.getElementById(
+        'saveFamilyDetailsButton'
+    );
+
     const communitySelect = document.getElementById(
         'familyCommunityId'
     );
@@ -26,94 +35,152 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
     /**
-     * Clear a dependent select and restore its placeholder.
+     * Normalize one API master record.
      *
-     * @param {HTMLSelectElement|null} select
-     * @param {string} placeholder
-     * @param {boolean} disabled
+     * The profile master APIs return value/label. Support id/name as a
+     * defensive fallback so this utility remains reusable.
+     *
+     * @param {object} record
+     *
+     * @returns {{value: string, label: string}|null}
      */
-    const resetSelect = (
+    const normalizeRecord = (record) => {
+        const value = String(
+            record?.value ?? record?.id ?? ''
+        ).trim();
+
+        const label = String(
+            record?.label ?? record?.name ?? ''
+        ).trim();
+
+        if (value === '' || label === '') {
+            return null;
+        }
+
+        return {
+            value,
+            label,
+        };
+    };
+
+    /**
+     * Rebuild a Choices.js dependent dropdown.
+     *
+     * Directly changing native select options is insufficient because
+     * Choices.js maintains its own rendered option list.
+     *
+     * @param {HTMLSelectElement} select
+     * @param {Array<object>} records
+     * @param {string} placeholder
+     * @param {string} selectedValue
+     */
+    const replaceDependentOptions = (
         select,
+        records,
         placeholder,
-        disabled = true
+        selectedValue = ''
     ) => {
         if (!select) {
             return;
         }
 
-        select.innerHTML = '';
+        const normalizedRecords = records
+            .map(normalizeRecord)
+            .filter((record) => record !== null);
+
+        /*
+         * Destroy the current Choices.js instance before modifying the
+         * underlying native select.
+         */
+        window.SelectChoice?.destroy(select);
+
+        select.replaceChildren();
+
+        const placeholderOption =
+            document.createElement('option');
+
+        placeholderOption.value = '';
+
+        placeholderOption.textContent =
+            normalizedRecords.length > 0
+                ? placeholder
+                : 'No options available';
+
+        placeholderOption.selected =
+            String(selectedValue) === '';
+
+        select.appendChild(placeholderOption);
+
+        normalizedRecords.forEach((record) => {
+            const option =
+                document.createElement('option');
+
+            option.value = record.value;
+            option.textContent = record.label;
+
+            option.selected =
+                record.value === String(selectedValue);
+
+            select.appendChild(option);
+        });
+
+        select.disabled = normalizedRecords.length === 0;
+
+        /*
+         * Recreate Choices.js so the visible control matches the native
+         * select options.
+         */
+        window.SelectChoice?.create(select);
+    };
+
+    /**
+     * Reset a child dropdown when no valid parent is selected.
+     *
+     * @param {HTMLSelectElement} select
+     * @param {string} placeholder
+     */
+    const resetDependentSelect = (
+        select,
+        placeholder
+    ) => {
+        if (!select) {
+            return;
+        }
+
+        window.SelectChoice?.destroy(select);
+
+        select.replaceChildren();
 
         const option = document.createElement('option');
 
         option.value = '';
         option.textContent = placeholder;
+        option.selected = true;
 
         select.appendChild(option);
-        select.disabled = disabled;
+        select.disabled = true;
 
-        select.dispatchEvent(
-            new Event('change', {
-                bubbles: true,
-            })
-        );
+        window.SelectChoice?.create(select);
     };
 
     /**
-     * Append API records to a select.
+     * Fetch dependent master options.
      *
-     * Supports the standard value/label response while retaining
-     * compatibility with id/name records.
+     * The parent select must provide:
      *
-     * @param {HTMLSelectElement} select
-     * @param {Array<object>} records
+     * data-dependent-url-template="/path/__PARENT_ID__"
+     *
+     * @param {HTMLSelectElement} parentSelect
+     * @param {HTMLSelectElement} childSelect
+     * @param {string} placeholder
      * @param {string} selectedValue
      */
-    const appendOptions = (
-        select,
-        records,
-        selectedValue = ''
-    ) => {
-        records.forEach((record) => {
-            const value = String(
-                record.value ?? record.id ?? ''
-            );
-
-            const label = String(
-                record.label ?? record.name ?? ''
-            );
-
-            if (value === '' || label === '') {
-                return;
-            }
-
-            const option = document.createElement('option');
-
-            option.value = value;
-            option.textContent = label;
-
-            if (value === String(selectedValue)) {
-                option.selected = true;
-            }
-
-            select.appendChild(option);
-        });
-    };
-
-    /**
-     * Load child master options for a selected parent.
-     *
-     * @param {object} configuration
-     * @param {HTMLSelectElement} configuration.parentSelect
-     * @param {HTMLSelectElement} configuration.childSelect
-     * @param {string} configuration.placeholder
-     * @param {string} configuration.selectedValue
-     */
-    const loadDependentOptions = async ({
+    const loadDependentOptions = async (
         parentSelect,
         childSelect,
         placeholder,
-        selectedValue = '',
-    }) => {
+        selectedValue = ''
+    ) => {
         if (!parentSelect || !childSelect) {
             return;
         }
@@ -127,43 +194,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 .dependentUrlTemplate ?? ''
         ).trim();
 
-        resetSelect(
-            childSelect,
-            placeholder,
-            true
-        );
+        if (parentId === '') {
+            resetDependentSelect(
+                childSelect,
+                placeholder
+            );
 
-        if (parentId === '' || urlTemplate === '') {
             return;
         }
 
-        const resolvedUrl = urlTemplate.replace(
+        if (
+            urlTemplate === ''
+            || !urlTemplate.includes('__PARENT_ID__')
+        ) {
+            console.error(
+                'Dependent master URL template is missing or invalid.'
+            );
+
+            resetDependentSelect(
+                childSelect,
+                placeholder
+            );
+
+            return;
+        }
+
+        const requestUrl = urlTemplate.replace(
             '__PARENT_ID__',
             encodeURIComponent(parentId)
         );
 
         /*
-         * Reject an invalid or incompletely configured URL template.
+         * Disable the native field while the request is running. The
+         * current Choices.js instance remains visible until replacement.
          */
-        if (
-            resolvedUrl.includes('__PARENT_ID__')
-            || resolvedUrl === urlTemplate
-        ) {
-            console.error(
-                'Dependent master URL template is invalid.'
-            );
-
-            return;
-        }
+        childSelect.disabled = true;
 
         try {
-            const requestUrl = new URL(
-                resolvedUrl,
-                window.location.origin
-            );
-
             const response = await fetch(
-                requestUrl.toString(),
+                requestUrl,
                 {
                     method: 'GET',
                     headers: {
@@ -177,8 +246,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (!response.ok) {
                 throw new Error(
-                    `Dependent master request failed: `
-                    + `${response.status}`
+                    `Dependent master request failed `
+                    + `with status ${response.status}.`
                 );
             }
 
@@ -188,106 +257,133 @@ document.addEventListener('DOMContentLoaded', () => {
                 ? payload.data
                 : [];
 
-            appendOptions(
+            replaceDependentOptions(
                 childSelect,
                 records,
+                placeholder,
                 selectedValue
             );
-
-            childSelect.disabled = false;
-
-            childSelect.dispatchEvent(
-                new Event('change', {
-                    bubbles: true,
-                })
-            );
         } catch (error) {
-            resetSelect(
-                childSelect,
-                placeholder,
-                true
-            );
-
             console.error(
                 'Unable to load dependent master data.',
                 error
             );
+
+            resetDependentSelect(
+                childSelect,
+                placeholder
+            );
         }
     };
 
-    /*
-     * Community to Sub-community.
+    /**
+     * Bind Community to Sub-community.
      */
     if (communitySelect && subcommunitySelect) {
         communitySelect.addEventListener(
             'change',
             () => {
-                const selectedValue = String(
-                    subcommunitySelect.dataset
-                        .selectedValue ?? ''
-                );
-
-                void loadDependentOptions({
-                    parentSelect: communitySelect,
-                    childSelect: subcommunitySelect,
-                    placeholder: 'Select sub-community',
-                    selectedValue,
-                });
-
                 /*
-                 * The stored value is used only for initial reload.
-                 * It must not be reused after a manual parent change.
+                 * A saved value is relevant only during the initial page
+                 * restoration. A manual Community change must clear it.
                  */
                 subcommunitySelect.dataset.selectedValue = '';
+
+                void loadDependentOptions(
+                    communitySelect,
+                    subcommunitySelect,
+                    'Select sub-community'
+                );
             }
         );
+
+        const selectedSubcommunityId = String(
+            subcommunitySelect.dataset
+                .selectedValue ?? ''
+        ).trim();
+
+        /*
+         * Normally the server renders saved Sub-community options.
+         * This fallback handles validation reloads or missing child data.
+         */
+        if (
+            communitySelect.value !== ''
+            && subcommunitySelect.options.length <= 1
+        ) {
+            void loadDependentOptions(
+                communitySelect,
+                subcommunitySelect,
+                'Select sub-community',
+                selectedSubcommunityId
+            );
+        }
     }
 
-    /*
-     * State to City.
+    /**
+     * Bind State to City.
      */
     if (stateSelect && citySelect) {
         stateSelect.addEventListener(
             'change',
             () => {
-                const selectedValue = String(
-                    citySelect.dataset
-                        .selectedValue ?? ''
-                );
-
-                void loadDependentOptions({
-                    parentSelect: stateSelect,
-                    childSelect: citySelect,
-                    placeholder: 'Select city',
-                    selectedValue,
-                });
-
+                /*
+                 * Clear the previously selected City when State changes.
+                 */
                 citySelect.dataset.selectedValue = '';
+
+                void loadDependentOptions(
+                    stateSelect,
+                    citySelect,
+                    'Select city'
+                );
             }
         );
+
+        const selectedCityId = String(
+            citySelect.dataset
+                .selectedValue ?? ''
+        ).trim();
+
+        /*
+         * Normally the server renders saved City options. This fallback
+         * loads them when a State exists but the City list is empty.
+         */
+        if (
+            stateSelect.value !== ''
+            && citySelect.options.length <= 1
+        ) {
+            void loadDependentOptions(
+                stateSelect,
+                citySelect,
+                'Select city',
+                selectedCityId
+            );
+        }
     }
 
     /**
-     * Restrict married siblings to the selected total.
+     * Restrict married sibling count to total sibling count.
      *
-     * @param {string} totalId
-     * @param {string} marriedId
+     * @param {string} totalSelectId
+     * @param {string} marriedSelectId
      */
-    const validateSiblingCount = (
-        totalId,
-        marriedId
+    const initializeSiblingConstraint = (
+        totalSelectId,
+        marriedSelectId
     ) => {
-        const totalSelect =
-            document.getElementById(totalId);
+        const totalSelect = document.getElementById(
+            totalSelectId
+        );
 
-        const marriedSelect =
-            document.getElementById(marriedId);
+        const marriedSelect = document.getElementById(
+            marriedSelectId
+        );
 
         if (!totalSelect || !marriedSelect) {
             return;
         }
 
-        const enforceMaximum = () => {
+        const enforceConstraint = () => {
             const total = Number.parseInt(
                 totalSelect.value,
                 10
@@ -301,15 +397,15 @@ document.addEventListener('DOMContentLoaded', () => {
             Array.from(
                 marriedSelect.options
             ).forEach((option) => {
-                const count = Number.parseInt(
+                const optionCount = Number.parseInt(
                     option.value,
                     10
                 );
 
                 option.disabled =
                     Number.isFinite(total)
-                    && Number.isFinite(count)
-                    && count > total;
+                    && Number.isFinite(optionCount)
+                    && optionCount > total;
             });
 
             if (
@@ -317,31 +413,78 @@ document.addEventListener('DOMContentLoaded', () => {
                 && Number.isFinite(married)
                 && married > total
             ) {
+                /*
+                 * Choices.js must be rebuilt after changing or disabling
+                 * its underlying options.
+                 */
+                window.SelectChoice?.destroy(
+                    marriedSelect
+                );
+
                 marriedSelect.value = String(total);
 
-                marriedSelect.dispatchEvent(
-                    new Event('change', {
-                        bubbles: true,
-                    })
+                window.SelectChoice?.create(
+                    marriedSelect
                 );
             }
         };
 
         totalSelect.addEventListener(
             'change',
-            enforceMaximum
+            enforceConstraint
         );
 
-        enforceMaximum();
+        enforceConstraint();
     };
 
-    validateSiblingCount(
+    initializeSiblingConstraint(
         'brothersCount',
         'marriedBrothersCount'
     );
 
-    validateSiblingCount(
+    initializeSiblingConstraint(
         'sistersCount',
         'marriedSistersCount'
     );
+
+    /**
+     * Prevent duplicate valid submissions and show loading state.
+     */
+    form?.addEventListener('submit', (event) => {
+        if (
+            !submitButton
+            || event.defaultPrevented
+            || !form.checkValidity()
+        ) {
+            return;
+        }
+
+        window.setTimeout(() => {
+            if (
+                event.defaultPrevented
+                || !form.checkValidity()
+            ) {
+                return;
+            }
+
+            submitButton.disabled = true;
+
+            submitButton.setAttribute(
+                'aria-busy',
+                'true'
+            );
+
+            submitButton
+                .querySelector(
+                    '.registration-submit__label'
+                )
+                ?.classList.add('d-none');
+
+            submitButton
+                .querySelector(
+                    '.registration-submit__loading'
+                )
+                ?.classList.remove('d-none');
+        }, 0);
+    });
 });
