@@ -3,20 +3,38 @@
 declare(strict_types=1);
 
 /**
- * @var string                       $pageTitle
- * @var array<string, mixed>         $profile
- * @var list<array<string, mixed>>   $photos
- * @var array{
- *     total: int,
- *     pending: int,
- *     approved: int,
- *     rejected: int,
- *     allApproved: bool
- * } $photoSummary
- * @var array<string, string>        $validationErrors
- * @var array<string, string>|null   $formAlert
- * @var list<string>                 $pageScripts
+ * @var string                     $pageTitle
+ * @var array<string, mixed>       $profile
+ * @var list<array<string, mixed>> $photos
+ * @var array<string, mixed>       $photoSummary
+ * @var array<string, string>      $validationErrors
+ * @var array<string, string>|null $formAlert
+ * @var list<string>               $pageScripts
  */
+
+$profile = is_array(
+    $profile ?? null
+)
+    ? $profile
+    : [];
+
+$photos = is_array(
+    $photos ?? null
+)
+    ? $photos
+    : [];
+
+$photoSummary = is_array(
+    $photoSummary ?? null
+)
+    ? $photoSummary
+    : [
+        'total' => count($photos),
+        'pending' => 0,
+        'approved' => 0,
+        'rejected' => 0,
+        'allApproved' => false,
+    ];
 
 $errors = is_array(
     $validationErrors ?? null
@@ -30,9 +48,13 @@ $alert = is_array(
     ? $formAlert
     : null;
 
-$isDraft = (
-    $profile['status']
-    ?? ''
+$isDraft = mb_strtoupper(
+    trim(
+        (string) (
+            $profile['status']
+            ?? ''
+        )
+    )
 ) === 'DRAFT';
 
 $allPhotosApproved = (
@@ -40,6 +62,9 @@ $allPhotosApproved = (
     ?? false
 ) === true;
 
+/**
+ * Convert a nullable profile value into safe display text.
+ */
 $displayValue = static function (
     mixed $value
 ): string {
@@ -461,106 +486,161 @@ $this->section('content');
 
                 <div class="card-body">
                     <div class="row g-4">
-                        <?php foreach (
-                            $photos as $photo
-                        ): ?>
-                            <?php
-                            $photoId = (int) (
-                                $photo['id']
-                                ?? 0
-                            );
-
-                            $photoStatus = (
-                                string
-                            )(
-                                $photo['approval_status'] ?? 'PENDING'
-                            );
-                            ?>
-
-                            <div class="col-12 col-md-4">
-                                <img
-                                    src="<?= route_to(
-                                                'admin.prelaunch.photos.view',
-                                                $photoId,
-                                                'medium'
-                                            ) ?>"
-                                    class="img-fluid rounded mb-3"
-                                    alt="Member photograph <?= esc(
-                                                                $photo['sequence_no']
-                                                                    ?? ''
-                                                            ) ?>">
-
-                                <div class="mb-3">
-                                    <span
-                                        class="badge <?= $photoStatus
-                                                            === 'APPROVED'
-                                                            ? 'text-bg-success'
-                                                            : (
-                                                                $photoStatus
-                                                                === 'REJECTED'
-                                                                ? 'text-bg-danger'
-                                                                : 'text-bg-secondary'
-                                                            ) ?>">
-                                        <?= esc(
-                                            $photoStatus
-                                        ) ?>
-                                    </span>
+                        <?php if ($photos === []): ?>
+                            <div class="col-12">
+                                <div
+                                    class="alert alert-warning mb-0"
+                                    role="alert">
+                                    No photographs were found for this profile.
                                 </div>
-
-                                <?php if ($isDraft): ?>
-                                    <form
-                                        action="<?= route_to(
-                                                    'admin.prelaunch.photos.approve',
-                                                    $photoId
-                                                ) ?>"
-                                        method="post"
-                                        class="mb-3"
-                                        data-submit-loader>
-                                        <?= csrf_field() ?>
-
-                                        <button
-                                            type="submit"
-                                            class="btn btn-success w-100">
-                                            Approve Photo
-                                        </button>
-                                    </form>
-
-                                    <form
-                                        action="<?= route_to(
-                                                    'admin.prelaunch.photos.reject',
-                                                    $photoId
-                                                ) ?>"
-                                        method="post"
-                                        data-submit-loader>
-                                        <?= csrf_field() ?>
-
-                                        <label
-                                            for="photo_reason_<?= esc(
-                                                                    $photoId
-                                                                ) ?>"
-                                            class="form-label">
-                                            Rejection reason
-                                        </label>
-
-                                        <textarea
-                                            class="form-control mb-2"
-                                            id="photo_reason_<?= esc(
-                                                                    $photoId
-                                                                ) ?>"
-                                            name="rejection_reason"
-                                            minlength="5"
-                                            maxlength="500"
-                                            required></textarea>
-
-                                        <button
-                                            type="submit"
-                                            class="btn btn-outline-danger w-100">
-                                            Reject Photo
-                                        </button>
-                                    </form>
-                                <?php endif ?>
                             </div>
-                        <?php endforeach ?>
+                        <?php else: ?>
+                            <?php foreach ($photos as $photo): ?>
+                                <?php
+                                /*
+         * Protect the template from malformed service data.
+         */
+                                if (!is_array($photo)) {
+                                    continue;
+                                }
+
+                                $photoId = filter_var(
+                                    $photo['id'] ?? null,
+                                    FILTER_VALIDATE_INT
+                                );
+
+                                if (
+                                    $photoId === false
+                                    || $photoId <= 0
+                                ) {
+                                    continue;
+                                }
+
+                                $photoIdString = (string) $photoId;
+
+                                $sequenceNumber = filter_var(
+                                    $photo['sequence_no'] ?? null,
+                                    FILTER_VALIDATE_INT
+                                );
+
+                                $sequenceNumber = $sequenceNumber !== false
+                                    ? $sequenceNumber
+                                    : 0;
+
+                                $photoStatus = mb_strtoupper(
+                                    trim(
+                                        (string) (
+                                            $photo['approval_status']
+                                            ?? 'PENDING'
+                                        )
+                                    )
+                                );
+
+                                $photoBadgeClass = match ($photoStatus) {
+                                    'APPROVED' =>
+                                    'text-bg-success',
+
+                                    'REJECTED' =>
+                                    'text-bg-danger',
+
+                                    default =>
+                                    'text-bg-secondary',
+                                };
+
+                                $rejectionFieldId =
+                                    'photo_reason_' . $photoIdString;
+                                ?>
+
+                                <div class="col-12 col-md-4">
+                                    <img
+                                        src="<?= esc(
+                                                    route_to(
+                                                        'admin.prelaunch.photos.view',
+                                                        $photoId,
+                                                        'medium'
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
+                                        class="img-fluid rounded mb-3"
+                                        alt="<?= esc(
+                                                    'Member photograph '
+                                                        . $sequenceNumber,
+                                                    'attr'
+                                                ) ?>">
+
+                                    <div class="mb-3">
+                                        <span
+                                            class="badge <?= esc(
+                                                                $photoBadgeClass,
+                                                                'attr'
+                                                            ) ?>">
+                                            <?= esc($photoStatus) ?>
+                                        </span>
+                                    </div>
+
+                                    <?php if ($isDraft): ?>
+                                        <form
+                                            action="<?= esc(
+                                                        route_to(
+                                                            'admin.prelaunch.photos.approve',
+                                                            $photoId
+                                                        ),
+                                                        'attr'
+                                                    ) ?>"
+                                            method="post"
+                                            class="mb-3"
+                                            data-submit-loader>
+                                            <?= csrf_field() ?>
+
+                                            <button
+                                                type="submit"
+                                                class="btn btn-success w-100">
+                                                Approve Photo
+                                            </button>
+                                        </form>
+
+                                        <form
+                                            action="<?= esc(
+                                                        route_to(
+                                                            'admin.prelaunch.photos.reject',
+                                                            $photoId
+                                                        ),
+                                                        'attr'
+                                                    ) ?>"
+                                            method="post"
+                                            data-submit-loader>
+                                            <?= csrf_field() ?>
+
+                                            <label
+                                                for="<?= esc(
+                                                            $rejectionFieldId,
+                                                            'attr'
+                                                        ) ?>"
+                                                class="form-label">
+                                                Rejection reason
+                                            </label>
+
+                                            <textarea
+                                                class="form-control mb-2"
+                                                id="<?= esc(
+                                                        $rejectionFieldId,
+                                                        'attr'
+                                                    ) ?>"
+                                                name="rejection_reason"
+                                                minlength="5"
+                                                maxlength="500"
+                                                required></textarea>
+
+                                            <button
+                                                type="submit"
+                                                class="btn btn-outline-danger w-100">
+                                                Reject Photo
+                                            </button>
+                                        </form>
+                                    <?php endif ?>
+                                </div>
+                            <?php endforeach ?>
+                        <?php endif ?>
                     </div>
                 </div>
             </div>

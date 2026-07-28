@@ -90,36 +90,20 @@ final class PrelaunchProfileController extends BaseController
                 $profileId
             );
 
-            $profile = $reviewData['profile'];
-            $photos = $reviewData['photos'];
-            $photoSummary =
-                $reviewData['photoSummary'];
-
             return view(
                 'Admin/Prelaunch/Profiles/Review',
                 [
                     'pageTitle' =>
                     'Review Pre-launch Profile',
 
-                    /*
-                 * Fully resolved record containing profile columns,
-                 * master-data labels and Field Officer information.
-                 */
                     'profile' =>
-                    $profile,
+                    $reviewData['profile'],
 
-                    /*
-                 * List of all three pre-launch photo records.
-                 */
                     'photos' =>
-                    $photos,
+                    $reviewData['photos'],
 
-                    /*
-                 * Used to display photo counts and to disable profile
-                 * approval until exactly three photos are approved.
-                 */
                     'photoSummary' =>
-                    $photoSummary,
+                    $reviewData['photoSummary'],
 
                     'validationErrors' =>
                     session('validationErrors')
@@ -133,18 +117,39 @@ final class PrelaunchProfileController extends BaseController
                     ],
                 ]
             );
+        } catch (PageNotFoundException $exception) {
+            throw $exception;
         } catch (Throwable $exception) {
+            /*
+         * Preserve the actual failure in the CI4 logs. The previous
+         * empty catch converted every SQL or view error into a 404.
+         */
             log_message(
-                'notice',
-                'Pre-launch profile review failed for profile {profileId}: {message}',
+                'error',
+                'Unable to render pre-launch review for profile {profileId}. '
+                    . 'Exception: {exceptionClass}. Message: {message}. '
+                    . 'File: {file}. Line: {line}.',
                 [
                     'profileId' =>
                     $profileId,
 
+                    'exceptionClass' =>
+                    $exception::class,
+
                     'message' =>
                     $exception->getMessage(),
+
+                    'file' =>
+                    $exception->getFile(),
+
+                    'line' =>
+                    $exception->getLine(),
                 ]
             );
+
+            if (ENVIRONMENT === 'development') {
+                throw $exception;
+            }
 
             throw PageNotFoundException
                 ::forPageNotFound();

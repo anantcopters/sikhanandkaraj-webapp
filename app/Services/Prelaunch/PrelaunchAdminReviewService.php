@@ -36,7 +36,7 @@ final class PrelaunchAdminReviewService
     }
 
     /**
-     * Return all local variables required by the review screen.
+     * Build the complete data contract required by Review.php.
      *
      * @return array{
      *     profile: array<string, mixed>,
@@ -53,6 +53,12 @@ final class PrelaunchAdminReviewService
     public function reviewData(
         int $profileId
     ): array {
+        if ($profileId <= 0) {
+            throw new RuntimeException(
+                'Invalid pre-launch profile ID.'
+            );
+        }
+
         $profile = $this->profileModel
             ->findForAdmin(
                 $profileId
@@ -69,21 +75,38 @@ final class PrelaunchAdminReviewService
                 $profileId
             );
 
-        $approvedCount = 0;
-        $rejectedCount = 0;
-        $pendingCount = 0;
+        $photoSummary = [
+            'total' =>
+            count($photos),
+
+            'pending' =>
+            0,
+
+            'approved' =>
+            0,
+
+            'rejected' =>
+            0,
+
+            'allApproved' =>
+            false,
+        ];
 
         foreach ($photos as $photo) {
-            $status = (string) (
-                $photo['approval_status']
-                ?? ''
+            $status = mb_strtoupper(
+                trim(
+                    (string) (
+                        $photo['approval_status']
+                        ?? PrelaunchPhotoModel::STATUS_PENDING
+                    )
+                )
             );
 
             if (
                 $status
                 === PrelaunchPhotoModel::STATUS_APPROVED
             ) {
-                $approvedCount++;
+                $photoSummary['approved']++;
                 continue;
             }
 
@@ -91,12 +114,16 @@ final class PrelaunchAdminReviewService
                 $status
                 === PrelaunchPhotoModel::STATUS_REJECTED
             ) {
-                $rejectedCount++;
+                $photoSummary['rejected']++;
                 continue;
             }
 
-            $pendingCount++;
+            $photoSummary['pending']++;
         }
+
+        $photoSummary['allApproved'] =
+            $photoSummary['total'] === 3
+            && $photoSummary['approved'] === 3;
 
         return [
             'profile' =>
@@ -105,23 +132,8 @@ final class PrelaunchAdminReviewService
             'photos' =>
             $photos,
 
-            'photoSummary' => [
-                'total' =>
-                count($photos),
-
-                'pending' =>
-                $pendingCount,
-
-                'approved' =>
-                $approvedCount,
-
-                'rejected' =>
-                $rejectedCount,
-
-                'allApproved' =>
-                count($photos) === 3
-                    && $approvedCount === 3,
-            ],
+            'photoSummary' =>
+            $photoSummary,
         ];
     }
 

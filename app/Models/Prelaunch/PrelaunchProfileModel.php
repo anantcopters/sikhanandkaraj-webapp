@@ -109,30 +109,50 @@ final class PrelaunchProfileModel extends Model
     /**
      * Return pre-launch profiles for the administrator list.
      *
+     * LEFT JOIN is intentional. A missing or inactive master record must
+     * not make the complete pre-launch profile disappear from admin review.
+     *
      * @return list<array<string, mixed>>
      */
     public function listForAdmin(
         ?string $status = null
     ): array {
-        $builder = $this->adminDetailsBuilder();
+        $builder = $this->database
+            ->table(
+                $this->table
+                    . ' AS prelaunch_profiles'
+            );
+
+        $this->applyAdminDetailsQuery(
+            $builder
+        );
 
         if ($status !== null) {
             $builder->where(
                 'prelaunch_profiles.status',
-                $status
+                mb_strtoupper(
+                    trim($status)
+                )
             );
         }
 
-        return $builder
+        $builder
+            ->where(
+                'prelaunch_profiles.deleted_at',
+                null
+            )
             ->orderBy(
                 'prelaunch_profiles.created_at',
                 'DESC'
-            )
-            ->findAll();
+            );
+
+        return $builder
+            ->get()
+            ->getResultArray();
     }
 
     /**
-     * Return one fully resolved profile for administrator review.
+     * Return one complete profile for administrator review.
      *
      * @return array<string, mixed>|null
      */
@@ -143,13 +163,28 @@ final class PrelaunchProfileModel extends Model
             return null;
         }
 
-        $record = $this
-            ->adminDetailsBuilder()
+        $builder = $this->database
+            ->table(
+                $this->table
+                    . ' AS prelaunch_profiles'
+            );
+
+        $this->applyAdminDetailsQuery(
+            $builder
+        );
+
+        $record = $builder
             ->where(
                 'prelaunch_profiles.id',
                 $profileId
             )
-            ->first();
+            ->where(
+                'prelaunch_profiles.deleted_at',
+                null
+            )
+            ->limit(1)
+            ->get()
+            ->getRowArray();
 
         return is_array($record)
             ? $record
@@ -157,36 +192,51 @@ final class PrelaunchProfileModel extends Model
     }
 
     /**
-     * Build the common administrator profile details query.
+     * Apply the common select list and joins used by admin screens.
      *
-     * Keeping the joins in one method prevents the list and review
-     * screens from resolving master data differently.
+     * This method modifies the supplied query builder. It does not execute
+     * the query and does not contain business logic.
      */
-    private function adminDetailsBuilder(): self
-    {
-        return $this
+    private function applyAdminDetailsQuery(
+        \CodeIgniter\Database\BaseBuilder $builder
+    ): void {
+        $builder
             ->select([
                 'prelaunch_profiles.*',
 
+                /*
+             * Field Officer information.
+             */
                 'field_officers.officer_code',
                 'field_officers.full_name AS field_officer_name',
                 'field_officers.account_status AS field_officer_status',
 
+                /*
+             * Member location.
+             */
                 'master_countries.name AS country_name',
                 'master_states.name AS state_name',
                 'master_cities.name AS city_name',
 
+                /*
+             * Basic details.
+             */
                 'master_marital_statuses.name AS marital_status_name',
-                'master_heights.label AS height_name',
+                'master_heights.display_name AS height_name',
                 'master_mother_tongues.name AS mother_tongue_name',
 
+                /*
+             * Education and profession.
+             */
                 'master_educations.name AS education_name',
                 'master_occupations.name AS occupation_name',
 
+                /*
+             * Family details.
+             */
                 'master_family_values.name AS family_value_name',
                 'master_family_types.name AS family_type_name',
                 'master_family_statuses.name AS family_status_name',
-
                 'master_sikh_communities.name AS community_name',
                 'master_sikh_subcommunities.name AS subcommunity_name',
             ])
@@ -194,85 +244,85 @@ final class PrelaunchProfileModel extends Model
                 'field_officers',
                 'field_officers.id = '
                     . 'prelaunch_profiles.field_officer_id',
-                'inner'
+                'left'
             )
             ->join(
                 'master_countries',
                 'master_countries.id = '
                     . 'prelaunch_profiles.country_id',
-                'inner'
+                'left'
             )
             ->join(
                 'master_states',
                 'master_states.id = '
                     . 'prelaunch_profiles.state_id',
-                'inner'
+                'left'
             )
             ->join(
                 'master_cities',
                 'master_cities.id = '
                     . 'prelaunch_profiles.city_id',
-                'inner'
+                'left'
             )
             ->join(
                 'master_marital_statuses',
                 'master_marital_statuses.id = '
                     . 'prelaunch_profiles.marital_status_id',
-                'inner'
+                'left'
             )
             ->join(
                 'master_heights',
                 'master_heights.id = '
                     . 'prelaunch_profiles.height_id',
-                'inner'
+                'left'
             )
             ->join(
                 'master_mother_tongues',
                 'master_mother_tongues.id = '
                     . 'prelaunch_profiles.mother_tongue_id',
-                'inner'
+                'left'
             )
             ->join(
                 'master_educations',
                 'master_educations.id = '
                     . 'prelaunch_profiles.highest_education_id',
-                'inner'
+                'left'
             )
             ->join(
                 'master_occupations',
                 'master_occupations.id = '
                     . 'prelaunch_profiles.occupation_id',
-                'inner'
+                'left'
             )
             ->join(
                 'master_family_values',
                 'master_family_values.id = '
                     . 'prelaunch_profiles.family_value_id',
-                'inner'
+                'left'
             )
             ->join(
                 'master_family_types',
                 'master_family_types.id = '
                     . 'prelaunch_profiles.family_type_id',
-                'inner'
+                'left'
             )
             ->join(
                 'master_family_statuses',
                 'master_family_statuses.id = '
                     . 'prelaunch_profiles.family_status_id',
-                'inner'
+                'left'
             )
             ->join(
                 'master_sikh_communities',
                 'master_sikh_communities.id = '
                     . 'prelaunch_profiles.sikh_community_id',
-                'inner'
+                'left'
             )
             ->join(
                 'master_sikh_subcommunities',
                 'master_sikh_subcommunities.id = '
                     . 'prelaunch_profiles.sikh_subcommunity_id',
-                'inner'
+                'left'
             );
     }
 }
