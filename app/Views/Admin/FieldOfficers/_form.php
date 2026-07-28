@@ -156,7 +156,7 @@ $selectedCity = (string) (
                         ) ?>
                     </div>
                 <?php else: ?>
-                    <div class="form-text">
+                    <div class="form-text color-pink">
                         Enter a unique 10-digit Indian
                         mobile number.
                     </div>
@@ -383,7 +383,7 @@ $selectedCity = (string) (
                 ) ?>
             </div>
 
-            <div class="form-text">
+            <div class="form-text color-pink">
                 Maximum 500 characters.
             </div>
         </div>
@@ -425,7 +425,7 @@ $selectedCity = (string) (
             </div>
 
             <?php if (!$editing): ?>
-                <div class="form-text">
+                <div class="form-text color-pink">
                     Providing a valid UPI ID will create
                     this Field Officer in active status.
                 </div>

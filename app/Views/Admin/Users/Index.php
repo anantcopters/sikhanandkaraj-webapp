@@ -82,7 +82,7 @@ $this->section('content');
         ]
     ) ?>
 
-    <div class="card border-danger border-opacity-25">
+    <div class="card border border-danger border-opacity-25">
         <div class="card-body p-0">
 
             <div class="table-responsive">
@@ -90,7 +90,7 @@ $this->section('content');
                     class="table table-hover
                     table-nowrap align-middle mb-0">
 
-                    <thead class="table-light">
+                    <thead class="bg-info-subtle">
                         <tr>
                             <th>Administrator</th>
                             <th>Contact</th>

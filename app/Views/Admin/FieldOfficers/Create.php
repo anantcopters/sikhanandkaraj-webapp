@@ -101,7 +101,7 @@ $this->section('content');
                 col-xl-7">
 
             <div
-                class="card border-danger
+                class="card border border-danger
                     border-opacity-25">
 
                 <div class="card-header">

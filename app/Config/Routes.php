@@ -581,79 +581,163 @@ $routes->group('admin', [
                     'as' => 'admin.users.suspend',
                 ]
             );
+            // $routes->get(
+            //     '',
+            //     'FieldOfficerController::index',
+            //     [
+            //         'as' =>
+            //         'admin.field-officers.index',
+            //     ]
+            // );
 
-            $routes->get(
-                '',
-                'FieldOfficerController::index',
-                [
-                    'as' =>
-                    'admin.field-officers.index',
-                ]
-            );
+            // $routes->get(
+            //     'create',
+            //     'FieldOfficerController::create',
+            //     [
+            //         'as' =>
+            //         'admin.field-officers.create',
+            //     ]
+            // );
 
-            $routes->get(
-                'create',
-                'FieldOfficerController::create',
-                [
-                    'as' =>
-                    'admin.field-officers.create',
-                ]
-            );
+            // $routes->post(
+            //     '',
+            //     'FieldOfficerController::store',
+            //     [
+            //         'as' =>
+            //         'admin.field-officers.store',
+            //     ]
+            // );
 
-            $routes->post(
-                '',
-                'FieldOfficerController::store',
-                [
-                    'as' =>
-                    'admin.field-officers.store',
-                ]
-            );
+            // $routes->get(
+            //     '(:num)/edit',
+            //     'FieldOfficerController::edit/$1',
+            //     [
+            //         'as' =>
+            //         'admin.field-officers.edit',
+            //     ]
+            // );
 
-            $routes->get(
-                '(:num)/edit',
-                'FieldOfficerController::edit/$1',
-                [
-                    'as' =>
-                    'admin.field-officers.edit',
-                ]
-            );
+            // $routes->post(
+            //     '(:num)',
+            //     'FieldOfficerController::update/$1',
+            //     [
+            //         'as' =>
+            //         'admin.field-officers.update',
+            //     ]
+            // );
 
-            $routes->post(
-                '(:num)',
-                'FieldOfficerController::update/$1',
-                [
-                    'as' =>
-                    'admin.field-officers.update',
-                ]
-            );
+            // $routes->get(
+            //     'master/cities/(:num)',
+            //     'FieldOfficerController::cities/$1',
+            //     [
+            //         'as' =>
+            //         'admin.field-officers.master.cities',
+            //     ]
+            // );
 
-            $routes->get(
-                'master/cities/(:num)',
-                'FieldOfficerController::cities/$1',
-                [
-                    'as' =>
-                    'admin.field-officers.master.cities',
-                ]
-            );
+            // $routes->post(
+            //     '(:num)/activate',
+            //     'FieldOfficerController::activate/$1',
+            //     [
+            //         'as' =>
+            //         'admin.field-officers.activate',
+            //     ]
+            // );
 
-            $routes->post(
-                '(:num)/activate',
-                'FieldOfficerController::activate/$1',
-                [
-                    'as' =>
-                    'admin.field-officers.activate',
-                ]
-            );
-
-            $routes->post(
-                '(:num)/deactivate',
-                'FieldOfficerController::deactivate/$1',
-                [
-                    'as' =>
-                    'admin.field-officers.deactivate',
-                ]
-            );
+            // $routes->post(
+            //     '(:num)/deactivate',
+            //     'FieldOfficerController::deactivate/$1',
+            //     [
+            //         'as' =>
+            //         'admin.field-officers.deactivate',
+            //     ]
+            // );
         });
+
+        /*
+        * Only SUPER_ADMIN may manage Field Officers.
+        */
+        $routes->group(
+            'field-officers',
+            [
+                'filter' => 'superAdmin',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->get(
+                    '',
+                    'FieldOfficerController::index',
+                    [
+                        'as' =>
+                        'admin.field-officers.index',
+                    ]
+                );
+
+                $routes->get(
+                    'create',
+                    'FieldOfficerController::create',
+                    [
+                        'as' =>
+                        'admin.field-officers.create',
+                    ]
+                );
+
+                $routes->post(
+                    '',
+                    'FieldOfficerController::store',
+                    [
+                        'as' =>
+                        'admin.field-officers.store',
+                    ]
+                );
+
+                $routes->get(
+                    '(:num)/edit',
+                    'FieldOfficerController::edit/$1',
+                    [
+                        'as' =>
+                        'admin.field-officers.edit',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)',
+                    'FieldOfficerController::update/$1',
+                    [
+                        'as' =>
+                        'admin.field-officers.update',
+                    ]
+                );
+
+                $routes->get(
+                    'master/cities/(:num)',
+                    'FieldOfficerController::cities/$1',
+                    [
+                        'as' =>
+                        'admin.field-officers.master.cities',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)/activate',
+                    'FieldOfficerController::activate/$1',
+                    [
+                        'as' =>
+                        'admin.field-officers.activate',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)/deactivate',
+                    'FieldOfficerController::deactivate/$1',
+                    [
+                        'as' =>
+                        'admin.field-officers.deactivate',
+                    ]
+                );
+            }
+        );
     });
 
     /*

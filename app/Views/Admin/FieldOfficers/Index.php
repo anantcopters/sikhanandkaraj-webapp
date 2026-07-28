@@ -42,12 +42,12 @@ $this->section('content');
                     </p>
                 </div>
 
-                <div class="page-title-right mt-3 mt-sm-0">
+                <div class="page-title-right">
                     <a
                         href="<?= route_to(
                                     'admin.field-officers.create'
                                 ) ?>"
-                        class="btn registration-form__submit">
+                        class="btn btn-primary">
 
                         <i
                             class="ri-user-add-line
@@ -68,281 +68,271 @@ $this->section('content');
         ]
     ) ?>
 
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <h4 class="card-title mb-0">
-                        Field Officer List
-                    </h4>
-                </div>
 
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table
-                            class="table
-            table-hover
-            table-nowrap
-            align-middle
-            mb-0">
+    <div class="card border border-danger border-opacity-25">
+        <div class="card-body p-0">
 
-                            <thead class="table-light">
-                                <tr>
-                                    <th scope="col">
-                                        Name
-                                    </th>
+            <div class="table-responsive">
+                <table
+                    class="table table-hover
+                    table-nowrap align-middle mb-0">
 
-                                    <th scope="col">
-                                        Code
-                                    </th>
+                    <thead class="bg-info-subtle">
+                        <tr>
+                            <th scope="col">
+                                Name
+                            </th>
 
-                                    <th scope="col">
-                                        Mobile
-                                    </th>
+                            <th scope="col">
+                                Code
+                            </th>
 
-                                    <th scope="col">
-                                        Location
-                                    </th>
+                            <th scope="col">
+                                Mobile
+                            </th>
 
-                                    <th scope="col">
-                                        Status
-                                    </th>
+                            <th scope="col">
+                                Location
+                            </th>
 
-                                    <th
-                                        scope="col"
-                                        class="text-end">
-                                        Action
-                                    </th>
-                                </tr>
-                            </thead>
+                            <th scope="col">
+                                Status
+                            </th>
 
-                            <tbody>
-                                <?php if (
-                                    $resolvedFieldOfficers === []
-                                ): ?>
-                                    <tr>
-                                        <td
-                                            colspan="6"
-                                            class="text-center
+                            <th
+                                scope="col"
+                                class="text-end">
+                                Action
+                            </th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        <?php if (
+                            $resolvedFieldOfficers === []
+                        ): ?>
+                            <tr>
+                                <td
+                                    colspan="6"
+                                    class="text-center
                             text-muted py-4">
 
-                                            No Field Officers
-                                            have been added.
-                                        </td>
-                                    </tr>
-                                <?php endif; ?>
+                                    No Field Officers
+                                    have been added.
+                                </td>
+                            </tr>
+                        <?php endif; ?>
 
-                                <?php foreach (
-                                    $resolvedFieldOfficers
-                                    as $fieldOfficer
-                                ): ?>
-                                    <?php
-                                    $locationParts = array_filter([
-                                        trim(
-                                            (string) (
-                                                $fieldOfficer['city_name'] ?? ''
-                                            )
-                                        ),
-                                        trim(
-                                            (string) (
-                                                $fieldOfficer['state_name'] ?? ''
-                                            )
-                                        ),
-                                        trim(
-                                            (string) (
-                                                $fieldOfficer['country_name'] ?? ''
-                                            )
-                                        ),
-                                    ]);
+                        <?php foreach (
+                            $resolvedFieldOfficers
+                            as $fieldOfficer
+                        ): ?>
+                            <?php
+                            $locationParts = array_filter([
+                                trim(
+                                    (string) (
+                                        $fieldOfficer['city_name'] ?? ''
+                                    )
+                                ),
+                                trim(
+                                    (string) (
+                                        $fieldOfficer['state_name'] ?? ''
+                                    )
+                                ),
+                                trim(
+                                    (string) (
+                                        $fieldOfficer['country_name'] ?? ''
+                                    )
+                                ),
+                            ]);
 
-                                    $location = implode(
-                                        ', ',
-                                        $locationParts
-                                    );
+                            $location = implode(
+                                ', ',
+                                $locationParts
+                            );
 
-                                    $isActive =
-                                        (string) (
-                                            $fieldOfficer['account_status'] ?? ''
-                                        )
-                                        === \App\Models\FieldOfficerModel
-                                        ::STATUS_ACTIVE;
+                            $isActive =
+                                (string) (
+                                    $fieldOfficer['account_status'] ?? ''
+                                )
+                                === \App\Models\FieldOfficerModel
+                                ::STATUS_ACTIVE;
 
-                                    $hasUpiId =
-                                        trim(
-                                            (string) (
-                                                $fieldOfficer['upi_id'] ?? ''
-                                            )
-                                        ) !== '';
-                                    ?>
+                            $hasUpiId =
+                                trim(
+                                    (string) (
+                                        $fieldOfficer['upi_id'] ?? ''
+                                    )
+                                ) !== '';
+                            ?>
 
-                                    <tr>
-                                        <td>
-                                            <span class="fw-semibold">
-                                                <?= esc(
-                                                    (string) $fieldOfficer['full_name']
-                                                ) ?>
-                                            </span>
-                                        </td>
+                            <tr>
+                                <td>
+                                    <span class="fw-semibold">
+                                        <?= esc(
+                                            (string) $fieldOfficer['full_name']
+                                        ) ?>
+                                    </span>
+                                </td>
 
-                                        <td>
-                                            <span
-                                                class="badge
+                                <td>
+                                    <span
+                                        class="badge
                                 bg-primary-subtle
                                 text-primary">
 
-                                                <?= esc(
-                                                    (string) $fieldOfficer['officer_code']
-                                                ) ?>
-                                            </span>
-                                        </td>
+                                        <?= esc(
+                                            (string) $fieldOfficer['officer_code']
+                                        ) ?>
+                                    </span>
+                                </td>
 
-                                        <td>
-                                            <?= esc(
-                                                (string) $fieldOfficer['mobile_number']
-                                            ) ?>
-                                        </td>
+                                <td>
+                                    <?= esc(
+                                        (string) $fieldOfficer['mobile_number']
+                                    ) ?>
+                                </td>
 
-                                        <td>
-                                            <?= esc(
-                                                $location !== ''
-                                                    ? $location
-                                                    : '—'
-                                            ) ?>
-                                        </td>
+                                <td>
+                                    <?= esc(
+                                        $location !== ''
+                                            ? $location
+                                            : '—'
+                                    ) ?>
+                                </td>
 
-                                        <td>
-                                            <?php if ($isActive): ?>
-                                                <span
-                                                    class="badge
+                                <td>
+                                    <?php if ($isActive): ?>
+                                        <span
+                                            class="badge
                                     bg-success-subtle
                                     text-success">
 
-                                                    Active
-                                                </span>
-                                            <?php else: ?>
-                                                <span
-                                                    class="badge
+                                            Active
+                                        </span>
+                                    <?php else: ?>
+                                        <span
+                                            class="badge
                                     bg-secondary-subtle
                                     text-secondary">
 
-                                                    Inactive
-                                                </span>
-                                            <?php endif; ?>
-                                        </td>
+                                            Inactive
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
 
-                                        <td class="text-end">
-                                            <div
-                                                class="d-inline-flex
+                                <td class="text-end">
+                                    <div
+                                        class="d-inline-flex
                                 align-items-center
                                 gap-1">
 
-                                                <a
-                                                    href="<?= route_to(
-                                                                'admin.field-officers.edit',
-                                                                (int) $fieldOfficer['id']
-                                                            ) ?>"
-                                                    class="btn
+                                        <a
+                                            href="<?= route_to(
+                                                        'admin.field-officers.edit',
+                                                        (int) $fieldOfficer['id']
+                                                    ) ?>"
+                                            class="btn
                                     btn-soft-primary
                                     btn-sm"
-                                                    title="Edit Field Officer"
-                                                    aria-label="Edit Field Officer">
+                                            title="Edit Field Officer"
+                                            aria-label="Edit Field Officer">
 
-                                                    <i
-                                                        class="ri-edit-line"
-                                                        aria-hidden="true">
-                                                    </i>
-                                                </a>
+                                            <i
+                                                class="ri-edit-line"
+                                                aria-hidden="true">
+                                            </i>
+                                        </a>
 
-                                                <?php if ($isActive): ?>
-                                                    <form
-                                                        action="<?= route_to(
-                                                                    'admin.field-officers.deactivate',
-                                                                    (int) $fieldOfficer['id']
-                                                                ) ?>"
-                                                        method="post"
-                                                        class="d-inline"
-                                                        data-confirm-form
-                                                        data-confirm-title="Deactivate Field Officer?"
-                                                        data-confirm-message="<?= esc(
-                                                                                    'Do you want to make '
-                                                                                        . (string) $fieldOfficer['full_name']
-                                                                                        . ' inactive?',
-                                                                                    'attr'
-                                                                                ) ?>"
-                                                        data-confirm-button-text="Make Inactive"
-                                                        data-confirm-loading-text="Deactivating..."
-                                                        data-confirm-button-class="btn-warning"
-                                                        data-confirm-icon="ri-user-unfollow-line">
+                                        <?php if ($isActive): ?>
+                                            <form
+                                                action="<?= route_to(
+                                                            'admin.field-officers.deactivate',
+                                                            (int) $fieldOfficer['id']
+                                                        ) ?>"
+                                                method="post"
+                                                class="d-inline"
+                                                data-confirm-form
+                                                data-confirm-title="Deactivate Field Officer?"
+                                                data-confirm-message="<?= esc(
+                                                                            'Do you want to make '
+                                                                                . (string) $fieldOfficer['full_name']
+                                                                                . ' inactive?',
+                                                                            'attr'
+                                                                        ) ?>"
+                                                data-confirm-button-text="Make Inactive"
+                                                data-confirm-loading-text="Deactivating..."
+                                                data-confirm-button-class="btn-warning"
+                                                data-confirm-icon="ri-user-unfollow-line">
 
-                                                        <?= csrf_field() ?>
+                                                <?= csrf_field() ?>
 
-                                                        <button
-                                                            type="submit"
-                                                            class="btn
+                                                <button
+                                                    type="submit"
+                                                    class="btn
                                             btn-soft-warning
                                             btn-sm"
-                                                            title="Make inactive"
-                                                            aria-label="Make Field Officer inactive">
+                                                    title="Make inactive"
+                                                    aria-label="Make Field Officer inactive">
 
-                                                            <i
-                                                                class="ri-user-unfollow-line"
-                                                                aria-hidden="true">
-                                                            </i>
-                                                        </button>
-                                                    </form>
-                                                <?php else: ?>
-                                                    <form
-                                                        action="<?= route_to(
-                                                                    'admin.field-officers.activate',
-                                                                    (int) $fieldOfficer['id']
-                                                                ) ?>"
-                                                        method="post"
-                                                        class="d-inline"
-                                                        data-confirm-form
-                                                        data-confirm-title="Activate Field Officer?"
-                                                        data-confirm-message="<?= esc(
-                                                                                    $hasUpiId
-                                                                                        ? 'Do you want to make '
-                                                                                        . (string) $fieldOfficer['full_name']
-                                                                                        . ' active?'
-                                                                                        : 'This Field Officer does not have a UPI ID. Activation will not be allowed until a valid UPI ID is added.',
-                                                                                    'attr'
-                                                                                ) ?>"
-                                                        data-confirm-button-text="Make Active"
-                                                        data-confirm-loading-text="Activating..."
-                                                        data-confirm-button-class="btn-success"
-                                                        data-confirm-icon="ri-user-follow-line">
+                                                    <i
+                                                        class="ri-user-unfollow-line"
+                                                        aria-hidden="true">
+                                                    </i>
+                                                </button>
+                                            </form>
+                                        <?php else: ?>
+                                            <form
+                                                action="<?= route_to(
+                                                            'admin.field-officers.activate',
+                                                            (int) $fieldOfficer['id']
+                                                        ) ?>"
+                                                method="post"
+                                                class="d-inline"
+                                                data-confirm-form
+                                                data-confirm-title="Activate Field Officer?"
+                                                data-confirm-message="<?= esc(
+                                                                            $hasUpiId
+                                                                                ? 'Do you want to make '
+                                                                                . (string) $fieldOfficer['full_name']
+                                                                                . ' active?'
+                                                                                : 'This Field Officer does not have a UPI ID. Activation will not be allowed until a valid UPI ID is added.',
+                                                                            'attr'
+                                                                        ) ?>"
+                                                data-confirm-button-text="Make Active"
+                                                data-confirm-loading-text="Activating..."
+                                                data-confirm-button-class="btn-success"
+                                                data-confirm-icon="ri-user-follow-line">
 
-                                                        <?= csrf_field() ?>
+                                                <?= csrf_field() ?>
 
-                                                        <button
-                                                            type="submit"
-                                                            class="btn
+                                                <button
+                                                    type="submit"
+                                                    class="btn
                                             btn-soft-success
                                             btn-sm"
-                                                            title="<?= $hasUpiId
-                                                                        ? 'Make active'
-                                                                        : 'UPI ID required before activation' ?>"
-                                                            aria-label="Make Field Officer active">
+                                                    title="<?= $hasUpiId
+                                                                ? 'Make active'
+                                                                : 'UPI ID required before activation' ?>"
+                                                    aria-label="Make Field Officer active">
 
-                                                            <i
-                                                                class="ri-user-follow-line"
-                                                                aria-hidden="true">
-                                                            </i>
-                                                        </button>
-                                                    </form>
-                                                <?php endif; ?>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                                                    <i
+                                                        class="ri-user-follow-line"
+                                                        aria-hidden="true">
+                                                    </i>
+                                                </button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
+
 </div>
 
 <?php $this->endSection(); ?>
