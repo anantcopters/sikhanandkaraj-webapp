@@ -12,8 +12,6 @@ declare(strict_types=1);
  * @var array<string, int>                $educationProfessionCompletion
  * @var array<string, mixed>|null         $familyDetails
  * @var array<string, int>                $familyDetailsCompletion
- * @var array<string, mixed>|null         $sikhReligiousDetails
- * @var array<string, int>                $sikhReligiousDetailsCompletion
  * @var list<array<string, mixed>>         $lifestyleDetails
  * @var array<string, int>                $lifestyleCompletion
  * @var array<string, mixed>              $overallProfileSummary
@@ -56,17 +54,6 @@ $familyDetails = isset($familyDetails)
 $familyDetailsCompletion = isset($familyDetailsCompletion)
     && is_array($familyDetailsCompletion)
     ? $familyDetailsCompletion
-    : [];
-
-$sikhReligiousDetails = isset($sikhReligiousDetails)
-    && is_array($sikhReligiousDetails)
-    ? $sikhReligiousDetails
-    : [];
-
-$sikhReligiousDetailsCompletion = isset(
-    $sikhReligiousDetailsCompletion
-) && is_array($sikhReligiousDetailsCompletion)
-    ? $sikhReligiousDetailsCompletion
     : [];
 
 $lifestyleDetails = isset($lifestyleDetails)

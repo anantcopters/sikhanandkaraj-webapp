@@ -48,7 +48,7 @@ final class ProfileMasterController extends BaseController
     /**
      * Return active Sikh sub-communities for one community.
      */
-    public function sikhSubcommunities(
+    public function subcommunities(
         int $communityId
     ): ResponseInterface {
         if ($communityId <= 0) {

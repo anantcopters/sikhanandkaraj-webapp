@@ -221,12 +221,12 @@ if ($isJourney) {
                 data-choice-search="true"
                 data-choice-search-placeholder="Search community"
                 data-choice-position="bottom"
-                data-subcommunity-url="<?= esc(
-                                            url_to(
-                                                'web.profile.sikh-subcommunities'
-                                            ),
-                                            'attr'
-                                        ) ?>"
+                data-subcommunity-url-template="<?= esc(
+                                                    site_url(
+                                                        'profile/master/sikh-subcommunities/__COMMUNITY_ID__'
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
                 data-error-required="Please select your community."
                 required>
 
@@ -588,10 +588,12 @@ if ($isJourney) {
                 data-choice-search="true"
                 data-choice-search-placeholder="Search city"
                 data-choice-position="bottom"
-                data-cities-url="<?= esc(
-                                        site_url('profile/master/cities'),
-                                        'attr'
-                                    ) ?>"
+                data-city-url-template="<?= esc(
+                                            site_url(
+                                                'profile/master/cities/__PARENT_ID__'
+                                            ),
+                                            'attr'
+                                        ) ?>"
                 data-selected-city="<?= esc(
                                         $selectedCityId,
                                         'attr'

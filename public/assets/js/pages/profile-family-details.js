@@ -59,8 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
         records.forEach((record) => {
             const option = document.createElement('option');
 
-            option.value = String(record.id ?? '');
-            option.textContent = String(record.name ?? '');
+            option.value = String(
+                record.value ?? record.id ?? ''
+            );
+
+            option.textContent = String(
+                record.label ?? record.name ?? ''
+            );
 
             if (option.value === String(selectedValue)) {
                 option.selected = true;
@@ -73,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadDependentOptions = async ({
         parentSelect,
         childSelect,
-        url,
+        urlTemplate,
         placeholder,
         selectedValue = '',
     }) => {
@@ -91,15 +96,20 @@ document.addEventListener('DOMContentLoaded', () => {
             true
         );
 
-        if (parentId === '' || url === '') {
+        if (parentId === '' || urlTemplate === '') {
             return;
         }
+
+        const resolvedUrl = urlTemplate.replace(
+            '__PARENT_ID__',
+            encodeURIComponent(parentId)
+        );
 
         childSelect.disabled = true;
 
         try {
             const requestUrl = new URL(
-                url,
+                resolvedUrl,
                 window.location.origin
             );
 
@@ -164,12 +174,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 void loadDependentOptions({
                     parentSelect: communitySelect,
                     childSelect: subcommunitySelect,
-                    url:
+                    urlTemplate:
                         communitySelect.dataset
-                            .subcommunityUrl ?? '',
-                    placeholder:
-                        'Select sub-community',
+                            .subcommunityUrlTemplate ?? '',
+                    placeholder: 'Select sub-community',
+                    selectedValue:
+                        subcommunitySelect.dataset
+                            .selectedValue ?? '',
                 });
+
+                subcommunitySelect.dataset.selectedValue = '';
             }
         );
     }
@@ -181,9 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 void loadDependentOptions({
                     parentSelect: stateSelect,
                     childSelect: citySelect,
-                    url:
-                        stateSelect.dataset.cityUrl
-                        ?? '',
+                    urlTemplate:
+                        stateSelect.dataset.cityUrlTemplate ?? '',
                     placeholder: 'Select city',
                 });
             }

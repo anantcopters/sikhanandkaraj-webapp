@@ -329,11 +329,11 @@ $routes->group('', [
     // );
 
     $routes->get(
-        'profile/master/sikh-subcommunities/(:num)',
-        'ProfileMasterController::sikhSubcommunities/$1',
+        'profile/master/subcommunities/(:num)',
+        'ProfileMasterController::subcommunities/$1',
         [
             'as' =>
-            'web.profile.master.sikh-subcommunities',
+            'web.profile.master.subcommunities',
             'filter' => 'webAuth',
         ]
     );
