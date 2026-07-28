@@ -26,12 +26,12 @@ final class MemberFamilyDetailModel extends Model
         'family_status_id',
         'community_id',
         'subcommunity_id',
+        'father_name',
+        'mother_name',
         'father_occupation_id',
         'mother_occupation_id',
         'brothers_count',
-        'married_brothers_count',
         'sisters_count',
-        'married_sisters_count',
         'country_id',
         'state_id',
         'city_id',
@@ -45,6 +45,10 @@ final class MemberFamilyDetailModel extends Model
 
     protected $updatedField = 'updated_at';
 
+    /*
+     * Validation is handled by the controller validation class and
+     * FamilyDetailsService.
+     */
     protected $skipValidation = true;
 
     /**

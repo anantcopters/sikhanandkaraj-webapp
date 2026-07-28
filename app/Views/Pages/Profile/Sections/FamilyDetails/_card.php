@@ -195,24 +195,31 @@ $formatEnum = static function (
                 $summaryItems = [
                     [
                         'label' => 'Family value',
-                        'value' => $formatEnum(
-                            $details['family_value'] ?? null
+                        'value' => $displayValue(
+                            $details['family_value_name'] ?? null
                         ),
                         'icon' => 'ri-heart-3-line',
                     ],
                     [
                         'label' => 'Family type',
-                        'value' => $formatEnum(
-                            $details['family_type'] ?? null
+                        'value' => $displayValue(
+                            $details['family_type_name'] ?? null
                         ),
                         'icon' => 'ri-home-heart-line',
                     ],
                     [
                         'label' => 'Family status',
-                        'value' => $formatEnum(
-                            $details['family_status'] ?? null
+                        'value' => $displayValue(
+                            $details['family_status_name'] ?? null
                         ),
                         'icon' => 'ri-vip-crown-line',
+                    ],
+                    [
+                        'label' => "Father's name",
+                        'value' => $displayValue(
+                            $details['father_name'] ?? null
+                        ),
+                        'icon' => 'ri-user-line',
                     ],
                     [
                         'label' => "Father's occupation",
@@ -220,6 +227,13 @@ $formatEnum = static function (
                             $details['father_occupation_name'] ?? null
                         ),
                         'icon' => 'ri-user-star-line',
+                    ],
+                    [
+                        'label' => "Mother's name",
+                        'value' => $displayValue(
+                            $details['mother_name'] ?? null
+                        ),
+                        'icon' => 'ri-user-line',
                     ],
                     [
                         'label' => "Mother's occupation",
@@ -230,29 +244,36 @@ $formatEnum = static function (
                     ],
                     [
                         'label' => 'Brothers',
-                        'value' => sprintf(
-                            '%d total, %d married',
-                            (int) (
-                                $details['brothers_count'] ?? 0
-                            ),
-                            (int) (
-                                $details['married_brothers_count'] ?? 0
-                            )
+                        'value' => (string) (
+                            (int) ($details['brothers_count'] ?? 0)
                         ),
                         'icon' => 'ri-men-line',
                     ],
                     [
                         'label' => 'Sisters',
-                        'value' => sprintf(
-                            '%d total, %d married',
-                            (int) (
-                                $details['sisters_count'] ?? 0
-                            ),
-                            (int) (
-                                $details['married_sisters_count'] ?? 0
-                            )
+                        'value' => (string) (
+                            (int) ($details['sisters_count'] ?? 0)
                         ),
                         'icon' => 'ri-women-line',
+                    ],
+                    [
+                        'label' => 'Community',
+                        'value' => implode(
+                            ' - ',
+                            array_filter([
+                                trim(
+                                    (string) (
+                                        $details['community_name'] ?? ''
+                                    )
+                                ),
+                                trim(
+                                    (string) (
+                                        $details['subcommunity_name'] ?? ''
+                                    )
+                                ),
+                            ])
+                        ) ?: 'Not added',
+                        'icon' => 'ri-group-2-line',
                     ],
                     [
                         'label' => 'Family location',

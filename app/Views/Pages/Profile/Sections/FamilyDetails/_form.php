@@ -335,7 +335,91 @@ if ($isJourney) {
                 ]
             ) ?>
         </div>
+        <div class="col-12">
+            <hr class="my-2 mb-3">
 
+            <h2 class="fs-16 fw-semibold mb-0 mt-2">
+                Parent Details
+            </h2>
+        </div>
+
+        <?php
+        $parentNameFields = [
+            [
+                'id' => 'fatherName',
+                'name' => 'father_name',
+                'label' => "Father's name",
+                'placeholder' => "Enter father's name",
+                'stored' => $details['father_name'] ?? '',
+                'requiredMessage' =>
+                "Please enter your father's name.",
+            ],
+            [
+                'id' => 'motherName',
+                'name' => 'mother_name',
+                'label' => "Mother's name",
+                'placeholder' => "Enter mother's name",
+                'stored' => $details['mother_name'] ?? '',
+                'requiredMessage' =>
+                "Please enter your mother's name.",
+            ],
+        ];
+        ?>
+
+        <?php foreach ($parentNameFields as $parentNameField): ?>
+            <div class="col-12 col-md-6">
+                <label
+                    for="<?= esc(
+                                $parentNameField['id'],
+                                'attr'
+                            ) ?>"
+                    class="form-label fw-medium">
+
+                    <?= esc($parentNameField['label']) ?>
+                    <span class="text-danger">*</span>
+                </label>
+
+                <input
+                    type="text"
+                    id="<?= esc(
+                            $parentNameField['id'],
+                            'attr'
+                        ) ?>"
+                    name="<?= esc(
+                                $parentNameField['name'],
+                                'attr'
+                            ) ?>"
+                    class="form-control"
+                    value="<?= esc(
+                                $fieldValue(
+                                    $parentNameField['name'],
+                                    $parentNameField['stored']
+                                ),
+                                'attr'
+                            ) ?>"
+                    placeholder="<?= esc(
+                                        $parentNameField['placeholder'],
+                                        'attr'
+                                    ) ?>"
+                    maxlength="150"
+                    autocomplete="name"
+                    data-error-required="<?= esc(
+                                                $parentNameField['requiredMessage'],
+                                                'attr'
+                                            ) ?>"
+                    required>
+
+                <?= view(
+                    'Components/Forms/FieldError',
+                    [
+                        'field' => $parentNameField['name'],
+                        'errorId' =>
+                        $parentNameField['name'] . 'Error',
+                        'errors' => $errors,
+                    ]
+                ) ?>
+            </div>
+        <?php endforeach; ?>
         <?php
         $parentFields = [
             [
@@ -424,6 +508,14 @@ if ($isJourney) {
             </div>
         <?php endforeach; ?>
 
+        <div class="col-12">
+            <hr class="my-2 mb-3">
+
+            <h2 class="fs-16 fw-semibold mb-0 mt-2">
+                Sibling Details
+            </h2>
+        </div>
+
         <?php
         $siblingFields = [
             [
@@ -431,32 +523,22 @@ if ($isJourney) {
                 'name' => 'brothers_count',
                 'label' => 'No. of brothers',
                 'stored' => $details['brothers_count'] ?? 0,
-            ],
-            [
-                'id' => 'marriedBrothersCount',
-                'name' => 'married_brothers_count',
-                'label' => 'No. of married brothers',
-                'stored' =>
-                $details['married_brothers_count'] ?? 0,
+                'requiredMessage' =>
+                'Please select the number of brothers.',
             ],
             [
                 'id' => 'sistersCount',
                 'name' => 'sisters_count',
                 'label' => 'No. of sisters',
                 'stored' => $details['sisters_count'] ?? 0,
-            ],
-            [
-                'id' => 'marriedSistersCount',
-                'name' => 'married_sisters_count',
-                'label' => 'No. of married sisters',
-                'stored' =>
-                $details['married_sisters_count'] ?? 0,
+                'requiredMessage' =>
+                'Please select the number of sisters.',
             ],
         ];
         ?>
 
         <?php foreach ($siblingFields as $siblingField): ?>
-            <div class="col-12 col-sm-6 col-lg-3">
+            <div class="col-12 col-md-6">
                 <label
                     for="<?= esc(
                                 $siblingField['id'],
@@ -481,6 +563,10 @@ if ($isJourney) {
                     data-choice
                     data-choice-search="false"
                     data-choice-position="bottom"
+                    data-error-required="<?= esc(
+                                                $siblingField['requiredMessage'],
+                                                'attr'
+                                            ) ?>"
                     required>
 
                     <?php foreach ($siblingCounts as $count): ?>
@@ -496,6 +582,7 @@ if ($isJourney) {
                                 $countValue,
                                 $siblingField['stored']
                             ) ?>>
+
                             <?= esc($countValue) ?>
                         </option>
                     <?php endforeach; ?>
@@ -669,12 +756,6 @@ if ($isJourney) {
                             'attr'
                         ) ?>">
         </div>
-    </div>
-
-    <div
-        id="familySiblingValidationError"
-        class="invalid-feedback d-block mt-3"
-        aria-live="polite">
     </div>
 
     <div class="row g-2 mt-4">

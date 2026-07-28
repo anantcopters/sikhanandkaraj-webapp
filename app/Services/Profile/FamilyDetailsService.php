@@ -16,6 +16,8 @@ use Throwable;
  */
 final class FamilyDetailsService
 {
+    private const PARENT_NAME_MAX_LENGTH = 150;
+
     public function __construct(
         private readonly UserModel $userModel,
         private readonly MemberFamilyDetailModel $detailModel,
@@ -24,7 +26,7 @@ final class FamilyDetailsService
     ) {}
 
     /**
-     * Return all data needed by the Family Details page and profile card.
+     * Return all data required by the Family Details page and profile card.
      *
      * @return array<string, mixed>
      */
@@ -107,6 +109,20 @@ final class FamilyDetailsService
             'Please select a valid sub-community.'
         );
 
+        /*
+         * Service-level checks protect the domain even if this service is
+         * later called by an API, CLI command or another controller.
+         */
+        $fatherName = $this->requiredParentName(
+            $data['father_name'] ?? null,
+            "Please enter your father's name."
+        );
+
+        $motherName = $this->requiredParentName(
+            $data['mother_name'] ?? null,
+            "Please enter your mother's name."
+        );
+
         $fatherOccupationId = $this->nullableInteger(
             $data['father_occupation_id'] ?? null,
             "Please select a valid father's occupation."
@@ -122,34 +138,10 @@ final class FamilyDetailsService
             'Please select the number of brothers.'
         );
 
-        $marriedBrothersCount = $this->siblingCount(
-            $data['married_brothers_count'] ?? null,
-            'Please select the number of married brothers.'
-        );
-
         $sistersCount = $this->siblingCount(
             $data['sisters_count'] ?? null,
             'Please select the number of sisters.'
         );
-
-        $marriedSistersCount = $this->siblingCount(
-            $data['married_sisters_count'] ?? null,
-            'Please select the number of married sisters.'
-        );
-
-        if ($marriedBrothersCount > $brothersCount) {
-            throw new DomainException(
-                'Married brothers cannot exceed '
-                    . 'the total number of brothers.'
-            );
-        }
-
-        if ($marriedSistersCount > $sistersCount) {
-            throw new DomainException(
-                'Married sisters cannot exceed '
-                    . 'the total number of sisters.'
-            );
-        }
 
         $countryId = $this->requiredInteger(
             $data['country_id'] ?? null,
@@ -187,16 +179,12 @@ final class FamilyDetailsService
             'family_status_id' => $familyStatusId,
             'community_id' => $communityId,
             'subcommunity_id' => $subcommunityId,
-            'father_occupation_id' =>
-            $fatherOccupationId,
-            'mother_occupation_id' =>
-            $motherOccupationId,
+            'father_name' => $fatherName,
+            'mother_name' => $motherName,
+            'father_occupation_id' => $fatherOccupationId,
+            'mother_occupation_id' => $motherOccupationId,
             'brothers_count' => $brothersCount,
-            'married_brothers_count' =>
-            $marriedBrothersCount,
             'sisters_count' => $sistersCount,
-            'married_sisters_count' =>
-            $marriedSistersCount,
             'country_id' => $countryId,
             'state_id' => $stateId,
             'city_id' => $cityId,
@@ -237,6 +225,39 @@ final class FamilyDetailsService
 
             throw $exception;
         }
+    }
+
+    /**
+     * Normalize and require a parent's name.
+     */
+    private function requiredParentName(
+        mixed $value,
+        string $requiredMessage
+    ): string {
+        $normalized = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim((string) $value)
+        ) ?? '';
+
+        if ($normalized === '') {
+            throw new DomainException($requiredMessage);
+        }
+
+        if (
+            mb_strlen(
+                $normalized,
+                'UTF-8'
+            ) > self::PARENT_NAME_MAX_LENGTH
+        ) {
+            throw new DomainException(
+                'Parent name cannot exceed '
+                    . self::PARENT_NAME_MAX_LENGTH
+                    . ' characters.'
+            );
+        }
+
+        return $normalized;
     }
 
     private function requiredInteger(
@@ -310,7 +331,9 @@ final class FamilyDetailsService
     }
 
     /**
-     * Calculate completion using mandatory Family Details.
+     * Calculate completion from compulsory Family Details.
+     *
+     * A zero sibling count is a valid completed value.
      *
      * @param array<string, mixed>|null $details
      *
@@ -319,27 +342,70 @@ final class FamilyDetailsService
     private function calculateCompletion(
         ?array $details
     ): array {
-        $requiredValues = [
-            $details['family_value_id'] ?? null,
-            $details['family_type_id'] ?? null,
-            $details['family_status_id'] ?? null,
-            $details['community_id'] ?? null,
-            $details['subcommunity_id'] ?? null,
-            $details['country_id'] ?? null,
-            $details['state_id'] ?? null,
-            $details['city_id'] ?? null,
+        $details = is_array($details)
+            ? $details
+            : [];
+
+        $requiredChecks = [
+            $this->hasPositiveInteger(
+                $details['family_value_id'] ?? null
+            ),
+
+            $this->hasPositiveInteger(
+                $details['family_type_id'] ?? null
+            ),
+
+            $this->hasPositiveInteger(
+                $details['family_status_id'] ?? null
+            ),
+
+            $this->hasPositiveInteger(
+                $details['community_id'] ?? null
+            ),
+
+            $this->hasPositiveInteger(
+                $details['subcommunity_id'] ?? null
+            ),
+
+            $this->hasRequiredText(
+                $details['father_name'] ?? null
+            ),
+
+            $this->hasRequiredText(
+                $details['mother_name'] ?? null
+            ),
+
+            $this->hasValidSiblingCount(
+                $details,
+                'brothers_count'
+            ),
+
+            $this->hasValidSiblingCount(
+                $details,
+                'sisters_count'
+            ),
+
+            $this->hasPositiveInteger(
+                $details['country_id'] ?? null
+            ),
+
+            $this->hasPositiveInteger(
+                $details['state_id'] ?? null
+            ),
+
+            $this->hasPositiveInteger(
+                $details['city_id'] ?? null
+            ),
         ];
 
         $completed = count(
             array_filter(
-                $requiredValues,
-                static fn(mixed $value): bool =>
-                is_numeric($value)
-                    && (int) $value > 0
+                $requiredChecks,
+                static fn(bool $completed): bool => $completed
             )
         );
 
-        $total = count($requiredValues);
+        $total = count($requiredChecks);
 
         return [
             'completed' => $completed,
@@ -350,5 +416,38 @@ final class FamilyDetailsService
                 )
                 : 0,
         ];
+    }
+
+    private function hasPositiveInteger(mixed $value): bool
+    {
+        return is_numeric($value)
+            && (int) $value > 0;
+    }
+
+    private function hasRequiredText(mixed $value): bool
+    {
+        return trim((string) $value) !== '';
+    }
+
+    /**
+     * Determine whether a required sibling count was actually stored.
+     *
+     * array_key_exists is required because zero is a valid value.
+     *
+     * @param array<string, mixed> $details
+     */
+    private function hasValidSiblingCount(
+        array $details,
+        string $field
+    ): bool {
+        if (!array_key_exists($field, $details)) {
+            return false;
+        }
+
+        $value = $details[$field];
+
+        return is_numeric($value)
+            && (int) $value >= 0
+            && (int) $value <= 10;
     }
 }

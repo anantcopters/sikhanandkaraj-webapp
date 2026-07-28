@@ -1,12 +1,13 @@
 'use strict';
 
+'use strict';
+
 /**
  * Family Details page behaviour.
  *
  * Handles:
  * - Community to Sub-community dependency.
  * - State to City dependency.
- * - Married sibling count constraints.
  * - Submit-button loading state.
  */
 document.addEventListener('DOMContentLoaded', () => {
@@ -360,92 +361,6 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         }
     }
-
-    /**
-     * Restrict married sibling count to total sibling count.
-     *
-     * @param {string} totalSelectId
-     * @param {string} marriedSelectId
-     */
-    const initializeSiblingConstraint = (
-        totalSelectId,
-        marriedSelectId
-    ) => {
-        const totalSelect = document.getElementById(
-            totalSelectId
-        );
-
-        const marriedSelect = document.getElementById(
-            marriedSelectId
-        );
-
-        if (!totalSelect || !marriedSelect) {
-            return;
-        }
-
-        const enforceConstraint = () => {
-            const total = Number.parseInt(
-                totalSelect.value,
-                10
-            );
-
-            const married = Number.parseInt(
-                marriedSelect.value,
-                10
-            );
-
-            Array.from(
-                marriedSelect.options
-            ).forEach((option) => {
-                const optionCount = Number.parseInt(
-                    option.value,
-                    10
-                );
-
-                option.disabled =
-                    Number.isFinite(total)
-                    && Number.isFinite(optionCount)
-                    && optionCount > total;
-            });
-
-            if (
-                Number.isFinite(total)
-                && Number.isFinite(married)
-                && married > total
-            ) {
-                /*
-                 * Choices.js must be rebuilt after changing or disabling
-                 * its underlying options.
-                 */
-                window.SelectChoice?.destroy(
-                    marriedSelect
-                );
-
-                marriedSelect.value = String(total);
-
-                window.SelectChoice?.create(
-                    marriedSelect
-                );
-            }
-        };
-
-        totalSelect.addEventListener(
-            'change',
-            enforceConstraint
-        );
-
-        enforceConstraint();
-    };
-
-    initializeSiblingConstraint(
-        'brothersCount',
-        'marriedBrothersCount'
-    );
-
-    initializeSiblingConstraint(
-        'sistersCount',
-        'marriedSistersCount'
-    );
 
     /**
      * Prevent duplicate valid submissions and show loading state.

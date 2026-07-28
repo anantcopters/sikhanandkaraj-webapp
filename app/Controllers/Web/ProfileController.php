@@ -1531,6 +1531,18 @@ final class ProfileController extends BaseController
                 )
             ),
 
+            'father_name' => $this->normalizeProfileText(
+                $this->request->getPost(
+                    'father_name'
+                )
+            ),
+
+            'mother_name' => $this->normalizeProfileText(
+                $this->request->getPost(
+                    'mother_name'
+                )
+            ),
+
             'father_occupation_id' => trim(
                 (string) $this->request->getPost(
                     'father_occupation_id'
@@ -1549,21 +1561,9 @@ final class ProfileController extends BaseController
                 )
             ),
 
-            'married_brothers_count' => trim(
-                (string) $this->request->getPost(
-                    'married_brothers_count'
-                )
-            ),
-
             'sisters_count' => trim(
                 (string) $this->request->getPost(
                     'sisters_count'
-                )
-            ),
-
-            'married_sisters_count' => trim(
-                (string) $this->request->getPost(
-                    'married_sisters_count'
                 )
             ),
 
@@ -1586,7 +1586,6 @@ final class ProfileController extends BaseController
             ),
         ];
     }
-
     /**
      * Normalize profile text while preserving safe readable spacing.
      */

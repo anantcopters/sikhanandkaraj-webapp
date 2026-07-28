@@ -9,6 +9,8 @@ namespace App\Validation\Profile;
  */
 final class FamilyDetailsValidation
 {
+    private const PARENT_NAME_MAX_LENGTH = 150;
+
     /**
      * @return array<string, array<string, mixed>>
      */
@@ -40,6 +42,16 @@ final class FamilyDetailsValidation
                 'Please select your sub-community.'
             ),
 
+            'father_name' => self::parentNameRules(
+                "Father's name",
+                "Please enter your father's name."
+            ),
+
+            'mother_name' => self::parentNameRules(
+                "Mother's name",
+                "Please enter your mother's name."
+            ),
+
             'father_occupation_id' => [
                 'label' => "Father's occupation",
                 'rules' => [
@@ -68,18 +80,8 @@ final class FamilyDetailsValidation
                 'Number of brothers'
             ),
 
-            'married_brothers_count' =>
-            self::siblingCountRules(
-                'Married brothers'
-            ),
-
             'sisters_count' => self::siblingCountRules(
                 'Number of sisters'
-            ),
-
-            'married_sisters_count' =>
-            self::siblingCountRules(
-                'Married sisters'
             ),
 
             'country_id' => self::requiredMaster(
@@ -96,6 +98,36 @@ final class FamilyDetailsValidation
                 'City',
                 'Please select your family city.'
             ),
+        ];
+    }
+
+    /**
+     * Validation rules for Father and Mother name.
+     *
+     * Names are not restricted to alpha_space because genuine names can
+     * contain apostrophes, hyphens and periods.
+     *
+     * @return array<string, mixed>
+     */
+    private static function parentNameRules(
+        string $label,
+        string $requiredMessage
+    ): array {
+        return [
+            'label' => $label,
+            'rules' => [
+                'required',
+                'max_length['
+                    . self::PARENT_NAME_MAX_LENGTH
+                    . ']',
+            ],
+            'errors' => [
+                'required' => $requiredMessage,
+                'max_length' =>
+                $label . ' cannot exceed '
+                    . self::PARENT_NAME_MAX_LENGTH
+                    . ' characters.',
+            ],
         ];
     }
 
@@ -132,6 +164,16 @@ final class FamilyDetailsValidation
                 'integer',
                 'greater_than_equal_to[0]',
                 'less_than_equal_to[10]',
+            ],
+            'errors' => [
+                'required' =>
+                'Please select the ' . strtolower($label) . '.',
+                'integer' =>
+                'Please select a valid sibling count.',
+                'greater_than_equal_to' =>
+                'Sibling count cannot be less than zero.',
+                'less_than_equal_to' =>
+                'Sibling count cannot exceed 10.',
             ],
         ];
     }
