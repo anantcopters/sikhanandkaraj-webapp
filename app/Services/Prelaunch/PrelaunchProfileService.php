@@ -1,0 +1,244 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Prelaunch;
+
+use App\Models\Prelaunch\PrelaunchProfileModel;
+use CodeIgniter\Database\BaseConnection;
+use CodeIgniter\HTTP\Files\UploadedFile;
+use RuntimeException;
+use Throwable;
+
+/**
+ * Handles pre-launch profile creation.
+ */
+final class PrelaunchProfileService
+{
+    public function __construct(
+        private readonly PrelaunchProfileModel $profileModel,
+        private readonly PrelaunchFieldOfficerService $fieldOfficerService,
+        private readonly PrelaunchPhotoService $photoService,
+        private readonly BaseConnection $database
+    ) {}
+
+    /**
+     * @param array<string, mixed> $input
+     * @param array<int, UploadedFile> $photos
+     */
+    public function createDraft(
+        array $input,
+        array $photos
+    ): int {
+        $email = mb_strtolower(
+            trim((string) ($input['email'] ?? ''))
+        );
+
+        $countryCode = trim(
+            (string) ($input['country_code'] ?? '')
+        );
+
+        $mobileNumber = preg_replace(
+            '/\D+/',
+            '',
+            (string) ($input['mobile_number'] ?? '')
+        ) ?? '';
+
+        if ($this->profileModel->emailExists($email)) {
+            throw new RuntimeException(
+                'A pre-launch profile with this email already exists.'
+            );
+        }
+
+        if (
+            $this->profileModel->mobileExists(
+                $countryCode,
+                $mobileNumber
+            )
+        ) {
+            throw new RuntimeException(
+                'A pre-launch profile with this mobile number already exists.'
+            );
+        }
+
+        $fieldOfficerId = (int) (
+            $input['verified_field_officer_id']
+            ?? 0
+        );
+
+        $fieldOfficerCode = (string) (
+            $input['field_officer_code']
+            ?? ''
+        );
+
+        /*
+         * Never trust the hidden Field Officer ID alone.
+         * Re-check the active officer and code on the server.
+         */
+        $this->fieldOfficerService
+            ->assertVerifiedOfficer(
+                $fieldOfficerId,
+                $fieldOfficerCode
+            );
+
+        $profileReference =
+            $this->generateReference();
+
+        $this->database->transBegin();
+
+        try {
+            $profileId = $this->profileModel->insert(
+                [
+                    'profile_reference' =>
+                    $profileReference,
+
+                    'profile_created_for' =>
+                    (string) $input['profile_created_for'],
+
+                    'gender' =>
+                    (string) $input['gender'],
+
+                    'full_name' =>
+                    trim((string) $input['full_name']),
+
+                    'date_of_birth' =>
+                    (string) $input['date_of_birth'],
+
+                    'email' =>
+                    $email,
+
+                    'country_code' =>
+                    $countryCode,
+
+                    'mobile_number' =>
+                    $mobileNumber,
+
+                    'marital_status_id' =>
+                    (int) $input['marital_status_id'],
+
+                    'height_id' =>
+                    (int) $input['height_id'],
+
+                    'mother_tongue_id' =>
+                    (int) $input['mother_tongue_id'],
+
+                    'country_id' =>
+                    (int) $input['country_id'],
+
+                    'state_id' =>
+                    (int) $input['state_id'],
+
+                    'city_id' =>
+                    (int) $input['city_id'],
+
+                    'highest_education_id' =>
+                    (int) $input['highest_education_id'],
+
+                    'employed_in' =>
+                    (string) $input['employed_in'],
+
+                    'occupation_id' =>
+                    (int) $input['occupation_id'],
+
+                    'father_name' =>
+                    trim((string) $input['father_name']),
+
+                    'mother_name' =>
+                    trim((string) $input['mother_name']),
+
+                    'family_value_id' =>
+                    (int) $input['family_value_id'],
+
+                    'family_type_id' =>
+                    (int) $input['family_type_id'],
+
+                    'family_status_id' =>
+                    (int) $input['family_status_id'],
+
+                    'sikh_community_id' =>
+                    (int) $input['sikh_community_id'],
+
+                    'sikh_subcommunity_id' =>
+                    (int) $input['sikh_subcommunity_id'],
+
+                    'field_officer_id' =>
+                    $fieldOfficerId,
+
+                    /*
+                     * The creator is the verified Field Officer for this
+                     * standalone data-entry workflow.
+                     */
+                    'created_by' =>
+                    $fieldOfficerId,
+
+                    'created_source' =>
+                    PrelaunchProfileModel
+                    ::CREATED_SOURCE_FIELD_OFFICER,
+
+                    'is_prelaunch_profile' =>
+                    true,
+
+                    'status' =>
+                    PrelaunchProfileModel::STATUS_DRAFT,
+                ],
+                true
+            );
+
+            if ($profileId === false) {
+                throw new RuntimeException(
+                    'The pre-launch profile could not be saved.'
+                );
+            }
+
+            $this->photoService->storeProfilePhotos(
+                (int) $profileId,
+                $profileReference,
+                $photos
+            );
+
+            if (
+                $this->database->transStatus()
+                === false
+            ) {
+                throw new RuntimeException(
+                    'The profile transaction failed.'
+                );
+            }
+
+            $this->database->transCommit();
+
+            return (int) $profileId;
+        } catch (Throwable $exception) {
+            $this->database->transRollback();
+
+            throw $exception;
+        }
+    }
+
+    private function generateReference(): string
+    {
+        for ($attempt = 0; $attempt < 10; $attempt++) {
+            $reference = 'PRE'
+                . date('ymd')
+                . strtoupper(
+                    bin2hex(random_bytes(3))
+                );
+
+            if (
+                $this->profileModel
+                ->where(
+                    'profile_reference',
+                    $reference
+                )
+                ->first()
+                === null
+            ) {
+                return $reference;
+            }
+        }
+
+        throw new RuntimeException(
+            'A unique profile reference could not be generated.'
+        );
+    }
+}

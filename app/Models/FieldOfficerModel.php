@@ -159,4 +159,109 @@ final class FieldOfficerModel extends Model
             )
             ->first() !== null;
     }
+
+    /**
+     * Find one active Field Officer by code with location names.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findActiveByCode(
+        string $officerCode
+    ): ?array {
+        $record = $this
+            ->select([
+                'field_officers.id',
+                'field_officers.officer_code',
+                'field_officers.full_name',
+                'field_officers.account_status',
+                'master_states.name AS state_name',
+                'master_cities.name AS city_name',
+            ])
+            ->join(
+                'master_states',
+                'master_states.id = field_officers.state_id',
+                'inner'
+            )
+            ->join(
+                'master_cities',
+                'master_cities.id = field_officers.city_id',
+                'inner'
+            )
+            ->where(
+                'UPPER(field_officers.officer_code)',
+                mb_strtoupper(trim($officerCode))
+            )
+            ->where(
+                'field_officers.account_status',
+                self::STATUS_ACTIVE
+            )
+            ->where(
+                'field_officers.deleted_at',
+                null
+            )
+            ->first();
+
+        return is_array($record)
+            ? $record
+            : null;
+    }
+
+    /**
+     * Find an active Field Officer by officer code.
+     *
+     * The location names are resolved here so the controller does not
+     * need to perform direct database queries.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findActiveByOfficerCode(
+        string $officerCode
+    ): ?array {
+        $normalizedCode = mb_strtoupper(
+            trim($officerCode)
+        );
+
+        if ($normalizedCode === '') {
+            return null;
+        }
+
+        $record = $this
+            ->select([
+                'field_officers.id',
+                'field_officers.officer_code',
+                'field_officers.full_name',
+                'field_officers.account_status',
+                'field_officers.state_id',
+                'field_officers.city_id',
+                'master_states.name AS state_name',
+                'master_cities.name AS city_name',
+            ])
+            ->join(
+                'master_states',
+                'master_states.id = field_officers.state_id',
+                'inner'
+            )
+            ->join(
+                'master_cities',
+                'master_cities.id = field_officers.city_id',
+                'inner'
+            )
+            ->where(
+                'UPPER(field_officers.officer_code)',
+                $normalizedCode
+            )
+            ->where(
+                'field_officers.account_status',
+                self::STATUS_ACTIVE
+            )
+            ->where(
+                'field_officers.deleted_at',
+                null
+            )
+            ->first();
+
+        return is_array($record)
+            ? $record
+            : null;
+    }
 }

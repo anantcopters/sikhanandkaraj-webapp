@@ -738,6 +738,85 @@ $routes->group('admin', [
                 );
             }
         );
+
+        $routes->group(
+            'prelaunch/profiles',
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->get(
+                    '',
+                    'PrelaunchProfileController::index',
+                    [
+                        'as' =>
+                        'admin.prelaunch.profiles.index',
+                    ]
+                );
+
+                $routes->get(
+                    '(:num)',
+                    'PrelaunchProfileController::review/$1',
+                    [
+                        'as' =>
+                        'admin.prelaunch.profiles.review',
+                    ]
+                );
+
+                $routes->get(
+                    'photos/(:num)/(:segment)',
+                    'PrelaunchProfileController::photo/$1/$2',
+                    [
+                        'as' =>
+                        'admin.prelaunch.photos.view',
+                    ]
+                );
+
+                $routes->post(
+                    'photos/(:num)/approve',
+                    'PrelaunchProfileController::approvePhoto/$1',
+                    [
+                        'as' =>
+                        'admin.prelaunch.photos.approve',
+                    ]
+                );
+
+                $routes->post(
+                    'photos/(:num)/reject',
+                    'PrelaunchProfileController::rejectPhoto/$1',
+                    [
+                        'as' =>
+                        'admin.prelaunch.photos.reject',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)/contact',
+                    'PrelaunchProfileController::updateContact/$1',
+                    [
+                        'as' =>
+                        'admin.prelaunch.profiles.contact',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)/approve',
+                    'PrelaunchProfileController::approve/$1',
+                    [
+                        'as' =>
+                        'admin.prelaunch.profiles.approve',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)/reject',
+                    'PrelaunchProfileController::reject/$1',
+                    [
+                        'as' =>
+                        'admin.prelaunch.profiles.reject',
+                    ]
+                );
+            }
+        );
     });
 
     /*
@@ -824,6 +903,57 @@ $routes->group(API_ROUTE_PREFIX, [
         ]
     );
 });
+
+// -----------------------------------------------------------------------------
+// Standalone pre-launch profile collection routes
+// -----------------------------------------------------------------------------
+
+$routes->group(
+    'prelaunch',
+    [
+        'namespace' => 'App\Controllers\Prelaunch',
+    ],
+    static function (
+        RouteCollection $routes
+    ): void {
+        $routes->get(
+            'profile',
+            'PrelaunchProfileController::index',
+            [
+                'as' => 'prelaunch.profile.index',
+            ]
+        );
+
+        $routes->post(
+            'field-officer/verify',
+            'PrelaunchProfileController::verifyFieldOfficer',
+            [
+                'as' => 'prelaunch.field-officer.verify',
+            ]
+        );
+
+        $routes->post(
+            'profile',
+            'PrelaunchProfileController::store',
+            [
+                'as' => 'prelaunch.profile.store',
+            ]
+        );
+
+        $routes->get(
+            'profile/success/(:num)',
+            'PrelaunchProfileController::success/$1',
+            [
+                'as' => 'prelaunch.profile.success',
+            ]
+        );
+
+        /*
+         * Existing public master endpoints can be reused for state-city
+         * and community-subcommunity dependencies. Do not duplicate them.
+         */
+    }
+);
 
 // -----------------------------------------------------------------------------
 // Development-only routes

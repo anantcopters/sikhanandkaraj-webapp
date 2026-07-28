@@ -268,6 +268,21 @@ $pageScripts = $pageScripts ?? [];
                                         </span>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a
+                                        class="nav-link <?= url_is(
+                                                            'admin/prelaunch/profiles*'
+                                                        ) ? 'active' : '' ?>"
+                                        href="<?= route_to(
+                                                    'admin.prelaunch.profiles.index'
+                                                ) ?>">
+                                        <i
+                                            class="bi bi-person-lines-fill"
+                                            aria-hidden="true"></i>
+
+                                        <span>Pre-launch Profiles</span>
+                                    </a>
+                                </li>
                             <?php endif; ?>
                         </ul>
 

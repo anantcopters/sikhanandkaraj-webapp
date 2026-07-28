@@ -70,6 +70,12 @@ use App\Models\MasterFamilyTypeModel;
 use App\Models\MasterFamilyValueModel;
 use App\Models\FieldOfficerModel;
 use App\Services\Admin\FieldOfficerService;
+use App\Models\Prelaunch\PrelaunchPhotoModel;
+use App\Models\Prelaunch\PrelaunchProfileModel;
+use App\Services\Prelaunch\PrelaunchAdminReviewService;
+use App\Services\Prelaunch\PrelaunchFieldOfficerService;
+use App\Services\Prelaunch\PrelaunchPhotoService;
+use App\Services\Prelaunch\PrelaunchProfileService;
 use Config\TableCleanup;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
@@ -789,6 +795,78 @@ class Services extends BaseService
         return new FieldOfficerService(
             new FieldOfficerModel($database),
             static::profileMasterDataService(false),
+            static::adminAuditService(false),
+            $database
+        );
+    }
+
+    public static function prelaunchFieldOfficerService(
+        bool $getShared = true
+    ): PrelaunchFieldOfficerService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'prelaunchFieldOfficerService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new PrelaunchFieldOfficerService(
+            new FieldOfficerModel($database)
+        );
+    }
+
+    public static function prelaunchPhotoService(
+        bool $getShared = true
+    ): PrelaunchPhotoService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'prelaunchPhotoService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new PrelaunchPhotoService(
+            new PrelaunchPhotoModel($database)
+        );
+    }
+
+    public static function prelaunchProfileService(
+        bool $getShared = true
+    ): PrelaunchProfileService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'prelaunchProfileService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new PrelaunchProfileService(
+            new PrelaunchProfileModel($database),
+            static::prelaunchFieldOfficerService(false),
+            new PrelaunchPhotoService(
+                new PrelaunchPhotoModel($database)
+            ),
+            $database
+        );
+    }
+
+    public static function prelaunchAdminReviewService(
+        bool $getShared = true
+    ): PrelaunchAdminReviewService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'prelaunchAdminReviewService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new PrelaunchAdminReviewService(
+            new PrelaunchProfileModel($database),
+            new PrelaunchPhotoModel($database),
             static::adminAuditService(false),
             $database
         );
