@@ -470,22 +470,59 @@
                 return;
             }
 
+            /**
+ * File controls open an operating-system file dialog.
+ *
+ * Opening that dialog can cause the input to blur before the user has
+ * selected or cancelled a file. Therefore, file inputs must not be
+ * validated on blur.
+ *
+ * They are validated after change and during final form submission.
+ */
+            if (
+                field instanceof HTMLInputElement
+                && field.type === 'file'
+            ) {
+                field.addEventListener(
+                    'change',
+                    function () {
+                        validateField(
+                            field
+                        );
+                    }
+                );
+
+                return;
+            }
+
+            /**
+             * Normal text, date, number and textarea controls are validated when
+             * the user leaves the field.
+             */
             field.addEventListener(
                 'blur',
                 function () {
-                    validateField(field);
+                    validateField(
+                        field
+                    );
                 }
             );
 
             field.addEventListener(
                 'input',
                 function () {
+                    /*
+                     * Avoid displaying an error while the user initially types.
+                     * Revalidate live only after the field has already failed.
+                     */
                     if (
                         field.classList.contains(
                             'is-invalid'
                         )
                     ) {
-                        validateField(field);
+                        validateField(
+                            field
+                        );
                     }
                 }
             );
@@ -499,7 +536,9 @@
                         )
                         || field.tagName === 'SELECT'
                     ) {
-                        validateField(field);
+                        validateField(
+                            field
+                        );
                     }
                 }
             );

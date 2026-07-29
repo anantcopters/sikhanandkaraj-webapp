@@ -3,19 +3,28 @@
 declare(strict_types=1);
 
 /**
+ * Prelaunch profile photograph upload.
+ *
  * @var array<string, string>|null $validationErrors
  */
 
-$errorBag = is_array($validationErrors ?? null)
+$errorBag = is_array(
+    $validationErrors
+        ?? null
+)
     ? $validationErrors
     : [];
 
-$photoNumbers = [1, 2, 3];
+$photoNumbers = [
+    1,
+    2,
+    3,
+];
 ?>
 
 <div class="card border border-danger border-opacity-25 shadow-sm mb-3">
     <div class="card-body p-3 p-md-4">
-        <div class="d-flex align-items-start gap-3 mb-4">
+        <div class="d-flex align-items-start gap-3 mb-3">
             <div class="fs-3 text-primary">
                 <i
                     class="ri-image-add-line"
@@ -29,29 +38,36 @@ $photoNumbers = [1, 2, 3];
 
                 <p class="text-muted mb-0 fs-12">
                     Upload exactly three recent photographs.
-                    A thumbnail appears immediately after selection.
+                    Tap a placeholder to select an image.
                 </p>
             </div>
         </div>
-
-        <div class="row g-3">
+        <hr class="my-2 mb-2">
+        </hr>
+        <div class="row g-2 g-md-3 pt-2">
             <?php foreach (
-                $photoNumbers as $photoNumber
+                $photoNumbers as
+                $photoNumber
             ): ?>
                 <?php
-                $fieldName = 'photo_'
+                $fieldName =
+                    'photo_'
                     . $photoNumber;
 
-                $previewId = 'photo-preview-'
+                $previewId =
+                    'photo-preview-'
                     . $photoNumber;
 
-                $placeholderId = $previewId
+                $placeholderId =
+                    $previewId
                     . '-placeholder';
 
-                $photoLabel = 'Photo '
+                $photoLabel =
+                    'Photo '
                     . $photoNumber;
 
-                $previewAlt = $photoLabel
+                $previewAlt =
+                    $photoLabel
                     . ' preview';
 
                 $photoError = trim(
@@ -61,81 +77,108 @@ $photoNumbers = [1, 2, 3];
                     )
                 );
 
-                $photoClass = $photoError !== ''
+                $photoClass =
+                    $photoError !== ''
                     ? 'is-invalid'
                     : '';
                 ?>
 
-                <div class="col-12 col-md-4">
-                    <div class="border rounded p-3 h-80">
-                        <div
-                            class="ratio ratio-4x3 bg-light rounded overflow-hidden mb-3">
-                            <div
-                                class="d-flex align-items-center justify-content-center">
-                                <i
-                                    id="<?= esc(
-                                            $placeholderId,
-                                            'attr'
-                                        ) ?>"
-                                    class="ri-image-line fs-1 text-muted"
-                                    aria-hidden="true"></i>
-
-                                <img
-                                    id="<?= esc(
-                                            $previewId,
-                                            'attr'
-                                        ) ?>"
-                                    src=""
-                                    alt="<?= esc(
-                                                $previewAlt,
-                                                'attr'
-                                            ) ?>"
-                                    class="w-100 h-100 object-fit-cover d-none">
-                            </div>
-                        </div>
-
+                <div class="col-4">
+                    <div class="h-80">
                         <label
                             for="<?= esc(
                                         $fieldName,
                                         'attr'
                                     ) ?>"
-                            class="form-label">
-                            <?= esc($photoLabel) ?>
-                        </label>
+                            class="d-block position-relative ratio ratio-4x3 border rounded overflow-hidden bg-light mb-2">
 
-                        <input
-                            type="file"
-                            id="<?= esc(
-                                    $fieldName,
-                                    'attr'
-                                ) ?>"
-                            name="<?= esc(
+                            <span
+                                id="<?= esc(
+                                        $placeholderId,
+                                        'attr'
+                                    ) ?>"
+                                class="d-flex flex-column align-items-center justify-content-center text-center p-1">
+                                <i
+                                    class="ri-image-add-line fs-2 text-muted"
+                                    aria-hidden="true"></i>
+
+                                <span class="small fw-semibold">
+                                    <?= esc($photoLabel) ?>
+                                </span>
+
+                                <span class="small text-muted d-none d-sm-block">
+                                    Tap to add
+                                </span>
+                            </span>
+
+                            <img
+                                id="<?= esc(
+                                        $previewId,
+                                        'attr'
+                                    ) ?>"
+                                src=""
+                                alt="<?= esc(
+                                            $previewAlt,
+                                            'attr'
+                                        ) ?>"
+                                class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover d-none">
+
+                            <input
+                                type="file"
+                                id="<?= esc(
                                         $fieldName,
                                         'attr'
                                     ) ?>"
-                            class="form-control js-photo-input <?= esc(
-                                                                    $photoClass,
-                                                                    'attr'
-                                                                ) ?>"
-                            data-preview-target="<?= esc(
-                                                        $previewId,
+                                name="<?= esc(
+                                            $fieldName,
+                                            'attr'
+                                        ) ?>"
+                                class="position-absolute top-0 start-0 w-100 h-100 opacity-0 js-photo-input <?= esc(
+                                                                                                                $photoClass,
+                                                                                                                'attr'
+                                                                                                            ) ?>"
+                                data-preview-target="<?= esc(
+                                                            $previewId,
+                                                            'attr'
+                                                        ) ?>"
+                                accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                aria-label="<?= esc(
+                                                'Select '
+                                                    . strtolower(
+                                                        $photoLabel
+                                                    ),
+                                                'attr'
+                                            ) ?>"
+                                required>
+                        </label>
+
+                        <div
+                            id="<?= esc(
+                                    $fieldName
+                                        . 'Error',
+                                    'attr'
+                                ) ?>"
+                            class="invalid-feedback text-center"
+                            data-validation-error="<?= esc(
+                                                        $fieldName,
                                                         'attr'
-                                                    ) ?>"
-                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                            required>
-
-                        <div class="form-text color-pink">
-                            JPG, PNG or WebP. Maximum 5 MB.
+                                                    ) ?>">
+                            <?= esc($photoError) ?>
                         </div>
-
-                        <?php if ($photoError !== ''): ?>
-                            <div class="invalid-feedback">
-                                <?= esc($photoError) ?>
-                            </div>
-                        <?php endif ?>
                     </div>
                 </div>
             <?php endforeach ?>
+        </div>
+
+        <div class="form-text mt-2 color-pink">
+            Maximum file size: 5 MB per photograph.
+        </div>
+
+        <div class="form-text mt-1 color-pink">
+            Each photograph must be 5 MB or smaller.
+        </div>
+        <div class="form-text small mt-1 color-pink">
+            JPG, PNG or WebP Images allowed
         </div>
     </div>
 </div>
