@@ -333,18 +333,22 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
-     * Initialize minimum-age validation and age preview.
-     *
-     * The browser's max attribute provides the first validation layer.
-     * This function additionally calculates the completed age and provides
-     * a clear validation message.
-     *
-     * @returns {void}
-     */
+ * Initialize native DOB validation, formatted preview and age display.
+ *
+ * The native date input always submits YYYY-MM-DD. A separate helper
+ * displays the selected date as DD/MM/YYYY.
+ *
+ * @returns {void}
+ */
     const initializeDateOfBirthAge = () => {
         const dateOfBirth =
             document.getElementById(
                 'date_of_birth'
+            );
+
+        const datePreview =
+            document.getElementById(
+                'date-of-birth-preview'
             );
 
         const agePreview =
@@ -363,6 +367,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 instanceof HTMLInputElement
             )
             || !(
+                datePreview
+                instanceof HTMLElement
+            )
+            || !(
                 agePreview
                 instanceof HTMLElement
             )
@@ -370,25 +378,28 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const minimumAge = Number.parseInt(
-            dateOfBirth.dataset.minimumAge
-            ?? '18',
-            10
-        );
+        const minimumAge =
+            Number.parseInt(
+                dateOfBirth.dataset
+                    .minimumAge
+                ?? '18',
+                10
+            );
 
         /**
-         * Format a local Date object as YYYY-MM-DD without introducing
-         * UTC timezone conversion.
+         * Format a Date object as YYYY-MM-DD using local values.
          *
          * @param {Date} date
          *
          * @returns {string}
          */
-        const formatLocalDate = (
+        const formatIsoDate = (
             date
         ) => {
             const year =
-                String(date.getFullYear());
+                String(
+                    date.getFullYear()
+                );
 
             const month =
                 String(
@@ -410,56 +421,31 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         /**
-         * Return the latest DOB allowed for the configured minimum age.
-         *
-         * @returns {Date}
-         */
-        const getLatestEligibleBirthDate =
-            () => {
-                const today =
-                    new Date();
-
-                return new Date(
-                    today.getFullYear()
-                    - minimumAge,
-                    today.getMonth(),
-                    today.getDate()
-                );
-            };
-
-        /**
-         * Parse an HTML date-input value without UTC conversion.
+         * Convert YYYY-MM-DD into a real local Date without UTC shifts.
          *
          * @param {string} value
          *
          * @returns {Date|null}
          */
-        const parseDateValue = (
+        const parseIsoDate = (
             value
         ) => {
-            const parts =
-                value.split('-');
+            const match =
+                /^(\d{4})-(\d{2})-(\d{2})$/
+                    .exec(value);
 
-            if (parts.length !== 3) {
+            if (!match) {
                 return null;
             }
 
             const year =
-                Number(parts[0]);
+                Number(match[1]);
 
             const month =
-                Number(parts[1]);
+                Number(match[2]);
 
             const day =
-                Number(parts[2]);
-
-            if (
-                !Number.isInteger(year)
-                || !Number.isInteger(month)
-                || !Number.isInteger(day)
-            ) {
-                return null;
-            }
+                Number(match[3]);
 
             const parsedDate =
                 new Date(
@@ -468,7 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     day
                 );
 
-            const isRealDate =
+            const isValidDate =
                 parsedDate.getFullYear()
                 === year
                 && parsedDate.getMonth()
@@ -476,9 +462,43 @@ document.addEventListener('DOMContentLoaded', () => {
                 && parsedDate.getDate()
                 === day;
 
-            return isRealDate
+            return isValidDate
                 ? parsedDate
                 : null;
+        };
+
+        /**
+         * Convert a Date object to DD/MM/YYYY.
+         *
+         * @param {Date} date
+         *
+         * @returns {string}
+         */
+        const formatDisplayDate = (
+            date
+        ) => {
+            const day =
+                String(
+                    date.getDate()
+                ).padStart(
+                    2,
+                    '0'
+                );
+
+            const month =
+                String(
+                    date.getMonth() + 1
+                ).padStart(
+                    2,
+                    '0'
+                );
+
+            const year =
+                String(
+                    date.getFullYear()
+                );
+
+            return `${day}/${month}/${year}`;
         };
 
         /**
@@ -517,7 +537,25 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         /**
-         * Clear DOB validation state.
+         * Return the latest DOB allowed for the minimum age.
+         *
+         * @returns {Date}
+         */
+        const getLatestEligibleBirthDate =
+            () => {
+                const today =
+                    new Date();
+
+                return new Date(
+                    today.getFullYear()
+                    - minimumAge,
+                    today.getMonth(),
+                    today.getDate()
+                );
+            };
+
+        /**
+         * Clear DOB-specific validation.
          *
          * @returns {void}
          */
@@ -544,15 +582,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     'd-block'
                 );
             }
-
-            window.DatePicker
-                ?.refreshValidation(
-                    dateOfBirth
-                );
         };
 
         /**
-         * Display DOB validation error.
+         * Display a DOB validation error.
          *
          * @param {string} message
          *
@@ -574,6 +607,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 'true'
             );
 
+            datePreview.textContent = '';
             agePreview.textContent = '';
 
             if (
@@ -587,108 +621,88 @@ document.addEventListener('DOMContentLoaded', () => {
                     'd-block'
                 );
             }
-
-            window.DatePicker
-                ?.refreshValidation(
-                    dateOfBirth
-                );
         };
 
         /**
-         * Validate DOB and update the age helper text.
+         * Validate DOB and refresh its formatted date and age.
          *
          * @returns {boolean}
          */
-        const validateAndDisplayAge = () => {
-            const selectedValue =
-                dateOfBirth.value.trim();
+        const validateAndDisplayAge =
+            () => {
+                const selectedValue =
+                    dateOfBirth.value
+                        .trim();
 
-            agePreview.textContent = '';
+                datePreview.textContent = '';
+                agePreview.textContent = '';
 
-            /*
-             * Let the reusable required validator handle an empty field.
-             */
-            if (selectedValue === '') {
-                dateOfBirth.setCustomValidity(
-                    ''
-                );
+                /*
+                 * Required validation remains with the shared form
+                 * validator and native browser constraint validation.
+                 */
+                if (selectedValue === '') {
+                    clearDateError();
 
-                return false;
-            }
+                    return false;
+                }
 
-            const birthDate =
-                parseDateValue(
-                    selectedValue
-                );
+                const birthDate =
+                    parseIsoDate(
+                        selectedValue
+                    );
 
-            if (!(birthDate instanceof Date)) {
-                showDateError(
-                    'Please enter a valid date of birth.'
-                );
+                if (
+                    !(
+                        birthDate
+                        instanceof Date
+                    )
+                ) {
+                    showDateError(
+                        'Please enter a valid date of birth.'
+                    );
 
-                return false;
-            }
+                    return false;
+                }
 
-            const latestEligibleBirthDate =
-                getLatestEligibleBirthDate();
+                const latestEligibleDate =
+                    getLatestEligibleBirthDate();
 
-            if (
-                birthDate
-                > latestEligibleBirthDate
-            ) {
-                showDateError(
-                    `The member must be at least ${minimumAge} years old.`
-                );
-
-                return false;
-            }
-
-            clearDateError();
-
-            const age =
-                calculateAge(
+                if (
                     birthDate
-                );
+                    > latestEligibleDate
+                ) {
+                    showDateError(
+                        `The member must be at least ${minimumAge} years old.`
+                    );
 
-            agePreview.textContent =
-                `Current age: ${age} years`;
+                    return false;
+                }
 
-            return true;
-        };
+                clearDateError();
+
+                datePreview.textContent =
+                    `Selected date: ${formatDisplayDate(
+                        birthDate
+                    )
+                    }`;
+
+                agePreview.textContent =
+                    `Current age: ${calculateAge(
+                        birthDate
+                    )
+                    } years`;
+
+                return true;
+            };
 
         /*
-         * Keep the client-side maximum date synchronized with the user's
-         * current local date.
+         * Synchronize the native maximum date with the user's local date.
          */
-
-        const latestEligibleDate =
-            formatLocalDate(
+        dateOfBirth.max =
+            formatIsoDate(
                 getLatestEligibleBirthDate()
             );
-
-        dateOfBirth.dataset.dateMax =
-            latestEligibleDate;
-
-        const picker =
-            window.DatePicker
-                && typeof window.DatePicker
-                    .getInstance
-                === 'function'
-                ? window.DatePicker.getInstance(
-                    dateOfBirth
-                )
-                : null;
-
-        if (
-            picker
-            && typeof picker.set
-            === 'function'
-        ) {
-            picker.set(
-                'maxDate',
-                latestEligibleDate
-            );
-        }
 
         dateOfBirth.addEventListener(
             'change',
@@ -701,9 +715,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (
                     dateOfBirth.value === ''
                 ) {
-                    agePreview.textContent = '';
-
                     clearDateError();
+
+                    datePreview.textContent =
+                        '';
+
+                    agePreview.textContent =
+                        '';
 
                     return;
                 }
@@ -713,14 +731,16 @@ document.addEventListener('DOMContentLoaded', () => {
         );
 
         /*
-         * Restore age preview after validation redirect and old input.
+         * Restore previews after a server-validation redirect.
          */
-        if (dateOfBirth.value !== '') {
+        if (
+            dateOfBirth.value !== ''
+        ) {
             validateAndDisplayAge();
         }
 
         /*
-         * Final protection before the form enters submit-loader state.
+         * Final DOB verification before form submission.
          */
         form.addEventListener(
             'submit',

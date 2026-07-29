@@ -75,12 +75,6 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 
     <link
         rel="stylesheet"
-        href="<?= base_url(
-                    'assets/libs/flatpickr/flatpickr.min.css'
-                ) ?>">
-
-    <link
-        rel="stylesheet"
         href="<?= base_url('assets/css/custom.css') ?>">
 
     <?= $this->renderSection('pageStyles') ?>
@@ -259,16 +253,6 @@ $phoneUrl = 'tel:' . $phoneDialValue;
     <script src="<?= base_url('assets/js/jquery.js') ?>"></script>
     <script src="<?= base_url('assets/js/bootstrap.bundle.min.js') ?>"></script>
     <script src="<?= base_url('assets/js/choices.min.js') ?>"></script>
-
-    <script
-        src="<?= base_url(
-                    'assets/libs/flatpickr/flatpickr.min.js'
-                ) ?>"></script>
-
-    <script
-        src="<?= base_url(
-                    'assets/js/components/date-picker.js'
-                ) ?>"></script>
 
     <script src="<?= base_url(
                         'assets/js/components/select-choice.js'

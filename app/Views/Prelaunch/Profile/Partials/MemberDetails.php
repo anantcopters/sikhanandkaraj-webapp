@@ -354,36 +354,28 @@ $genderOptions = [
                     Date of birth
                 </label>
 
-
                 <input
-                    type="text"
+                    type="date"
                     id="date_of_birth"
                     name="date_of_birth"
-                    class="form-control pe-5 <?= esc(
-                                                    $dateOfBirthClass,
-                                                    'attr'
-                                                ) ?>"
+                    class="form-control <?= esc(
+                                            $dateOfBirthClass,
+                                            'attr'
+                                        ) ?>"
                     value="<?= esc(
                                 $dateOfBirth,
                                 'attr'
                             ) ?>"
-                    placeholder="Select date of birth"
-                    autocomplete="off"
-                    aria-describedby="date_of_birthError member-age-preview"
-                    data-date-picker
-                    data-date-format="Y-m-d"
-                    data-alt-format="d M, Y"
-                    data-date-max="<?= esc(
-                                        $maximumDateOfBirth,
-                                        'attr'
-                                    ) ?>"
-                    data-date-allow-input="true"
+                    max="<?= esc(
+                                $maximumDateOfBirth,
+                                'attr'
+                            ) ?>"
+                    autocomplete="bday"
+                    aria-describedby="date_of_birthError date-of-birth-preview member-age-preview"
                     data-minimum-age="18"
                     data-error-required="Please select the member’s date of birth."
+                    data-error-max="The member must be at least 18 years old."
                     required>
-
-
-
 
                 <div
                     id="date_of_birthError"
@@ -393,8 +385,13 @@ $genderOptions = [
                 </div>
 
                 <div
+                    id="date-of-birth-preview"
+                    class="form-text color-pink"
+                    aria-live="polite"></div>
+
+                <div
                     id="member-age-preview"
-                    class="form-text"
+                    class="form-text color-pink"
                     aria-live="polite"></div>
             </div>
 
