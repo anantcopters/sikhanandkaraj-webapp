@@ -3,183 +3,488 @@
 declare(strict_types=1);
 
 /**
+ * @var list<array<string, mixed>> $profiles
+ * @var string $selectedStatus
  * @var array<string, string>|null $formAlert
  */
 
-$alert = is_array($formAlert ?? null)
+$resolvedProfiles = is_array(
+    $profiles ?? null
+)
+    ? $profiles
+    : [];
+
+$resolvedFormAlert = is_array(
+    $formAlert ?? null
+)
     ? $formAlert
     : null;
+
+$resolvedStatus = in_array(
+    $selectedStatus ?? '',
+    [
+        'DRAFT',
+        'APPROVED',
+        'REJECTED',
+    ],
+    true
+)
+    ? $selectedStatus
+    : 'DRAFT';
 
 $this->extend('Admin/Layouts/Main');
 $this->section('content');
 ?>
 
-<div class="container-fluid py-3">
-    <div
-        class="d-flex flex-column flex-md-row
-        justify-content-between align-items-md-center gap-3 mb-4">
-        <div>
-            <h1 class="h3 mb-1">
-                Pre-launch Profiles
-            </h1>
+<div class="container-fluid">
 
-            <p class="text-muted mb-0">
-                Review submitted profile details and photographs.
-            </p>
+    <!-- Page heading -->
+    <div class="row">
+        <div class="col-12">
+
+            <div
+                class="page-title-box
+                d-sm-flex
+                align-items-center
+                justify-content-between">
+
+                <div>
+                    <h4 class="mb-sm-0">
+                        Pre-launch Profiles
+                    </h4>
+
+                    <p class="text-muted mb-0 mt-1">
+                        Review submitted profile details
+                        and photographs.
+                    </p>
+                </div>
+
+                <!-- Status filter -->
+                <div class="page-title-right mt-3 mt-sm-0">
+
+                    <form
+                        method="get"
+                        action="<?= route_to(
+                                    'admin.prelaunch.profiles.index'
+                                ) ?>">
+
+                        <label
+                            for="prelaunch-status-filter"
+                            class="visually-hidden">
+                            Filter profiles by status
+                        </label>
+
+                        <select
+                            id="prelaunch-status-filter"
+                            class="form-select"
+                            name="status"
+                            onchange="this.form.submit()">
+
+                            <?php foreach (
+                                [
+                                    'DRAFT' =>
+                                    'Draft',
+
+                                    'APPROVED' =>
+                                    'Approved',
+
+                                    'REJECTED' =>
+                                    'Rejected',
+                                ] as $value => $label
+                            ): ?>
+
+                                <option
+                                    value="<?= esc(
+                                                $value,
+                                                'attr'
+                                            ) ?>"
+                                    <?= $resolvedStatus === $value
+                                        ? 'selected'
+                                        : '' ?>>
+
+                                    <?= esc($label) ?>
+
+                                </option>
+
+                            <?php endforeach; ?>
+
+                        </select>
+
+                    </form>
+
+                </div>
+
+            </div>
+
         </div>
-
-        <form
-            method="get"
-            action="<?= route_to(
-                        'admin.prelaunch.profiles.index'
-                    ) ?>">
-            <select
-                class="form-select"
-                name="status"
-                onchange="this.form.submit()">
-                <?php foreach (
-                    [
-                        'DRAFT' => 'Draft',
-                        'APPROVED' => 'Approved',
-                        'REJECTED' => 'Rejected',
-                    ] as $value => $label
-                ): ?>
-                    <option
-                        value="<?= esc($value) ?>"
-                        <?= ($selectedStatus ?? 'DRAFT') === $value
-                            ? 'selected'
-                            : '' ?>>
-                        <?= esc($label) ?>
-                    </option>
-                <?php endforeach ?>
-            </select>
-        </form>
     </div>
 
-    <?php if ($alert !== null): ?>
-        <div
-            class="alert alert-<?= esc(
-                                    $alert['type'] ?? 'success'
-                                ) ?>"
-            role="alert">
-            <strong>
-                <?= esc($alert['title'] ?? '') ?>
-            </strong>
+    <!-- Shared form alert -->
+    <?= view(
+        'Components/Alerts/FormAlert',
+        [
+            'alert' =>
+            $resolvedFormAlert,
+        ]
+    ) ?>
 
-            <?= esc($alert['message'] ?? '') ?>
-        </div>
-    <?php endif ?>
+    <!-- Profile list -->
+    <div
+        class="card
+        border
+        border-danger
+        border-opacity-25">
 
-    <div class="card shadow-sm">
         <div class="card-body p-0">
+
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
+
+                <table
+                    class="table
+                    table-hover
+                    table-nowrap
+                    align-middle
+                    mb-0">
+
+                    <thead class="bg-info-subtle">
                         <tr>
-                            <th>Reference</th>
-                            <th>Member</th>
-                            <th>Contact</th>
-                            <th>Location</th>
-                            <th>Field Officer</th>
-                            <th>Status</th>
-                            <th class="text-end">Action</th>
+                            <th scope="col">
+                                Reference
+                            </th>
+
+                            <th scope="col">
+                                Member
+                            </th>
+
+                            <th scope="col">
+                                Contact
+                            </th>
+
+                            <th scope="col">
+                                Location
+                            </th>
+
+                            <th scope="col">
+                                Field Officer
+                            </th>
+
+                            <th scope="col">
+                                Status
+                            </th>
+
+                            <th
+                                scope="col"
+                                class="text-end">
+                                Action
+                            </th>
                         </tr>
                     </thead>
 
                     <tbody>
-                        <?php if (($profiles ?? []) === []): ?>
+
+                        <?php if (
+                            $resolvedProfiles === []
+                        ): ?>
+
                             <tr>
                                 <td
                                     colspan="7"
-                                    class="text-center text-muted py-4">
-                                    No profiles found.
+                                    class="text-center
+                                    text-muted
+                                    py-4">
+
+                                    No pre-launch profiles
+                                    found for the selected
+                                    status.
+
                                 </td>
                             </tr>
-                        <?php endif ?>
+
+                        <?php endif; ?>
 
                         <?php foreach (
-                            $profiles ?? [] as $profile
+                            $resolvedProfiles
+                            as $profile
                         ): ?>
-                            <tr>
-                                <td>
-                                    <?= esc(
-                                        $profile['profile_reference']
-                                    ) ?>
-                                </td>
 
-                                <td>
-                                    <strong>
-                                        <?= esc(
-                                            $profile['full_name']
-                                        ) ?>
-                                    </strong>
+                            <?php
+                            $profileId = (int) (
+                                $profile['id']
+                                ?? 0
+                            );
 
-                                    <div class="small text-muted">
-                                        <?= esc(
-                                            $profile['gender']
-                                        ) ?>
-                                    </div>
-                                </td>
+                            $reference = trim(
+                                (string) (
+                                    $profile['profile_reference']
+                                    ?? ''
+                                )
+                            );
 
-                                <td>
-                                    <div>
-                                        <?= esc($profile['email']) ?>
-                                    </div>
+                            $fullName = trim(
+                                (string) (
+                                    $profile['full_name']
+                                    ?? ''
+                                )
+                            );
 
-                                    <div class="small text-muted">
-                                        <?= esc(
-                                            $profile['country_code']
-                                                . ' '
-                                                . $profile['mobile_number']
-                                        ) ?>
-                                    </div>
-                                </td>
+                            $gender = trim(
+                                (string) (
+                                    $profile['gender']
+                                    ?? ''
+                                )
+                            );
 
-                                <td>
-                                    <?= esc(
+                            $email = trim(
+                                (string) (
+                                    $profile['email']
+                                    ?? ''
+                                )
+                            );
+
+                            $countryCode = trim(
+                                (string) (
+                                    $profile['country_code']
+                                    ?? ''
+                                )
+                            );
+
+                            $mobileNumber = trim(
+                                (string) (
+                                    $profile['mobile_number']
+                                    ?? ''
+                                )
+                            );
+
+                            $locationParts = array_filter([
+                                trim(
+                                    (string) (
                                         $profile['city_name']
-                                            . ', '
-                                            . $profile['state_name']
-                                    ) ?>
-                                </td>
+                                        ?? ''
+                                    )
+                                ),
+                                trim(
+                                    (string) (
+                                        $profile['state_name']
+                                        ?? ''
+                                    )
+                                ),
+                                trim(
+                                    (string) (
+                                        $profile['country_name']
+                                        ?? ''
+                                    )
+                                ),
+                            ]);
 
+                            $location = implode(
+                                ', ',
+                                $locationParts
+                            );
+
+                            $fieldOfficerName = trim(
+                                (string) (
+                                    $profile['field_officer_name']
+                                    ?? ''
+                                )
+                            );
+
+                            $officerCode = trim(
+                                (string) (
+                                    $profile['officer_code']
+                                    ?? ''
+                                )
+                            );
+
+                            $status = mb_strtoupper(
+                                trim(
+                                    (string) (
+                                        $profile['status']
+                                        ?? 'DRAFT'
+                                    )
+                                )
+                            );
+
+                            $statusClass = match ($status) {
+                                'APPROVED' =>
+                                'bg-success-subtle text-black',
+
+                                'REJECTED' =>
+                                'bg-danger-subtle text-danger',
+
+                                default =>
+                                'bg-warning-subtle text-black',
+                            };
+                            ?>
+
+                            <tr>
+
+                                <!-- Reference -->
                                 <td>
-                                    <?= esc(
-                                        $profile['field_officer_name']
-                                    ) ?>
+                                    <span
+                                        class="badge
+                                        bg-primary-subtle
+                                        text-primary
+                                        p-2">
 
-                                    <div class="small text-muted">
                                         <?= esc(
-                                            $profile['officer_code']
+                                            $reference !== ''
+                                                ? $reference
+                                                : '—'
                                         ) ?>
-                                    </div>
-                                </td>
 
-                                <td>
-                                    <span class="badge text-bg-secondary">
-                                        <?= esc(
-                                            $profile['status']
-                                        ) ?>
                                     </span>
                                 </td>
 
+                                <!-- Member -->
+                                <td>
+                                    <span class="fw-semibold">
+                                        <?= esc(
+                                            $fullName !== ''
+                                                ? $fullName
+                                                : '—'
+                                        ) ?>
+                                    </span>
+
+                                    <?php if (
+                                        $gender !== ''
+                                    ): ?>
+                                        <div
+                                            class="small
+                                            text-muted">
+
+                                            <?= esc(
+                                                ucfirst(
+                                                    mb_strtolower(
+                                                        $gender
+                                                    )
+                                                )
+                                            ) ?>
+
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
+
+                                <!-- Contact -->
+                                <td>
+                                    <div>
+                                        <?= esc(
+                                            $email !== ''
+                                                ? $email
+                                                : '—'
+                                        ) ?>
+                                    </div>
+
+                                    <?php if (
+                                        $mobileNumber !== ''
+                                    ): ?>
+                                        <div
+                                            class="small
+                                            text-muted">
+
+                                            <?= esc(
+                                                trim(
+                                                    $countryCode
+                                                        . ' '
+                                                        . $mobileNumber
+                                                )
+                                            ) ?>
+
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
+
+                                <!-- Location -->
+                                <td>
+                                    <?= esc(
+                                        $location !== ''
+                                            ? $location
+                                            : '—'
+                                    ) ?>
+                                </td>
+
+                                <!-- Field Officer -->
+                                <td>
+                                    <?= esc(
+                                        $fieldOfficerName !== ''
+                                            ? $fieldOfficerName
+                                            : '—'
+                                    ) ?>
+
+                                    <?php if (
+                                        $officerCode !== ''
+                                    ): ?>
+                                        <div
+                                            class="small
+                                            text-muted">
+
+                                            <?= esc(
+                                                $officerCode
+                                            ) ?>
+
+                                        </div>
+                                    <?php endif; ?>
+                                </td>
+
+                                <!-- Status -->
+                                <td>
+                                    <span
+                                        class="badge
+                                        <?= esc(
+                                            $statusClass,
+                                            'attr'
+                                        ) ?>
+                                        p-2">
+
+                                        <?= esc(
+                                            ucfirst(
+                                                mb_strtolower(
+                                                    $status
+                                                )
+                                            )
+                                        ) ?>
+
+                                    </span>
+                                </td>
+
+                                <!-- Action -->
                                 <td class="text-end">
                                     <a
                                         href="<?= route_to(
                                                     'admin.prelaunch.profiles.review',
-                                                    $profile['id']
+                                                    $profileId
                                                 ) ?>"
-                                        class="btn btn-sm btn-outline-primary">
-                                        Review
+                                        class="btn
+                                        btn-soft-primary
+                                        btn-sm"
+                                        title="Review profile"
+                                        aria-label="<?= esc(
+                                                        'Review profile '
+                                                            . $fullName,
+                                                        'attr'
+                                                    ) ?>">
+
+                                        <i
+                                            class="ri-eye-line"
+                                            aria-hidden="true">
+                                        </i>
+
                                     </a>
                                 </td>
+
                             </tr>
-                        <?php endforeach ?>
+
+                        <?php endforeach; ?>
+
                     </tbody>
+
                 </table>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
 
-<?= $this->endSection() ?>
+<?php $this->endSection(); ?>

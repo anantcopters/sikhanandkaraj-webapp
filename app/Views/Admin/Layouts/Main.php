@@ -79,6 +79,12 @@ $pageScripts = $pageScripts ?? [];
                 'admin/field-officers'
             );
 
+        $prelaunchProfileActive =
+            str_starts_with(
+                $currentPath,
+                'admin/prelaunch/profiles'
+            );
+
         $isSuperAdmin =
             session('admin_role')
             === \App\Models\AdminUserModel::ROLE_SUPER_ADMIN;
@@ -206,6 +212,36 @@ $pageScripts = $pageScripts ?? [];
                                     </span>
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a
+                                    href="<?= route_to(
+                                                'admin.prelaunch.profiles.index'
+                                            ) ?>"
+                                    class="nav-link
+        d-flex align-items-center
+        gap-2
+        py-1 py-lg-2
+        <?= $prelaunchProfileActive
+            ? 'active text-primary'
+            : '' ?>"
+                                    <?= $prelaunchProfileActive
+                                        ? 'aria-current="page"'
+                                        : '' ?>>
+
+                                    <i
+                                        class="ri-profile-line
+            fw-normal flex-shrink-0"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <span
+                                        class="<?= $prelaunchProfileActive
+                                                    ? 'fw-semibold'
+                                                    : '' ?>">
+                                        Pre-launch Profiles
+                                    </span>
+                                </a>
+                            </li>
 
                             <?php if ($isSuperAdmin): ?>
                                 <li class="nav-item">
@@ -268,21 +304,7 @@ $pageScripts = $pageScripts ?? [];
                                         </span>
                                     </a>
                                 </li>
-                                <li class="nav-item">
-                                    <a
-                                        class="nav-link <?= url_is(
-                                                            'admin/prelaunch/profiles*'
-                                                        ) ? 'active' : '' ?>"
-                                        href="<?= route_to(
-                                                    'admin.prelaunch.profiles.index'
-                                                ) ?>">
-                                        <i
-                                            class="bi bi-person-lines-fill"
-                                            aria-hidden="true"></i>
 
-                                        <span>Pre-launch Profiles</span>
-                                    </a>
-                                </li>
                             <?php endif; ?>
                         </ul>
 

@@ -114,7 +114,7 @@ final class PrelaunchProfileModel extends Model
     public function listForAdmin(
         ?string $status = null
     ): array {
-        $builder = $this->database
+        $builder = $this->db
             ->table(
                 $this->table
                     . ' AS prelaunch_profiles'
@@ -160,7 +160,7 @@ final class PrelaunchProfileModel extends Model
             return null;
         }
 
-        $builder = $this->database
+        $builder = $this->db
             ->table(
                 $this->table
                     . ' AS prelaunch_profiles'
