@@ -67,9 +67,9 @@ $photoNumbers = [1, 2, 3];
                 ?>
 
                 <div class="col-12 col-md-4">
-                    <div class="border rounded p-3 h-100">
+                    <div class="border rounded p-3 h-80">
                         <div
-                            class="ratio ratio-1x1 bg-light rounded overflow-hidden mb-3">
+                            class="ratio ratio-4x3 bg-light rounded overflow-hidden mb-3">
                             <div
                                 class="d-flex align-items-center justify-content-center">
                                 <i

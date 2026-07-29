@@ -517,7 +517,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         /**
-         * Clear custom DOB validation state.
+         * Clear DOB validation state.
          *
          * @returns {void}
          */
@@ -544,10 +544,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     'd-block'
                 );
             }
+
+            window.DatePicker
+                ?.refreshValidation(
+                    dateOfBirth
+                );
         };
 
         /**
-         * Apply custom DOB validation error.
+         * Display DOB validation error.
          *
          * @param {string} message
          *
@@ -582,6 +587,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     'd-block'
                 );
             }
+
+            window.DatePicker
+                ?.refreshValidation(
+                    dateOfBirth
+                );
         };
 
         /**

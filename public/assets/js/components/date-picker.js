@@ -1,22 +1,14 @@
 /**
  * Reusable Flatpickr date-picker manager.
  *
- * Usage:
+ * The original input remains responsible for:
  *
- * <input
- *     type="text"
- *     data-date-picker
- *     data-date-format="Y-m-d"
- *     data-alt-format="d M, Y"
- *     data-date-max="2026-01-01">
+ * - field name
+ * - submitted Y-m-d value
+ * - native/custom validity
  *
- * Responsibilities:
- *
- * - Initialize date pickers declaratively.
- * - Keep the submitted value in Y-m-d format.
- * - Display a user-friendly alternate format.
- * - Support dynamic min/max dates.
- * - Expose create, destroy and refresh methods.
+ * Flatpickr's alternate input is responsible only for the visible,
+ * human-friendly date.
  */
 (function (window, document) {
     'use strict';
@@ -25,7 +17,7 @@
         'input[data-date-picker]';
 
     /**
-     * Store Flatpickr instances without retaining removed elements.
+     * Flatpickr instances stored against their original inputs.
      *
      * @type {WeakMap<HTMLInputElement, Object>}
      */
@@ -33,7 +25,7 @@
         new WeakMap();
 
     /**
-     * Convert an attribute value to Boolean.
+     * Convert a data-attribute value to Boolean.
      *
      * @param {string|null|undefined} value
      * @param {boolean} defaultValue
@@ -57,9 +49,9 @@
     }
 
     /**
-     * Return a configured date value or null.
+     * Normalize optional date configuration.
      *
-     * @param {string|undefined} value
+     * @param {string|null|undefined} value
      *
      * @returns {string|null}
      */
@@ -73,7 +65,144 @@
     }
 
     /**
-     * Build Flatpickr configuration from data attributes.
+     * Copy validation state from the submitted input to Flatpickr's
+     * visible alternate input.
+     *
+     * Bootstrap's default validation background icon is intentionally
+     * removed through CSS for date-picker alternate inputs.
+     *
+     * @param {HTMLInputElement} element
+     * @param {Object} instance
+     *
+     * @returns {void}
+     */
+    function synchronizeVisualState(
+        element,
+        instance
+    ) {
+        const alternateInput =
+            instance.altInput;
+
+        if (
+            !(
+                alternateInput
+                instanceof HTMLInputElement
+            )
+        ) {
+            return;
+        }
+
+        const isInvalid =
+            element.classList.contains(
+                'is-invalid'
+            )
+            || element.getAttribute(
+                'aria-invalid'
+            ) === 'true'
+            || !element.validity.valid;
+
+        const isValid =
+            element.classList.contains(
+                'is-valid'
+            )
+            && !isInvalid;
+
+        alternateInput.classList.toggle(
+            'is-invalid',
+            isInvalid
+        );
+
+        alternateInput.classList.toggle(
+            'is-valid',
+            isValid
+        );
+
+        if (isInvalid) {
+            alternateInput.setAttribute(
+                'aria-invalid',
+                'true'
+            );
+        } else {
+            alternateInput.removeAttribute(
+                'aria-invalid'
+            );
+        }
+    }
+
+    /**
+     * Decorate Flatpickr's generated alternate input.
+     *
+     * @param {HTMLInputElement} element
+     * @param {Object} instance
+     *
+     * @returns {void}
+     */
+    function configureAlternateInput(
+        element,
+        instance
+    ) {
+        const alternateInput =
+            instance.altInput;
+
+        if (
+            !(
+                alternateInput
+                instanceof HTMLInputElement
+            )
+        ) {
+            return;
+        }
+
+        /*
+         * Flatpickr copies the original classes. Remove validation
+         * classes first; they are reapplied through synchronized state.
+         */
+        alternateInput.classList.remove(
+            'is-invalid',
+            'is-valid'
+        );
+
+        alternateInput.classList.add(
+            'date-picker__display'
+        );
+
+        alternateInput.setAttribute(
+            'autocomplete',
+            'off'
+        );
+
+        alternateInput.setAttribute(
+            'inputmode',
+            'none'
+        );
+
+        alternateInput.setAttribute(
+            'aria-describedby',
+            element.getAttribute(
+                'aria-describedby'
+            ) ?? ''
+        );
+
+        const placeholder =
+            element.getAttribute(
+                'placeholder'
+            );
+
+        if (placeholder) {
+            alternateInput.setAttribute(
+                'placeholder',
+                placeholder
+            );
+        }
+
+        synchronizeVisualState(
+            element,
+            instance
+        );
+    }
+
+    /**
+     * Build Flatpickr configuration.
      *
      * @param {HTMLInputElement} element
      *
@@ -84,71 +213,111 @@
             element.dataset.dateFormat
             || 'Y-m-d';
 
-        const altFormat =
+        const alternateFormat =
             element.dataset.altFormat
             || 'd M, Y';
 
         const allowInput =
             toBoolean(
-                element.dataset.dateAllowInput,
+                element.dataset
+                    .dateAllowInput,
                 true
             );
 
         const defaultDate =
             normalizeDateOption(
                 element.value
-                || element.dataset.dateDefault
+                || element.dataset
+                    .dateDefault
             );
 
         return {
             dateFormat,
             altInput: true,
-            altFormat,
+            altFormat:
+                alternateFormat,
             allowInput,
             clickOpens: true,
             disableMobile: true,
+            monthSelectorType:
+                'dropdown',
 
-            minDate: normalizeDateOption(
-                element.dataset.dateMin
-            ),
+            minDate:
+                normalizeDateOption(
+                    element.dataset
+                        .dateMin
+                ),
 
-            maxDate: normalizeDateOption(
-                element.dataset.dateMax
-            ),
+            maxDate:
+                normalizeDateOption(
+                    element.dataset
+                        .dateMax
+                ),
 
             defaultDate,
 
-            /*
-             * Keep native and custom validation systems informed.
-             */
-            onChange: function () {
+            onReady: function (
+                selectedDates,
+                dateString,
+                instance
+            ) {
+                configureAlternateInput(
+                    element,
+                    instance
+                );
+            },
+
+            onChange: function (
+                selectedDates,
+                dateString,
+                instance
+            ) {
+                /*
+                 * Flatpickr has already updated the submitted input.
+                 */
+                element.setCustomValidity(
+                    ''
+                );
+
                 element.dispatchEvent(
                     new Event(
                         'change',
                         {
-                            bubbles: true,
+                            bubbles: true
                         }
                     )
                 );
+
+                synchronizeVisualState(
+                    element,
+                    instance
+                );
             },
 
-            onClose: function () {
+            onClose: function (
+                selectedDates,
+                dateString,
+                instance
+            ) {
                 element.dispatchEvent(
                     new Event(
                         'blur',
                         {
-                            bubbles: true,
+                            bubbles: true
                         }
                     )
+                );
+
+                synchronizeVisualState(
+                    element,
+                    instance
                 );
             }
         };
     }
 
     /**
-     * Initialize one Flatpickr input.
-     *
-     * Repeated calls are safe.
+     * Initialize one date picker.
      *
      * @param {HTMLInputElement} element
      *
@@ -160,12 +329,7 @@
                 element
                 instanceof HTMLInputElement
             )
-        ) {
-            return null;
-        }
-
-        if (
-            !element.matches(
+            || !element.matches(
                 DEFAULT_SELECTOR
             )
         ) {
@@ -173,7 +337,9 @@
         }
 
         if (instances.has(element)) {
-            return instances.get(element);
+            return instances.get(
+                element
+            );
         }
 
         if (
@@ -181,8 +347,8 @@
             !== 'function'
         ) {
             console.error(
-                'Flatpickr is not loaded. Ensure flatpickr.min.js '
-                + 'is loaded before date-picker.js.'
+                'Flatpickr is not loaded. '
+                + 'Load flatpickr.min.js before date-picker.js.'
             );
 
             return null;
@@ -191,7 +357,9 @@
         const instance =
             window.flatpickr(
                 element,
-                configurationFor(element)
+                configurationFor(
+                    element
+                )
             );
 
         instances.set(
@@ -207,7 +375,7 @@
     }
 
     /**
-     * Initialize all date pickers inside a container.
+     * Initialize all declarative date pickers.
      *
      * @param {Document|HTMLElement} container
      *
@@ -235,7 +403,7 @@
     }
 
     /**
-     * Destroy one date-picker instance.
+     * Destroy one date picker.
      *
      * @param {HTMLInputElement} element
      *
@@ -258,7 +426,7 @@
     }
 
     /**
-     * Rebuild one date picker after its data configuration changes.
+     * Recreate a date picker.
      *
      * @param {HTMLInputElement} element
      *
@@ -271,7 +439,7 @@
     }
 
     /**
-     * Obtain the active Flatpickr instance.
+     * Return the Flatpickr instance.
      *
      * @param {HTMLInputElement} element
      *
@@ -282,13 +450,38 @@
             ?? null;
     }
 
+    /**
+     * Refresh the visible validation state.
+     *
+     * Call this after page-specific validation changes the original
+     * input's is-invalid or aria-invalid state.
+     *
+     * @param {HTMLInputElement} element
+     *
+     * @returns {void}
+     */
+    function refreshValidation(element) {
+        const instance =
+            instances.get(element);
+
+        if (!instance) {
+            return;
+        }
+
+        synchronizeVisualState(
+            element,
+            instance
+        );
+    }
+
     window.DatePicker =
         Object.freeze({
             init,
             create,
             destroy,
             refresh,
-            getInstance
+            getInstance,
+            refreshValidation
         });
 
     document.addEventListener(

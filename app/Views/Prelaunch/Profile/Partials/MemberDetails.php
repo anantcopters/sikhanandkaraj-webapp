@@ -354,38 +354,36 @@ $genderOptions = [
                     Date of birth
                 </label>
 
-                <div class="position-relative">
-                    <input
-                        type="text"
-                        id="date_of_birth"
-                        name="date_of_birth"
-                        class="form-control pe-5 <?= esc(
-                                                        $dateOfBirthClass,
-                                                        'attr'
-                                                    ) ?>"
-                        value="<?= esc(
-                                    $dateOfBirth,
-                                    'attr'
-                                ) ?>"
-                        placeholder="Select date of birth"
-                        autocomplete="off"
-                        aria-describedby="date_of_birthError member-age-preview"
-                        data-date-picker
-                        data-date-format="Y-m-d"
-                        data-alt-format="d M, Y"
-                        data-date-max="<?= esc(
-                                            $maximumDateOfBirth,
-                                            'attr'
-                                        ) ?>"
-                        data-date-allow-input="true"
-                        data-minimum-age="18"
-                        data-error-required="Please select the member’s date of birth."
-                        required>
 
-                    <i
-                        class="ri-calendar-line position-absolute top-50 end-0 translate-middle-y me-3 text-muted pointer-events-none"
-                        aria-hidden="true"></i>
-                </div>
+                <input
+                    type="text"
+                    id="date_of_birth"
+                    name="date_of_birth"
+                    class="form-control pe-5 <?= esc(
+                                                    $dateOfBirthClass,
+                                                    'attr'
+                                                ) ?>"
+                    value="<?= esc(
+                                $dateOfBirth,
+                                'attr'
+                            ) ?>"
+                    placeholder="Select date of birth"
+                    autocomplete="off"
+                    aria-describedby="date_of_birthError member-age-preview"
+                    data-date-picker
+                    data-date-format="Y-m-d"
+                    data-alt-format="d M, Y"
+                    data-date-max="<?= esc(
+                                        $maximumDateOfBirth,
+                                        'attr'
+                                    ) ?>"
+                    data-date-allow-input="true"
+                    data-minimum-age="18"
+                    data-error-required="Please select the member’s date of birth."
+                    required>
+
+
+
 
                 <div
                     id="date_of_birthError"
