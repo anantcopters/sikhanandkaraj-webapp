@@ -580,13 +580,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
-     * Initialize Field Officer verification.
-     *
-     * Verification state is enforced through HTML custom validity.
-     * Submit-button state remains the responsibility of submit-loader.js.
-     *
-     * @returns {void}
-     */
+ * Initialize explicit Field Officer verification.
+ *
+ * Verification errors are displayed through the standard inline
+ * validation container. The larger result panel is reserved only
+ * for successful verification.
+ *
+ * @returns {void}
+ */
     const initializeFieldOfficerVerification = () => {
         const verifyButton =
             document.getElementById(
@@ -601,6 +602,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const verifiedOfficerInput =
             document.getElementById(
                 'verified_field_officer_id'
+            );
+
+        const resultColumn =
+            document.getElementById(
+                'field-officer-result-column'
             );
 
         const resultContainer =
@@ -628,6 +634,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 'verified-field-officer-location'
             );
 
+        const errorElement =
+            document.getElementById(
+                'field_officer_codeError'
+            );
+
+        const verifyLabel =
+            document.getElementById(
+                'verify-field-officer-label'
+            );
+
+        const verifyLoading =
+            document.getElementById(
+                'verify-field-officer-loading'
+            );
+
         if (
             !(
                 verifyButton
@@ -640,6 +661,10 @@ document.addEventListener('DOMContentLoaded', () => {
             || !(
                 verifiedOfficerInput
                 instanceof HTMLInputElement
+            )
+            || !(
+                resultColumn
+                instanceof HTMLElement
             )
             || !(
                 resultContainer
@@ -661,18 +686,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const verifyLabel =
-            document.getElementById(
-                'verify-field-officer-label'
-            );
-
-        const verifyLoading =
-            document.getElementById(
-                'verify-field-officer-loading'
-            );
-
         /**
-         * Clear result text while retaining the result DOM structure.
+         * Hide the successful verification panel.
          *
          * @returns {void}
          */
@@ -681,37 +696,66 @@ document.addEventListener('DOMContentLoaded', () => {
             resultCode.textContent = '';
             resultLocation.textContent = '';
 
-            resultContainer.classList.add(
+            resultColumn.classList.add(
                 'd-none'
             );
 
             resultContainer.classList.remove(
-                'alert-success',
                 'alert-danger'
             );
 
             resultContainer.classList.add(
-                'alert-light'
+                'alert-success'
             );
         };
 
         /**
-         * Reset verification when the entered code changes.
+         * Remove verification-specific inline errors.
+         *
+         * Native required, pattern and length validation remain active.
+         *
+         * @returns {void}
+         */
+        const clearVerificationError = () => {
+            officerCodeInput.setCustomValidity(
+                ''
+            );
+
+            officerCodeInput.classList.remove(
+                'is-invalid'
+            );
+
+            if (
+                errorElement
+                instanceof HTMLElement
+            ) {
+                errorElement.textContent = '';
+
+                errorElement.classList.remove(
+                    'd-block'
+                );
+            }
+        };
+
+        /**
+         * Reset verification after the entered code changes.
+         *
+         * This intentionally does not mark the textbox invalid.
          *
          * @returns {void}
          */
         const resetVerification = () => {
             verifiedOfficerInput.value = '';
 
-            officerCodeInput.setCustomValidity(
-                'Please verify the Field Officer code.'
-            );
-
+            clearVerificationError();
             clearResult();
         };
 
         /**
-         * Display a verification error without removing child nodes.
+         * Display an inline verification error.
+         *
+         * The success panel is not used for errors because that would
+         * duplicate the same message and enlarge the layout.
          *
          * @param {string} message
          *
@@ -722,46 +766,33 @@ document.addEventListener('DOMContentLoaded', () => {
         ) => {
             verifiedOfficerInput.value = '';
 
+            clearResult();
+
             officerCodeInput.setCustomValidity(
                 message
             );
 
-            resultMessage.textContent =
-                message;
-
-            resultCode.textContent = '';
-            resultLocation.textContent = '';
+            officerCodeInput.classList.add(
+                'is-invalid'
+            );
 
             if (
-                resultIcon
+                errorElement
                 instanceof HTMLElement
             ) {
-                resultIcon.className =
-                    'ri-error-warning-line';
+                errorElement.textContent =
+                    message;
+
+                errorElement.classList.add(
+                    'd-block'
+                );
             }
 
-            resultContainer.classList.remove(
-                'd-none',
-                'alert-success',
-                'alert-light'
-            );
-
-            resultContainer.classList.add(
-                'alert-danger'
-            );
-
-            officerCodeInput.dispatchEvent(
-                new Event(
-                    'blur',
-                    {
-                        bubbles: true,
-                    }
-                )
-            );
+            officerCodeInput.focus();
         };
 
         /**
-         * Display the verified Field Officer details.
+         * Display successfully verified Field Officer details.
          *
          * @param {Object} officer
          * @param {string} enteredCode
@@ -776,13 +807,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 String(
                     officer.fullName
                     ?? 'Verified Field Officer'
-                );
+                ).trim();
 
             const officerCode =
                 String(
                     officer.officerCode
                     ?? enteredCode
-                );
+                ).trim();
 
             const providedLocation =
                 String(
@@ -798,8 +829,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 .filter(Boolean)
                 .join(', ');
 
+            clearVerificationError();
+
             resultMessage.textContent =
-                fullName;
+                fullName !== ''
+                    ? fullName
+                    : 'Verified Field Officer';
 
             resultCode.textContent =
                 `Code: ${officerCode}`;
@@ -817,18 +852,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             resultContainer.classList.remove(
-                'd-none',
-                'alert-danger',
-                'alert-light'
+                'alert-danger'
             );
 
             resultContainer.classList.add(
                 'alert-success'
             );
+
+            resultColumn.classList.remove(
+                'd-none'
+            );
         };
 
         /**
-         * Enable the verification-button loader.
+         * Enable verification-button loading state.
          *
          * @returns {void}
          */
@@ -860,7 +897,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         /**
-         * Restore the verification button.
+         * Restore verification button.
          *
          * @returns {void}
          */
@@ -890,7 +927,13 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         };
 
-        resetVerification();
+        /*
+         * Do not apply custom validity during page initialization.
+         * The user must be allowed to enter and leave the field without
+         * receiving a premature "Please verify" message.
+         */
+        verifiedOfficerInput.value = '';
+        clearResult();
 
         officerCodeInput.addEventListener(
             'input',
@@ -910,9 +953,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     officerCodeInput.value
                         .trim();
 
-                officerCodeInput.setCustomValidity(
-                    ''
-                );
+                /*
+                 * Remove a previous server-verification error before
+                 * checking normal HTML constraints.
+                 */
+                clearVerificationError();
 
                 if (
                     !officerCodeInput
@@ -945,6 +990,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                const csrfInput =
+                    document.getElementById(
+                        'prelaunch-csrf-token'
+                    );
+
+                if (
+                    !(
+                        csrfInput
+                        instanceof HTMLInputElement
+                    )
+                    || csrfInput.name === ''
+                    || csrfInput.value === ''
+                ) {
+                    showVerificationError(
+                        'The security token is unavailable. Please refresh the page and try again.'
+                    );
+
+                    return;
+                }
+
                 const requestBody =
                     new FormData();
 
@@ -953,20 +1018,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     enteredCode
                 );
 
-                const csrfInput =
-                    form.querySelector(
-                        'input[type="hidden"][name^="csrf"]'
-                    );
-
-                if (
-                    csrfInput
-                    instanceof HTMLInputElement
-                ) {
-                    requestBody.append(
-                        csrfInput.name,
-                        csrfInput.value
-                    );
-                }
+                requestBody.append(
+                    csrfInput.name,
+                    csrfInput.value
+                );
 
                 showVerificationLoader();
 
@@ -990,13 +1045,19 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         );
 
-                    const payload =
-                        await response.json();
+                    let payload = {};
+
+                    try {
+                        payload =
+                            await response.json();
+                    } catch (parseError) {
+                        throw new Error(
+                            'The Field Officer verification service returned an invalid response.'
+                        );
+                    }
 
                     if (
-                        csrfInput
-                        instanceof HTMLInputElement
-                        && payload.csrfName
+                        payload.csrfName
                         && payload.csrfHash
                     ) {
                         csrfInput.name =
@@ -1017,7 +1078,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ) {
                         throw new Error(
                             payload.message
-                            || 'Field Officer verification failed.'
+                            || 'The Field Officer code is invalid or inactive.'
                         );
                     }
 
@@ -1029,7 +1090,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         String(
                             officer.id
                             ?? ''
-                        );
+                        ).trim();
 
                     if (verifiedId === '') {
                         throw new Error(
@@ -1039,30 +1100,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     verifiedOfficerInput.value =
                         verifiedId;
-
-                    officerCodeInput.setCustomValidity(
-                        ''
-                    );
-
-                    officerCodeInput.classList.remove(
-                        'is-invalid'
-                    );
-
-                    const errorElement =
-                        document.getElementById(
-                            'field_officer_codeError'
-                        );
-
-                    if (
-                        errorElement
-                        instanceof HTMLElement
-                    ) {
-                        errorElement.textContent = '';
-
-                        errorElement.classList.remove(
-                            'd-block'
-                        );
-                    }
 
                     showVerificationSuccess(
                         officer,
@@ -1081,6 +1118,35 @@ document.addEventListener('DOMContentLoaded', () => {
                     hideVerificationLoader();
                 }
             }
+        );
+
+        /**
+         * Verification must be complete before final form submission.
+         *
+         * This check runs only when the user actually attempts to save,
+         * rather than whenever the textbox loses focus.
+         */
+        form.addEventListener(
+            'submit',
+            (event) => {
+                const enteredCode =
+                    officerCodeInput.value
+                        .trim();
+
+                if (
+                    enteredCode !== ''
+                    && verifiedOfficerInput
+                        .value
+                        .trim() === ''
+                ) {
+                    event.preventDefault();
+
+                    showVerificationError(
+                        'Please verify the Field Officer code before saving the profile.'
+                    );
+                }
+            },
+            true
         );
     };
 

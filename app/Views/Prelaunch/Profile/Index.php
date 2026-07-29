@@ -124,7 +124,7 @@ $this->section('content');
                 data-validate
                 data-submit-loader
                 novalidate>
-                <?= csrf_field() ?>
+                <?= csrf_field('prelaunch-csrf-token') ?>
 
                 <?= $this->include(
                     'Prelaunch/Profile/Partials/MemberDetails'

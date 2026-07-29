@@ -90,7 +90,7 @@ $photoNumbers = [1, 2, 3];
                                                 $previewAlt,
                                                 'attr'
                                             ) ?>"
-                                    class="w-100 h-100 object-fit-fill d-none">
+                                    class="w-100 h-100 object-fit-cover d-none">
                             </div>
                         </div>
 
