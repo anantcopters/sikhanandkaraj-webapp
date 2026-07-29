@@ -188,7 +188,7 @@ $this->section('content');
                     </div>
                 </div>
 
-                <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+                <div class="d-flex flex-column flex-md-row align-items-end align-items-md-center justify-content-between gap-3">
                     <div class="text-danger fw-medium"
                         role="alert"
                         aria-live="polite">
