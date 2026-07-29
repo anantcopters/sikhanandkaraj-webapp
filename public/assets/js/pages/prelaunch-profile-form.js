@@ -1007,6 +1007,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const maximumFileSize =
             5 * 1024 * 1024;
 
+        /**
+         * Ask the global form validator to refresh one file field.
+         *
+         * This is required after setting a custom validity message because
+         * the additional photograph validation runs after the validator's
+         * native change handler.
+         *
+         * @param {HTMLInputElement} photoInput
+         *
+         * @returns {void}
+         */
+        const refreshPhotoValidation = (
+            photoInput
+        ) => {
+            photoInput.dispatchEvent(
+                new CustomEvent(
+                    'app:validate-field',
+                    {
+                        bubbles: false,
+                    }
+                )
+            );
+        };
+
         photoInputs.forEach(
             (photoInput) => {
                 if (
@@ -1068,13 +1092,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 'd-none'
                             );
 
-                            photoInput.dispatchEvent(
-                                new Event(
-                                    'blur',
-                                    {
-                                        bubbles: true,
-                                    }
-                                )
+                            /*
+                             * Validate the required file field after the user cancels
+                             * or clears the file selection.
+                             */
+                            refreshPhotoValidation(
+                                photoInput
                             );
 
                             return;
@@ -1100,13 +1123,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 'd-none'
                             );
 
-                            photoInput.dispatchEvent(
-                                new Event(
-                                    'blur',
-                                    {
-                                        bubbles: true,
-                                    }
-                                )
+                            /*
+                            * Render the custom validation message through the global
+                            * form validator.
+                            */
+                            refreshPhotoValidation(
+                                photoInput
                             );
 
                             return;
@@ -1120,7 +1142,11 @@ document.addEventListener('DOMContentLoaded', () => {
                                 'The selected photograph must not exceed 5 MB.'
                             );
 
+                            /*
+                             * Clear the rejected file so it cannot be submitted.
+                             */
                             photoInput.value = '';
+
                             previewImage.src = '';
 
                             previewImage.classList.add(
@@ -1131,13 +1157,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 'd-none'
                             );
 
-                            photoInput.dispatchEvent(
-                                new Event(
-                                    'blur',
-                                    {
-                                        bubbles: true,
-                                    }
-                                )
+                            /*
+                             * The custom validity was applied after the native change
+                             * validation ran, so explicitly refresh the field state.
+                             */
+                            refreshPhotoValidation(
+                                photoInput
                             );
 
                             return;
@@ -1149,14 +1174,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         reader.addEventListener(
                             'load',
                             () => {
-                                const result =
-                                    String(
-                                        reader.result
-                                        ?? ''
-                                    );
-
                                 previewImage.src =
-                                    result;
+                                    typeof reader.result === 'string'
+                                        ? reader.result
+                                        : '';
 
                                 previewImage.classList.remove(
                                     'd-none'

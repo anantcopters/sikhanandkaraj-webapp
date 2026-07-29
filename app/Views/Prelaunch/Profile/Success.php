@@ -1,3 +1,18 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @var string|null $profileReference
+ */
+
+$reference = trim(
+    (string) (
+        $profileReference
+        ?? ''
+    )
+);
+?>
 <?= $this->extend('Prelaunch/Layouts/Main') ?>
 
 <?= $this->section('content') ?>
@@ -14,6 +29,10 @@
                     <h1 class="h3 mt-3">
                         Profile saved
                     </h1>
+
+                    <div class="fs-4 fw-bold">
+                        <?= esc($reference) ?>
+                    </div>
 
                     <p class="text-muted">
                         The profile and three photographs were saved

@@ -30,6 +30,11 @@
     function getErrorMessage(field) {
         const validity = field.validity;
 
+        if (validity.customError) {
+            return field.validationMessage
+                || 'Please check this field.';
+        }
+
         if (validity.valueMissing) {
             return field.dataset.errorRequired
                 || 'This field is required.';
@@ -483,8 +488,40 @@
                 field instanceof HTMLInputElement
                 && field.type === 'file'
             ) {
+                /*
+                 * Validate after a native file selection.
+                 *
+                 * Page-specific scripts may perform additional checks such as
+                 * file size, image dimensions or business-specific restrictions.
+                 */
                 field.addEventListener(
                     'change',
+                    function () {
+                        validateField(
+                            field
+                        );
+                    }
+                );
+
+                /*
+                 * Allow page-specific code to request validation again after it
+                 * has applied a custom validity message.
+                 *
+                 * Example:
+                 *
+                 * field.setCustomValidity('Custom validation message.');
+                 *
+                 * field.dispatchEvent(
+                 *     new CustomEvent(
+                 *         'app:validate-field',
+                 *         {
+                 *             bubbles: false,
+                 *         }
+                 *     )
+                 * );
+                 */
+                field.addEventListener(
+                    'app:validate-field',
                     function () {
                         validateField(
                             field

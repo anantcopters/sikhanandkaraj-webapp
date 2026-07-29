@@ -23,15 +23,20 @@ final class PrelaunchProfileService
     ) {}
 
     /**
-     * Create a draft prelaunch profile and its photos.
+     * Create a draft prelaunch profile and its photographs.
      *
-     * @param array<string, mixed>    $input
+     * @param array<string, mixed>     $input
      * @param array<int, UploadedFile> $photos
+     *
+     * @return array{
+     *     profileId: int,
+     *     profileReference: string
+     * }
      */
     public function createDraft(
         array $input,
         array $photos
-    ): int {
+    ): array {
         $email = mb_strtolower(
             trim(
                 (string) (
@@ -256,7 +261,13 @@ final class PrelaunchProfileService
 
             $this->database->transCommit();
 
-            return (int) $profileId;
+            return [
+                'profile_id' =>
+                (int) $profileId,
+
+                'profile_reference' =>
+                $profileReference,
+            ];
         } catch (Throwable $exception) {
             $this->database->transRollback();
 

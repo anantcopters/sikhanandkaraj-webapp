@@ -515,7 +515,7 @@ final class PrelaunchProfileController extends BaseController
                 'prelaunchProfileService'
             );
 
-            $profileId = $service->createDraft(
+            $createdProfile = $service->createDraft(
                 $validation->getValidated(),
                 [
                     $this->request->getFile(
@@ -530,12 +530,17 @@ final class PrelaunchProfileController extends BaseController
                 ]
             );
 
-            return redirect()->to(
-                route_to(
-                    'prelaunch.profile.success',
-                    $profileId
+            return redirect()
+                ->to(
+                    route_to(
+                        'prelaunch.profile.success',
+                        $createdProfile['profile_id']
+                    )
                 )
-            );
+                ->with(
+                    'profileReference',
+                    $createdProfile['profile_reference']
+                );
         } catch (Throwable $exception) {
             log_message(
                 'error',
@@ -569,6 +574,14 @@ final class PrelaunchProfileController extends BaseController
 
                 'profileId' =>
                 $profileId,
+
+                'profileReference' =>
+                (string) (
+                    session(
+                        'profileReference'
+                    )
+                    ?? ''
+                ),
             ]
         );
     }
