@@ -202,14 +202,14 @@ $this->section('content');
                     </div>
                     <button
                         type="submit"
-                        class="btn registration-form__submit w-auto px-4 fs-16 fw-semibold text-uppercase"
+                        class="btn registration-form__submit w-auto px-3 py-2 fs-14 fw-medium text-uppercase"
                         id="save-prelaunch-profile"
                         data-submit-button>
                         <span
                             class="d-inline-flex align-items-center gap-2"
                             data-submit-idle>
                             <i
-                                class="ri-save-line fs-20"
+                                class="ri-save-line fs-18"
                                 aria-hidden="true"></i>
 
                             Save Draft Profile
