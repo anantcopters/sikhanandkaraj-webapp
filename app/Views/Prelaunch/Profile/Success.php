@@ -1,4 +1,4 @@
-<?= $this->extend('Layouts/Public') ?>
+<?= $this->extend('Prelaunch/Layouts/Main') ?>
 
 <?= $this->section('content') ?>
 

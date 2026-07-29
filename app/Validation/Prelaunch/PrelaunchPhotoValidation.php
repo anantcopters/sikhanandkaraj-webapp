@@ -29,7 +29,6 @@ final class PrelaunchPhotoValidation
                         . ',image/jpeg,image/png,image/webp]',
                     'ext_in[' . $field . ',jpg,jpeg,png,webp]',
                     'max_dims[' . $field . ',6000,6000]',
-                    'min_dims[' . $field . ',400,400]',
                 ],
                 'errors' => [
                     'uploaded' =>
