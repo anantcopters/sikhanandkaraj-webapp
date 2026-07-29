@@ -262,7 +262,7 @@ $cityRouteTemplate = route_to(
                                                         'attr'
                                                     ) ?>"
                     data-choice
-                    data-choice-search="false"
+                    data-choice-search="true"
                     data-choice-position="bottom"
                     data-error-required="Please select height."
                     required>
@@ -369,7 +369,7 @@ $cityRouteTemplate = route_to(
                                                 'attr'
                                             ) ?>"
                     data-choice
-                    data-choice-search="false"
+                    data-choice-search="true"
                     data-choice-position="bottom"
                     data-error-required="Please select state."
                     required>
@@ -448,7 +448,7 @@ $cityRouteTemplate = route_to(
                                                 'attr'
                                             ) ?>"
                     data-choice
-                    data-choice-search="false"
+                    data-choice-search="true"
                     data-choice-position="bottom"
                     data-error-required="Please select city."
                     required>
