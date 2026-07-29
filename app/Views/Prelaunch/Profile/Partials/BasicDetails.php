@@ -179,9 +179,9 @@ $cityRouteTemplate = route_to(
                     id="marital_status_id"
                     name="marital_status_id"
                     class="form-select <?= esc(
-                                                        $maritalStatusClass,
-                                                        'attr'
-                                                    ) ?>"
+                                            $maritalStatusClass,
+                                            'attr'
+                                        ) ?>"
                     data-choice
                     data-choice-search="false"
                     data-choice-position="bottom"
@@ -258,9 +258,9 @@ $cityRouteTemplate = route_to(
                     id="height_id"
                     name="height_id"
                     class="form-select <?= esc(
-                                                        $heightClass,
-                                                        'attr'
-                                                    ) ?>"
+                                            $heightClass,
+                                            'attr'
+                                        ) ?>"
                     data-choice
                     data-choice-search="true"
                     data-choice-position="bottom"
@@ -285,7 +285,8 @@ $cityRouteTemplate = route_to(
 
                         $optionName = trim(
                             (string) (
-                                $heightOption['label']
+                                $heightOption['display_name']
+                                ?? $heightOption['label']
                                 ?? $heightOption['name']
                                 ?? ''
                             )
@@ -361,9 +362,9 @@ $cityRouteTemplate = route_to(
                     id="state_id"
                     name="state_id"
                     class="form-select <?= esc(
-                                                        $stateClass,
-                                                        'attr'
-                                                    ) ?>"
+                                            $stateClass,
+                                            'attr'
+                                        ) ?>"
                     data-city-url-template="<?= esc(
                                                 $cityRouteTemplate,
                                                 'attr'
@@ -440,9 +441,10 @@ $cityRouteTemplate = route_to(
                     id="city_id"
                     name="city_id"
                     class="form-select <?= esc(
-                                                        $cityClass,
-                                                        'attr'
-                                                    ) ?>"
+                                            $cityClass,
+                                            'attr'
+                                        ) ?>"
+                    aria-describedby="city_idError"
                     data-selected-value="<?= esc(
                                                 $cityId,
                                                 'attr'
@@ -450,17 +452,26 @@ $cityRouteTemplate = route_to(
                     data-choice
                     data-choice-search="true"
                     data-choice-position="bottom"
+                    data-choice-search-placeholder="Search city"
                     data-error-required="Please select city."
+                    <?= $stateId === ''
+                        ? 'disabled'
+                        : '' ?>
                     required>
                     <option value="">
-                        Select city
+                        <?= $stateId === ''
+                            ? 'Select state first'
+                            : 'Select city' ?>
                     </option>
 
                     <?php foreach (
-                        $cityOptions as $cityOption
+                        $cityOptions as
+                        $cityOption
                     ): ?>
                         <?php
-                        if (!is_array($cityOption)) {
+                        if (!is_array(
+                            $cityOption
+                        )) {
                             continue;
                         }
 
@@ -500,6 +511,7 @@ $cityRouteTemplate = route_to(
                         </option>
                     <?php endforeach ?>
                 </select>
+
                 <div
                     id="city_idError"
                     class="invalid-feedback"

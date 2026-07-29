@@ -27,8 +27,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
- * Replace a dependent select's options and refresh
- * the existing global Choices.js component.
+ * Replace a dependent select's options and rebuild its global
+ * Choices.js instance.
  *
  * @param {HTMLSelectElement} select
  * @param {Array<{id: string|number, name: string}>} items
@@ -43,7 +43,21 @@ document.addEventListener('DOMContentLoaded', () => {
         placeholder,
         selectedValue = ''
     ) => {
-        select.innerHTML = '';
+        /*
+         * Choices creates its own DOM structure. Destroy it before changing
+         * the original select to avoid stale or duplicated options.
+         */
+        if (
+            window.SelectChoice
+            && typeof window.SelectChoice.destroy
+            === 'function'
+        ) {
+            window.SelectChoice.destroy(
+                select
+            );
+        }
+
+        select.replaceChildren();
 
         const placeholderOption =
             document.createElement(
@@ -62,15 +76,18 @@ document.addEventListener('DOMContentLoaded', () => {
         );
 
         items.forEach((item) => {
-            const itemId = String(
-                item.id
-                ?? ''
-            );
+            const itemId =
+                String(
+                    item.id
+                    ?? ''
+                ).trim();
 
-            const itemName = String(
-                item.name
-                ?? ''
-            ).trim();
+            const itemName =
+                String(
+                    item.name
+                    ?? item.label
+                    ?? ''
+                ).trim();
 
             if (
                 itemId === ''
@@ -91,83 +108,89 @@ document.addEventListener('DOMContentLoaded', () => {
                 itemName;
 
             option.selected =
-                itemId === selectedValue;
+                itemId === String(
+                    selectedValue
+                );
 
             select.appendChild(
                 option
             );
         });
 
-        select.disabled = false;
+        select.disabled =
+            items.length === 0;
 
         if (
             window.SelectChoice
-            && typeof window.SelectChoice.refresh
+            && typeof window.SelectChoice.create
             === 'function'
         ) {
-            window.SelectChoice.refresh(
+            window.SelectChoice.create(
                 select
             );
         }
     };
 
     /**
-     * Display loading state in a dependent dropdown.
+     * Display a loading option in a dependent dropdown.
      *
      * @param {HTMLSelectElement} select
+     *
+     * @returns {void}
      */
-    const setSelectLoading = (select) => {
-        const loadingChoices = [
-            {
-                value: '',
-                label: 'Loading...',
-                selected: true,
-                disabled: true,
-            },
-        ];
-
-        const choice = choicesById.get(
-            select.id
-        );
-
-        if (choice) {
-            choice.clearStore();
-
-            choice.setChoices(
-                loadingChoices,
-                'value',
-                'label',
-                true
+    const setSelectLoading = (
+        select
+    ) => {
+        if (
+            window.SelectChoice
+            && typeof window.SelectChoice.destroy
+            === 'function'
+        ) {
+            window.SelectChoice.destroy(
+                select
             );
-
-            choice.disable();
-
-            return;
         }
 
-        select.innerHTML = '';
+        select.replaceChildren();
 
         const loadingOption =
-            document.createElement('option');
+            document.createElement(
+                'option'
+            );
 
         loadingOption.value = '';
         loadingOption.textContent =
             'Loading...';
+
+        loadingOption.selected = true;
+        loadingOption.disabled = true;
 
         select.appendChild(
             loadingOption
         );
 
         select.disabled = true;
+
+        if (
+            window.SelectChoice
+            && typeof window.SelectChoice.create
+            === 'function'
+        ) {
+            window.SelectChoice.create(
+                select
+            );
+        }
     };
 
     /**
-     * Bind a source dropdown to its dependent dropdown.
+     * Load a dependent select from a public JSON endpoint.
      *
      * @param {HTMLSelectElement} source
      * @param {HTMLSelectElement} target
      * @param {string} template
      * @param {string} placeholder
+     *
+     * @returns {void}
      */
     const bindDependentSelect = (
         source,
@@ -181,6 +204,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 const selectedId =
                     source.value.trim();
 
+                /*
+                 * Clear any previous dependent value immediately.
+                 */
                 if (selectedId === '') {
                     updateSelectOptions(
                         target,
@@ -191,33 +217,45 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                setSelectLoading(target);
+                setSelectLoading(
+                    target
+                );
 
                 try {
-                    const requestUrl = buildUrl(
-                        template,
-                        selectedId
-                    );
+                    const requestUrl =
+                        buildUrl(
+                            template,
+                            selectedId
+                        );
 
-                    const response = await fetch(
-                        requestUrl,
-                        {
-                            method: 'GET',
-                            credentials:
-                                'same-origin',
+                    const response =
+                        await fetch(
+                            requestUrl,
+                            {
+                                method: 'GET',
+                                credentials:
+                                    'same-origin',
 
-                            headers: {
-                                Accept:
-                                    'application/json',
+                                headers: {
+                                    Accept:
+                                        'application/json',
 
-                                'X-Requested-With':
-                                    'XMLHttpRequest',
-                            },
-                        }
-                    );
+                                    'X-Requested-With':
+                                        'XMLHttpRequest'
+                                }
+                            }
+                        );
 
-                    const payload =
-                        await response.json();
+                    let payload = {};
+
+                    try {
+                        payload =
+                            await response.json();
+                    } catch (parseError) {
+                        throw new Error(
+                            'The server returned an invalid response.'
+                        );
+                    }
 
                     if (
                         !response.ok
@@ -230,19 +268,25 @@ document.addEventListener('DOMContentLoaded', () => {
                         );
                     }
 
-                    const items = Array.isArray(
-                        payload.items
-                    )
-                        ? payload.items
-                        : [];
+                    const items =
+                        Array.isArray(
+                            payload.items
+                        )
+                            ? payload.items
+                            : [];
 
                     updateSelectOptions(
                         target,
                         items,
-                        placeholder
+                        items.length > 0
+                            ? placeholder
+                            : 'No options available'
                     );
                 } catch (error) {
-                    console.error(error);
+                    console.error(
+                        'Dependent dropdown loading failed.',
+                        error
+                    );
 
                     updateSelectOptions(
                         target,
@@ -289,14 +333,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
- * Initialize minimum-age validation and age preview.
- *
- * The browser's max attribute provides the first validation layer.
- * This function additionally calculates the completed age and provides
- * a clear validation message.
- *
- * @returns {void}
- */
+     * Initialize minimum-age validation and age preview.
+     *
+     * The browser's max attribute provides the first validation layer.
+     * This function additionally calculates the completed age and provides
+     * a clear validation message.
+     *
+     * @returns {void}
+     */
     const initializeDateOfBirthAge = () => {
         const dateOfBirth =
             document.getElementById(
@@ -606,10 +650,35 @@ document.addEventListener('DOMContentLoaded', () => {
          * Keep the client-side maximum date synchronized with the user's
          * current local date.
          */
-        dateOfBirth.max =
+
+        const latestEligibleDate =
             formatLocalDate(
                 getLatestEligibleBirthDate()
             );
+
+        dateOfBirth.dataset.dateMax =
+            latestEligibleDate;
+
+        const picker =
+            window.DatePicker
+                && typeof window.DatePicker
+                    .getInstance
+                === 'function'
+                ? window.DatePicker.getInstance(
+                    dateOfBirth
+                )
+                : null;
+
+        if (
+            picker
+            && typeof picker.set
+            === 'function'
+        ) {
+            picker.set(
+                'maxDate',
+                latestEligibleDate
+            );
+        }
 
         dateOfBirth.addEventListener(
             'change',
@@ -1654,14 +1723,22 @@ document.addEventListener('DOMContentLoaded', () => {
     initializePhotoPreviews();
     initializeFieldOfficerVerification();
 
+    /**
+ * Initialize State → City dependency.
+ */
     const stateSelect =
-        document.getElementById('state_id');
+        document.getElementById(
+            'state_id'
+        );
 
     const citySelect =
-        document.getElementById('city_id');
+        document.getElementById(
+            'city_id'
+        );
 
     if (
-        stateSelect instanceof HTMLSelectElement
+        stateSelect
+        instanceof HTMLSelectElement
         && citySelect
         instanceof HTMLSelectElement
     ) {
@@ -1680,6 +1757,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    /**
+     * Initialize Community → Sub-community dependency.
+     */
     const communitySelect =
         document.getElementById(
             'sikh_community_id'

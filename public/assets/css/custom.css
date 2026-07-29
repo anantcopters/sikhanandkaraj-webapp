@@ -1523,3 +1523,26 @@ form[aria-busy="true"] {
         padding: 0.8rem;
     }
 }
+
+/**
+ * Keep Flatpickr visually aligned with project form controls.
+ */
+.flatpickr-input[readonly] {
+    background-color: var(--bs-body-bg);
+}
+
+.flatpickr-calendar {
+    border: 1px solid var(--bs-border-color);
+    box-shadow: var(--bs-box-shadow);
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange {
+    background: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.pointer-events-none {
+    pointer-events: none;
+}

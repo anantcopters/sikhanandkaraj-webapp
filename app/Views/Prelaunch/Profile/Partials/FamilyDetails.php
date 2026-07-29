@@ -356,18 +356,24 @@ $subcommunityRouteTemplate = route_to(
                                             $subcommunityClass,
                                             'attr'
                                         ) ?>"
+                    aria-describedby="sikh_subcommunity_idError"
                     data-selected-value="<?= esc(
                                                 $subcommunityId,
                                                 'attr'
                                             ) ?>"
                     data-choice
-                    data-choices
                     data-choice-search="true"
                     data-choice-position="bottom"
+                    data-choice-search-placeholder="Search sub-community"
                     data-error-required="Please select your sub-community."
+                    <?= $communityId === ''
+                        ? 'disabled'
+                        : '' ?>
                     required>
                     <option value="">
-                        Select sub-community
+                        <?= $communityId === ''
+                            ? 'Select community first'
+                            : 'Select sub-community' ?>
                     </option>
 
                     <?php foreach (
@@ -402,7 +408,8 @@ $subcommunityRouteTemplate = route_to(
                         }
 
                         $optionSelected =
-                            $subcommunityId === $optionId;
+                            $subcommunityId
+                            === $optionId;
                         ?>
 
                         <option
