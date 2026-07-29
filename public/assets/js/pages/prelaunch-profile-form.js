@@ -9,55 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    const choicesById = new Map();
-
-    /**
-     * Initialize all Choices dropdowns.
-     */
-    const initializeChoices = () => {
-        if (typeof window.Choices !== 'function') {
-            console.error(
-                'Choices.js is not loaded.'
-            );
-
-            return;
-        }
-
-        const selects = document.querySelectorAll(
-            'select.js-choice'
-        );
-
-        selects.forEach((select) => {
-            if (
-                !(select instanceof HTMLSelectElement)
-                || select.id === ''
-                || choicesById.has(select.id)
-            ) {
-                return;
-            }
-
-            const choice = new window.Choices(
-                select,
-                {
-                    searchEnabled:
-                        select.options.length > 8,
-
-                    searchChoices: true,
-                    shouldSort: false,
-                    itemSelectText: '',
-                    allowHTML: false,
-                    placeholder: true,
-                    removeItemButton: false,
-                }
-            );
-
-            choicesById.set(
-                select.id,
-                choice
-            );
-        });
-    };
-
     /**
      * Create the public endpoint URL using the selected ID.
      *
@@ -76,35 +27,49 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
-     * Update a Choices-enabled select.
-     *
-     * @param {HTMLSelectElement} select
-     * @param {Array<{id: string|number, name: string}>} items
-     * @param {string} placeholder
-     * @param {string} selectedValue
-     */
+ * Replace a dependent select's options and refresh
+ * the existing global Choices.js component.
+ *
+ * @param {HTMLSelectElement} select
+ * @param {Array<{id: string|number, name: string}>} items
+ * @param {string} placeholder
+ * @param {string} selectedValue
+ *
+ * @returns {void}
+ */
     const updateSelectOptions = (
         select,
         items,
         placeholder,
         selectedValue = ''
     ) => {
-        const normalizedChoices = [
-            {
-                value: '',
-                label: placeholder,
-                selected: selectedValue === '',
-                disabled: false,
-            },
-        ];
+        select.innerHTML = '';
+
+        const placeholderOption =
+            document.createElement(
+                'option'
+            );
+
+        placeholderOption.value = '';
+        placeholderOption.textContent =
+            placeholder;
+
+        placeholderOption.selected =
+            selectedValue === '';
+
+        select.appendChild(
+            placeholderOption
+        );
 
         items.forEach((item) => {
             const itemId = String(
-                item.id ?? ''
+                item.id
+                ?? ''
             );
 
             const itemName = String(
-                item.name ?? ''
+                item.name
+                ?? ''
             ).trim();
 
             if (
@@ -114,57 +79,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            normalizedChoices.push({
-                value: itemId,
-                label: itemName,
-                selected:
-                    itemId === selectedValue,
-                disabled: false,
-            });
+            const option =
+                document.createElement(
+                    'option'
+                );
+
+            option.value =
+                itemId;
+
+            option.textContent =
+                itemName;
+
+            option.selected =
+                itemId === selectedValue;
+
+            select.appendChild(
+                option
+            );
         });
 
-        const choice = choicesById.get(
-            select.id
-        );
-
-        if (choice) {
-            choice.clearStore();
-
-            choice.setChoices(
-                normalizedChoices,
-                'value',
-                'label',
-                true
-            );
-
-            choice.enable();
-
-            return;
-        }
-
-        select.innerHTML = '';
-
-        normalizedChoices.forEach(
-            (normalizedChoice) => {
-                const option =
-                    document.createElement(
-                        'option'
-                    );
-
-                option.value =
-                    normalizedChoice.value;
-
-                option.textContent =
-                    normalizedChoice.label;
-
-                option.selected =
-                    normalizedChoice.selected;
-
-                select.appendChild(option);
-            }
-        );
-
         select.disabled = false;
+
+        if (
+            window.SelectChoice
+            && typeof window.SelectChoice.refresh
+            === 'function'
+        ) {
+            window.SelectChoice.refresh(
+                select
+            );
+        }
     };
 
     /**
@@ -311,24 +255,27 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
-     * Set a Choices dropdown value.
+     * Set a select value and refresh the global Choices instance.
      *
      * @param {HTMLSelectElement} select
      * @param {string} value
+     *
+     * @returns {void}
      */
     const setChoiceValue = (
         select,
         value
     ) => {
-        const choice = choicesById.get(
-            select.id
-        );
+        select.value = value;
 
-        if (choice) {
-            choice.removeActiveItems();
-            choice.setChoiceByValue(value);
-        } else {
-            select.value = value;
+        if (
+            window.SelectChoice
+            && typeof window.SelectChoice.refresh
+            === 'function'
+        ) {
+            window.SelectChoice.refresh(
+                select
+            );
         }
 
         select.dispatchEvent(
@@ -633,16 +580,13 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
- * Initialize Field Officer verification.
- *
- * Field Officer verification participates in normal HTML
- * constraint validation through setCustomValidity().
- *
- * The save button is not enabled or disabled here because
- * submit state belongs to submit-loader.js.
- *
- * @returns {void}
- */
+     * Initialize Field Officer verification.
+     *
+     * Verification state is enforced through HTML custom validity.
+     * Submit-button state remains the responsibility of submit-loader.js.
+     *
+     * @returns {void}
+     */
     const initializeFieldOfficerVerification = () => {
         const verifyButton =
             document.getElementById(
@@ -664,6 +608,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 'field-officer-result'
             );
 
+        const resultIcon =
+            document.getElementById(
+                'field-officer-result-icon'
+            );
+
+        const resultMessage =
+            document.getElementById(
+                'field-officer-result-message'
+            );
+
+        const resultCode =
+            document.getElementById(
+                'verified-field-officer-code'
+            );
+
+        const resultLocation =
+            document.getElementById(
+                'verified-field-officer-location'
+            );
+
         if (
             !(
                 verifyButton
@@ -681,6 +645,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 resultContainer
                 instanceof HTMLElement
             )
+            || !(
+                resultMessage
+                instanceof HTMLElement
+            )
+            || !(
+                resultCode
+                instanceof HTMLElement
+            )
+            || !(
+                resultLocation
+                instanceof HTMLElement
+            )
         ) {
             return;
         }
@@ -695,24 +671,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 'verify-field-officer-loading'
             );
 
-        const officerName =
-            document.getElementById(
-                'verified-field-officer-name'
+        /**
+         * Clear result text while retaining the result DOM structure.
+         *
+         * @returns {void}
+         */
+        const clearResult = () => {
+            resultMessage.textContent = '';
+            resultCode.textContent = '';
+            resultLocation.textContent = '';
+
+            resultContainer.classList.add(
+                'd-none'
             );
 
-        const officerCode =
-            document.getElementById(
-                'verified-field-officer-code'
+            resultContainer.classList.remove(
+                'alert-success',
+                'alert-danger'
             );
 
-        const officerLocation =
-            document.getElementById(
-                'verified-field-officer-location'
+            resultContainer.classList.add(
+                'alert-light'
             );
+        };
 
         /**
-         * Reset any previously verified officer whenever
-         * the entered officer code changes.
+         * Reset verification when the entered code changes.
          *
          * @returns {void}
          */
@@ -723,18 +707,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 'Please verify the Field Officer code.'
             );
 
-            resultContainer.classList.add(
-                'd-none'
-            );
-
-            resultContainer.classList.remove(
-                'alert-success',
-                'alert-danger'
-            );
+            clearResult();
         };
 
         /**
-         * Display an AJAX verification error.
+         * Display a verification error without removing child nodes.
          *
          * @param {string} message
          *
@@ -749,6 +726,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 message
             );
 
+            resultMessage.textContent =
+                message;
+
+            resultCode.textContent = '';
+            resultLocation.textContent = '';
+
+            if (
+                resultIcon
+                instanceof HTMLElement
+            ) {
+                resultIcon.className =
+                    'ri-error-warning-line';
+            }
+
             resultContainer.classList.remove(
                 'd-none',
                 'alert-success',
@@ -758,19 +749,6 @@ document.addEventListener('DOMContentLoaded', () => {
             resultContainer.classList.add(
                 'alert-danger'
             );
-
-            resultContainer.textContent =
-                message;
-
-            if (
-                window.FormValidator
-                && typeof window.FormValidator.init
-                === 'function'
-            ) {
-                window.FormValidator.init(
-                    document
-                );
-            }
 
             officerCodeInput.dispatchEvent(
                 new Event(
@@ -783,12 +761,80 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         /**
-         * Place verification button into loading state.
+         * Display the verified Field Officer details.
+         *
+         * @param {Object} officer
+         * @param {string} enteredCode
+         *
+         * @returns {void}
+         */
+        const showVerificationSuccess = (
+            officer,
+            enteredCode
+        ) => {
+            const fullName =
+                String(
+                    officer.fullName
+                    ?? 'Verified Field Officer'
+                );
+
+            const officerCode =
+                String(
+                    officer.officerCode
+                    ?? enteredCode
+                );
+
+            const providedLocation =
+                String(
+                    officer.location
+                    ?? ''
+                ).trim();
+
+            const generatedLocation = [
+                officer.cityName,
+                officer.stateName,
+                officer.countryName,
+            ]
+                .filter(Boolean)
+                .join(', ');
+
+            resultMessage.textContent =
+                fullName;
+
+            resultCode.textContent =
+                `Code: ${officerCode}`;
+
+            resultLocation.textContent =
+                providedLocation
+                || generatedLocation;
+
+            if (
+                resultIcon
+                instanceof HTMLElement
+            ) {
+                resultIcon.className =
+                    'ri-checkbox-circle-line';
+            }
+
+            resultContainer.classList.remove(
+                'd-none',
+                'alert-danger',
+                'alert-light'
+            );
+
+            resultContainer.classList.add(
+                'alert-success'
+            );
+        };
+
+        /**
+         * Enable the verification-button loader.
          *
          * @returns {void}
          */
         const showVerificationLoader = () => {
             verifyButton.disabled = true;
+
             verifyButton.setAttribute(
                 'aria-disabled',
                 'true'
@@ -814,12 +860,13 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         /**
-         * Restore verification button.
+         * Restore the verification button.
          *
          * @returns {void}
          */
         const hideVerificationLoader = () => {
             verifyButton.disabled = false;
+
             verifyButton.removeAttribute(
                 'aria-disabled'
             );
@@ -863,11 +910,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     officerCodeInput.value
                         .trim();
 
-                /**
-                 * Clear verification-specific custom validity
-                 * temporarily so native pattern, required and
-                 * length constraints can be checked.
-                 */
                 officerCodeInput.setCustomValidity(
                     ''
                 );
@@ -892,17 +934,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const verificationUrl =
                     verifyButton.dataset
-                        .verificationUrl;
+                        .verificationUrl
+                    ?? '';
 
-                if (!verificationUrl) {
+                if (verificationUrl === '') {
                     showVerificationError(
-                        'Field Officer verification URL is unavailable.'
+                        'Field Officer verification is currently unavailable.'
                     );
 
                     return;
                 }
-
-                showVerificationLoader();
 
                 const requestBody =
                     new FormData();
@@ -926,6 +967,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         csrfInput.value
                     );
                 }
+
+                showVerificationLoader();
 
                 try {
                     const response =
@@ -956,13 +999,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         && payload.csrfName
                         && payload.csrfHash
                     ) {
-                        csrfInput.name = String(
-                            payload.csrfName
-                        );
+                        csrfInput.name =
+                            String(
+                                payload.csrfName
+                            );
 
-                        csrfInput.value = String(
-                            payload.csrfHash
-                        );
+                        csrfInput.value =
+                            String(
+                                payload.csrfHash
+                            );
                     }
 
                     if (
@@ -1003,88 +1048,34 @@ document.addEventListener('DOMContentLoaded', () => {
                         'is-invalid'
                     );
 
-                    const officerErrorElement =
+                    const errorElement =
                         document.getElementById(
                             'field_officer_codeError'
                         );
 
                     if (
-                        officerErrorElement
+                        errorElement
                         instanceof HTMLElement
                     ) {
-                        officerErrorElement.textContent =
-                            '';
+                        errorElement.textContent = '';
 
-                        officerErrorElement.classList.remove(
+                        errorElement.classList.remove(
                             'd-block'
                         );
                     }
 
-                    if (
-                        officerName
-                        instanceof HTMLElement
-                    ) {
-                        officerName.textContent =
-                            String(
-                                officer.fullName
-                                ?? 'Verified Field Officer'
-                            );
-                    }
-
-                    if (
-                        officerCode
-                        instanceof HTMLElement
-                    ) {
-                        const verifiedCode =
-                            String(
-                                officer.officerCode
-                                ?? enteredCode
-                            );
-
-                        officerCode.textContent =
-                            `Code: ${verifiedCode}`;
-                    }
-
-                    if (
-                        officerLocation
-                        instanceof HTMLElement
-                    ) {
-                        const providedLocation =
-                            String(
-                                officer.location
-                                ?? ''
-                            ).trim();
-
-                        const generatedLocation = [
-                            officer.cityName,
-                            officer.stateName,
-                            officer.countryName,
-                        ]
-                            .filter(Boolean)
-                            .join(', ');
-
-                        officerLocation.textContent =
-                            providedLocation
-                            || generatedLocation;
-                    }
-
-                    resultContainer.classList.remove(
-                        'd-none',
-                        'alert-danger',
-                        'alert-light'
-                    );
-
-                    resultContainer.classList.add(
-                        'alert-success'
+                    showVerificationSuccess(
+                        officer,
+                        enteredCode
                     );
                 } catch (error) {
-                    const errorMessage =
+                    const message =
                         error instanceof Error
                             ? error.message
                             : 'Field Officer verification failed.';
 
                     showVerificationError(
-                        errorMessage
+                        message
                     );
                 } finally {
                     hideVerificationLoader();
@@ -1093,7 +1084,6 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     };
 
-    initializeChoices();
     initializeProfileGenderDependency();
     initializePhotoPreviews();
     initializeFieldOfficerVerification();

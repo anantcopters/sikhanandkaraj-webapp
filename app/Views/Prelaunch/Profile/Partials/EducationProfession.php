@@ -192,6 +192,10 @@ $occupationClass =
                                             $employmentClass,
                                             'attr'
                                         ) ?>"
+                    data-choice
+                    data-choice-search="false"
+                    data-choice-position="bottom"
+                    data-error-required="Please select employment details."
                     required>
                     <option value="">
                         Select employment type
@@ -271,6 +275,10 @@ $occupationClass =
                                             $occupationClass,
                                             'attr'
                                         ) ?>"
+                    data-choice
+                    data-choice-search="false"
+                    data-choice-position="bottom"
+                    data-error-required="Please select occupation."
                     required>
                     <option value="">
                         Select occupation

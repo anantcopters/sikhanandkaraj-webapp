@@ -5,6 +5,8 @@ declare(strict_types=1);
 /**
  * Field Officer verification card.
  *
+ * All view variables are prepared before HTML rendering.
+ *
  * @var array<string, string>|null $validationErrors
  */
 
@@ -43,11 +45,6 @@ $fieldOfficerClass =
     $fieldOfficerDisplayError !== ''
     ? 'is-invalid'
     : '';
-
-$fieldOfficerFeedback =
-    $fieldOfficerDisplayError !== ''
-    ? $fieldOfficerDisplayError
-    : 'Please enter and verify the Field Officer code.';
 
 $verificationUrl = route_to(
     'prelaunch.field-officer.verify'
@@ -126,7 +123,7 @@ $verificationUrl = route_to(
                         id="field_officer_codeError"
                         class="invalid-feedback"
                         data-validation-error="field_officer_code">
-                        <?= esc($fieldOfficerFeedback) ?>
+                        <?= esc($fieldOfficerDisplayError) ?>
                     </div>
                 </div>
 
@@ -139,8 +136,7 @@ $verificationUrl = route_to(
                                                     $verificationUrl,
                                                     'attr'
                                                 ) ?>">
-                        <span
-                            id="verify-field-officer-label">
+                        <span id="verify-field-officer-label">
                             <i
                                 class="ri-shield-check-line me-1"
                                 aria-hidden="true"></i>
@@ -170,13 +166,14 @@ $verificationUrl = route_to(
                         <div class="d-flex align-items-start gap-3">
                             <div class="fs-4">
                                 <i
+                                    id="field-officer-result-icon"
                                     class="ri-checkbox-circle-line"
                                     aria-hidden="true"></i>
                             </div>
 
                             <div>
                                 <strong
-                                    id="verified-field-officer-name"
+                                    id="field-officer-result-message"
                                     class="d-block"></strong>
 
                                 <div

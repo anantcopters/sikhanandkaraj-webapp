@@ -552,7 +552,8 @@ $subcommunityRouteTemplate = route_to(
                                                         'attr'
                                                     ) ?>"
                     data-choice
-                    data-choice-search="true" data-choice-position="bottom"
+                    data-choice-search="true"
+                    data-choice-position="bottom"
                     data-error-required="Please select your community."
                     required>
                     <option value="">
@@ -630,6 +631,9 @@ $subcommunityRouteTemplate = route_to(
                                                 $subcommunityId,
                                                 'attr'
                                             ) ?>"
+                    data-choice
+                    data-choice-search="true"
+                    data-choice-position="bottom"
                     data-error-required="Please select your sub-community."
                     required>
                     <option value="">

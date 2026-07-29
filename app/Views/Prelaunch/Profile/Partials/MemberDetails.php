@@ -94,11 +94,6 @@ $countryCodeError = trim(
     )
 );
 
-$profileCreatedForClass =
-    $profileCreatedForError !== ''
-    ? 'is-invalid'
-    : '';
-
 $genderClass = $genderError !== ''
     ? 'is-invalid'
     : '';
@@ -180,6 +175,9 @@ $genderOptions = [
                                             $profileCreatedForClass,
                                             'attr'
                                         ) ?>"
+                    data-choice
+                    data-choice-search="false"
+                    data-choice-position="bottom"
                     data-error-required="Please select who this profile is for."
                     required>
                     <option value="">
@@ -233,6 +231,9 @@ $genderOptions = [
                                             'attr'
                                         ) ?>"
                     data-error-required="Please select gender."
+                    data-choice
+                    data-choice-search="false"
+                    data-choice-position="bottom"
                     required>
                     <option value="">
                         Select gender
@@ -324,18 +325,16 @@ $genderOptions = [
                                 $dateOfBirth,
                                 'attr'
                             ) ?>"
+                    aria-describedby="date_of_birthError"
                     data-error-required="Please select the member’s date of birth."
                     required>
 
-                <?php if (
-                    $dateOfBirthError !== ''
-                ): ?>
-                    <div class="invalid-feedback">
-                        <?= esc(
-                            $dateOfBirthError
-                        ) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="date_of_birthError"
+                    class="invalid-feedback"
+                    data-validation-error="date_of_birth">
+                    <?= esc($dateOfBirthError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -363,14 +362,15 @@ $genderOptions = [
                     autocomplete="email"
                     data-error-required="Please enter email address."
                     data-error-email="Please enter a valid email address."
-                    data-error-maxlength="Email address is too long."
+                    data-error-maxlength="Email address cannot exceed 128 characters."
                     required>
 
-                <?php if ($emailError !== ''): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($emailError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="emailError"
+                    class="invalid-feedback"
+                    data-validation-error="email">
+                    <?= esc($emailError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -403,12 +403,13 @@ $genderOptions = [
                                     $mobileNumber,
                                     'attr'
                                 ) ?>"
-                        placeholder="Enter Mobile Number"
+                        aria-describedby="mobile_numberError"
+                        placeholder="Enter mobile number"
                         inputmode="numeric"
                         pattern="[6-9][0-9]{9}"
                         minlength="10"
                         maxlength="10"
-                        autocomplete="tel"
+                        autocomplete="tel-national"
                         data-error-required="Please enter mobile number."
                         data-error-pattern="Please enter a valid 10-digit Indian mobile number."
                         data-error-minlength="Please enter a 10-digit mobile number."
@@ -416,15 +417,12 @@ $genderOptions = [
                         required>
                 </div>
 
-                <?php if (
-                    $mobileDisplayError !== ''
-                ): ?>
-                    <div class="text-danger small mt-1">
-                        <?= esc(
-                            $mobileDisplayError
-                        ) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="mobile_numberError"
+                    class="invalid-feedback"
+                    data-validation-error="mobile_number">
+                    <?= esc($mobileDisplayError) ?>
+                </div>
             </div>
         </div>
     </div>
