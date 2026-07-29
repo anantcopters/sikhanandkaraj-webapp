@@ -289,6 +289,377 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
+ * Initialize minimum-age validation and age preview.
+ *
+ * The browser's max attribute provides the first validation layer.
+ * This function additionally calculates the completed age and provides
+ * a clear validation message.
+ *
+ * @returns {void}
+ */
+    const initializeDateOfBirthAge = () => {
+        const dateOfBirth =
+            document.getElementById(
+                'date_of_birth'
+            );
+
+        const agePreview =
+            document.getElementById(
+                'member-age-preview'
+            );
+
+        const errorElement =
+            document.getElementById(
+                'date_of_birthError'
+            );
+
+        if (
+            !(
+                dateOfBirth
+                instanceof HTMLInputElement
+            )
+            || !(
+                agePreview
+                instanceof HTMLElement
+            )
+        ) {
+            return;
+        }
+
+        const minimumAge = Number.parseInt(
+            dateOfBirth.dataset.minimumAge
+            ?? '18',
+            10
+        );
+
+        /**
+         * Format a local Date object as YYYY-MM-DD without introducing
+         * UTC timezone conversion.
+         *
+         * @param {Date} date
+         *
+         * @returns {string}
+         */
+        const formatLocalDate = (
+            date
+        ) => {
+            const year =
+                String(date.getFullYear());
+
+            const month =
+                String(
+                    date.getMonth() + 1
+                ).padStart(
+                    2,
+                    '0'
+                );
+
+            const day =
+                String(
+                    date.getDate()
+                ).padStart(
+                    2,
+                    '0'
+                );
+
+            return `${year}-${month}-${day}`;
+        };
+
+        /**
+         * Return the latest DOB allowed for the configured minimum age.
+         *
+         * @returns {Date}
+         */
+        const getLatestEligibleBirthDate =
+            () => {
+                const today =
+                    new Date();
+
+                return new Date(
+                    today.getFullYear()
+                    - minimumAge,
+                    today.getMonth(),
+                    today.getDate()
+                );
+            };
+
+        /**
+         * Parse an HTML date-input value without UTC conversion.
+         *
+         * @param {string} value
+         *
+         * @returns {Date|null}
+         */
+        const parseDateValue = (
+            value
+        ) => {
+            const parts =
+                value.split('-');
+
+            if (parts.length !== 3) {
+                return null;
+            }
+
+            const year =
+                Number(parts[0]);
+
+            const month =
+                Number(parts[1]);
+
+            const day =
+                Number(parts[2]);
+
+            if (
+                !Number.isInteger(year)
+                || !Number.isInteger(month)
+                || !Number.isInteger(day)
+            ) {
+                return null;
+            }
+
+            const parsedDate =
+                new Date(
+                    year,
+                    month - 1,
+                    day
+                );
+
+            const isRealDate =
+                parsedDate.getFullYear()
+                === year
+                && parsedDate.getMonth()
+                === month - 1
+                && parsedDate.getDate()
+                === day;
+
+            return isRealDate
+                ? parsedDate
+                : null;
+        };
+
+        /**
+         * Calculate completed years of age.
+         *
+         * @param {Date} birthDate
+         *
+         * @returns {number}
+         */
+        const calculateAge = (
+            birthDate
+        ) => {
+            const today =
+                new Date();
+
+            let age =
+                today.getFullYear()
+                - birthDate.getFullYear();
+
+            const monthDifference =
+                today.getMonth()
+                - birthDate.getMonth();
+
+            if (
+                monthDifference < 0
+                || (
+                    monthDifference === 0
+                    && today.getDate()
+                    < birthDate.getDate()
+                )
+            ) {
+                age--;
+            }
+
+            return age;
+        };
+
+        /**
+         * Clear custom DOB validation state.
+         *
+         * @returns {void}
+         */
+        const clearDateError = () => {
+            dateOfBirth.setCustomValidity(
+                ''
+            );
+
+            dateOfBirth.classList.remove(
+                'is-invalid'
+            );
+
+            dateOfBirth.removeAttribute(
+                'aria-invalid'
+            );
+
+            if (
+                errorElement
+                instanceof HTMLElement
+            ) {
+                errorElement.textContent = '';
+
+                errorElement.classList.remove(
+                    'd-block'
+                );
+            }
+        };
+
+        /**
+         * Apply custom DOB validation error.
+         *
+         * @param {string} message
+         *
+         * @returns {void}
+         */
+        const showDateError = (
+            message
+        ) => {
+            dateOfBirth.setCustomValidity(
+                message
+            );
+
+            dateOfBirth.classList.add(
+                'is-invalid'
+            );
+
+            dateOfBirth.setAttribute(
+                'aria-invalid',
+                'true'
+            );
+
+            agePreview.textContent = '';
+
+            if (
+                errorElement
+                instanceof HTMLElement
+            ) {
+                errorElement.textContent =
+                    message;
+
+                errorElement.classList.add(
+                    'd-block'
+                );
+            }
+        };
+
+        /**
+         * Validate DOB and update the age helper text.
+         *
+         * @returns {boolean}
+         */
+        const validateAndDisplayAge = () => {
+            const selectedValue =
+                dateOfBirth.value.trim();
+
+            agePreview.textContent = '';
+
+            /*
+             * Let the reusable required validator handle an empty field.
+             */
+            if (selectedValue === '') {
+                dateOfBirth.setCustomValidity(
+                    ''
+                );
+
+                return false;
+            }
+
+            const birthDate =
+                parseDateValue(
+                    selectedValue
+                );
+
+            if (!(birthDate instanceof Date)) {
+                showDateError(
+                    'Please enter a valid date of birth.'
+                );
+
+                return false;
+            }
+
+            const latestEligibleBirthDate =
+                getLatestEligibleBirthDate();
+
+            if (
+                birthDate
+                > latestEligibleBirthDate
+            ) {
+                showDateError(
+                    `The member must be at least ${minimumAge} years old.`
+                );
+
+                return false;
+            }
+
+            clearDateError();
+
+            const age =
+                calculateAge(
+                    birthDate
+                );
+
+            agePreview.textContent =
+                `Current age: ${age} years`;
+
+            return true;
+        };
+
+        /*
+         * Keep the client-side maximum date synchronized with the user's
+         * current local date.
+         */
+        dateOfBirth.max =
+            formatLocalDate(
+                getLatestEligibleBirthDate()
+            );
+
+        dateOfBirth.addEventListener(
+            'change',
+            validateAndDisplayAge
+        );
+
+        dateOfBirth.addEventListener(
+            'input',
+            () => {
+                if (
+                    dateOfBirth.value === ''
+                ) {
+                    agePreview.textContent = '';
+
+                    clearDateError();
+
+                    return;
+                }
+
+                validateAndDisplayAge();
+            }
+        );
+
+        /*
+         * Restore age preview after validation redirect and old input.
+         */
+        if (dateOfBirth.value !== '') {
+            validateAndDisplayAge();
+        }
+
+        /*
+         * Final protection before the form enters submit-loader state.
+         */
+        form.addEventListener(
+            'submit',
+            (event) => {
+                if (
+                    dateOfBirth.value !== ''
+                    && !validateAndDisplayAge()
+                ) {
+                    event.preventDefault();
+
+                    dateOfBirth.focus();
+                }
+            },
+            true
+        );
+    };
+
+    /**
  * Initialize Profile Created For and Gender dependency.
  *
  * Behaviour follows the homepage registration flow:
@@ -1279,6 +1650,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     initializeProfileGenderDependency();
+    initializeDateOfBirthAge();
     initializePhotoPreviews();
     initializeFieldOfficerVerification();
 

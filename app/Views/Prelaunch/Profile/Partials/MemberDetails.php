@@ -30,6 +30,11 @@ $dateOfBirth = (string) old(
     ''
 );
 
+$maximumDateOfBirth = date(
+    'Y-m-d',
+    strtotime('-18 years')
+);
+
 $email = (string) old(
     'email',
     ''
@@ -361,8 +366,14 @@ $genderOptions = [
                                 $dateOfBirth,
                                 'attr'
                             ) ?>"
-                    aria-describedby="date_of_birthError"
+                    max="<?= esc(
+                                $maximumDateOfBirth,
+                                'attr'
+                            ) ?>"
+                    aria-describedby="date_of_birthError member-age-preview"
+                    data-minimum-age="18"
                     data-error-required="Please select the member’s date of birth."
+                    data-error-max="The member must be at least 18 years old."
                     required>
 
                 <div
@@ -371,6 +382,11 @@ $genderOptions = [
                     data-validation-error="date_of_birth">
                     <?= esc($dateOfBirthError) ?>
                 </div>
+
+                <div
+                    id="member-age-preview"
+                    class="form-text"
+                    aria-live="polite"></div>
             </div>
 
             <div class="col-12 col-md-6">

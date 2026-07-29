@@ -28,6 +28,25 @@ final class PrelaunchProfileValidation
             $rules['mother_tongue_id']
         );
 
+        $rules['date_of_birth'] = [
+            'label' => 'Date of birth',
+            'rules' => [
+                'required',
+                'valid_date[Y-m-d]',
+                'minimum_age[18]',
+            ],
+            'errors' => [
+                'required' =>
+                'Please select the member’s date of birth.',
+
+                'valid_date' =>
+                'Please enter a valid date of birth.',
+
+                'minimum_age' =>
+                'The member must be at least 18 years old.',
+            ],
+        ];
+
         return array_merge(
             $rules,
             [
