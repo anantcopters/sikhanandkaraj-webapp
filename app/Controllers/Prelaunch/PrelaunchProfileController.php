@@ -14,6 +14,7 @@ use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
 use Throwable;
+use RuntimeException;
 
 /**
  * Standalone pre-launch profile collection controller.
@@ -515,7 +516,7 @@ final class PrelaunchProfileController extends BaseController
                 'prelaunchProfileService'
             );
 
-            $createdProfile = $service->createDraft(
+            $result = $service->createDraft(
                 $validation->getValidated(),
                 [
                     $this->request->getFile(
@@ -530,36 +531,107 @@ final class PrelaunchProfileController extends BaseController
                 ]
             );
 
+            /*
+         * Follow the same architecture as RegistrationController.
+         *
+         * Field-specific business failures are converted into the
+         * validationErrors flash data already used by the form.
+         */
+            if (!$result->successful) {
+                if (
+                    $result->field !== null
+                    && $result->message !== null
+                ) {
+                    return redirect()
+                        ->back()
+                        ->withInput()
+                        ->with(
+                            'validationErrors',
+                            [
+                                $result->field =>
+                                $result->message,
+                            ]
+                        );
+                }
+
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with(
+                        'formAlert',
+                        [
+                            'type' => 'danger',
+                            'title' => 'Profile not saved',
+                            'message' =>
+                            $result->message
+                                ?? 'The profile could not be saved.',
+                        ]
+                    );
+            }
+
+            /*
+         * A successful service result must contain both identifiers.
+         * Missing values indicate an internal contract failure.
+         */
+            if (
+                $result->profileId === null
+                || $result->profileReference === null
+            ) {
+                throw new RuntimeException(
+                    'The successful prelaunch profile result is incomplete.'
+                );
+            }
+
             return redirect()
                 ->to(
                     route_to(
                         'prelaunch.profile.success',
-                        $createdProfile['profile_id']
+                        $result->profileId
                     )
                 )
                 ->with(
                     'profileReference',
-                    $createdProfile['profile_reference']
+                    $result->profileReference
                 );
         } catch (Throwable $exception) {
+            /*
+         * Only unexpected infrastructure or programming failures reach
+         * this block. Do not expose exception details in the browser.
+         */
             log_message(
                 'error',
-                'Prelaunch profile creation failed: {message}',
+                'Prelaunch profile creation failed. '
+                    . 'Exception: {exception}. '
+                    . 'Message: {message}. '
+                    . 'File: {file}. '
+                    . 'Line: {line}.',
                 [
+                    'exception' =>
+                    $exception::class,
+
                     'message' =>
                     $exception->getMessage(),
+
+                    'file' =>
+                    $exception->getFile(),
+
+                    'line' =>
+                    $exception->getLine(),
                 ]
             );
 
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Profile not saved',
-                    'message' =>
-                    'Prelaunch profile creation failed'
-                ]);
+                ->with(
+                    'formAlert',
+                    [
+                        'type' => 'danger',
+                        'title' => 'Profile not saved',
+                        'message' =>
+                        'The profile could not be saved. Please try again.',
+                    ]
+                );
         }
     }
 
@@ -574,14 +646,6 @@ final class PrelaunchProfileController extends BaseController
 
                 'profileId' =>
                 $profileId,
-
-                'profileReference' =>
-                (string) (
-                    session(
-                        'profileReference'
-                    )
-                    ?? ''
-                ),
             ]
         );
     }

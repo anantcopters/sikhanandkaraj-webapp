@@ -25,18 +25,19 @@ final class PrelaunchProfileService
     /**
      * Create a draft prelaunch profile and its photographs.
      *
+     * User-correctable failures, such as duplicate email or mobile
+     * number, are returned through PrelaunchProfileResult.
+     *
+     * Infrastructure failures continue to throw exceptions so that
+     * they can be logged without exposing technical information.
+     *
      * @param array<string, mixed>     $input
      * @param array<int, UploadedFile> $photos
-     *
-     * @return array{
-     *     profileId: int,
-     *     profileReference: string
-     * }
      */
     public function createDraft(
         array $input,
         array $photos
-    ): array {
+    ): PrelaunchProfileResult {
         $email = mb_strtolower(
             trim(
                 (string) (
@@ -56,7 +57,8 @@ final class PrelaunchProfileService
         );
 
         if ($gotra === '') {
-            throw new RuntimeException(
+            return PrelaunchProfileResult::fieldFailure(
+                'gotra',
                 'Gotra is required.'
             );
         }
@@ -94,13 +96,20 @@ final class PrelaunchProfileService
             )
         ) ?? '';
 
+        /*
+         * Duplicate values are user-correctable business failures.
+         *
+         * Return them against the exact HTML field names so that the
+         * controller can send them through validationErrors.
+         */
         if (
             $this->profileModel->emailExists(
                 $email
             )
         ) {
-            throw new RuntimeException(
-                'A prelaunch profile with this email already exists.'
+            return PrelaunchProfileResult::fieldFailure(
+                'email',
+                'A prelaunch profile with this email address already exists.'
             );
         }
 
@@ -110,7 +119,8 @@ final class PrelaunchProfileService
                 $mobileNumber
             )
         ) {
-            throw new RuntimeException(
+            return PrelaunchProfileResult::fieldFailure(
+                'mobile_number',
                 'A prelaunch profile with this mobile number already exists.'
             );
         }
@@ -129,11 +139,18 @@ final class PrelaunchProfileService
          * Never trust the hidden Field Officer ID alone.
          * Re-check the active officer and code on the server.
          */
-        $this->fieldOfficerService
-            ->assertVerifiedOfficer(
-                $fieldOfficerId,
-                $fieldOfficerCode
+        try {
+            $this->fieldOfficerService
+                ->assertVerifiedOfficer(
+                    $fieldOfficerId,
+                    $fieldOfficerCode
+                );
+        } catch (RuntimeException) {
+            return PrelaunchProfileResult::fieldFailure(
+                'field_officer_code',
+                'Please verify a valid active Field Officer code.'
             );
+        }
 
         $profileReference =
             $this->generateReference();
@@ -261,13 +278,10 @@ final class PrelaunchProfileService
 
             $this->database->transCommit();
 
-            return [
-                'profile_id' =>
+            return PrelaunchProfileResult::success(
                 (int) $profileId,
-
-                'profile_reference' =>
-                $profileReference,
-            ];
+                $profileReference
+            );
         } catch (Throwable $exception) {
             $this->database->transRollback();
 
@@ -279,7 +293,7 @@ final class PrelaunchProfileService
      * Resolve and enforce Gender according to Profile Created For.
      *
      * Gender supplied by the browser is never trusted for relationships
-     * where the relationship itself determines the member’s gender.
+     * where the relationship itself determines the member's gender.
      *
      * @throws RuntimeException
      */
