@@ -466,7 +466,7 @@ final class PrelaunchProfileController extends BaseController
                     'successful' => false,
 
                     'message' =>
-                    $exception->getMessage(),
+                    'Prelaunch Field Officer verification failed',
 
                     'csrfName' =>
                     csrf_token(),
@@ -553,7 +553,7 @@ final class PrelaunchProfileController extends BaseController
                     'type' => 'danger',
                     'title' => 'Profile not saved',
                     'message' =>
-                    $exception->getMessage(),
+                    'Prelaunch profile creation failed'
                 ]);
         }
     }
@@ -706,18 +706,6 @@ final class PrelaunchProfileController extends BaseController
             trim((string) $this->request->getPost(
                 'consent'
             )),
-
-            /*
-             * Uploaded files must be included in validation input.
-             */
-            'photo_1' =>
-            $this->request->getFile('photo_1'),
-
-            'photo_2' =>
-            $this->request->getFile('photo_2'),
-
-            'photo_3' =>
-            $this->request->getFile('photo_3'),
         ];
     }
 }
