@@ -1531,6 +1531,12 @@ final class ProfileController extends BaseController
                 )
             ),
 
+            'gotra' => $this->normalizeProfileText(
+                $this->request->getPost(
+                    'gotra'
+                )
+            ),
+
             'father_name' => $this->normalizeProfileText(
                 $this->request->getPost(
                     'father_name'
@@ -1586,6 +1592,7 @@ final class ProfileController extends BaseController
             ),
         ];
     }
+    
     /**
      * Normalize profile text while preserving safe readable spacing.
      */

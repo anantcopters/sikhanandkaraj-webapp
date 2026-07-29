@@ -329,11 +329,14 @@ final class ProfileMasterDataService
 
     /**
      * Verify all Family Details master-data relationships.
+     *
+     * Family value, family type and family status are optional. When supplied,
+     * they must still reference active master records.
      */
     public function assertValidFamilySelection(
-        int $familyValueId,
-        int $familyTypeId,
-        int $familyStatusId,
+        ?int $familyValueId,
+        ?int $familyTypeId,
+        ?int $familyStatusId,
         int $communityId,
         int $subcommunityId,
         ?int $fatherOccupationId,
@@ -342,23 +345,29 @@ final class ProfileMasterDataService
         int $stateId,
         int $cityId
     ): void {
-        $this->assertActiveMaster(
-            $this->familyValueModel,
-            $familyValueId,
-            'Please select a valid family value.'
-        );
+        if ($familyValueId !== null) {
+            $this->assertActiveMaster(
+                $this->familyValueModel,
+                $familyValueId,
+                'Please select a valid family value.'
+            );
+        }
 
-        $this->assertActiveMaster(
-            $this->familyTypeModel,
-            $familyTypeId,
-            'Please select a valid family type.'
-        );
+        if ($familyTypeId !== null) {
+            $this->assertActiveMaster(
+                $this->familyTypeModel,
+                $familyTypeId,
+                'Please select a valid family type.'
+            );
+        }
 
-        $this->assertActiveMaster(
-            $this->familyStatusModel,
-            $familyStatusId,
-            'Please select a valid family status.'
-        );
+        if ($familyStatusId !== null) {
+            $this->assertActiveMaster(
+                $this->familyStatusModel,
+                $familyStatusId,
+                'Please select a valid family status.'
+            );
+        }
 
         $community = $this->communityModel
             ->where('id', $communityId)

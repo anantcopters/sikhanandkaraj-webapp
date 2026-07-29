@@ -109,8 +109,6 @@ if ($isJourney) {
                 'placeholder' => 'Select family value',
                 'options' => $familyValues,
                 'stored' => $details['family_value_id'] ?? '',
-                'requiredMessage' =>
-                'Please select your family value.',
             ],
             [
                 'id' => 'familyTypeId',
@@ -119,8 +117,6 @@ if ($isJourney) {
                 'placeholder' => 'Select family type',
                 'options' => $familyTypes,
                 'stored' => $details['family_type_id'] ?? '',
-                'requiredMessage' =>
-                'Please select your family type.',
             ],
             [
                 'id' => 'familyStatusId',
@@ -129,8 +125,6 @@ if ($isJourney) {
                 'placeholder' => 'Select family status',
                 'options' => $familyStatuses,
                 'stored' => $details['family_status_id'] ?? '',
-                'requiredMessage' =>
-                'Please select your family status.',
             ],
         ];
         ?>
@@ -142,7 +136,9 @@ if ($isJourney) {
                     class="form-label fw-medium">
 
                     <?= esc($field['label']) ?>
-                    <span class="text-danger">*</span>
+                    <span class="text-muted fw-normal">
+                        (Optional)
+                    </span>
                 </label>
 
                 <select
@@ -151,12 +147,7 @@ if ($isJourney) {
                     class="form-select"
                     data-choice
                     data-choice-search="false"
-                    data-choice-position="bottom"
-                    data-error-required="<?= esc(
-                                                $field['requiredMessage'],
-                                                'attr'
-                                            ) ?>"
-                    required>
+                    data-choice-position="bottom">
 
                     <option value="">
                         <?= esc($field['placeholder']) ?>
@@ -331,6 +322,42 @@ if ($isJourney) {
                 [
                     'field' => 'subcommunity_id',
                     'errorId' => 'subcommunityIdError',
+                    'errors' => $errors,
+                ]
+            ) ?>
+        </div>
+        <div class="col-12 col-md-6">
+            <label
+                for="familyGotra"
+                class="form-label fw-medium">
+
+                Gotra
+                <span class="text-danger">*</span>
+            </label>
+
+            <input
+                type="text"
+                id="familyGotra"
+                name="gotra"
+                class="form-control"
+                value="<?= esc(
+                            $fieldValue(
+                                'gotra',
+                                $details['gotra'] ?? ''
+                            ),
+                            'attr'
+                        ) ?>"
+                placeholder="Enter Gotra"
+                maxlength="100"
+                autocomplete="off"
+                data-error-required="Please enter your Gotra."
+                required>
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' => 'gotra',
+                    'errorId' => 'gotraError',
                     'errors' => $errors,
                 ]
             ) ?>

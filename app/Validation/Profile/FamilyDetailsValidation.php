@@ -11,25 +11,33 @@ final class FamilyDetailsValidation
 {
     private const PARENT_NAME_MAX_LENGTH = 150;
 
+    private const GOTRA_MAX_LENGTH = 100;
+
     /**
      * @return array<string, array<string, mixed>>
      */
     public static function rules(): array
     {
         return [
-            'family_value_id' => self::requiredMaster(
+            /*
+             * Optional master fields.
+             *
+             * When a value is supplied, it must still be a positive integer.
+             * Active-master validation is performed again in the service.
+             */
+            'family_value_id' => self::optionalMaster(
                 'Family value',
-                'Please select your family value.'
+                'Please select a valid family value.'
             ),
 
-            'family_type_id' => self::requiredMaster(
+            'family_type_id' => self::optionalMaster(
                 'Family type',
-                'Please select your family type.'
+                'Please select a valid family type.'
             ),
 
-            'family_status_id' => self::requiredMaster(
+            'family_status_id' => self::optionalMaster(
                 'Family status',
-                'Please select your family status.'
+                'Please select a valid family status.'
             ),
 
             'community_id' => self::requiredMaster(
@@ -41,6 +49,25 @@ final class FamilyDetailsValidation
                 'Sub-community',
                 'Please select your sub-community.'
             ),
+
+            'gotra' => [
+                'label' => 'Gotra',
+                'rules' => [
+                    'required',
+                    'max_length['
+                        . self::GOTRA_MAX_LENGTH
+                        . ']',
+                ],
+                'errors' => [
+                    'required' =>
+                    'Please enter your Gotra.',
+
+                    'max_length' =>
+                    'Gotra cannot exceed '
+                        . self::GOTRA_MAX_LENGTH
+                        . ' characters.',
+                ],
+            ],
 
             'father_name' => self::parentNameRules(
                 "Father's name",
@@ -123,6 +150,7 @@ final class FamilyDetailsValidation
             ],
             'errors' => [
                 'required' => $requiredMessage,
+
                 'max_length' =>
                 $label . ' cannot exceed '
                     . self::PARENT_NAME_MAX_LENGTH
@@ -152,6 +180,28 @@ final class FamilyDetailsValidation
     }
 
     /**
+     * Validate an optional master-data identifier.
+     *
+     * @return array<string, mixed>
+     */
+    private static function optionalMaster(
+        string $label,
+        string $invalidMessage
+    ): array {
+        return [
+            'label' => $label,
+            'rules' => [
+                'permit_empty',
+                'is_natural_no_zero',
+            ],
+            'errors' => [
+                'is_natural_no_zero' =>
+                $invalidMessage,
+            ],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private static function siblingCountRules(
@@ -167,11 +217,16 @@ final class FamilyDetailsValidation
             ],
             'errors' => [
                 'required' =>
-                'Please select the ' . strtolower($label) . '.',
+                'Please select the '
+                    . strtolower($label)
+                    . '.',
+
                 'integer' =>
                 'Please select a valid sibling count.',
+
                 'greater_than_equal_to' =>
                 'Sibling count cannot be less than zero.',
+
                 'less_than_equal_to' =>
                 'Sibling count cannot exceed 10.',
             ],

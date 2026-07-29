@@ -18,6 +18,8 @@ final class FamilyDetailsService
 {
     private const PARENT_NAME_MAX_LENGTH = 150;
 
+    private const GOTRA_MAX_LENGTH = 100;
+
     public function __construct(
         private readonly UserModel $userModel,
         private readonly MemberFamilyDetailModel $detailModel,
@@ -84,17 +86,21 @@ final class FamilyDetailsService
             );
         }
 
-        $familyValueId = $this->requiredInteger(
+        /*
+        * These fields are optional, but when selected they must contain valid
+        * positive master-data identifiers.
+        */
+        $familyValueId = $this->nullableInteger(
             $data['family_value_id'] ?? null,
             'Please select a valid family value.'
         );
 
-        $familyTypeId = $this->requiredInteger(
+        $familyTypeId = $this->nullableInteger(
             $data['family_type_id'] ?? null,
             'Please select a valid family type.'
         );
 
-        $familyStatusId = $this->requiredInteger(
+        $familyStatusId = $this->nullableInteger(
             $data['family_status_id'] ?? null,
             'Please select a valid family status.'
         );
@@ -109,10 +115,14 @@ final class FamilyDetailsService
             'Please select a valid sub-community.'
         );
 
+        $gotra = $this->requiredGotra(
+            $data['gotra'] ?? null
+        );
+
         /*
-         * Service-level checks protect the domain even if this service is
-         * later called by an API, CLI command or another controller.
-         */
+        * Service-level checks protect the domain if this service is later
+        * called through an API, command or another controller.
+        */
         $fatherName = $this->requiredParentName(
             $data['father_name'] ?? null,
             "Please enter your father's name."
@@ -179,6 +189,7 @@ final class FamilyDetailsService
             'family_status_id' => $familyStatusId,
             'community_id' => $communityId,
             'subcommunity_id' => $subcommunityId,
+            'gotra' => $gotra,
             'father_name' => $fatherName,
             'mother_name' => $motherName,
             'father_occupation_id' => $fatherOccupationId,
@@ -260,6 +271,39 @@ final class FamilyDetailsService
         return $normalized;
     }
 
+    /**
+     * Normalize and require the member's Gotra.
+     */
+    private function requiredGotra(mixed $value): string
+    {
+        $normalized = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim((string) $value)
+        ) ?? '';
+
+        if ($normalized === '') {
+            throw new DomainException(
+                'Please enter your Gotra.'
+            );
+        }
+
+        if (
+            mb_strlen(
+                $normalized,
+                'UTF-8'
+            ) > self::GOTRA_MAX_LENGTH
+        ) {
+            throw new DomainException(
+                'Gotra cannot exceed '
+                    . self::GOTRA_MAX_LENGTH
+                    . ' characters.'
+            );
+        }
+
+        return $normalized;
+    }
+
     private function requiredInteger(
         mixed $value,
         string $message
@@ -333,6 +377,9 @@ final class FamilyDetailsService
     /**
      * Calculate completion from compulsory Family Details.
      *
+     * Family value, family type and family status are optional and therefore
+     * deliberately excluded from completion.
+     *
      * A zero sibling count is a valid completed value.
      *
      * @param array<string, mixed>|null $details
@@ -348,23 +395,15 @@ final class FamilyDetailsService
 
         $requiredChecks = [
             $this->hasPositiveInteger(
-                $details['family_value_id'] ?? null
-            ),
-
-            $this->hasPositiveInteger(
-                $details['family_type_id'] ?? null
-            ),
-
-            $this->hasPositiveInteger(
-                $details['family_status_id'] ?? null
-            ),
-
-            $this->hasPositiveInteger(
                 $details['community_id'] ?? null
             ),
 
             $this->hasPositiveInteger(
                 $details['subcommunity_id'] ?? null
+            ),
+
+            $this->hasRequiredText(
+                $details['gotra'] ?? null
             ),
 
             $this->hasRequiredText(
@@ -410,6 +449,7 @@ final class FamilyDetailsService
         return [
             'completed' => $completed,
             'total' => $total,
+
             'percentage' => $total > 0
                 ? (int) round(
                     ($completed / $total) * 100

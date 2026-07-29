@@ -26,6 +26,7 @@ final class MemberFamilyDetailModel extends Model
         'family_status_id',
         'community_id',
         'subcommunity_id',
+        'gotra',
         'father_name',
         'mother_name',
         'father_occupation_id',
@@ -53,6 +54,9 @@ final class MemberFamilyDetailModel extends Model
 
     /**
      * Find one member's Family Details with readable master values.
+     *
+     * LEFT JOIN is intentional because family value, family type and family
+     * status are optional and may be NULL.
      *
      * @return array<string, mixed>|null
      */
