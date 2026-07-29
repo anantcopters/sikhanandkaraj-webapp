@@ -443,134 +443,193 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
     /**
-     * Show selected photo thumbnails.
-     */
+ * Initialize photo previews and client-side photo validation.
+ *
+ * @returns {void}
+ */
     const initializePhotoPreviews = () => {
         const photoInputs =
             document.querySelectorAll(
                 '.js-photo-input'
             );
 
-        photoInputs.forEach((photoInput) => {
-            if (
-                !(
-                    photoInput
-                    instanceof HTMLInputElement
-                )
-            ) {
-                return;
-            }
+        const supportedTypes = [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+        ];
 
-            photoInput.addEventListener(
-                'change',
-                () => {
-                    const previewTargetId =
-                        photoInput.dataset
-                            .previewTarget;
+        const maximumFileSize =
+            5 * 1024 * 1024;
 
-                    if (!previewTargetId) {
-                        return;
-                    }
+        photoInputs.forEach(
+            (photoInput) => {
+                if (
+                    !(
+                        photoInput
+                        instanceof HTMLInputElement
+                    )
+                ) {
+                    return;
+                }
 
-                    const previewImage =
-                        document.getElementById(
-                            previewTargetId
+                photoInput.addEventListener(
+                    'change',
+                    () => {
+                        photoInput.setCustomValidity(
+                            ''
                         );
 
-                    const placeholder =
-                        document.getElementById(
-                            `${previewTargetId}-placeholder`
-                        );
+                        const previewTargetId =
+                            photoInput.dataset
+                                .previewTarget;
 
-                    if (
-                        !(
-                            previewImage
-                            instanceof HTMLImageElement
-                        )
-                    ) {
-                        return;
-                    }
+                        if (!previewTargetId) {
+                            return;
+                        }
 
-                    const selectedFile =
-                        photoInput.files
-                            ? photoInput.files[0]
-                            : null;
+                        const previewImage =
+                            document.getElementById(
+                                previewTargetId
+                            );
 
-                    if (!selectedFile) {
-                        previewImage.src = '';
+                        const placeholder =
+                            document.getElementById(
+                                `${previewTargetId}-placeholder`
+                            );
 
-                        previewImage.classList.add(
-                            'd-none'
-                        );
+                        if (
+                            !(
+                                previewImage
+                                instanceof HTMLImageElement
+                            )
+                        ) {
+                            return;
+                        }
 
-                        placeholder?.classList.remove(
-                            'd-none'
-                        );
+                        const selectedFile =
+                            photoInput.files
+                                ? photoInput.files[0]
+                                : null;
 
-                        return;
-                    }
+                        if (!selectedFile) {
+                            previewImage.src = '';
 
-                    const supportedTypes = [
-                        'image/jpeg',
-                        'image/png',
-                        'image/webp',
-                    ];
+                            previewImage.classList.add(
+                                'd-none'
+                            );
 
-                    if (
-                        !supportedTypes.includes(
-                            selectedFile.type
-                        )
-                    ) {
-                        photoInput.value = '';
+                            placeholder?.classList.remove(
+                                'd-none'
+                            );
 
-                        previewImage.src = '';
+                            photoInput.dispatchEvent(
+                                new Event(
+                                    'blur',
+                                    {
+                                        bubbles: true,
+                                    }
+                                )
+                            );
 
-                        previewImage.classList.add(
-                            'd-none'
-                        );
+                            return;
+                        }
 
-                        placeholder?.classList.remove(
-                            'd-none'
-                        );
+                        if (
+                            !supportedTypes.includes(
+                                selectedFile.type
+                            )
+                        ) {
+                            photoInput.setCustomValidity(
+                                'Please select a JPG, PNG or WebP image.'
+                            );
 
-                        window.alert(
-                            'Please select a JPG, PNG or WebP image.'
-                        );
+                            photoInput.value = '';
+                            previewImage.src = '';
 
-                        return;
-                    }
+                            previewImage.classList.add(
+                                'd-none'
+                            );
 
-                    const reader =
-                        new FileReader();
+                            placeholder?.classList.remove(
+                                'd-none'
+                            );
 
-                    reader.addEventListener(
-                        'load',
-                        () => {
-                            const result =
-                                String(
-                                    reader.result
-                                    ?? ''
+                            photoInput.dispatchEvent(
+                                new Event(
+                                    'blur',
+                                    {
+                                        bubbles: true,
+                                    }
+                                )
+                            );
+
+                            return;
+                        }
+
+                        if (
+                            selectedFile.size
+                            > maximumFileSize
+                        ) {
+                            photoInput.setCustomValidity(
+                                'The selected photograph must not exceed 5 MB.'
+                            );
+
+                            photoInput.value = '';
+                            previewImage.src = '';
+
+                            previewImage.classList.add(
+                                'd-none'
+                            );
+
+                            placeholder?.classList.remove(
+                                'd-none'
+                            );
+
+                            photoInput.dispatchEvent(
+                                new Event(
+                                    'blur',
+                                    {
+                                        bubbles: true,
+                                    }
+                                )
+                            );
+
+                            return;
+                        }
+
+                        const reader =
+                            new FileReader();
+
+                        reader.addEventListener(
+                            'load',
+                            () => {
+                                const result =
+                                    String(
+                                        reader.result
+                                        ?? ''
+                                    );
+
+                                previewImage.src =
+                                    result;
+
+                                previewImage.classList.remove(
+                                    'd-none'
                                 );
 
-                            previewImage.src =
-                                result;
+                                placeholder?.classList.add(
+                                    'd-none'
+                                );
+                            }
+                        );
 
-                            previewImage.classList.remove(
-                                'd-none'
-                            );
-
-                            placeholder?.classList.add(
-                                'd-none'
-                            );
-                        }
-                    );
-
-                    reader.readAsDataURL(
-                        selectedFile
-                    );
-                }
-            );
-        });
+                        reader.readAsDataURL(
+                            selectedFile
+                        );
+                    }
+                );
+            }
+        );
     };
 
     /**
