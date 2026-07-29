@@ -119,7 +119,7 @@ $phoneUrl = 'tel:' . $phoneDialValue;
                                 'attr'
                             ) ?>"
                     class="public-navbar__phone
-                        hide-on-mobile"
+                        "
                     aria-label="Call SikhAnandKaraj at <?= esc($phoneDisplay) ?>">
 
                     <span
@@ -142,7 +142,7 @@ $phoneUrl = 'tel:' . $phoneDialValue;
         <?= $this->renderSection('content') ?>
     </main>
     <footer class="mt-5 pt-4 border-top border-secondary-subtle bg-light">
-
+        
         <div class="container py-3 pt-0">
 
             <div class="row text-center text-xl-start g-4">
