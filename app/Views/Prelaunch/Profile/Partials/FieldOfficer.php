@@ -3,10 +3,15 @@
 declare(strict_types=1);
 
 /**
+ * Field Officer verification card.
+ *
  * @var array<string, string>|null $validationErrors
  */
 
-$errorBag = is_array($validationErrors ?? null)
+$errorBag = is_array(
+    $validationErrors
+        ?? null
+)
     ? $validationErrors
     : [];
 
@@ -39,6 +44,11 @@ $fieldOfficerClass =
     ? 'is-invalid'
     : '';
 
+$fieldOfficerFeedback =
+    $fieldOfficerDisplayError !== ''
+    ? $fieldOfficerDisplayError
+    : 'Please enter and verify the Field Officer code.';
+
 $verificationUrl = route_to(
     'prelaunch.field-officer.verify'
 );
@@ -59,13 +69,14 @@ $verificationUrl = route_to(
                 </h5>
 
                 <p class="text-muted mb-0 fs-12">
-                    Enter the Field Officer code. Saving is enabled
-                    only after successful verification.
+                    Enter and verify the Field Officer code before
+                    saving the profile.
                 </p>
             </div>
         </div>
+
         <hr class="my-2 mb-3">
-        </hr>
+
         <div class="border rounded p-3 p-md-4 bg-info-subtle pt-2">
             <div class="row g-3 align-items-end">
                 <div class="col-12 col-lg-8">
@@ -98,6 +109,10 @@ $verificationUrl = route_to(
                             maxlength="20"
                             pattern="[A-Za-z0-9-]+"
                             autocomplete="off"
+                            data-error-required="Please enter the Field Officer code."
+                            data-error-pattern="Field Officer code may contain letters, numbers and hyphens only."
+                            data-error-minlength="Field Officer code must contain at least 4 characters."
+                            data-error-maxlength="Field Officer code must not exceed 20 characters."
                             required>
                     </div>
 
@@ -107,15 +122,12 @@ $verificationUrl = route_to(
                         name="verified_field_officer_id"
                         value="">
 
-                    <?php if (
-                        $fieldOfficerDisplayError !== ''
-                    ): ?>
-                        <div class="text-danger small mt-1">
-                            <?= esc(
-                                $fieldOfficerDisplayError
-                            ) ?>
-                        </div>
-                    <?php endif ?>
+                    <div
+                        id="field_officer_codeError"
+                        class="invalid-feedback"
+                        data-validation-error="field_officer_code">
+                        <?= esc($fieldOfficerFeedback) ?>
+                    </div>
                 </div>
 
                 <div class="col-12 col-lg-4">
@@ -138,7 +150,8 @@ $verificationUrl = route_to(
 
                         <span
                             id="verify-field-officer-loading"
-                            class="d-none">
+                            class="d-none"
+                            aria-hidden="true">
                             <span
                                 class="spinner-border spinner-border-sm me-1"
                                 aria-hidden="true"></span>

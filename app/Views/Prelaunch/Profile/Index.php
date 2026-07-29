@@ -3,28 +3,48 @@
 declare(strict_types=1);
 
 /**
+ * Prelaunch profile entry form.
+ *
+ * All view data is normalized into local variables before
+ * rendering the HTML markup.
+ *
  * @var array<string, string>|null $validationErrors
  * @var array<string, string>|null $formAlert
  */
 
-$errorBag = is_array($validationErrors ?? null)
+$errorBag = is_array(
+    $validationErrors
+        ?? null
+)
     ? $validationErrors
     : [];
 
-$alertData = is_array($formAlert ?? null)
+$alertData = is_array(
+    $formAlert
+        ?? null
+)
     ? $formAlert
     : [];
 
 $alertType = trim(
-    (string) ($alertData['type'] ?? '')
+    (string) (
+        $alertData['type']
+        ?? ''
+    )
 );
 
 $alertTitle = trim(
-    (string) ($alertData['title'] ?? '')
+    (string) (
+        $alertData['title']
+        ?? ''
+    )
 );
 
 $alertMessage = trim(
-    (string) ($alertData['message'] ?? '')
+    (string) (
+        $alertData['message']
+        ?? ''
+    )
 );
 
 $hasAlert = $alertMessage !== '';
@@ -46,16 +66,28 @@ $consentValue = (string) old(
 );
 
 $consentError = trim(
-    (string) ($errorBag['consent'] ?? '')
+    (string) (
+        $errorBag['consent']
+        ?? ''
+    )
 );
 
 $consentClass = $consentError !== ''
     ? 'is-invalid'
     : '';
 
-$consentChecked = $consentValue === '1';
+$consentChecked =
+    $consentValue === '1';
 
-$this->extend('Prelaunch/Layouts/Main');
+$consentFeedback =
+    $consentError !== ''
+    ? $consentError
+    : 'Please confirm that the member has provided consent.';
+
+$this->extend(
+    'Prelaunch/Layouts/Main'
+);
+
 $this->section('content');
 ?>
 
@@ -89,6 +121,7 @@ $this->section('content');
                 method="post"
                 enctype="multipart/form-data"
                 id="prelaunch-profile-form"
+                data-validate
                 data-submit-loader
                 novalidate>
                 <?= csrf_field() ?>
@@ -129,6 +162,10 @@ $this->section('content');
                                                             'attr'
                                                         ) ?>"
                                 value="1"
+                                data-error-required="<?= esc(
+                                                            $consentFeedback,
+                                                            'attr'
+                                                        ) ?>"
                                 <?= $consentChecked
                                     ? 'checked'
                                     : '' ?>
@@ -141,34 +178,38 @@ $this->section('content');
                                 collection and review of these details.
                             </label>
 
-                            <?php if ($consentError !== ''): ?>
-                                <div class="invalid-feedback">
-                                    <?= esc($consentError) ?>
-                                </div>
-                            <?php endif ?>
+                            <div
+                                id="consentError"
+                                class="invalid-feedback"
+                                data-validation-error="consent">
+                                <?= esc($consentError) ?>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <button
-                    type="submit"
-                    class="registration-form__submit"
-                    id="save-prelaunch-profile"
-                    disabled>
-                    <span data-submit-label>
-                        Save Draft Profile
-                    </span>
+                <div class="d-grid">
+                    <button
+                        type="submit"
+                        class="registration-form__submit"
+                        id="save-prelaunch-profile"
+                        data-submit-button>
+                        <span data-submit-idle>
+                            Save Draft Profile
+                        </span>
 
-                    <span
-                        class="registration-submit__loading d-none"
-                        data-submit-loading>
                         <span
-                            class="spinner-border spinner-border-sm"
-                            aria-hidden="true"></span>
+                            class="registration-submit__loading d-none"
+                            data-submit-loading
+                            aria-hidden="true">
+                            <span
+                                class="spinner-border spinner-border-sm"
+                                aria-hidden="true"></span>
 
-                        Saving...
-                    </span>
-                </button>
+                            Saving...
+                        </span>
+                    </button>
+                </div>
             </form>
         </div>
     </div>

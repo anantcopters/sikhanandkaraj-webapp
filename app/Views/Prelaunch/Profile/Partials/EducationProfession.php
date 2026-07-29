@@ -112,10 +112,14 @@ $occupationClass =
                 <select
                     id="highest_education_id"
                     name="highest_education_id"
-                    class="form-select js-choice <?= esc(
-                                                        $educationClass,
-                                                        'attr'
-                                                    ) ?>"
+                    class="form-select <?= esc(
+                                            $educationClass,
+                                            'attr'
+                                        ) ?>"
+                    data-choice
+                    data-choice-position="bottom"
+                    data-choice-search-placeholder="Search education"
+                    data-error-required="Please select your highest education."
                     required>
                     <option value="">
                         Select education
@@ -166,14 +170,12 @@ $occupationClass =
                         </option>
                     <?php endforeach ?>
                 </select>
-
-                <?php if (
-                    $educationError !== ''
-                ): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($educationError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="highest_education_idError"
+                    class="invalid-feedback"
+                    data-validation-error="highest_education_id">
+                    <?= esc($educationError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -186,10 +188,10 @@ $occupationClass =
                 <select
                     id="employed_in"
                     name="employed_in"
-                    class="form-select js-choice <?= esc(
-                                                        $employmentClass,
-                                                        'attr'
-                                                    ) ?>"
+                    class="form-select <?= esc(
+                                            $employmentClass,
+                                            'attr'
+                                        ) ?>"
                     required>
                     <option value="">
                         Select employment type
@@ -247,14 +249,12 @@ $occupationClass =
                         </option>
                     <?php endforeach ?>
                 </select>
-
-                <?php if (
-                    $employmentError !== ''
-                ): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($employmentError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="employed_inError"
+                    class="invalid-feedback"
+                    data-validation-error="employed_in">
+                    <?= esc($employmentError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -267,10 +267,10 @@ $occupationClass =
                 <select
                     id="occupation_id"
                     name="occupation_id"
-                    class="form-select js-choice <?= esc(
-                                                        $occupationClass,
-                                                        'attr'
-                                                    ) ?>"
+                    class="form-select <?= esc(
+                                            $occupationClass,
+                                            'attr'
+                                        ) ?>"
                     required>
                     <option value="">
                         Select occupation
@@ -321,14 +321,12 @@ $occupationClass =
                         </option>
                     <?php endforeach ?>
                 </select>
-
-                <?php if (
-                    $occupationError !== ''
-                ): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($occupationError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="occupation_idError"
+                    class="invalid-feedback"
+                    data-validation-error="occupation_id">
+                    <?= esc($occupationError) ?>
+                </div>
             </div>
         </div>
     </div>

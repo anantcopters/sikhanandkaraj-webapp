@@ -202,10 +202,14 @@ $cityRouteTemplate = route_to(
                 <select
                     id="marital_status_id"
                     name="marital_status_id"
-                    class="form-select js-choice <?= esc(
+                    class="form-select <?= esc(
                                                         $maritalStatusClass,
                                                         'attr'
                                                     ) ?>"
+                    data-choice
+                    data-choice-search="false"
+                    data-choice-position="bottom"
+                    data-error-required="Please select your marital status."
                     required>
                     <option value="">
                         Select marital status
@@ -259,16 +263,12 @@ $cityRouteTemplate = route_to(
                         </option>
                     <?php endforeach ?>
                 </select>
-
-                <?php if (
-                    $maritalStatusError !== ''
-                ): ?>
-                    <div class="invalid-feedback">
-                        <?= esc(
-                            $maritalStatusError
-                        ) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="marital_status_idError"
+                    class="invalid-feedback"
+                    data-validation-error="marital_status_id">
+                    <?= esc($maritalStatusError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -281,10 +281,14 @@ $cityRouteTemplate = route_to(
                 <select
                     id="height_id"
                     name="height_id"
-                    class="form-select js-choice <?= esc(
+                    class="form-select <?= esc(
                                                         $heightClass,
                                                         'attr'
                                                     ) ?>"
+                    data-choice
+                    data-choice-search="false"
+                    data-choice-position="bottom"
+                    data-error-required="Please select height."
                     required>
                     <option value="">
                         Select height
@@ -334,12 +338,12 @@ $cityRouteTemplate = route_to(
                         </option>
                     <?php endforeach ?>
                 </select>
-
-                <?php if ($heightError !== ''): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($heightError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="height_idError"
+                    class="invalid-feedback"
+                    data-validation-error="height_id">
+                    <?= esc($heightError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -352,7 +356,7 @@ $cityRouteTemplate = route_to(
                 <select
                     id="mother_tongue_id"
                     name="mother_tongue_id"
-                    class="form-select js-choice <?= esc(
+                    class="form-select <?= esc(
                                                         $motherTongueClass,
                                                         'attr'
                                                     ) ?>"
@@ -441,12 +445,12 @@ $cityRouteTemplate = route_to(
                             ) ?>"
                     readonly
                     aria-readonly="true">
-
-                <?php if ($countryError !== ''): ?>
-                    <div class="text-danger small mt-1">
-                        <?= esc($countryError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="country_displayError"
+                    class="invalid-feedback"
+                    data-validation-error="country_display">
+                    <?= esc($countryError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -459,7 +463,7 @@ $cityRouteTemplate = route_to(
                 <select
                     id="state_id"
                     name="state_id"
-                    class="form-select js-choice <?= esc(
+                    class="form-select <?= esc(
                                                         $stateClass,
                                                         'attr'
                                                     ) ?>"
@@ -467,6 +471,10 @@ $cityRouteTemplate = route_to(
                                                 $cityRouteTemplate,
                                                 'attr'
                                             ) ?>"
+                    data-choice
+                    data-choice-search="false"
+                    data-choice-position="bottom"
+                    data-error-required="Please select state."
                     required>
                     <option value="">
                         Select state
@@ -516,12 +524,12 @@ $cityRouteTemplate = route_to(
                         </option>
                     <?php endforeach ?>
                 </select>
-
-                <?php if ($stateError !== ''): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($stateError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="state_idError"
+                    class="invalid-feedback"
+                    data-validation-error="state_id">
+                    <?= esc($stateError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -534,7 +542,7 @@ $cityRouteTemplate = route_to(
                 <select
                     id="city_id"
                     name="city_id"
-                    class="form-select js-choice <?= esc(
+                    class="form-select <?= esc(
                                                         $cityClass,
                                                         'attr'
                                                     ) ?>"
@@ -542,6 +550,10 @@ $cityRouteTemplate = route_to(
                                                 $cityId,
                                                 'attr'
                                             ) ?>"
+                    data-choice
+                    data-choice-search="false"
+                    data-choice-position="bottom"
+                    data-error-required="Please select city."
                     required>
                     <option value="">
                         Select city
@@ -591,12 +603,12 @@ $cityRouteTemplate = route_to(
                         </option>
                     <?php endforeach ?>
                 </select>
-
-                <?php if ($cityError !== ''): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($cityError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="city_idError"
+                    class="invalid-feedback"
+                    data-validation-error="city_id">
+                    <?= esc($cityError) ?>
+                </div>
             </div>
         </div>
     </div>

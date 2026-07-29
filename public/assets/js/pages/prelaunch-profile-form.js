@@ -574,328 +574,465 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
-     * Initialize Field Officer verification.
-     */
-    const initializeFieldOfficerVerification =
-        () => {
-            const verifyButton =
-                document.getElementById(
-                    'verify-field-officer'
-                );
-
-            const officerCodeInput =
-                document.getElementById(
-                    'field_officer_code'
-                );
-
-            const verifiedOfficerInput =
-                document.getElementById(
-                    'verified_field_officer_id'
-                );
-
-            const resultContainer =
-                document.getElementById(
-                    'field-officer-result'
-                );
-
-            const saveButton =
-                document.getElementById(
-                    'save-prelaunch-profile'
-                );
-
-            if (
-                !(
-                    verifyButton
-                    instanceof HTMLButtonElement
-                )
-                || !(
-                    officerCodeInput
-                    instanceof HTMLInputElement
-                )
-                || !(
-                    verifiedOfficerInput
-                    instanceof HTMLInputElement
-                )
-                || !(
-                    resultContainer
-                    instanceof HTMLElement
-                )
-                || !(
-                    saveButton
-                    instanceof HTMLButtonElement
-                )
-            ) {
-                return;
-            }
-
-            const verifyLabel =
-                document.getElementById(
-                    'verify-field-officer-label'
-                );
-
-            const verifyLoading =
-                document.getElementById(
-                    'verify-field-officer-loading'
-                );
-
-            const officerName =
-                document.getElementById(
-                    'verified-field-officer-name'
-                );
-
-            const officerCode =
-                document.getElementById(
-                    'verified-field-officer-code'
-                );
-
-            const officerLocation =
-                document.getElementById(
-                    'verified-field-officer-location'
-                );
-
-            const resetVerification = () => {
-                verifiedOfficerInput.value = '';
-                saveButton.disabled = true;
-
-                resultContainer.classList.add(
-                    'd-none'
-                );
-
-                resultContainer.classList.remove(
-                    'alert-success',
-                    'alert-danger'
-                );
-            };
-
-            officerCodeInput.addEventListener(
-                'input',
-                () => {
-                    officerCodeInput.value =
-                        officerCodeInput.value
-                            .toUpperCase();
-
-                    resetVerification();
-                }
+ * Initialize Field Officer verification.
+ *
+ * Field Officer verification participates in normal HTML
+ * constraint validation through setCustomValidity().
+ *
+ * The save button is not enabled or disabled here because
+ * submit state belongs to submit-loader.js.
+ *
+ * @returns {void}
+ */
+    const initializeFieldOfficerVerification = () => {
+        const verifyButton =
+            document.getElementById(
+                'verify-field-officer'
             );
 
-            verifyButton.addEventListener(
-                'click',
-                async () => {
-                    const enteredCode =
-                        officerCodeInput
-                            .value
-                            .trim();
+        const officerCodeInput =
+            document.getElementById(
+                'field_officer_code'
+            );
 
-                    if (enteredCode.length < 4) {
-                        resultContainer.classList.remove(
-                            'd-none',
-                            'alert-success',
-                            'alert-light'
-                        );
+        const verifiedOfficerInput =
+            document.getElementById(
+                'verified_field_officer_id'
+            );
 
-                        resultContainer.classList.add(
-                            'alert-danger'
-                        );
+        const resultContainer =
+            document.getElementById(
+                'field-officer-result'
+            );
 
-                        resultContainer.textContent =
-                            'Please enter a valid Field Officer code.';
+        if (
+            !(
+                verifyButton
+                instanceof HTMLButtonElement
+            )
+            || !(
+                officerCodeInput
+                instanceof HTMLInputElement
+            )
+            || !(
+                verifiedOfficerInput
+                instanceof HTMLInputElement
+            )
+            || !(
+                resultContainer
+                instanceof HTMLElement
+            )
+        ) {
+            return;
+        }
 
-                        return;
+        const verifyLabel =
+            document.getElementById(
+                'verify-field-officer-label'
+            );
+
+        const verifyLoading =
+            document.getElementById(
+                'verify-field-officer-loading'
+            );
+
+        const officerName =
+            document.getElementById(
+                'verified-field-officer-name'
+            );
+
+        const officerCode =
+            document.getElementById(
+                'verified-field-officer-code'
+            );
+
+        const officerLocation =
+            document.getElementById(
+                'verified-field-officer-location'
+            );
+
+        /**
+         * Reset any previously verified officer whenever
+         * the entered officer code changes.
+         *
+         * @returns {void}
+         */
+        const resetVerification = () => {
+            verifiedOfficerInput.value = '';
+
+            officerCodeInput.setCustomValidity(
+                'Please verify the Field Officer code.'
+            );
+
+            resultContainer.classList.add(
+                'd-none'
+            );
+
+            resultContainer.classList.remove(
+                'alert-success',
+                'alert-danger'
+            );
+        };
+
+        /**
+         * Display an AJAX verification error.
+         *
+         * @param {string} message
+         *
+         * @returns {void}
+         */
+        const showVerificationError = (
+            message
+        ) => {
+            verifiedOfficerInput.value = '';
+
+            officerCodeInput.setCustomValidity(
+                message
+            );
+
+            resultContainer.classList.remove(
+                'd-none',
+                'alert-success',
+                'alert-light'
+            );
+
+            resultContainer.classList.add(
+                'alert-danger'
+            );
+
+            resultContainer.textContent =
+                message;
+
+            if (
+                window.FormValidator
+                && typeof window.FormValidator.init
+                === 'function'
+            ) {
+                window.FormValidator.init(
+                    document
+                );
+            }
+
+            officerCodeInput.dispatchEvent(
+                new Event(
+                    'blur',
+                    {
+                        bubbles: true,
                     }
+                )
+            );
+        };
 
-                    const verificationUrl =
-                        verifyButton.dataset
-                            .verificationUrl;
+        /**
+         * Place verification button into loading state.
+         *
+         * @returns {void}
+         */
+        const showVerificationLoader = () => {
+            verifyButton.disabled = true;
+            verifyButton.setAttribute(
+                'aria-disabled',
+                'true'
+            );
 
-                    if (!verificationUrl) {
-                        return;
-                    }
+            verifyLabel?.classList.add(
+                'd-none'
+            );
 
-                    verifyButton.disabled = true;
+            verifyLabel?.setAttribute(
+                'aria-hidden',
+                'true'
+            );
 
-                    verifyLabel?.classList.add(
-                        'd-none'
+            verifyLoading?.classList.remove(
+                'd-none'
+            );
+
+            verifyLoading?.setAttribute(
+                'aria-hidden',
+                'false'
+            );
+        };
+
+        /**
+         * Restore verification button.
+         *
+         * @returns {void}
+         */
+        const hideVerificationLoader = () => {
+            verifyButton.disabled = false;
+            verifyButton.removeAttribute(
+                'aria-disabled'
+            );
+
+            verifyLabel?.classList.remove(
+                'd-none'
+            );
+
+            verifyLabel?.setAttribute(
+                'aria-hidden',
+                'false'
+            );
+
+            verifyLoading?.classList.add(
+                'd-none'
+            );
+
+            verifyLoading?.setAttribute(
+                'aria-hidden',
+                'true'
+            );
+        };
+
+        resetVerification();
+
+        officerCodeInput.addEventListener(
+            'input',
+            () => {
+                officerCodeInput.value =
+                    officerCodeInput.value
+                        .toUpperCase();
+
+                resetVerification();
+            }
+        );
+
+        verifyButton.addEventListener(
+            'click',
+            async () => {
+                const enteredCode =
+                    officerCodeInput.value
+                        .trim();
+
+                /**
+                 * Clear verification-specific custom validity
+                 * temporarily so native pattern, required and
+                 * length constraints can be checked.
+                 */
+                officerCodeInput.setCustomValidity(
+                    ''
+                );
+
+                if (
+                    !officerCodeInput
+                        .checkValidity()
+                ) {
+                    officerCodeInput.dispatchEvent(
+                        new Event(
+                            'blur',
+                            {
+                                bubbles: true,
+                            }
+                        )
                     );
 
-                    verifyLoading?.classList.remove(
-                        'd-none'
+                    officerCodeInput.focus();
+
+                    return;
+                }
+
+                const verificationUrl =
+                    verifyButton.dataset
+                        .verificationUrl;
+
+                if (!verificationUrl) {
+                    showVerificationError(
+                        'Field Officer verification URL is unavailable.'
                     );
 
-                    const requestBody =
-                        new FormData();
+                    return;
+                }
 
+                showVerificationLoader();
+
+                const requestBody =
+                    new FormData();
+
+                requestBody.append(
+                    'field_officer_code',
+                    enteredCode
+                );
+
+                const csrfInput =
+                    form.querySelector(
+                        'input[type="hidden"][name^="csrf"]'
+                    );
+
+                if (
+                    csrfInput
+                    instanceof HTMLInputElement
+                ) {
                     requestBody.append(
-                        'field_officer_code',
-                        enteredCode
+                        csrfInput.name,
+                        csrfInput.value
                     );
+                }
 
-                    const csrfInput =
-                        form.querySelector(
-                            'input[type="hidden"][name^="csrf"]'
+                try {
+                    const response =
+                        await fetch(
+                            verificationUrl,
+                            {
+                                method: 'POST',
+                                body: requestBody,
+                                credentials:
+                                    'same-origin',
+
+                                headers: {
+                                    Accept:
+                                        'application/json',
+
+                                    'X-Requested-With':
+                                        'XMLHttpRequest',
+                                },
+                            }
                         );
+
+                    const payload =
+                        await response.json();
 
                     if (
                         csrfInput
                         instanceof HTMLInputElement
+                        && payload.csrfName
+                        && payload.csrfHash
                     ) {
-                        requestBody.append(
-                            csrfInput.name,
-                            csrfInput.value
+                        csrfInput.name = String(
+                            payload.csrfName
+                        );
+
+                        csrfInput.value = String(
+                            payload.csrfHash
                         );
                     }
 
-                    try {
-                        const response =
-                            await fetch(
-                                verificationUrl,
-                                {
-                                    method: 'POST',
-                                    body: requestBody,
-                                    credentials:
-                                        'same-origin',
+                    if (
+                        !response.ok
+                        || payload.successful
+                        !== true
+                    ) {
+                        throw new Error(
+                            payload.message
+                            || 'Field Officer verification failed.'
+                        );
+                    }
 
-                                    headers: {
-                                        Accept:
-                                            'application/json',
+                    const officer =
+                        payload.fieldOfficer
+                        ?? {};
 
-                                        'X-Requested-With':
-                                            'XMLHttpRequest',
-                                    },
-                                }
-                            );
-
-                        const payload =
-                            await response.json();
-
-                        if (
-                            csrfInput
-                            instanceof HTMLInputElement
-                            && payload.csrfName
-                            && payload.csrfHash
-                        ) {
-                            csrfInput.name =
-                                String(
-                                    payload.csrfName
-                                );
-
-                            csrfInput.value =
-                                String(
-                                    payload.csrfHash
-                                );
-                        }
-
-                        if (
-                            !response.ok
-                            || payload.successful
-                            !== true
-                        ) {
-                            throw new Error(
-                                payload.message
-                                || 'Field Officer verification failed.'
-                            );
-                        }
-
-                        const officer =
-                            payload.fieldOfficer
-                            ?? {};
-
-                        const verifiedId =
-                            String(
-                                officer.id
-                                ?? ''
-                            );
-
-                        verifiedOfficerInput.value =
-                            verifiedId;
-
-                        if (officerName) {
-                            officerName.textContent =
-                                String(
-                                    officer.fullName
-                                    ?? 'Verified Field Officer'
-                                );
-                        }
-
-                        if (officerCode) {
-                            const verifiedCode =
-                                String(
-                                    officer.officerCode
-                                    ?? enteredCode
-                                );
-
-                            officerCode.textContent =
-                                `Code: ${verifiedCode}`;
-                        }
-
-                        if (officerLocation) {
-                            const providedLocation =
-                                String(
-                                    officer.location
-                                    ?? ''
-                                ).trim();
-
-                            const generatedLocation = [
-                                officer.cityName,
-                                officer.stateName,
-                                officer.countryName,
-                            ]
-                                .filter(Boolean)
-                                .join(', ');
-
-                            officerLocation.textContent =
-                                providedLocation
-                                || generatedLocation;
-                        }
-
-                        resultContainer.classList.remove(
-                            'd-none',
-                            'alert-danger',
-                            'alert-light'
+                    const verifiedId =
+                        String(
+                            officer.id
+                            ?? ''
                         );
 
-                        resultContainer.classList.add(
-                            'alert-success'
+                    if (verifiedId === '') {
+                        throw new Error(
+                            'Field Officer verification returned an invalid response.'
+                        );
+                    }
+
+                    verifiedOfficerInput.value =
+                        verifiedId;
+
+                    officerCodeInput.setCustomValidity(
+                        ''
+                    );
+
+                    officerCodeInput.classList.remove(
+                        'is-invalid'
+                    );
+
+                    const officerErrorElement =
+                        document.getElementById(
+                            'field_officer_codeError'
                         );
 
-                        saveButton.disabled =
-                            verifiedId === '';
-                    } catch (error) {
-                        verifiedOfficerInput.value =
+                    if (
+                        officerErrorElement
+                        instanceof HTMLElement
+                    ) {
+                        officerErrorElement.textContent =
                             '';
 
-                        saveButton.disabled = true;
-
-                        resultContainer.classList.remove(
-                            'd-none',
-                            'alert-success',
-                            'alert-light'
-                        );
-
-                        resultContainer.classList.add(
-                            'alert-danger'
-                        );
-
-                        const errorMessage =
-                            error instanceof Error
-                                ? error.message
-                                : 'Field Officer verification failed.';
-
-                        resultContainer.textContent =
-                            errorMessage;
-                    } finally {
-                        verifyButton.disabled = false;
-
-                        verifyLabel?.classList.remove(
-                            'd-none'
-                        );
-
-                        verifyLoading?.classList.add(
-                            'd-none'
+                        officerErrorElement.classList.remove(
+                            'd-block'
                         );
                     }
+
+                    if (
+                        officerName
+                        instanceof HTMLElement
+                    ) {
+                        officerName.textContent =
+                            String(
+                                officer.fullName
+                                ?? 'Verified Field Officer'
+                            );
+                    }
+
+                    if (
+                        officerCode
+                        instanceof HTMLElement
+                    ) {
+                        const verifiedCode =
+                            String(
+                                officer.officerCode
+                                ?? enteredCode
+                            );
+
+                        officerCode.textContent =
+                            `Code: ${verifiedCode}`;
+                    }
+
+                    if (
+                        officerLocation
+                        instanceof HTMLElement
+                    ) {
+                        const providedLocation =
+                            String(
+                                officer.location
+                                ?? ''
+                            ).trim();
+
+                        const generatedLocation = [
+                            officer.cityName,
+                            officer.stateName,
+                            officer.countryName,
+                        ]
+                            .filter(Boolean)
+                            .join(', ');
+
+                        officerLocation.textContent =
+                            providedLocation
+                            || generatedLocation;
+                    }
+
+                    resultContainer.classList.remove(
+                        'd-none',
+                        'alert-danger',
+                        'alert-light'
+                    );
+
+                    resultContainer.classList.add(
+                        'alert-success'
+                    );
+                } catch (error) {
+                    const errorMessage =
+                        error instanceof Error
+                            ? error.message
+                            : 'Field Officer verification failed.';
+
+                    showVerificationError(
+                        errorMessage
+                    );
+                } finally {
+                    hideVerificationLoader();
                 }
-            );
-        };
+            }
+        );
+    };
 
     initializeChoices();
     initializeProfileGenderDependency();

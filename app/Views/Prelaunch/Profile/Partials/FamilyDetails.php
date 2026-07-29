@@ -312,10 +312,10 @@ $subcommunityRouteTemplate = route_to(
                 <select
                     id="family_value_id"
                     name="family_value_id"
-                    class="form-select js-choice <?= esc(
-                                                        $familyValueClass,
-                                                        'attr'
-                                                    ) ?>"
+                    class="form-select <?= esc(
+                                            $familyValueClass,
+                                            'attr'
+                                        ) ?>"
                     required>
                     <option value="">
                         Select family values
@@ -389,10 +389,10 @@ $subcommunityRouteTemplate = route_to(
                 <select
                     id="family_type_id"
                     name="family_type_id"
-                    class="form-select js-choice <?= esc(
-                                                        $familyTypeClass,
-                                                        'attr'
-                                                    ) ?>"
+                    class="form-select <?= esc(
+                                            $familyTypeClass,
+                                            'attr'
+                                        ) ?>"
                     required>
                     <option value="">
                         Select family type
@@ -466,10 +466,10 @@ $subcommunityRouteTemplate = route_to(
                 <select
                     id="family_status_id"
                     name="family_status_id"
-                    class="form-select js-choice <?= esc(
-                                                        $familyStatusClass,
-                                                        'attr'
-                                                    ) ?>"
+                    class="form-select <?= esc(
+                                            $familyStatusClass,
+                                            'attr'
+                                        ) ?>"
                     required>
                     <option value="">
                         Select family status
@@ -543,14 +543,17 @@ $subcommunityRouteTemplate = route_to(
                 <select
                     id="sikh_community_id"
                     name="sikh_community_id"
-                    class="form-select js-choice <?= esc(
-                                                        $communityClass,
-                                                        'attr'
-                                                    ) ?>"
+                    class="form-select <?= esc(
+                                            $communityClass,
+                                            'attr'
+                                        ) ?>"
                     data-subcommunity-url-template="<?= esc(
                                                         $subcommunityRouteTemplate,
                                                         'attr'
                                                     ) ?>"
+                    data-choice
+                    data-choice-search="true" data-choice-position="bottom"
+                    data-error-required="Please select your community."
                     required>
                     <option value="">
                         Select community
@@ -601,14 +604,12 @@ $subcommunityRouteTemplate = route_to(
                         </option>
                     <?php endforeach ?>
                 </select>
-
-                <?php if (
-                    $communityError !== ''
-                ): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($communityError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="sikh_community_idError"
+                    class="invalid-feedback"
+                    data-validation-error="sikh_community_id">
+                    <?= esc($communityError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -621,14 +622,15 @@ $subcommunityRouteTemplate = route_to(
                 <select
                     id="sikh_subcommunity_id"
                     name="sikh_subcommunity_id"
-                    class="form-select js-choice <?= esc(
-                                                        $subcommunityClass,
-                                                        'attr'
-                                                    ) ?>"
+                    class="form-select <?= esc(
+                                            $subcommunityClass,
+                                            'attr'
+                                        ) ?>"
                     data-selected-value="<?= esc(
                                                 $subcommunityId,
                                                 'attr'
                                             ) ?>"
+                    data-error-required="Please select your sub-community."
                     required>
                     <option value="">
                         Select sub-community
@@ -682,14 +684,12 @@ $subcommunityRouteTemplate = route_to(
                         </option>
                     <?php endforeach ?>
                 </select>
-
-                <?php if (
-                    $subcommunityError !== ''
-                ): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($subcommunityError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="sikh_subcommunity_idError"
+                    class="invalid-feedback"
+                    data-validation-error="sikh_subcommunity_id">
+                    <?= esc($subcommunityError) ?>
+                </div>
             </div>
         </div>
     </div>

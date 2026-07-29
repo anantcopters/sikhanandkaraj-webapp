@@ -47,6 +47,11 @@ $profileCreatedForError = trim(
     )
 );
 
+$profileCreatedForClass =
+    $profileCreatedForError !== ''
+    ? 'is-invalid'
+    : '';
+
 $genderError = trim(
     (string) (
         $errorBag['gender']
@@ -158,7 +163,8 @@ $genderOptions = [
                 </p>
             </div>
         </div>
-        <hr class="my-2 mb-2"></hr>
+        <hr class="my-2 mb-2">
+        </hr>
         <div class="row g-3 pt-2">
             <div class="col-12 col-md-6">
                 <label
@@ -170,10 +176,11 @@ $genderOptions = [
                 <select
                     id="profile_created_for"
                     name="profile_created_for"
-                    class="form-select js-choice <?= esc(
-                                                        $profileCreatedForClass,
-                                                        'attr'
-                                                    ) ?>"
+                    class="form-select <?= esc(
+                                            $profileCreatedForClass,
+                                            'attr'
+                                        ) ?>"
+                    data-error-required="Please select who this profile is for."
                     required>
                     <option value="">
                         Select
@@ -198,22 +205,17 @@ $genderOptions = [
                             <?= $profileForSelected
                                 ? 'selected'
                                 : '' ?>>
-                            <?= esc(
-                                $profileForLabel
-                            ) ?>
+                            <?= esc($profileForLabel) ?>
                         </option>
                     <?php endforeach ?>
                 </select>
 
-                <?php if (
-                    $profileCreatedForError !== ''
-                ): ?>
-                    <div class="invalid-feedback">
-                        <?= esc(
-                            $profileCreatedForError
-                        ) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="profile_created_forError"
+                    class="invalid-feedback"
+                    data-validation-error="profile_created_for">
+                    <?= esc($profileCreatedForError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -226,10 +228,11 @@ $genderOptions = [
                 <select
                     id="gender"
                     name="gender"
-                    class="form-select js-choice <?= esc(
-                                                        $genderClass,
-                                                        'attr'
-                                                    ) ?>"
+                    class="form-select <?= esc(
+                                            $genderClass,
+                                            'attr'
+                                        ) ?>"
+                    data-error-required="Please select gender."
                     required>
                     <option value="">
                         Select gender
@@ -257,12 +260,12 @@ $genderOptions = [
                         </option>
                     <?php endforeach ?>
                 </select>
-
-                <?php if ($genderError !== ''): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($genderError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="genderError"
+                    class="invalid-feedback"
+                    data-validation-error="gender">
+                    <?= esc($genderError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -284,15 +287,22 @@ $genderOptions = [
                                 $fullName,
                                 'attr'
                             ) ?>"
+                    aria-describedby="full_nameError"
+                    placeholder="Enter full name"
+                    minlength="2"
                     maxlength="100"
                     autocomplete="name"
+                    data-error-required="Please enter full name."
+                    data-error-minlength="Full name must contain at least 2 characters."
+                    data-error-maxlength="Full name cannot exceed 100 characters."
                     required>
 
-                <?php if ($fullNameError !== ''): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($fullNameError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="full_nameError"
+                    class="invalid-feedback"
+                    data-validation-error="full_name">
+                    <?= esc($fullNameError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -314,6 +324,7 @@ $genderOptions = [
                                 $dateOfBirth,
                                 'attr'
                             ) ?>"
+                    data-error-required="Please select the member’s date of birth."
                     required>
 
                 <?php if (
@@ -346,8 +357,13 @@ $genderOptions = [
                                 $email,
                                 'attr'
                             ) ?>"
-                    maxlength="190"
+                    aria-describedby="emailError"
+                    placeholder="Enter email"
+                    maxlength="128"
                     autocomplete="email"
+                    data-error-required="Please enter email address."
+                    data-error-email="Please enter a valid email address."
+                    data-error-maxlength="Email address is too long."
                     required>
 
                 <?php if ($emailError !== ''): ?>
@@ -387,10 +403,16 @@ $genderOptions = [
                                     $mobileNumber,
                                     'attr'
                                 ) ?>"
+                        placeholder="Enter Mobile Number"
                         inputmode="numeric"
-                        pattern="[0-9]{10}"
+                        pattern="[6-9][0-9]{9}"
+                        minlength="10"
                         maxlength="10"
-                        autocomplete="tel-national"
+                        autocomplete="tel"
+                        data-error-required="Please enter mobile number."
+                        data-error-pattern="Please enter a valid 10-digit Indian mobile number."
+                        data-error-minlength="Please enter a 10-digit mobile number."
+                        data-error-maxlength="Please enter a 10-digit mobile number."
                         required>
                 </div>
 
