@@ -56,6 +56,23 @@ final class PrelaunchProfileService
             );
         }
 
+        $profileCreatedFor = mb_strtoupper(
+            trim(
+                (string) (
+                    $input['profile_created_for']
+                    ?? ''
+                )
+            )
+        );
+
+        $gender = $this->resolveGender(
+            $profileCreatedFor,
+            (string) (
+                $input['gender']
+                ?? ''
+            )
+        );
+
         $countryCode = trim(
             (string) (
                 $input['country_code']
@@ -126,10 +143,10 @@ final class PrelaunchProfileService
                         $profileReference,
 
                         'profile_created_for' =>
-                        (string) $input['profile_created_for'],
+                        $profileCreatedFor,
 
                         'gender' =>
-                        (string) $input['gender'],
+                        $gender,
 
                         'full_name' =>
                         trim(
@@ -245,6 +262,81 @@ final class PrelaunchProfileService
 
             throw $exception;
         }
+    }
+
+    /**
+     * Resolve and enforce Gender according to Profile Created For.
+     *
+     * Gender supplied by the browser is never trusted for relationships
+     * where the relationship itself determines the member’s gender.
+     *
+     * @throws RuntimeException
+     */
+    private function resolveGender(
+        string $profileCreatedFor,
+        string $submittedGender
+    ): string {
+        $normalizedRelationship =
+            mb_strtoupper(
+                trim(
+                    $profileCreatedFor
+                )
+            );
+
+        $normalizedGender =
+            mb_strtoupper(
+                trim(
+                    $submittedGender
+                )
+            );
+
+        $fixedGenderByRelationship = [
+            'SON' => 'MALE',
+            'BROTHER' => 'MALE',
+            'DAUGHTER' => 'FEMALE',
+            'SISTER' => 'FEMALE',
+        ];
+
+        if (
+            isset(
+                $fixedGenderByRelationship[$normalizedRelationship]
+            )
+        ) {
+            return $fixedGenderByRelationship[$normalizedRelationship];
+        }
+
+        if (
+            !in_array(
+                $normalizedRelationship,
+                [
+                    'SELF',
+                    'RELATIVE',
+                    'FRIEND',
+                ],
+                true
+            )
+        ) {
+            throw new RuntimeException(
+                'Please select a valid profile relationship.'
+            );
+        }
+
+        if (
+            !in_array(
+                $normalizedGender,
+                [
+                    'MALE',
+                    'FEMALE',
+                ],
+                true
+            )
+        ) {
+            throw new RuntimeException(
+                'Please select gender.'
+            );
+        }
+
+        return $normalizedGender;
     }
 
     /**

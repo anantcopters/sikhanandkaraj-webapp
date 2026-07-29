@@ -289,9 +289,19 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
-     * Apply registration-style dependency between
-     * Profile Created For and Gender.
-     */
+ * Initialize Profile Created For and Gender dependency.
+ *
+ * Behaviour follows the homepage registration flow:
+ *
+ * - Show Gender where it must be selected manually.
+ * - Hide Gender where the selected relationship determines it.
+ * - Automatically assign Male/Female for deterministic relationships.
+ *
+ * The original select receives native change events from Choices.js,
+ * so no Choices-specific event binding is required.
+ *
+ * @returns {void}
+ */
     const initializeProfileGenderDependency =
         () => {
             const profileCreatedFor =
@@ -304,6 +314,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     'gender'
                 );
 
+            const genderContainer =
+                document.getElementById(
+                    'gender-container'
+                );
+
+            const genderError =
+                document.getElementById(
+                    'genderError'
+                );
+
             if (
                 !(
                     profileCreatedFor
@@ -313,80 +333,188 @@ document.addEventListener('DOMContentLoaded', () => {
                     gender
                     instanceof HTMLSelectElement
                 )
+                || !(
+                    genderContainer
+                    instanceof HTMLElement
+                )
             ) {
                 return;
             }
 
+            /**
+             * Relationships which determine gender without requiring
+             * another user selection.
+             *
+             * @type {Object<string, string>}
+             */
+            const fixedGenderByRelationship = {
+                SON: 'MALE',
+                BROTHER: 'MALE',
+                DAUGHTER: 'FEMALE',
+                SISTER: 'FEMALE',
+            };
+
+            /**
+             * Clear the reusable Gender validation state.
+             *
+             * @returns {void}
+             */
+            const clearGenderValidation = () => {
+                gender.setCustomValidity(
+                    ''
+                );
+
+                gender.classList.remove(
+                    'is-invalid'
+                );
+
+                gender.removeAttribute(
+                    'aria-invalid'
+                );
+
+                if (
+                    genderError
+                    instanceof HTMLElement
+                ) {
+                    genderError.textContent = '';
+
+                    genderError.classList.remove(
+                        'd-block'
+                    );
+                }
+
+                /*
+                 * Choices.js renders a separate visual container.
+                 * Refresh it after removing validation classes.
+                 */
+                if (
+                    window.SelectChoice
+                    && typeof window.SelectChoice
+                        .refresh
+                    === 'function'
+                ) {
+                    window.SelectChoice.refresh(
+                        gender
+                    );
+                }
+            };
+
+            /**
+             * Set the Gender value and refresh the reusable Choices
+             * component.
+             *
+             * @param {string} value
+             *
+             * @returns {void}
+             */
+            const setGenderValue = (
+                value
+            ) => {
+                gender.value = value;
+
+                if (
+                    window.SelectChoice
+                    && typeof window.SelectChoice
+                        .refresh
+                    === 'function'
+                ) {
+                    window.SelectChoice.refresh(
+                        gender
+                    );
+                }
+
+                gender.dispatchEvent(
+                    new Event(
+                        'change',
+                        {
+                            bubbles: true,
+                        }
+                    )
+                );
+            };
+
+            /**
+             * Synchronize the Gender field with the selected relationship.
+             *
+             * @returns {void}
+             */
+            const updateGenderState = () => {
+                const selectedRelationship =
+                    profileCreatedFor.value
+                        .trim()
+                        .toUpperCase();
+
+                const fixedGender =
+                    fixedGenderByRelationship[
+                    selectedRelationship
+                    ]
+                    ?? '';
+
+                const requiresManualGender =
+                    fixedGender === '';
+
+                genderContainer.classList.toggle(
+                    'd-none',
+                    !requiresManualGender
+                );
+
+                gender.required =
+                    requiresManualGender;
+
+                gender.disabled = false;
+
+                if (fixedGender !== '') {
+                    clearGenderValidation();
+
+                    setGenderValue(
+                        fixedGender
+                    );
+
+                    return;
+                }
+
+                /*
+                 * On first page load or after server validation failure,
+                 * preserve the old Gender selection for Self, Relative or
+                 * Friend. Only clear an automatically assigned value when
+                 * the relationship changes interactively.
+                 */
+                clearGenderValidation();
+            };
+
             profileCreatedFor.addEventListener(
                 'change',
                 () => {
-                    const selectedValue =
-                        profileCreatedFor.value;
+                    const selectedRelationship =
+                        profileCreatedFor.value
+                            .trim()
+                            .toUpperCase();
 
-                    if (
-                        selectedValue === 'SON'
-                        || selectedValue
-                        === 'BROTHER'
-                    ) {
-                        setChoiceValue(
-                            gender,
-                            'MALE'
-                        );
+                    const fixedGender =
+                        fixedGenderByRelationship[
+                        selectedRelationship
+                        ]
+                        ?? '';
 
-                        return;
-                    }
-
-                    if (
-                        selectedValue
-                        === 'DAUGHTER'
-                        || selectedValue
-                        === 'SISTER'
-                    ) {
-                        setChoiceValue(
-                            gender,
-                            'FEMALE'
-                        );
-                    }
-                }
-            );
-
-            gender.addEventListener(
-                'change',
-                () => {
-                    const profileValue =
-                        profileCreatedFor.value;
-
-                    const genderValue =
-                        gender.value;
-
-                    const maleConflict =
-                        genderValue === 'MALE'
-                        && (
-                            profileValue
-                            === 'DAUGHTER'
-                            || profileValue
-                            === 'SISTER'
-                        );
-
-                    const femaleConflict =
-                        genderValue === 'FEMALE'
-                        && (
-                            profileValue === 'SON'
-                            || profileValue
-                            === 'BROTHER'
-                        );
-
-                    if (
-                        maleConflict
-                        || femaleConflict
-                    ) {
-                        setChoiceValue(
-                            profileCreatedFor,
+                    if (fixedGender === '') {
+                        /*
+                         * A relationship such as Self, Relative or Friend
+                         * needs a fresh explicit Gender selection.
+                         */
+                        setGenderValue(
                             ''
                         );
                     }
+
+                    updateGenderState();
                 }
             );
+
+            /*
+             * Restore the correct state after refresh, old input, or a
+             * server-side validation failure.
+             */
+            updateGenderState();
         };
 
     /**

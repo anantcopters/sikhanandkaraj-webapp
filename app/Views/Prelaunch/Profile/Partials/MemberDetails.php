@@ -175,7 +175,9 @@ $genderOptions = [
                                             $profileCreatedForClass,
                                             'attr'
                                         ) ?>"
+                    aria-describedby="profile_created_forError"
                     data-choice
+                    data-choices
                     data-choice-search="false"
                     data-choice-position="bottom"
                     data-error-required="Please select who this profile is for."
@@ -216,7 +218,36 @@ $genderOptions = [
                 </div>
             </div>
 
-            <div class="col-12 col-md-6">
+            <?php
+            /*
+            * Gender remains visible for relationships where gender cannot be
+            * inferred. For Son, Brother, Daughter and Sister, JavaScript hides
+            * the field and assigns the corresponding gender automatically.
+            */
+            $genderMustBeSelected = in_array(
+                $profileCreatedFor,
+                [
+                    '',
+                    'SELF',
+                    'RELATIVE',
+                    'FRIEND',
+                ],
+                true
+            );
+
+            $genderContainerClass =
+                $genderMustBeSelected
+                ? ''
+                : 'd-none';
+            ?>
+
+            <div
+                id="gender-container"
+                class="col-12 col-md-6 <?= esc(
+                                            $genderContainerClass,
+                                            'attr'
+                                        ) ?>"
+                data-validation-group="gender">
                 <label
                     for="gender"
                     class="form-label">
@@ -230,11 +261,15 @@ $genderOptions = [
                                             $genderClass,
                                             'attr'
                                         ) ?>"
+                    aria-describedby="genderError"
                     data-error-required="Please select gender."
                     data-choice
+                    data-choices
                     data-choice-search="false"
                     data-choice-position="bottom"
-                    required>
+                    <?= $genderMustBeSelected
+                        ? 'required'
+                        : '' ?>>
                     <option value="">
                         Select gender
                     </option>
@@ -261,6 +296,7 @@ $genderOptions = [
                         </option>
                     <?php endforeach ?>
                 </select>
+
                 <div
                     id="genderError"
                     class="invalid-feedback"
