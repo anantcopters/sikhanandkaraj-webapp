@@ -103,7 +103,7 @@ $this->section('content');
         <div class="row g-3 mb-4">
 
             <div class="col-12 col-sm-6 col-xl-3">
-                <div class="card card-animate h-100">
+                <div class="card border border-danger border-opacity-25 card-animate h-100">
                     <div class="card-body">
                         <div
                             class="d-flex align-items-center

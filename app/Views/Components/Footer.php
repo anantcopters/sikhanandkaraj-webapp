@@ -2,11 +2,14 @@
 
     <div class="container py-3 pt-0">
 
-        <div class="row text-center text-xl-start g-4">
+        <div class="row g-4">
 
             <div class="col-12 col-md-6 col-xl-3">
 
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
 
                     <i class="ri-shield-check-line fs-3"></i>
 
@@ -28,7 +31,10 @@
 
             <div class="col-12 col-md-6 col-xl-3">
 
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
 
                     <i class="ri-group-line fs-3"></i>
 
@@ -50,7 +56,10 @@
 
             <div class="col-12 col-md-6 col-xl-3">
 
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
 
                     <i class="ri-heart-line fs-3"></i>
 
@@ -72,7 +81,10 @@
 
             <div class="col-12 col-md-6 col-xl-3">
 
-                <div class="d-flex align-items-center gap-3">
+                <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
 
                     <i class="ri-shield-check-line fs-3"></i>
 

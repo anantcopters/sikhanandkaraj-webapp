@@ -27,7 +27,7 @@ $documentTitle = $resolvedPageTitle
     . ' | '
     . $siteName;
 
-$homeUrl = site_url('/');
+$homeUrl = site_url('/prelaunch/profile');
 
 $logoUrl = base_url(
     'assets/images/sikhanandkaraj_removebg_2.png'
@@ -142,14 +142,17 @@ $phoneUrl = 'tel:' . $phoneDialValue;
         <?= $this->renderSection('content') ?>
     </main>
     <footer class="mt-5 pt-4 border-top border-secondary-subtle bg-light">
-        
+
         <div class="container py-3 pt-0">
 
-            <div class="row text-center text-xl-start g-4">
+            <div class="row g-4">
 
                 <div class="col-12 col-md-6 col-xl-3">
 
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
 
                         <i class="ri-shield-check-line fs-3"></i>
 
@@ -171,7 +174,10 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 
                 <div class="col-12 col-md-6 col-xl-3">
 
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
 
                         <i class="ri-group-line fs-3"></i>
 
@@ -193,7 +199,10 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 
                 <div class="col-12 col-md-6 col-xl-3">
 
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
 
                         <i class="ri-heart-line fs-3"></i>
 
@@ -215,7 +224,10 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 
                 <div class="col-12 col-md-6 col-xl-3">
 
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
 
                         <i class="ri-shield-check-line fs-3"></i>
 
