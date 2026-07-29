@@ -1534,3 +1534,46 @@ form[aria-busy="true"] {
 #prelaunch-profile-form .choices__inner {
     background-color: #F2F2F7 !important;
 }
+
+/*
+ * Member photo card image actions.
+ *
+ * Actions appear on hover/focus for pointer devices and remain visible on
+ * touch devices where hover interaction is not available.
+ */
+.profile-photo-card__media {
+    position: relative;
+}
+
+.profile-photo-card__overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background:
+        linear-gradient(to top,
+            rgba(0, 0, 0, 0.72) 0%,
+            rgba(0, 0, 0, 0.18) 48%,
+            rgba(0, 0, 0, 0) 72%);
+    opacity: 0;
+    visibility: hidden;
+    transition:
+        opacity 0.2s ease,
+        visibility 0.2s ease;
+}
+
+.profile-photo-card__media:hover .profile-photo-card__overlay,
+.profile-photo-card__media:focus-within .profile-photo-card__overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
+/*
+ * Touch devices do not provide a reliable hover state.
+ */
+@media (hover: none),
+(pointer: coarse) {
+    .profile-photo-card__overlay {
+        opacity: 1;
+        visibility: visible;
+    }
+}
