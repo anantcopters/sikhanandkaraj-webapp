@@ -463,5 +463,7 @@ ON prelaunch_photos
 FOR EACH ROW
 EXECUTE FUNCTION set_current_updated_at();
 
+ALTER TABLE prelaunch_profiles
+ADD COLUMN IF NOT EXISTS gotra VARCHAR(100) NULL;
 
 COMMIT;

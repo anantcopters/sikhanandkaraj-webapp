@@ -132,6 +132,7 @@ File: Custom Bootstrap Css File
   --vz-form-valid-border-color: #45CB85;
   --vz-form-invalid-color: #f06548;
   --vz-form-invalid-border-color: #f06548;
+  --vz-text-light: #4A4A54;
 }
 
 [data-bs-theme=dark] {
@@ -188,6 +189,7 @@ File: Custom Bootstrap Css File
   --vz-form-valid-border-color: #6ad59d;
   --vz-form-invalid-color: #f3846d;
   --vz-form-invalid-border-color: #f3846d;
+  --vz-text-light: #4A4A54;
 }
 
 *,
@@ -453,7 +455,7 @@ label {
   font-size: 12px !important;
   font-weight: 600 !important;
   text-transform: uppercase;
-  color: #4A4A54;
+  color: var(--vz-text-light);
 }
 
 button {
@@ -2352,7 +2354,7 @@ progress {
   }
 }
 .form-label {
-  margin-bottom: 6px !important;
+  margin-bottom: 5px !important;
 }
 
 .col-form-label {

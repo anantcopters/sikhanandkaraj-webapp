@@ -5,7 +5,7 @@
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-12 col-md-8 col-lg-6">
-            <div class="card shadow-sm">
+            <div class="card border border-danger border-opacity-25 shadow-sm">
                 <div class="card-body p-4 text-center">
                     <i
                         class="bi bi-check-circle fs-1 text-success"

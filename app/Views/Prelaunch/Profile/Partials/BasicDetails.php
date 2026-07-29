@@ -3,36 +3,26 @@
 declare(strict_types=1);
 
 /**
- * Basic Details master-data section for the standalone
- * pre-launch profile collection form.
- *
- * The parent Index.php already renders:
- *
- * - Profile created for
- * - Gender
- * - Full name
- * - Date of birth
- * - Email
- * - Country code
- * - Mobile number
- *
- * This partial therefore renders only the remaining reusable
- * Basic Details fields.
- *
- * @var array<string, string>              $validationErrors
- * @var array<int, array<string, mixed>>   $maritalStatuses
- * @var array<int, array<string, mixed>>   $heights
- * @var array<int, array<string, mixed>>   $motherTongues
- * @var array<int, array<string, mixed>>   $countries
- * @var array<int, array<string, mixed>>   $states
- * @var array<int, array<string, mixed>>   $cities
+ * @var array<string, string>|null            $validationErrors
+ * @var array<string, mixed>|null             $country
+ * @var array<int, array<string, mixed>>|null $maritalStatuses
+ * @var array<int, array<string, mixed>>|null $heights
+ * @var array<int, array<string, mixed>>|null $motherTongues
+ * @var array<int, array<string, mixed>>|null $states
+ * @var array<int, array<string, mixed>>|null $cities
  */
 
-$errors = is_array($validationErrors ?? null)
+$errorBag = is_array($validationErrors ?? null)
     ? $validationErrors
     : [];
 
-$maritalStatusOptions = is_array($maritalStatuses ?? null)
+$countryData = is_array($country ?? null)
+    ? $country
+    : [];
+
+$maritalStatusOptions = is_array(
+    $maritalStatuses ?? null
+)
     ? $maritalStatuses
     : [];
 
@@ -40,12 +30,10 @@ $heightOptions = is_array($heights ?? null)
     ? $heights
     : [];
 
-$motherTongueOptions = is_array($motherTongues ?? null)
+$motherTongueOptions = is_array(
+    $motherTongues ?? null
+)
     ? $motherTongues
-    : [];
-
-$countryOptions = is_array($countries ?? null)
-    ? $countries
     : [];
 
 $stateOptions = is_array($states ?? null)
@@ -56,513 +44,560 @@ $cityOptions = is_array($cities ?? null)
     ? $cities
     : [];
 
-$selectedMaritalStatusId = (string) old(
+$countryId = (string) (
+    $countryData['id']
+    ?? ''
+);
+
+$countryName = trim(
+    (string) (
+        $countryData['name']
+        ?? 'India'
+    )
+);
+
+if ($countryName === '') {
+    $countryName = 'India';
+}
+
+$maritalStatusId = (string) old(
     'marital_status_id',
     ''
 );
 
-$selectedHeightId = (string) old(
+$heightId = (string) old(
     'height_id',
     ''
 );
 
-$selectedMotherTongueId = (string) old(
+$motherTongueId = (string) old(
     'mother_tongue_id',
     ''
 );
 
-$selectedCountryId = (string) old(
-    'country_id',
-    ''
-);
-
-$selectedStateId = (string) old(
+$stateId = (string) old(
     'state_id',
     ''
 );
 
-$selectedCityId = (string) old(
+$cityId = (string) old(
     'city_id',
     ''
 );
 
-/*
- * The pre-launch page reuses the existing public city endpoint.
- */
-$cityLookupUrl = route_to(
-    'web.profile.master.cities',
+$maritalStatusError = trim(
+    (string) (
+        $errorBag['marital_status_id']
+        ?? ''
+    )
+);
+
+$heightError = trim(
+    (string) (
+        $errorBag['height_id']
+        ?? ''
+    )
+);
+
+$motherTongueError = trim(
+    (string) (
+        $errorBag['mother_tongue_id']
+        ?? ''
+    )
+);
+
+$countryError = trim(
+    (string) (
+        $errorBag['country_id']
+        ?? ''
+    )
+);
+
+$stateError = trim(
+    (string) (
+        $errorBag['state_id']
+        ?? ''
+    )
+);
+
+$cityError = trim(
+    (string) (
+        $errorBag['city_id']
+        ?? ''
+    )
+);
+
+$maritalStatusClass =
+    $maritalStatusError !== ''
+    ? 'is-invalid'
+    : '';
+
+$heightClass = $heightError !== ''
+    ? 'is-invalid'
+    : '';
+
+$motherTongueClass =
+    $motherTongueError !== ''
+    ? 'is-invalid'
+    : '';
+
+$countryClass = $countryError !== ''
+    ? 'is-invalid'
+    : '';
+
+$stateClass = $stateError !== ''
+    ? 'is-invalid'
+    : '';
+
+$cityClass = $cityError !== ''
+    ? 'is-invalid'
+    : '';
+
+$cityRouteTemplate = route_to(
+    'prelaunch.master.cities',
     0
 );
 ?>
 
-<fieldset class="mb-4">
-    <legend class="h5 mb-3">
-        Basic details
-    </legend>
+<div class="card border border-danger border-opacity-25 shadow-sm mb-3">
+    <div class="card-body p-3 p-md-4">
+        <div class="d-flex align-items-start gap-3 mb-3">
+            <div class="fs-3 text-primary">
+                <i
+                    class="ri-profile-line"
+                    aria-hidden="true"></i>
+            </div>
 
-    <div class="row g-3">
-        <div class="col-12 col-md-6">
-            <label
-                for="marital_status_id"
-                class="form-label">
-                Marital status
+            <div>
+                <h5 class="mb-1 fs-14 fw-semibold">
+                    Basic details
+                </h5>
 
-                <span
-                    class="text-danger"
-                    aria-hidden="true">
-                    *
-                </span>
-            </label>
-
-            <select
-                id="marital_status_id"
-                name="marital_status_id"
-                class="form-select <?= isset(
-                                        $errors['marital_status_id']
-                                    )
-                                        ? 'is-invalid'
-                                        : '' ?>"
-                required>
-                <option value="">
-                    Select marital status
-                </option>
-
-                <?php foreach (
-                    $maritalStatusOptions as $status
-                ): ?>
-                    <?php
-                    if (!is_array($status)) {
-                        continue;
-                    }
-
-                    $statusId = (string) (
-                        $status['id'] ?? ''
-                    );
-
-                    $statusName = (string) (
-                        $status['name']
-                        ?? $status['label']
-                        ?? ''
-                    );
-
-                    if (
-                        $statusId === ''
-                        || $statusName === ''
-                    ) {
-                        continue;
-                    }
-                    ?>
-
-                    <option
-                        value="<?= esc(
-                                    $statusId,
-                                    'attr'
-                                ) ?>"
-                        <?= $selectedMaritalStatusId
-                            === $statusId
-                            ? 'selected'
-                            : '' ?>>
-                        <?= esc($statusName) ?>
-                    </option>
-                <?php endforeach ?>
-            </select>
-
-            <div class="invalid-feedback">
-                <?= esc(
-                    $errors['marital_status_id']
-                        ?? 'Please select marital status.'
-                ) ?>
+                <p class="text-muted mb-0 fs-12">
+                    Add personal attributes and the member’s
+                    current location.
+                </p>
             </div>
         </div>
 
-        <div class="col-12 col-md-6">
-            <label
-                for="height_id"
-                class="form-label">
-                Height
+        <input
+            type="hidden"
+            id="country_id"
+            name="country_id"
+            value="<?= esc(
+                        $countryId,
+                        'attr'
+                    ) ?>">
+        <hr class="my-2 mb-2">
+        </hr>
+        <div class="row g-3 pt-2">
 
-                <span
-                    class="text-danger"
-                    aria-hidden="true">
-                    *
-                </span>
-            </label>
+            <div class="col-12 col-md-6">
+                <label
+                    for="marital_status_id"
+                    class="form-label">
+                    Marital status
+                </label>
 
-            <select
-                id="height_id"
-                name="height_id"
-                class="form-select <?= isset(
-                                        $errors['height_id']
-                                    )
-                                        ? 'is-invalid'
-                                        : '' ?>"
-                required>
-                <option value="">
-                    Select height
-                </option>
-
-                <?php foreach (
-                    $heightOptions as $height
-                ): ?>
-                    <?php
-                    if (!is_array($height)) {
-                        continue;
-                    }
-
-                    $heightId = (string) (
-                        $height['id'] ?? ''
-                    );
-
-                    $heightName = (string) (
-                        $height['label']
-                        ?? $height['name']
-                        ?? $height['display_name']
-                        ?? ''
-                    );
-
-                    if (
-                        $heightId === ''
-                        || $heightName === ''
-                    ) {
-                        continue;
-                    }
-                    ?>
-
-                    <option
-                        value="<?= esc(
-                                    $heightId,
-                                    'attr'
-                                ) ?>"
-                        <?= $selectedHeightId
-                            === $heightId
-                            ? 'selected'
-                            : '' ?>>
-                        <?= esc($heightName) ?>
+                <select
+                    id="marital_status_id"
+                    name="marital_status_id"
+                    class="form-select js-choice <?= esc(
+                                                        $maritalStatusClass,
+                                                        'attr'
+                                                    ) ?>"
+                    required>
+                    <option value="">
+                        Select marital status
                     </option>
-                <?php endforeach ?>
-            </select>
 
-            <div class="invalid-feedback">
-                <?= esc(
-                    $errors['height_id']
-                        ?? 'Please select height.'
-                ) ?>
-            </div>
-        </div>
+                    <?php foreach (
+                        $maritalStatusOptions as
+                        $maritalStatusOption
+                    ): ?>
+                        <?php
+                        if (!is_array(
+                            $maritalStatusOption
+                        )) {
+                            continue;
+                        }
 
-        <div class="col-12 col-md-6">
-            <label
-                for="mother_tongue_id"
-                class="form-label">
-                Mother tongue
+                        $optionId = (string) (
+                            $maritalStatusOption['id']
+                            ?? ''
+                        );
 
-                <span
-                    class="text-danger"
-                    aria-hidden="true">
-                    *
-                </span>
-            </label>
+                        $optionName = trim(
+                            (string) (
+                                $maritalStatusOption['name']
+                                ?? $maritalStatusOption['label']
+                                ?? ''
+                            )
+                        );
 
-            <select
-                id="mother_tongue_id"
-                name="mother_tongue_id"
-                class="form-select <?= isset(
-                                        $errors['mother_tongue_id']
-                                    )
-                                        ? 'is-invalid'
-                                        : '' ?>"
-                required>
-                <option value="">
-                    Select mother tongue
-                </option>
+                        if (
+                            $optionId === ''
+                            || $optionName === ''
+                        ) {
+                            continue;
+                        }
 
-                <?php foreach (
-                    $motherTongueOptions as $motherTongue
+                        $optionSelected =
+                            $maritalStatusId
+                            === $optionId;
+                        ?>
+
+                        <option
+                            value="<?= esc(
+                                        $optionId,
+                                        'attr'
+                                    ) ?>"
+                            <?= $optionSelected
+                                ? 'selected'
+                                : '' ?>>
+                            <?= esc($optionName) ?>
+                        </option>
+                    <?php endforeach ?>
+                </select>
+
+                <?php if (
+                    $maritalStatusError !== ''
                 ): ?>
-                    <?php
-                    if (!is_array($motherTongue)) {
-                        continue;
-                    }
-
-                    $motherTongueId = (string) (
-                        $motherTongue['id'] ?? ''
-                    );
-
-                    $motherTongueName = (string) (
-                        $motherTongue['name']
-                        ?? $motherTongue['label']
-                        ?? ''
-                    );
-
-                    if (
-                        $motherTongueId === ''
-                        || $motherTongueName === ''
-                    ) {
-                        continue;
-                    }
-                    ?>
-
-                    <option
-                        value="<?= esc(
-                                    $motherTongueId,
-                                    'attr'
-                                ) ?>"
-                        <?= $selectedMotherTongueId
-                            === $motherTongueId
-                            ? 'selected'
-                            : '' ?>>
-                        <?= esc($motherTongueName) ?>
-                    </option>
-                <?php endforeach ?>
-            </select>
-
-            <div class="invalid-feedback">
-                <?= esc(
-                    $errors['mother_tongue_id']
-                        ?? 'Please select mother tongue.'
-                ) ?>
+                    <div class="invalid-feedback">
+                        <?= esc(
+                            $maritalStatusError
+                        ) ?>
+                    </div>
+                <?php endif ?>
             </div>
-        </div>
 
-        <div class="col-12 col-md-6">
-            <label
-                for="country_id"
-                class="form-label">
-                Country
+            <div class="col-12 col-md-6">
+                <label
+                    for="height_id"
+                    class="form-label">
+                    Height
+                </label>
 
-                <span
-                    class="text-danger"
-                    aria-hidden="true">
-                    *
-                </span>
-            </label>
+                <select
+                    id="height_id"
+                    name="height_id"
+                    class="form-select js-choice <?= esc(
+                                                        $heightClass,
+                                                        'attr'
+                                                    ) ?>"
+                    required>
+                    <option value="">
+                        Select height
+                    </option>
 
-            <select
-                id="country_id"
-                name="country_id"
-                class="form-select <?= isset(
-                                        $errors['country_id']
-                                    )
-                                        ? 'is-invalid'
-                                        : '' ?>"
-                required>
-                <option value="">
-                    Select country
-                </option>
+                    <?php foreach (
+                        $heightOptions as $heightOption
+                    ): ?>
+                        <?php
+                        if (!is_array($heightOption)) {
+                            continue;
+                        }
 
-                <?php foreach (
-                    $countryOptions as $country
+                        $optionId = (string) (
+                            $heightOption['id']
+                            ?? ''
+                        );
+
+                        $optionName = trim(
+                            (string) (
+                                $heightOption['label']
+                                ?? $heightOption['name']
+                                ?? ''
+                            )
+                        );
+
+                        if (
+                            $optionId === ''
+                            || $optionName === ''
+                        ) {
+                            continue;
+                        }
+
+                        $optionSelected =
+                            $heightId === $optionId;
+                        ?>
+
+                        <option
+                            value="<?= esc(
+                                        $optionId,
+                                        'attr'
+                                    ) ?>"
+                            <?= $optionSelected
+                                ? 'selected'
+                                : '' ?>>
+                            <?= esc($optionName) ?>
+                        </option>
+                    <?php endforeach ?>
+                </select>
+
+                <?php if ($heightError !== ''): ?>
+                    <div class="invalid-feedback">
+                        <?= esc($heightError) ?>
+                    </div>
+                <?php endif ?>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label
+                    for="mother_tongue_id"
+                    class="form-label">
+                    Mother tongue
+                </label>
+
+                <select
+                    id="mother_tongue_id"
+                    name="mother_tongue_id"
+                    class="form-select js-choice <?= esc(
+                                                        $motherTongueClass,
+                                                        'attr'
+                                                    ) ?>"
+                    required>
+                    <option value="">
+                        Select mother tongue
+                    </option>
+
+                    <?php foreach (
+                        $motherTongueOptions as
+                        $motherTongueOption
+                    ): ?>
+                        <?php
+                        if (!is_array(
+                            $motherTongueOption
+                        )) {
+                            continue;
+                        }
+
+                        $optionId = (string) (
+                            $motherTongueOption['id']
+                            ?? ''
+                        );
+
+                        $optionName = trim(
+                            (string) (
+                                $motherTongueOption['name']
+                                ?? $motherTongueOption['label']
+                                ?? ''
+                            )
+                        );
+
+                        if (
+                            $optionId === ''
+                            || $optionName === ''
+                        ) {
+                            continue;
+                        }
+
+                        $optionSelected =
+                            $motherTongueId
+                            === $optionId;
+                        ?>
+
+                        <option
+                            value="<?= esc(
+                                        $optionId,
+                                        'attr'
+                                    ) ?>"
+                            <?= $optionSelected
+                                ? 'selected'
+                                : '' ?>>
+                            <?= esc($optionName) ?>
+                        </option>
+                    <?php endforeach ?>
+                </select>
+
+                <?php if (
+                    $motherTongueError !== ''
                 ): ?>
-                    <?php
-                    if (!is_array($country)) {
-                        continue;
-                    }
-
-                    $countryId = (string) (
-                        $country['id'] ?? ''
-                    );
-
-                    $countryName = (string) (
-                        $country['name']
-                        ?? $country['label']
-                        ?? ''
-                    );
-
-                    if (
-                        $countryId === ''
-                        || $countryName === ''
-                    ) {
-                        continue;
-                    }
-
-                    /*
-                     * India is currently the only supported country.
-                     * Select it automatically when old input is empty.
-                     */
-                    $isSelected =
-                        $selectedCountryId !== ''
-                        ? $selectedCountryId === $countryId
-                        : count($countryOptions) === 1;
-                    ?>
-
-                    <option
-                        value="<?= esc(
-                                    $countryId,
-                                    'attr'
-                                ) ?>"
-                        <?= $isSelected
-                            ? 'selected'
-                            : '' ?>>
-                        <?= esc($countryName) ?>
-                    </option>
-                <?php endforeach ?>
-            </select>
-
-            <div class="invalid-feedback">
-                <?= esc(
-                    $errors['country_id']
-                        ?? 'Please select country.'
-                ) ?>
+                    <div class="invalid-feedback">
+                        <?= esc(
+                            $motherTongueError
+                        ) ?>
+                    </div>
+                <?php endif ?>
             </div>
-        </div>
 
-        <div class="col-12 col-md-6">
-            <label
-                for="state_id"
-                class="form-label">
-                State
+            <div class="col-12 col-md-6">
+                <label
+                    for="country_display"
+                    class="form-label">
+                    Country
+                </label>
 
-                <span
-                    class="text-danger"
-                    aria-hidden="true">
-                    *
-                </span>
-            </label>
-
-            <select
-                id="state_id"
-                name="state_id"
-                class="form-select <?= isset(
-                                        $errors['state_id']
-                                    )
-                                        ? 'is-invalid'
-                                        : '' ?>"
-                data-city-url-template="<?= esc(
-                                            $cityLookupUrl,
+                <input
+                    type="text"
+                    id="country_display"
+                    class="form-control <?= esc(
+                                            $countryClass,
                                             'attr'
                                         ) ?>"
-                required>
-                <option value="">
-                    Select state
-                </option>
+                    value="<?= esc(
+                                $countryName,
+                                'attr'
+                            ) ?>"
+                    readonly
+                    aria-readonly="true">
 
-                <?php foreach (
-                    $stateOptions as $state
-                ): ?>
-                    <?php
-                    if (!is_array($state)) {
-                        continue;
-                    }
-
-                    $stateId = (string) (
-                        $state['id'] ?? ''
-                    );
-
-                    $stateName = (string) (
-                        $state['name']
-                        ?? $state['label']
-                        ?? ''
-                    );
-
-                    if (
-                        $stateId === ''
-                        || $stateName === ''
-                    ) {
-                        continue;
-                    }
-                    ?>
-
-                    <option
-                        value="<?= esc(
-                                    $stateId,
-                                    'attr'
-                                ) ?>"
-                        <?= $selectedStateId === $stateId
-                            ? 'selected'
-                            : '' ?>>
-                        <?= esc($stateName) ?>
-                    </option>
-                <?php endforeach ?>
-            </select>
-
-            <div class="invalid-feedback">
-                <?= esc(
-                    $errors['state_id']
-                        ?? 'Please select state.'
-                ) ?>
+                <?php if ($countryError !== ''): ?>
+                    <div class="text-danger small mt-1">
+                        <?= esc($countryError) ?>
+                    </div>
+                <?php endif ?>
             </div>
-        </div>
 
-        <div class="col-12 col-md-6">
-            <label
-                for="city_id"
-                class="form-label">
-                City
+            <div class="col-12 col-md-6">
+                <label
+                    for="state_id"
+                    class="form-label">
+                    State
+                </label>
 
-                <span
-                    class="text-danger"
-                    aria-hidden="true">
-                    *
-                </span>
-            </label>
-
-            <select
-                id="city_id"
-                name="city_id"
-                class="form-select <?= isset(
-                                        $errors['city_id']
-                                    )
-                                        ? 'is-invalid'
-                                        : '' ?>"
-                data-selected-value="<?= esc(
-                                            $selectedCityId,
-                                            'attr'
-                                        ) ?>"
-                <?= $selectedStateId === ''
-                    ? 'disabled'
-                    : '' ?>
-                required>
-                <option value="">
-                    <?= $selectedStateId === ''
-                        ? 'Select state first'
-                        : 'Select city' ?>
-                </option>
-
-                <?php foreach (
-                    $cityOptions as $city
-                ): ?>
-                    <?php
-                    if (!is_array($city)) {
-                        continue;
-                    }
-
-                    $cityId = (string) (
-                        $city['id'] ?? ''
-                    );
-
-                    $cityName = (string) (
-                        $city['name']
-                        ?? $city['label']
-                        ?? ''
-                    );
-
-                    if (
-                        $cityId === ''
-                        || $cityName === ''
-                    ) {
-                        continue;
-                    }
-                    ?>
-
-                    <option
-                        value="<?= esc(
-                                    $cityId,
-                                    'attr'
-                                ) ?>"
-                        <?= $selectedCityId === $cityId
-                            ? 'selected'
-                            : '' ?>>
-                        <?= esc($cityName) ?>
+                <select
+                    id="state_id"
+                    name="state_id"
+                    class="form-select js-choice <?= esc(
+                                                        $stateClass,
+                                                        'attr'
+                                                    ) ?>"
+                    data-city-url-template="<?= esc(
+                                                $cityRouteTemplate,
+                                                'attr'
+                                            ) ?>"
+                    required>
+                    <option value="">
+                        Select state
                     </option>
-                <?php endforeach ?>
-            </select>
 
-            <div class="invalid-feedback">
-                <?= esc(
-                    $errors['city_id']
-                        ?? 'Please select city.'
-                ) ?>
+                    <?php foreach (
+                        $stateOptions as $stateOption
+                    ): ?>
+                        <?php
+                        if (!is_array($stateOption)) {
+                            continue;
+                        }
+
+                        $optionId = (string) (
+                            $stateOption['id']
+                            ?? ''
+                        );
+
+                        $optionName = trim(
+                            (string) (
+                                $stateOption['name']
+                                ?? $stateOption['label']
+                                ?? ''
+                            )
+                        );
+
+                        if (
+                            $optionId === ''
+                            || $optionName === ''
+                        ) {
+                            continue;
+                        }
+
+                        $optionSelected =
+                            $stateId === $optionId;
+                        ?>
+
+                        <option
+                            value="<?= esc(
+                                        $optionId,
+                                        'attr'
+                                    ) ?>"
+                            <?= $optionSelected
+                                ? 'selected'
+                                : '' ?>>
+                            <?= esc($optionName) ?>
+                        </option>
+                    <?php endforeach ?>
+                </select>
+
+                <?php if ($stateError !== ''): ?>
+                    <div class="invalid-feedback">
+                        <?= esc($stateError) ?>
+                    </div>
+                <?php endif ?>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label
+                    for="city_id"
+                    class="form-label">
+                    City
+                </label>
+
+                <select
+                    id="city_id"
+                    name="city_id"
+                    class="form-select js-choice <?= esc(
+                                                        $cityClass,
+                                                        'attr'
+                                                    ) ?>"
+                    data-selected-value="<?= esc(
+                                                $cityId,
+                                                'attr'
+                                            ) ?>"
+                    required>
+                    <option value="">
+                        Select city
+                    </option>
+
+                    <?php foreach (
+                        $cityOptions as $cityOption
+                    ): ?>
+                        <?php
+                        if (!is_array($cityOption)) {
+                            continue;
+                        }
+
+                        $optionId = (string) (
+                            $cityOption['id']
+                            ?? ''
+                        );
+
+                        $optionName = trim(
+                            (string) (
+                                $cityOption['name']
+                                ?? $cityOption['label']
+                                ?? ''
+                            )
+                        );
+
+                        if (
+                            $optionId === ''
+                            || $optionName === ''
+                        ) {
+                            continue;
+                        }
+
+                        $optionSelected =
+                            $cityId === $optionId;
+                        ?>
+
+                        <option
+                            value="<?= esc(
+                                        $optionId,
+                                        'attr'
+                                    ) ?>"
+                            <?= $optionSelected
+                                ? 'selected'
+                                : '' ?>>
+                            <?= esc($optionName) ?>
+                        </option>
+                    <?php endforeach ?>
+                </select>
+
+                <?php if ($cityError !== ''): ?>
+                    <div class="invalid-feedback">
+                        <?= esc($cityError) ?>
+                    </div>
+                <?php endif ?>
             </div>
         </div>
     </div>
-</fieldset>
+</div>

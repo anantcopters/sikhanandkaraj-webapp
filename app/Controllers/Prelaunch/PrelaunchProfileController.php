@@ -10,6 +10,7 @@ use App\Services\Prelaunch\PrelaunchProfileService;
 use App\Services\Profile\ProfileMasterDataService;
 use App\Validation\Prelaunch\PrelaunchPhotoValidation;
 use App\Validation\Prelaunch\PrelaunchProfileValidation;
+use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
 use Throwable;
@@ -20,15 +21,14 @@ use Throwable;
 final class PrelaunchProfileController extends BaseController
 {
     /**
-     * Display the standalone pre-launch profile collection form.
+     * Display the public standalone pre-launch form.
      */
     public function index(): string
     {
         $config = config('Prelaunch');
 
         if (!$config->profileEntryEnabled) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException
-                ::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         try {
@@ -60,9 +60,7 @@ final class PrelaunchProfileController extends BaseController
 
             $familyDetails =
                 $masterService->familyDetailsOptions(
-                    $selectedStateId > 0
-                        ? $selectedStateId
-                        : null,
+                    null,
                     $selectedCommunityId > 0
                         ? $selectedCommunityId
                         : null
@@ -93,15 +91,12 @@ final class PrelaunchProfileController extends BaseController
                     $basicDetails['motherTongues']
                         ?? [],
 
-                    'countries' =>
-                    isset($basicDetails['country'])
-                        && is_array(
-                            $basicDetails['country']
-                        )
-                        ? [
-                            $basicDetails['country'],
-                        ]
-                        : [],
+                    /*
+                     * India remains a hidden locked value in the form.
+                     */
+                    'country' =>
+                    $basicDetails['country']
+                        ?? null,
 
                     'states' =>
                     $basicDetails['states']
@@ -153,8 +148,10 @@ final class PrelaunchProfileController extends BaseController
             log_message(
                 'error',
                 'Unable to render standalone pre-launch form. '
-                    . 'Exception: {exception}. Message: {message}. '
-                    . 'File: {file}. Line: {line}.',
+                    . 'Exception: {exception}. '
+                    . 'Message: {message}. '
+                    . 'File: {file}. '
+                    . 'Line: {line}.',
                 [
                     'exception' =>
                     $exception::class,
@@ -174,16 +171,89 @@ final class PrelaunchProfileController extends BaseController
                 throw $exception;
             }
 
-            throw \CodeIgniter\Exceptions\PageNotFoundException
-                ::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
     }
 
     /**
-     * Return active sub-communities for the selected community.
-     *
-     * This endpoint is intentionally public because the standalone
-     * pre-launch profile form does not require member authentication.
+     * Return cities for a state selected on the public form.
+     */
+    public function cities(
+        int $stateId
+    ): ResponseInterface {
+        if ($stateId <= 0) {
+            return $this->response
+                ->setStatusCode(422)
+                ->setJSON([
+                    'successful' => false,
+                    'message' =>
+                    'Please select a valid state.',
+                    'items' => [],
+                ]);
+        }
+
+        try {
+            /** @var ProfileMasterDataService $masterService */
+            $masterService = service(
+                'profileMasterDataService'
+            );
+
+            $cities =
+                $masterService->citiesForState(
+                    $stateId
+                );
+
+            return $this->response->setJSON([
+                'successful' => true,
+                'items' => array_values(
+                    array_map(
+                        static function (
+                            array $city
+                        ): array {
+                            return [
+                                'id' => (int) (
+                                    $city['id']
+                                    ?? 0
+                                ),
+                                'name' => (string) (
+                                    $city['name']
+                                    ?? $city['label']
+                                    ?? ''
+                                ),
+                            ];
+                        },
+                        $cities
+                    )
+                ),
+            ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Unable to load prelaunch cities. '
+                    . 'State ID: {stateId}. '
+                    . 'Message: {message}.',
+                [
+                    'stateId' =>
+                    $stateId,
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'successful' => false,
+                    'message' =>
+                    'Cities could not be loaded.',
+                    'items' => [],
+                ]);
+        }
+    }
+
+    /**
+     * Return sub-communities for a community selected on the public form.
      */
     public function subcommunities(
         int $communityId
@@ -244,9 +314,8 @@ final class PrelaunchProfileController extends BaseController
         } catch (Throwable $exception) {
             log_message(
                 'error',
-                'Unable to load pre-launch '
-                    . 'sub-communities. '
-                    . 'Community: {communityId}. '
+                'Unable to load prelaunch sub-communities. '
+                    . 'Community ID: {communityId}. '
                     . 'Message: {message}.',
                 [
                     'communityId' =>
@@ -269,15 +338,14 @@ final class PrelaunchProfileController extends BaseController
     }
 
     /**
-     * Verify an active Field Officer for the public pre-launch form.
+     * Verify an active Field Officer.
      */
     public function verifyFieldOfficer(): ResponseInterface
     {
         $config = config('Prelaunch');
 
         if (!$config->profileEntryEnabled) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException
-                ::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         if (!$this->request->isAJAX()) {
@@ -313,19 +381,6 @@ final class PrelaunchProfileController extends BaseController
                     'max_length[20]',
                     'regex_match[/^[A-Z0-9-]+$/]',
                 ],
-                'errors' => [
-                    'required' =>
-                    'Please enter a Field Officer code.',
-
-                    'min_length' =>
-                    'Please enter a valid Field Officer code.',
-
-                    'max_length' =>
-                    'The Field Officer code cannot exceed 20 characters.',
-
-                    'regex_match' =>
-                    'The Field Officer code may contain only letters, numbers and hyphens.',
-                ],
             ],
         ]);
 
@@ -343,8 +398,10 @@ final class PrelaunchProfileController extends BaseController
                     $validation->getError(
                         'field_officer_code'
                     ),
+
                     'csrfName' =>
                     csrf_token(),
+
                     'csrfHash' =>
                     csrf_hash(),
                 ]);
@@ -356,38 +413,50 @@ final class PrelaunchProfileController extends BaseController
                 'prelaunchFieldOfficerService'
             );
 
-            $fieldOfficer = $service->verifyCode(
-                $officerCode
-            );
+            $fieldOfficer =
+                $service->verifyCode(
+                    $officerCode
+                );
 
             return $this->response->setJSON([
-                'successful' =>
-                true,
+                'successful' => true,
 
                 'message' =>
                 'Field Officer verified successfully.',
 
                 'fieldOfficer' => [
                     'id' =>
-                    $fieldOfficer['id'],
+                    (int) $fieldOfficer['id'],
 
                     'officerCode' =>
-                    $fieldOfficer['officer_code'],
+                    (string) $fieldOfficer['officer_code'],
 
                     'fullName' =>
-                    $fieldOfficer['full_name'],
+                    (string) $fieldOfficer['full_name'],
 
                     'countryName' =>
-                    $fieldOfficer['country_name'],
+                    (string) (
+                        $fieldOfficer['country_name']
+                        ?? ''
+                    ),
 
                     'stateName' =>
-                    $fieldOfficer['state_name'],
+                    (string) (
+                        $fieldOfficer['state_name']
+                        ?? ''
+                    ),
 
                     'cityName' =>
-                    $fieldOfficer['city_name'],
+                    (string) (
+                        $fieldOfficer['city_name']
+                        ?? ''
+                    ),
 
                     'location' =>
-                    $fieldOfficer['location'],
+                    (string) (
+                        $fieldOfficer['location']
+                        ?? ''
+                    ),
                 ],
 
                 'csrfName' =>
@@ -399,7 +468,8 @@ final class PrelaunchProfileController extends BaseController
         } catch (Throwable $exception) {
             log_message(
                 'notice',
-                'Pre-launch Field Officer verification failed: {message}',
+                'Prelaunch Field Officer verification failed: '
+                    . '{message}',
                 [
                     'message' =>
                     $exception->getMessage(),
@@ -409,8 +479,7 @@ final class PrelaunchProfileController extends BaseController
             return $this->response
                 ->setStatusCode(422)
                 ->setJSON([
-                    'successful' =>
-                    false,
+                    'successful' => false,
 
                     'message' =>
                     $exception->getMessage(),
@@ -424,19 +493,21 @@ final class PrelaunchProfileController extends BaseController
         }
     }
 
+    /**
+     * Save a prelaunch draft profile.
+     */
     public function store(): RedirectResponse
     {
-
         $config = config('Prelaunch');
 
         if (!$config->profileEntryEnabled) {
-            throw \CodeIgniter\Exceptions\PageNotFoundException
-                ::forPageNotFound();
+            throw PageNotFoundException::forPageNotFound();
         }
 
         $input = $this->input();
 
         $validation = service('validation');
+
         $validation->setRules(
             array_merge(
                 PrelaunchProfileValidation::createRules(),
@@ -463,19 +534,24 @@ final class PrelaunchProfileController extends BaseController
             $profileId = $service->createDraft(
                 $validation->getValidated(),
                 [
-                    $this->request->getFile('photo_1'),
-                    $this->request->getFile('photo_2'),
-                    $this->request->getFile('photo_3'),
+                    $this->request->getFile(
+                        'photo_1'
+                    ),
+                    $this->request->getFile(
+                        'photo_2'
+                    ),
+                    $this->request->getFile(
+                        'photo_3'
+                    ),
                 ]
             );
 
-            return redirect()
-                ->to(
-                    route_to(
-                        'prelaunch.profile.success',
-                        $profileId
-                    )
-                );
+            return redirect()->to(
+                route_to(
+                    'prelaunch.profile.success',
+                    $profileId
+                )
+            );
         } catch (Throwable $exception) {
             log_message(
                 'error',
@@ -492,7 +568,8 @@ final class PrelaunchProfileController extends BaseController
                 ->with('formAlert', [
                     'type' => 'danger',
                     'title' => 'Profile not saved',
-                    'message' => $exception->getMessage(),
+                    'message' =>
+                    $exception->getMessage(),
                 ]);
         }
     }
@@ -503,13 +580,18 @@ final class PrelaunchProfileController extends BaseController
         return view(
             'Prelaunch/Profile/Success',
             [
-                'pageTitle' => 'Profile saved',
-                'profileId' => $profileId,
+                'pageTitle' =>
+                'Profile saved',
+
+                'profileId' =>
+                $profileId,
             ]
         );
     }
 
     /**
+     * Normalize submitted form data.
+     *
      * @return array<string, mixed>
      */
     private function input(): array
@@ -536,11 +618,11 @@ final class PrelaunchProfileController extends BaseController
             )),
 
             'email' =>
-            mb_strtolower(trim(
-                (string) $this->request->getPost(
+            mb_strtolower(
+                trim((string) $this->request->getPost(
                     'email'
-                )
-            )),
+                ))
+            ),
 
             'country_code' =>
             trim((string) $this->request->getPost(
@@ -611,6 +693,11 @@ final class PrelaunchProfileController extends BaseController
                 'mother_name'
             )),
 
+            'gotra' =>
+            trim((string) $this->request->getPost(
+                'gotra'
+            )),
+
             'family_value_id' =>
             trim((string) $this->request->getPost(
                 'family_value_id'
@@ -637,11 +724,11 @@ final class PrelaunchProfileController extends BaseController
             )),
 
             'field_officer_code' =>
-            mb_strtoupper(trim(
-                (string) $this->request->getPost(
+            mb_strtoupper(
+                trim((string) $this->request->getPost(
                     'field_officer_code'
-                )
-            )),
+                ))
+            ),
 
             'verified_field_officer_id' =>
             trim((string) $this->request->getPost(
@@ -654,8 +741,7 @@ final class PrelaunchProfileController extends BaseController
             )),
 
             /*
-             * File fields are included so CI4 upload rules can validate
-             * them in the same validation run.
+             * Uploaded files must be included in validation input.
              */
             'photo_1' =>
             $this->request->getFile('photo_1'),

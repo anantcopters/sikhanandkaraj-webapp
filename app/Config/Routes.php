@@ -916,29 +916,11 @@ $routes->group(
     static function (
         RouteCollection $routes
     ): void {
-
-        $routes->get(
-            'master/subcommunities/(:num)',
-            'PrelaunchProfileController::subcommunities/$1',
-            [
-                'as' =>
-                'prelaunch.master.subcommunities',
-            ]
-        );
-
         $routes->get(
             'profile',
             'PrelaunchProfileController::index',
             [
                 'as' => 'prelaunch.profile.index',
-            ]
-        );
-
-        $routes->post(
-            'field-officer/verify',
-            'PrelaunchProfileController::verifyFieldOfficer',
-            [
-                'as' => 'prelaunch.field-officer.verify',
             ]
         );
 
@@ -950,6 +932,36 @@ $routes->group(
             ]
         );
 
+        $routes->post(
+            'field-officer/verify',
+            'PrelaunchProfileController::verifyFieldOfficer',
+            [
+                'as' => 'prelaunch.field-officer.verify',
+            ]
+        );
+
+        /*
+         * Public dependent master-data endpoints.
+         *
+         * These routes must not use webAuth because the prelaunch
+         * collection page is intentionally public.
+         */
+        $routes->get(
+            'master/cities/(:num)',
+            'PrelaunchProfileController::cities/$1',
+            [
+                'as' => 'prelaunch.master.cities',
+            ]
+        );
+
+        $routes->get(
+            'master/subcommunities/(:num)',
+            'PrelaunchProfileController::subcommunities/$1',
+            [
+                'as' => 'prelaunch.master.subcommunities',
+            ]
+        );
+
         $routes->get(
             'profile/success/(:num)',
             'PrelaunchProfileController::success/$1',
@@ -957,11 +969,6 @@ $routes->group(
                 'as' => 'prelaunch.profile.success',
             ]
         );
-
-        /*
-         * Existing public master endpoints can be reused for state-city
-         * and community-subcommunity dependencies. Do not duplicate them.
-         */
     }
 );
 

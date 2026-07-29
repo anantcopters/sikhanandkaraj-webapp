@@ -129,6 +129,22 @@ final class PrelaunchProfileValidation
                     'Sub-community'
                 ),
 
+                'gotra' => [
+                    'label' => 'Gotra',
+                    'rules' => [
+                        'permit_empty',
+                        'max_length[100]',
+                        'regex_match[/^[\p{L}\p{M} .\'-]+$/u]',
+                    ],
+                    'errors' => [
+                        'max_length' =>
+                        'Gotra cannot exceed 100 characters.',
+
+                        'regex_match' =>
+                        'Gotra may contain letters, spaces, apostrophes, full stops and hyphens only.',
+                    ],
+                ],
+
                 'field_officer_code' => [
                     'label' => 'Field Officer code',
                     'rules' => [

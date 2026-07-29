@@ -3,16 +3,13 @@
 declare(strict_types=1);
 
 /**
- * Education and Profession section for the standalone
- * pre-launch profile collection form.
- *
- * @var array<string, string>              $validationErrors
- * @var array<int, array<string, mixed>>   $educations
- * @var array<int, array<string, mixed>>   $occupations
- * @var array<int, array<string, mixed>>   $employmentTypes
+ * @var array<string, string>|null            $validationErrors
+ * @var array<int, array<string, mixed>>|null $educations
+ * @var array<int, array<string, mixed>>|null $occupations
+ * @var array<int, array<string, mixed>>|null $employmentTypes
  */
 
-$errors = is_array($validationErrors ?? null)
+$errorBag = is_array($validationErrors ?? null)
     ? $validationErrors
     : [];
 
@@ -24,264 +21,315 @@ $occupationOptions = is_array($occupations ?? null)
     ? $occupations
     : [];
 
-$employmentTypeOptions = is_array(
+$employmentOptions = is_array(
     $employmentTypes ?? null
 )
     ? $employmentTypes
     : [];
 
-$selectedEducationId = (string) old(
+$educationId = (string) old(
     'highest_education_id',
     ''
 );
 
-$selectedEmploymentType = (string) old(
+$employmentType = (string) old(
     'employed_in',
     ''
 );
 
-$selectedOccupationId = (string) old(
+$occupationId = (string) old(
     'occupation_id',
     ''
 );
+
+$educationError = trim(
+    (string) (
+        $errorBag['highest_education_id']
+        ?? ''
+    )
+);
+
+$employmentError = trim(
+    (string) (
+        $errorBag['employed_in']
+        ?? ''
+    )
+);
+
+$occupationError = trim(
+    (string) (
+        $errorBag['occupation_id']
+        ?? ''
+    )
+);
+
+$educationClass = $educationError !== ''
+    ? 'is-invalid'
+    : '';
+
+$employmentClass =
+    $employmentError !== ''
+    ? 'is-invalid'
+    : '';
+
+$occupationClass =
+    $occupationError !== ''
+    ? 'is-invalid'
+    : '';
 ?>
 
-<fieldset class="mb-4">
-    <legend class="h5 mb-3">
-        Education and profession
-    </legend>
+<div class="card border border-danger border-opacity-25 shadow-sm mb-3">
+    <div class="card-body p-3 p-md-4">
+        <div class="d-flex align-items-start gap-3 mb-3">
+            <div class="fs-3 text-primary">
+                <i
+                    class="ri-graduation-cap-line"
+                    aria-hidden="true"></i>
+            </div>
 
-    <div class="row g-3">
-        <div class="col-12 col-md-6">
-            <label
-                for="highest_education_id"
-                class="form-label">
-                Highest education
+            <div>
+                <h5 class="mb-1 fs-14 fw-semibold">
+                    Education and profession
+                </h5>
 
-                <span
-                    class="text-danger"
-                    aria-hidden="true">
-                    *
-                </span>
-            </label>
-
-            <select
-                id="highest_education_id"
-                name="highest_education_id"
-                class="form-select <?= isset(
-                                        $errors['highest_education_id']
-                                    )
-                                        ? 'is-invalid'
-                                        : '' ?>"
-                required>
-                <option value="">
-                    Select highest education
-                </option>
-
-                <?php foreach (
-                    $educationOptions as $education
-                ): ?>
-                    <?php
-                    if (!is_array($education)) {
-                        continue;
-                    }
-
-                    $educationId = (string) (
-                        $education['id'] ?? ''
-                    );
-
-                    $educationName = (string) (
-                        $education['name']
-                        ?? $education['label']
-                        ?? ''
-                    );
-
-                    if (
-                        $educationId === ''
-                        || $educationName === ''
-                    ) {
-                        continue;
-                    }
-                    ?>
-
-                    <option
-                        value="<?= esc(
-                                    $educationId,
-                                    'attr'
-                                ) ?>"
-                        <?= $selectedEducationId
-                            === $educationId
-                            ? 'selected'
-                            : '' ?>>
-                        <?= esc($educationName) ?>
-                    </option>
-                <?php endforeach ?>
-            </select>
-
-            <div class="invalid-feedback">
-                <?= esc(
-                    $errors['highest_education_id']
-                        ?? 'Please select highest education.'
-                ) ?>
+                <p class="text-muted mb-0 fs-12">
+                    Provide the member’s highest qualification
+                    and current employment information.
+                </p>
             </div>
         </div>
 
-        <div class="col-12 col-md-6">
-            <label
-                for="employed_in"
-                class="form-label">
-                Employed in
+        <hr class="my-2 mb-2">
+        </hr>
+        <div class="row g-3 pt-2">
+            <div class="col-12 col-md-6">
+                <label
+                    for="highest_education_id"
+                    class="form-label">
+                    Highest education
+                </label>
 
-                <span
-                    class="text-danger"
-                    aria-hidden="true">
-                    *
-                </span>
-            </label>
-
-            <select
-                id="employed_in"
-                name="employed_in"
-                class="form-select <?= isset(
-                                        $errors['employed_in']
-                                    )
-                                        ? 'is-invalid'
-                                        : '' ?>"
-                required>
-                <option value="">
-                    Select employment type
-                </option>
-
-                <?php foreach (
-                    $employmentTypeOptions as $employmentType
-                ): ?>
-                    <?php
-                    if (!is_array($employmentType)) {
-                        continue;
-                    }
-
-                    $employmentValue = (string) (
-                        $employmentType['value']
-                        ?? ''
-                    );
-
-                    $employmentLabel = (string) (
-                        $employmentType['label']
-                        ?? $employmentType['name']
-                        ?? ''
-                    );
-
-                    /*
-                     * Current validation expects DEFENSE while the master
-                     * service currently returns DEFENSE. Normalize the value
-                     * until both locations use one shared constant.
-                     */
-                    if ($employmentValue === 'DEFENSE') {
-                        $employmentValue = 'DEFENSE';
-                    }
-
-                    if (
-                        $employmentValue === ''
-                        || $employmentLabel === ''
-                    ) {
-                        continue;
-                    }
-                    ?>
-
-                    <option
-                        value="<?= esc(
-                                    $employmentValue,
-                                    'attr'
-                                ) ?>"
-                        <?= $selectedEmploymentType
-                            === $employmentValue
-                            ? 'selected'
-                            : '' ?>>
-                        <?= esc($employmentLabel) ?>
+                <select
+                    id="highest_education_id"
+                    name="highest_education_id"
+                    class="form-select js-choice <?= esc(
+                                                        $educationClass,
+                                                        'attr'
+                                                    ) ?>"
+                    required>
+                    <option value="">
+                        Select education
                     </option>
-                <?php endforeach ?>
-            </select>
 
-            <div class="invalid-feedback">
-                <?= esc(
-                    $errors['employed_in']
-                        ?? 'Please select employment type.'
-                ) ?>
+                    <?php foreach (
+                        $educationOptions as
+                        $educationOption
+                    ): ?>
+                        <?php
+                        if (!is_array($educationOption)) {
+                            continue;
+                        }
+
+                        $optionId = (string) (
+                            $educationOption['id']
+                            ?? ''
+                        );
+
+                        $optionName = trim(
+                            (string) (
+                                $educationOption['name']
+                                ?? $educationOption['label']
+                                ?? ''
+                            )
+                        );
+
+                        if (
+                            $optionId === ''
+                            || $optionName === ''
+                        ) {
+                            continue;
+                        }
+
+                        $optionSelected =
+                            $educationId === $optionId;
+                        ?>
+
+                        <option
+                            value="<?= esc(
+                                        $optionId,
+                                        'attr'
+                                    ) ?>"
+                            <?= $optionSelected
+                                ? 'selected'
+                                : '' ?>>
+                            <?= esc($optionName) ?>
+                        </option>
+                    <?php endforeach ?>
+                </select>
+
+                <?php if (
+                    $educationError !== ''
+                ): ?>
+                    <div class="invalid-feedback">
+                        <?= esc($educationError) ?>
+                    </div>
+                <?php endif ?>
             </div>
-        </div>
 
-        <div class="col-12 col-md-6">
-            <label
-                for="occupation_id"
-                class="form-label">
-                Occupation
+            <div class="col-12 col-md-6">
+                <label
+                    for="employed_in"
+                    class="form-label">
+                    Employed in
+                </label>
 
-                <span
-                    class="text-danger"
-                    aria-hidden="true">
-                    *
-                </span>
-            </label>
-
-            <select
-                id="occupation_id"
-                name="occupation_id"
-                class="form-select <?= isset(
-                                        $errors['occupation_id']
-                                    )
-                                        ? 'is-invalid'
-                                        : '' ?>"
-                required>
-                <option value="">
-                    Select occupation
-                </option>
-
-                <?php foreach (
-                    $occupationOptions as $occupation
-                ): ?>
-                    <?php
-                    if (!is_array($occupation)) {
-                        continue;
-                    }
-
-                    $occupationId = (string) (
-                        $occupation['id'] ?? ''
-                    );
-
-                    $occupationName = (string) (
-                        $occupation['name']
-                        ?? $occupation['label']
-                        ?? ''
-                    );
-
-                    if (
-                        $occupationId === ''
-                        || $occupationName === ''
-                    ) {
-                        continue;
-                    }
-                    ?>
-
-                    <option
-                        value="<?= esc(
-                                    $occupationId,
-                                    'attr'
-                                ) ?>"
-                        <?= $selectedOccupationId
-                            === $occupationId
-                            ? 'selected'
-                            : '' ?>>
-                        <?= esc($occupationName) ?>
+                <select
+                    id="employed_in"
+                    name="employed_in"
+                    class="form-select js-choice <?= esc(
+                                                        $employmentClass,
+                                                        'attr'
+                                                    ) ?>"
+                    required>
+                    <option value="">
+                        Select employment type
                     </option>
-                <?php endforeach ?>
-            </select>
 
-            <div class="invalid-feedback">
-                <?= esc(
-                    $errors['occupation_id']
-                        ?? 'Please select occupation.'
-                ) ?>
+                    <?php foreach (
+                        $employmentOptions as
+                        $employmentOption
+                    ): ?>
+                        <?php
+                        if (!is_array($employmentOption)) {
+                            continue;
+                        }
+
+                        $optionValue = trim(
+                            (string) (
+                                $employmentOption['value']
+                                ?? ''
+                            )
+                        );
+
+                        $optionLabel = trim(
+                            (string) (
+                                $employmentOption['label']
+                                ?? $employmentOption['name']
+                                ?? ''
+                            )
+                        );
+
+                        if ($optionValue === 'DEFENSE') {
+                            $optionValue = 'DEFENCE';
+                        }
+
+                        if (
+                            $optionValue === ''
+                            || $optionLabel === ''
+                        ) {
+                            continue;
+                        }
+
+                        $optionSelected =
+                            $employmentType
+                            === $optionValue;
+                        ?>
+
+                        <option
+                            value="<?= esc(
+                                        $optionValue,
+                                        'attr'
+                                    ) ?>"
+                            <?= $optionSelected
+                                ? 'selected'
+                                : '' ?>>
+                            <?= esc($optionLabel) ?>
+                        </option>
+                    <?php endforeach ?>
+                </select>
+
+                <?php if (
+                    $employmentError !== ''
+                ): ?>
+                    <div class="invalid-feedback">
+                        <?= esc($employmentError) ?>
+                    </div>
+                <?php endif ?>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label
+                    for="occupation_id"
+                    class="form-label">
+                    Occupation
+                </label>
+
+                <select
+                    id="occupation_id"
+                    name="occupation_id"
+                    class="form-select js-choice <?= esc(
+                                                        $occupationClass,
+                                                        'attr'
+                                                    ) ?>"
+                    required>
+                    <option value="">
+                        Select occupation
+                    </option>
+
+                    <?php foreach (
+                        $occupationOptions as
+                        $occupationOption
+                    ): ?>
+                        <?php
+                        if (!is_array($occupationOption)) {
+                            continue;
+                        }
+
+                        $optionId = (string) (
+                            $occupationOption['id']
+                            ?? ''
+                        );
+
+                        $optionName = trim(
+                            (string) (
+                                $occupationOption['name']
+                                ?? $occupationOption['label']
+                                ?? ''
+                            )
+                        );
+
+                        if (
+                            $optionId === ''
+                            || $optionName === ''
+                        ) {
+                            continue;
+                        }
+
+                        $optionSelected =
+                            $occupationId === $optionId;
+                        ?>
+
+                        <option
+                            value="<?= esc(
+                                        $optionId,
+                                        'attr'
+                                    ) ?>"
+                            <?= $optionSelected
+                                ? 'selected'
+                                : '' ?>>
+                            <?= esc($optionName) ?>
+                        </option>
+                    <?php endforeach ?>
+                </select>
+
+                <?php if (
+                    $occupationError !== ''
+                ): ?>
+                    <div class="invalid-feedback">
+                        <?= esc($occupationError) ?>
+                    </div>
+                <?php endif ?>
             </div>
         </div>
     </div>
-</fieldset>
+</div>

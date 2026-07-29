@@ -55,6 +55,7 @@ final class PrelaunchProfileModel extends Model
         'family_status_id',
         'sikh_community_id',
         'sikh_subcommunity_id',
+        'gotra',
         'field_officer_id',
         'created_by',
         'created_source',

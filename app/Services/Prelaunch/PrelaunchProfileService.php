@@ -34,6 +34,10 @@ final class PrelaunchProfileService
             trim((string) ($input['email'] ?? ''))
         );
 
+        $gotra = mb_strtolower(
+            trim((string) ($input['gotra'] ?? ''))
+        );
+
         $countryCode = trim(
             (string) ($input['country_code'] ?? '')
         );
@@ -160,6 +164,8 @@ final class PrelaunchProfileService
 
                     'sikh_subcommunity_id' =>
                     (int) $input['sikh_subcommunity_id'],
+
+                    'gotra' => $gotra,
 
                     'field_officer_id' =>
                     $fieldOfficerId,
