@@ -444,7 +444,7 @@ $genderOptions = [
                     name="country_code"
                     value="+91">
 
-                <div class="input-group">
+                <div class="input-group has-validation">
                     <span class="input-group-text">
                         +91
                     </span>
@@ -473,13 +473,13 @@ $genderOptions = [
                         data-error-minlength="Please enter a 10-digit mobile number."
                         data-error-maxlength="Please enter a 10-digit mobile number."
                         required>
-                </div>
 
-                <div
-                    id="mobile_numberError"
-                    class="invalid-feedback"
-                    data-validation-error="mobile_number">
-                    <?= esc($mobileDisplayError) ?>
+                    <div
+                        id="mobile_numberError"
+                        class="invalid-feedback"
+                        data-validation-error="mobile_number">
+                        <?= esc($mobileDisplayError) ?>
+                    </div>
                 </div>
             </div>
         </div>

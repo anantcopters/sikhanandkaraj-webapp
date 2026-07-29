@@ -109,7 +109,7 @@ final class PrelaunchProfileService
         ) {
             return PrelaunchProfileResult::fieldFailure(
                 'email',
-                'A prelaunch profile with this email address already exists.'
+                'A profile with this email address already exists.'
             );
         }
 
@@ -121,7 +121,7 @@ final class PrelaunchProfileService
         ) {
             return PrelaunchProfileResult::fieldFailure(
                 'mobile_number',
-                'A prelaunch profile with this mobile number already exists.'
+                'A profile with this mobile number already exists.'
             );
         }
 

@@ -1525,9 +1525,9 @@ form[aria-busy="true"] {
 }
 
 #prelaunch-profile-form .form-control {
-    background-color: #F4F2F2 !important;
+    background-color: #F2F2F7 !important;
 }
 
 #prelaunch-profile-form .choices__inner {
-    background-color: #F4F2F2 !important;
+    background-color: #F2F2F7 !important;
 }
