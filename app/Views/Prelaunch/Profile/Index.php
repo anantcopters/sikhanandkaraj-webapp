@@ -188,7 +188,18 @@ $this->section('content');
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-end">
+                <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+                    <div class="text-danger fw-medium"
+                        role="alert"
+                        aria-live="polite">
+
+                        <?php if ($alertMessage !== ''): ?>
+                            <i class="ri-error-warning-line me-1"
+                                aria-hidden="true"></i>
+
+                            <?= esc($alertMessage) ?>
+                        <?php endif ?>
+                    </div>
                     <button
                         type="submit"
                         class="btn registration-form__submit w-auto px-4 fs-16 fw-semibold text-uppercase"
