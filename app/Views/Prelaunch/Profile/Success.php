@@ -30,7 +30,7 @@ $reference = trim(
                         Profile saved
                     </h1>
 
-                    <div class="fs-4 fw-bold">
+                    <div class="fs-4 fw-bold text-success mb-2">
                         <?= esc($reference) ?>
                     </div>
 

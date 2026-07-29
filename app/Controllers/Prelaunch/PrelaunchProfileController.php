@@ -646,6 +646,14 @@ final class PrelaunchProfileController extends BaseController
 
                 'profileId' =>
                 $profileId,
+
+                'profileReference' =>
+                (string) (
+                    session(
+                        'profileReference'
+                    )
+                    ?? ''
+                ),
             ]
         );
     }
