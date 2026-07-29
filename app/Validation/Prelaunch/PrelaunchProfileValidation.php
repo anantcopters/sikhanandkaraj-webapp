@@ -7,21 +7,26 @@ namespace App\Validation\Prelaunch;
 use App\Validation\Profile\BasicDetailsValidation;
 
 /**
- * Validation definitions for the standalone pre-launch form.
+ * Validation definitions for the standalone prelaunch form.
  */
 final class PrelaunchProfileValidation
 {
     /**
+     * Return the complete profile-creation validation rules.
+     *
      * @return array<string, array<string, mixed>>
      */
     public static function createRules(): array
     {
         /*
-         * Reuse the current Basic Details rules rather than duplicating
-         * full name, DOB, marital status, height, mother tongue and
-         * location validation.
+         * Reuse shared basic-profile validation and remove only fields
+         * which are intentionally not part of the prelaunch workflow.
          */
         $rules = BasicDetailsValidation::rules();
+
+        unset(
+            $rules['mother_tongue_id']
+        );
 
         return array_merge(
             $rules,
@@ -35,6 +40,7 @@ final class PrelaunchProfileValidation
                     'errors' => [
                         'required' =>
                         'Please select who this profile is for.',
+
                         'in_list' =>
                         'Please select a valid profile creator option.',
                     ],
@@ -47,8 +53,11 @@ final class PrelaunchProfileValidation
                         'in_list[MALE,FEMALE]',
                     ],
                     'errors' => [
-                        'required' => 'Please select gender.',
-                        'in_list' => 'Please select a valid gender.',
+                        'required' =>
+                        'Please select gender.',
+
+                        'in_list' =>
+                        'Please select a valid gender.',
                     ],
                 ],
 
@@ -59,6 +68,16 @@ final class PrelaunchProfileValidation
                         'valid_email',
                         'max_length[190]',
                     ],
+                    'errors' => [
+                        'required' =>
+                        'Please enter email address.',
+
+                        'valid_email' =>
+                        'Please enter a valid email address.',
+
+                        'max_length' =>
+                        'Email address cannot exceed 190 characters.',
+                    ],
                 ],
 
                 'country_code' => [
@@ -66,6 +85,13 @@ final class PrelaunchProfileValidation
                     'rules' => [
                         'required',
                         'regex_match[/^\+[1-9][0-9]{0,3}$/]',
+                    ],
+                    'errors' => [
+                        'required' =>
+                        'Country code is required.',
+
+                        'regex_match' =>
+                        'Please provide a valid country code.',
                     ],
                 ],
 
@@ -75,6 +101,13 @@ final class PrelaunchProfileValidation
                         'required',
                         'regex_match[/^[0-9]{10,15}$/]',
                     ],
+                    'errors' => [
+                        'required' =>
+                        'Please enter mobile number.',
+
+                        'regex_match' =>
+                        'Please enter a valid mobile number.',
+                    ],
                 ],
 
                 'highest_education_id' => [
@@ -82,6 +115,13 @@ final class PrelaunchProfileValidation
                     'rules' => [
                         'required',
                         'is_natural_no_zero',
+                    ],
+                    'errors' => [
+                        'required' =>
+                        'Please select highest education.',
+
+                        'is_natural_no_zero' =>
+                        'Please select a valid highest education.',
                     ],
                 ],
 
@@ -91,6 +131,13 @@ final class PrelaunchProfileValidation
                         'required',
                         'in_list[GOVERNMENT_PSU,PRIVATE,BUSINESS,DEFENSE,SELF_EMPLOYED,NOT_WORKING]',
                     ],
+                    'errors' => [
+                        'required' =>
+                        'Please select employment type.',
+
+                        'in_list' =>
+                        'Please select a valid employment type.',
+                    ],
                 ],
 
                 'occupation_id' => [
@@ -99,26 +146,21 @@ final class PrelaunchProfileValidation
                         'required',
                         'is_natural_no_zero',
                     ],
+                    'errors' => [
+                        'required' =>
+                        'Please select occupation.',
+
+                        'is_natural_no_zero' =>
+                        'Please select a valid occupation.',
+                    ],
                 ],
 
                 'father_name' => self::personNameRule(
-                    'Father name'
+                    'Father’s name'
                 ),
 
                 'mother_name' => self::personNameRule(
-                    'Mother name'
-                ),
-
-                'family_value_id' => self::masterRule(
-                    'Family values'
-                ),
-
-                'family_type_id' => self::masterRule(
-                    'Family type'
-                ),
-
-                'family_status_id' => self::masterRule(
-                    'Family status'
+                    'Mother’s name'
                 ),
 
                 'sikh_community_id' => self::masterRule(
@@ -132,11 +174,18 @@ final class PrelaunchProfileValidation
                 'gotra' => [
                     'label' => 'Gotra',
                     'rules' => [
-                        'permit_empty',
+                        'required',
+                        'min_length[2]',
                         'max_length[100]',
                         'regex_match[/^[\p{L}\p{M} .\'-]+$/u]',
                     ],
                     'errors' => [
+                        'required' =>
+                        'Please enter gotra.',
+
+                        'min_length' =>
+                        'Gotra must contain at least 2 characters.',
+
                         'max_length' =>
                         'Gotra cannot exceed 100 characters.',
 
@@ -192,6 +241,7 @@ final class PrelaunchProfileValidation
                     'errors' => [
                         'required' =>
                         'Member consent is required.',
+
                         'in_list' =>
                         'Member consent is required.',
                     ],
@@ -201,7 +251,9 @@ final class PrelaunchProfileValidation
     }
 
     /**
-     * @return array<string, mixed>
+     * Return validation rules used for administrator contact updates.
+     *
+     * @return array<string, array<string, mixed>>
      */
     public static function adminContactRules(): array
     {
@@ -234,6 +286,8 @@ final class PrelaunchProfileValidation
     }
 
     /**
+     * Build a required person-name validation rule.
+     *
      * @return array<string, mixed>
      */
     private static function personNameRule(
@@ -247,10 +301,25 @@ final class PrelaunchProfileValidation
                 'max_length[100]',
                 'regex_match[/^[\p{L}\p{M} .\'-]+$/u]',
             ],
+            'errors' => [
+                'required' =>
+                "Please enter {$label}.",
+
+                'min_length' =>
+                "{$label} must contain at least 2 characters.",
+
+                'max_length' =>
+                "{$label} cannot exceed 100 characters.",
+
+                'regex_match' =>
+                "{$label} may contain letters, spaces, apostrophes, full stops and hyphens only.",
+            ],
         ];
     }
 
     /**
+     * Build a required positive master-record ID rule.
+     *
      * @return array<string, mixed>
      */
     private static function masterRule(
@@ -261,6 +330,13 @@ final class PrelaunchProfileValidation
             'rules' => [
                 'required',
                 'is_natural_no_zero',
+            ],
+            'errors' => [
+                'required' =>
+                "Please select {$label}.",
+
+                'is_natural_no_zero' =>
+                "Please select a valid {$label}.",
             ],
         ];
     }

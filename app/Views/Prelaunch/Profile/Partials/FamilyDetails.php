@@ -3,44 +3,30 @@
 declare(strict_types=1);
 
 /**
+ * Prelaunch family details.
+ *
  * @var array<string, string>|null            $validationErrors
- * @var array<int, array<string, mixed>>|null $familyValues
- * @var array<int, array<string, mixed>>|null $familyTypes
- * @var array<int, array<string, mixed>>|null $familyStatuses
  * @var array<int, array<string, mixed>>|null $communities
  * @var array<int, array<string, mixed>>|null $subcommunities
  */
 
-$errorBag = is_array($validationErrors ?? null)
+$errorBag = is_array(
+    $validationErrors
+        ?? null
+)
     ? $validationErrors
     : [];
 
-$familyValueOptions = is_array(
-    $familyValues ?? null
-)
-    ? $familyValues
-    : [];
-
-$familyTypeOptions = is_array(
-    $familyTypes ?? null
-)
-    ? $familyTypes
-    : [];
-
-$familyStatusOptions = is_array(
-    $familyStatuses ?? null
-)
-    ? $familyStatuses
-    : [];
-
 $communityOptions = is_array(
-    $communities ?? null
+    $communities
+        ?? null
 )
     ? $communities
     : [];
 
 $subcommunityOptions = is_array(
-    $subcommunities ?? null
+    $subcommunities
+        ?? null
 )
     ? $subcommunities
     : [];
@@ -57,21 +43,6 @@ $motherName = (string) old(
 
 $gotra = (string) old(
     'gotra',
-    ''
-);
-
-$familyValueId = (string) old(
-    'family_value_id',
-    ''
-);
-
-$familyTypeId = (string) old(
-    'family_type_id',
-    ''
-);
-
-$familyStatusId = (string) old(
-    'family_status_id',
     ''
 );
 
@@ -106,27 +77,6 @@ $gotraError = trim(
     )
 );
 
-$familyValueError = trim(
-    (string) (
-        $errorBag['family_value_id']
-        ?? ''
-    )
-);
-
-$familyTypeError = trim(
-    (string) (
-        $errorBag['family_type_id']
-        ?? ''
-    )
-);
-
-$familyStatusError = trim(
-    (string) (
-        $errorBag['family_status_id']
-        ?? ''
-    )
-);
-
 $communityError = trim(
     (string) (
         $errorBag['sikh_community_id']
@@ -151,22 +101,8 @@ $motherNameClass =
     ? 'is-invalid'
     : '';
 
-$gotraClass = $gotraError !== ''
-    ? 'is-invalid'
-    : '';
-
-$familyValueClass =
-    $familyValueError !== ''
-    ? 'is-invalid'
-    : '';
-
-$familyTypeClass =
-    $familyTypeError !== ''
-    ? 'is-invalid'
-    : '';
-
-$familyStatusClass =
-    $familyStatusError !== ''
+$gotraClass =
+    $gotraError !== ''
     ? 'is-invalid'
     : '';
 
@@ -201,14 +137,14 @@ $subcommunityRouteTemplate = route_to(
                 </h5>
 
                 <p class="text-muted mb-0 fs-12">
-                    Add parent names, family background,
-                    community and gotra information.
+                    Add parent names, community and gotra
+                    information.
                 </p>
             </div>
         </div>
 
         <hr class="my-2 mb-2">
-        </hr>
+
         <div class="row g-3 pt-2">
             <div class="col-12 col-md-6">
                 <label
@@ -229,17 +165,22 @@ $subcommunityRouteTemplate = route_to(
                                 $fatherName,
                                 'attr'
                             ) ?>"
+                    aria-describedby="father_nameError"
+                    placeholder="Enter father’s name"
                     minlength="2"
                     maxlength="100"
+                    autocomplete="off"
+                    data-error-required="Please enter father’s name."
+                    data-error-minlength="Father’s name must contain at least 2 characters."
+                    data-error-maxlength="Father’s name cannot exceed 100 characters."
                     required>
 
-                <?php if (
-                    $fatherNameError !== ''
-                ): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($fatherNameError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="father_nameError"
+                    class="invalid-feedback"
+                    data-validation-error="father_name">
+                    <?= esc($fatherNameError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -261,17 +202,22 @@ $subcommunityRouteTemplate = route_to(
                                 $motherName,
                                 'attr'
                             ) ?>"
+                    aria-describedby="mother_nameError"
+                    placeholder="Enter mother’s name"
                     minlength="2"
                     maxlength="100"
+                    autocomplete="off"
+                    data-error-required="Please enter mother’s name."
+                    data-error-minlength="Mother’s name must contain at least 2 characters."
+                    data-error-maxlength="Mother’s name cannot exceed 100 characters."
                     required>
 
-                <?php if (
-                    $motherNameError !== ''
-                ): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($motherNameError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="mother_nameError"
+                    class="invalid-feedback"
+                    data-validation-error="mother_name">
+                    <?= esc($motherNameError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -293,244 +239,23 @@ $subcommunityRouteTemplate = route_to(
                                 $gotra,
                                 'attr'
                             ) ?>"
-                    maxlength="100">
-
-                <?php if ($gotraError !== ''): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($gotraError) ?>
-                    </div>
-                <?php endif ?>
-            </div>
-
-            <div class="col-12 col-md-6">
-                <label
-                    for="family_value_id"
-                    class="form-label">
-                    Family values
-                </label>
-
-                <select
-                    id="family_value_id"
-                    name="family_value_id"
-                    class="form-select <?= esc(
-                                            $familyValueClass,
-                                            'attr'
-                                        ) ?>"
+                    aria-describedby="gotraError"
+                    placeholder="Enter gotra"
+                    minlength="2"
+                    maxlength="100"
+                    autocomplete="off"
+                    data-error-required="Please enter gotra."
+                    data-error-minlength="Gotra must contain at least 2 characters."
+                    data-error-maxlength="Gotra cannot exceed 100 characters."
+                    data-error-pattern="Gotra may contain letters, spaces, apostrophes, full stops and hyphens only."
                     required>
-                    <option value="">
-                        Select family values
-                    </option>
 
-                    <?php foreach (
-                        $familyValueOptions as
-                        $familyValueOption
-                    ): ?>
-                        <?php
-                        if (!is_array(
-                            $familyValueOption
-                        )) {
-                            continue;
-                        }
-
-                        $optionId = (string) (
-                            $familyValueOption['id']
-                            ?? ''
-                        );
-
-                        $optionName = trim(
-                            (string) (
-                                $familyValueOption['name']
-                                ?? $familyValueOption['label']
-                                ?? ''
-                            )
-                        );
-
-                        if (
-                            $optionId === ''
-                            || $optionName === ''
-                        ) {
-                            continue;
-                        }
-
-                        $optionSelected =
-                            $familyValueId
-                            === $optionId;
-                        ?>
-
-                        <option
-                            value="<?= esc(
-                                        $optionId,
-                                        'attr'
-                                    ) ?>"
-                            <?= $optionSelected
-                                ? 'selected'
-                                : '' ?>>
-                            <?= esc($optionName) ?>
-                        </option>
-                    <?php endforeach ?>
-                </select>
-
-                <?php if (
-                    $familyValueError !== ''
-                ): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($familyValueError) ?>
-                    </div>
-                <?php endif ?>
-            </div>
-
-            <div class="col-12 col-md-6">
-                <label
-                    for="family_type_id"
-                    class="form-label">
-                    Family type
-                </label>
-
-                <select
-                    id="family_type_id"
-                    name="family_type_id"
-                    class="form-select <?= esc(
-                                            $familyTypeClass,
-                                            'attr'
-                                        ) ?>"
-                    required>
-                    <option value="">
-                        Select family type
-                    </option>
-
-                    <?php foreach (
-                        $familyTypeOptions as
-                        $familyTypeOption
-                    ): ?>
-                        <?php
-                        if (!is_array(
-                            $familyTypeOption
-                        )) {
-                            continue;
-                        }
-
-                        $optionId = (string) (
-                            $familyTypeOption['id']
-                            ?? ''
-                        );
-
-                        $optionName = trim(
-                            (string) (
-                                $familyTypeOption['name']
-                                ?? $familyTypeOption['label']
-                                ?? ''
-                            )
-                        );
-
-                        if (
-                            $optionId === ''
-                            || $optionName === ''
-                        ) {
-                            continue;
-                        }
-
-                        $optionSelected =
-                            $familyTypeId
-                            === $optionId;
-                        ?>
-
-                        <option
-                            value="<?= esc(
-                                        $optionId,
-                                        'attr'
-                                    ) ?>"
-                            <?= $optionSelected
-                                ? 'selected'
-                                : '' ?>>
-                            <?= esc($optionName) ?>
-                        </option>
-                    <?php endforeach ?>
-                </select>
-
-                <?php if (
-                    $familyTypeError !== ''
-                ): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($familyTypeError) ?>
-                    </div>
-                <?php endif ?>
-            </div>
-
-            <div class="col-12 col-md-6">
-                <label
-                    for="family_status_id"
-                    class="form-label">
-                    Family status
-                </label>
-
-                <select
-                    id="family_status_id"
-                    name="family_status_id"
-                    class="form-select <?= esc(
-                                            $familyStatusClass,
-                                            'attr'
-                                        ) ?>"
-                    required>
-                    <option value="">
-                        Select family status
-                    </option>
-
-                    <?php foreach (
-                        $familyStatusOptions as
-                        $familyStatusOption
-                    ): ?>
-                        <?php
-                        if (!is_array(
-                            $familyStatusOption
-                        )) {
-                            continue;
-                        }
-
-                        $optionId = (string) (
-                            $familyStatusOption['id']
-                            ?? ''
-                        );
-
-                        $optionName = trim(
-                            (string) (
-                                $familyStatusOption['name']
-                                ?? $familyStatusOption['label']
-                                ?? ''
-                            )
-                        );
-
-                        if (
-                            $optionId === ''
-                            || $optionName === ''
-                        ) {
-                            continue;
-                        }
-
-                        $optionSelected =
-                            $familyStatusId
-                            === $optionId;
-                        ?>
-
-                        <option
-                            value="<?= esc(
-                                        $optionId,
-                                        'attr'
-                                    ) ?>"
-                            <?= $optionSelected
-                                ? 'selected'
-                                : '' ?>>
-                            <?= esc($optionName) ?>
-                        </option>
-                    <?php endforeach ?>
-                </select>
-
-                <?php if (
-                    $familyStatusError !== ''
-                ): ?>
-                    <div class="invalid-feedback">
-                        <?= esc($familyStatusError) ?>
-                    </div>
-                <?php endif ?>
+                <div
+                    id="gotraError"
+                    class="invalid-feedback"
+                    data-validation-error="gotra">
+                    <?= esc($gotraError) ?>
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
@@ -552,6 +277,7 @@ $subcommunityRouteTemplate = route_to(
                                                         'attr'
                                                     ) ?>"
                     data-choice
+                    data-choices
                     data-choice-search="true"
                     data-choice-position="bottom"
                     data-error-required="Please select your community."
@@ -565,7 +291,9 @@ $subcommunityRouteTemplate = route_to(
                         $communityOption
                     ): ?>
                         <?php
-                        if (!is_array($communityOption)) {
+                        if (!is_array(
+                            $communityOption
+                        )) {
                             continue;
                         }
 
@@ -605,6 +333,7 @@ $subcommunityRouteTemplate = route_to(
                         </option>
                     <?php endforeach ?>
                 </select>
+
                 <div
                     id="sikh_community_idError"
                     class="invalid-feedback"
@@ -632,6 +361,7 @@ $subcommunityRouteTemplate = route_to(
                                                 'attr'
                                             ) ?>"
                     data-choice
+                    data-choices
                     data-choice-search="true"
                     data-choice-position="bottom"
                     data-error-required="Please select your sub-community."
@@ -672,8 +402,7 @@ $subcommunityRouteTemplate = route_to(
                         }
 
                         $optionSelected =
-                            $subcommunityId
-                            === $optionId;
+                            $subcommunityId === $optionId;
                         ?>
 
                         <option
@@ -688,6 +417,7 @@ $subcommunityRouteTemplate = route_to(
                         </option>
                     <?php endforeach ?>
                 </select>
+
                 <div
                     id="sikh_subcommunity_idError"
                     class="invalid-feedback"

@@ -188,18 +188,24 @@ $this->section('content');
                     </div>
                 </div>
 
-                <div class="d-grid">
+                <div class="d-flex justify-content-end">
                     <button
                         type="submit"
-                        class="registration-form__submit"
+                        class="btn registration-form__submit w-auto px-4 fs-16 fw-semibold text-uppercase"
                         id="save-prelaunch-profile"
                         data-submit-button>
-                        <span data-submit-idle>
+                        <span
+                            class="d-inline-flex align-items-center gap-2"
+                            data-submit-idle>
+                            <i
+                                class="ri-save-line fs-20"
+                                aria-hidden="true"></i>
+
                             Save Draft Profile
                         </span>
 
                         <span
-                            class="registration-submit__loading d-none"
+                            class="registration-submit__loading d-none align-items-center gap-2"
                             data-submit-loading
                             aria-hidden="true">
                             <span

@@ -11,7 +11,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Handles pre-launch profile creation.
+ * Handles prelaunch profile creation.
  */
 final class PrelaunchProfileService
 {
@@ -23,7 +23,9 @@ final class PrelaunchProfileService
     ) {}
 
     /**
-     * @param array<string, mixed> $input
+     * Create a draft prelaunch profile and its photos.
+     *
+     * @param array<string, mixed>    $input
      * @param array<int, UploadedFile> $photos
      */
     public function createDraft(
@@ -31,26 +33,52 @@ final class PrelaunchProfileService
         array $photos
     ): int {
         $email = mb_strtolower(
-            trim((string) ($input['email'] ?? ''))
+            trim(
+                (string) (
+                    $input['email']
+                    ?? ''
+                )
+            )
         );
 
         $gotra = mb_strtolower(
-            trim((string) ($input['gotra'] ?? ''))
+            trim(
+                (string) (
+                    $input['gotra']
+                    ?? ''
+                )
+            )
         );
 
+        if ($gotra === '') {
+            throw new RuntimeException(
+                'Gotra is required.'
+            );
+        }
+
         $countryCode = trim(
-            (string) ($input['country_code'] ?? '')
+            (string) (
+                $input['country_code']
+                ?? ''
+            )
         );
 
         $mobileNumber = preg_replace(
             '/\D+/',
             '',
-            (string) ($input['mobile_number'] ?? '')
+            (string) (
+                $input['mobile_number']
+                ?? ''
+            )
         ) ?? '';
 
-        if ($this->profileModel->emailExists($email)) {
+        if (
+            $this->profileModel->emailExists(
+                $email
+            )
+        ) {
             throw new RuntimeException(
-                'A pre-launch profile with this email already exists.'
+                'A prelaunch profile with this email already exists.'
             );
         }
 
@@ -61,7 +89,7 @@ final class PrelaunchProfileService
             )
         ) {
             throw new RuntimeException(
-                'A pre-launch profile with this mobile number already exists.'
+                'A prelaunch profile with this mobile number already exists.'
             );
         }
 
@@ -91,116 +119,114 @@ final class PrelaunchProfileService
         $this->database->transBegin();
 
         try {
-            $profileId = $this->profileModel->insert(
-                [
-                    'profile_reference' =>
-                    $profileReference,
+            $profileId =
+                $this->profileModel->insert(
+                    [
+                        'profile_reference' =>
+                        $profileReference,
 
-                    'profile_created_for' =>
-                    (string) $input['profile_created_for'],
+                        'profile_created_for' =>
+                        (string) $input['profile_created_for'],
 
-                    'gender' =>
-                    (string) $input['gender'],
+                        'gender' =>
+                        (string) $input['gender'],
 
-                    'full_name' =>
-                    trim((string) $input['full_name']),
+                        'full_name' =>
+                        trim(
+                            (string) $input['full_name']
+                        ),
 
-                    'date_of_birth' =>
-                    (string) $input['date_of_birth'],
+                        'date_of_birth' =>
+                        (string) $input['date_of_birth'],
 
-                    'email' =>
-                    $email,
+                        'email' =>
+                        $email,
 
-                    'country_code' =>
-                    $countryCode,
+                        'country_code' =>
+                        $countryCode,
 
-                    'mobile_number' =>
-                    $mobileNumber,
+                        'mobile_number' =>
+                        $mobileNumber,
 
-                    'marital_status_id' =>
-                    (int) $input['marital_status_id'],
+                        'marital_status_id' =>
+                        (int) $input['marital_status_id'],
 
-                    'height_id' =>
-                    (int) $input['height_id'],
+                        'height_id' =>
+                        (int) $input['height_id'],
 
-                    'mother_tongue_id' =>
-                    (int) $input['mother_tongue_id'],
+                        'country_id' =>
+                        (int) $input['country_id'],
 
-                    'country_id' =>
-                    (int) $input['country_id'],
+                        'state_id' =>
+                        (int) $input['state_id'],
 
-                    'state_id' =>
-                    (int) $input['state_id'],
+                        'city_id' =>
+                        (int) $input['city_id'],
 
-                    'city_id' =>
-                    (int) $input['city_id'],
+                        'highest_education_id' =>
+                        (int) $input['highest_education_id'],
 
-                    'highest_education_id' =>
-                    (int) $input['highest_education_id'],
+                        'employed_in' =>
+                        (string) $input['employed_in'],
 
-                    'employed_in' =>
-                    (string) $input['employed_in'],
+                        'occupation_id' =>
+                        (int) $input['occupation_id'],
 
-                    'occupation_id' =>
-                    (int) $input['occupation_id'],
+                        'father_name' =>
+                        trim(
+                            (string) $input['father_name']
+                        ),
 
-                    'father_name' =>
-                    trim((string) $input['father_name']),
+                        'mother_name' =>
+                        trim(
+                            (string) $input['mother_name']
+                        ),
 
-                    'mother_name' =>
-                    trim((string) $input['mother_name']),
+                        'sikh_community_id' =>
+                        (int) $input['sikh_community_id'],
 
-                    'family_value_id' =>
-                    (int) $input['family_value_id'],
+                        'sikh_subcommunity_id' =>
+                        (int) $input['sikh_subcommunity_id'],
 
-                    'family_type_id' =>
-                    (int) $input['family_type_id'],
+                        'gotra' =>
+                        $gotra,
 
-                    'family_status_id' =>
-                    (int) $input['family_status_id'],
+                        'field_officer_id' =>
+                        $fieldOfficerId,
 
-                    'sikh_community_id' =>
-                    (int) $input['sikh_community_id'],
+                        /*
+                         * The creator is the verified Field Officer for
+                         * this standalone data-entry workflow.
+                         */
+                        'created_by' =>
+                        $fieldOfficerId,
 
-                    'sikh_subcommunity_id' =>
-                    (int) $input['sikh_subcommunity_id'],
+                        'created_source' =>
+                        PrelaunchProfileModel
+                        ::CREATED_SOURCE_FIELD_OFFICER,
 
-                    'gotra' => $gotra,
+                        'is_prelaunch_profile' =>
+                        true,
 
-                    'field_officer_id' =>
-                    $fieldOfficerId,
-
-                    /*
-                     * The creator is the verified Field Officer for this
-                     * standalone data-entry workflow.
-                     */
-                    'created_by' =>
-                    $fieldOfficerId,
-
-                    'created_source' =>
-                    PrelaunchProfileModel
-                    ::CREATED_SOURCE_FIELD_OFFICER,
-
-                    'is_prelaunch_profile' =>
-                    true,
-
-                    'status' =>
-                    PrelaunchProfileModel::STATUS_DRAFT,
-                ],
-                true
-            );
+                        'status' =>
+                        PrelaunchProfileModel
+                        ::STATUS_DRAFT,
+                    ],
+                    true
+                );
 
             if ($profileId === false) {
                 throw new RuntimeException(
-                    'The pre-launch profile could not be saved.'
+                    'The prelaunch profile could not be saved.'
                 );
             }
 
-            $this->photoService->storeProfilePhotos(
-                (int) $profileId,
-                $profileReference,
-                $photos
-            );
+            $this->photoService
+                ->storeProfilePhotos(
+                    (int) $profileId,
+                    $profileReference,
+                    $photos
+                );
 
             if (
                 $this->database->transStatus()
@@ -221,13 +247,22 @@ final class PrelaunchProfileService
         }
     }
 
+    /**
+     * Generate a unique public prelaunch profile reference.
+     */
     private function generateReference(): string
     {
-        for ($attempt = 0; $attempt < 10; $attempt++) {
+        for (
+            $attempt = 0;
+            $attempt < 10;
+            $attempt++
+        ) {
             $reference = 'PRE'
                 . date('ymd')
                 . strtoupper(
-                    bin2hex(random_bytes(3))
+                    bin2hex(
+                        random_bytes(3)
+                    )
                 );
 
             if (

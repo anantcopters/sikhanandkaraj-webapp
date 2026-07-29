@@ -7,7 +7,6 @@ declare(strict_types=1);
  * @var array<string, mixed>|null             $country
  * @var array<int, array<string, mixed>>|null $maritalStatuses
  * @var array<int, array<string, mixed>>|null $heights
- * @var array<int, array<string, mixed>>|null $motherTongues
  * @var array<int, array<string, mixed>>|null $states
  * @var array<int, array<string, mixed>>|null $cities
  */
@@ -28,12 +27,6 @@ $maritalStatusOptions = is_array(
 
 $heightOptions = is_array($heights ?? null)
     ? $heights
-    : [];
-
-$motherTongueOptions = is_array(
-    $motherTongues ?? null
-)
-    ? $motherTongues
     : [];
 
 $stateOptions = is_array($states ?? null)
@@ -70,11 +63,6 @@ $heightId = (string) old(
     ''
 );
 
-$motherTongueId = (string) old(
-    'mother_tongue_id',
-    ''
-);
-
 $stateId = (string) old(
     'state_id',
     ''
@@ -95,13 +83,6 @@ $maritalStatusError = trim(
 $heightError = trim(
     (string) (
         $errorBag['height_id']
-        ?? ''
-    )
-);
-
-$motherTongueError = trim(
-    (string) (
-        $errorBag['mother_tongue_id']
         ?? ''
     )
 );
@@ -133,11 +114,6 @@ $maritalStatusClass =
     : '';
 
 $heightClass = $heightError !== ''
-    ? 'is-invalid'
-    : '';
-
-$motherTongueClass =
-    $motherTongueError !== ''
     ? 'is-invalid'
     : '';
 
@@ -344,85 +320,6 @@ $cityRouteTemplate = route_to(
                     data-validation-error="height_id">
                     <?= esc($heightError) ?>
                 </div>
-            </div>
-
-            <div class="col-12 col-md-6">
-                <label
-                    for="mother_tongue_id"
-                    class="form-label">
-                    Mother tongue
-                </label>
-
-                <select
-                    id="mother_tongue_id"
-                    name="mother_tongue_id"
-                    class="form-select <?= esc(
-                                                        $motherTongueClass,
-                                                        'attr'
-                                                    ) ?>"
-                    required>
-                    <option value="">
-                        Select mother tongue
-                    </option>
-
-                    <?php foreach (
-                        $motherTongueOptions as
-                        $motherTongueOption
-                    ): ?>
-                        <?php
-                        if (!is_array(
-                            $motherTongueOption
-                        )) {
-                            continue;
-                        }
-
-                        $optionId = (string) (
-                            $motherTongueOption['id']
-                            ?? ''
-                        );
-
-                        $optionName = trim(
-                            (string) (
-                                $motherTongueOption['name']
-                                ?? $motherTongueOption['label']
-                                ?? ''
-                            )
-                        );
-
-                        if (
-                            $optionId === ''
-                            || $optionName === ''
-                        ) {
-                            continue;
-                        }
-
-                        $optionSelected =
-                            $motherTongueId
-                            === $optionId;
-                        ?>
-
-                        <option
-                            value="<?= esc(
-                                        $optionId,
-                                        'attr'
-                                    ) ?>"
-                            <?= $optionSelected
-                                ? 'selected'
-                                : '' ?>>
-                            <?= esc($optionName) ?>
-                        </option>
-                    <?php endforeach ?>
-                </select>
-
-                <?php if (
-                    $motherTongueError !== ''
-                ): ?>
-                    <div class="invalid-feedback">
-                        <?= esc(
-                            $motherTongueError
-                        ) ?>
-                    </div>
-                <?php endif ?>
             </div>
 
             <div class="col-12 col-md-6">

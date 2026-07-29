@@ -75,7 +75,7 @@ $verificationUrl = route_to(
         <hr class="my-2 mb-3">
 
         <div class="border rounded p-3 p-md-4 bg-light pt-2 mb-3">
-            <div class="row g-3 align-items-end">
+            <div class="row g-3">
                 <div class="col-12 col-lg-8">
                     <label
                         for="field_officer_code"
@@ -160,6 +160,13 @@ $verificationUrl = route_to(
                             Verifying...
                         </span>
                     </button>
+                    <!--
+                        Matches the validation space below the textbox.
+                        This prevents row-height changes from shifting the button.
+                    -->
+                    <div
+                        class="field-validation-space d-none d-lg-block"
+                        aria-hidden="true"></div>
                 </div>
 
                 <div

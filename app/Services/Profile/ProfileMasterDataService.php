@@ -509,4 +509,72 @@ final class ProfileMasterDataService
             ->where('is_active', true)
             ->first() !== null;
     }
+
+    /**
+     * Return only basic master data required by the prelaunch form.
+     *
+     * @return array<string, mixed>
+     */
+    public function prelaunchBasicDetailsOptions(
+        ?int $selectedStateId = null
+    ): array {
+        $india =
+            $this->countryModel->findIndia();
+
+        if (!is_array($india)) {
+            throw new DomainException(
+                'India master data is not configured.'
+            );
+        }
+
+        return [
+            'country' =>
+            $india,
+
+            'maritalStatuses' =>
+            $this->maritalStatusModel
+                ->activeOptions(),
+
+            'heights' =>
+            $this->heightModel
+                ->activeOptions(),
+
+            'states' =>
+            $this->stateModel
+                ->activeForCountry(
+                    (int) $india['id']
+                ),
+
+            'cities' =>
+            $selectedStateId !== null
+                ? $this->cityModel
+                ->activeForState(
+                    $selectedStateId
+                )
+                : [],
+        ];
+    }
+
+    /**
+     * Return only family master data required by the prelaunch form.
+     *
+     * @return array<string, mixed>
+     */
+    public function prelaunchFamilyDetailsOptions(
+        ?int $selectedCommunityId = null
+    ): array {
+        return [
+            'communities' =>
+            $this->communityModel
+                ->activeOptions(),
+
+            'subcommunities' =>
+            $selectedCommunityId !== null
+                ? $this->subcommunityModel
+                ->activeForCommunity(
+                    $selectedCommunityId
+                )
+                : [],
+        ];
+    }
 }

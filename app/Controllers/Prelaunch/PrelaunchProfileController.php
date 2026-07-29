@@ -48,7 +48,7 @@ final class PrelaunchProfileController extends BaseController
             );
 
             $basicDetails =
-                $masterService->basicDetailsOptions(
+                $masterService->prelaunchBasicDetailsOptions(
                     $selectedStateId > 0
                         ? $selectedStateId
                         : null
@@ -59,8 +59,8 @@ final class PrelaunchProfileController extends BaseController
                 ->educationProfessionOptions();
 
             $familyDetails =
-                $masterService->familyDetailsOptions(
-                    null,
+                $masterService
+                ->prelaunchFamilyDetailsOptions(
                     $selectedCommunityId > 0
                         ? $selectedCommunityId
                         : null
@@ -85,10 +85,6 @@ final class PrelaunchProfileController extends BaseController
 
                     'heights' =>
                     $basicDetails['heights']
-                        ?? [],
-
-                    'motherTongues' =>
-                    $basicDetails['motherTongues']
                         ?? [],
 
                     /*
@@ -116,18 +112,6 @@ final class PrelaunchProfileController extends BaseController
 
                     'employmentTypes' =>
                     $educationProfession['employmentTypes']
-                        ?? [],
-
-                    'familyValues' =>
-                    $familyDetails['familyValues']
-                        ?? [],
-
-                    'familyTypes' =>
-                    $familyDetails['familyTypes']
-                        ?? [],
-
-                    'familyStatuses' =>
-                    $familyDetails['familyStatuses']
                         ?? [],
 
                     'communities' =>
@@ -276,8 +260,8 @@ final class PrelaunchProfileController extends BaseController
             );
 
             $familyOptions =
-                $masterService->familyDetailsOptions(
-                    null,
+                $masterService
+                ->prelaunchFamilyDetailsOptions(
                     $communityId
                 );
 
@@ -592,6 +576,9 @@ final class PrelaunchProfileController extends BaseController
     /**
      * Normalize submitted form data.
      *
+     * Only fields belonging to the current prelaunch form are accepted.
+     * Removed UI fields are intentionally not read from the request.
+     *
      * @return array<string, mixed>
      */
     private function input(): array
@@ -648,11 +635,6 @@ final class PrelaunchProfileController extends BaseController
                 'height_id'
             )),
 
-            'mother_tongue_id' =>
-            trim((string) $this->request->getPost(
-                'mother_tongue_id'
-            )),
-
             'country_id' =>
             trim((string) $this->request->getPost(
                 'country_id'
@@ -696,21 +678,6 @@ final class PrelaunchProfileController extends BaseController
             'gotra' =>
             trim((string) $this->request->getPost(
                 'gotra'
-            )),
-
-            'family_value_id' =>
-            trim((string) $this->request->getPost(
-                'family_value_id'
-            )),
-
-            'family_type_id' =>
-            trim((string) $this->request->getPost(
-                'family_type_id'
-            )),
-
-            'family_status_id' =>
-            trim((string) $this->request->getPost(
-                'family_status_id'
             )),
 
             'sikh_community_id' =>

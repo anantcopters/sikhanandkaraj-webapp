@@ -41,7 +41,6 @@ final class PrelaunchProfileModel extends Model
         'mobile_number',
         'marital_status_id',
         'height_id',
-        'mother_tongue_id',
         'country_id',
         'state_id',
         'city_id',
@@ -50,9 +49,6 @@ final class PrelaunchProfileModel extends Model
         'occupation_id',
         'father_name',
         'mother_name',
-        'family_value_id',
-        'family_type_id',
-        'family_status_id',
         'sikh_community_id',
         'sikh_subcommunity_id',
         'gotra',
@@ -193,10 +189,10 @@ final class PrelaunchProfileModel extends Model
     }
 
     /**
-     * Apply the common select list and joins used by admin screens.
+     * Apply common selection and joins used by administrator screens.
      *
-     * This method modifies the supplied query builder. It does not execute
-     * the query and does not contain business logic.
+     * This method modifies the supplied query builder and does not
+     * execute the query.
      */
     private function applyAdminDetailsQuery(
         \CodeIgniter\Database\BaseBuilder $builder
@@ -224,7 +220,6 @@ final class PrelaunchProfileModel extends Model
              */
                 'master_marital_statuses.name AS marital_status_name',
                 'master_heights.display_name AS height_name',
-                'master_mother_tongues.name AS mother_tongue_name',
 
                 /*
              * Education and profession.
@@ -235,9 +230,6 @@ final class PrelaunchProfileModel extends Model
                 /*
              * Family details.
              */
-                'master_family_values.name AS family_value_name',
-                'master_family_types.name AS family_type_name',
-                'master_family_statuses.name AS family_status_name',
                 'master_sikh_communities.name AS community_name',
                 'master_sikh_subcommunities.name AS subcommunity_name',
             ])
@@ -278,12 +270,6 @@ final class PrelaunchProfileModel extends Model
                 'left'
             )
             ->join(
-                'master_mother_tongues',
-                'master_mother_tongues.id = '
-                    . 'prelaunch_profiles.mother_tongue_id',
-                'left'
-            )
-            ->join(
                 'master_educations',
                 'master_educations.id = '
                     . 'prelaunch_profiles.highest_education_id',
@@ -293,24 +279,6 @@ final class PrelaunchProfileModel extends Model
                 'master_occupations',
                 'master_occupations.id = '
                     . 'prelaunch_profiles.occupation_id',
-                'left'
-            )
-            ->join(
-                'master_family_values',
-                'master_family_values.id = '
-                    . 'prelaunch_profiles.family_value_id',
-                'left'
-            )
-            ->join(
-                'master_family_types',
-                'master_family_types.id = '
-                    . 'prelaunch_profiles.family_type_id',
-                'left'
-            )
-            ->join(
-                'master_family_statuses',
-                'master_family_statuses.id = '
-                    . 'prelaunch_profiles.family_status_id',
                 'left'
             )
             ->join(
