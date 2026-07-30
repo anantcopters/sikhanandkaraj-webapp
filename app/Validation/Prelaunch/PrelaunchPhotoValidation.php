@@ -42,9 +42,6 @@ final class PrelaunchPhotoValidation
                     'mime_in' =>
                     'Photo ' . $sequence
                         . ' must be JPG, PNG or WebP.',
-                    'min_dims' =>
-                    'Photo ' . $sequence
-                        . ' must be at least 400 × 400 pixels.',
                 ],
             ];
         }

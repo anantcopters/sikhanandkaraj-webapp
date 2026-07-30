@@ -40,14 +40,18 @@ final class PrelaunchPhotoService
             );
         }
 
-        if (
-            $this->photoModel->countByProfile($profileId)
-            !== 0
-        ) {
+        if ($this->photoModel->countByProfile($profileId) !== 0) {
             throw new RuntimeException(
                 'Photographs have already been uploaded for this profile.'
             );
         }
+
+        /*
+        * Validate all photographs before creating directories, image variants
+        * or database records. This avoids partial filesystem work and obscure
+        * PostgreSQL unique-constraint errors.
+        */
+        $this->ensurePhotosAreUnique($photos);
 
         $root = $this->profileDirectory(
             $profileReference
@@ -77,46 +81,58 @@ final class PrelaunchPhotoService
                     ]
                 );
 
-                $this->photoModel->insert([
-                    'prelaunch_profile_id' =>
-                    $profileId,
+                $photoId = $this->photoModel->insert(
+                    [
+                        'prelaunch_profile_id' =>
+                        $profileId,
 
-                    'sequence_no' =>
-                    $sequence,
+                        'sequence_no' =>
+                        $sequence,
 
-                    'original_path' =>
-                    $stored['relative_original'],
+                        'original_path' =>
+                        $stored['relative_original'],
 
-                    'medium_path' =>
-                    $stored['relative_medium'],
+                        'medium_path' =>
+                        $stored['relative_medium'],
 
-                    'thumbnail_path' =>
-                    $stored['relative_thumbnail'],
+                        'thumbnail_path' =>
+                        $stored['relative_thumbnail'],
 
-                    'original_filename' =>
-                    $photo->getClientName(),
+                        'original_filename' =>
+                        $photo->getClientName(),
 
-                    'mime_type' =>
-                    $stored['mime_type'],
+                        'mime_type' =>
+                        $stored['mime_type'],
 
-                    'file_extension' =>
-                    $stored['extension'],
+                        'file_extension' =>
+                        $stored['extension'],
 
-                    'file_size_bytes' =>
-                    $stored['file_size'],
+                        'file_size_bytes' =>
+                        $stored['file_size'],
 
-                    'width_px' =>
-                    $stored['width'],
+                        'width_px' =>
+                        $stored['width'],
 
-                    'height_px' =>
-                    $stored['height'],
+                        'height_px' =>
+                        $stored['height'],
 
-                    'checksum_sha256' =>
-                    $stored['checksum'],
+                        'checksum_sha256' =>
+                        $stored['checksum'],
 
-                    'approval_status' =>
-                    PrelaunchPhotoModel::STATUS_PENDING,
-                ]);
+                        'approval_status' =>
+                        PrelaunchPhotoModel::STATUS_PENDING,
+                    ],
+                    true
+                );
+
+                if ($photoId === false) {
+                    throw new RuntimeException(
+                        sprintf(
+                            'Photograph %d metadata could not be saved.',
+                            $sequence
+                        )
+                    );
+                }
             }
         } catch (Throwable $exception) {
             foreach ($createdFiles as $path) {
@@ -126,6 +142,66 @@ final class PrelaunchPhotoService
             }
 
             throw $exception;
+        }
+    }
+
+    /**
+     * Ensure that the three uploaded files are not identical.
+     *
+     * @param array<int, UploadedFile> $photos
+     */
+    private function ensurePhotosAreUnique(array $photos): void
+    {
+        $checksums = [];
+
+        foreach ($photos as $index => $photo) {
+            $sequence = $index + 1;
+
+            if (!$photo instanceof UploadedFile || !$photo->isValid()) {
+                throw new RuntimeException(
+                    sprintf(
+                        'Photograph %d is invalid.',
+                        $sequence
+                    )
+                );
+            }
+
+            $temporaryPath = $photo->getTempName();
+
+            if ($temporaryPath === '' || !is_file($temporaryPath)) {
+                throw new RuntimeException(
+                    sprintf(
+                        'Photograph %d could not be read.',
+                        $sequence
+                    )
+                );
+            }
+
+            $checksum = hash_file(
+                'sha256',
+                $temporaryPath
+            );
+
+            if ($checksum === false) {
+                throw new RuntimeException(
+                    sprintf(
+                        'Photograph %d could not be verified.',
+                        $sequence
+                    )
+                );
+            }
+
+            if (isset($checksums[$checksum])) {
+                throw new RuntimeException(
+                    sprintf(
+                        'Photographs %d and %d are identical. Please upload three different photographs.',
+                        $checksums[$checksum],
+                        $sequence
+                    )
+                );
+            }
+
+            $checksums[$checksum] = $sequence;
         }
     }
 
@@ -174,12 +250,6 @@ final class PrelaunchPhotoService
         }
 
         [$width, $height] = $imageInfo;
-
-        if ($width < 400 || $height < 400) {
-            throw new RuntimeException(
-                'Every photograph must be at least 400 × 400 pixels.'
-            );
-        }
 
         $extension = $extensions[$detectedMime];
         $randomName = sprintf(
