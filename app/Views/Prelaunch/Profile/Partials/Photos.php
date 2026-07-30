@@ -200,7 +200,7 @@ foreach ($photoNumbers as $photoNumber) {
                                             $previewAlt,
                                             'attr'
                                         ) ?>"
-                                class="position-absolute top-0 start-0 w-100 h-100 object-fit-cover d-none">
+                                class="position-absolute top-0 start-0 w-100 h-100 d-none">
 
                             <input
                                 type="file"

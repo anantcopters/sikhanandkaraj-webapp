@@ -46,9 +46,22 @@ $fieldOfficerClass =
     ? 'is-invalid'
     : '';
 
-$verificationUrl = route_to(
+$verificationUrl = url_to(
     'prelaunch.field-officer.verify'
 );
+
+$verificationPath = parse_url(
+    $verificationUrl,
+    PHP_URL_PATH
+);
+
+if (
+    !is_string($verificationPath)
+    || trim($verificationPath) === ''
+) {
+    $verificationPath =
+        '/prelaunch/field-officer/verify';
+}
 ?>
 
 <div class="card border border-danger border-opacity-25 shadow-sm mb-3">
@@ -138,7 +151,7 @@ $verificationUrl = route_to(
                         id="verify-field-officer"
                         class="btn btn-primary w-100"
                         data-verification-url="<?= esc(
-                                                    $verificationUrl,
+                                                    $verificationPath,
                                                     'attr'
                                                 ) ?>">
                         <span id="verify-field-officer-label">
