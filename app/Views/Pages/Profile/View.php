@@ -294,6 +294,43 @@ $getPhotoUrl = static function (
     return '';
 };
 
+/**
+ * Resolve the original signed photo URL for modal preview.
+ *
+ * The original image is preferred for the enlarged modal. Medium and
+ * thumbnail URLs remain fallback options if the original URL is unavailable.
+ */
+$getOriginalPhotoUrl = static function (
+    array $photo
+): string {
+    $signedUrls = $photo['signedUrls'] ?? [];
+
+    if (!is_array($signedUrls)) {
+        return '';
+    }
+
+    foreach (
+        [
+            'originalUrl',
+            'mediumUrl',
+            'thumbnailUrl',
+        ] as $urlKey
+    ) {
+        $url = trim(
+            (string) (
+                $signedUrls[$urlKey]
+                ?? ''
+            )
+        );
+
+        if ($url !== '') {
+            return $url;
+        }
+    }
+
+    return '';
+};
+
 $personalDetails = [
     'Profile Created For' => $profileCreatedFor,
     'Gender' => $gender,
@@ -391,6 +428,37 @@ $familyDetailList = [
     'Reference Person 2' =>
     $familyDetails['reference_person_2'] ?? '',
 ];
+
+/*
+ * Prepare one clean photo list for both gallery thumbnails and modal slides.
+ * Photos without a signed URL are excluded from the rendered gallery.
+ */
+$galleryPhotos = [];
+
+foreach ($approvedPhotos as $photo) {
+    if (!is_array($photo)) {
+        continue;
+    }
+
+    $thumbnailUrl = $getPhotoUrl($photo);
+    $originalUrl = $getOriginalPhotoUrl($photo);
+
+    if (
+        $thumbnailUrl === ''
+        || $originalUrl === ''
+    ) {
+        continue;
+    }
+
+    $galleryPhotos[] = [
+        'thumbnailUrl' => $thumbnailUrl,
+        'originalUrl' => $originalUrl,
+        'isPrimary' => filter_var(
+            $photo['is_primary'] ?? false,
+            FILTER_VALIDATE_BOOL
+        ),
+    ];
+}
 
 $this->extend('Layouts/Main');
 $this->section('content');
@@ -514,42 +582,6 @@ $this->section('content');
                                         not available
                                     </span>
                                 </div>
-                            <?php endif; ?>
-
-                            <?php if (
-                                $profileImage !== ''
-                            ): ?>
-                                <span
-                                    class="position-absolute
-                                        top-0 start-0 m-3
-                                        badge bg-white
-                                        text-success shadow-sm">
-
-                                    <i
-                                        class="ri-shield-check-line"
-                                        aria-hidden="true"></i>
-
-                                    Approved
-                                </span>
-                            <?php endif; ?>
-
-                            <?php if (
-                                $approvedPhotos !== []
-                            ): ?>
-                                <span
-                                    class="position-absolute
-                                        bottom-0 end-0 m-3
-                                        badge bg-white
-                                        text-dark shadow-sm">
-
-                                    <i
-                                        class="ri-camera-line"
-                                        aria-hidden="true"></i>
-
-                                    <?= count(
-                                        $approvedPhotos
-                                    ) ?>
-                                </span>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -987,88 +1019,79 @@ $this->section('content');
                         $visiblePhotoCount = 0;
                         ?>
 
-                        <?php if ($approvedPhotos !== []): ?>
+                        <?php if ($galleryPhotos !== []): ?>
                             <div
                                 class="row
-                            row-cols-2
-                            row-cols-sm-3
-                            row-cols-md-5
-                            g-3">
+            row-cols-2
+            row-cols-sm-3
+            row-cols-md-5
+            g-3">
 
                                 <?php foreach (
-                                    $approvedPhotos
-                                    as $index => $photo
+                                    $galleryPhotos
+                                    as $index => $galleryPhoto
                                 ): ?>
-                                    <?php
-                                    if (!is_array($photo)) {
-                                        continue;
-                                    }
-
-                                    $galleryUrl = $getPhotoUrl(
-                                        $photo
-                                    );
-
-                                    if ($galleryUrl === '') {
-                                        continue;
-                                    }
-
-                                    $visiblePhotoCount++;
-                                    ?>
-
                                     <div class="col">
-                                        <div
-                                            class="position-relative
-                                        overflow-hidden
-                                        rounded-3
-                                        bg-light">
+                                        <button
+                                            type="button"
+                                            class="btn p-0 border-0
+                        bg-transparent w-100
+                        position-relative
+                        overflow-hidden rounded-3"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#profileGalleryModal"
+                                            data-bs-slide-to="<?= esc(
+                                                                    (string) $index,
+                                                                    'attr'
+                                                                ) ?>"
+                                            aria-label="View profile photo <?= esc(
+                                                                                (string) ($index + 1),
+                                                                                'attr'
+                                                                            ) ?>">
 
                                             <img
                                                 src="<?= esc(
-                                                            $galleryUrl
+                                                            $galleryPhoto['thumbnailUrl']
                                                         ) ?>"
-                                                alt="Profile photo
-                                            <?= $index + 1 ?>"
-                                                class="img-thumbnail"
+                                                alt="Profile photo <?= esc(
+                                                                        (string) ($index + 1)
+                                                                    ) ?>"
+                                                class="profile-preview-gallery-photo"
                                                 loading="lazy">
 
-                                            <?php if (
-                                                (
-                                                    $photo['is_primary']
-                                                    ?? false
-                                                ) === true
-                                            ): ?>
-                                                <span
-                                                    class="
-                                                position-absolute
-                                                start-0 bottom-0
-                                                m-2 badge
-                                                bg-dark">
-                                                    Main
+
+
+                                            <span
+                                                class="position-absolute
+                            top-50 start-50
+                            translate-middle
+                            badge rounded-pill
+                            bg-dark bg-opacity-75">
+
+                                                <i
+                                                    class="ri-zoom-in-line"
+                                                    aria-hidden="true"></i>
+
+                                                <span class="visually-hidden">
+                                                    Open enlarged image
                                                 </span>
-                                            <?php endif; ?>
-                                        </div>
+                                            </span>
+                                        </button>
                                     </div>
                                 <?php endforeach; ?>
                             </div>
-                        <?php endif; ?>
-
-                        <?php if (
-                            $visiblePhotoCount === 0
-                        ): ?>
+                        <?php else: ?>
                             <div
                                 class="border rounded-3
-                            text-center
-                            text-muted p-4">
+            text-center text-muted p-4">
 
                                 <i
-                                    class="
-                                ri-image-add-line
-                                fs-28 d-block mb-2"
+                                    class="ri-image-add-line
+                fs-28 d-block mb-2"
                                     aria-hidden="true"></i>
 
                                 <p class="mb-2">
-                                    No approved gallery photos are
-                                    available.
+                                    No approved gallery photos are available.
                                 </p>
 
                                 <a
@@ -1076,7 +1099,7 @@ $this->section('content');
                                                 'web.profile.photos'
                                             ) ?>"
                                     class="btn btn-sm
-                                btn-outline-primary">
+                btn-outline-primary">
                                     Manage Photos
                                 </a>
                             </div>
@@ -1461,5 +1484,250 @@ $this->section('content');
         </div>
     </div>
 </section>
+<?php if ($galleryPhotos !== []): ?>
+    <div
+        class="modal fade"
+        id="profileGalleryModal"
+        tabindex="-1"
+        aria-labelledby="profileGalleryModalTitle"
+        aria-hidden="true">
 
+        <div
+            class="modal-dialog
+                modal-lg
+                modal-dialog-centered
+                modal-dialog-scrollable">
+
+            <div class="modal-content">
+
+                <div
+                    class="modal-header
+                        bg-info-subtle py-2">
+
+                    <div>
+                        <h5
+                            class="modal-title"
+                            id="profileGalleryModalTitle">
+
+                            <?= esc($fullName) ?>
+                        </h5>
+
+                        <p class="fs-13 mb-0 text-muted">
+
+                            <?= esc(
+                                $displayValue(
+                                    $profileReference
+                                )
+                            ) ?>
+
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                    </button>
+                </div>
+
+                <div class="modal-body pt-2">
+
+                    <?php if (
+                        count($galleryPhotos) > 1
+                    ): ?>
+                        <div
+                            class="d-flex
+                                align-items-center
+                                justify-content-between
+                                gap-2 mb-3">
+
+                            <button
+                                type="button"
+                                class="btn btn-dark btn-sm"
+                                data-bs-target="#profileGalleryCarousel"
+                                data-bs-slide="prev">
+
+                                <i
+                                    class="ri-arrow-left-line me-1"
+                                    aria-hidden="true"></i>
+
+                                Previous
+                            </button>
+
+                            <button
+                                type="button"
+                                class="btn btn-dark btn-sm"
+                                data-bs-target="#profileGalleryCarousel"
+                                data-bs-slide="next">
+
+                                Next
+
+                                <i
+                                    class="ri-arrow-right-line ms-1"
+                                    aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    <?php endif; ?>
+
+                    <div
+                        id="profileGalleryCarousel"
+                        class="carousel slide"
+                        data-bs-interval="false"
+                        data-bs-touch="true">
+
+                        <div
+                            class="carousel-inner
+                                bg-light rounded">
+
+                            <?php foreach (
+                                $galleryPhotos
+                                as $index => $galleryPhoto
+                            ): ?>
+                                <div
+                                    class="carousel-item
+                                        <?= $index === 0
+                                            ? 'active'
+                                            : '' ?>">
+
+                                    <div
+                                        class="d-flex
+                                            align-items-center
+                                            justify-content-center
+                                            p-3"
+                                        style="min-height: 320px;">
+
+                                        <img
+                                            src="<?= esc(
+                                                        $galleryPhoto['originalUrl']
+                                                    ) ?>"
+                                            class="d-block
+                                                mx-auto
+                                                img-fluid
+                                                rounded"
+                                            style="max-height: 70vh;"
+                                            alt="Profile photo <?= esc(
+                                                                    (string) (
+                                                                        $index + 1
+                                                                    )
+                                                                ) ?>">
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+
+                        <?php if (
+                            count($galleryPhotos) > 1
+                        ): ?>
+                            <button
+                                class="carousel-control-prev"
+                                type="button"
+                                data-bs-target="#profileGalleryCarousel"
+                                data-bs-slide="prev">
+
+                                <span
+                                    class="
+                                        carousel-control-prev-icon"
+                                    aria-hidden="true">
+                                </span>
+
+                                <span class="visually-hidden">
+                                    Previous
+                                </span>
+                            </button>
+
+                            <button
+                                class="carousel-control-next"
+                                type="button"
+                                data-bs-target="#profileGalleryCarousel"
+                                data-bs-slide="next">
+
+                                <span
+                                    class="
+                                        carousel-control-next-icon"
+                                    aria-hidden="true">
+                                </span>
+
+                                <span class="visually-hidden">
+                                    Next
+                                </span>
+                            </button>
+                        <?php endif; ?>
+                    </div>
+
+                    <div
+                        class="d-flex
+                            align-items-center
+                            justify-content-between
+                            gap-3 mt-3">
+                        <button type="button" class="btn btn-success btn-sm text-black">
+                            <i class="ri-check-double-line label-icon align-middle fs-16 me-2"></i>
+                            Approved Photo</button>
+
+
+                        <span class="text-muted fs-13">
+                            Use Previous or Next to browse
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
+<?php if (count($galleryPhotos) > 1): ?>
+    <script>
+        document.addEventListener(
+            'DOMContentLoaded',
+            function() {
+                const modalElement = document.getElementById(
+                    'profileGalleryModal'
+                );
+
+                const carouselElement = document.getElementById(
+                    'profileGalleryCarousel'
+                );
+
+                if (
+                    !modalElement ||
+                    !carouselElement ||
+                    typeof bootstrap === 'undefined'
+                ) {
+                    return;
+                }
+
+                const carousel =
+                    bootstrap.Carousel.getOrCreateInstance(
+                        carouselElement, {
+                            interval: false,
+                            touch: true
+                        }
+                    );
+
+                document.addEventListener(
+                    'click',
+                    function(event) {
+                        const galleryButton =
+                            event.target.closest(
+                                '[data-bs-target="#profileGalleryModal"]'
+                            );
+
+                        if (!galleryButton) {
+                            return;
+                        }
+
+                        const requestedIndex = Number(
+                            galleryButton.dataset.bsSlideTo
+                        );
+
+                        carousel.to(
+                            Number.isInteger(requestedIndex) ?
+                            requestedIndex :
+                            0
+                        );
+                    }
+                );
+            }
+        );
+    </script>
+<?php endif; ?>
 <?php $this->endSection(); ?>
