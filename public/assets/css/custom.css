@@ -1585,3 +1585,29 @@ form[aria-busy="true"] {
         visibility: visible;
     }
 }
+
+/*
+ * Keep uploaded photos visually consistent with the local file preview.
+ *
+ * The image keeps its natural aspect ratio instead of being forced into
+ * a square crop. The maximum height prevents unusually tall portraits
+ * from making the management card excessively long.
+ */
+.profile-photo-card__media--natural {
+    min-height: 220px;
+    background-color: var(--bs-light);
+}
+
+.profile-photo-card__image {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 420px;
+    margin-inline: auto;
+    object-fit: contain;
+    object-position: center;
+}
+
+.profile-photo-card__placeholder {
+    min-height: 220px;
+}

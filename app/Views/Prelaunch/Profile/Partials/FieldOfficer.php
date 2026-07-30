@@ -74,7 +74,7 @@ $verificationUrl = route_to(
 
         <hr class="my-2 mb-3">
 
-        <div class="border rounded p-3 p-md-4 bg-light pt-2 mb-3">
+        <div class="border rounded p-3 p-md-4 bg-danger bg-opacity-10 pt-2 mb-3">
             <div class="row g-3">
                 <div class="col-12 col-lg-8">
                     <label
