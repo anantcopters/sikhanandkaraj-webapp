@@ -74,10 +74,6 @@ $this->section('content');
                                 $validationErrors['full_name']
                             );
 
-                            $emailHasError = isset(
-                                $validationErrors['email']
-                            );
-
                             $countryCodeHasError = isset(
                                 $validationErrors['country_code']
                             );
@@ -294,47 +290,6 @@ $this->section('content');
                                     'errorId' => 'fullNameError',
                                     'errors' => $validationErrors,
                                 ]) ?>
-                            </div>
-
-                            <!-- Email -->
-                            <div class="mb-3">
-                                <label
-                                    for="email"
-                                    class="visually-hidden">
-                                    Email address
-                                </label>
-
-                                <input
-                                    type="text"
-                                    id="email"
-                                    name="email"
-                                    value="<?= esc(old('email'), 'attr') ?>"
-                                    class="form-control <?= $emailHasError
-                                                            ? 'is-invalid'
-                                                            : '' ?>"
-                                    <?= $emailHasError
-                                        ? 'aria-invalid="true"'
-                                        : '' ?>
-                                    aria-describedby="emailError emailHelp"
-                                    placeholder="Enter email"
-                                    maxlength="128"
-                                    autocomplete="email"
-                                    data-error-required="Please enter email address."
-                                    data-error-email="Please enter a valid email address."
-                                    data-error-maxlength="Email address is too long."
-                                    required>
-
-                                <?= view('Components/Forms/FieldError', [
-                                    'field' => 'email',
-                                    'errorId' => 'emailError',
-                                    'errors' => $validationErrors,
-                                ]) ?>
-
-                                <div
-                                    id="emailHelp"
-                                    class="form-text color-pink">
-                                    Verification link will be sent to this email.
-                                </div>
                             </div>
 
                             <!-- Country code and mobile number -->

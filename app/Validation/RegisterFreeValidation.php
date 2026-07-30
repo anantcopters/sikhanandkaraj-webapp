@@ -26,9 +26,12 @@ final class RegisterFreeValidation
     ];
 
     /**
-     * Return the standard field validation rules.
+     * Return registration field validation rules.
      *
-     * Gender is added conditionally by rulesFor().
+     * Email is not collected during registration and is therefore not
+     * included in these rules.
+     *
+     * Gender is added conditionally when the profile is created for Self.
      *
      * @param array<string, mixed> $input
      *
@@ -41,11 +44,16 @@ final class RegisterFreeValidation
                 'label' => 'Profile created for',
                 'rules' => [
                     'required',
-                    'in_list[' . implode(',', self::PROFILE_TYPES) . ']',
+                    'in_list['
+                        . implode(',', self::PROFILE_TYPES)
+                        . ']',
                 ],
                 'errors' => [
-                    'required' => 'Please select whom this profile is for.',
-                    'in_list' => 'Please select a valid profile type.',
+                    'required' =>
+                    'Please select whom this profile is for.',
+
+                    'in_list' =>
+                    'Please select a valid profile type.',
                 ],
             ],
 
@@ -58,24 +66,17 @@ final class RegisterFreeValidation
                     'regex_match[/^[\p{L}\p{M} .\'-]+$/u]',
                 ],
                 'errors' => [
-                    'required' => 'Please enter the full name.',
-                    'min_length' => 'The full name must contain at least 2 characters.',
-                    'max_length' => 'The full name cannot exceed 100 characters.',
-                    'regex_match' => 'The full name contains invalid characters.',
-                ],
-            ],
+                    'required' =>
+                    'Please enter the full name.',
 
-            'email' => [
-                'label' => 'Email address',
-                'rules' => [
-                    'required',
-                    'valid_email',
-                    'max_length[128]',
-                ],
-                'errors' => [
-                    'required' => 'Please enter the email address.',
-                    'valid_email' => 'Please enter a valid email address.',
-                    'max_length' => 'The email address is too long.',
+                    'min_length' =>
+                    'The full name must contain at least 2 characters.',
+
+                    'max_length' =>
+                    'The full name cannot exceed 100 characters.',
+
+                    'regex_match' =>
+                    'The full name contains invalid characters.',
                 ],
             ],
 
@@ -86,8 +87,11 @@ final class RegisterFreeValidation
                     'in_list[+91]',
                 ],
                 'errors' => [
-                    'required' => 'Please select a country code.',
-                    'in_list' => 'Please select a valid country code.',
+                    'required' =>
+                    'Please select a country code.',
+
+                    'in_list' =>
+                    'Please select a valid country code.',
                 ],
             ],
 
@@ -98,8 +102,11 @@ final class RegisterFreeValidation
                     'regex_match[/^[6-9][0-9]{9}$/]',
                 ],
                 'errors' => [
-                    'required' => 'Please enter the mobile number.',
-                    'regex_match' => 'Please enter a valid 10-digit Indian mobile number.',
+                    'required' =>
+                    'Please enter the mobile number.',
+
+                    'regex_match' =>
+                    'Please enter a valid 10-digit Indian mobile number.',
                 ],
             ],
         ];
@@ -111,11 +118,11 @@ final class RegisterFreeValidation
             )
         );
 
-        /**
+        /*
          * Gender is user-selectable only when creating a profile for Self.
          *
-         * For other relationships the service derives gender from the
-         * selected profile relationship.
+         * For other relationships, the registration service derives gender
+         * from the selected relationship.
          */
         if (($input['profile_created_for'] ?? '') === 'self') {
             $rules['gender'] = [
@@ -125,8 +132,11 @@ final class RegisterFreeValidation
                     'in_list[M,F]',
                 ],
                 'errors' => [
-                    'required' => 'Please select gender.',
-                    'in_list' => 'Please select a valid gender.',
+                    'required' =>
+                    'Please select gender.',
+
+                    'in_list' =>
+                    'Please select a valid gender.',
                 ],
             ];
         }

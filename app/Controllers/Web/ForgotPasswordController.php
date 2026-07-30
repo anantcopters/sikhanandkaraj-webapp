@@ -16,7 +16,7 @@ use Throwable;
  * Handles the forgot-password workflow.
  *
  * Flow:
- * 1. Member submits registered email address or mobile number.
+ * 1. Member submits a registered mobile number or verified email address.
  * 2. OTP is sent only to the member's verified primary mobile number.
  * 3. Member verifies the OTP.
  * 4. Member creates a new password.
@@ -87,7 +87,8 @@ final class ForgotPasswordController extends BaseController
     /**
      * Validate the submitted identifier and send an OTP.
      *
-     * The identifier can be an email address or mobile number. The service
+     * The identifier can be a registered mobile number or a verified email
+     * address. Members who have not added an email must use their mobile number.
      * resolves the member account and sends the OTP only to a verified mobile
      * contact associated with that account.
      */
@@ -951,5 +952,5 @@ final class ForgotPasswordController extends BaseController
                 'Expires',
                 '0'
             );
-    }    
+    }
 }

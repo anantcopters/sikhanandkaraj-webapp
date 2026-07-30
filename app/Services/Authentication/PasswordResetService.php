@@ -23,7 +23,7 @@ use Throwable;
  * Handles forgot-password identification, OTP delivery, OTP verification
  * and final password replacement.
  *
- * Password reset is permitted only for PENDING and APPROVED accounts.
+ * Password reset is permitted only for PENDING and ACTIVE accounts.
  * This service validates account status but never changes it.
  */
 final class PasswordResetService
@@ -49,8 +49,7 @@ final class PasswordResetService
      * @var list<string>
      */
     private const PASSWORD_RESET_ALLOWED_STATUSES = [
-        UserModel::STATUS_PENDING,
-        UserModel::STATUS_APPROVED,
+        UserModel::STATUS_ACTIVE,
     ];
 
     public function __construct(
@@ -72,7 +71,7 @@ final class PasswordResetService
 
         if ($identifier === '') {
             return PasswordResetResult::failure(
-                'Please enter your email address or mobile number.'
+                'Please enter your registered mobile number or verified email address.'
             );
         }
 
@@ -119,7 +118,7 @@ final class PasswordResetService
 
         if (! $this->isPasswordResetAllowedForUser($user)) {
             return PasswordResetResult::failure(
-                'Password reset is available only for pending or approved accounts.'
+                'Password reset is available only for pending or active accounts.'
             );
         }
 

@@ -12,15 +12,25 @@ use CodeIgniter\Model;
 final class UserModel extends Model
 {
     /**
-     * Account has completed registration but is awaiting approval.
+     * Account registration is incomplete or mobile verification is pending.
      */
     public const STATUS_PENDING = 'PENDING';
 
     /**
-     * Account has been reviewed and approved.
+     * Account has completed mobile verification and may use the application.
      */
-    public const STATUS_APPROVED = 'APPROVED';
-    
+    public const STATUS_ACTIVE = 'ACTIVE';
+
+    /**
+     * Account has been temporarily restricted.
+     */
+    public const STATUS_SUSPENDED = 'SUSPENDED';
+
+    /**
+     * Account has been logically deleted or disabled.
+     */
+    public const STATUS_DELETED = 'DELETED';
+
     protected $table = 'users';
 
     protected $primaryKey = 'id';

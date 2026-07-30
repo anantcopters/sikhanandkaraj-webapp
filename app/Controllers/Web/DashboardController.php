@@ -54,26 +54,13 @@ final class DashboardController extends BaseController
 
         $contactModel = new UserContactModel();
 
-        $emailContact = $contactModel->findPrimaryForUser(
-            $resolvedUserId,
-            UserContactModel::TYPE_EMAIL
-        );
-
         $mobileContact = $contactModel->findPrimaryForUser(
             $resolvedUserId,
             UserContactModel::TYPE_MOBILE
         );
 
-        $primaryEmail = $this->contactValue(
-            $emailContact
-        );
-
         $primaryMobile = $this->contactValue(
             $mobileContact
-        );
-
-        $isEmailVerified = $this->isContactVerified(
-            $emailContact
         );
 
         $isMobileVerified = $this->isContactVerified(
@@ -125,21 +112,12 @@ final class DashboardController extends BaseController
                     'loggedInUserName' =>
                     $loggedInUserName,
 
-                    'primaryEmail' =>
-                    $primaryEmail,
-
                     'primaryMobile' =>
                     $primaryMobile,
-
-                    'isEmailVerified' =>
-                    $isEmailVerified,
 
                     'isMobileVerified' =>
                     $isMobileVerified,
 
-                    /*
-                     * Real profile data from the shared profile service.
-                     */
                     'profileImage' =>
                     $profileSummary['profileImage'],
 

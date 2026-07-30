@@ -58,6 +58,9 @@ final class RegisterFreeService
     /**
      * Process the Register Free request.
      *
+     * Registration creates only the mobile contact. Email can be added later
+     * through a separate authenticated account-management workflow.
+     *
      * @param array<string, mixed> $data Validated registration data.
      */
     public function register(array $data): RegisterFreeResult
@@ -67,18 +70,10 @@ final class RegisterFreeService
         );
 
         if ($mobile === null) {
-            /**
-             * Controller validation should reject invalid mobile numbers before the
-             * service is called. This remains a defensive service-layer check.
-             */
             throw new RuntimeException(
                 'A valid Indian mobile number is required.'
             );
         }
-
-        $email = $this->normalizeEmail(
-            (string) $data['email']
-        );
 
         $gender = $this->resolveGender($data);
 
@@ -89,70 +84,16 @@ final class RegisterFreeService
         $this->database->transBegin();
 
         try {
-            /**
-             * Search by normalized E.164-style mobile number.
-             *
-             * Example:
-             * 9876543210 becomes +919876543210.
-             */
             $existingMobile = $this->userContactModel
                 ->findByNormalizedValue(
                     UserContactModel::TYPE_MOBILE,
                     $mobile
                 );
 
-            /**
-             * Find any account already using this normalized email.
-             *
-             * Email uniqueness is checked independently from verification status.
-             */
-            $existingEmail = $this->userContactModel
-                ->findByNormalizedValue(
-                    UserContactModel::TYPE_EMAIL,
-                    $email
-                );
-
-            $targetUserId = $existingMobile !== null
-                ? (int) ($existingMobile['user_id'] ?? 0)
-                : null;
-
-            // Check email ownership once
-            /**
-             * An email may be reused only by the same pending registration.
-             *
-             * A verified or unverified email belonging to another user remains
-             * reserved and cannot be claimed through public registration.
-             */
-            if ($existingEmail !== null) {
-                $emailOwnerUserId = (int) (
-                    $existingEmail['user_id'] ?? 0
-                );
-
-                $belongsToSameUser =
-                    $targetUserId !== null
-                    && $targetUserId > 0
-                    && $emailOwnerUserId === $targetUserId;
-
-                if (!$belongsToSameUser) {
-                    $this->database->transRollback();
-
-                    return RegisterFreeResult::fieldFailure(
-                        RegistrationAction::EMAIL_ALREADY_EXISTS,
-                        'email',
-                        'This email address is already associated with an account. '
-                            . 'Please log in or recover your account.'
-                    );
-                }
-            }
-
-            /**
-             * -------------------------------------------------------------
-             * Case A: verified mobile already exists
-             * -------------------------------------------------------------
-             *
-             * A verified mobile belongs to an existing account and cannot
-             * be reused through the public registration form.
-             */
+            /*
+         * A verified mobile belongs to an existing account and cannot start
+         * another public registration.
+         */
             if (
                 $existingMobile !== null
                 && $this->isVerified($existingMobile)
@@ -167,86 +108,42 @@ final class RegisterFreeService
                 );
             }
 
-            /**
-             * -------------------------------------------------------------
-             * Case B: unverified mobile already exists
-             * -------------------------------------------------------------
-             */
+            /*
+         * Resume an existing unverified PENDING registration.
+         */
             if ($existingMobile !== null) {
-
-
                 $result = $this->updatePendingRegistration(
                     existingMobile: $existingMobile,
                     data: $data,
-                    email: $email,
                     gender: $gender,
                     passwordHash: $passwordHash
                 );
 
-                /**
-                 * A business-rule failure must not commit changes.
-                 *
-                 * For example, an unverified mobile attached to an ACTIVE
-                 * or SUSPENDED account cannot be overwritten.
-                 */
                 if (!$result->successful) {
                     $this->database->transRollback();
 
                     return $result;
                 }
 
-                /**
-                 * CHANGE:
-                 * Commit user/contact changes before issuing an OTP.
-                 */
                 $this->commitOrFail();
 
-                /**
-                 * CHANGE:
-                 * Issue the OTP through the shared OTP service.
-                 *
-                 * This ensures:
-                 * - initial registration OTPs count towards the limit;
-                 * - registration resubmissions count towards the limit;
-                 * - resend requests use the same limit;
-                 * - old pending OTPs are cancelled consistently.
-                 */
                 return $this->issueOtpForRegistration($result);
             }
 
-            /**
-             * -------------------------------------------------------------
-             * Case C: mobile does not exist
-             * -------------------------------------------------------------
-             */
-
+            /*
+         * Create a new pending user with one MOBILE contact row.
+         */
             $result = $this->createPendingRegistration(
                 data: $data,
                 mobile: $mobile,
-                email: $email,
                 gender: $gender,
                 passwordHash: $passwordHash
             );
 
-            /**
-             * CHANGE:
-             * Commit the new pending user and contacts before issuing OTP.
-             */
             $this->commitOrFail();
 
-            /**
-             * CHANGE:
-             * Apply the same OTP issue and rate-limit logic.
-             */
             return $this->issueOtpForRegistration($result);
         } catch (Throwable $exception) {
-            /**
-             * Rollback is safe even when the transaction has already been
-             * committed. The database layer will have no active work to undo.
-             *
-             * Do not condition rollback on transStatus(), because a failed
-             * query normally changes transaction status to false.
-             */
             $this->database->transRollback();
 
             throw $exception;
@@ -303,11 +200,7 @@ final class RegisterFreeService
     }
 
     /**
-     * Case B: update an existing pending registration.
-     *
-     * The mobile contact is already known to be unverified before this
-     * method is called. This method additionally confirms that its user
-     * account is still PENDING.
+     * Update an existing unverified pending registration.
      *
      * @param array<string, mixed> $existingMobile
      * @param array<string, mixed> $data
@@ -315,7 +208,6 @@ final class RegisterFreeService
     private function updatePendingRegistration(
         array $existingMobile,
         array $data,
-        string $email,
         string $gender,
         string $passwordHash
     ): RegisterFreeResult {
@@ -335,12 +227,12 @@ final class RegisterFreeService
             );
         }
 
-        /**
-         * Only PENDING accounts may be updated through registration.
-         *
-         * This prevents an unverified mobile belonging to an ACTIVE,
-         * SUSPENDED or DELETED account from being reset to PENDING.
-         */
+        /*
+     * Only PENDING accounts can be changed through public registration.
+     *
+     * This prevents an unverified contact attached to an ACTIVE, SUSPENDED
+     * or DELETED account from being used to reset account details.
+     */
         if (
             (string) ($user['account_status'] ?? '')
             !== 'PENDING'
@@ -363,12 +255,6 @@ final class RegisterFreeService
             );
         }
 
-        /**
-         * Update the latest details submitted by the user.
-         *
-         * A pending registration may be resubmitted, so the most recently
-         * submitted password becomes the pending account password.
-         */
         $userUpdated = $this->userModel->update(
             $userId,
             [
@@ -383,10 +269,8 @@ final class RegisterFreeService
 
                 'password_hash' => $passwordHash,
 
-                /**
-             * account_status is deliberately not changed here.
-             *
-             * It has already been confirmed as PENDING.
+                /*
+             * account_status remains PENDING until OTP verification.
              */
             ]
         );
@@ -397,10 +281,9 @@ final class RegisterFreeService
             );
         }
 
-        /**
-         * Keep the mobile unverified until the newly issued OTP has been
-         * successfully verified.
-         */
+        /*
+     * Keep the mobile unverified until the newly issued OTP succeeds.
+     */
         $mobileUpdated = $this->userContactModel->update(
             $mobileContactId,
             [
@@ -416,21 +299,6 @@ final class RegisterFreeService
             );
         }
 
-        /**
-         * Update or create the primary email contact.
-         */
-        $this->upsertEmailContact(
-            userId: $userId,
-            email: $email
-        );
-
-        /**
-         * CHANGE:
-         * OTP is not generated inside this method anymore.
-         *
-         * It will be issued only after the user/contact transaction commits.
-         */
-
         return RegisterFreeResult::success(
             RegistrationAction::PENDING_UPDATED,
             $userId,
@@ -440,14 +308,15 @@ final class RegisterFreeService
     }
 
     /**
-     * Case C: create a completely new pending registration.
+     * Create a completely new pending registration.
+     *
+     * Exactly one contact row is created: the primary mobile contact.
      *
      * @param array<string, mixed> $data
      */
     private function createPendingRegistration(
         array $data,
         string $mobile,
-        string $email,
         string $gender,
         string $passwordHash
     ): RegisterFreeResult {
@@ -470,10 +339,9 @@ final class RegisterFreeService
 
                 'password_hash' => $passwordHash,
 
-                /**
-                 * The account becomes ACTIVE only after successful
-                 * mobile OTP verification.
-                 */
+                /*
+             * Mobile OTP verification activates the account.
+             */
                 'account_status' => 'PENDING',
             ],
             true
@@ -487,9 +355,6 @@ final class RegisterFreeService
 
         $userId = (int) $userId;
 
-        /**
-         * Create the unverified primary mobile contact.
-         */
         $mobileContactId = $this->userContactModel->insert(
             [
                 'user_id' => $userId,
@@ -513,113 +378,12 @@ final class RegisterFreeService
             );
         }
 
-        $mobileContactId = (int) $mobileContactId;
-
-        /**
-         * Create the unverified primary email contact.
-         */
-        $emailContactId = $this->userContactModel->insert(
-            [
-                'user_id' => $userId,
-
-                'contact_type' =>
-                UserContactModel::TYPE_EMAIL,
-
-                'contact_value' => $email,
-                'normalized_value' => $email,
-
-                'is_primary' => true,
-                'is_verified' => false,
-                'verified_at' => null,
-            ],
-            true
-        );
-
-        if (!is_numeric($emailContactId)) {
-            throw new RuntimeException(
-                'Unable to create the email contact.'
-            );
-        }
-
-        /**
-         * CHANGE:
-         * OTP is not generated here.
-         *
-         * It will be generated after the pending user and contacts have
-         * been committed successfully.
-         */
-
         return RegisterFreeResult::success(
             RegistrationAction::CREATED,
             $userId,
-            $mobileContactId,
+            (int) $mobileContactId,
             $profileReference
         );
-    }
-
-    /**
-     * Insert or update the user's primary email contact.
-     */
-    private function upsertEmailContact(
-        int $userId,
-        string $email
-    ): void {
-        $existingEmail = $this->userContactModel
-            ->findPrimaryForUser(
-                $userId,
-                UserContactModel::TYPE_EMAIL
-            );
-
-        /**
-         * No email contact exists yet, so create one.
-         */
-        if ($existingEmail === null) {
-            $emailContactId =
-                $this->userContactModel->insert(
-                    [
-                        'user_id' => $userId,
-
-                        'contact_type' =>
-                        UserContactModel::TYPE_EMAIL,
-
-                        'contact_value' => $email,
-                        'normalized_value' => $email,
-
-                        'is_primary' => true,
-                        'is_verified' => false,
-                        'verified_at' => null,
-                    ],
-                    true
-                );
-
-            if (!is_numeric($emailContactId)) {
-                throw new RuntimeException(
-                    'Unable to create the email contact.'
-                );
-            }
-
-            return;
-        }
-
-        /**
-         * A resubmitted or changed email must be verified again.
-         */
-        $emailUpdated = $this->userContactModel->update(
-            (int) $existingEmail['id'],
-            [
-                'contact_value' => $email,
-                'normalized_value' => $email,
-                'is_primary' => true,
-                'is_verified' => false,
-                'verified_at' => null,
-            ]
-        );
-
-        if ($emailUpdated === false) {
-            throw new RuntimeException(
-                'Unable to update the email contact.'
-            );
-        }
     }
 
     /**
@@ -642,16 +406,6 @@ final class RegisterFreeService
                 'Unsupported profile relationship.'
             ),
         };
-    }
-
-    /**
-     * Normalize email for comparison and storage.
-     */
-    private function normalizeEmail(string $email): string
-    {
-        return mb_strtolower(
-            trim($email)
-        );
     }
 
     /**

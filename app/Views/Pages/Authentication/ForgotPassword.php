@@ -66,8 +66,7 @@ $this->section('content');
                             </h1>
 
                             <p class="text-muted mb-0">
-                                Enter your registered email address or
-                                mobile number.
+                                Enter your registered mobile number or verified email address.
                             </p>
                         </div>
 
@@ -110,7 +109,7 @@ $this->section('content');
                                         <?= $identifierHasError
                                             ? 'is-invalid'
                                             : '' ?>"
-                                    placeholder="Enter email or mobile number"
+                                    placeholder="Mobile number or verified email"
                                     maxlength="254"
                                     autocomplete="username"
                                     data-error-required="Please enter your email address or mobile number."
