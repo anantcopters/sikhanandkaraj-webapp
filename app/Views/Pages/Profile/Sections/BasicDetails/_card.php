@@ -266,7 +266,7 @@ $location = implode(
                             <strong class="fw-medium text-break">
                                 <?= esc(
                                     (string) (
-                                        $details['marital_status_name']
+                                        session('auth_user_name')
                                         ?? 'Not added'
                                     )
                                 ) ?>
@@ -319,7 +319,7 @@ $location = implode(
 
                             <strong class="fw-medium">
                                 <?= esc($formatEnum(
-                                    $details['marital_status']
+                                    $details['marital_status_name']
                                         ?? ''
                                 )) ?>
                             </strong>

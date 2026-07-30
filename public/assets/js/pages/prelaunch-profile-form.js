@@ -120,6 +120,10 @@ document.addEventListener('DOMContentLoaded', () => {
         select.disabled =
             items.length === 0;
 
+        if (items.length === 0) {
+            select.value = '';
+        }
+
         if (
             window.SelectChoice
             && typeof window.SelectChoice.create
