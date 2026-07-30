@@ -76,6 +76,7 @@ use App\Services\Prelaunch\PrelaunchAdminReviewService;
 use App\Services\Prelaunch\PrelaunchFieldOfficerService;
 use App\Services\Prelaunch\PrelaunchPhotoService;
 use App\Services\Prelaunch\PrelaunchProfileService;
+use App\Services\Profile\MemberProfileSummaryService;
 use Config\TableCleanup;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
@@ -869,6 +870,33 @@ class Services extends BaseService
             new PrelaunchPhotoModel($database),
             static::adminAuditService(false),
             $database
+        );
+    }
+
+    /**
+     * Return the shared member profile-summary service.
+     *
+     * This service supplies the same profile-completion dataset to both the
+     * profile summary screen and member dashboard.
+     */
+    public static function memberProfileSummaryService(
+        bool $getShared = true
+    ): MemberProfileSummaryService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfileSummaryService'
+            );
+        }
+
+        return new MemberProfileSummaryService(
+            static::basicDetailsService(false),
+            static::educationProfessionService(false),
+            static::familyDetailsService(false),
+            static::lifestyleService(false),
+            static::aboutMeService(false),
+            static::memberPhotoService(false),
+            static::memberPhotoUrlService(false),
+            static::profileCompletionService(false)
         );
     }
 }

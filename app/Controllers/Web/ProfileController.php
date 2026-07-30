@@ -18,6 +18,7 @@ use App\Services\Profile\AboutMeService;
 use App\Validation\Profile\AboutMeValidation;
 use App\Services\Profile\MemberPhotoUrlService;
 use App\Services\Profile\MemberPhotoService;
+use App\Services\Profile\MemberProfileSummaryService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
@@ -83,304 +84,28 @@ final class ProfileController extends BaseController
     {
         $userId = $this->authenticatedUserId();
 
-        /** @var BasicDetailsService $basicDetailsService */
-        $basicDetailsService = service(
-            'basicDetailsService'
+        /** @var MemberProfileSummaryService $profileSummaryService */
+        $profileSummaryService = service(
+            'memberProfileSummaryService'
         );
 
-        $basicProfile = $basicDetailsService->getForUser(
+        $profileSummary = $profileSummaryService->getForUser(
             $userId
         );
-
-        /** @var EducationProfessionService $educationService */
-        $educationService = service(
-            'educationProfessionService'
-        );
-
-        $educationProfile = $educationService->getForUser(
-            $userId
-        );
-
-        /** @var ProfileCompletionService $completionService */
-        $completionService = service(
-            'profileCompletionService'
-        );
-
-        /** @var FamilyDetailsService $familyService */
-        $familyService = service('familyDetailsService');
-
-        $familyProfile = $familyService->getForUser(
-            $userId
-        );
-
-        /** @var LifestyleService $lifestyleService */
-        $lifestyleService = service('lifestyleService');
-
-        $lifestyleProfile = $lifestyleService->getForUser(
-            $userId
-        );
-
-        /** @var AboutMeService $aboutMeService */
-        $aboutMeService = service('aboutMeService');
-
-        $aboutMeProfile = $aboutMeService->getForUser(
-            $userId
-        );
-
-        /** @var MemberPhotoService $memberPhotoService */
-        $memberPhotoService = service('memberPhotoService');
-
-        $photoSummary = $memberPhotoService->getPhotoSummary(
-            $userId
-        );
-
-        /*
-        * Calculate overall completion only from sections which are
-        * currently implemented and usable.
-        */
-        $profileCompletion = $completionService->calculate(
-            $basicProfile['completion'],
-            $educationProfile['completion'],
-            $familyProfile['completion'],
-            $lifestyleProfile['completion'],
-            $aboutMeProfile['completion'],
-            $photoSummary['hasUploadedPhoto']
-        );
-
-        /** @var MemberPhotoUrlService $memberPhotoUrlService */
-        $memberPhotoUrlService = service(
-            'memberPhotoUrlService'
-        );
-
-        $profileImage = $memberPhotoUrlService
-            ->getApprovedPrimaryUrl(
-                $userId,
-                'medium'
-            );
-
-        $overallProfileSummary = $this
-            ->buildProfileSummary(
-                $profileCompletion,
-                $profileImage,
-                $photoSummary
-            );
-
-        $basicDetailsComplete = (
-            (int) (
-                $basicProfile['completion']['percentage']
-                ?? 0
-            )
-        ) === 100;
-
-        $educationProfessionComplete = (
-            (int) (
-                $educationProfile['completion']['percentage']
-                ?? 0
-            )
-        ) === 100;
-
-        $familyDetailsComplete = (
-            (int) (
-                $familyProfile['completion']['percentage']
-                ?? 0
-            )
-        ) === 100;
-
-        $lifestyleComplete = (
-            (int) (
-                $lifestyleProfile['completion']['percentage']
-                ?? 0
-            )
-        ) === 100;
-
-        $aboutMeComplete = (
-            (int) (
-                $aboutMeProfile['completion']['percentage']
-                ?? 0
-            )
-        ) === 100;
-
-        /*
-        * Profile photo is deliberately excluded from the guided profile
-        * journey. It remains available through its independent screen.
-        */
-        if (!$basicDetailsComplete) {
-            $nextProfileSection = [
-                'title' => 'Basic Details',
-                'route' => 'web.profile.basic-details',
-            ];
-        } elseif (!$educationProfessionComplete) {
-            $nextProfileSection = [
-                'title' => 'Education & Profession',
-                'route' =>
-                'web.profile.education-profession',
-            ];
-        } elseif (!$familyDetailsComplete) {
-            $nextProfileSection = [
-                'title' => 'Family Details',
-                'route' => 'web.profile.family-details',
-            ];
-        } elseif (!$lifestyleComplete) {
-            $nextProfileSection = [
-                'title' => 'Lifestyle',
-                'route' => 'web.profile.lifestyle',
-            ];
-        } elseif (!$aboutMeComplete) {
-            $nextProfileSection = [
-                'title' => 'About Me',
-                'route' => 'web.profile.about-me',
-            ];
-        } else {
-            $nextProfileSection = null;
-        }
 
         return view(
             'Pages/Profile/Edit',
-            [
-                'pageTitle' => 'Complete Your Profile',
+            array_merge(
+                [
+                    'pageTitle' =>
+                    'Complete Your Profile',
 
-                'user' => $basicProfile['user'],
-
-                'basicDetails' =>
-                $basicProfile['basicDetails'],
-
-                'basicDetailsCompletion' =>
-                $basicProfile['completion'],
-
-                'educationProfession' =>
-                $educationProfile['educationProfession'],
-
-                'educationProfessionCompletion' =>
-                $educationProfile['completion'],
-
-                'profileCompletion' =>
-                $profileCompletion,
-
-                'profileImage' =>
-                $profileImage,
-
-                'overallProfileSummary' =>
-                $overallProfileSummary,
-
-                'familyDetails' =>
-                $familyProfile['familyDetails'],
-
-                'familyDetailsCompletion' =>
-                $familyProfile['completion'],
-
-                'lifestyleDetails' =>
-                $lifestyleProfile['selectedDetails'],
-
-                'lifestyleCompletion' =>
-                $lifestyleProfile['completion'],
-
-                'aboutMe' => $aboutMeProfile['aboutMe'],
-
-                'aboutMeCompletion' =>
-                $aboutMeProfile['completion'],
-
-                'formAlert' =>
-                $this->readFormAlert(),
-
-                'nextProfileSection' =>
-                $nextProfileSection,
-            ]
-        );
-    }
-
-    /**
-     * Build presentation-ready profile summary values.
-     *
-     * @param array<string, mixed> $profileCompletion
-     * @param array{
-     *     uploadedCount:int,
-     *     approvedCount:int,
-     *     hasUploadedPhoto:bool
-     * } $photoSummary
-     *
-     * @return array<string, mixed>
-     */
-    private function buildProfileSummary(
-        array $profileCompletion,
-        string $profileImage,
-        array $photoSummary
-    ): array {
-        $percentage = max(
-            0,
-            min(
-                100,
-                (int) (
-                    $profileCompletion['percentage'] ?? 0
-                )
+                    'formAlert' =>
+                    $this->readFormAlert(),
+                ],
+                $profileSummary
             )
         );
-
-        $completedSteps = max(
-            0,
-            (int) (
-                $profileCompletion['completedSteps'] ?? 0
-            )
-        );
-
-        $totalSteps = max(
-            0,
-            (int) (
-                $profileCompletion['totalSteps'] ?? 0
-            )
-        );
-
-        $pendingSections = max(
-            0,
-            $totalSteps - $completedSteps
-        );
-
-        if ($percentage >= 80) {
-            $visibilityLabel = 'High';
-            $visibilityClass = 'success';
-        } elseif ($percentage >= 50) {
-            $visibilityLabel = 'Medium';
-            $visibilityClass = 'warning';
-        } else {
-            $visibilityLabel = 'Low';
-            $visibilityClass = 'danger';
-        }
-
-        return [
-            'percentage' => $percentage,
-            'completedSteps' => $completedSteps,
-            'totalSteps' => $totalSteps,
-            'pendingSections' => $pendingSections,
-
-            /*
-         * Uploaded photos determine profile-journey completion.
-         */
-            'hasUploadedPhoto' => (
-                $photoSummary['hasUploadedPhoto'] ?? false
-            ) === true,
-
-            'uploadedPhotoCount' => max(
-                0,
-                (int) (
-                    $photoSummary['uploadedCount'] ?? 0
-                )
-            ),
-
-            'approvedPhotoCount' => max(
-                0,
-                (int) (
-                    $photoSummary['approvedCount'] ?? 0
-                )
-            ),
-
-            /*
-         * Only an approved primary photo may be displayed.
-         */
-            'hasProfilePhoto' => $profileImage !== '',
-            'profilePhotoUrl' => $profileImage,
-
-            'visibilityLabel' => $visibilityLabel,
-            'visibilityClass' => $visibilityClass,
-        ];
     }
 
     /**
@@ -1592,7 +1317,7 @@ final class ProfileController extends BaseController
             ),
         ];
     }
-    
+
     /**
      * Normalize profile text while preserving safe readable spacing.
      */

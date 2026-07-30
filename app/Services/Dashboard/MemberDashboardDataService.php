@@ -5,81 +5,51 @@ declare(strict_types=1);
 namespace App\Services\Dashboard;
 
 /**
- * Supplies member dashboard presentation data.
+ * Supplies dashboard-specific member presentation data.
  *
- * The current implementation uses placeholder records because member
- * profiles and matchmaking tables are not yet available. Replace the
- * individual dataset methods with repository or model calls later without
- * changing the dashboard controller or view.
+ * Profile completion, profile image and profile-section actions are supplied
+ * by MemberProfileSummaryService. This service currently retains placeholder
+ * datasets only for account-plan and matchmaking features that have not yet
+ * been connected to their final repositories.
  */
 final class MemberDashboardDataService
 {
     /**
-     * Return the dashboard datasets for a member.
+     * Return dashboard-specific datasets for a member.
      *
      * @return array<string, mixed>
      */
     public function getDashboardData(int $userId): array
     {
+        /*
+         * Keep the user ID in the method signature because these placeholder
+         * methods will later be replaced with member-specific repositories.
+         */
+        unset($userId);
+
         return [
             'accountPlan' => [
                 'name' => 'Free account',
                 'code' => 'FREE',
             ],
 
-            'profileImage' => null,
+            'dailyRecommendations' =>
+            $this->getDailyRecommendations(),
 
-            'profileCompletion' => [
-                'percentage' => 35,
-                'completedSteps' => 2,
-                'totalSteps' => 6,
-            ],
+            'allMatches' =>
+            $this->getAllMatches(),
 
-            'profileShortcuts' => $this->getProfileShortcuts(),
+            'newMatches' =>
+            $this->getNewMatches(),
 
-            'dailyRecommendations' => $this->getDailyRecommendations(),
+            'profileVisitors' =>
+            $this->getProfileVisitors(),
 
-            'allMatches' => $this->getAllMatches(),
+            'shortlistedProfiles' =>
+            $this->getShortlistedProfiles(),
 
-            'newMatches' => $this->getNewMatches(),
-
-            'profileVisitors' => $this->getProfileVisitors(),
-
-            'shortlistedProfiles' => $this->getShortlistedProfiles(),
-
-            'shortlistedByProfiles' => $this->getShortlistedByProfiles(),
-        ];
-    }
-
-    /**
-     * Return profile-completion actions.
-     *
-     * @return array<int, array<string, string>>
-     */
-    private function getProfileShortcuts(): array
-    {
-        return [
-            [
-                'title' => 'Add profile photo',
-                'description' => 'Profiles with photos receive more interest.',
-                'icon' => 'ri-camera-line',
-                'url' => '#',
-                'class' => 'bg-primary-subtle shadow-none bg-opacity-10'
-            ],
-            [
-                'title' => 'Add Education and Career',
-                'description' => 'Complete your education and career information.',
-                'icon' => 'ri-graduation-cap-line',
-                'url' => '#',
-                'class' => 'bg-success-subtle shadow-none bg-opacity-10'
-            ],
-            [
-                'title' => 'Add family details',
-                'description' => 'Tell matches more about your family.',
-                'icon' => 'ri-group-line',
-                'url' => '#',
-                'class' => 'bg-secondary-subtle shadow-none bg-opacity-10'
-            ],
+            'shortlistedByProfiles' =>
+            $this->getShortlistedByProfiles(),
         ];
     }
 
@@ -96,6 +66,7 @@ final class MemberDashboardDataService
                 '5 ft 5 in',
                 null
             ),
+
             $this->profile(
                 'SAK10034',
                 'Harleen Kaur',
@@ -103,6 +74,7 @@ final class MemberDashboardDataService
                 '5 ft 4 in',
                 null
             ),
+
             $this->profile(
                 'SAK10046',
                 'Navneet Kaur',
@@ -110,6 +82,7 @@ final class MemberDashboardDataService
                 '5 ft 6 in',
                 null
             ),
+
             $this->profile(
                 'SAK10061',
                 'Jasleen Kaur',
@@ -117,6 +90,7 @@ final class MemberDashboardDataService
                 '5 ft 3 in',
                 null
             ),
+
             $this->profile(
                 'SAK10075',
                 'Gurleen Kaur',
@@ -140,6 +114,7 @@ final class MemberDashboardDataService
                 '5 ft 4 in',
                 null
             ),
+
             $this->profile(
                 'SAK10117',
                 'Amandeep Kaur',
@@ -147,6 +122,7 @@ final class MemberDashboardDataService
                 '5 ft 5 in',
                 null
             ),
+
             $this->profile(
                 'SAK10125',
                 'Ravneet Kaur',
@@ -154,6 +130,7 @@ final class MemberDashboardDataService
                 '5 ft 3 in',
                 null
             ),
+
             $this->profile(
                 'SAK10139',
                 'Prabhjot Kaur',
@@ -177,6 +154,7 @@ final class MemberDashboardDataService
                 '5 ft 5 in',
                 null
             ),
+
             $this->profile(
                 'SAK10218',
                 'Sukhmani Kaur',
@@ -184,6 +162,7 @@ final class MemberDashboardDataService
                 '5 ft 4 in',
                 null
             ),
+
             $this->profile(
                 'SAK10231',
                 'Kirandeep Kaur',
@@ -207,6 +186,7 @@ final class MemberDashboardDataService
                 '5 ft 5 in',
                 null
             ),
+
             $this->profile(
                 'SAK10325',
                 'Rajveer Kaur',
@@ -230,6 +210,7 @@ final class MemberDashboardDataService
                 '5 ft 6 in',
                 null
             ),
+
             $this->profile(
                 'SAK10419',
                 'Eknoor Kaur',
@@ -253,6 +234,7 @@ final class MemberDashboardDataService
                 '5 ft 5 in',
                 null
             ),
+
             $this->profile(
                 'SAK10528',
                 'Sehaj Kaur',
@@ -264,7 +246,7 @@ final class MemberDashboardDataService
     }
 
     /**
-     * Build a consistent profile record.
+     * Build a consistent placeholder profile record.
      *
      * @return array<string, mixed>
      */
@@ -277,10 +259,15 @@ final class MemberDashboardDataService
     ): array {
         return [
             'referenceId' => $referenceId,
+
             'name' => $name,
+
             'age' => $age,
+
             'height' => $height,
+
             'image' => $image,
+
             'profileUrl' => '#',
         ];
     }
