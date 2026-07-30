@@ -109,6 +109,71 @@ final class ProfileController extends BaseController
     }
 
     /**
+     * Display the authenticated member's public-profile preview.
+     *
+     * The page reuses the existing profile-summary and photo services.
+     * Only approved photos are exposed in the preview because pending or
+     * rejected photos are not visible to other members.
+     */
+    public function view(): string
+    {
+        $userId = $this->authenticatedUserId();
+
+        /** @var MemberProfileSummaryService $profileSummaryService */
+        $profileSummaryService = service(
+            'memberProfileSummaryService'
+        );
+
+        /** @var MemberPhotoService $memberPhotoService */
+        $memberPhotoService = service(
+            'memberPhotoService'
+        );
+
+        $profileSummary = $profileSummaryService->getForUser(
+            $userId
+        );
+
+        $photoData = $memberPhotoService->getForMember(
+            $userId
+        );
+
+        /*
+        * The member preview should match what another member can see.
+        * Photos pending administrator approval must not appear here.
+        */
+        $approvedPhotos = array_values(
+            array_filter(
+                $photoData['photos'] ?? [],
+                static function (mixed $photo): bool {
+                    if (!is_array($photo)) {
+                        return false;
+                    }
+
+                    return strtoupper(
+                        trim(
+                            (string) (
+                                $photo['approval_status']
+                                ?? ''
+                            )
+                        )
+                    ) === 'APPROVED';
+                }
+            )
+        );
+
+        return view(
+            'Pages/Profile/View',
+            array_merge(
+                [
+                    'pageTitle' => 'View Profile',
+                    'approvedPhotos' => $approvedPhotos,
+                ],
+                $profileSummary
+            )
+        );
+    }
+
+    /**
      * Save the Basic Details profile section.
      */
     public function updateBasicDetails(): RedirectResponse

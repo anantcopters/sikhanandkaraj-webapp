@@ -25,14 +25,14 @@
     </div>
 
     <a
-        href="<?= url_to('web.dashboard') ?>"
-        class="btn btn-outline-secondary waves-effect waves-light shadow-none
-                    d-inline-flex align-items-center
-                    justify-content-center gap-1">
+        href="<?= url_to('web.profile.view') ?>"
+        class="btn btn-outline-primary waves-effect waves-light shadow-none
+        d-inline-flex align-items-center
+        justify-content-center gap-2">
         <i
-            class="ri-dashboard-line"
+            class="ri-eye-line"
             aria-hidden="true"></i>
 
-        View Dashboard
+        View Profile
     </a>
 </div>

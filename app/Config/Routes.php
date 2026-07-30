@@ -274,8 +274,23 @@ if (ENVIRONMENT === 'production') {
         );
 
         /*
-    * Basic Details.
-    */
+        * Authenticated member profile preview.
+        *
+        * This page shows the logged-in member how the approved profile
+        * information will appear to other members.
+        */
+        $routes->get(
+            'profile/view',
+            'ProfileController::view',
+            [
+                'as' => 'web.profile.view',
+                'filter' => 'webAuth',
+            ]
+        );
+
+        /*
+        * Basic Details.
+        */
         $routes->get(
             'profile/basic-details',
             'ProfileController::basicDetails',

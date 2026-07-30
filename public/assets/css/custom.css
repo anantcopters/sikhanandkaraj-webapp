@@ -1585,3 +1585,31 @@ form[aria-busy="true"] {
         visibility: visible;
     }
 }
+
+/*
+ * Member profile preview.
+ * Bootstrap and app.css handle the remaining layout and presentation.
+ */
+.profile-preview-photo {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
+    object-position: center;
+}
+
+.profile-preview-gallery-photo {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    object-position: center;
+}
+
+.profile-preview-notice {
+    background: linear-gradient(
+        120deg,
+        #fff8e8,
+        #fffdf8
+    );
+}
