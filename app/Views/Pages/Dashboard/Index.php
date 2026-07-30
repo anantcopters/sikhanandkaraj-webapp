@@ -574,9 +574,9 @@ $matchSections = [
                                                             'attr'
                                                         ) ?>"
                                                 class="card h-90 border border-danger border-opacity-25 text-decoration-none mb-2 <?= esc(
-                                                                                                                                    $shortcutClass,
-                                                                                                                                    'attr'
-                                                                                                                                ) ?>">
+                                                                                                                                        $shortcutClass,
+                                                                                                                                        'attr'
+                                                                                                                                    ) ?>">
 
                                                 <div class="card-body p-3">
                                                     <div
@@ -640,7 +640,7 @@ $matchSections = [
                                                                     <?= esc(
                                                                         (string) $shortcutPercentage
                                                                     ) ?>%
-                                                                </span>                                                                
+                                                                </span>
                                                             </span>
                                                         </span>
                                                     </div>
@@ -689,7 +689,7 @@ $matchSections = [
                                     href="<?= url_to(
                                                 'web.profile.edit'
                                             ) ?>"
-                                    class="btn btn-outline-primary">
+                                    class="btn btn-outline-danger">
 
                                     Review Complete Profile
 
@@ -698,7 +698,19 @@ $matchSections = [
                                         aria-hidden="true">
                                     </i>
                                 </a>
+
                             <?php endif; ?>
+                            <a
+                                href="<?= url_to('web.profile.view') ?>"
+                                class="btn btn-outline-primary waves-effect waves-light shadow-none
+        d-inline-flex align-items-center
+        justify-content-center gap-2">
+                                <i
+                                    class="ri-eye-line"
+                                    aria-hidden="true"></i>
+
+                                View Profile
+                            </a>
                         </div>
                     </div>
                 </section>

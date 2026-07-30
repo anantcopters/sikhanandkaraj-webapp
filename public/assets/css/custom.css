@@ -1607,9 +1607,11 @@ form[aria-busy="true"] {
 }
 
 .profile-preview-notice {
-    background: linear-gradient(
-        120deg,
-        #fff8e8,
-        #fffdf8
-    );
+    background: linear-gradient(120deg,
+            #fff8e8,
+            #fffdf8);
+}
+
+.profile-preview-edit-button {
+    z-index: 3;
 }

@@ -447,7 +447,7 @@ $this->section('content');
 
         <!-- Main profile summary card. -->
         <article
-            class="card border-0 shadow-sm
+            class="card border border-danger border-opacity-25 shadow-sm
                 rounded-3 mb-4">
 
             <div
@@ -459,10 +459,11 @@ $this->section('content');
                                 'web.profile.edit'
                             ) ?>"
                     class="btn btn-outline-primary
-                        d-inline-flex align-items-center
-                        justify-content-center gap-1
-                        position-absolute top-0 end-0
-                        mt-3 me-3 mt-lg-4 me-lg-4">
+        d-inline-flex align-items-center
+        justify-content-center gap-1
+        position-absolute top-0 end-0
+        mt-3 me-3 mt-lg-4 me-lg-4
+        profile-preview-edit-button">
 
                     <i
                         class="ri-edit-line"
@@ -946,13 +947,150 @@ $this->section('content');
                 </div>
             </div>
         </article>
+        <div class="row mb-0">
+            <div class="col-12">
+                <section
+                    class="card border border-danger border-opacity-25 shadow-sm
+                rounded-3">
 
+                    <div class="card-body p-3 p-lg-4">
+
+                        <div
+                            class="d-flex
+                        align-items-center gap-2 mb-3">
+
+                            <span
+                                class="d-inline-flex
+                            align-items-center
+                            justify-content-center
+                            rounded-circle
+                            bg-primary-subtle
+                            text-primary"
+                                style="
+                            width: 34px;
+                            height: 34px;
+                        ">
+
+                                <i
+                                    class="ri-image-2-line"
+                                    aria-hidden="true"></i>
+                            </span>
+
+                            <h2
+                                class="fs-16
+                            fw-semibold mb-0">
+                                Gallery
+                            </h2>
+                        </div>
+
+                        <?php
+                        $visiblePhotoCount = 0;
+                        ?>
+
+                        <?php if ($approvedPhotos !== []): ?>
+                            <div
+                                class="row
+                            row-cols-2
+                            row-cols-sm-3
+                            row-cols-md-5
+                            g-3">
+
+                                <?php foreach (
+                                    $approvedPhotos
+                                    as $index => $photo
+                                ): ?>
+                                    <?php
+                                    if (!is_array($photo)) {
+                                        continue;
+                                    }
+
+                                    $galleryUrl = $getPhotoUrl(
+                                        $photo
+                                    );
+
+                                    if ($galleryUrl === '') {
+                                        continue;
+                                    }
+
+                                    $visiblePhotoCount++;
+                                    ?>
+
+                                    <div class="col">
+                                        <div
+                                            class="position-relative
+                                        overflow-hidden
+                                        rounded-3
+                                        bg-light">
+
+                                            <img
+                                                src="<?= esc(
+                                                            $galleryUrl
+                                                        ) ?>"
+                                                alt="Profile photo
+                                            <?= $index + 1 ?>"
+                                                class="img-thumbnail"
+                                                loading="lazy">
+
+                                            <?php if (
+                                                (
+                                                    $photo['is_primary']
+                                                    ?? false
+                                                ) === true
+                                            ): ?>
+                                                <span
+                                                    class="
+                                                position-absolute
+                                                start-0 bottom-0
+                                                m-2 badge
+                                                bg-dark">
+                                                    Main
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+
+                        <?php if (
+                            $visiblePhotoCount === 0
+                        ): ?>
+                            <div
+                                class="border rounded-3
+                            text-center
+                            text-muted p-4">
+
+                                <i
+                                    class="
+                                ri-image-add-line
+                                fs-28 d-block mb-2"
+                                    aria-hidden="true"></i>
+
+                                <p class="mb-2">
+                                    No approved gallery photos are
+                                    available.
+                                </p>
+
+                                <a
+                                    href="<?= url_to(
+                                                'web.profile.photos'
+                                            ) ?>"
+                                    class="btn btn-sm
+                                btn-outline-primary">
+                                    Manage Photos
+                                </a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </section>
+            </div>
+        </div>
         <div class="row g-4 align-items-start">
 
             <!-- One single card for every section in the left column. -->
             <div class="col-12 col-lg-7">
                 <div
-                    class="card border-0 shadow-sm
+                    class="card border border-danger border-opacity-25 shadow-sm
                         rounded-3 overflow-hidden">
 
                     <section
@@ -1130,134 +1268,7 @@ $this->section('content');
                         </div>
                     </section>
 
-                    <section class="card-body p-3 p-lg-4">
-                        <div
-                            class="d-flex
-                                align-items-center gap-2 mb-3">
 
-                            <span
-                                class="d-inline-flex
-                                    align-items-center
-                                    justify-content-center
-                                    rounded-circle
-                                    bg-primary-subtle
-                                    text-primary"
-                                style="
-                                    width: 34px;
-                                    height: 34px;
-                                ">
-
-                                <i
-                                    class="fs-18 ri-image-2-line"
-                                    aria-hidden="true"></i>
-                            </span>
-
-                            <h2
-                                class="fs-16
-                                    fw-semibold mb-0">
-                                Gallery
-                            </h2>
-                        </div>
-
-                        <?php
-                        $visiblePhotoCount = 0;
-                        ?>
-
-                        <?php if (
-                            $approvedPhotos !== []
-                        ): ?>
-                            <div class="row g-3">
-                                <?php foreach (
-                                    $approvedPhotos
-                                    as $index => $photo
-                                ): ?>
-                                    <?php
-                                    if (!is_array($photo)) {
-                                        continue;
-                                    }
-
-                                    $galleryUrl = $getPhotoUrl(
-                                        $photo
-                                    );
-
-                                    if ($galleryUrl === '') {
-                                        continue;
-                                    }
-
-                                    $visiblePhotoCount++;
-                                    ?>
-
-                                    <div
-                                        class="col-6 col-sm-4
-                                            col-md-3">
-
-                                        <div
-                                            class="
-                                                position-relative
-                                                overflow-hidden
-                                                rounded-3
-                                                bg-light">
-
-                                            <img
-                                                src="<?= esc(
-                                                            $galleryUrl
-                                                        ) ?>"
-                                                alt="Profile photo
-                                                    <?= $index + 1 ?>"
-                                                class="
-                                                    profile-preview-gallery-photo"
-                                                loading="lazy">
-
-                                            <?php if (
-                                                (
-                                                    $photo['is_primary']
-                                                    ?? false
-                                                ) === true
-                                            ): ?>
-                                                <span
-                                                    class="
-                                                        position-absolute
-                                                        start-0 bottom-0
-                                                        m-2 badge
-                                                        bg-dark">
-                                                    Main
-                                                </span>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-
-                        <?php if (
-                            $visiblePhotoCount === 0
-                        ): ?>
-                            <div
-                                class="border rounded-3
-                                    text-center text-muted p-4">
-
-                                <i
-                                    class="
-                                        ri-image-add-line
-                                        fs-28 d-block mb-2"
-                                    aria-hidden="true"></i>
-
-                                <p class="mb-2">
-                                    No approved gallery photos
-                                    are available.
-                                </p>
-
-                                <a
-                                    href="<?= url_to(
-                                                'web.profile.photos'
-                                            ) ?>"
-                                    class="btn btn-sm
-                                        btn-outline-primary">
-                                    Manage Photos
-                                </a>
-                            </div>
-                        <?php endif; ?>
-                    </section>
 
                 </div>
             </div>
@@ -1265,7 +1276,7 @@ $this->section('content');
             <!-- One single card for every section in the right column. -->
             <div class="col-12 col-lg-5">
                 <div
-                    class="card border-0 shadow-sm
+                    class="card border border-danger border-opacity-25 shadow-sm
                         rounded-3 overflow-hidden">
 
                     <section

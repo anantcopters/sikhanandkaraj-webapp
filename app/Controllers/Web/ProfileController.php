@@ -152,7 +152,7 @@ final class ProfileController extends BaseController
                     return strtoupper(
                         trim(
                             (string) (
-                                $photo['approval_status']
+                                $photo['status']
                                 ?? ''
                             )
                         )
