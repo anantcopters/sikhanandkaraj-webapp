@@ -455,38 +455,12 @@ $this->section('content');
                                                 $photo['is_primary'] ?? false
                                             );
 
-                                            /*
-                                            * The upload preview displays the complete original image without
-                                            * square cropping. Use the signed original image on this management
-                                            * page so the uploaded result matches that preview.
-                                            *
-                                            * Fall back to the medium and thumbnail variants if the preferred URL
-                                            * is unavailable.
-                                            */
-                                            $displayPhotoUrl = trim(
+                                            $thumbnailUrl = trim(
                                                 (string) (
-                                                    $photo['signedUrls']['originalUrl']
+                                                    $photo['signedUrls']['thumbnailUrl']
                                                     ?? ''
                                                 )
                                             );
-
-                                            if ($displayPhotoUrl === '') {
-                                                $displayPhotoUrl = trim(
-                                                    (string) (
-                                                        $photo['signedUrls']['mediumUrl']
-                                                        ?? ''
-                                                    )
-                                                );
-                                            }
-
-                                            if ($displayPhotoUrl === '') {
-                                                $displayPhotoUrl = trim(
-                                                    (string) (
-                                                        $photo['signedUrls']['thumbnailUrl']
-                                                        ?? ''
-                                                    )
-                                                );
-                                            }
 
                                             $statusClass = match ($status) {
                                                 'APPROVED' => 'success',
@@ -538,32 +512,28 @@ $this->section('content');
                                                         </div>
                                                         <div
                                                             class="profile-photo-card__media
-        profile-photo-card__media--natural
+        ratio ratio-1x1
         bg-light
-        border
-        rounded
+        border rounded
         overflow-hidden
-        text-center
         mb-3">
 
-                                                            <?php if ($displayPhotoUrl !== ''): ?>
+                                                            <?php if ($thumbnailUrl !== ''): ?>
 
                                                                 <img
                                                                     src="<?= esc(
-                                                                                $displayPhotoUrl,
+                                                                                $thumbnailUrl,
                                                                                 'attr'
                                                                             ) ?>"
                                                                     alt="Member photo"
-                                                                    class="profile-photo-card__image
-                img-fluid"
-                                                                    loading="lazy"
-                                                                    decoding="async">
+                                                                    class="w-100 h-100
+                object-fit-cover"
+                                                                    loading="lazy">
 
                                                             <?php else: ?>
 
                                                                 <div
-                                                                    class="profile-photo-card__placeholder
-                d-flex
+                                                                    class="d-flex
                 align-items-center
                 justify-content-center
                 text-muted">
@@ -576,6 +546,10 @@ $this->section('content');
 
                                                             <?php endif; ?>
 
+                                                            <!--
+        Image actions are displayed on hover for pointer devices.
+        They remain visible on touch devices where hover is unavailable.
+    -->
                                                             <div
                                                                 class="profile-photo-card__overlay
             d-flex
