@@ -32,6 +32,11 @@ final class MemberMedia extends BaseConfig
 
     public string $environmentName;
 
+    /**
+     * Text written onto protected member-media variants.
+     */
+    public string $watermarkText;
+
     public int $profileUrlTtlSeconds;
 
     public int $galleryUrlTtlSeconds;
@@ -108,6 +113,17 @@ final class MemberMedia extends BaseConfig
                 ENVIRONMENT
             )
         );
+
+        $this->watermarkText = trim(
+            (string) env(
+                'memberMedia.watermarkText',
+                'Sikhanandkaraj.com'
+            )
+        );
+
+        if ($this->watermarkText === '') {
+            $this->watermarkText = 'Sikhanandkaraj.com';
+        }
 
         $this->profileUrlTtlSeconds = max(
             60,

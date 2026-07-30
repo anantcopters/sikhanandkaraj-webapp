@@ -379,16 +379,32 @@ final class ImageProcessorService
         return $clone;
     }
 
+    /**
+     * Apply the configured member-media watermark.
+     *
+     * The text is configured centrally through MemberMedia so every media
+     * workflow uses consistent branding without embedding the domain name
+     * inside the image processor.
+     */
     private function applyWatermark(GdImage $image): void
     {
-        $text = 'Sikhanandkaraj.com';
+        $text = trim($this->config->watermarkText);
+
+        /*
+        * The configuration class already provides a safe default. This
+        * defensive guard avoids producing an empty watermark if the value
+        * is modified programmatically.
+        */
+        if ($text === '') {
+            return;
+        }
 
         $width = imagesx($image);
         $height = imagesy($image);
 
         /*
-         * Built-in GD font avoids storing or distributing font files.
-         */
+        * Built-in GD font avoids storing or distributing font files.
+        */
         $font = 5;
 
         $textWidth = imagefontwidth($font)
@@ -412,9 +428,9 @@ final class ImageProcessorService
         );
 
         /*
-         * GD alpha: 0 is opaque and 127 is transparent.
-         * This produces a deliberately light watermark.
-         */
+        * GD alpha: 0 is opaque and 127 is transparent.
+        * This produces a deliberately light watermark.
+        */
         $shadow = imagecolorallocatealpha(
             $image,
             0,

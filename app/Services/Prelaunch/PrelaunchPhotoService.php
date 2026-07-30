@@ -316,16 +316,14 @@ final class PrelaunchPhotoService
             $originalPath,
             $mediumPath,
             self::MEDIUM_WIDTH,
-            self::MEDIUM_HEIGHT,
-            true
+            self::MEDIUM_HEIGHT
         );
 
         $this->createVariant(
             $originalPath,
             $thumbnailPath,
             self::THUMBNAIL_WIDTH,
-            self::THUMBNAIL_HEIGHT,
-            true
+            self::THUMBNAIL_HEIGHT
         );
 
         return [
@@ -354,12 +352,18 @@ final class PrelaunchPhotoService
         ];
     }
 
+    /**
+     * Create an unwatermarked prelaunch display variant.
+     *
+     * Prelaunch photographs are staging assets. The final watermark is
+     * applied later when these files are imported through the standard
+     * member-media S3 upload pipeline.
+     */
     private function createVariant(
         string $sourcePath,
         string $destinationPath,
         int $width,
-        int $height,
-        bool $watermark
+        int $height
     ): void {
         $image = Services::image()
             ->withFile($sourcePath)
@@ -368,25 +372,6 @@ final class PrelaunchPhotoService
                 $height,
                 'center'
             );
-
-        /*
-         * Watermark is applied only to display variants.
-         * The original is retained without modification.
-         */
-        if ($watermark) {
-            $image->text(
-                'SikhAnandKaraj.com',
-                [
-                    'color' => '#FFFFFF',
-                    'opacity' => 0.28,
-                    'withShadow' => true,
-                    'hAlign' => 'center',
-                    'vAlign' => 'bottom',
-                    'vOffset' => 24,
-                    'fontSize' => 22,
-                ]
-            );
-        }
 
         if (!$image->save($destinationPath, 85)) {
             throw new RuntimeException(
