@@ -420,7 +420,7 @@ $this->section('content');
                                         <div
                                             id="mobileNumberHelp"
                                             class="form-text color-pink">
-                                            OTP will be sent to this number.
+                                            OTP will be sent to this number. Prefer WhatsApp Number
                                         </div>
                                     </div>
                                 </div>

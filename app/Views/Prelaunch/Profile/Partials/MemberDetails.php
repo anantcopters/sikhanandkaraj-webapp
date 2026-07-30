@@ -435,7 +435,7 @@ $genderOptions = [
                 <label
                     for="mobile_number"
                     class="form-label">
-                    Mobile number
+                    Mobile number <span class="color-pink">(Prefer WhatsApp Number)</span>
                 </label>
 
                 <input
