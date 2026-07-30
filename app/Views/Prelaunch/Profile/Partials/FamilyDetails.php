@@ -196,46 +196,6 @@ $communityClass =
 
             <div class="col-12 col-md-6">
                 <label
-                    for="gotra"
-                    class="form-label">
-
-                    Gotra
-                </label>
-
-                <input
-                    type="text"
-                    id="gotra"
-                    name="gotra"
-                    class="form-control <?= esc(
-                                            $gotraClass,
-                                            'attr'
-                                        ) ?>"
-                    value="<?= esc(
-                                $gotra,
-                                'attr'
-                            ) ?>"
-                    aria-describedby="gotraError"
-                    placeholder="Enter Gotra"
-                    minlength="2"
-                    maxlength="100"
-                    autocomplete="off"
-                    data-error-required="Please enter Gotra."
-                    data-error-minlength="Gotra must contain at least 2 characters."
-                    data-error-maxlength="Gotra cannot exceed 100 characters."
-                    data-error-pattern="Gotra may contain letters, spaces, apostrophes, full stops and hyphens only."
-                    required>
-
-                <div
-                    id="gotraError"
-                    class="invalid-feedback"
-                    data-validation-error="gotra">
-
-                    <?= esc($gotraError) ?>
-                </div>
-            </div>
-
-            <div class="col-12 col-md-6">
-                <label
                     for="sikh_community_id"
                     class="form-label">
 
@@ -314,6 +274,48 @@ $communityClass =
                     <?= esc($communityError) ?>
                 </div>
             </div>
+
+            <div class="col-12 col-md-6">
+                <label
+                    for="gotra"
+                    class="form-label">
+
+                    Gotra
+                </label>
+
+                <input
+                    type="text"
+                    id="gotra"
+                    name="gotra"
+                    class="form-control <?= esc(
+                                            $gotraClass,
+                                            'attr'
+                                        ) ?>"
+                    value="<?= esc(
+                                $gotra,
+                                'attr'
+                            ) ?>"
+                    aria-describedby="gotraError"
+                    placeholder="Enter Gotra"
+                    minlength="2"
+                    maxlength="100"
+                    autocomplete="off"
+                    data-error-required="Please enter Gotra."
+                    data-error-minlength="Gotra must contain at least 2 characters."
+                    data-error-maxlength="Gotra cannot exceed 100 characters."
+                    data-error-pattern="Gotra may contain letters, spaces, apostrophes, full stops and hyphens only."
+                    required>
+
+                <div
+                    id="gotraError"
+                    class="invalid-feedback"
+                    data-validation-error="gotra">
+
+                    <?= esc($gotraError) ?>
+                </div>
+            </div>
+
+
         </div>
     </div>
 </div>
