@@ -9,6 +9,7 @@ use CodeIgniter\HTTP\Files\UploadedFile;
 use Config\Services;
 use RuntimeException;
 use Throwable;
+use InvalidArgumentException;
 
 /**
  * Stores pre-launch photographs in the CI4 writable directory.
@@ -27,6 +28,13 @@ final class PrelaunchPhotoService
     /**
      * Store exactly three uploaded photographs.
      *
+     * User-correctable upload failures are raised as
+     * InvalidArgumentException so that the controller may safely display
+     * their messages through the existing formAlert mechanism.
+     *
+     * Infrastructure, filesystem, image-processing and database failures
+     * continue to use RuntimeException and must not be exposed directly.
+     *
      * @param array<int, UploadedFile> $photos
      */
     public function storeProfilePhotos(
@@ -35,22 +43,22 @@ final class PrelaunchPhotoService
         array $photos
     ): void {
         if (count($photos) !== 3) {
-            throw new RuntimeException(
+            throw new InvalidArgumentException(
                 'Exactly three photographs are required.'
             );
         }
 
         if ($this->photoModel->countByProfile($profileId) !== 0) {
-            throw new RuntimeException(
+            throw new InvalidArgumentException(
                 'Photographs have already been uploaded for this profile.'
             );
         }
 
         /*
-        * Validate all photographs before creating directories, image variants
-        * or database records. This avoids partial filesystem work and obscure
-        * PostgreSQL unique-constraint errors.
-        */
+     * Validate every photograph before creating directories, variants
+     * or database records. This ensures duplicate photos and invalid
+     * uploads are reported before any permanent work begins.
+     */
         $this->ensurePhotosAreUnique($photos);
 
         $root = $this->profileDirectory(
@@ -135,6 +143,10 @@ final class PrelaunchPhotoService
                 }
             }
         } catch (Throwable $exception) {
+            /*
+         * Database rollback does not remove files already generated.
+         * Delete those files before allowing the exception to propagate.
+         */
             foreach ($createdFiles as $path) {
                 if (is_file($path)) {
                     @unlink($path);
@@ -146,21 +158,34 @@ final class PrelaunchPhotoService
     }
 
     /**
-     * Ensure that the three uploaded files are not identical.
+     * Ensure that all uploaded photographs are valid and unique.
+     *
+     * Duplicate photos are detected using the SHA-256 checksum of the
+     * temporary uploaded file. The validation happens before image
+     * processing and database insertion.
      *
      * @param array<int, UploadedFile> $photos
      */
-    private function ensurePhotosAreUnique(array $photos): void
-    {
+    private function ensurePhotosAreUnique(
+        array $photos
+    ): void {
+        /**
+         * Checksum indexed by the first sequence number where it occurred.
+         *
+         * @var array<string, int> $checksums
+         */
         $checksums = [];
 
         foreach ($photos as $index => $photo) {
             $sequence = $index + 1;
 
-            if (!$photo instanceof UploadedFile || !$photo->isValid()) {
-                throw new RuntimeException(
+            if (
+                !$photo instanceof UploadedFile
+                || !$photo->isValid()
+            ) {
+                throw new InvalidArgumentException(
                     sprintf(
-                        'Photograph %d is invalid.',
+                        'Photograph %d is invalid. Please select another image.',
                         $sequence
                     )
                 );
@@ -168,10 +193,13 @@ final class PrelaunchPhotoService
 
             $temporaryPath = $photo->getTempName();
 
-            if ($temporaryPath === '' || !is_file($temporaryPath)) {
-                throw new RuntimeException(
+            if (
+                $temporaryPath === ''
+                || !is_file($temporaryPath)
+            ) {
+                throw new InvalidArgumentException(
                     sprintf(
-                        'Photograph %d could not be read.',
+                        'Photograph %d could not be read. Please select it again.',
                         $sequence
                     )
                 );
@@ -183,16 +211,16 @@ final class PrelaunchPhotoService
             );
 
             if ($checksum === false) {
-                throw new RuntimeException(
+                throw new InvalidArgumentException(
                     sprintf(
-                        'Photograph %d could not be verified.',
+                        'Photograph %d could not be verified. Please select another image.',
                         $sequence
                     )
                 );
             }
 
             if (isset($checksums[$checksum])) {
-                throw new RuntimeException(
+                throw new InvalidArgumentException(
                     sprintf(
                         'Photographs %d and %d are identical. Please upload three different photographs.',
                         $checksums[$checksum],

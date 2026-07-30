@@ -15,6 +15,7 @@ use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
 use Throwable;
 use RuntimeException;
+use InvalidArgumentException;
 
 /**
  * Standalone pre-launch profile collection controller.
@@ -64,12 +65,15 @@ final class PrelaunchProfileController extends BaseController
                     'pageTitle' =>
                     'Create Pre-launch Profile',
 
+                    /*
+                    * Use the reusable BaseController readers instead of
+                    * accessing session flashdata directly.
+                    */
                     'validationErrors' =>
-                    session('validationErrors')
-                        ?? [],
+                    $this->readValidationErrors(),
 
                     'formAlert' =>
-                    session('formAlert'),
+                    $this->readFormAlert(),
 
                     'maritalStatuses' =>
                     $basicDetails['maritalStatuses']
@@ -80,8 +84,8 @@ final class PrelaunchProfileController extends BaseController
                         ?? [],
 
                     /*
-                     * India remains a hidden locked value in the form.
-                     */
+                    * India remains a hidden locked value in the form.
+                    */
                     'country' =>
                     $basicDetails['country']
                         ?? null,
@@ -434,11 +438,9 @@ final class PrelaunchProfileController extends BaseController
             );
 
             /*
-         * Follow the same architecture as RegistrationController.
-         *
-         * Field-specific business failures are converted into the
-         * validationErrors flash data already used by the form.
-         */
+            * Field-specific business failures returned through the service
+            * result continue to use the existing validation error structure.
+            */
             if (!$result->successful) {
                 if (
                     $result->field !== null
@@ -472,9 +474,9 @@ final class PrelaunchProfileController extends BaseController
             }
 
             /*
-         * A successful service result must contain both identifiers.
-         * Missing values indicate an internal contract failure.
-         */
+            * A successful service result must contain both identifiers.
+            * Missing identifiers indicate an internal contract failure.
+            */
             if (
                 $result->profileId === null
                 || $result->profileReference === null
@@ -495,11 +497,33 @@ final class PrelaunchProfileController extends BaseController
                     'profileReference',
                     $result->profileReference
                 );
+        } catch (InvalidArgumentException $exception) {
+            /*
+            * InvalidArgumentException is used only for safe,
+            * user-correctable input and photo upload errors.
+            *
+            * Its message can therefore be displayed using the project's
+            * existing formAlert flashdata structure.
+            */
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with(
+                    'formAlert',
+                    [
+                        'type' => 'danger',
+                        'title' =>
+                        'Please check the submitted details',
+
+                        'message' =>
+                        $exception->getMessage(),
+                    ]
+                );
         } catch (Throwable $exception) {
             /*
-         * Only unexpected infrastructure or programming failures reach
-         * this block. Do not expose exception details in the browser.
-         */
+            * Database, filesystem, image-processing and programming errors
+            * must not expose their internal messages in the browser.
+            */
             log_message(
                 'error',
                 'Prelaunch profile creation failed. '
