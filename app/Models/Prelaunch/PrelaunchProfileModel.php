@@ -67,19 +67,38 @@ final class PrelaunchProfileModel extends Model
         parent::__construct($database);
     }
 
+    /**
+     * Check whether a non-empty email is already assigned to another
+     * non-deleted prelaunch profile.
+     */
     public function emailExists(
         string $email,
         ?int $exceptProfileId = null
     ): bool {
+        $normalizedEmail = mb_strtolower(
+            trim($email)
+        );
+
+        /*
+     * Missing email is valid and must never participate in duplicate
+     * checking.
+     */
+        if ($normalizedEmail === '') {
+            return false;
+        }
+
         $builder = $this
             ->where(
                 'LOWER(email)',
-                mb_strtolower(trim($email))
+                $normalizedEmail
             )
             ->where('deleted_at', null);
 
         if ($exceptProfileId !== null) {
-            $builder->where('id !=', $exceptProfileId);
+            $builder->where(
+                'id !=',
+                $exceptProfileId
+            );
         }
 
         return $builder->first() !== null;

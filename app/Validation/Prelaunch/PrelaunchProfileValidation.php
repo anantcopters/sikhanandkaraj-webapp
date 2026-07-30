@@ -83,14 +83,11 @@ final class PrelaunchProfileValidation
                 'email' => [
                     'label' => 'Email',
                     'rules' => [
-                        'required',
+                        'permit_empty',
                         'valid_email',
                         'max_length[190]',
                     ],
                     'errors' => [
-                        'required' =>
-                        'Please enter email address.',
-
                         'valid_email' =>
                         'Please enter a valid email address.',
 
@@ -277,7 +274,7 @@ final class PrelaunchProfileValidation
             'email' => [
                 'label' => 'Email',
                 'rules' => [
-                    'required',
+                    'permit_empty',
                     'valid_email',
                     'max_length[190]',
                 ],

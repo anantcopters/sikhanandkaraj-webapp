@@ -400,6 +400,9 @@ $genderOptions = [
                     for="email"
                     class="form-label">
                     Email
+                    <span class="color-pink fs-12">
+                        (Optional)
+                    </span>
                 </label>
 
                 <input
@@ -414,14 +417,18 @@ $genderOptions = [
                                 $email,
                                 'attr'
                             ) ?>"
-                    aria-describedby="emailError"
-                    placeholder="Enter email"
-                    maxlength="128"
+                    aria-describedby="emailHelp emailError"
+                    placeholder="Enter email address"
+                    maxlength="190"
                     autocomplete="email"
-                    data-error-required="Please enter email address."
                     data-error-email="Please enter a valid email address."
-                    data-error-maxlength="Email address cannot exceed 128 characters."
-                    required>
+                    data-error-maxlength="Email address cannot exceed 190 characters.">
+
+                <div
+                    id="emailHelp"
+                    class="form-text color-pink">
+                    Email can be added or verified later.
+                </div>
 
                 <div
                     id="emailError"

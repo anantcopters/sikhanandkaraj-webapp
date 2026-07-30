@@ -345,9 +345,18 @@ final class PrelaunchAdminReviewService
             );
         }
 
-        $email = mb_strtolower(
-            trim((string) ($input['email'] ?? ''))
+        $normalizedEmail = mb_strtolower(
+            trim(
+                (string) (
+                    $input['email']
+                    ?? ''
+                )
+            )
         );
+
+        $email = $normalizedEmail !== ''
+            ? $normalizedEmail
+            : null;
 
         $countryCode = trim(
             (string) ($input['country_code'] ?? '')
@@ -360,13 +369,14 @@ final class PrelaunchAdminReviewService
         ) ?? '';
 
         if (
-            $this->profileModel->emailExists(
+            $email !== null
+            && $this->profileModel->emailExists(
                 $email,
                 $profileId
             )
         ) {
-            throw new RuntimeException(
-                'Another pre-launch profile already uses this email.'
+            throw new \RuntimeException(
+                'Another prelaunch profile already uses this email address.'
             );
         }
 

@@ -659,26 +659,22 @@ $this->section('content');
                                 for="email"
                                 class="form-label">
                                 Email
+                                <span class="text-muted fs-12">
+                                    (Optional)
+                                </span>
                             </label>
 
                             <input
                                 type="email"
-                                class="form-control <?= isset(
-                                                        $errors['email']
-                                                    )
-                                                        ? 'is-invalid'
-                                                        : '' ?>"
                                 id="email"
                                 name="email"
+                                class="form-control"
                                 value="<?= esc(
-                                            old(
-                                                'email',
-                                                $profile['email']
-                                                    ?? ''
-                                            )
+                                            (string) ($profile['email'] ?? ''),
+                                            'attr'
                                         ) ?>"
                                 maxlength="190"
-                                required>
+                                autocomplete="email">
 
                             <div class="invalid-feedback">
                                 <?= esc(

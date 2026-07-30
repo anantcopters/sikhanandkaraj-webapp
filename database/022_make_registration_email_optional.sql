@@ -36,4 +36,11 @@ CREATE UNIQUE INDEX IF NOT EXISTS
 ON user_contacts (user_id, contact_type)
 WHERE is_primary = TRUE;
 
+UPDATE prelaunch_profiles
+SET email = NULL
+WHERE TRIM(COALESCE(email, '')) = '';
+
+ALTER TABLE prelaunch_profiles
+ALTER COLUMN email DROP NOT NULL;
+
 COMMIT;

@@ -615,11 +615,8 @@ final class PrelaunchProfileController extends BaseController
                 'date_of_birth'
             )),
 
-            'email' =>
-            mb_strtolower(
-                trim((string) $this->request->getPost(
-                    'email'
-                ))
+            'email' => $this->normalizeOptionalEmail(
+                $this->request->getPost('email')
             ),
 
             'country_code' =>
@@ -713,5 +710,16 @@ final class PrelaunchProfileController extends BaseController
                 'consent'
             )),
         ];
+    }
+
+    /**
+     * Normalize an optional email submitted by the public form.
+     */
+    private function normalizeOptionalEmail(
+        mixed $email
+    ): string {
+        return mb_strtolower(
+            trim((string) $email)
+        );
     }
 }

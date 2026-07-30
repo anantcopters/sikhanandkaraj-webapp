@@ -367,11 +367,15 @@ $this->section('content');
                                 <!-- Contact -->
                                 <td>
                                     <div>
-                                        <?= esc(
-                                            $email !== ''
-                                                ? $email
-                                                : '—'
-                                        ) ?>
+                                        <?php if ($email !== ''): ?>
+                                            <p class="mb-0">
+                                                <?= esc($email) ?>
+                                            </p>
+                                        <?php else: ?>
+                                            <p class="text-muted mb-0">
+                                                Not provided
+                                            </p>
+                                        <?php endif ?>
                                     </div>
 
                                     <?php if (

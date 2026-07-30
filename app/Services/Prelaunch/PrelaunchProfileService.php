@@ -25,11 +25,10 @@ final class PrelaunchProfileService
     /**
      * Create a draft prelaunch profile and its photographs.
      *
-     * User-correctable failures, such as duplicate email or mobile
-     * number, are returned through PrelaunchProfileResult.
+     * User-correctable failures, such as duplicate optional email or
+     * duplicate mobile number, are returned through PrelaunchProfileResult.
      *
-     * Infrastructure failures continue to throw exceptions so that
-     * they can be logged without exposing technical information.
+     * An omitted email is persisted as NULL.
      *
      * @param array<string, mixed>     $input
      * @param array<int, UploadedFile> $photos
@@ -38,7 +37,7 @@ final class PrelaunchProfileService
         array $input,
         array $photos
     ): PrelaunchProfileResult {
-        $email = mb_strtolower(
+        $normalizedEmail = mb_strtolower(
             trim(
                 (string) (
                     $input['email']
@@ -46,6 +45,10 @@ final class PrelaunchProfileService
                 )
             )
         );
+
+        $email = $normalizedEmail !== ''
+            ? $normalizedEmail
+            : null;
 
         $gotra = mb_strtolower(
             trim(
@@ -103,7 +106,8 @@ final class PrelaunchProfileService
          * controller can send them through validationErrors.
          */
         if (
-            $this->profileModel->emailExists(
+            $email !== null
+            && $this->profileModel->emailExists(
                 $email
             )
         ) {
