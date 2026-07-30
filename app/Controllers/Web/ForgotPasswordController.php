@@ -933,24 +933,4 @@ final class ForgotPasswordController extends BaseController
                     . 'or is invalid. Please start again.',
             ]);
     }
-
-    /**
-     * Prevent caching of authentication and password-reset pages.
-     */
-    private function preventPageCaching(): void
-    {
-        $this->response
-            ->setHeader(
-                'Cache-Control',
-                'no-store, no-cache, must-revalidate, max-age=0'
-            )
-            ->setHeader(
-                'Pragma',
-                'no-cache'
-            )
-            ->setHeader(
-                'Expires',
-                '0'
-            );
-    }
 }

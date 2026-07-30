@@ -43,4 +43,26 @@ WHERE TRIM(COALESCE(email, '')) = '';
 ALTER TABLE prelaunch_profiles
 ALTER COLUMN email DROP NOT NULL;
 
+ALTER TABLE contact_verifications
+DROP CONSTRAINT IF EXISTS
+chk_contact_verification_purpose;
+
+ALTER TABLE contact_verifications
+ADD CONSTRAINT
+chk_contact_verification_purpose
+
+CHECK (
+    purpose IN (
+        'REGISTER',
+            'LOGIN',
+            'CHANGE_MOBILE',
+            'CHANGE_EMAIL',
+            'REGISTER',
+            'PASSWORD_RESET',
+            'PENDING',
+            'VERIFIED',
+            'EXPIRED',
+            'CANCELLED'
+    )
+);
 COMMIT;

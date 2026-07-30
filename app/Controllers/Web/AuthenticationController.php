@@ -148,27 +148,9 @@ final class AuthenticationController extends BaseController
              * Regenerate the session identifier immediately after
              * authentication to prevent session fixation.
              */
-            session()->regenerate(true);
-
-            session()->set([
-                'is_authenticated' => true,
-
-                'auth_user_id' =>
-                (int) $userId,
-
-                'auth_user_name' =>
-                $this->resolveUserName($user),
-
-                'auth_profile_reference' =>
-                trim(
-                    (string) (
-                        $user['profile_ref_number']
-                        ?? ''
-                    )
-                ),
-
-                'authenticated_at' => time(),
-            ]);
+            $this->establishMemberSession(
+                $user
+            );
 
             return redirect()
                 ->to(route_to('web.dashboard'))
@@ -318,51 +300,5 @@ final class AuthenticationController extends BaseController
         }
 
         return $redirect;
-    }
-
-    /**
-     * Determine whether the current session is authenticated.
-     */
-    private function isAuthenticated(): bool
-    {
-        return session('is_authenticated') === true
-            && is_numeric(
-                session('auth_user_id')
-            );
-    }
-
-    /**
-     * @param array<string, mixed> $user
-     */
-    private function resolveUserName(
-        array $user
-    ): string {
-        $name = trim(
-            (string) ($user['full_name'] ?? '')
-        );
-
-        return $name !== ''
-            ? $name
-            : 'Member';
-    }
-
-    /**
-     * Prevent caching of authentication and password-reset pages.
-     */
-    private function preventPageCaching(): void
-    {
-        $this->response
-            ->setHeader(
-                'Cache-Control',
-                'no-store, no-cache, must-revalidate, max-age=0'
-            )
-            ->setHeader(
-                'Pragma',
-                'no-cache'
-            )
-            ->setHeader(
-                'Expires',
-                '0'
-            );
     }
 }

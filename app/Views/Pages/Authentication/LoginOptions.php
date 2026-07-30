@@ -50,7 +50,7 @@ $this->section('content');
                                 href="<?= route_to(
                                             'web.login.password'
                                         ) ?>"
-                                class="btn registration-form__submit fs-16 fw-semibold text-uppercase">
+                                class="btn btn-outline-success fs-16 fw-semibold text-uppercase">
 
                                 <i
                                     class="ri-lock-password-line me-2"

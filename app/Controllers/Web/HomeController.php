@@ -57,15 +57,4 @@ final class HomeController extends BaseController
             ]
         );
     }
-
-    /**
-     * Check whether the current session contains a valid authenticated user.
-     */
-    private function isAuthenticated(): bool
-    {
-        return session('is_authenticated') === true
-            && is_numeric(
-                session('auth_user_id')
-            );
-    }
 }

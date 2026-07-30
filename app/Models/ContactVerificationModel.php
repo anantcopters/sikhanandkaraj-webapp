@@ -13,7 +13,13 @@ final class ContactVerificationModel extends Model
 {
     public const PURPOSE_REGISTER = 'REGISTER';
 
-    public const PURPOSE_PASSWORD_RESET = 'PASSWORD_RESET';
+    public const PURPOSE_PASSWORD_RESET =
+    'PASSWORD_RESET';
+
+    /**
+     * Passwordless member login using a verified mobile number.
+     */
+    public const PURPOSE_LOGIN = 'LOGIN';
 
     public const STATUS_PENDING = 'PENDING';
 
@@ -22,11 +28,6 @@ final class ContactVerificationModel extends Model
     public const STATUS_EXPIRED = 'EXPIRED';
 
     public const STATUS_CANCELLED = 'CANCELLED';
-
-    /**
-     * Passwordless member login using a verified mobile number.
-     */
-    public const PURPOSE_LOGIN = 'LOGIN';
 
     /**
      * OTP record created successfully but delivery failed.

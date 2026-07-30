@@ -383,32 +383,9 @@ final class OtpLoginController extends BaseController
             /*
              * Regenerate after authentication to prevent session fixation.
              */
-            session()->regenerate(true);
-
-            session()->set([
-                'is_authenticated' =>
-                true,
-
-                'auth_user_id' =>
-                (int) $userId,
-
-                'auth_user_name' =>
-                $this->resolveUserName(
-                    $user
-                ),
-
-                'auth_profile_reference' =>
-                trim(
-                    (string) (
-                        $user['profile_ref_number']
-                        ?? ''
-                    )
-                ),
-
-                'authenticated_at' =>
-                time(),
-            ]);
-
+            $this->establishMemberSession(
+                $user
+            );
             return redirect()
                 ->to(
                     route_to(
@@ -576,12 +553,16 @@ final class OtpLoginController extends BaseController
     }
 
     /**
-     * Read the four reusable OTP input boxes.
+     * Read and normalize the four reusable OTP digit fields.
      */
     private function readOtp(): string
     {
-        return OtpInputNormalizer::normalize(
-            $this->request->getPost()
+        $input = $this->request->getPost();
+
+        return OtpInputNormalizer::fromDigitFields(
+            is_array($input)
+                ? $input
+                : []
         );
     }
 
@@ -659,48 +640,5 @@ final class OtpLoginController extends BaseController
             self::SESSION_MOBILE_CONTACT_ID,
             self::SESSION_STARTED_AT,
         ]);
-    }
-
-    private function isAuthenticated(): bool
-    {
-        return session('is_authenticated') === true
-            && is_numeric(
-                session('auth_user_id')
-            );
-    }
-
-    /**
-     * @param array<string, mixed> $user
-     */
-    private function resolveUserName(
-        array $user
-    ): string {
-        $name = trim(
-            (string) (
-                $user['full_name']
-                ?? ''
-            )
-        );
-
-        return $name !== ''
-            ? $name
-            : 'Member';
-    }
-
-    private function preventPageCaching(): void
-    {
-        $this->response
-            ->setHeader(
-                'Cache-Control',
-                'no-store, no-cache, must-revalidate, max-age=0'
-            )
-            ->setHeader(
-                'Pragma',
-                'no-cache'
-            )
-            ->setHeader(
-                'Expires',
-                '0'
-            );
     }
 }

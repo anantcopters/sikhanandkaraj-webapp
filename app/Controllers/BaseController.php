@@ -223,4 +223,94 @@ abstract class BaseController extends Controller
 
         return $normalizedData;
     }
+
+    /**
+     * Prevent the current response from being stored by the browser or an
+     * intermediate cache.
+     *
+     * Authentication, verification, password-reset and other sensitive pages
+     * should call this before rendering their view.
+     */
+    protected function preventPageCaching(): void
+    {
+        $this->response
+            ->setHeader(
+                'Cache-Control',
+                'no-store, no-cache, must-revalidate, max-age=0'
+            )
+            ->setHeader(
+                'Pragma',
+                'no-cache'
+            )
+            ->setHeader(
+                'Expires',
+                '0'
+            );
+    }
+
+    /**
+     * Establish the authenticated member web session.
+     *
+     * The session identifier is regenerated before authenticated data is stored
+     * to protect against session fixation.
+     *
+     * @param array<string, mixed> $user
+     */
+    protected function establishMemberSession(
+        array $user
+    ): void {
+        $userId = $user['id'] ?? null;
+
+        if (!is_numeric($userId)) {
+            throw new \RuntimeException(
+                'The authenticated user has an invalid identifier.'
+            );
+        }
+
+        $fullName = trim(
+            (string) (
+                $user['full_name']
+                ?? ''
+            )
+        );
+
+        $profileReference = trim(
+            (string) (
+                $user['profile_ref_number']
+                ?? ''
+            )
+        );
+
+        session()->regenerate(true);
+
+        session()->set([
+            'is_authenticated' => true,
+
+            'auth_user_id' =>
+            (int) $userId,
+
+            'auth_user_name' =>
+            $fullName !== ''
+                ? $fullName
+                : 'Member',
+
+            'auth_profile_reference' =>
+            $profileReference,
+
+            'authenticated_at' =>
+            time(),
+        ]);
+    }
+
+    /**
+     * Determine whether the current browser session represents an
+     * authenticated member.
+     */
+    protected function isAuthenticated(): bool
+    {
+        return session('is_authenticated') === true
+            && is_numeric(
+                session('auth_user_id')
+            );
+    }
 }

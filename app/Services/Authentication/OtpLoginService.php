@@ -57,6 +57,17 @@ final class OtpLoginService
 
     /**
      * Validate the submitted mobile and issue a login OTP.
+     *
+     * Public responses deliberately do not reveal whether:
+     *
+     * - the mobile number exists;
+     * - the mobile number is verified;
+     * - the account is pending;
+     * - the account is suspended;
+     * - the account has been deleted.
+     *
+     * Returning the same failure for each ineligible state reduces account
+     * enumeration through the public OTP-login endpoint.
      */
     public function requestOtp(
         string $mobileNumber
@@ -79,27 +90,28 @@ final class OtpLoginService
                 $normalizedMobile
             );
 
-        /*
-         * Use a generic message when no contact exists to reduce account
-         * enumeration through the public OTP-login form.
-         */
         if (!is_array($contact)) {
             return $this->invalidLoginResult();
         }
 
+        /*
+        * Do not tell the public caller whether this contact exists but remains
+        * unverified. That distinction would expose registered mobile numbers.
+        */
         if (
             !BooleanValue::fromDatabase(
-                $contact['is_verified'] ?? false
+                $contact['is_verified']
+                    ?? false
             )
         ) {
-            return OtpLoginResult::failure(
-                'OTP login is available only for a verified mobile number.',
-                'mobile_number'
-            );
+            return $this->invalidLoginResult();
         }
 
-        $userId = $contact['user_id'] ?? null;
-        $contactId = $contact['id'] ?? null;
+        $userId = $contact['user_id']
+            ?? null;
+
+        $contactId = $contact['id']
+            ?? null;
 
         if (
             !is_numeric($userId)
@@ -115,6 +127,10 @@ final class OtpLoginService
             $userId
         );
 
+        /*
+        * UserModel soft-delete handling means deleted users normally do not
+        * reach the status check below. Use the same generic public response.
+        */
         if (!is_array($user)) {
             return $this->invalidLoginResult();
         }
@@ -128,13 +144,15 @@ final class OtpLoginService
             )
         );
 
+        /*
+        * Do not expose PENDING, SUSPENDED, DELETED or unknown account states
+        * through passwordless login initiation.
+        */
         if (
             $accountStatus
             !== UserModel::STATUS_ACTIVE
         ) {
-            return $this->inactiveAccountResult(
-                $accountStatus
-            );
+            return $this->invalidLoginResult();
         }
 
         return $this->issueOtp(
@@ -143,7 +161,6 @@ final class OtpLoginService
             $normalizedMobile
         );
     }
-
     /**
      * Resend the login OTP for the same verified contact.
      */
@@ -433,6 +450,12 @@ final class OtpLoginService
 
     /**
      * Generate, persist and deliver a login OTP.
+     *
+     * The database transaction is completed before calling the external SMS
+     * provider. Network calls must not keep a database transaction open.
+     *
+     * When delivery fails, the OTP record is marked DELIVERY_FAILED so it cannot
+     * be used and does not consume the successful delivery quota.
      */
     private function issueOtp(
         int $userId,
@@ -454,6 +477,10 @@ final class OtpLoginService
             )
             ->format('Y-m-d H:i:sP');
 
+        /*
+     * Count OTPs that were successfully delivered or remain potentially
+     * usable. DELIVERY_FAILED records are excluded by the model.
+     */
         $issuedCount = $this->verificationModel
             ->countDeliveredOrPendingSince(
                 $mobileContactId,
@@ -471,41 +498,46 @@ final class OtpLoginService
             );
         }
 
-        $pending = $this->verificationModel
+        $pendingVerification =
+            $this->verificationModel
             ->findLatestPendingForContact(
                 $mobileContactId,
                 ContactVerificationModel::PURPOSE_LOGIN
             );
 
-        if (is_array($pending)) {
+        if (is_array($pendingVerification)) {
             $pendingCreatedAt =
                 $this->parseUtcTimestamp(
                     (string) (
-                        $pending['created_at']
+                        $pendingVerification['created_at']
                         ?? ''
                     )
                 );
 
-            if (
-                $pendingCreatedAt !== null
-                && (
-                    time() - $pendingCreatedAt
-                ) < self::OTP_RESEND_COOLDOWN_SECONDS
-            ) {
-                $retryAfter = max(
-                    1,
-                    self::OTP_RESEND_COOLDOWN_SECONDS
-                        - (
-                            time()
-                            - $pendingCreatedAt
-                        )
-                );
+            if ($pendingCreatedAt !== null) {
+                $elapsedSeconds =
+                    time() - $pendingCreatedAt;
 
-                return OtpLoginResult::failure(
-                    'Please wait '
-                        . $retryAfter
-                        . ' second(s) before requesting another OTP.'
-                );
+                if (
+                    $elapsedSeconds
+                    < self::OTP_RESEND_COOLDOWN_SECONDS
+                ) {
+                    $retryAfter = max(
+                        1,
+                        self::OTP_RESEND_COOLDOWN_SECONDS
+                            - $elapsedSeconds
+                    );
+
+                    return OtpLoginResult::failure(
+                        sprintf(
+                            'Please wait %d second%s before requesting another OTP.',
+                            $retryAfter,
+                            $retryAfter === 1
+                                ? ''
+                                : 's'
+                        )
+                    );
+                }
             }
         }
 
@@ -534,15 +566,27 @@ final class OtpLoginService
             )
             ->format('Y-m-d H:i:sP');
 
+        $verificationId = null;
+
         $this->database->transBegin();
 
         try {
-            $this->verificationModel
+            /*
+         * Only one pending LOGIN OTP may remain usable for this mobile
+         * contact. Cancellation and replacement happen atomically.
+         */
+            $pendingCancelled =
+                $this->verificationModel
                 ->cancelPendingForContact(
                     $mobileContactId,
-                    ContactVerificationModel
-                    ::PURPOSE_LOGIN
+                    ContactVerificationModel::PURPOSE_LOGIN
                 );
+
+            if (!$pendingCancelled) {
+                throw new RuntimeException(
+                    'Unable to cancel the previous login OTP.'
+                );
+            }
 
             $verificationId =
                 $this->verificationModel->insert(
@@ -551,8 +595,7 @@ final class OtpLoginService
                         $mobileContactId,
 
                         'purpose' =>
-                        ContactVerificationModel
-                        ::PURPOSE_LOGIN,
+                        ContactVerificationModel::PURPOSE_LOGIN,
 
                         'otp_hash' =>
                         $otpHash,
@@ -567,34 +610,145 @@ final class OtpLoginService
                         0,
 
                         'status' =>
-                        ContactVerificationModel
-                        ::STATUS_PENDING,
+                        ContactVerificationModel::STATUS_PENDING,
+
+                        'verified_at' =>
+                        null,
                     ],
                     true
                 );
 
-            if ($verificationId === false) {
+            if (!is_numeric($verificationId)) {
                 throw new RuntimeException(
                     'The login OTP record could not be created.'
                 );
             }
 
-            $message = new SmsMessage(
-                destination: $normalizedMobile,
-                message: 'Your SikhAnandKaraj login OTP is '
-                    . $otp
-                    . '. It is valid for '
-                    . self::OTP_EXPIRY_MINUTES
-                    . ' minutes.'
+            /*
+         * Commit before contacting the external SMS service. Holding an open
+         * transaction during a remote API call can unnecessarily lock database
+         * resources and make failures harder to recover from.
+         */
+            $this->commitOrFail();
+        } catch (Throwable $exception) {
+            $this->database->transRollback();
+
+            throw $exception;
+        }
+
+        try {
+            $smsResult = $this->smsProvider->send(
+                new SmsMessage(
+                    mobileNumber: $normalizedMobile,
+
+                    message: 'Your SikhAnandKaraj login OTP is '
+                        . $otp
+                        . '. It is valid for '
+                        . self::OTP_EXPIRY_MINUTES
+                        . ' minutes.',
+
+                    /*
+                 * Add this environment key for providers that require a
+                 * pre-approved DLT or SMS template.
+                 */
+                    templateId: trim(
+                        (string) env(
+                            'sms.loginOtpTemplateId'
+                        )
+                    ) ?: null,
+
+                    variables: [
+                        'otp' =>
+                        $otp,
+
+                        'expiry_minutes' =>
+                        (string) self::OTP_EXPIRY_MINUTES,
+                    ]
+                )
+            );
+        } catch (Throwable $exception) {
+            $this->markOtpDeliveryFailed(
+                (int) $verificationId
             );
 
-            try {
-                $this->smsProvider->send(
-                    $message
-                );
-            } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Login OTP SMS threw an exception: '
+                    . 'user_id={userId}, contact_id={contactId}, error={error}',
+                [
+                    'userId' =>
+                    $userId,
+
+                    'contactId' =>
+                    $mobileContactId,
+
+                    'error' =>
+                    $exception->getMessage(),
+                ]
+            );
+
+            return OtpLoginResult::failure(
+                'We could not send the OTP. '
+                    . 'Please try again after a few moments.'
+            );
+        }
+
+        /*
+        * SMS providers may report a normal failure result rather than throwing
+        * an exception. Both conditions must be handled.
+        */
+        if (!$smsResult->successful) {
+            $this->markOtpDeliveryFailed(
+                (int) $verificationId
+            );
+
+            log_message(
+                'error',
+                'Login OTP SMS failed: '
+                    . 'user_id={userId}, contact_id={contactId}, error={error}',
+                [
+                    'userId' =>
+                    $userId,
+
+                    'contactId' =>
+                    $mobileContactId,
+
+                    'error' =>
+                    $smsResult->errorMessage
+                        ?? 'Unknown SMS provider error.',
+                ]
+            );
+
+            return OtpLoginResult::failure(
+                'We could not send the OTP. '
+                    . 'Please try again after a few moments.'
+            );
+        }
+
+        return OtpLoginResult::otpIssued(
+            $userId,
+            $mobileContactId,
+            'An OTP has been sent to your verified mobile number.'
+        );
+    }
+
+    /**
+     * Mark an OTP as unusable when its SMS delivery fails.
+     *
+     * A separate update is used because the OTP record is committed before the
+     * external provider is called.
+     */
+    private function markOtpDeliveryFailed(
+        int $verificationId
+    ): void {
+        if ($verificationId <= 0) {
+            return;
+        }
+
+        try {
+            $updated =
                 $this->verificationModel->update(
-                    (int) $verificationId,
+                    $verificationId,
                     [
                         'status' =>
                         ContactVerificationModel
@@ -602,36 +756,34 @@ final class OtpLoginService
                     ]
                 );
 
-                $this->commitOrFail();
-
+            if ($updated === false) {
                 log_message(
-                    'error',
-                    'Login OTP delivery failed for user {userId}: {message}',
+                    'critical',
+                    'Unable to mark login OTP delivery as failed: '
+                        . 'verification_id={verificationId}',
                     [
-                        'userId' => $userId,
-                        'message' =>
-                        $exception->getMessage(),
+                        'verificationId' =>
+                        $verificationId,
                     ]
                 );
-
-                return OtpLoginResult::failure(
-                    'We could not send the OTP. '
-                        . 'Please try again after a few moments.'
-                );
             }
-
-            $this->commitOrFail();
-
-            return OtpLoginResult::otpIssued(
-                $userId,
-                $mobileContactId,
-                'An OTP has been sent to your '
-                    . 'verified mobile number.'
-            );
         } catch (Throwable $exception) {
-            $this->database->transRollback();
+            /*
+         * Preserve the original SMS-delivery result. A secondary database
+         * cleanup failure must be logged but should not mask it.
+         */
+            log_message(
+                'critical',
+                'Exception while marking login OTP delivery as failed: '
+                    . 'verification_id={verificationId}, error={error}',
+                [
+                    'verificationId' =>
+                    $verificationId,
 
-            throw $exception;
+                    'error' =>
+                    $exception->getMessage(),
+                ]
+            );
         }
     }
 
@@ -738,36 +890,12 @@ final class OtpLoginService
         ];
     }
 
-    private function inactiveAccountResult(
-        string $accountStatus
-    ): OtpLoginResult {
-        return match ($accountStatus) {
-            UserModel::STATUS_PENDING =>
-            OtpLoginResult::failure(
-                'Your registration is not complete. '
-                    . 'Please complete mobile verification first.'
-            ),
-
-            UserModel::STATUS_SUSPENDED =>
-            OtpLoginResult::failure(
-                'Your account has been suspended. '
-                    . 'Please contact support for assistance.'
-            ),
-
-            UserModel::STATUS_DELETED =>
-            OtpLoginResult::failure(
-                'This account is no longer available. '
-                    . 'Please contact support for assistance.'
-            ),
-
-            default =>
-            OtpLoginResult::failure(
-                'Your account is not currently active. '
-                    . 'Please contact support for assistance.'
-            ),
-        };
-    }
-
+    /**
+     * Return the public failure used for every ineligible OTP-login identity.
+     *
+     * Using one response prevents callers from determining whether a mobile
+     * number exists, is verified, or belongs to an inactive account.
+     */
     private function invalidLoginResult(): OtpLoginResult
     {
         return OtpLoginResult::failure(
