@@ -29,20 +29,6 @@ final class SikhReligiousDetailsValidation
                 ],
             ],
 
-            'subcommunity_id' => [
-                'label' => 'Sub-community',
-                'rules' => [
-                    'required',
-                    'is_natural_no_zero',
-                ],
-                'errors' => [
-                    'required' =>
-                    'Please select your sub-community.',
-                    'is_natural_no_zero' =>
-                    'Please select a valid sub-community.',
-                ],
-            ],
-
             'birth_hour' => [
                 'label' => 'Birth hour',
                 'rules' => [

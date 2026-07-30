@@ -9,7 +9,6 @@ use App\Models\MasterCityModel;
 use App\Models\MasterCountryModel;
 use App\Models\MasterMoonSignModel;
 use App\Models\MasterSikhCommunityModel;
-use App\Models\MasterSikhSubcommunityModel;
 use App\Models\MasterStateModel;
 use App\Models\MemberSikhReligiousDetailModel;
 use App\Models\UserModel;
@@ -34,7 +33,6 @@ final class SikhReligiousDetailsService
         private readonly UserModel $userModel,
         private readonly MemberSikhReligiousDetailModel $detailModel,
         private readonly MasterSikhCommunityModel $communityModel,
-        private readonly MasterSikhSubcommunityModel $subcommunityModel,
         private readonly MasterMoonSignModel $moonSignModel,
         private readonly MasterBirthStarModel $birthStarModel,
         private readonly MasterCountryModel $countryModel,
@@ -84,11 +82,6 @@ final class SikhReligiousDetailsService
 
                 'communities' =>
                 $this->communityModel->activeOptions(),
-
-                'subcommunities' => $communityId !== null
-                    ? $this->subcommunityModel
-                    ->activeForCommunity($communityId)
-                    : [],
 
                 'moonSigns' =>
                 $this->moonSignModel->activeOptions(),
@@ -154,11 +147,6 @@ final class SikhReligiousDetailsService
         $communityId = $this->requiredPositiveInteger(
             $data['community_id'] ?? null,
             'Please select your community.'
-        );
-
-        $subcommunityId = $this->requiredPositiveInteger(
-            $data['subcommunity_id'] ?? null,
-            'Please select your sub-community.'
         );
 
         $birthHour = $this->requiredBoundedInteger(
@@ -239,7 +227,6 @@ final class SikhReligiousDetailsService
 
         $this->assertValidMasters(
             $communityId,
-            $subcommunityId,
             $countryId,
             $stateId,
             $cityId,
@@ -250,7 +237,6 @@ final class SikhReligiousDetailsService
         $saveData = [
             'user_id' => $userId,
             'community_id' => $communityId,
-            'subcommunity_id' => $subcommunityId,
             'birth_hour' => $birthHour,
             'birth_minute' => $birthMinute,
             'birth_meridiem' => $birthMeridiem,
@@ -302,7 +288,6 @@ final class SikhReligiousDetailsService
 
     private function assertValidMasters(
         int $communityId,
-        int $subcommunityId,
         int $countryId,
         int $stateId,
         int $cityId,
@@ -328,20 +313,6 @@ final class SikhReligiousDetailsService
         if (!is_array($community)) {
             throw new DomainException(
                 'Please select a valid community.'
-            );
-        }
-
-
-        $subcommunity = $this->subcommunityModel
-            ->where('id', $subcommunityId)
-            ->where('community_id', $communityId)
-            ->where('is_active', true)
-            ->first();
-
-        if (!is_array($subcommunity)) {
-            throw new DomainException(
-                'Please select a valid sub-community '
-                    . 'for the selected community.'
             );
         }
 
@@ -410,7 +381,6 @@ final class SikhReligiousDetailsService
     ): array {
         $requiredValues = [
             $details['community_id'] ?? null,
-            $details['subcommunity_id'] ?? null,
             $details['birth_hour'] ?? null,
             $details['birth_minute'] ?? null,
             $details['birth_meridiem'] ?? null,

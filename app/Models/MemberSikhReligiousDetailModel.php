@@ -22,7 +22,6 @@ final class MemberSikhReligiousDetailModel extends Model
     protected $allowedFields = [
         'user_id',
         'community_id',
-        'subcommunity_id',
         'birth_hour',
         'birth_minute',
         'birth_meridiem',
@@ -52,7 +51,6 @@ final class MemberSikhReligiousDetailModel extends Model
             ->select([
                 'member_sikh_religious_details.*',
                 'community.name AS community_name',
-                'subcommunity.name AS subcommunity_name',
                 'country.name AS birth_country_name',
                 'state.name AS birth_state_name',
                 'city.name AS birth_city_name',
@@ -65,12 +63,6 @@ final class MemberSikhReligiousDetailModel extends Model
                 'master_sikh_communities community',
                 'community.id = '
                     . 'member_sikh_religious_details.community_id',
-                'left'
-            )
-            ->join(
-                'master_sikh_subcommunities subcommunity',
-                'subcommunity.id = '
-                    . 'member_sikh_religious_details.subcommunity_id',
                 'left'
             )
             ->join(

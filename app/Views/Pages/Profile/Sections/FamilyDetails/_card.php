@@ -265,12 +265,7 @@ $formatEnum = static function (
                                     (string) (
                                         $details['community_name'] ?? ''
                                     )
-                                ),
-                                trim(
-                                    (string) (
-                                        $details['subcommunity_name'] ?? ''
-                                    )
-                                ),
+                                )
                             ])
                         ) ?: 'Not added',
                         'icon' => 'ri-group-2-line',

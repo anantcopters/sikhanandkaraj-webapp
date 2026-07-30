@@ -672,11 +672,6 @@ final class PrelaunchProfileController extends BaseController
                 'sikh_community_id'
             )),
 
-            'sikh_subcommunity_id' =>
-            trim((string) $this->request->getPost(
-                'sikh_subcommunity_id'
-            )),
-
             'field_officer_code' =>
             mb_strtoupper(
                 trim((string) $this->request->getPost(
