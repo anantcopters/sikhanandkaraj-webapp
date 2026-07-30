@@ -68,7 +68,7 @@ $this->section('content');
 
                         <label
                             for="memberSearch"
-                            class="form-label fw-medium">
+                            class="form-label">
 
                             Search members
                         </label>

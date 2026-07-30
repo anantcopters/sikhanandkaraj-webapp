@@ -241,7 +241,7 @@ if ($isJourney) {
         <div class="col-12 col-sm-8">
             <label
                 for="fullName"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Full name
 
                 <span class="text-danger">*</span>
@@ -282,7 +282,7 @@ if ($isJourney) {
         <div class="col-12 col-sm-4">
             <label
                 for="memberGender"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Gender
             </label>
 
@@ -307,7 +307,7 @@ if ($isJourney) {
         <div class="col-12 col-sm-4 col-lg-4">
             <label
                 for="profileCreatedFor"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Profile created for
             </label>
 
@@ -325,7 +325,7 @@ if ($isJourney) {
         </div>
 
         <div class="col-12 col-sm-8 col-lg-8">
-            <label class="form-label fw-medium">
+            <label class="form-labelm">
                 Date of birth
                 <span class="text-danger">*</span>
             </label>
@@ -508,7 +508,7 @@ if ($isJourney) {
         <div class="col-12 col-sm-6 col-lg-4">
             <label
                 for="maritalStatusId"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Marital status
                 <span class="text-danger">*</span>
             </label>
@@ -565,7 +565,7 @@ if ($isJourney) {
         <div class="col-12 col-sm-6 col-lg-4">
             <label
                 for="heightId"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Height
                 <span class="text-danger">*</span>
             </label>
@@ -625,7 +625,7 @@ if ($isJourney) {
         <div class="col-12 col-sm-6 col-lg-4">
             <label
                 for="motherTongueId"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Mother tongue
                 <span class="text-danger">*</span>
             </label>
@@ -681,7 +681,7 @@ if ($isJourney) {
         <div class="col-12 col-sm-6 col-lg-4">
             <label
                 for="stateId"
-                class="form-label fw-medium">
+                class="form-labelm">
                 State
                 <span class="text-danger">*</span>
             </label>
@@ -736,7 +736,7 @@ if ($isJourney) {
         <div class="col-12 col-sm-6 col-lg-4">
             <label
                 for="cityId"
-                class="form-label fw-medium">
+                class="form-labelm">
                 City
                 <span class="text-danger">*</span>
             </label>
@@ -804,7 +804,7 @@ if ($isJourney) {
         <div class="col-12 col-sm-6 col-lg-4">
             <label
                 for="countryName"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Country
             </label>
 

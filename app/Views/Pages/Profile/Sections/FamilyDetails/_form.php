@@ -127,7 +127,7 @@ if ($isJourney) {
             <div class="col-12 col-md-4">
                 <label
                     for="<?= esc($field['id'], 'attr') ?>"
-                    class="form-label fw-medium">
+                    class="form-label">
 
                     <?= esc($field['label']) ?>
                     <span class="text-muted fw-normal">
@@ -192,7 +192,7 @@ if ($isJourney) {
         <div class="col-12 col-md-6">
             <label
                 for="familyCommunityId"
-                class="form-label fw-medium">
+                class="form-label">
 
                 Community
                 <span class="text-danger">*</span>
@@ -249,7 +249,7 @@ if ($isJourney) {
         <div class="col-12 col-md-6">
             <label
                 for="familyGotra"
-                class="form-label fw-medium">
+                class="form-label">
 
                 Gotra
                 <span class="text-danger">*</span>
@@ -320,7 +320,7 @@ if ($isJourney) {
                                 $parentNameField['id'],
                                 'attr'
                             ) ?>"
-                    class="form-label fw-medium">
+                    class="form-label">
 
                     <?= esc($parentNameField['label']) ?>
                     <span class="text-danger">*</span>
@@ -393,7 +393,7 @@ if ($isJourney) {
                                 $parentField['id'],
                                 'attr'
                             ) ?>"
-                    class="form-label fw-medium">
+                    class="form-label">
                     <?= esc($parentField['label']) ?>
                 </label>
 
@@ -491,7 +491,7 @@ if ($isJourney) {
                                 $siblingField['id'],
                                 'attr'
                             ) ?>"
-                    class="form-label fw-medium">
+                    class="form-label">
 
                     <?= esc($siblingField['label']) ?>
                     <span class="text-danger">*</span>
@@ -558,7 +558,7 @@ if ($isJourney) {
         <div class="col-12 col-md-4">
             <label
                 for="familyStateId"
-                class="form-label fw-medium">
+                class="form-label">
 
                 State
                 <span class="text-danger">*</span>
@@ -618,7 +618,7 @@ if ($isJourney) {
         <div class="col-12 col-md-4">
             <label
                 for="familyCityId"
-                class="form-label fw-medium">
+                class="form-label">
 
                 City
                 <span class="text-danger">*</span>
@@ -681,7 +681,7 @@ if ($isJourney) {
         <div class="col-12 col-md-4">
             <label
                 for="familyCountryName"
-                class="form-label fw-medium">
+                class="form-label">
                 Country
             </label>
 
@@ -703,8 +703,140 @@ if ($isJourney) {
                             'attr'
                         ) ?>">
         </div>
-    </div>
 
+
+        <div class="col-12">
+            <hr class="my-2 mb-3">
+
+            <h2 class="fs-16 fw-semibold mb-1 mt-2">
+                Gurudwara and References
+            </h2>
+
+            <p class="text-muted fs-12 mb-0">
+                These details are optional and may help with family verification.
+            </p>
+        </div>
+
+        <div class="col-12">
+            <label
+                for="nearestGurudwara"
+                class="form-label">
+
+                Nearest Gurudwara
+
+                <span class="text-muted fw-normal">
+                    (Optional)
+                </span>
+            </label>
+
+            <input
+                type="text"
+                id="nearestGurudwara"
+                name="nearest_gurudwara"
+                class="form-control"
+                value="<?= esc(
+                            $fieldValue(
+                                'nearest_gurudwara',
+                                $details['nearest_gurudwara'] ?? ''
+                            ),
+                            'attr'
+                        ) ?>"
+                placeholder="Enter Gurudwara name or location"
+                maxlength="300"
+                data-error-maxlength="Nearest Gurudwara cannot exceed 200 characters."
+                autocomplete="off"
+                aria-describedby="nearestGurudwaraError">
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' => 'nearest_gurudwara',
+                    'errorId' => 'nearestGurudwaraError',
+                    'errors' => $errors,
+                ]
+            ) ?>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <label
+                for="referencePerson1"
+                class="form-label">
+
+                Name/Contact of 1st Reference Person
+
+                <span class="text-muted fw-normal">
+                    (Optional)
+                </span>
+            </label>
+
+            <input
+                type="text"
+                id="referencePerson1"
+                name="reference_person_1"
+                class="form-control"
+                value="<?= esc(
+                            $fieldValue(
+                                'reference_person_1',
+                                $details['reference_person_1'] ?? ''
+                            ),
+                            'attr'
+                        ) ?>"
+                placeholder="Enter name and contact details"
+                maxlength="200"
+                data-error-maxlength="First reference person details cannot exceed 200 characters."
+                autocomplete="off"
+                aria-describedby="referencePerson1Error">
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' => 'reference_person_1',
+                    'errorId' => 'referencePerson1Error',
+                    'errors' => $errors,
+                ]
+            ) ?>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <label
+                for="referencePerson2"
+                class="form-label">
+
+                Name/Contact of 2nd Reference Person
+
+                <span class="text-muted fw-normal">
+                    (Optional)
+                </span>
+            </label>
+
+            <input
+                type="text"
+                id="referencePerson2"
+                name="reference_person_2"
+                class="form-control"
+                value="<?= esc(
+                            $fieldValue(
+                                'reference_person_2',
+                                $details['reference_person_2'] ?? ''
+                            ),
+                            'attr'
+                        ) ?>"
+                placeholder="Enter name and contact details"
+                maxlength="200"
+                data-error-maxlength="Second reference person details cannot exceed 200 characters."
+                autocomplete="off"
+                aria-describedby="referencePerson1Error">
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' => 'reference_person_2',
+                    'errorId' => 'referencePerson2Error',
+                    'errors' => $errors,
+                ]
+            ) ?>
+        </div>
+    </div>
     <div class="row g-2 mt-4">
         <div
             class="col-12 col-sm-6 col-md-3

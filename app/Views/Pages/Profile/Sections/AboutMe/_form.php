@@ -45,7 +45,7 @@ $aboutMeValue = (string) old(
     <div class="mb-3">
         <label
             for="aboutMe"
-            class="form-label fw-medium">
+            class="form-label">
 
             Describe yourself
             <span class="text-danger">*</span>

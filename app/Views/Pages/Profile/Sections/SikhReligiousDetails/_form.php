@@ -114,7 +114,7 @@ if ($isJourney) {
         <div class="col-12 col-md-6">
             <label
                 for="sikhCommunityId"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Community / Caste
                 <span class="text-danger">*</span>
             </label>
@@ -171,7 +171,7 @@ if ($isJourney) {
         <div class="col-12 col-md-6">
             <label
                 for="sikhSubcommunityId"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Sub-community / Sub-caste
                 <span class="text-danger">*</span>
             </label>
@@ -259,7 +259,7 @@ if ($isJourney) {
         <div class="col-4 col-md-2">
             <label
                 for="birthHour"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Hour
                 <span class="text-danger">*</span>
             </label>
@@ -304,7 +304,7 @@ if ($isJourney) {
         <div class="col-4 col-md-2">
             <label
                 for="birthMinute"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Minute
                 <span class="text-danger">*</span>
             </label>
@@ -349,7 +349,7 @@ if ($isJourney) {
         <div class="col-4 col-md-2">
             <label
                 for="birthMeridiem"
-                class="form-label fw-medium">
+                class="form-labelm">
                 AM / PM
                 <span class="text-danger">*</span>
             </label>
@@ -390,7 +390,7 @@ if ($isJourney) {
         <div class="col-12 col-md-6">
             <label
                 for="gotra"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Gotra
             </label>
 
@@ -422,7 +422,7 @@ if ($isJourney) {
         <div class="col-12 col-md-4">
             <label
                 for="birthStateId"
-                class="form-label fw-medium">
+                class="form-labelm">
                 State of birth
                 <span class="text-danger">*</span>
             </label>
@@ -476,7 +476,7 @@ if ($isJourney) {
         <div class="col-12 col-md-4">
             <label
                 for="birthCityId"
-                class="form-label fw-medium">
+                class="form-labelm">
                 City of birth
                 <span class="text-danger">*</span>
             </label>
@@ -545,7 +545,7 @@ if ($isJourney) {
         <div class="col-12 col-md-4">
             <label
                 for="birthCountry"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Country of birth
             </label>
 
@@ -586,7 +586,7 @@ if ($isJourney) {
         <div class="col-12 col-md-6">
             <label
                 for="moonSignId"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Raashi / Moon sign
             </label>
 
@@ -637,7 +637,7 @@ if ($isJourney) {
         <div class="col-12 col-md-6">
             <label
                 for="birthStarId"
-                class="form-label fw-medium">
+                class="form-labelm">
                 Birth star / Nakshatra
             </label>
 

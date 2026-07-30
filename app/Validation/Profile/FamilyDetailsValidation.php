@@ -13,6 +13,10 @@ final class FamilyDetailsValidation
 
     private const GOTRA_MAX_LENGTH = 100;
 
+    private const GURUDWARA_MAX_LENGTH = 300;
+
+    private const REFERENCE_PERSON_MAX_LENGTH = 200;
+
     /**
      * @return array<string, array<string, mixed>>
      */
@@ -44,7 +48,7 @@ final class FamilyDetailsValidation
                 'Community',
                 'Please select your community.'
             ),
-            
+
             'gotra' => [
                 'label' => 'Gotra',
                 'rules' => [
@@ -120,6 +124,21 @@ final class FamilyDetailsValidation
                 'City',
                 'Please select your family city.'
             ),
+
+            'nearest_gurudwara' => self::optionalText(
+                'Nearest Gurudwara',
+                self::GURUDWARA_MAX_LENGTH
+            ),
+
+            'reference_person_1' => self::optionalText(
+                'First reference person',
+                self::REFERENCE_PERSON_MAX_LENGTH
+            ),
+
+            'reference_person_2' => self::optionalText(
+                'Second reference person',
+                self::REFERENCE_PERSON_MAX_LENGTH
+            ),
         ];
     }
 
@@ -192,6 +211,30 @@ final class FamilyDetailsValidation
             'errors' => [
                 'is_natural_no_zero' =>
                 $invalidMessage,
+            ],
+        ];
+    }
+
+    /**
+     * Validate an optional free-text Family Details field.
+     *
+     * @return array<string, mixed>
+     */
+    private static function optionalText(
+        string $label,
+        int $maximumLength
+    ): array {
+        return [
+            'label' => $label,
+            'rules' => [
+                'permit_empty',
+                'max_length[' . $maximumLength . ']',
+            ],
+            'errors' => [
+                'max_length' =>
+                $label . ' cannot exceed '
+                    . $maximumLength
+                    . ' characters.',
             ],
         ];
     }

@@ -145,7 +145,7 @@ if ($isJourney) {
         <div class="col-12 col-md-6">
             <label
                 for="highestEducation"
-                class="form-label fw-medium">
+                class="form-labelm">
 
                 Highest Education
                 <span class="text-danger">*</span>
@@ -209,7 +209,7 @@ if ($isJourney) {
         <div class="col-12 col-md-6">
             <label
                 for="collegeInstitution"
-                class="form-label fw-medium">
+                class="form-labelm">
 
                 College / Institution
             </label>
@@ -245,7 +245,7 @@ if ($isJourney) {
         <div class="col-12">
             <label
                 for="educationDetail"
-                class="form-label fw-medium">
+                class="form-labelm">
 
                 Education in Detail
             </label>
@@ -293,7 +293,7 @@ if ($isJourney) {
         <div class="col-12 col-md-6">
             <label
                 for="employedIn"
-                class="form-label fw-medium">
+                class="form-labelm">
 
                 Employed In
                 <span class="text-danger">*</span>
@@ -354,7 +354,7 @@ if ($isJourney) {
         <div class="col-12 col-md-6">
             <label
                 for="occupation"
-                class="form-label fw-medium">
+                class="form-labelm">
 
                 Occupation
                 <span class="text-danger">*</span>
@@ -425,7 +425,7 @@ if ($isJourney) {
         <div class="col-12 col-md-6">
             <label
                 for="organization"
-                class="form-label fw-medium">
+                class="form-labelm">
 
                 Organization
             </label>
@@ -460,7 +460,7 @@ if ($isJourney) {
         <div class="col-12 col-md-6">
             <label
                 for="annualIncome"
-                class="form-label fw-medium">
+                class="form-labelm">
 
                 Annual Income
             </label>
@@ -522,7 +522,7 @@ if ($isJourney) {
         <div class="col-12">
             <label
                 for="occupationDetail"
-                class="form-label fw-medium">
+                class="form-labelm">
 
                 Occupation in Detail
             </label>

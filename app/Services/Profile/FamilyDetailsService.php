@@ -20,6 +20,10 @@ final class FamilyDetailsService
 
     private const GOTRA_MAX_LENGTH = 100;
 
+    private const GURUDWARA_MAX_LENGTH = 300;
+
+    private const REFERENCE_PERSON_MAX_LENGTH = 200;
+
     public function __construct(
         private readonly UserModel $userModel,
         private readonly MemberFamilyDetailModel $detailModel,
@@ -160,6 +164,24 @@ final class FamilyDetailsService
             'Please select a valid family city.'
         );
 
+        $nearestGurudwara = $this->optionalText(
+            $data['nearest_gurudwara'] ?? null,
+            self::GURUDWARA_MAX_LENGTH,
+            'Nearest Gurudwara'
+        );
+
+        $referencePerson1 = $this->optionalText(
+            $data['reference_person_1'] ?? null,
+            self::REFERENCE_PERSON_MAX_LENGTH,
+            'First reference person'
+        );
+
+        $referencePerson2 = $this->optionalText(
+            $data['reference_person_2'] ?? null,
+            self::REFERENCE_PERSON_MAX_LENGTH,
+            'Second reference person'
+        );
+
         $this->masterDataService
             ->assertValidFamilySelection(
                 $familyValueId,
@@ -189,6 +211,9 @@ final class FamilyDetailsService
             'country_id' => $countryId,
             'state_id' => $stateId,
             'city_id' => $cityId,
+            'nearest_gurudwara' => $nearestGurudwara,
+            'reference_person_1' => $referencePerson1,
+            'reference_person_2' => $referencePerson2,
         ];
 
         $this->database->transException(true);
@@ -287,6 +312,43 @@ final class FamilyDetailsService
             throw new DomainException(
                 'Gotra cannot exceed '
                     . self::GOTRA_MAX_LENGTH
+                    . ' characters.'
+            );
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Normalize optional profile text.
+     *
+     * Empty values are converted to NULL so PostgreSQL stores the absence of
+     * a value consistently instead of storing empty strings.
+     */
+    private function optionalText(
+        mixed $value,
+        int $maximumLength,
+        string $label
+    ): ?string {
+        $normalized = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim((string) $value)
+        ) ?? '';
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (
+            mb_strlen(
+                $normalized,
+                'UTF-8'
+            ) > $maximumLength
+        ) {
+            throw new DomainException(
+                $label . ' cannot exceed '
+                    . $maximumLength
                     . ' characters.'
             );
         }

@@ -35,6 +35,12 @@ final class MemberFamilyDetailModel extends Model
         'country_id',
         'state_id',
         'city_id',
+        /*
+        * Optional Gurudwara and family-reference information.
+        */
+        'nearest_gurudwara',
+        'reference_person_1',
+        'reference_person_2',
     ];
 
     protected $useTimestamps = true;

@@ -230,7 +230,7 @@ $this->section('content');
                                         <div class="mb-3">
                                             <label
                                                 for="profile-photo-visibility"
-                                                class="form-label fw-semibold fs-13">
+                                                class="form-label">
 
                                                 Who can view this photo?
                                             </label>
@@ -779,7 +779,7 @@ $this->section('content');
                                                                                             (string) $photoId,
                                                                                             'attr'
                                                                                         ) ?>"
-                                                                class="form-label fw-semibold fs-12">
+                                                                class="form-label">
 
                                                                 Photo visibility
                                                             </label>

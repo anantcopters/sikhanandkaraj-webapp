@@ -1137,88 +1137,6 @@ final class ProfileController extends BaseController
     }
 
     /**
-     * @return array<string, string>
-     */
-    // private function sikhReligiousDetailsInput(): array
-    // {
-    //     return [
-    //         'community_id' => trim(
-    //             (string) $this->request->getPost(
-    //                 'community_id'
-    //             )
-    //         ),
-
-    //         'subcommunity_id' => trim(
-    //             (string) $this->request->getPost(
-    //                 'subcommunity_id'
-    //             )
-    //         ),
-
-    //         'birth_hour' => trim(
-    //             (string) $this->request->getPost(
-    //                 'birth_hour'
-    //             )
-    //         ),
-
-    //         'birth_minute' => trim(
-    //             (string) $this->request->getPost(
-    //                 'birth_minute'
-    //             )
-    //         ),
-
-    //         'birth_meridiem' => strtoupper(
-    //             trim(
-    //                 (string) $this->request->getPost(
-    //                     'birth_meridiem'
-    //                 )
-    //             )
-    //         ),
-
-    //         'birth_country_id' => trim(
-    //             (string) $this->request->getPost(
-    //                 'birth_country_id'
-    //             )
-    //         ),
-
-    //         'birth_state_id' => trim(
-    //             (string) $this->request->getPost(
-    //                 'birth_state_id'
-    //             )
-    //         ),
-
-    //         'birth_city_id' => trim(
-    //             (string) $this->request->getPost(
-    //                 'birth_city_id'
-    //             )
-    //         ),
-
-    //         'gotra' => $this->normalizeProfileText(
-    //             $this->request->getPost('gotra')
-    //         ),
-
-    //         'moon_sign_id' => trim(
-    //             (string) $this->request->getPost(
-    //                 'moon_sign_id'
-    //             )
-    //         ),
-
-    //         'birth_star_id' => trim(
-    //             (string) $this->request->getPost(
-    //                 'birth_star_id'
-    //             )
-    //         ),
-
-    //         'has_dosh' => strtoupper(
-    //             trim(
-    //                 (string) $this->request->getPost(
-    //                     'has_dosh'
-    //                 )
-    //             )
-    //         ),
-    //     ];
-    // }
-
-    /**
      * Read and normalize expected Family Details fields.
      *
      * @return array<string, string>
@@ -1307,6 +1225,27 @@ final class ProfileController extends BaseController
             'city_id' => trim(
                 (string) $this->request->getPost(
                     'city_id'
+                )
+            ),
+
+            'nearest_gurudwara' =>
+            $this->normalizeProfileText(
+                $this->request->getPost(
+                    'nearest_gurudwara'
+                )
+            ),
+
+            'reference_person_1' =>
+            $this->normalizeProfileText(
+                $this->request->getPost(
+                    'reference_person_1'
+                )
+            ),
+
+            'reference_person_2' =>
+            $this->normalizeProfileText(
+                $this->request->getPost(
+                    'reference_person_2'
                 )
             ),
         ];
