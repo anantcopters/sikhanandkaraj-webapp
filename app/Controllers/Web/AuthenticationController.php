@@ -18,7 +18,7 @@ use Throwable;
 final class AuthenticationController extends BaseController
 {
     /**
-     * Display the login screen.
+     * Display the login-method selection page.
      */
     public function index(): string|RedirectResponse
     {
@@ -28,18 +28,38 @@ final class AuthenticationController extends BaseController
             );
         }
 
-        $this->response
-            ->setHeader(
-                'Cache-Control',
-                'no-store, no-cache, must-revalidate, max-age=0'
-            )
-            ->setHeader('Pragma', 'no-cache')
-            ->setHeader('Expires', '0');
+        $this->preventPageCaching();
+
+        return view(
+            'Pages/Authentication/LoginOptions',
+            [
+                'pageTitle' =>
+                'Login',
+
+                'formAlert' =>
+                $this->readFormAlert(),
+            ]
+        );
+    }
+
+    /**
+     * Display the existing password login screen.
+     */
+    public function password(): string|RedirectResponse
+    {
+        if ($this->isAuthenticated()) {
+            return redirect()->to(
+                route_to('web.dashboard')
+            );
+        }
+
+        $this->preventPageCaching();
 
         return view(
             'Pages/Authentication/Login',
             [
-                'pageTitle' => 'Login',
+                'pageTitle' =>
+                'Login with Password',
 
                 'validationErrors' =>
                 $this->readValidationErrors(),
@@ -51,7 +71,6 @@ final class AuthenticationController extends BaseController
                 $this->readFlashString(
                     'loginIdentifier'
                 ),
-
 
                 'pageScripts' => [
                     'assets/js/components/password-toggle.js',
@@ -274,7 +293,11 @@ final class AuthenticationController extends BaseController
         ?array $formAlert = null
     ): RedirectResponse {
         $redirect = redirect()
-            ->to(route_to('web.login'))
+            ->to(
+                route_to(
+                    'web.login.password'
+                )
+            )
             ->with(
                 'loginIdentifier',
                 $identifier
@@ -321,5 +344,25 @@ final class AuthenticationController extends BaseController
         return $name !== ''
             ? $name
             : 'Member';
+    }
+
+    /**
+     * Prevent caching of authentication and password-reset pages.
+     */
+    private function preventPageCaching(): void
+    {
+        $this->response
+            ->setHeader(
+                'Cache-Control',
+                'no-store, no-cache, must-revalidate, max-age=0'
+            )
+            ->setHeader(
+                'Pragma',
+                'no-cache'
+            )
+            ->setHeader(
+                'Expires',
+                '0'
+            );
     }
 }

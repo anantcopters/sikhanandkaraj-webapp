@@ -210,6 +210,16 @@ $this->section('content');
                                     </span>
                                 </button>
                             </div>
+                            <div class="mt-4 text-center">
+                                <a
+                                    href="<?= route_to(
+                                                'web.login'
+                                            ) ?>"
+                                    class="fw-semibold text-primary text-decoration-underline">
+
+                                    Choose another login method
+                                </a>
+                            </div>
                         </form>
 
                         <div class="mt-4 text-center">

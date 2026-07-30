@@ -24,6 +24,11 @@ final class ContactVerificationModel extends Model
     public const STATUS_CANCELLED = 'CANCELLED';
 
     /**
+     * Passwordless member login using a verified mobile number.
+     */
+    public const PURPOSE_LOGIN = 'LOGIN';
+
+    /**
      * OTP record created successfully but delivery failed.
      *
      * Delivery-failed records remain useful for auditing but must not be treated

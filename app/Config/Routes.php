@@ -95,6 +95,9 @@ if (ENVIRONMENT === 'production') {
             ]
         );
 
+        /*
+ * Member login method selection.
+ */
         $routes->get(
             'login',
             'AuthenticationController::index',
@@ -103,11 +106,81 @@ if (ENVIRONMENT === 'production') {
             ]
         );
 
+        /*
+ * Existing password login.
+ */
+        $routes->get(
+            'login/password',
+            'AuthenticationController::password',
+            [
+                'as' =>
+                'web.login.password',
+            ]
+        );
+
         $routes->post(
-            'login',
+            'login/password',
             'AuthenticationController::login',
             [
-                'as' => 'web.login.submit',
+                'as' =>
+                'web.login.submit',
+            ]
+        );
+
+        /*
+ * Passwordless login through a verified mobile OTP.
+ */
+        $routes->get(
+            'login/otp',
+            'OtpLoginController::index',
+            [
+                'as' =>
+                'web.login.otp',
+            ]
+        );
+
+        $routes->post(
+            'login/otp/send',
+            'OtpLoginController::sendOtp',
+            [
+                'as' =>
+                'web.login.otp.send',
+            ]
+        );
+
+        $routes->get(
+            'login/otp/verify',
+            'OtpLoginController::verifyPage',
+            [
+                'as' =>
+                'web.login.otp.verify',
+            ]
+        );
+
+        $routes->post(
+            'login/otp/verify',
+            'OtpLoginController::verifyOtp',
+            [
+                'as' =>
+                'web.login.otp.verify.submit',
+            ]
+        );
+
+        $routes->post(
+            'login/otp/resend',
+            'OtpLoginController::resendOtp',
+            [
+                'as' =>
+                'web.login.otp.resend',
+            ]
+        );
+
+        $routes->post(
+            'login/otp/cancel',
+            'OtpLoginController::cancel',
+            [
+                'as' =>
+                'web.login.otp.cancel',
             ]
         );
 

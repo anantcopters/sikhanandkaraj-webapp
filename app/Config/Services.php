@@ -76,6 +76,7 @@ use App\Services\Prelaunch\PrelaunchFieldOfficerService;
 use App\Services\Prelaunch\PrelaunchPhotoService;
 use App\Services\Prelaunch\PrelaunchProfileService;
 use App\Services\Profile\MemberProfileSummaryService;
+use App\Services\Authentication\OtpLoginService;
 use Config\TableCleanup;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
@@ -202,6 +203,31 @@ class Services extends BaseService
         return new LoginService(
             new UserModel($database),
             new UserContactModel($database)
+        );
+    }
+
+    /**
+     * Return the passwordless member OTP login service.
+     */
+    public static function otpLoginService(
+        bool $getShared = true
+    ): OtpLoginService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'otpLoginService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new OtpLoginService(
+            new UserModel($database),
+            new UserContactModel($database),
+            new ContactVerificationModel(
+                $database
+            ),
+            $database,
+            static::smsProvider(false)
         );
     }
 
