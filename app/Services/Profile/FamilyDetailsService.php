@@ -42,14 +42,12 @@ final class FamilyDetailsService
             );
         }
 
-        $details = $this->detailModel->findForUser($userId);
+        $details = $this->detailModel->findForUser(
+            $userId
+        );
 
         $selectedStateId = $this->existingInteger(
             $details['state_id'] ?? null
-        );
-
-        $selectedCommunityId = $this->existingInteger(
-            $details['community_id'] ?? null
         );
 
         return [
@@ -60,8 +58,7 @@ final class FamilyDetailsService
             'masterData' =>
             $this->masterDataService
                 ->familyDetailsOptions(
-                    $selectedStateId,
-                    $selectedCommunityId
+                    $selectedStateId
                 ),
 
             'completion' =>
@@ -108,11 +105,6 @@ final class FamilyDetailsService
         $communityId = $this->requiredInteger(
             $data['community_id'] ?? null,
             'Please select a valid community.'
-        );
-
-        $subcommunityId = $this->requiredInteger(
-            $data['subcommunity_id'] ?? null,
-            'Please select a valid sub-community.'
         );
 
         $gotra = $this->requiredGotra(
@@ -174,7 +166,6 @@ final class FamilyDetailsService
                 $familyTypeId,
                 $familyStatusId,
                 $communityId,
-                $subcommunityId,
                 $fatherOccupationId,
                 $motherOccupationId,
                 $countryId,
@@ -188,7 +179,6 @@ final class FamilyDetailsService
             'family_type_id' => $familyTypeId,
             'family_status_id' => $familyStatusId,
             'community_id' => $communityId,
-            'subcommunity_id' => $subcommunityId,
             'gotra' => $gotra,
             'father_name' => $fatherName,
             'mother_name' => $motherName,
@@ -396,10 +386,6 @@ final class FamilyDetailsService
         $requiredChecks = [
             $this->hasPositiveInteger(
                 $details['community_id'] ?? null
-            ),
-
-            $this->hasPositiveInteger(
-                $details['subcommunity_id'] ?? null
             ),
 
             $this->hasRequiredText(

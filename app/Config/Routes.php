@@ -337,38 +337,6 @@ if (ENVIRONMENT === 'production') {
         );
 
         /*
-    * Sikh & Religious Details.
-    */
-        // $routes->get(
-        //     'profile/sikh-religious-details',
-        //     'ProfileController::sikhReligiousDetails',
-        //     [
-        //         'as' => 'web.profile.sikh-religious-details',
-        //         'filter' => 'webAuth',
-        //     ]
-        // );
-
-        // $routes->post(
-        //     'profile/sikh-religious-details',
-        //     'ProfileController::updateSikhReligiousDetails',
-        //     [
-        //         'as' =>
-        //         'web.profile.sikh-religious-details.update',
-        //         'filter' => 'webAuth',
-        //     ]
-        // );
-
-        $routes->get(
-            'profile/master/subcommunities/(:num)',
-            'ProfileMasterController::subcommunities/$1',
-            [
-                'as' =>
-                'web.profile.master.subcommunities',
-                'filter' => 'webAuth',
-            ]
-        );
-
-        /*
     * Lifestyle.
     */
         $routes->get(
@@ -911,14 +879,6 @@ $routes->group(
             'PrelaunchProfileController::cities/$1',
             [
                 'as' => 'prelaunch.master.cities',
-            ]
-        );
-
-        $routes->get(
-            'master/subcommunities/(:num)',
-            'PrelaunchProfileController::subcommunities/$1',
-            [
-                'as' => 'prelaunch.master.subcommunities',
             ]
         );
 

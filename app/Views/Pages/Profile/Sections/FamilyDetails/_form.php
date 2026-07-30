@@ -24,7 +24,6 @@ $familyValues = $options['familyValues'] ?? [];
 $familyTypes = $options['familyTypes'] ?? [];
 $familyStatuses = $options['familyStatuses'] ?? [];
 $communities = $options['communities'] ?? [];
-$subcommunities = $options['subcommunities'] ?? [];
 $familyOccupations = $options['familyOccupations'] ?? [];
 $siblingCounts = $options['siblingCounts'] ?? range(0, 10);
 $country = $options['country'] ?? [];
@@ -71,11 +70,6 @@ $selectedCityId = $fieldValue(
 $selectedCommunityId = $fieldValue(
     'community_id',
     $details['community_id'] ?? ''
-);
-
-$selectedSubcommunityId = $fieldValue(
-    'subcommunity_id',
-    $details['subcommunity_id'] ?? ''
 );
 
 $isJourney = ($isProfileJourney ?? false) === true;
@@ -212,12 +206,6 @@ if ($isJourney) {
                 data-choice-search="true"
                 data-choice-search-placeholder="Search community"
                 data-choice-position="bottom"
-                data-dependent-url-template="<?= esc(
-                                                    site_url(
-                                                        'profile/master/subcommunities/__PARENT_ID__'
-                                                    ),
-                                                    'attr'
-                                                ) ?>"
                 data-error-required="Please select your community."
                 required>
 
@@ -257,75 +245,7 @@ if ($isJourney) {
             ) ?>
         </div>
 
-        <div class="col-12 col-md-6">
-            <label
-                for="familySubcommunityId"
-                class="form-label fw-medium">
 
-                Sub-community
-                <span class="text-danger">*</span>
-            </label>
-
-            <select
-                id="familySubcommunityId"
-                name="subcommunity_id"
-                class="form-select"
-                data-choice
-                data-choice-search="true"
-                data-choice-search-placeholder="Search sub-community"
-                data-choice-position="bottom"
-                data-selected-value="<?= esc(
-                                            $selectedSubcommunityId,
-                                            'attr'
-                                        ) ?>"
-                data-error-required="Please select your sub-community."
-                required
-                <?= $selectedCommunityId === ''
-                    ? 'disabled'
-                    : '' ?>>
-
-                <option value="">
-                    <?= $selectedCommunityId === ''
-                        ? 'Select community first'
-                        : 'Select sub-community' ?>
-                </option>
-
-                <?php foreach ($subcommunities as $subcommunity): ?>
-                    <?php
-                    $subcommunityId = (string) (
-                        $subcommunity['id'] ?? ''
-                    );
-                    ?>
-
-                    <option
-                        value="<?= esc(
-                                    $subcommunityId,
-                                    'attr'
-                                ) ?>"
-                        <?= $isSelected(
-                            'subcommunity_id',
-                            $subcommunityId,
-                            $selectedSubcommunityId
-                        ) ?>>
-
-                        <?= esc(
-                            (string) (
-                                $subcommunity['name'] ?? ''
-                            )
-                        ) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-
-            <?= view(
-                'Components/Forms/FieldError',
-                [
-                    'field' => 'subcommunity_id',
-                    'errorId' => 'subcommunityIdError',
-                    'errors' => $errors,
-                ]
-            ) ?>
-        </div>
         <div class="col-12 col-md-6">
             <label
                 for="familyGotra"

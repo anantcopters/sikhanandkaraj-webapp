@@ -43,7 +43,6 @@ use App\Services\Profile\FamilyDetailsService;
 use App\Models\MasterBirthStarModel;
 use App\Models\MasterMoonSignModel;
 use App\Models\MasterSikhCommunityModel;
-use App\Models\MasterSikhSubcommunityModel;
 use App\Models\MemberSikhReligiousDetailModel;
 use App\Services\Profile\SikhReligiousDetailsService;
 use App\Models\MasterLifestyleCategoryModel;
@@ -348,8 +347,7 @@ class Services extends BaseService
             new MasterFamilyValueModel($database),
             new MasterFamilyTypeModel($database),
             new MasterFamilyStatusModel($database),
-            new MasterSikhCommunityModel($database),
-            new MasterSikhSubcommunityModel($database)
+            new MasterSikhCommunityModel($database)
         );
     }
 
@@ -452,7 +450,6 @@ class Services extends BaseService
             new UserModel($database),
             new MemberSikhReligiousDetailModel($database),
             new MasterSikhCommunityModel($database),
-            new MasterSikhSubcommunityModel($database),
             new MasterMoonSignModel($database),
             new MasterBirthStarModel($database),
             new MasterCountryModel($database),

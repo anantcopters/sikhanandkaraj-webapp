@@ -25,7 +25,6 @@ final class MemberFamilyDetailModel extends Model
         'family_type_id',
         'family_status_id',
         'community_id',
-        'subcommunity_id',
         'gotra',
         'father_name',
         'mother_name',
@@ -55,8 +54,8 @@ final class MemberFamilyDetailModel extends Model
     /**
      * Find one member's Family Details with readable master values.
      *
-     * LEFT JOIN is intentional because family value, family type and family
-     * status are optional and may be NULL.
+     * LEFT JOIN is intentional because family value, family type, family
+     * status and occupations are optional and may be NULL.
      *
      * @return array<string, mixed>|null
      */
@@ -71,7 +70,6 @@ final class MemberFamilyDetailModel extends Model
                 'family_status.name AS family_status_name',
 
                 'community.name AS community_name',
-                'subcommunity.name AS subcommunity_name',
 
                 'father_occupation.name '
                     . 'AS father_occupation_name',
@@ -105,12 +103,6 @@ final class MemberFamilyDetailModel extends Model
                 'master_sikh_communities community',
                 'community.id = '
                     . 'member_family_details.community_id',
-                'left'
-            )
-            ->join(
-                'master_sikh_subcommunities subcommunity',
-                'subcommunity.id = '
-                    . 'member_family_details.subcommunity_id',
                 'left'
             )
             ->join(

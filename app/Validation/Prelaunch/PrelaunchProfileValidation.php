@@ -186,9 +186,6 @@ final class PrelaunchProfileValidation
                     'Community'
                 ),
 
-                'sikh_subcommunity_id' => self::masterRule(
-                    'Sub-community'
-                ),
 
                 'gotra' => [
                     'label' => 'Gotra',

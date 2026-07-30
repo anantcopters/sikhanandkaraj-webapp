@@ -7,7 +7,6 @@ declare(strict_types=1);
  *
  * @var array<string, string>|null            $validationErrors
  * @var array<int, array<string, mixed>>|null $communities
- * @var array<int, array<string, mixed>>|null $subcommunities
  */
 
 $errorBag = is_array(
@@ -22,13 +21,6 @@ $communityOptions = is_array(
         ?? null
 )
     ? $communities
-    : [];
-
-$subcommunityOptions = is_array(
-    $subcommunities
-        ?? null
-)
-    ? $subcommunities
     : [];
 
 $fatherName = (string) old(
@@ -48,11 +40,6 @@ $gotra = (string) old(
 
 $communityId = (string) old(
     'sikh_community_id',
-    ''
-);
-
-$subcommunityId = (string) old(
-    'sikh_subcommunity_id',
     ''
 );
 
@@ -84,13 +71,6 @@ $communityError = trim(
     )
 );
 
-$subcommunityError = trim(
-    (string) (
-        $errorBag['sikh_subcommunity_id']
-        ?? ''
-    )
-);
-
 $fatherNameClass =
     $fatherNameError !== ''
     ? 'is-invalid'
@@ -110,16 +90,6 @@ $communityClass =
     $communityError !== ''
     ? 'is-invalid'
     : '';
-
-$subcommunityClass =
-    $subcommunityError !== ''
-    ? 'is-invalid'
-    : '';
-
-$subcommunityRouteTemplate = route_to(
-    'prelaunch.master.subcommunities',
-    0
-);
 ?>
 
 <div class="card border border-danger border-opacity-25 shadow-sm mb-3">
@@ -128,7 +98,8 @@ $subcommunityRouteTemplate = route_to(
             <div class="fs-3 text-primary">
                 <i
                     class="ri-home-heart-line"
-                    aria-hidden="true"></i>
+                    aria-hidden="true">
+                </i>
             </div>
 
             <div>
@@ -137,8 +108,7 @@ $subcommunityRouteTemplate = route_to(
                 </h5>
 
                 <p class="text-muted mb-0 fs-12">
-                    Add parent names, community and gotra
-                    information.
+                    Add parent names, community and Gotra information.
                 </p>
             </div>
         </div>
@@ -150,6 +120,7 @@ $subcommunityRouteTemplate = route_to(
                 <label
                     for="father_name"
                     class="form-label">
+
                     Father’s name
                 </label>
 
@@ -179,6 +150,7 @@ $subcommunityRouteTemplate = route_to(
                     id="father_nameError"
                     class="invalid-feedback"
                     data-validation-error="father_name">
+
                     <?= esc($fatherNameError) ?>
                 </div>
             </div>
@@ -187,6 +159,7 @@ $subcommunityRouteTemplate = route_to(
                 <label
                     for="mother_name"
                     class="form-label">
+
                     Mother’s name
                 </label>
 
@@ -216,6 +189,7 @@ $subcommunityRouteTemplate = route_to(
                     id="mother_nameError"
                     class="invalid-feedback"
                     data-validation-error="mother_name">
+
                     <?= esc($motherNameError) ?>
                 </div>
             </div>
@@ -224,6 +198,7 @@ $subcommunityRouteTemplate = route_to(
                 <label
                     for="gotra"
                     class="form-label">
+
                     Gotra
                 </label>
 
@@ -240,11 +215,11 @@ $subcommunityRouteTemplate = route_to(
                                 'attr'
                             ) ?>"
                     aria-describedby="gotraError"
-                    placeholder="Enter gotra"
+                    placeholder="Enter Gotra"
                     minlength="2"
                     maxlength="100"
                     autocomplete="off"
-                    data-error-required="Please enter gotra."
+                    data-error-required="Please enter Gotra."
                     data-error-minlength="Gotra must contain at least 2 characters."
                     data-error-maxlength="Gotra cannot exceed 100 characters."
                     data-error-pattern="Gotra may contain letters, spaces, apostrophes, full stops and hyphens only."
@@ -254,6 +229,7 @@ $subcommunityRouteTemplate = route_to(
                     id="gotraError"
                     class="invalid-feedback"
                     data-validation-error="gotra">
+
                     <?= esc($gotraError) ?>
                 </div>
             </div>
@@ -262,6 +238,7 @@ $subcommunityRouteTemplate = route_to(
                 <label
                     for="sikh_community_id"
                     class="form-label">
+
                     Community
                 </label>
 
@@ -272,28 +249,22 @@ $subcommunityRouteTemplate = route_to(
                                             $communityClass,
                                             'attr'
                                         ) ?>"
-                    data-subcommunity-url-template="<?= esc(
-                                                        $subcommunityRouteTemplate,
-                                                        'attr'
-                                                    ) ?>"
                     data-choice
                     data-choices
                     data-choice-search="true"
                     data-choice-position="bottom"
                     data-error-required="Please select your community."
                     required>
+
                     <option value="">
                         Select community
                     </option>
 
                     <?php foreach (
-                        $communityOptions as
-                        $communityOption
+                        $communityOptions as $communityOption
                     ): ?>
                         <?php
-                        if (!is_array(
-                            $communityOption
-                        )) {
+                        if (!is_array($communityOption)) {
                             continue;
                         }
 
@@ -329,107 +300,18 @@ $subcommunityRouteTemplate = route_to(
                             <?= $optionSelected
                                 ? 'selected'
                                 : '' ?>>
+
                             <?= esc($optionName) ?>
                         </option>
-                    <?php endforeach ?>
+                    <?php endforeach; ?>
                 </select>
 
                 <div
                     id="sikh_community_idError"
                     class="invalid-feedback"
                     data-validation-error="sikh_community_id">
+
                     <?= esc($communityError) ?>
-                </div>
-            </div>
-
-            <div class="col-12 col-md-6">
-                <label
-                    for="sikh_subcommunity_id"
-                    class="form-label">
-                    Sub-community
-                </label>
-
-                <select
-                    id="sikh_subcommunity_id"
-                    name="sikh_subcommunity_id"
-                    class="form-select <?= esc(
-                                            $subcommunityClass,
-                                            'attr'
-                                        ) ?>"
-                    aria-describedby="sikh_subcommunity_idError"
-                    data-selected-value="<?= esc(
-                                                $subcommunityId,
-                                                'attr'
-                                            ) ?>"
-                    data-choice
-                    data-choice-search="true"
-                    data-choice-position="bottom"
-                    data-choice-search-placeholder="Search sub-community"
-                    data-error-required="Please select your sub-community."
-                    <?= $communityId === ''
-                        ? 'disabled'
-                        : '' ?>
-                    required>
-                    <option value="">
-                        <?= $communityId === ''
-                            ? 'Select community first'
-                            : 'Select sub-community' ?>
-                    </option>
-
-                    <?php foreach (
-                        $subcommunityOptions as
-                        $subcommunityOption
-                    ): ?>
-                        <?php
-                        if (!is_array(
-                            $subcommunityOption
-                        )) {
-                            continue;
-                        }
-
-                        $optionId = (string) (
-                            $subcommunityOption['id']
-                            ?? ''
-                        );
-
-                        $optionName = trim(
-                            (string) (
-                                $subcommunityOption['name']
-                                ?? $subcommunityOption['label']
-                                ?? ''
-                            )
-                        );
-
-                        if (
-                            $optionId === ''
-                            || $optionName === ''
-                        ) {
-                            continue;
-                        }
-
-                        $optionSelected =
-                            $subcommunityId
-                            === $optionId;
-                        ?>
-
-                        <option
-                            value="<?= esc(
-                                        $optionId,
-                                        'attr'
-                                    ) ?>"
-                            <?= $optionSelected
-                                ? 'selected'
-                                : '' ?>>
-                            <?= esc($optionName) ?>
-                        </option>
-                    <?php endforeach ?>
-                </select>
-
-                <div
-                    id="sikh_subcommunity_idError"
-                    class="invalid-feedback"
-                    data-validation-error="sikh_subcommunity_id">
-                    <?= esc($subcommunityError) ?>
                 </div>
             </div>
         </div>

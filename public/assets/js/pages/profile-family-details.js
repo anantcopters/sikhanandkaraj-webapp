@@ -1,12 +1,9 @@
 'use strict';
 
-'use strict';
-
 /**
  * Family Details page behaviour.
  *
  * Handles:
- * - Community to Sub-community dependency.
  * - State to City dependency.
  * - Submit-button loading state.
  */
@@ -17,14 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const submitButton = document.getElementById(
         'saveFamilyDetailsButton'
-    );
-
-    const communitySelect = document.getElementById(
-        'familyCommunityId'
-    );
-
-    const subcommunitySelect = document.getElementById(
-        'familySubcommunityId'
     );
 
     const stateSelect = document.getElementById(
@@ -67,9 +56,6 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * Rebuild a Choices.js dependent dropdown.
      *
-     * Directly changing native select options is insufficient because
-     * Choices.js maintains its own rendered option list.
-     *
      * @param {HTMLSelectElement} select
      * @param {Array<object>} records
      * @param {string} placeholder
@@ -89,10 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .map(normalizeRecord)
             .filter((record) => record !== null);
 
-        /*
-         * Destroy the current Choices.js instance before modifying the
-         * underlying native select.
-         */
         window.SelectChoice?.destroy(select);
 
         select.replaceChildren();
@@ -127,10 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         select.disabled = normalizedRecords.length === 0;
 
-        /*
-         * Recreate Choices.js so the visible control matches the native
-         * select options.
-         */
         window.SelectChoice?.create(select);
     };
 
@@ -166,10 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /**
      * Fetch dependent master options.
-     *
-     * The parent select must provide:
-     *
-     * data-dependent-url-template="/path/__PARENT_ID__"
      *
      * @param {HTMLSelectElement} parentSelect
      * @param {HTMLSelectElement} childSelect
@@ -225,10 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
             encodeURIComponent(parentId)
         );
 
-        /*
-         * Disable the native field while the request is running. The
-         * current Choices.js instance remains visible until replacement.
-         */
         childSelect.disabled = true;
 
         try {
@@ -278,58 +248,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
-     * Bind Community to Sub-community.
-     */
-    if (communitySelect && subcommunitySelect) {
-        communitySelect.addEventListener(
-            'change',
-            () => {
-                /*
-                 * A saved value is relevant only during the initial page
-                 * restoration. A manual Community change must clear it.
-                 */
-                subcommunitySelect.dataset.selectedValue = '';
-
-                void loadDependentOptions(
-                    communitySelect,
-                    subcommunitySelect,
-                    'Select sub-community'
-                );
-            }
-        );
-
-        const selectedSubcommunityId = String(
-            subcommunitySelect.dataset
-                .selectedValue ?? ''
-        ).trim();
-
-        /*
-         * Normally the server renders saved Sub-community options.
-         * This fallback handles validation reloads or missing child data.
-         */
-        if (
-            communitySelect.value !== ''
-            && subcommunitySelect.options.length <= 1
-        ) {
-            void loadDependentOptions(
-                communitySelect,
-                subcommunitySelect,
-                'Select sub-community',
-                selectedSubcommunityId
-            );
-        }
-    }
-
-    /**
      * Bind State to City.
      */
     if (stateSelect && citySelect) {
         stateSelect.addEventListener(
             'change',
             () => {
-                /*
-                 * Clear the previously selected City when State changes.
-                 */
                 citySelect.dataset.selectedValue = '';
 
                 void loadDependentOptions(
@@ -345,10 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 .selectedValue ?? ''
         ).trim();
 
-        /*
-         * Normally the server renders saved City options. This fallback
-         * loads them when a State exists but the City list is empty.
-         */
         if (
             stateSelect.value !== ''
             && citySelect.options.length <= 1

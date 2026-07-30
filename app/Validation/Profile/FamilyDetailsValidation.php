@@ -44,12 +44,7 @@ final class FamilyDetailsValidation
                 'Community',
                 'Please select your community.'
             ),
-
-            'subcommunity_id' => self::requiredMaster(
-                'Sub-community',
-                'Please select your sub-community.'
-            ),
-
+            
             'gotra' => [
                 'label' => 'Gotra',
                 'rules' => [

@@ -404,18 +404,6 @@ $this->section('content');
                                 )
                             ) ?>
                         </dd>
-
-                        <dt class="col-sm-4">
-                            Sub-community
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['subcommunity_name']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
                     </dl>
                 </div>
             </div>

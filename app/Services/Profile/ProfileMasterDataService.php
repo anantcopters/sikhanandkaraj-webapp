@@ -18,7 +18,6 @@ use App\Models\MasterFamilyStatusModel;
 use App\Models\MasterFamilyTypeModel;
 use App\Models\MasterFamilyValueModel;
 use App\Models\MasterSikhCommunityModel;
-use App\Models\MasterSikhSubcommunityModel;
 use App\Models\AbstractActiveMasterModel;
 use DomainException;
 
@@ -41,8 +40,7 @@ final class ProfileMasterDataService
         private readonly MasterFamilyValueModel $familyValueModel,
         private readonly MasterFamilyTypeModel $familyTypeModel,
         private readonly MasterFamilyStatusModel $familyStatusModel,
-        private readonly MasterSikhCommunityModel $communityModel,
-        private readonly MasterSikhSubcommunityModel $subcommunityModel
+        private readonly MasterSikhCommunityModel $communityModel
     ) {}
 
     /**
@@ -275,8 +273,7 @@ final class ProfileMasterDataService
      * @return array<string, mixed>
      */
     public function familyDetailsOptions(
-        ?int $selectedStateId = null,
-        ?int $selectedCommunityId = null
+        ?int $selectedStateId = null
     ): array {
         $india = $this->countryModel->findIndia();
 
@@ -315,14 +312,6 @@ final class ProfileMasterDataService
             'communities' =>
             $this->communityModel->activeOptions(),
 
-            'subcommunities' =>
-            $selectedCommunityId !== null
-                ? $this->subcommunityModel
-                ->activeForCommunity(
-                    $selectedCommunityId
-                )
-                : [],
-
             'siblingCounts' => range(0, 10),
         ];
     }
@@ -338,7 +327,6 @@ final class ProfileMasterDataService
         ?int $familyTypeId,
         ?int $familyStatusId,
         int $communityId,
-        int $subcommunityId,
         ?int $fatherOccupationId,
         ?int $motherOccupationId,
         int $countryId,
@@ -377,19 +365,6 @@ final class ProfileMasterDataService
         if (!is_array($community)) {
             throw new DomainException(
                 'Please select a valid community.'
-            );
-        }
-
-        $subcommunity = $this->subcommunityModel
-            ->where('id', $subcommunityId)
-            ->where('community_id', $communityId)
-            ->where('is_active', true)
-            ->first();
-
-        if (!is_array($subcommunity)) {
-            throw new DomainException(
-                'Please select a valid sub-community '
-                    . 'for the selected community.'
             );
         }
 
@@ -576,14 +551,6 @@ final class ProfileMasterDataService
             'communities' =>
             $this->communityModel
                 ->activeOptions(),
-
-            'subcommunities' =>
-            $selectedCommunityId !== null
-                ? $this->subcommunityModel
-                ->activeForCommunity(
-                    $selectedCommunityId
-                )
-                : [],
         ];
     }
 }

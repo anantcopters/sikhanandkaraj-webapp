@@ -1807,40 +1807,4 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         }
     }
-
-    /**
-     * Initialize Community → Sub-community dependency.
-     */
-    const communitySelect =
-        document.getElementById(
-            'sikh_community_id'
-        );
-
-    const subcommunitySelect =
-        document.getElementById(
-            'sikh_subcommunity_id'
-        );
-
-    if (
-        communitySelect
-        instanceof HTMLSelectElement
-        && subcommunitySelect
-        instanceof HTMLSelectElement
-    ) {
-        const subcommunityUrlTemplate =
-            communitySelect.dataset
-                .subcommunityUrlTemplate
-            ?? '';
-
-        if (
-            subcommunityUrlTemplate !== ''
-        ) {
-            bindDependentSelect(
-                communitySelect,
-                subcommunitySelect,
-                subcommunityUrlTemplate,
-                'Select sub-community'
-            );
-        }
-    }
 });

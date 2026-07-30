@@ -224,9 +224,6 @@ final class PrelaunchProfileService
                         'sikh_community_id' =>
                         (int) $input['sikh_community_id'],
 
-                        'sikh_subcommunity_id' =>
-                        (int) $input['sikh_subcommunity_id'],
-
                         'gotra' =>
                         $gotra,
 

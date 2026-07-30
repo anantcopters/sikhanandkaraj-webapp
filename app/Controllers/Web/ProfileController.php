@@ -1250,12 +1250,6 @@ final class ProfileController extends BaseController
                 )
             ),
 
-            'subcommunity_id' => trim(
-                (string) $this->request->getPost(
-                    'subcommunity_id'
-                )
-            ),
-
             'gotra' => $this->normalizeProfileText(
                 $this->request->getPost(
                     'gotra'

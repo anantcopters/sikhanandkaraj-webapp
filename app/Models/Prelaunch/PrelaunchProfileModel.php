@@ -50,7 +50,6 @@ final class PrelaunchProfileModel extends Model
         'father_name',
         'mother_name',
         'sikh_community_id',
-        'sikh_subcommunity_id',
         'gotra',
         'field_officer_id',
         'created_by',
@@ -191,8 +190,8 @@ final class PrelaunchProfileModel extends Model
     /**
      * Apply common selection and joins used by administrator screens.
      *
-     * This method modifies the supplied query builder and does not
-     * execute the query.
+     * This method modifies the supplied query builder and does not execute
+     * the query.
      */
     private function applyAdminDetailsQuery(
         \CodeIgniter\Database\BaseBuilder $builder
@@ -231,7 +230,6 @@ final class PrelaunchProfileModel extends Model
              * Family details.
              */
                 'master_sikh_communities.name AS community_name',
-                'master_sikh_subcommunities.name AS subcommunity_name',
             ])
             ->join(
                 'field_officers',
@@ -285,12 +283,6 @@ final class PrelaunchProfileModel extends Model
                 'master_sikh_communities',
                 'master_sikh_communities.id = '
                     . 'prelaunch_profiles.sikh_community_id',
-                'left'
-            )
-            ->join(
-                'master_sikh_subcommunities',
-                'master_sikh_subcommunities.id = '
-                    . 'prelaunch_profiles.sikh_subcommunity_id',
                 'left'
             );
     }

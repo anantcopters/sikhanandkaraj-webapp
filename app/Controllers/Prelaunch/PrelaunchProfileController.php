@@ -43,11 +43,6 @@ final class PrelaunchProfileController extends BaseController
                 0
             );
 
-            $selectedCommunityId = (int) old(
-                'sikh_community_id',
-                0
-            );
-
             $basicDetails =
                 $masterService->prelaunchBasicDetailsOptions(
                     $selectedStateId > 0
@@ -61,11 +56,7 @@ final class PrelaunchProfileController extends BaseController
 
             $familyDetails =
                 $masterService
-                ->prelaunchFamilyDetailsOptions(
-                    $selectedCommunityId > 0
-                        ? $selectedCommunityId
-                        : null
-                );
+                ->prelaunchFamilyDetailsOptions();
 
             return view(
                 'Prelaunch/Profile/Index',
@@ -117,10 +108,6 @@ final class PrelaunchProfileController extends BaseController
 
                     'communities' =>
                     $familyDetails['communities']
-                        ?? [],
-
-                    'subcommunities' =>
-                    $familyDetails['subcommunities']
                         ?? [],
 
                     'pageScripts' => [
@@ -232,91 +219,6 @@ final class PrelaunchProfileController extends BaseController
                     'successful' => false,
                     'message' =>
                     'Cities could not be loaded.',
-                    'items' => [],
-                ]);
-        }
-    }
-
-    /**
-     * Return sub-communities for a community selected on the public form.
-     */
-    public function subcommunities(
-        int $communityId
-    ): ResponseInterface {
-        if ($communityId <= 0) {
-            return $this->response
-                ->setStatusCode(422)
-                ->setJSON([
-                    'successful' => false,
-                    'message' =>
-                    'Please select a valid community.',
-                    'items' => [],
-                ]);
-        }
-
-        try {
-            /** @var ProfileMasterDataService $masterService */
-            $masterService = service(
-                'profileMasterDataService'
-            );
-
-            $familyOptions =
-                $masterService
-                ->prelaunchFamilyDetailsOptions(
-                    $communityId
-                );
-
-            $subcommunities = is_array(
-                $familyOptions['subcommunities']
-                    ?? null
-            )
-                ? $familyOptions['subcommunities']
-                : [];
-
-            return $this->response->setJSON([
-                'successful' => true,
-                'items' => array_values(
-                    array_map(
-                        static function (
-                            array $subcommunity
-                        ): array {
-                            return [
-                                'id' => (int) (
-                                    $subcommunity['id']
-                                    ?? 0
-                                ),
-                                'name' => (string) (
-                                    $subcommunity['name']
-                                    ?? $subcommunity['label']
-                                    ?? ''
-                                ),
-                            ];
-                        },
-                        $subcommunities
-                    )
-                ),
-            ]);
-        } catch (Throwable $exception) {
-            log_message(
-                'error',
-                'Unable to load prelaunch sub-communities. '
-                    . 'Community ID: {communityId}. '
-                    . 'Message: {message}.',
-                [
-                    'communityId' =>
-                    $communityId,
-
-                    'message' =>
-                    $exception->getMessage(),
-                ]
-            );
-
-            return $this->response
-                ->setStatusCode(500)
-                ->setJSON([
-                    'successful' => false,
-                    'message' =>
-                    'Sub-communities could not be loaded.',
                     'items' => [],
                 ]);
         }
