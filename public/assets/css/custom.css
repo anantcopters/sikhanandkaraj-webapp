@@ -1615,3 +1615,16 @@ form[aria-busy="true"] {
 .profile-preview-edit-button {
     z-index: 3;
 }
+
+/**
+ * Prelaunch saving modal progress transition.
+ */
+#prelaunchSavingProgressBar {
+    transition: width 900ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #prelaunchSavingProgressBar {
+        transition: none;
+    }
+}

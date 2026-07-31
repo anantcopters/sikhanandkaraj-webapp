@@ -1799,10 +1799,227 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     };
 
+    /**
+ * Initialize the prelaunch profile saving modal.
+ *
+ * The current form uses a standard multipart submission. Messages are
+ * elapsed-time guidance and do not claim measured backend completion.
+ *
+ * @returns {void}
+ */
+    const initializeSavingModal = () => {
+        const modalElement =
+            document.getElementById(
+                'prelaunchSavingModal'
+            );
+
+        const messageElement =
+            document.getElementById(
+                'prelaunchSavingModalMessage'
+            );
+
+        const progressBar =
+            document.getElementById(
+                'prelaunchSavingProgressBar'
+            );
+
+        if (
+            !(modalElement instanceof HTMLElement)
+            || !(messageElement instanceof HTMLElement)
+            || !(progressBar instanceof HTMLElement)
+            || typeof bootstrap === 'undefined'
+        ) {
+            return;
+        }
+
+        const modal =
+            bootstrap.Modal.getOrCreateInstance(
+                modalElement,
+                {
+                    backdrop: 'static',
+                    keyboard: false,
+                }
+            );
+
+        const stages = [
+            {
+                delay: 0,
+                message:
+                    'Saving profile details…',
+                progress: 18,
+            },
+            {
+                delay: 1200,
+                message:
+                    'Uploading and optimizing photographs…',
+                progress: 45,
+            },
+            {
+                delay: 4200,
+                message:
+                    'Saving additional information…',
+                progress: 72,
+            },
+            {
+                delay: 7500,
+                message:
+                    'Almost done. Please keep this page open…',
+                progress: 90,
+            },
+            {
+                delay: 12000,
+                message:
+                    'Large photographs can take a little longer to process…',
+                progress: 96,
+            },
+        ];
+
+        let timers = [];
+        let modalVisible = false;
+
+        /**
+         * Stop all pending message transitions.
+         *
+         * @returns {void}
+         */
+        const clearTimers = () => {
+            timers.forEach(
+                (timerId) => {
+                    window.clearTimeout(
+                        timerId
+                    );
+                }
+            );
+
+            timers = [];
+        };
+
+        /**
+         * Restore the default modal content.
+         *
+         * @returns {void}
+         */
+        const resetModal = () => {
+            clearTimers();
+
+            messageElement.textContent =
+                stages[0].message;
+
+            progressBar.style.width =
+                `${stages[0].progress}%`;
+        };
+
+        /**
+         * Show the processing modal.
+         *
+         * @returns {void}
+         */
+        const showModal = () => {
+            if (modalVisible) {
+                return;
+            }
+
+            modalVisible = true;
+            resetModal();
+
+            modal.show();
+
+            stages.forEach(
+                (stage) => {
+                    const timerId =
+                        window.setTimeout(
+                            () => {
+                                messageElement.textContent =
+                                    stage.message;
+
+                                progressBar.style.width =
+                                    `${stage.progress}%`;
+                            },
+                            stage.delay
+                        );
+
+                    timers.push(
+                        timerId
+                    );
+                }
+            );
+        };
+
+        /**
+         * Hide and reset the modal when submission is cancelled.
+         *
+         * @returns {void}
+         */
+        const hideModal = () => {
+            clearTimers();
+
+            modalVisible = false;
+
+            modal.hide();
+            resetModal();
+        };
+
+        /*
+         * Wait until every synchronous validation handler has completed.
+         */
+        form.addEventListener(
+            'submit',
+            (event) => {
+                window.setTimeout(
+                    () => {
+                        if (
+                            event.defaultPrevented
+                            || !form.checkValidity()
+                        ) {
+                            hideModal();
+
+                            return;
+                        }
+
+                        showModal();
+                    },
+                    0
+                );
+            }
+        );
+
+        /*
+         * Hide the modal when native validation prevents submission.
+         */
+        form.addEventListener(
+            'invalid',
+            () => {
+                hideModal();
+            },
+            true
+        );
+
+        /*
+         * The page may return through browser back-forward cache.
+         */
+        window.addEventListener(
+            'pageshow',
+            () => {
+                hideModal();
+            }
+        );
+
+        /*
+         * Hide it when the reusable validator reports an invalid form.
+         */
+        form.addEventListener(
+            'app:form-invalid',
+            () => {
+                hideModal();
+            }
+        );
+    };
+
     initializeProfileGenderDependency();
     initializeDateOfBirthAge();
     initializePhotoPreviews();
     initializeFieldOfficerVerification();
+    initializeSavingModal();
 
     /**
  * Initialize State → City dependency.

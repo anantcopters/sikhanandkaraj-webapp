@@ -124,7 +124,6 @@ final class PrelaunchProfileController extends BaseController
 
                     'pageScripts' => [
                         'assets/js/pages/prelaunch-profile-form.js',
-                        'assets/js/components/submit-loader.js',
                     ],
                 ]
             );
