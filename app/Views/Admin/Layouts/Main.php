@@ -101,30 +101,23 @@ $pageScripts = $pageScripts ?? [];
                 <div class="container-fluid px-3 px-lg-4">
 
                     <a
-                        href="<?= route_to(
-                                    'admin.dashboard'
-                                ) ?>"
+                        href="<?= route_to('admin.dashboard') ?>"
                         class="navbar-brand
-                        text-decoration-none me-lg-3 py-0">
+        d-inline-flex
+        align-items-center
+        flex-shrink-0
+        me-lg-3
+        m-0
+        p-0
+        text-decoration-none"
+                        aria-label="Administrator dashboard">
 
-                        <a
-                            class="navbar-brand
-                d-inline-flex
-                align-items-center
-                flex-shrink-0
-                m-0 p-0"
-                            href="<?= session('admin_is_authenticated') === true
-                                        ? url_to('web.dashboard')
-                                        : site_url('/') ?>"
-                            aria-label="SikhAnandKaraj home">
-
-                            <img
-                                src="<?= base_url(
-                                            'assets/images/sikhanandkaraj_removebg_2.png'
-                                        ) ?>"
-                                alt="SikhAnandKaraj"
-                                class="public-navbar__logo">
-                        </a>
+                        <img
+                            src="<?= base_url(
+                                        'assets/images/sikhanandkaraj_removebg_2.png'
+                                    ) ?>"
+                            alt="SikhAnandKaraj"
+                            class="public-navbar__logo">
                     </a>
 
                     <button
