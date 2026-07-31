@@ -95,6 +95,73 @@ final class BasicDetailsService
             (int) $data['city_id']
         );
 
+        $drinkingHabitId = isset(
+            $data['drinking_habit_id']
+        )
+            ? (int) $data['drinking_habit_id']
+            : null;
+
+        $eatingHabitId = isset(
+            $data['eating_habit_id']
+        )
+            ? (int) $data['eating_habit_id']
+            : null;
+
+        $physicalStatusId = isset(
+            $data['physical_status_id']
+        )
+            ? (int) $data['physical_status_id']
+            : null;
+
+        $numberOfChildren = isset(
+            $data['number_of_children']
+        )
+            ? (int) $data['number_of_children']
+            : null;
+
+        $childrenLivingTogether =
+            array_key_exists(
+                'children_living_together',
+                $data
+            )
+            && $data['children_living_together']
+            !== null
+            ? (bool) $data['children_living_together']
+            : null;
+            
+        $this->masterDataService
+            ->assertValidOptionalBasicSelections(
+                $drinkingHabitId,
+                $eatingHabitId,
+                $physicalStatusId
+            );
+
+        $maritalStatusId =
+            (int) $data['marital_status_id'];
+
+        $isNeverMarried = $this
+            ->masterDataService
+            ->isNeverMarried(
+                $maritalStatusId
+            );
+
+        if ($isNeverMarried) {
+            /*
+            * Never Married profiles must not retain stale child details if the
+            * marital status is changed from a previous saved value.
+            */
+            $numberOfChildren = null;
+            $childrenLivingTogether = null;
+        } elseif (
+            $childrenLivingTogether !== null
+            && $numberOfChildren === null
+        ) {
+            throw new DomainException(
+                'Please enter the number of children before selecting '
+                    . 'whether they live together.'
+            );
+        }
+
         $database = db_connect();
 
         $database->transException(true);
@@ -145,6 +212,21 @@ final class BasicDetailsService
 
                 'city_id' =>
                 (int) $data['city_id'],
+
+                'drinking_habit_id' =>
+                $drinkingHabitId,
+
+                'eating_habit_id' =>
+                $eatingHabitId,
+
+                'physical_status_id' =>
+                $physicalStatusId,
+
+                'number_of_children' =>
+                $numberOfChildren,
+
+                'children_living_together' =>
+                $childrenLivingTogether,
             ];
 
             $existing = $this

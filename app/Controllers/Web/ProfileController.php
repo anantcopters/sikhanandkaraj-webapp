@@ -243,6 +243,8 @@ final class ProfileController extends BaseController
                 'The member must be at least 18 years old.',
             ];
 
+
+
             $redirect = redirect()
                 ->to(
                     $this->profileSectionUrl(
@@ -260,6 +262,20 @@ final class ProfileController extends BaseController
                     'validationErrors',
                     [
                         'date_of_birth' => $message,
+                    ]
+                );
+            }
+
+            if (
+                $message ===
+                'Please enter the number of children before selecting '
+                . 'whether they live together.'
+            ) {
+                return $redirect->with(
+                    'validationErrors',
+                    [
+                        'number_of_children' =>
+                        $message,
                     ]
                 );
             }
@@ -561,6 +577,36 @@ final class ProfileController extends BaseController
             'mother_tongue_id' => trim(
                 (string) $this->request->getPost(
                     'mother_tongue_id'
+                )
+            ),
+
+            'drinking_habit_id' => trim(
+                (string) $this->request->getPost(
+                    'drinking_habit_id'
+                )
+            ),
+
+            'eating_habit_id' => trim(
+                (string) $this->request->getPost(
+                    'eating_habit_id'
+                )
+            ),
+
+            'physical_status_id' => trim(
+                (string) $this->request->getPost(
+                    'physical_status_id'
+                )
+            ),
+
+            'number_of_children' => trim(
+                (string) $this->request->getPost(
+                    'number_of_children'
+                )
+            ),
+
+            'children_living_together' => trim(
+                (string) $this->request->getPost(
+                    'children_living_together'
                 )
             ),
 

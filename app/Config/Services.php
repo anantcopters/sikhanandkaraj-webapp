@@ -77,6 +77,9 @@ use App\Services\Prelaunch\PrelaunchPhotoService;
 use App\Services\Prelaunch\PrelaunchProfileService;
 use App\Services\Profile\MemberProfileSummaryService;
 use App\Services\Authentication\OtpLoginService;
+use App\Models\MasterDrinkingHabitModel;
+use App\Models\MasterEatingHabitModel;
+use App\Models\MasterPhysicalStatusModel;
 use Config\TableCleanup;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
@@ -374,7 +377,10 @@ class Services extends BaseService
             new MasterFamilyValueModel($database),
             new MasterFamilyTypeModel($database),
             new MasterFamilyStatusModel($database),
-            new MasterSikhCommunityModel($database)
+            new MasterSikhCommunityModel($database),
+            new MasterDrinkingHabitModel($database),
+            new MasterEatingHabitModel($database),
+            new MasterPhysicalStatusModel($database)
         );
     }
 

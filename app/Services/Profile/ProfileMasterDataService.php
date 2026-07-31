@@ -19,6 +19,9 @@ use App\Models\MasterFamilyTypeModel;
 use App\Models\MasterFamilyValueModel;
 use App\Models\MasterSikhCommunityModel;
 use App\Models\AbstractActiveMasterModel;
+use App\Models\MasterDrinkingHabitModel;
+use App\Models\MasterEatingHabitModel;
+use App\Models\MasterPhysicalStatusModel;
 use DomainException;
 
 /**
@@ -40,10 +43,15 @@ final class ProfileMasterDataService
         private readonly MasterFamilyValueModel $familyValueModel,
         private readonly MasterFamilyTypeModel $familyTypeModel,
         private readonly MasterFamilyStatusModel $familyStatusModel,
-        private readonly MasterSikhCommunityModel $communityModel
+        private readonly MasterSikhCommunityModel $communityModel,
+        private readonly MasterDrinkingHabitModel $drinkingHabitModel,
+        private readonly MasterEatingHabitModel $eatingHabitModel,
+        private readonly MasterPhysicalStatusModel $physicalStatusModel
     ) {}
 
     /**
+     * Return the master data required by Basic Details.
+     *
      * @return array<string, mixed>
      */
     public function basicDetailsOptions(
@@ -61,25 +69,97 @@ final class ProfileMasterDataService
             'country' => $india,
 
             'maritalStatuses' =>
-            $this->maritalStatusModel->activeOptions(),
+            $this->maritalStatusModel
+                ->activeOptions(),
 
             'heights' =>
-            $this->heightModel->activeOptions(),
+            $this->heightModel
+                ->activeOptions(),
 
             'motherTongues' =>
-            $this->motherTongueModel->activeOptions(),
+            $this->motherTongueModel
+                ->activeOptions(),
+
+            'drinkingHabits' =>
+            $this->drinkingHabitModel
+                ->activeOptions(),
+
+            'eatingHabits' =>
+            $this->eatingHabitModel
+                ->activeOptions(),
+
+            'physicalStatuses' =>
+            $this->physicalStatusModel
+                ->activeOptions(),
 
             'states' =>
             $this->stateModel->activeForCountry(
                 (int) $india['id']
             ),
 
-            'cities' => $selectedStateId !== null
+            'cities' =>
+            $selectedStateId !== null
                 ? $this->cityModel->activeForState(
                     $selectedStateId
                 )
                 : [],
         ];
+    }
+
+    /**
+     * Determine whether an active marital status represents Never Married.
+     */
+    public function isNeverMarried(
+        int $maritalStatusId
+    ): bool {
+        if ($maritalStatusId <= 0) {
+            throw new DomainException(
+                'Please select a valid marital status.'
+            );
+        }
+
+        $maritalStatus = $this->maritalStatusModel
+            ->where(
+                'id',
+                $maritalStatusId
+            )
+            ->where(
+                'is_active',
+                true
+            )
+            ->first();
+
+        if (!is_array($maritalStatus)) {
+            throw new DomainException(
+                'Please select a valid marital status.'
+            );
+        }
+
+        $code = strtoupper(
+            trim(
+                (string) (
+                    $maritalStatus['code']
+                    ?? ''
+                )
+            )
+        );
+
+        if ($code !== '') {
+            return $code === 'NEVER_MARRIED';
+        }
+
+        /*
+        * Backward-compatible fallback for older marital-status master data
+        * where only name may be available.
+        */
+        return strtoupper(
+            trim(
+                (string) (
+                    $maritalStatus['name']
+                    ?? ''
+                )
+            )
+        ) === 'NEVER MARRIED';
     }
 
     /**
