@@ -1,85 +1,47 @@
 # Authentication
 
-## Purpose
+## Member login choices
 
-The application has separate member and administrator authentication contexts. They use different routes, filters, views and session keys.
+The login screen offers two separate paths:
 
-## Member authentication
+1. **Password login** using a verified mobile number or verified email address.
+2. **OTP login** using an active account's verified mobile number.
 
-Members may sign in with a verified email address or verified mobile number and a password.
+Both paths establish the same member session and redirect to the dashboard.
 
-- Email login is allowed only when the email is verified.
-- Mobile login is allowed only when the mobile number is verified.
-- A member with an unverified email may still use a verified mobile number.
-- Client validation improves usability; server validation remains authoritative.
-- Successful login regenerates the session ID.
-- Protected member routes use `WebAuthFilter`.
+## Password login rules
+
+- The identifier must resolve to a stored contact.
+- The selected contact must be verified.
+- The account must be `ACTIVE`.
+- The password hash must verify.
+- Successful authentication regenerates the session ID.
+- Expected failures return safe user messages without exposing internal state.
+
+## OTP login flow
+
+```text
+Login options
+  → enter mobile
+  → generic eligibility response
+  → create hashed LOGIN OTP
+  → commit database work
+  → deliver SMS
+  → verify OTP
+  → consume OTP
+  → establish member session
+```
+
+Public OTP initiation must not disclose whether a number exists, is unverified, belongs to a pending/suspended/deleted account, or is unknown. Resend cooldowns, issue quotas, expiry and attempt limits apply. Delivery-failed records are unusable.
+
+## Password recovery
+
+Password recovery accepts a registered mobile or verified email, but sends the OTP only to the verified mobile associated with an `ACTIVE` account. After OTP verification, the member sets a new password and returns to login.
+
+## Shared sensitive-page behavior
+
+Authentication, OTP verification and password-reset pages must set no-store/no-cache response headers. Shared BaseController helpers own member-session establishment, authentication-state checks and sensitive-page cache prevention.
 
 ## Administrator authentication
 
-Administrator login is independent from member login.
-
-- Only `VERIFIED` administrator accounts may log in.
-- `PENDING` accounts must complete invitation acceptance.
-- `SUSPENDED` accounts are denied.
-- Protected Admin routes use `AdminAuthFilter`.
-- Super-administrator routes also use `SuperAdminFilter`.
-- Login, failure and logout events should be audited.
-
-## Session separation
-
-Member and administrator session keys must remain distinct. Logging out of one context should not unintentionally destroy the other context unless that behaviour is explicitly chosen.
-
-Administrator session values include:
-
-- `admin_is_authenticated`;
-- `admin_user_id`;
-- `admin_user_name`;
-- `admin_role`;
-- `admin_authenticated_at`.
-
-## Password handling
-
-- Hash passwords with `password_hash()` and `PASSWORD_DEFAULT`.
-- Verify with `password_verify()`.
-- Rehash with `password_needs_rehash()` when required.
-- Never log, email or store plain passwords.
-- Password reset and invitation tokens must be one-time, expiring and stored only as hashes.
-
-## Authentication flow
-
-```text
-Request
-  ↓
-Controller
-  ↓
-Validation
-  ↓
-Authentication service
-  ↓
-Account/contact lookup
-  ↓
-Verification and status checks
-  ↓
-Password verification
-  ↓
-Session regeneration
-  ↓
-Authenticated session
-  ↓
-Redirect
-```
-
-## Testing checklist
-
-- valid email login;
-- valid mobile login;
-- unverified email message;
-- unverified mobile rejection;
-- incorrect password;
-- unknown identifier;
-- pending administrator rejection;
-- suspended administrator rejection;
-- session regeneration;
-- protected-route redirect;
-- logout clears only intended keys.
+Administrator authentication remains separate. Only `VERIFIED` administrators may log in. `PENDING` invitation accounts and `SUSPENDED` accounts are blocked. Administrator and member session keys must not overlap.
