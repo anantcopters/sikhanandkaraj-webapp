@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Support\BooleanValue;
+
 /**
  * Authenticated member profile preview.
  *
@@ -341,10 +343,10 @@ if (
     && $basicDetails['children_living_together']
     !== null
 ) {
-    $childrenLivingTogether = filter_var(
-        $basicDetails['children_living_together'],
-        FILTER_VALIDATE_BOOL
-    )
+    $childrenLivingTogether =
+        BooleanValue::fromDatabase(
+            $basicDetails['children_living_together']
+        )
         ? 'Yes'
         : 'No';
 }

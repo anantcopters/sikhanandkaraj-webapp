@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Support\BooleanValue;
+
 /**
  * Basic Details add/edit form.
  *
@@ -615,138 +617,138 @@ if ($isJourney) {
         </div>
 
         <div
-            id="childrenDetailsContainer"
-            class="col-12">
+            class="col-12 col-sm-6 col-lg-4"
+            data-children-details>
 
-            <div class="row g-3">
-                <div class="col-12 col-sm-6">
-                    <label
-                        for="numberOfChildren"
-                        class="form-labelm">
-                        Number of children
-                    </label>
+            <label
+                for="numberOfChildren"
+                class="form-labelm">
+                Number of children
+            </label>
 
-                    <input
-                        type="number"
-                        id="numberOfChildren"
-                        name="number_of_children"
-                        class="form-control <?= $numberOfChildrenHasError
-                                                ? 'is-invalid'
-                                                : '' ?>"
-                        value="<?= esc(
-                                    $fieldValue(
-                                        'number_of_children',
-                                        $details['number_of_children']
-                                            ?? ''
-                                    ),
-                                    'attr'
-                                ) ?>"
-                        min="1"
-                        max="99"
-                        step="1"
-                        inputmode="numeric"
-                        aria-describedby="numberOfChildrenError"
-                        data-error-min="Number of children must be between 1 and 99."
-                        data-error-max="Number of children must be between 1 and 99.">
-
-                    <?= view(
-                        'Components/Forms/FieldError',
-                        [
-                            'field' =>
-                            'number_of_children',
-
-                            'errorId' =>
-                            'numberOfChildrenError',
-
-                            'errors' =>
-                            $errors,
-                        ]
-                    ) ?>
-                </div>
-
-                <div class="col-12 col-sm-6">
-                    <fieldset>
-                        <legend class="form-labelm">
-                            Children living together
-                        </legend>
-
-                        <?php
-                        $livingTogetherValue =
+            <input
+                type="number"
+                id="numberOfChildren"
+                name="number_of_children"
+                class="form-control <?= $numberOfChildrenHasError
+                                        ? 'is-invalid'
+                                        : '' ?>"
+                value="<?= esc(
                             $fieldValue(
-                                'children_living_together',
-                                isset(
-                                    $details['children_living_together']
+                                'number_of_children',
+                                $details['number_of_children']
+                                    ?? ''
+                            ),
+                            'attr'
+                        ) ?>"
+                min="1"
+                max="99"
+                step="1"
+                inputmode="numeric"
+                aria-describedby="numberOfChildrenError"
+                data-error-min="Number of children must be between 1 and 99."
+                data-error-max="Number of children must be between 1 and 99.">
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' =>
+                    'number_of_children',
+
+                    'errorId' =>
+                    'numberOfChildrenError',
+
+                    'errors' =>
+                    $errors,
+                ]
+            ) ?>
+        </div>
+
+        <div
+            class="col-12 col-sm-6 col-lg-4"
+            data-children-details>
+
+            <fieldset>
+                <label class="form-labelm">
+                    Children living together
+                </label>
+
+                <?php
+                $storedChildrenLivingTogether =
+                    $details['children_living_together']
+                    ?? null;
+
+                $livingTogetherValue =
+                    $fieldValue(
+                        'children_living_together',
+                        $storedChildrenLivingTogether === null
+                            ? ''
+                            : (
+                                BooleanValue::fromDatabase(
+                                    $storedChildrenLivingTogether
                                 )
-                                    ? (
-                                        filter_var(
-                                            $details['children_living_together'],
-                                            FILTER_VALIDATE_BOOL
-                                        )
-                                        ? '1'
-                                        : '0'
-                                    )
-                                    : ''
-                            );
-                        ?>
+                                ? '1'
+                                : '0'
+                            )
+                    );
+                ?>
 
-                        <div class="d-flex flex-wrap gap-3">
-                            <div class="form-check">
-                                <input
-                                    type="radio"
-                                    id="childrenLivingTogetherYes"
-                                    name="children_living_together"
-                                    class="form-check-input <?= $childrenLivingTogetherHasError
-                                                                ? 'is-invalid'
-                                                                : '' ?>"
-                                    value="1"
-                                    <?= $livingTogetherValue === '1'
-                                        ? 'checked'
-                                        : '' ?>>
+                <div class="d-flex flex-wrap gap-3 pt-1">
+                    <div class="form-check">
+                        <input
+                            type="radio"
+                            id="childrenLivingTogetherYes"
+                            name="children_living_together"
+                            class="form-check-input <?= $childrenLivingTogetherHasError
+                                                        ? 'is-invalid'
+                                                        : '' ?>"
+                            value="1"
+                            <?= $livingTogetherValue === '1'
+                                ? 'checked'
+                                : '' ?>>
 
-                                <label
-                                    for="childrenLivingTogetherYes"
-                                    class="form-check-label">
-                                    Yes
-                                </label>
-                            </div>
+                        <label
+                            for="childrenLivingTogetherYes"
+                            class="form-check-label">
+                            Yes
+                        </label>
+                    </div>
 
-                            <div class="form-check">
-                                <input
-                                    type="radio"
-                                    id="childrenLivingTogetherNo"
-                                    name="children_living_together"
-                                    class="form-check-input <?= $childrenLivingTogetherHasError
-                                                                ? 'is-invalid'
-                                                                : '' ?>"
-                                    value="0"
-                                    <?= $livingTogetherValue === '0'
-                                        ? 'checked'
-                                        : '' ?>>
+                    <div class="form-check">
+                        <input
+                            type="radio"
+                            id="childrenLivingTogetherNo"
+                            name="children_living_together"
+                            class="form-check-input <?= $childrenLivingTogetherHasError
+                                                        ? 'is-invalid'
+                                                        : '' ?>"
+                            value="0"
+                            <?= $livingTogetherValue === '0'
+                                ? 'checked'
+                                : '' ?>>
 
-                                <label
-                                    for="childrenLivingTogetherNo"
-                                    class="form-check-label">
-                                    No
-                                </label>
-                            </div>
-                        </div>
-
-                        <?= view(
-                            'Components/Forms/FieldError',
-                            [
-                                'field' =>
-                                'children_living_together',
-
-                                'errorId' =>
-                                'childrenLivingTogetherError',
-
-                                'errors' =>
-                                $errors,
-                            ]
-                        ) ?>
-                    </fieldset>
+                        <label
+                            for="childrenLivingTogetherNo"
+                            class="form-check-label">
+                            No
+                        </label>
+                    </div>
                 </div>
-            </div>
+
+                <?= view(
+                    'Components/Forms/FieldError',
+                    [
+                        'field' =>
+                        'children_living_together',
+
+                        'errorId' =>
+                        'childrenLivingTogetherError',
+
+                        'errors' =>
+                        $errors,
+                    ]
+                ) ?>
+            </fieldset>
         </div>
 
         <div class="col-12 col-sm-6 col-lg-4">

@@ -151,19 +151,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     /**
- * Show child-related fields only when marital status is not Never Married.
- *
- * @returns {void}
- */
+     * Show child-related fields only when marital status is not Never Married.
+     *
+     * @returns {void}
+     */
     function initializeChildrenDetailsVisibility() {
         const maritalStatus =
             document.getElementById(
                 'maritalStatusId'
             );
 
-        const container =
-            document.getElementById(
-                'childrenDetailsContainer'
+        const childrenDetailSections =
+            document.querySelectorAll(
+                '[data-children-details]'
             );
 
         const numberOfChildren =
@@ -178,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (
             !(maritalStatus instanceof HTMLSelectElement)
-            || !(container instanceof HTMLElement)
+            || childrenDetailSections.length === 0
             || !(numberOfChildren instanceof HTMLInputElement)
         ) {
             return;
@@ -206,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         /**
-         * Synchronize visibility and submitted field state.
+         * Synchronize child-field visibility and submitted state.
          *
          * @returns {void}
          */
@@ -219,9 +219,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 && maritalStatusCode
                 !== 'NEVER_MARRIED';
 
-            container.classList.toggle(
-                'd-none',
-                !shouldShow
+            childrenDetailSections.forEach(
+                (section) => {
+                    if (!(section instanceof HTMLElement)) {
+                        return;
+                    }
+
+                    section.classList.toggle(
+                        'd-none',
+                        !shouldShow
+                    );
+                }
             );
 
             numberOfChildren.disabled =
@@ -229,9 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             livingTogetherInputs.forEach(
                 (input) => {
-                    if (
-                        !(input instanceof HTMLInputElement)
-                    ) {
+                    if (!(input instanceof HTMLInputElement)) {
                         return;
                     }
 
@@ -245,16 +251,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             /*
-             * Prevent stale children data from being submitted if the member
-             * changes marital status back to Never Married.
+             * Clear stale child information when marital status changes
+             * to Never Married.
              */
             numberOfChildren.value = '';
 
             livingTogetherInputs.forEach(
                 (input) => {
-                    if (
-                        input instanceof HTMLInputElement
-                    ) {
+                    if (input instanceof HTMLInputElement) {
                         input.checked = false;
                     }
                 }
@@ -268,6 +272,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         updateChildrenDetails();
     }
+
+    /*
+     * Initialize marital-status-dependent children fields after the form
+     * elements are available.
+     */
+    initializeChildrenDetailsVisibility();
 
     /**
      * Show the member's calculated age as helper text.
@@ -512,6 +522,5 @@ function initializeStateCityDependency() {
 
 document.addEventListener(
     'DOMContentLoaded',
-    initializeStateCityDependency,
-    initializeChildrenDetailsVisibility
+    initializeStateCityDependency
 );

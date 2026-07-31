@@ -7,6 +7,7 @@ namespace App\Services\Profile;
 use App\Models\MemberBasicDetailModel;
 use App\Models\UserModel;
 use App\Services\Profile\ProfileMasterDataService;
+use App\Support\BooleanValue;
 use DateTimeImmutable;
 use DomainException;
 use RuntimeException;
@@ -119,16 +120,30 @@ final class BasicDetailsService
             ? (int) $data['number_of_children']
             : null;
 
+        /*
+        * Preserve the difference between:
+        *
+        * - no selection: NULL
+        * - selected No: FALSE
+        * - selected Yes: TRUE
+        *
+        * BooleanValue::fromDatabase() is reused because it already understands
+        * PostgreSQL and HTML-form boolean representations.
+        */
+        $childrenLivingTogetherValue =
+            $data['children_living_together']
+            ?? null;
+
         $childrenLivingTogether =
-            array_key_exists(
-                'children_living_together',
-                $data
-            )
-            && $data['children_living_together']
-            !== null
-            ? (bool) $data['children_living_together']
-            : null;
-            
+            $childrenLivingTogetherValue === null
+            || trim(
+                (string) $childrenLivingTogetherValue
+            ) === ''
+            ? null
+            : BooleanValue::fromDatabase(
+                $childrenLivingTogetherValue
+            );
+
         $this->masterDataService
             ->assertValidOptionalBasicSelections(
                 $drinkingHabitId,

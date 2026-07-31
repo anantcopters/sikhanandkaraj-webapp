@@ -107,6 +107,43 @@ final class ProfileMasterDataService
     }
 
     /**
+     * Verify optional Basic Details master-data selections.
+     *
+     * Optional selections may be NULL. When an ID is supplied, it must refer
+     * to an active master record. This prevents inactive or fabricated IDs
+     * from being persisted through request manipulation.
+     */
+    public function assertValidOptionalBasicSelections(
+        ?int $drinkingHabitId,
+        ?int $eatingHabitId,
+        ?int $physicalStatusId
+    ): void {
+        if ($drinkingHabitId !== null) {
+            $this->assertActiveMaster(
+                $this->drinkingHabitModel,
+                $drinkingHabitId,
+                'Please select a valid drinking habit.'
+            );
+        }
+
+        if ($eatingHabitId !== null) {
+            $this->assertActiveMaster(
+                $this->eatingHabitModel,
+                $eatingHabitId,
+                'Please select a valid eating habit.'
+            );
+        }
+
+        if ($physicalStatusId !== null) {
+            $this->assertActiveMaster(
+                $this->physicalStatusModel,
+                $physicalStatusId,
+                'Please select a valid physical status.'
+            );
+        }
+    }
+
+    /**
      * Determine whether an active marital status represents Never Married.
      */
     public function isNeverMarried(
