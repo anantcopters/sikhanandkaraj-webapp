@@ -43,19 +43,6 @@ final class PrelaunchPhotoService
     ];
 
     /**
-     * Additional output-size reduction factors used when WebP quality
-     * reduction alone cannot reach the configured five-megabyte target.
-     *
-     * @var list<float>
-     */
-    private const DIMENSION_REDUCTION_FACTORS = [
-        1.00,
-        0.85,
-        0.70,
-        0.55,
-    ];
-
-    /**
      * @param PrelaunchPhotoModel $photoModel Prelaunch photo persistence model.
      */
     public function __construct(
@@ -133,7 +120,8 @@ final class PrelaunchPhotoService
         try {
             foreach ($photos as $index => $photo) {
                 $sequence = $index + 1;
-
+                $processingStartedAt =
+                    microtime(true);
                 $stored = $this->storeSinglePhoto(
                     $sequence,
                     $photo,
@@ -540,13 +528,11 @@ final class PrelaunchPhotoService
     }
 
     /**
-     * Create a high-quality WebP original below the configured size limit.
+     * Create one optimized WebP photograph using a single processing pass.
      *
-     * The method first reduces image dimensions to a safe web-oriented size.
-     * It then attempts multiple WebP quality levels. When reducing quality is
-     * insufficient, dimensions are progressively reduced.
-     *
-     * Smaller source images are never enlarged.
+     * Prelaunch photographs are temporary staging assets, so expensive adaptive
+     * compression loops are intentionally avoided. Every source photograph is
+     * decoded once, optionally resized once, and encoded to WebP once.
      */
     private function createOptimizedOriginal(
         string $sourcePath,
@@ -557,119 +543,81 @@ final class PrelaunchPhotoService
         /** @var \Config\Prelaunch $config */
         $config = config('Prelaunch');
 
-        $baseDimensions = $this->calculateContainedDimensions(
-            $sourceWidth,
-            $sourceHeight,
-            $config->optimizedOriginalWidth,
-            $config->optimizedOriginalHeight
-        );
-
-        foreach (
-            self::DIMENSION_REDUCTION_FACTORS
-            as $reductionFactor
+        if (
+            $sourceWidth <= 0
+            || $sourceHeight <= 0
         ) {
-            $attemptWidth = max(
-                1,
-                (int) floor(
-                    $baseDimensions['width']
-                        * $reductionFactor
-                )
+            throw new InvalidArgumentException(
+                'The photograph dimensions are invalid.'
             );
-
-            $attemptHeight = max(
-                1,
-                (int) floor(
-                    $baseDimensions['height']
-                        * $reductionFactor
-                )
-            );
-
-            foreach (
-                $config->optimizedWebpQualities
-                as $quality
-            ) {
-                /*
-             * A fresh handler is required for every compression attempt.
-             * This prevents previous resize/save state from affecting the
-             * next attempt.
-             */
-                $image = Services::image();
-
-                $image->withFile(
-                    $sourcePath
-                );
-
-                /*
-             * Correct EXIF orientation for photographs taken on phones.
-             *
-             * CI4 uses reorient(), not orient().
-             */
-                $image->reorient();
-
-                /*
-             * Resize only when the image is larger than the current
-             * boundary. Smaller images are never enlarged.
-             */
-                if (
-                    $sourceWidth > $attemptWidth
-                    || $sourceHeight > $attemptHeight
-                ) {
-                    $image->resize(
-                        $attemptWidth,
-                        $attemptHeight,
-                        true,
-                        $this->resizeMasterDimension(
-                            $sourceWidth,
-                            $sourceHeight,
-                            $attemptWidth,
-                            $attemptHeight
-                        )
-                    );
-                }
-
-                /*
-             * convert() explicitly instructs the GD driver to encode WebP.
-             * ImageMagick also respects the .webp destination extension.
-             */
-                $image->convert(
-                    IMAGETYPE_WEBP
-                );
-
-                $image->save(
-                    $destinationPath,
-                    $quality
-                );
-
-                clearstatcache(
-                    true,
-                    $destinationPath
-                );
-
-                $storedSize =
-                    filesize($destinationPath);
-
-                if (
-                    $storedSize !== false
-                    && $storedSize
-                    <= $config->maximumStoredPhotoSizeBytes
-                ) {
-                    return;
-                }
-
-                /*
-             * Remove an oversized attempt before trying another quality
-             * or dimension.
-             */
-                if (is_file($destinationPath)) {
-                    @unlink($destinationPath);
-                }
-            }
         }
 
-        throw new InvalidArgumentException(
-            'One photograph could not be optimized below 5 MB. '
-                . 'Please select a different photograph.'
+        $targetDimensions =
+            $this->calculateContainedDimensions(
+                $sourceWidth,
+                $sourceHeight,
+                $config->optimizedOriginalWidth,
+                $config->optimizedOriginalHeight
+            );
+
+        $image = Services::image();
+
+        $image->withFile(
+            $sourcePath
         );
+
+        /*
+     * Correct EXIF orientation for photographs captured using phones.
+     */
+        $image->reorient();
+
+        /*
+     * Resize only when the source exceeds the configured storage boundary.
+     * Smaller images are not enlarged.
+     */
+        if (
+            $sourceWidth > $targetDimensions['width']
+            || $sourceHeight > $targetDimensions['height']
+        ) {
+            $image->resize(
+                $targetDimensions['width'],
+                $targetDimensions['height'],
+                true,
+                $this->resizeMasterDimension(
+                    $sourceWidth,
+                    $sourceHeight,
+                    $targetDimensions['width'],
+                    $targetDimensions['height']
+                )
+            );
+        }
+
+        /*
+     * Explicitly encode the stored photograph as WebP.
+     */
+        $image->convert(
+            IMAGETYPE_WEBP
+        );
+
+        $image->save(
+            $destinationPath,
+            $config->optimizedWebpQuality
+        );
+
+        clearstatcache(
+            true,
+            $destinationPath
+        );
+
+        if (
+            !is_file($destinationPath)
+            || filesize($destinationPath) === false
+            || filesize($destinationPath) === 0
+        ) {
+            throw new RuntimeException(
+                'The optimized photograph could not be generated.'
+            );
+        }
     }
 
     /**

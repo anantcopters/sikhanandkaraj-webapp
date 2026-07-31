@@ -7,7 +7,7 @@ namespace Config;
 use CodeIgniter\Config\BaseConfig;
 
 /**
- * Controls the temporary pre-launch profile collection module.
+ * Controls the temporary prelaunch profile collection module.
  */
 final class Prelaunch extends BaseConfig
 {
@@ -17,90 +17,45 @@ final class Prelaunch extends BaseConfig
     public bool $profileEntryEnabled = true;
 
     /**
-     * Exact number of photographs required for every prelaunch profile.
+     * Exact number of photographs required for each profile.
      */
     public int $maximumPhotos = 2;
 
     /**
-     * Maximum allowed size of each uploaded prelaunch photograph.
+     * Maximum uploaded photograph size.
      *
-     * CI4's max_size validation rule expects kilobytes.
+     * CI4 max_size expects kilobytes.
      *
      * 18 MB × 1024 = 18432 KB.
      */
     public int $maximumPhotoSizeKilobytes = 18432;
 
     /**
-     * Maximum source-image width accepted during upload validation.
+     * Maximum source-image width accepted during validation.
      */
     public int $maximumPhotoWidthPixels = 12000;
 
     /**
-     * Maximum source-image height accepted during upload validation.
+     * Maximum source-image height accepted during validation.
      */
     public int $maximumPhotoHeightPixels = 12000;
 
     /**
-     * Maximum size of the optimized WebP original stored locally.
+     * Maximum width of the locally stored optimized WebP.
      *
-     * 5 MB × 1024 × 1024 = 5242880 bytes.
+     * Aspect ratio is preserved and smaller images are not enlarged.
      */
-    public int $maximumStoredPhotoSizeBytes = 5242880;
+    public int $optimizedOriginalWidth = 1920;
 
     /**
-     * Maximum width of the locally stored optimized original.
+     * Maximum height of the locally stored optimized WebP.
+     */
+    public int $optimizedOriginalHeight = 1920;
+
+    /**
+     * Single WebP quality used for fast prelaunch processing.
      *
-     * The image service preserves aspect ratio and does not enlarge
-     * photographs smaller than this boundary.
+     * Avoid adaptive retry loops during the synchronous form request.
      */
-    public int $optimizedOriginalWidth = 4000;
-
-    /**
-     * Maximum height of the locally stored optimized original.
-     */
-    public int $optimizedOriginalHeight = 4000;
-
-    /**
-     * WebP qualities attempted before reducing the output dimensions.
-     *
-     * The first result that satisfies maximumStoredPhotoSizeBytes is kept.
-     *
-     * @var list<int>
-     */
-    public array $optimizedWebpQualities = [
-        88,
-        84,
-        80,
-        76,
-    ];
-
-    /**
-     * Width used for the prelaunch medium display variant.
-     */
-    //public int $mediumPhotoWidth = 900;
-
-    /**
-     * Height used for the prelaunch medium display variant.
-     */
-    //public int $mediumPhotoHeight = 1200;
-
-    /**
-     * WebP quality used for medium variants.
-     */
-    //public int $mediumWebpQuality = 82;
-
-    /**
-     * Width used for the prelaunch thumbnail variant.
-     */
-    //public int $thumbnailPhotoWidth = 300;
-
-    /**
-     * Height used for the prelaunch thumbnail variant.
-     */
-    //public int $thumbnailPhotoHeight = 400;
-
-    /**
-     * WebP quality used for thumbnail variants.
-     */
-    //public int $thumbnailWebpQuality = 78;
+    public int $optimizedWebpQuality = 78;
 }
