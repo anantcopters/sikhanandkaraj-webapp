@@ -18,7 +18,7 @@ use Throwable;
 final class AuthenticationController extends BaseController
 {
     /**
-     * Display the login screen.
+     * Display the login-method selection page.
      */
     public function index(): string|RedirectResponse
     {
@@ -28,18 +28,49 @@ final class AuthenticationController extends BaseController
             );
         }
 
-        $this->response
-            ->setHeader(
-                'Cache-Control',
-                'no-store, no-cache, must-revalidate, max-age=0'
-            )
-            ->setHeader('Pragma', 'no-cache')
-            ->setHeader('Expires', '0');
+        $this->preventPageCaching();
+
+        return view(
+            'Pages/Authentication/LoginOptions',
+            [
+                'pageTitle' =>
+                'Login',
+
+                'formAlert' =>
+                $this->readFormAlert(),
+            ]
+        );
+    }
+
+    /**
+     * Display the existing password login screen.
+     */
+    public function password(): string|RedirectResponse
+    {
+        if ($this->isAuthenticated()) {
+            return redirect()->to(
+                route_to('web.dashboard')
+            );
+        }
+
+        $this->preventPageCaching();
 
         return view(
             'Pages/Authentication/Login',
             [
-                'pageTitle' => 'Login',
+                'pageTitle' =>
+                'Login with Password',
+
+                'validationErrors' =>
+                $this->readValidationErrors(),
+
+                'formAlert' =>
+                $this->readFormAlert(),
+
+                'loginIdentifier' =>
+                $this->readFlashString(
+                    'loginIdentifier'
+                ),
 
                 'pageScripts' => [
                     'assets/js/components/password-toggle.js',
@@ -117,27 +148,9 @@ final class AuthenticationController extends BaseController
              * Regenerate the session identifier immediately after
              * authentication to prevent session fixation.
              */
-            session()->regenerate(true);
-
-            session()->set([
-                'is_authenticated' => true,
-
-                'auth_user_id' =>
-                (int) $userId,
-
-                'auth_user_name' =>
-                $this->resolveUserName($user),
-
-                'auth_profile_reference' =>
-                trim(
-                    (string) (
-                        $user['profile_ref_number']
-                        ?? ''
-                    )
-                ),
-
-                'authenticated_at' => time(),
-            ]);
+            $this->establishMemberSession(
+                $user
+            );
 
             return redirect()
                 ->to(route_to('web.dashboard'))
@@ -262,7 +275,11 @@ final class AuthenticationController extends BaseController
         ?array $formAlert = null
     ): RedirectResponse {
         $redirect = redirect()
-            ->to(route_to('web.login'))
+            ->to(
+                route_to(
+                    'web.login.password'
+                )
+            )
             ->with(
                 'loginIdentifier',
                 $identifier
@@ -283,31 +300,5 @@ final class AuthenticationController extends BaseController
         }
 
         return $redirect;
-    }
-
-    /**
-     * Determine whether the current session is authenticated.
-     */
-    private function isAuthenticated(): bool
-    {
-        return session('is_authenticated') === true
-            && is_numeric(
-                session('auth_user_id')
-            );
-    }
-
-    /**
-     * @param array<string, mixed> $user
-     */
-    private function resolveUserName(
-        array $user
-    ): string {
-        $name = trim(
-            (string) ($user['full_name'] ?? '')
-        );
-
-        return $name !== ''
-            ? $name
-            : 'Member';
     }
 }

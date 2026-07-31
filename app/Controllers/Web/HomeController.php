@@ -41,7 +41,13 @@ final class HomeController extends BaseController
         return view(
             'Pages/Home/Index',
             [
-                'pageTitle' => 'Sikh Anand Karaj',
+                'pageTitle' => 'SikhAnandKaraj',
+
+                'validationErrors' =>
+                $this->readValidationErrors(),
+
+                'formAlert' =>
+                $this->readFormAlert(),
 
                 'pageScripts' => [
                     'assets/js/pages/home.js',
@@ -50,16 +56,5 @@ final class HomeController extends BaseController
                 ],
             ]
         );
-    }
-
-    /**
-     * Check whether the current session contains a valid authenticated user.
-     */
-    private function isAuthenticated(): bool
-    {
-        return session('is_authenticated') === true
-            && is_numeric(
-                session('auth_user_id')
-            );
     }
 }

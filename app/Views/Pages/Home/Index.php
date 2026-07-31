@@ -3,35 +3,24 @@
 declare(strict_types=1);
 
 /**
- * @var string|null $pageTitle
- */
-$resolvedPageTitle = isset($pageTitle) && is_string($pageTitle)
-    ? $pageTitle
-    : 'Sikh Anand Karaj';
-
-/**
- * Resolve server-side validation errors once.
- *
- * The controller stores these errors in flashdata when redirecting back
- * after an unsuccessful form submission.
- *
- * @var array<string, string> $validationErrors
- */
-$sessionValidationErrors = session('validationErrors');
-
-$validationErrors = is_array($sessionValidationErrors)
-    ? $sessionValidationErrors
-    : [];
-
-/**
- * Resolve the form-level alert once.
- *
+ * @var string|null                $pageTitle
+ * @var array<string, string>|null $validationErrors
  * @var array<string, string>|null $formAlert
  */
-$sessionFormAlert = session('formAlert');
 
-$formAlert = is_array($sessionFormAlert)
-    ? $sessionFormAlert
+$resolvedPageTitle = isset($pageTitle)
+    && is_string($pageTitle)
+    ? $pageTitle
+    : 'SikhAnandKaraj';
+
+$validationErrors = isset($validationErrors)
+    && is_array($validationErrors)
+    ? $validationErrors
+    : [];
+
+$formAlert = isset($formAlert)
+    && is_array($formAlert)
+    ? $formAlert
     : null;
 
 $this->extend('Layouts/Main');
@@ -52,13 +41,8 @@ $this->section('content');
             <div class="col-12 col-lg-5">
                 <div class="registration-card">
 
-                    <div class="registration-card__header">
-                        <h1 class="fs-22 fw-normal mb-0 text-white text-center lh-base">
-                            Create a Matrimony Profile
-                        </h1>
-                    </div>
-
-                    <div class="registration-card__body">
+                    
+                    <div class="registration-card__body mt-4">
 
                         <h2 class="fs-20 fw-semibold text-center lh-base mt-0 mb-3">
                             Find your perfect match
@@ -88,10 +72,6 @@ $this->section('content');
 
                             $fullNameHasError = isset(
                                 $validationErrors['full_name']
-                            );
-
-                            $emailHasError = isset(
-                                $validationErrors['email']
                             );
 
                             $countryCodeHasError = isset(
@@ -312,47 +292,6 @@ $this->section('content');
                                 ]) ?>
                             </div>
 
-                            <!-- Email -->
-                            <div class="mb-3">
-                                <label
-                                    for="email"
-                                    class="visually-hidden">
-                                    Email address
-                                </label>
-
-                                <input
-                                    type="text"
-                                    id="email"
-                                    name="email"
-                                    value="<?= esc(old('email'), 'attr') ?>"
-                                    class="form-control <?= $emailHasError
-                                                            ? 'is-invalid'
-                                                            : '' ?>"
-                                    <?= $emailHasError
-                                        ? 'aria-invalid="true"'
-                                        : '' ?>
-                                    aria-describedby="emailError emailHelp"
-                                    placeholder="Enter email"
-                                    maxlength="128"
-                                    autocomplete="email"
-                                    data-error-required="Please enter email address."
-                                    data-error-email="Please enter a valid email address."
-                                    data-error-maxlength="Email address is too long."
-                                    required>
-
-                                <?= view('Components/Forms/FieldError', [
-                                    'field' => 'email',
-                                    'errorId' => 'emailError',
-                                    'errors' => $validationErrors,
-                                ]) ?>
-
-                                <div
-                                    id="emailHelp"
-                                    class="form-text color-pink">
-                                    Verification link will be sent to this email.
-                                </div>
-                            </div>
-
                             <!-- Country code and mobile number -->
                             <div class="mb-3">
                                 <div class="row g-3">
@@ -436,7 +375,7 @@ $this->section('content');
                                         <div
                                             id="mobileNumberHelp"
                                             class="form-text color-pink">
-                                            OTP will be sent to this number.
+                                            OTP will be sent to this number. Prefer WhatsApp Number
                                         </div>
                                     </div>
                                 </div>

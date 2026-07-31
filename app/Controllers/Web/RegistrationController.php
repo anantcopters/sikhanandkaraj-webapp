@@ -39,9 +39,10 @@ final class RegistrationController extends BaseController
                 );
         }
 
-        /**
-         * getValidated() returns only fields that participated in
-         * successful validation.
+        /*
+         * getValidated() returns only fields that participated in successful
+         * validation. This also prevents unexpected POST fields, including an
+         * injected email field, from reaching the registration service.
          */
         $validatedData = $validation->getValidated();
 
@@ -57,10 +58,9 @@ final class RegistrationController extends BaseController
                 );
             }
 
-            /**
-             * Store only the identifiers needed by the OTP flow.
-             *
-             * Do not store the plain OTP in the session.
+            /*
+             * Store only identifiers required by the OTP flow.
+             * Never store the plain OTP in the session.
              */
             session()->set([
                 'pending_registration_user_id' =>
@@ -104,7 +104,11 @@ final class RegistrationController extends BaseController
     }
 
     /**
-     * Read and normalize only expected form fields.
+     * Read and normalize only fields expected from the registration form.
+     *
+     * Email is intentionally excluded. Even when a malicious or outdated
+     * client posts an email field, it cannot enter the validated registration
+     * payload.
      *
      * @return array<string, string>
      */
@@ -124,10 +128,6 @@ final class RegistrationController extends BaseController
             'full_name' => trim(
                 (string) $this->request->getPost('full_name')
             ),
-
-            'email' => mb_strtolower(trim(
-                (string) $this->request->getPost('email')
-            )),
 
             'country_code' => trim(
                 (string) $this->request->getPost(

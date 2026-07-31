@@ -8,6 +8,7 @@ use App\Controllers\BaseController;
 use App\Models\UserContactModel;
 use App\Models\UserModel;
 use App\Services\Dashboard\MemberDashboardDataService;
+use App\Services\Profile\MemberProfileSummaryService;
 use App\Support\BooleanValue;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
@@ -26,7 +27,9 @@ final class DashboardController extends BaseController
 
         $resolvedUserId = (int) $userId;
 
-        $user = (new UserModel())->find($resolvedUserId);
+        $user = (new UserModel())->find(
+            $resolvedUserId
+        );
 
         if (!is_array($user)) {
             session()->destroy();
@@ -43,26 +46,21 @@ final class DashboardController extends BaseController
         }
 
         $profileReference = trim(
-            (string) ($user['profile_ref_number'] ?? '')
+            (string) (
+                $user['profile_ref_number']
+                ?? ''
+            )
         );
 
         $contactModel = new UserContactModel();
-
-        $emailContact = $contactModel->findPrimaryForUser(
-            $resolvedUserId,
-            UserContactModel::TYPE_EMAIL
-        );
 
         $mobileContact = $contactModel->findPrimaryForUser(
             $resolvedUserId,
             UserContactModel::TYPE_MOBILE
         );
 
-        $primaryEmail = $this->contactValue($emailContact);
-        $primaryMobile = $this->contactValue($mobileContact);
-
-        $isEmailVerified = $this->isContactVerified(
-            $emailContact
+        $primaryMobile = $this->contactValue(
+            $mobileContact
         );
 
         $isMobileVerified = $this->isContactVerified(
@@ -73,31 +71,67 @@ final class DashboardController extends BaseController
          * Keep shared authenticated-session values current for the header.
          */
         session()->set([
-            'auth_user_name' => $loggedInUserName,
-            'auth_profile_reference' => $profileReference,
+            'auth_user_name' =>
+            $loggedInUserName,
+
+            'auth_profile_reference' =>
+            $profileReference,
         ]);
 
+        /*
+         * Dashboard-specific account and match datasets.
+         */
         $dashboardData = (
             new MemberDashboardDataService()
-        )->getDashboardData($resolvedUserId);
+        )->getDashboardData(
+            $resolvedUserId
+        );
+
+        /*
+         * Reuse exactly the same profile summary used by profile/edit.
+         */
+        /** @var MemberProfileSummaryService $profileSummaryService */
+        $profileSummaryService = service(
+            'memberProfileSummaryService'
+        );
+
+        $profileSummary = $profileSummaryService->getForUser(
+            $resolvedUserId
+        );
 
         return view(
             'Pages/Dashboard/Index',
             array_merge(
                 [
-                    'pageTitle' => 'Member Dashboard',
+                    'pageTitle' =>
+                    'Member Dashboard',
 
-                    'profileReference' => $profileReference,
+                    'profileReference' =>
+                    $profileReference,
 
-                    'loggedInUserName' => $loggedInUserName,
+                    'loggedInUserName' =>
+                    $loggedInUserName,
 
-                    'primaryEmail' => $primaryEmail,
+                    'primaryMobile' =>
+                    $primaryMobile,
 
-                    'primaryMobile' => $primaryMobile,
+                    'isMobileVerified' =>
+                    $isMobileVerified,
 
-                    'isEmailVerified' => $isEmailVerified,
+                    'profileImage' =>
+                    $profileSummary['profileImage'],
 
-                    'isMobileVerified' => $isMobileVerified,
+                    'profileCompletion' =>
+                    $profileSummary['profileCompletion'],
+
+                    'overallProfileSummary' =>
+                    $profileSummary['overallProfileSummary'],
+
+                    'profileShortcuts' =>
+                    $profileSummary['profileSections'],
+
+                    'nextProfileSection' =>
+                    $profileSummary['nextProfileSection'],
 
                     'pageScripts' => [
                         'assets/js/pages/dashboard-security.js',
@@ -113,17 +147,23 @@ final class DashboardController extends BaseController
      *
      * @param array<string, mixed>|null $contact
      */
-    private function contactValue(?array $contact): ?string
-    {
+    private function contactValue(
+        ?array $contact
+    ): ?string {
         if (!is_array($contact)) {
             return null;
         }
 
         $value = trim(
-            (string) ($contact['contact_value'] ?? '')
+            (string) (
+                $contact['contact_value']
+                ?? ''
+            )
         );
 
-        return $value !== '' ? $value : null;
+        return $value !== ''
+            ? $value
+            : null;
     }
 
     /**
@@ -131,8 +171,9 @@ final class DashboardController extends BaseController
      *
      * @param array<string, mixed>|null $contact
      */
-    private function isContactVerified(?array $contact): bool
-    {
+    private function isContactVerified(
+        ?array $contact
+    ): bool {
         if (!is_array($contact)) {
             return false;
         }

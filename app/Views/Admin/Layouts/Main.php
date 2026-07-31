@@ -20,7 +20,7 @@ $pageScripts = $pageScripts ?? [];
         content="width=device-width, initial-scale=1">
 
     <title>
-        <?= esc($pageTitle) ?> | Sikh Anand Karaj
+        <?= esc($pageTitle) ?> | SikhAnandKaraj
     </title>
 
     <link
@@ -52,38 +52,286 @@ $pageScripts = $pageScripts ?? [];
     <?php if (
         session('admin_is_authenticated') === true
     ): ?>
-        <header id="page-topbar" style="position: inherit;">
-            <div class="layout-width">
-                <div class="navbar-header px-4">
-                    <div class="w-100 public-navbar__container mx-0 px-0">
+        <?php
+        $currentPath = trim(
+            service('uri')->getPath(),
+            '/'
+        );
 
-                        <div class="d-flex align-items-center">
-                            <a
-                                href="<?= route_to(
-                                            'admin.dashboard'
+        $dashboardActive =
+            $currentPath === 'admin/dashboard';
+
+        $pendingApprovalActive =
+            str_starts_with(
+                $currentPath,
+                'admin/members/photo-approvals'
+            );
+
+        $administratorActive =
+            str_starts_with(
+                $currentPath,
+                'admin/users'
+            );
+
+        $fieldOfficerActive =
+            str_starts_with(
+                $currentPath,
+                'admin/field-officers'
+            );
+
+        $prelaunchProfileActive =
+            str_starts_with(
+                $currentPath,
+                'admin/prelaunch/profiles'
+            );
+
+        $isSuperAdmin =
+            session('admin_role')
+            === \App\Models\AdminUserModel::ROLE_SUPER_ADMIN;
+        ?>
+
+        <header
+            id="page-topbar"
+            class="position-static border-bottom">
+
+            <nav
+                class="navbar navbar-expand-lg bg-white py-2"
+                aria-label="Administrator navigation">
+
+                <div class="container-fluid px-3 px-lg-4">
+
+                    <a
+                        href="<?= route_to(
+                                    'admin.dashboard'
+                                ) ?>"
+                        class="navbar-brand
+                        text-decoration-none me-lg-3 py-0">
+
+                        <a
+                            class="navbar-brand
+                d-inline-flex
+                align-items-center
+                flex-shrink-0
+                m-0 p-0"
+                            href="<?= session('admin_is_authenticated') === true
+                                        ? url_to('web.dashboard')
+                                        : site_url('/') ?>"
+                            aria-label="SikhAnandKaraj home">
+
+                            <img
+                                src="<?= base_url(
+                                            'assets/images/sikhanandkaraj_removebg_2.png'
                                         ) ?>"
-                                class="text-decoration-none">
+                                alt="SikhAnandKaraj"
+                                class="public-navbar__logo">
+                        </a>
+                    </a>
 
-                                <span class="d-block fs-18
-                                fw-semibold text-primary">
-                                    Sikh Anand Karaj
-                                </span>
+                    <button
+                        type="button"
+                        class="navbar-toggler"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#adminNavbar"
+                        aria-controls="adminNavbar"
+                        aria-expanded="false"
+                        aria-label="Toggle administrator navigation">
 
-                                <span
-                                    class="d-block fs-11 text-muted
-                                text-uppercase">
-                                    Administration
-                                </span>
-                            </a>
-                        </div>
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
 
-                        <div class="d-flex align-items-center gap-2">
+                    <div
+                        class="collapse navbar-collapse"
+                        id="adminNavbar">
+
+                        <ul
+                            class="navbar-nav
+            nav-underline
+            mx-lg-auto
+            gap-2
+            mt-2 mt-lg-0">
+
+                            <li class="nav-item">
+                                <a
+                                    href="<?= route_to(
+                                                'admin.dashboard'
+                                            ) ?>"
+                                    class="nav-link
+                    d-flex align-items-center
+                    gap-2
+                    py-1 py-lg-2
+                    <?= $dashboardActive
+                        ? 'active text-primary'
+                        : '' ?>"
+                                    <?= $dashboardActive
+                                        ? 'aria-current="page"'
+                                        : '' ?>>
+
+                                    <i
+                                        class="ri-layout-grid-line
+                        fw-normal flex-shrink-0"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <span
+                                        class="<?= $dashboardActive
+                                                    ? 'fw-semibold'
+                                                    : '' ?>">
+                                        Dashboard
+                                    </span>
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a
+                                    href="<?= route_to(
+                                                'admin.members'
+                                                    . '.photo-approvals'
+                                            ) ?>"
+                                    class="nav-link
+                    d-flex align-items-center
+                    gap-2
+                    py-1 py-lg-2
+                    <?= $pendingApprovalActive
+                        ? 'active text-primary'
+                        : '' ?>"
+                                    <?= $pendingApprovalActive
+                                        ? 'aria-current="page"'
+                                        : '' ?>>
+
+                                    <i
+                                        class="ri-image-line
+                        fw-normal flex-shrink-0"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <span
+                                        class="<?= $pendingApprovalActive
+                                                    ? 'fw-semibold'
+                                                    : '' ?>">
+                                        Pending Approval
+                                    </span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a
+                                    href="<?= route_to(
+                                                'admin.prelaunch.profiles.index'
+                                            ) ?>"
+                                    class="nav-link
+        d-flex align-items-center
+        gap-2
+        py-1 py-lg-2
+        <?= $prelaunchProfileActive
+            ? 'active text-primary'
+            : '' ?>"
+                                    <?= $prelaunchProfileActive
+                                        ? 'aria-current="page"'
+                                        : '' ?>>
+
+                                    <i
+                                        class="ri-profile-line
+            fw-normal flex-shrink-0"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <span
+                                        class="<?= $prelaunchProfileActive
+                                                    ? 'fw-semibold'
+                                                    : '' ?>">
+                                        Pre-launch Profiles
+                                    </span>
+                                </a>
+                            </li>
+
+                            <?php if ($isSuperAdmin): ?>
+                                <li class="nav-item">
+                                    <a
+                                        href="<?= route_to(
+                                                    'admin.users.index'
+                                                ) ?>"
+                                        class="nav-link
+                        d-flex align-items-center
+                        gap-2
+                        py-1 py-lg-2
+                        <?= $administratorActive
+                                    ? 'active text-primary'
+                                    : '' ?>"
+                                        <?= $administratorActive
+                                            ? 'aria-current="page"'
+                                            : '' ?>>
+
+                                        <i
+                                            class="ri-user-settings-line
+                            fw-normal flex-shrink-0"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        <span
+                                            class="<?= $administratorActive
+                                                        ? 'fw-semibold'
+                                                        : '' ?>">
+                                            Administrators
+                                        </span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a
+                                        href="<?= route_to(
+                                                    'admin.field-officers.index'
+                                                ) ?>"
+                                        class="nav-link
+            d-flex align-items-center
+            gap-2
+            py-1 py-lg-2
+            <?= $fieldOfficerActive
+                                    ? 'active text-primary'
+                                    : '' ?>"
+                                        <?= $fieldOfficerActive
+                                            ? 'aria-current="page"'
+                                            : '' ?>>
+
+                                        <i
+                                            class="ri-user-location-line
+                fw-normal flex-shrink-0"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        <span
+                                            class="<?= $fieldOfficerActive
+                                                        ? 'fw-semibold'
+                                                        : '' ?>">
+                                            Field Officers
+                                        </span>
+                                    </a>
+                                </li>
+
+                            <?php endif; ?>
+                        </ul>
+
+                        <div
+                            class="d-flex flex-column
+            flex-lg-row
+            align-items-lg-center
+            gap-2
+            mt-2 mt-lg-0">
 
                             <span
-                                class="d-none d-md-inline-block
-                            text-muted">
+                                class="text-muted
+                text-truncate
+                mw-100
+                py-1 py-lg-0">
+
+                                <i
+                                    class="ri-user-line
+                    fw-normal
+                    align-middle me-1"
+                                    aria-hidden="true">
+                                </i>
+
                                 <?= esc(
-                                    session('admin_user_name')
+                                    (string) session(
+                                        'admin_user_name'
+                                    )
                                 ) ?>
                             </span>
 
@@ -91,24 +339,31 @@ $pageScripts = $pageScripts ?? [];
                                 action="<?= route_to(
                                             'admin.logout'
                                         ) ?>"
-                                method="post">
+                                method="post"
+                                class="mb-0">
+
                                 <?= csrf_field() ?>
 
                                 <button
                                     type="submit"
-                                    class="btn btn-soft-secondary btn-sm">
+                                    class="btn
+                    btn-soft-secondary
+                    btn-sm w-100">
+
                                     <i
                                         class="ri-logout-box-r-line
-                                    align-middle me-1">
+                        fw-normal
+                        align-middle me-1"
+                                        aria-hidden="true">
                                     </i>
+
                                     Logout
                                 </button>
                             </form>
-
                         </div>
                     </div>
                 </div>
-            </div>
+            </nav>
         </header>
     <?php endif; ?>
 
@@ -124,13 +379,145 @@ $pageScripts = $pageScripts ?? [];
         <?= $this->renderSection('content') ?>
     </main>
     <?= view('Components/FeedbackModal') ?>
+    <?= view('Components/ConfirmationModal') ?>
+
+    <footer class="mt-5 pt-4 border-top border-secondary-subtle bg-light">
+
+        <div class="container py-3 pt-0">
+
+            <div class="row g-4">
+
+                <div class="col-12 col-md-6 col-xl-3">
+
+                    <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
+
+                        <i class="ri-shield-check-line fs-3"></i>
+
+                        <div>
+
+                            <div class="fw-semibold fs-14">
+                                Secure & Trusted
+                            </div>
+
+                            <small class="text-muted">
+                                Your safety is our priority
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+
+                    <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
+
+                        <i class="ri-group-line fs-3"></i>
+
+                        <div>
+
+                            <div class="fw-semibold fs-14">
+                                Family Oriented
+                            </div>
+
+                            <small class="text-muted">
+                                Built for families, by families
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+
+                    <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
+
+                        <i class="ri-heart-line fs-3"></i>
+
+                        <div>
+
+                            <div class="fw-semibold fs-14">
+                                Smart Matches
+                            </div>
+
+                            <small class="text-muted">
+                                AI powered better matches
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-3">
+
+                    <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
+
+                        <i class="ri-shield-check-line fs-3"></i>
+
+                        <div>
+
+                            <div class="fw-semibold fs-14">
+                                Verified Profiles
+                            </div>
+
+                            <small class="text-muted">
+                                100% verified for trust
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <hr class="my-4">
+
+            <div class="text-center">
+
+                <small class="text-muted">
+                    © <?= esc(date('Y')) ?> SikhAnandKaraj. All rights reserved.
+                </small>
+
+            </div>
+
+        </div>
+
+    </footer>
     <script
         src="<?= base_url(
                     'assets/js/bootstrap.bundle.min.js'
                 ) ?>">
     </script>
     <script src="<?= base_url('assets/js/components/feedback-modal.js') ?>"></script>
+    <script
+        src="<?= base_url(
+                    'assets/js/components/confirmation-modal.js'
+                ) ?>">
+    </script>
+    <script src="<?= base_url('assets/js/choices.min.js') ?>"></script>
 
+    <script src="<?= base_url(
+                        'assets/js/components/select-choice.js'
+                    ) ?>"></script>
     <?php
     /**
      * Load JavaScript required only by the current page.

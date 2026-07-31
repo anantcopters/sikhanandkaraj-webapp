@@ -36,9 +36,6 @@ video {
   height: auto;
 }
 
-@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
-
 @font-face {
   font-family: "hkgrotesk";
   src: url("../fonts/hkgrotesk-light.eot");
@@ -13187,6 +13184,7 @@ div.dtr-modal div.dtr-modal-close:hover {
     right: auto;
     left: 0;
     text-align: left;
+    padding-inline: 0.5rem;
 }
 
 /**

@@ -1,0 +1,258 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Profile;
+
+use App\Models\MemberBasicDetailModel;
+use App\Models\UserModel;
+use App\Services\Profile\ProfileMasterDataService;
+use DateTimeImmutable;
+use DomainException;
+use RuntimeException;
+use Throwable;
+
+/**
+ * Reads and updates the Basic Details profile section.
+ *
+ * All multi-table updates are performed within one transaction.
+ */
+final class BasicDetailsService
+{
+    public function __construct(
+        private readonly UserModel $userModel,
+        private readonly MemberBasicDetailModel $basicDetailModel,
+        private readonly ProfileMasterDataService $masterDataService
+    ) {}
+
+    /**
+     * Return the data required to display the Basic Details section.
+     *
+     * @return array{
+     *     user: array<string, mixed>,
+     *     basicDetails: array<string, mixed>|null,
+     *     completion: array{
+     *         completed: int,
+     *         total: int,
+     *         percentage: int
+     *     }
+     * }
+     */
+    public function getForUser(int $userId): array
+    {
+        $user = $this->userModel->find($userId);
+
+        if (!is_array($user)) {
+            throw new DomainException(
+                'The member account could not be found.'
+            );
+        }
+
+        $basicDetails = $this
+            ->basicDetailModel
+            ->findForUser($userId);
+
+        $selectedStateId = is_array($basicDetails)
+            && is_numeric($basicDetails['state_id'] ?? null)
+            ? (int) $basicDetails['state_id']
+            : null;
+
+        return [
+            'user' => $user,
+            'basicDetails' => $basicDetails,
+
+            'masterData' =>
+            $this->masterDataService->basicDetailsOptions(
+                $selectedStateId
+            ),
+
+            'completion' => $this->calculateCompletion(
+                $user,
+                $basicDetails
+            ),
+        ];
+    }
+
+    /**
+     * Create or update the member's Basic Details section.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function save(
+        int $userId,
+        array $data
+    ): void {
+        $this->assertAdult(
+            (string) $data['date_of_birth']
+        );
+
+        $this->masterDataService->assertValidSelection(
+            (int) $data['marital_status_id'],
+            (int) $data['height_id'],
+            (int) $data['mother_tongue_id'],
+            (int) $data['country_id'],
+            (int) $data['state_id'],
+            (int) $data['city_id']
+        );
+
+        $database = db_connect();
+
+        $database->transException(true);
+        $database->transStart();
+
+        try {
+            $user = $this->userModel->find($userId);
+
+            if (!is_array($user)) {
+                throw new DomainException(
+                    'The member account could not be found.'
+                );
+            }
+
+            $updated = $this->userModel->update(
+                $userId,
+                [
+                    'full_name' => $data['full_name'],
+                ]
+            );
+
+            if ($updated === false) {
+                throw new RuntimeException(
+                    'The member name could not be updated.'
+                );
+            }
+
+            $profileData = [
+                'user_id' => $userId,
+
+                'date_of_birth' =>
+                $data['date_of_birth'],
+
+                'marital_status_id' =>
+                (int) $data['marital_status_id'],
+
+                'height_id' =>
+                (int) $data['height_id'],
+
+                'mother_tongue_id' =>
+                (int) $data['mother_tongue_id'],
+
+                'country_id' =>
+                (int) $data['country_id'],
+
+                'state_id' =>
+                (int) $data['state_id'],
+
+                'city_id' =>
+                (int) $data['city_id'],
+            ];
+
+            $existing = $this
+                ->basicDetailModel
+                ->findForUser($userId);
+
+            if (is_array($existing)) {
+                $saved = $this->basicDetailModel->update(
+                    (int) $existing['id'],
+                    $profileData
+                );
+            } else {
+                $saved = $this->basicDetailModel->insert(
+                    $profileData,
+                    false
+                );
+            }
+
+            if ($saved === false) {
+                throw new RuntimeException(
+                    'The basic details could not be saved.'
+                );
+            }
+
+            $database->transComplete();
+        } catch (Throwable $exception) {
+            $database->transRollback();
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * Ensure date of birth represents an adult member.
+     */
+    private function assertAdult(
+        string $dateOfBirth
+    ): void {
+        $birthDate = DateTimeImmutable::createFromFormat(
+            '!Y-m-d',
+            $dateOfBirth
+        );
+
+        if (
+            !$birthDate instanceof DateTimeImmutable
+            || $birthDate->format('Y-m-d') !== $dateOfBirth
+        ) {
+            throw new DomainException(
+                'Please enter a valid date of birth.'
+            );
+        }
+
+        $minimumAdultDate = new DateTimeImmutable(
+            'today -18 years'
+        );
+
+        if ($birthDate > $minimumAdultDate) {
+            throw new DomainException(
+                'The member must be at least 18 years old.'
+            );
+        }
+    }
+
+    /**
+     * Calculate completion for only this profile section.
+     *
+     * Gender and profile-created-for are not counted because registration
+     * already requires them.
+     *
+     * @param array<string, mixed>      $user
+     * @param array<string, mixed>|null $details
+     *
+     * @return array{
+     *     completed: int,
+     *     total: int,
+     *     percentage: int
+     * }
+     */
+    private function calculateCompletion(
+        array $user,
+        ?array $details
+    ): array {
+        $values = [
+            $user['full_name'] ?? null,
+            $details['date_of_birth'] ?? null,
+            $details['marital_status_id'] ?? null,
+            $details['height_id'] ?? null,
+            $details['mother_tongue_id'] ?? null,
+            $details['country_id'] ?? null,
+            $details['state_id'] ?? null,
+            $details['city_id'] ?? null,
+        ];
+
+        $completed = count(array_filter(
+            $values,
+            static fn(mixed $value): bool =>
+            $value !== null
+                && trim((string) $value) !== ''
+        ));
+
+        $total = count($values);
+
+        return [
+            'completed' => $completed,
+            'total' => $total,
+            'percentage' => (int) round(
+                ($completed / $total) * 100
+            ),
+        ];
+    }
+}

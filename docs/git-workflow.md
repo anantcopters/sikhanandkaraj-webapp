@@ -1,121 +1,30 @@
 # Git Workflow
 
-## Branches
+`development` is the integration branch. Create focused feature/fix/documentation branches from the latest `development`, then merge through a reviewed pull request.
 
-Recommended long-lived branches:
-
-```text
-main
-  Production-ready code
-
-development
-  Integrated development code
-```
-
-Create short-lived feature branches from `development`:
+## Required workflow
 
 ```text
-feature/register-otp
-feature/profile-details
-fix/choices-initialization
-refactor/form-validation
+latest development
+  → short-lived branch
+  → implementation and tests
+  → documentation update
+  → diff/scope review
+  → pull request to development
 ```
 
-## Standard flow
+## Scope discipline
 
-```text
-development
-  ↓ create feature branch
-feature/...
-  ↓ commit and test
-pull request
-  ↓ review
-merge into development
-  ↓ release validation
-merge into main
-```
+Stage only intended files. Documentation-only work must not change runtime code, SQL, configuration or assets. Feature work that changes business logic must update the relevant docs and `decision-log.md` in the same pull request.
 
-## Commit messages
+## Before merging
 
-Use a short type prefix:
+- branch is current with `development`;
+- server validation and authorization are present;
+- SQL updates are included and immutable;
+- no secrets or local paths were committed;
+- mobile/responsive and failure paths were tested;
+- architecture boundaries match `project-rules.md`;
+- the PR explains business-rule and migration impact.
 
-```text
-feat: add profile details form
-fix: correct Choices selector
-refactor: move registration logic to service
-docs: add database guide
-style: improve registration card spacing
-test: add registration service tests
-chore: update dependency configuration
-```
-
-A commit should represent one understandable change.
-
-## Before pushing
-
-- Pull the latest target branch.
-- Resolve conflicts locally.
-- Run syntax checks and tests.
-- Check that no secret or local configuration was added.
-- Review `git diff`.
-- Use a meaningful commit message.
-
-## Pull request description
-
-Include:
-
-- what changed;
-- why it changed;
-- files or modules affected;
-- database scripts required;
-- manual test steps;
-- screenshots for visible UI changes;
-- known limitations.
-
-## Database changes
-
-When a feature changes the database:
-
-- commit the SQL file with the code;
-- list the SQL filename in the pull request;
-- never rewrite a script already executed in another environment;
-- create a new update script for corrections.
-
-## Review priorities
-
-Review in this order:
-
-1. correctness and security;
-2. database integrity;
-3. architecture boundaries;
-4. error handling;
-5. validation;
-6. accessibility;
-7. performance;
-8. formatting.
-
-## Merge rules
-
-Do not merge when:
-
-- registration or login flow is broken;
-- SQL is missing;
-- server validation is missing;
-- secrets are present;
-- a page script is loaded twice;
-- the feature bypasses the service architecture without explanation;
-- database writes are not transaction-safe.
-
-## Hotfixes
-
-For urgent production issues:
-
-1. branch from `main`;
-2. fix only the issue;
-3. test;
-4. merge into `main`;
-5. merge the same fix back into `development`.
-
-## Documentation changes
-
-Update the relevant file under `docs` whenever an architectural convention changes. Record significant decisions in `decision-log.md`.
+Use meaningful commits such as `feat:`, `fix:`, `docs:`, `refactor:`, `test:` and `chore:`. Hotfixes merged to production must be brought back into `development`.

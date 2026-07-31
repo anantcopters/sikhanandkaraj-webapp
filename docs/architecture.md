@@ -1,51 +1,56 @@
 # Architecture
 
-## Purpose
-
-The project uses a layered CodeIgniter 4 architecture. Each layer has one job, which makes code easier to test, review and extend.
-
-## Request flow
+## Core request flow
 
 ```text
 Browser
-  ↓
-Route
-  ↓
-Controller
-  ↓
-Validation
-  ↓
-Service
-  ↓
-Model
-  ↓
-PostgreSQL
-  ↓
-Service result
-  ↓
-Controller
-  ↓
-Redirect or View
+  → Named route and filter
+  → Thin controller
+  → Dedicated validation rules
+  → Application service
+  → CI4 model / provider adapter
+  → PostgreSQL, S3, SMS or email provider
+  → Result DTO
+  → Redirect, JSON response or escaped view
 ```
 
-## Layers
+## Responsibilities
 
-### Route
+- **Routes** define URL, HTTP method, name and access filter.
+- **Filters** protect member, administrator and super-administrator contexts.
+- **Controllers** read expected input, validate, call services and return responses.
+- **Validation classes** define reusable authoritative server rules.
+- **Services** own business rules, transaction boundaries, concurrency decisions and external-work orchestration.
+- **Models** own table configuration and table-specific queries.
+- **Views** render escaped data and shared components; they do not query databases.
+- **Result DTOs** represent expected success and business failure without HTTP concerns.
 
-Routes live in `app/Config/Routes.php`. Use named routes so views and controllers do not hard-code URLs.
+## Authentication architecture
 
-### Controller
+Member authentication supports password and mobile-OTP entry points. Both establish the same member session through shared BaseController logic, including session-ID regeneration. Sensitive authentication, OTP and password-reset pages disable browser/intermediate caching.
 
-Controllers live in `app/Controllers`. A controller may read request data, normalize simple values, run validation, call services and choose a redirect, view or response. It must not contain SQL, transactions or multi-step business rules.
+Administrator authentication is isolated by separate routes, sessions and filters. `SUPER_ADMIN` is required for administrator and field-officer management.
 
-### Validation
+## Transaction and external-call rule
 
-Validation classes live in `app/Validation`. They contain reusable field rules, labels and messages. Server validation is authoritative.
+A service may use a database transaction for one atomic database decision. SMS, email and AWS calls must occur after commit or through a retryable queue/outbox. A failed delivery must be recorded using a non-usable status such as `DELIVERY_FAILED`; it must not leave a usable OTP whose delivery is unknown.
 
-### Service
+## Media architecture
 
-Services live in `app/Services`. A service owns business rules and transaction boundaries. It may coordinate several models and return a small result object.
+```text
+Authorized controller
+  → AwsMediaService
+  → MediaPathService
+  → S3Service / CloudFrontService
+  → private S3 object + signed CloudFront URL
+```
 
-### Model
+The database stores media object keys and metadata. It never stores signed URLs. Controllers do not call the AWS SDK directly.
 
-Models live in `app/Models`.
+## Profile architecture
+
+Profile sections are separate controller/service/model operations but share master-data lookup, completion calculation and profile-preview aggregation. Sikh and Religious details are not part of the displayed journey or completion calculation. Community/sub-community are owned by Family Details.
+
+## Prelaunch architecture
+
+Production can route public member entry points to a separate prelaunch collection workflow. Prelaunch data remains operationally separate until an explicit migration imports approved records and uploads approved media into the live private-media structure.

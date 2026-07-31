@@ -72,31 +72,68 @@
     }
 
     /**
-     * Build Choices.js configuration for one select element.
-     *
-     * @param {HTMLSelectElement} element
-     *
-     * @returns {Object}
-     */
+ * Build Choices.js configuration for one select element.
+ *
+ * Search is restricted to the visible option label. Database IDs stored
+ * in option values must not participate in user-facing search.
+ *
+ * @param {HTMLSelectElement} element
+ *
+ * @returns {Object}
+ */
     function getConfiguration(element) {
         const isMultiple = element.multiple;
 
         return {
             allowHTML: false,
             shouldSort: false,
-            searchEnabled: shouldEnableSearch(element),
+
+            searchEnabled:
+                shouldEnableSearch(element),
+
             searchChoices: true,
-            searchFloor: 1,
-            searchResultLimit: 20,
+
+            /*
+             * Do not start filtering after only one character.
+             * Two characters provide more useful results for large master lists.
+             */
+            searchFloor: 2,
+
+            searchResultLimit: 50,
+
+            /*
+             * Search only the user-visible option name.
+             * Do not search numeric database IDs stored in option values.
+             */
+            searchFields: [
+                'label'
+            ],
+
+            /*
+             * Choices.js uses Fuse.js internally. The default fuzzy search can
+             * return loosely related results. A low threshold keeps the search
+             * tolerant of minor spelling differences without returning
+             * unrelated options.
+             */
+            fuseOptions: {
+                includeScore: true,
+                threshold: 0.15,
+                ignoreLocation: true,
+                minMatchCharLength: 2
+            },
 
             placeholder: true,
+
             placeholderValue:
                 element.dataset.choicePlaceholder
-                || element.getAttribute('placeholder')
+                || element.getAttribute(
+                    'placeholder'
+                )
                 || null,
 
             searchPlaceholderValue:
-                element.dataset.choiceSearchPlaceholder
+                element.dataset
+                    .choiceSearchPlaceholder
                 || 'Type to search',
 
             noResultsText:
@@ -111,15 +148,20 @@
 
             removeItemButton:
                 isMultiple
-                && toBoolean(element.dataset.choiceRemove, true),
+                && toBoolean(
+                    element.dataset.choiceRemove,
+                    true
+                ),
 
             duplicateItemsAllowed: false,
 
-            /**
+            /*
              * Keep the dropdown usable inside Bootstrap modals,
              * cards and responsive containers.
              */
-            position: 'auto'
+            position:
+                element.dataset.choicePosition
+                || 'auto'
         };
     }
 

@@ -26,6 +26,16 @@ final class AdminAuthenticationController extends BaseController
             'Admin/Authentication/Login',
             [
                 'pageTitle' => 'Administrator Login',
+                'validationErrors' =>
+                $this->readValidationErrors(),
+
+                'formAlert' =>
+                $this->readFormAlert(),
+
+                'adminLoginIdentifier' =>
+                $this->readFlashString(
+                    'adminLoginIdentifier'
+                ),
                 'pageScripts' => [
                     'assets/js/components/password-toggle.js',
                     'assets/js/components/submit-loader.js',
@@ -57,7 +67,7 @@ final class AdminAuthenticationController extends BaseController
             ])
         ) {
 
-            $audit = service('adminAuditService');            
+            $audit = service('adminAuditService');
 
             $this->recordAuditSafely(
                 new \App\Services\Admin\Audit\AdminAuditEvent(

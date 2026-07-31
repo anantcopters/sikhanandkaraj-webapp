@@ -6,6 +6,7 @@ namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
 use App\Services\Registration\RegistrationOtpService;
+use App\Support\OtpInputNormalizer;
 use CodeIgniter\HTTP\RedirectResponse;
 use Throwable;
 
@@ -66,13 +67,53 @@ final class RegistrationVerificationController extends BaseController
         return view(
             'Pages/Registration/VerifyOtp',
             [
-                'pageTitle' => 'Verify OTP',
+                'pageTitle' =>
+                'Verify OTP',
+
+                'heading' =>
+                'Verify your mobile',
+
+                'description' =>
+                'Enter the four-digit OTP sent to your '
+                    . 'registered mobile number.',
+
                 'profileReference' =>
                 session('pending_profile_reference'),
+
                 'expiresAtTimestamp' =>
                 $expiresAtTimestamp,
+
+                'verifyAction' =>
+                route_to(
+                    'web.registration.verify.submit'
+                ),
+
+                'resendAction' =>
+                route_to(
+                    'web.registration.otp.resend'
+                ),
+
+                'cancelAction' =>
+                route_to(
+                    'web.registration.cancel'
+                ),
+
+                'cancelLabel' =>
+                'Cancel',
+
+                'sendLimitMessage' =>
+                'You can request a maximum of three '
+                    . 'OTPs within 24 hours.',
+
+                'validationErrors' =>
+                $this->readValidationErrors(),
+
+                'formAlert' =>
+                $this->readFormAlert(),
+
                 'pageScripts' => [
                     'assets/js/pages/registration-otp.js',
+                    'assets/js/components/submit-loader.js',
                 ],
             ]
         );
@@ -90,6 +131,16 @@ final class RegistrationVerificationController extends BaseController
         }
 
         $otp = $this->readOtp();
+
+        if (! OtpInputNormalizer::isValid($otp)) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('validationErrors', [
+                    'otp' =>
+                    'Please enter the complete four-digit OTP.',
+                ]);
+        }
 
         try {
             /** @var RegistrationOtpService $service */
@@ -298,25 +349,25 @@ final class RegistrationVerificationController extends BaseController
     }
 
     /**
-     * Combine the four individual OTP form fields.
+     * Read and normalize the four submitted OTP digit fields.
      */
     private function readOtp(): string
     {
-        $digits = [];
+        return OtpInputNormalizer::fromDigitFields(
+            [
+                'otp_1' =>
+                $this->request->getPost('otp_1'),
 
-        for ($index = 1; $index <= 4; $index++) {
-            $digit = trim(
-                (string) $this->request->getPost(
-                    'otp_' . $index
-                )
-            );
+                'otp_2' =>
+                $this->request->getPost('otp_2'),
 
-            $digits[] = preg_match('/^\d$/', $digit)
-                ? $digit
-                : '';
-        }
+                'otp_3' =>
+                $this->request->getPost('otp_3'),
 
-        return implode('', $digits);
+                'otp_4' =>
+                $this->request->getPost('otp_4'),
+            ]
+        );
     }
 
     /**

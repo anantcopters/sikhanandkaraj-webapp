@@ -14,6 +14,14 @@ declare(strict_types=1);
 <head>
     <meta charset="UTF-8">
     <title>Verify your email</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+        );
+
+        body {
+            font-family: 'Inter', Arial, Helvetica, sans-serif;
+        }
+    </style>
 </head>
 
 <body
@@ -21,7 +29,6 @@ declare(strict_types=1);
         margin: 0;
         padding: 0;
         background: #f7f4f5;
-        font-family: Arial, sans-serif;
         color: #333333;
     ">
 
@@ -63,7 +70,7 @@ declare(strict_types=1);
                                     margin: 0;
                                     font-size: 22px;
                                 ">
-                                Sikh Anand Karaj
+                                SikhAnandKaraj
                             </h1>
                         </td>
                     </tr>

@@ -66,7 +66,7 @@ $this->section('content');
     <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6 col-xl-5">
 
-            <div class="card">
+            <div class="card border border-danger border-opacity-25">
 
                 <div class="card-header">
                     <h4 class="card-title mb-0">
@@ -157,7 +157,7 @@ $this->section('content');
                                         required>
                                 </div>
 
-                                <div class="form-text">
+                                <div class="form-text color-pink">
                                     Mobile will be marked verified.
                                 </div>
 

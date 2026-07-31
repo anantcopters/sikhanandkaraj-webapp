@@ -201,7 +201,7 @@ final class EmailVerificationService
                 recipientName: trim(
                     (string) ($user['full_name'] ?? '')
                 ),
-                subject: 'Verify your Sikh Anand Karaj email',
+                subject: 'Verify your SikhAnandKaraj email',
                 viewName: 'Emails/Authentication/VerifyEmail',
                 viewData: [
                     'userName' => trim(

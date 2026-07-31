@@ -3,26 +3,29 @@
 declare(strict_types=1);
 
 /**
- * Resolve server-side validation errors.
- *
- * @var array<string, string> $validationErrors
+ * @var string|null                $pageTitle
+ * @var array<string, string>|null $validationErrors
+ * @var array<string, string>|null $formAlert
+ * @var string|null                $loginIdentifier
  */
-$sessionValidationErrors = session('validationErrors');
 
-$validationErrors = is_array($sessionValidationErrors)
-    ? $sessionValidationErrors
+$pageTitle = isset($pageTitle)
+    ? trim((string) $pageTitle)
+    : 'Login';
+
+$validationErrors = isset($validationErrors)
+    && is_array($validationErrors)
+    ? $validationErrors
     : [];
 
-/**
- * Resolve any form-level message.
- *
- * @var array<string, string>|null $formAlert
- */
-$sessionFormAlert = session('formAlert');
-
-$formAlert = is_array($sessionFormAlert)
-    ? $sessionFormAlert
+$formAlert = isset($formAlert)
+    && is_array($formAlert)
+    ? $formAlert
     : null;
+
+$loginIdentifier = isset($loginIdentifier)
+    ? trim((string) $loginIdentifier)
+    : '';
 
 $identifierHasError = isset(
     $validationErrors['identifier']
@@ -52,7 +55,7 @@ $this->section('content');
                             </h1>
 
                             <p class="text-muted mb-0">
-                                Login to continue to Sikh Anand Karaj
+                                Login to continue to SikhAnandKaraj
                             </p>
                         </div>
 
@@ -89,7 +92,7 @@ $this->section('content');
                                     id="loginIdentifier"
                                     name="identifier"
                                     value="<?= esc(
-                                                session('loginIdentifier') ?? '',
+                                                $loginIdentifier,
                                                 'attr'
                                             ) ?>"
                                     class="form-control
@@ -127,8 +130,10 @@ $this->section('content');
                                     </label>
 
                                     <a
-                                        href="javascript:void(0);"
-                                        class="text-muted fs-13">
+                                        href="<?= route_to(
+                                                    'web.forgot-password'
+                                                ) ?>"
+                                        class="color-pink fs-13">
                                         Forgot password?
                                     </a>
                                 </div>
@@ -204,6 +209,16 @@ $this->section('content');
                                         </span>
                                     </span>
                                 </button>
+                            </div>
+                            <div class="mt-4 text-center">
+                                <a
+                                    href="<?= route_to(
+                                                'web.login'
+                                            ) ?>"
+                                    class="fw-semibold text-primary text-decoration-underline">
+
+                                    Choose another login method
+                                </a>
                             </div>
                         </form>
 

@@ -12,13 +12,20 @@ declare(strict_types=1);
 <head>
     <meta charset="utf-8">
     <title>Administrator Invitation</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+        );
+
+        body {
+            font-family: 'Inter', Arial, Helvetica, sans-serif;
+        }
+    </style>
 </head>
 
 <body style="
     margin:0;
     padding:0;
     background:#f6f2f3;
-    font-family:Arial, sans-serif;
     color:#27272a;
 ">
     <table
@@ -54,7 +61,7 @@ declare(strict_types=1);
                                     margin:0;
                                     font-size:22px;
                                 ">
-                                Sikh Anand Karaj
+                                SikhAnandKaraj
                             </h1>
 
                             <p
@@ -70,12 +77,12 @@ declare(strict_types=1);
                     <tr>
                         <td style="padding:32px;">
                             <p>
-                                Hello <?= esc($adminName) ?>,
+                                Sat Sri Akal <?= esc($adminName) ?>,
                             </p>
 
                             <p>
                                 You have been invited to become an
-                                administrator for Sikh Anand Karaj.
+                                administrator for SikhAnandKaraj.
                             </p>
 
                             <p>

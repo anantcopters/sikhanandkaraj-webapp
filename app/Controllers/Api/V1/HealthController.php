@@ -19,7 +19,7 @@ final class HealthController extends BaseApiController
     {
         return $this->respondSuccess(
             [
-                'application' => 'Sikh Anand Karaj',
+                'application' => 'SikhAnandKaraj',
                 'timestamp'   => gmdate('c'),
             ],
             'Application is healthy.'

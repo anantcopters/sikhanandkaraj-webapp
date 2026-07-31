@@ -13,7 +13,7 @@
         content="width=device-width, initial-scale=1">
 
     <title>
-        <?= esc($pageTitle ?? 'Sikh Anand Karaj') ?>
+        <?= esc($pageTitle ?? 'SikhAnandKaraj') ?>
     </title>
 
     <link
@@ -44,6 +44,8 @@
 
     <?= view('Components/FeedbackModal') ?>
 
+    <?= view('Components/ConfirmationModal') ?>
+
     <script src="<?= base_url('assets/js/jquery.js') ?>"></script>
     <script src="<?= base_url('assets/js/bootstrap.bundle.min.js') ?>"></script>
     <script src="<?= base_url('assets/js/choices.min.js') ?>"></script>
@@ -56,6 +58,11 @@
                     ) ?>"></script>
     <script src="<?= base_url('assets/js/app.js') ?>"></script>
     <script src="<?= base_url('assets/js/components/feedback-modal.js') ?>"></script>
+    <script
+        src="<?= base_url(
+                    'assets/js/components/confirmation-modal.js'
+                ) ?>">
+    </script>
     <?php
     /**
      * Load JavaScript required only by the current page.

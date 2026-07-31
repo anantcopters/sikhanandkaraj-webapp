@@ -6,6 +6,7 @@ namespace App\Services\Authentication;
 
 use App\Models\UserContactModel;
 use App\Models\UserModel;
+use App\Support\IndianMobileNormalizer;
 use App\Support\BooleanValue;
 
 /**
@@ -139,7 +140,7 @@ final class LoginService
     }
 
     /**
-     * Determine whether the identifier is an email or Indian mobile.
+     * Determine whether the identifier is an email or Indian mobile number.
      *
      * @return array{
      *     type: string,
@@ -150,6 +151,10 @@ final class LoginService
         string $identifier
     ): ?array {
         $identifier = trim($identifier);
+
+        if ($identifier === '') {
+            return null;
+        }
 
         if (
             filter_var(
@@ -166,49 +171,21 @@ final class LoginService
             ];
         }
 
-        $digits = preg_replace(
-            '/\D+/',
-            '',
-            $identifier
-        ) ?? '';
-
-        /**
-         * Accept:
-         *
-         * 9876543210
-         * 919876543210
-         * +91 98765 43210
-         */
-        if (
-            strlen($digits) === 12
-            && str_starts_with($digits, '91')
-        ) {
-            $digits = substr(
-                $digits,
-                2
+        $normalizedMobile =
+            IndianMobileNormalizer::normalize(
+                $identifier
             );
-        }
 
-        if (
-            preg_match(
-                '/^[6-9][0-9]{9}$/',
-                $digits
-            ) !== 1
-        ) {
+        if ($normalizedMobile === null) {
             return null;
         }
 
-        /**
-         * Registration stores mobile numbers in E.164-style format:
-         *
-         * +919876543210
-         */
         return [
             'type' =>
             UserContactModel::TYPE_MOBILE,
 
             'normalized_value' =>
-            '+91' . $digits,
+            $normalizedMobile,
         ];
     }
 

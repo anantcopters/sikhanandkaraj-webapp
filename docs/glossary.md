@@ -1,155 +1,50 @@
 # Glossary
 
-## Account
+## Account statuses
 
-The login-level identity of a user in the system.
+- `PENDING`: registration exists but required mobile verification is incomplete.
+- `ACTIVE`: mobile is verified and member authentication is allowed.
+- `SUSPENDED`: temporarily restricted.
+- `DELETED`: logically disabled/deleted.
 
-## Profile
+## Contact
 
-The matrimonial information shown for matching and discovery.
+A mobile or optional email row stored separately from the user. Each contact has type, normalized value, primary flag and independent verification state.
 
-## Profile reference number
+## OTP purposes
 
-A public identifier such as `SAK1234567`. It is different from the internal database ID.
+- `REGISTER`: verifies mobile and activates a pending account.
+- `LOGIN`: passwordless authentication for an active account's verified mobile.
+- `PASSWORD_RESET`: authorizes password replacement through a verified mobile.
 
-## Profile created for
+## Delivery failed
 
-The relationship between the person filling the form and the person represented by the profile, for example Self, Son, Daughter, Brother or Sister.
+A verification record whose external delivery failed. It is not usable and should not consume successful-delivery quota.
 
-## Pending registration
+## Profile reference
 
-A registration record created before required contact verification is complete.
+A public identifier such as `SAK1234567`; internal database IDs must not be exposed as profile identifiers.
 
-## Verified contact
+## Primary photo
 
-An email address or mobile number whose ownership has been confirmed.
+The member photo selected as the main profile image. It remains subject to approval and visibility authorization.
 
-## Primary contact
+## Signed URL
 
-The main email or mobile contact currently used for the account.
+A short-lived CloudFront URL generated after authorization. It is not stored as the permanent media reference.
 
-## Normalized contact value
+## Prelaunch profile
 
-A contact value converted to a consistent comparison format.
+A temporary launch-preparation record collected separately from live member accounts and migrated only through an explicit approved process.
 
-Examples:
+## Field officer
 
-```text
-Mobile: +919876543210
-Email: user@example.com
-```
-
-## OTP
-
-One-time password used for short-lived verification. The database stores its hash, expiry, attempt count and status.
-
-## Contact verification
-
-A record representing an OTP or verification workflow for one contact and purpose.
-
-## Controller
-
-The HTTP layer that receives a request, validates it, calls a service and returns a response.
-
-## Validation class
-
-A reusable PHP class containing server-side field rules and messages.
-
-## Service
-
-A class containing business rules, transactions and coordination between models.
-
-## Model
-
-A CI4 class that represents a database table and performs table-specific queries.
+An operational person associated with prelaunch profile collection and verified through the prelaunch workflow.
 
 ## Result DTO
 
-A small immutable object returned by a service. DTO means Data Transfer Object.
+A small service return object representing expected success/failure without redirects, views or session behavior.
 
-## View
+## Project rules
 
-A PHP template responsible for rendering HTML.
-
-## Component
-
-A reusable UI or JavaScript unit used by more than one page.
-
-Examples:
-
-- FormAlert;
-- FieldError;
-- Choices initializer;
-- form validator.
-
-## Page script
-
-JavaScript loaded only for one page or feature, such as `home.js`.
-
-## Flashdata
-
-Session data intended to survive one redirect and then expire, commonly used for validation errors and alert messages.
-
-## Old input
-
-Previously submitted form data restored after a validation redirect using CI4 `old()`.
-
-## Field error
-
-An error shown directly below the field the user can correct.
-
-## Form-level alert
-
-A general success, warning or error message that is not owned by one field.
-
-## Client validation
-
-Validation performed in the browser for fast feedback.
-
-## Server validation
-
-Authoritative validation performed by CodeIgniter after form submission.
-
-## Database constraint
-
-A database rule such as unique, foreign key, check or not-null that protects data integrity.
-
-## Transaction
-
-A group of database writes that either all succeed or all roll back.
-
-## Schema file
-
-SQL describing the complete database structure for a fresh installation.
-
-## Update file
-
-Incremental SQL applied to an existing environment.
-
-## Seed file
-
-SQL that inserts master or reference data.
-
-## Choices.js
-
-The JavaScript library used to enhance selected `<select>` elements. In this project it is enabled with `data-choice`.
-
-## `app.css`
-
-The universal application stylesheet containing reusable component styles.
-
-## `custom.css`
-
-The stylesheet for missing Sikh Anand Karaj-specific or page-specific rules. It should not duplicate `app.css`.
-
-## Case A registration
-
-The mobile already exists and is verified. Registration is rejected with a field error.
-
-## Case B registration
-
-The mobile exists, is unverified and belongs to a pending account. The pending registration is updated and a new OTP is created.
-
-## Case C registration
-
-The mobile does not exist. A new pending user, contacts and verification record are created.
+The mandatory coding, architecture, security, UI and review rules stored in `docs/project-rules.md`.
