@@ -992,10 +992,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
     /**
- * Initialize photo previews and client-side photo validation.
- *
- * @returns {void}
- */
+     * Initialize photo previews and client-side photo validation.
+     *
+     * @returns {void}
+     */
     const initializePhotoPreviews = () => {
         const photoInputs =
             document.querySelectorAll(
@@ -1007,37 +1007,6 @@ document.addEventListener('DOMContentLoaded', () => {
             'image/png',
             'image/webp',
         ];
-
-        const maximumFileSize =
-            Number.parseInt(
-                photoInputs.dataset
-                    .maximumFileSize
-                ?? '18874368',
-                10
-            );
-
-        const maximumFileSizeLabel =
-            photoInputs.dataset
-                .maximumFileSizeLabel
-            ?? '18 MB';
-
-        if (
-            Number.isFinite(maximumFileSize)
-            && maximumFileSize > 0
-            && selectedFile.size
-            > maximumFileSize
-        ) {
-            photoInputs.setCustomValidity(
-                `The selected photograph must not exceed ${maximumFileSizeLabel}.`
-            );
-
-            /*
-             * Clear the rejected file so it cannot be submitted.
-             */
-            photoInputs.value = '';
-
-            return;
-        }
 
         /**
          * Ask the global form validator to refresh one file field.
@@ -1074,11 +1043,41 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                /*
+                 * Configuration is attached to each individual input in
+                 * Photos.php. querySelectorAll() returns a NodeList and does
+                 * not expose dataset values.
+                 */
+                const configuredMaximumFileSize =
+                    Number.parseInt(
+                        photoInput.dataset
+                            .maximumFileSize
+                        ?? '',
+                        10
+                    );
+
+                const maximumFileSize =
+                    Number.isFinite(
+                        configuredMaximumFileSize
+                    )
+                        && configuredMaximumFileSize > 0
+                        ? configuredMaximumFileSize
+                        : 18 * 1024 * 1024;
+
+                const maximumFileSizeLabel =
+                    photoInput.dataset
+                        .maximumFileSizeLabel
+                    ?? '18 MB';
+
                 photoInput.addEventListener(
                     'change',
                     () => {
+                        /*
+                         * Clear any validation message left by an earlier
+                         * invalid file selection.
+                         */
                         photoInput.setCustomValidity(
-                            `The selected photograph must not exceed ${maximumFileSizeLabel}.`
+                            ''
                         );
 
                         const previewTargetId =
@@ -1125,7 +1124,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             );
 
                             /*
-                             * Validate the required file field after the user cancels
+                             * Validate the required field after the user cancels
                              * or clears the file selection.
                              */
                             refreshPhotoValidation(
@@ -1155,10 +1154,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 'd-none'
                             );
 
-                            /*
-                            * Render the custom validation message through the global
-                            * form validator.
-                            */
                             refreshPhotoValidation(
                                 photoInput
                             );
@@ -1171,14 +1166,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             > maximumFileSize
                         ) {
                             photoInput.setCustomValidity(
-                                'The selected photograph must not exceed 5 MB.'
+                                `The selected photograph must not exceed ${maximumFileSizeLabel}.`
                             );
 
                             /*
                              * Clear the rejected file so it cannot be submitted.
                              */
                             photoInput.value = '';
-
                             previewImage.src = '';
 
                             previewImage.classList.add(
@@ -1189,10 +1183,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 'd-none'
                             );
 
-                            /*
-                             * The custom validity was applied after the native change
-                             * validation ran, so explicitly refresh the field state.
-                             */
                             refreshPhotoValidation(
                                 photoInput
                             );
@@ -1217,6 +1207,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                                 placeholder?.classList.add(
                                     'd-none'
+                                );
+
+                                /*
+                                 * Remove any previous Bootstrap invalid state
+                                 * after a valid photograph is selected.
+                                 */
+                                refreshPhotoValidation(
+                                    photoInput
                                 );
                             }
                         );
