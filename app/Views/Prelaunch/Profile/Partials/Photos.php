@@ -11,6 +11,8 @@ declare(strict_types=1);
  * - Accessible error relationships through aria-describedby.
  *
  * @var array<string, string>|null $validationErrors
+ * @var array<string, string>|null $validationErrors
+ * @var int|null $maximumPhotoSizeKilobytes
  */
 
 $errorBag = is_array(
@@ -47,6 +49,22 @@ foreach ($photoNumbers as $photoNumber) {
         break;
     }
 }
+
+$maximumPhotoSizeKb = max(
+    1,
+    (int) (
+        $maximumPhotoSizeKilobytes
+        ?? 18432
+    )
+);
+
+$maximumPhotoSizeBytes =
+    $maximumPhotoSizeKb * 1024;
+
+$maximumPhotoSizeMb =
+    (int) ceil(
+        $maximumPhotoSizeKb / 1024
+    );
 ?>
 
 <div
@@ -216,6 +234,14 @@ foreach ($photoNumbers as $photoNumber) {
                                                                                                                 $photoInputClass,
                                                                                                                 'attr'
                                                                                                             ) ?>"
+                                data-maximum-file-size="<?= esc(
+                                                            (string) $maximumPhotoSizeBytes,
+                                                            'attr'
+                                                        ) ?>"
+                                data-maximum-file-size-label="<?= esc(
+                                                                    $maximumPhotoSizeMb . ' MB',
+                                                                    'attr'
+                                                                ) ?>"
                                 data-preview-target="<?= esc(
                                                             $previewId,
                                                             'attr'
@@ -263,7 +289,11 @@ foreach ($photoNumbers as $photoNumber) {
         </div>
 
         <div class="form-text mt-2 color-pink">
-            Maximum file size: 5 MB per photograph.
+            Maximum file size:
+            <?= esc(
+                (string) $maximumPhotoSizeMb
+            ) ?>
+            MB per photograph.
         </div>
 
         <div class="form-text small mt-1 color-pink">

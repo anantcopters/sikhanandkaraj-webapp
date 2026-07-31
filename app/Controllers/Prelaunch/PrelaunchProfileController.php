@@ -114,6 +114,9 @@ final class PrelaunchProfileController extends BaseController
                     $familyDetails['communities']
                         ?? [],
 
+                    'maximumPhotoSizeKilobytes' =>
+                    $config->maximumPhotoSizeKilobytes,
+
                     'pageScripts' => [
                         'assets/js/pages/prelaunch-profile-form.js',
                         'assets/js/components/submit-loader.js',
@@ -688,6 +691,13 @@ final class PrelaunchProfileController extends BaseController
                 'gotra'
             )),
 
+            'nearest_gurudwara' =>
+            $this->normalizeOptionalText(
+                $this->request->getPost(
+                    'nearest_gurudwara'
+                )
+            ),
+
             'sikh_community_id' =>
             trim((string) $this->request->getPost(
                 'sikh_community_id'
@@ -720,6 +730,24 @@ final class PrelaunchProfileController extends BaseController
     ): string {
         return mb_strtolower(
             trim((string) $email)
+        );
+    }
+
+    /**
+     * Normalize an optional submitted text value.
+     *
+     * Empty values are returned as an empty string for validation. The service
+     * converts the value to NULL before persistence.
+     */
+    private function normalizeOptionalText(
+        mixed $value
+    ): string {
+        return trim(
+            preg_replace(
+                '/\s+/u',
+                ' ',
+                (string) $value
+            ) ?? ''
         );
     }
 }

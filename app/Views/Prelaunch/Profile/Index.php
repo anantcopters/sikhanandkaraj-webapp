@@ -212,7 +212,7 @@ $this->section('content');
                                 class="ri-save-line fs-18"
                                 aria-hidden="true"></i>
 
-                            Save Draft Profile
+                            Save Profile
                         </span>
 
                         <span

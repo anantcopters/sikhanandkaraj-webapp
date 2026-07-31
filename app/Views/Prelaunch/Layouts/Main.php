@@ -36,8 +36,8 @@ $logoUrl = base_url(
 /*
  * Replace these values with the actual business contact number.
  */
-$phoneDisplay = '+91 98870 05320';
-$phoneDialValue = '+919887005320';
+$phoneDisplay = '+91 98870 05392';
+$phoneDialValue = '+919887005392';
 $phoneUrl = 'tel:' . $phoneDialValue;
 ?>
 

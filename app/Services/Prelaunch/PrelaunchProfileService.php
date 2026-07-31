@@ -66,6 +66,18 @@ final class PrelaunchProfileService
             );
         }
 
+        $nearestGurudwara = trim(
+            (string) (
+                $input['nearest_gurudwara']
+                ?? ''
+            )
+        );
+
+        $nearestGurudwara =
+            $nearestGurudwara !== ''
+            ? $nearestGurudwara
+            : null;
+
         $profileCreatedFor = mb_strtoupper(
             trim(
                 (string) (
@@ -230,6 +242,10 @@ final class PrelaunchProfileService
 
                         'gotra' =>
                         $gotra,
+
+                        'nearest_gurudwara' =>
+                        $nearestGurudwara,
+
 
                         'field_officer_id' =>
                         $fieldOfficerId,

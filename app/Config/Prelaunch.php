@@ -15,5 +15,11 @@ final class Prelaunch extends BaseConfig
 
     public int $maximumPhotos = 3;
 
-    public int $maximumPhotoSizeKilobytes = 5120;
+    /**
+     * Maximum allowed size of each prelaunch photograph.
+     *
+     * CI4's max_size validation rule expects the value in kilobytes.
+     * 18 MB × 1024 = 18432 KB.
+     */
+    public int $maximumPhotoSizeKilobytes = 18432;
 }

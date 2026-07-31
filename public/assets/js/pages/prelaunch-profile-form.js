@@ -1009,7 +1009,35 @@ document.addEventListener('DOMContentLoaded', () => {
         ];
 
         const maximumFileSize =
-            5 * 1024 * 1024;
+            Number.parseInt(
+                photoInputs.dataset
+                    .maximumFileSize
+                ?? '18874368',
+                10
+            );
+
+        const maximumFileSizeLabel =
+            photoInputs.dataset
+                .maximumFileSizeLabel
+            ?? '18 MB';
+
+        if (
+            Number.isFinite(maximumFileSize)
+            && maximumFileSize > 0
+            && selectedFile.size
+            > maximumFileSize
+        ) {
+            photoInputs.setCustomValidity(
+                `The selected photograph must not exceed ${maximumFileSizeLabel}.`
+            );
+
+            /*
+             * Clear the rejected file so it cannot be submitted.
+             */
+            photoInputs.value = '';
+
+            return;
+        }
 
         /**
          * Ask the global form validator to refresh one file field.
@@ -1050,7 +1078,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     'change',
                     () => {
                         photoInput.setCustomValidity(
-                            ''
+                            `The selected photograph must not exceed ${maximumFileSizeLabel}.`
                         );
 
                         const previewTargetId =

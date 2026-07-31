@@ -11,6 +11,8 @@ use App\Validation\Profile\BasicDetailsValidation;
  */
 final class PrelaunchProfileValidation
 {
+
+    private const NEAREST_GURUDWARA_MAX_LENGTH = 300;
     /**
      * Return the complete profile-creation validation rules.
      *
@@ -204,6 +206,22 @@ final class PrelaunchProfileValidation
 
                         'regex_match' =>
                         'Gotra may contain letters, spaces, apostrophes, full stops and hyphens only.',
+                    ],
+                ],
+
+                'nearest_gurudwara' => [
+                    'label' => 'Nearest Gurudwara',
+                    'rules' => [
+                        'permit_empty',
+                        'max_length['
+                            . self::NEAREST_GURUDWARA_MAX_LENGTH
+                            . ']',
+                    ],
+                    'errors' => [
+                        'max_length' =>
+                        'Nearest Gurudwara cannot exceed '
+                            . self::NEAREST_GURUDWARA_MAX_LENGTH
+                            . ' characters.',
                     ],
                 ],
 
