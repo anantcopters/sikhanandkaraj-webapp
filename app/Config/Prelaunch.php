@@ -17,6 +17,21 @@ final class Prelaunch extends BaseConfig
     public bool $profileEntryEnabled = true;
 
     /**
+     * Field Officer assigned to every prelaunch profile.
+     *
+     * This value must contain the primary-key ID of an ACTIVE,
+     * non-deleted record from field_officers.
+     *
+     * Keep the default as zero so a missing environment configuration
+     * fails closed rather than assigning an unintended officer.
+     *
+     * Environment override:
+     *
+     * prelaunch.profileFieldOfficerId = 12
+     */
+    public int $profileFieldOfficerId = 0;
+
+    /**
      * Exact number of photographs required for each profile.
      */
     public int $maximumPhotos = 2;

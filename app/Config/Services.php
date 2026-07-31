@@ -82,6 +82,7 @@ use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
 use Config\MemberMedia;
 use Config\Database;
+use Config\Prelaunch;
 
 
 /**
@@ -867,14 +868,33 @@ class Services extends BaseService
 
         $database = db_connect();
 
+        /** @var Prelaunch $configuration */
+        $configuration = config('Prelaunch');
+
         return new PrelaunchProfileService(
-            new PrelaunchProfileModel($database),
-            static::prelaunchFieldOfficerService(false),
-            new PrelaunchPhotoService(
-                new PrelaunchPhotoModel($database)
+            new PrelaunchProfileModel(
+                $database
             ),
-            $database
+            static::prelaunchFieldOfficerService(
+                false
+            ),
+            new PrelaunchPhotoService(
+                new PrelaunchPhotoModel(
+                    $database
+                )
+            ),
+            $database,
+            $configuration
         );
+
+        // return new PrelaunchProfileService(
+        //     new PrelaunchProfileModel($database),
+        //     static::prelaunchFieldOfficerService(false),
+        //     new PrelaunchPhotoService(
+        //         new PrelaunchPhotoModel($database)
+        //     ),
+        //     $database
+        // );
     }
 
     public static function prelaunchAdminReviewService(

@@ -145,10 +145,6 @@ $this->section('content');
                     'Prelaunch/Profile/Partials/Photos'
                 ) ?>
 
-                <?= $this->include(
-                    'Prelaunch/Profile/Partials/FieldOfficer'
-                ) ?>
-
                 <div class="card border border-danger border-opacity-25 shadow-sm mb-3">
                     <div class="card-body p-3 p-md-4">
                         <div class="form-check">
