@@ -7,12 +7,15 @@ namespace App\Validation\Prelaunch;
 use Config\Prelaunch;
 
 /**
- * Upload validation rules for exactly three pre-launch photos.
+ * Upload validation rules for exactly three prelaunch photographs.
  */
 final class PrelaunchPhotoValidation
 {
     /**
      * Return upload validation rules for all required photographs.
+     *
+     * The original uploaded file is validated here. After validation,
+     * PrelaunchPhotoService converts it into optimized WebP variants.
      *
      * @return array<string, array<string, mixed>>
      */
@@ -29,9 +32,19 @@ final class PrelaunchPhotoValidation
                 $maximumPhotoSizeKilobytes / 1024
             );
 
+        $maximumWidth =
+            $config->maximumPhotoWidthPixels;
+
+        $maximumHeight =
+            $config->maximumPhotoHeightPixels;
+
         $rules = [];
 
-        foreach ([1, 2, 3] as $sequence) {
+        for (
+            $sequence = 1;
+            $sequence <= $config->maximumPhotos;
+            $sequence++
+        ) {
             $field = 'photo_' . $sequence;
 
             $rules[$field] = [
@@ -60,7 +73,10 @@ final class PrelaunchPhotoValidation
 
                     'max_dims['
                         . $field
-                        . ',6000,6000'
+                        . ','
+                        . $maximumWidth
+                        . ','
+                        . $maximumHeight
                         . ']',
                 ],
 
@@ -96,7 +112,10 @@ final class PrelaunchPhotoValidation
                     'Photo '
                         . $sequence
                         . ' dimensions must not exceed '
-                        . '6000 × 6000 pixels.',
+                        . $maximumWidth
+                        . ' × '
+                        . $maximumHeight
+                        . ' pixels.',
                 ],
             ];
         }

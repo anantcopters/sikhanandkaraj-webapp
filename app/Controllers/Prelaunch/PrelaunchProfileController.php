@@ -433,10 +433,7 @@ final class PrelaunchProfileController extends BaseController
                     ),
                     $this->request->getFile(
                         'photo_2'
-                    ),
-                    $this->request->getFile(
-                        'photo_3'
-                    ),
+                    )
                 ]
             );
 
