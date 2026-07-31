@@ -96,28 +96,61 @@ final class BasicDetailsService
             (int) $data['city_id']
         );
 
-        $drinkingHabitId = isset(
-            $data['drinking_habit_id']
-        )
-            ? (int) $data['drinking_habit_id']
+        /*
+ * Optional numeric fields arrive as empty strings when no value is
+ * selected. Convert only non-empty validated values to integers.
+ *
+ * This preserves the intended distinction:
+ *
+ * - empty optional value => NULL
+ * - selected master value => positive integer
+ */
+        $drinkingHabitValue = trim(
+            (string) (
+                $data['drinking_habit_id']
+                ?? ''
+            )
+        );
+
+        $drinkingHabitId =
+            $drinkingHabitValue !== ''
+            ? (int) $drinkingHabitValue
             : null;
 
-        $eatingHabitId = isset(
-            $data['eating_habit_id']
-        )
-            ? (int) $data['eating_habit_id']
+        $eatingHabitValue = trim(
+            (string) (
+                $data['eating_habit_id']
+                ?? ''
+            )
+        );
+
+        $eatingHabitId =
+            $eatingHabitValue !== ''
+            ? (int) $eatingHabitValue
             : null;
 
-        $physicalStatusId = isset(
-            $data['physical_status_id']
-        )
-            ? (int) $data['physical_status_id']
+        $physicalStatusValue = trim(
+            (string) (
+                $data['physical_status_id']
+                ?? ''
+            )
+        );
+
+        $physicalStatusId =
+            $physicalStatusValue !== ''
+            ? (int) $physicalStatusValue
             : null;
 
-        $numberOfChildren = isset(
-            $data['number_of_children']
-        )
-            ? (int) $data['number_of_children']
+        $numberOfChildrenValue = trim(
+            (string) (
+                $data['number_of_children']
+                ?? ''
+            )
+        );
+
+        $numberOfChildren =
+            $numberOfChildrenValue !== ''
+            ? (int) $numberOfChildrenValue
             : null;
 
         /*

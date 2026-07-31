@@ -75,20 +75,38 @@ $profileReference = trim(
     )
 );
 
-$profileCreatedFor = ucwords(
-    strtolower(
-        str_replace(
-            '_',
-            ' ',
-            trim(
-                (string) (
-                    $user['profile_created_for']
-                    ?? ''
-                )
-            )
+$profileCreatedForCode = strtoupper(
+    trim(
+        (string) (
+            $user['profile_created_for']
+            ?? ''
         )
     )
 );
+
+$profileCreatedForLabels = [
+    'SELF'     => 'Self',
+    'PARENT'   => 'Parents',
+    'SON'      => 'Parents',
+    'DAUGHTER' => 'Parents',
+    'BROTHER'  => 'Brother',
+    'SISTER'   => 'Sister',
+    'RELATIVE' => 'Relative',
+    'FRIEND'   => 'Friend',
+    'OTHER'    => 'Other',
+];
+
+$profileCreatedFor =
+    $profileCreatedForLabels[$profileCreatedForCode]
+    ?? ucwords(
+        strtolower(
+            str_replace(
+                '_',
+                ' ',
+                $profileCreatedForCode
+            )
+        )
+    );
 
 $gender = ucfirst(
     strtolower(
@@ -375,9 +393,6 @@ if (
 }
 
 $personalDetails = [
-    'Profile Created For' =>
-    $profileCreatedFor,
-
     'Gender' =>
     $gender,
 
@@ -750,14 +765,13 @@ $this->section('content');
                                         ) ?>
                                     </p>
                                 <?php endif; ?>
-
                                 <?php if (
                                     $community !== ''
                                     || $gotra !== ''
                                 ): ?>
                                     <p
                                         class="text-muted
-                                            mb-0">
+                                            mb-2">
 
                                         <i
                                             class="ri-community-line
@@ -777,6 +791,23 @@ $this->section('content');
                                                     ]
                                                 )
                                             )
+                                        ) ?>
+                                    </p>
+                                <?php endif; ?>
+                                <?php if (
+                                    $profileCreatedFor !== ''
+                                ): ?>
+                                    <p
+                                        class="text-danger fs-14
+                                            mb-0">
+
+                                        <i
+                                            class="ri-heart-line
+                                                me-1 text-muted"
+                                            aria-hidden="true"></i>
+                                        <span class="text-muted">Profile Created By : </span>
+                                        <?= esc(
+                                            $profileCreatedFor
                                         ) ?>
                                     </p>
                                 <?php endif; ?>
