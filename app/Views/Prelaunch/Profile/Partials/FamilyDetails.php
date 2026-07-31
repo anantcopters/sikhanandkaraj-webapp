@@ -339,7 +339,7 @@ $communityClass =
 
                     Nearest Gurudwara
 
-                    <span class="text-muted fs-12">
+                    <span class="color-pink fs-12">
                         (Optional)
                     </span>
                 </label>

@@ -27,6 +27,8 @@ final class PrelaunchProfileController extends BaseController
      */
     public function index(): string
     {
+        $this->preventPageCaching();
+
         $config = config('Prelaunch');
 
         if (!$config->profileEntryEnabled) {
@@ -577,6 +579,7 @@ final class PrelaunchProfileController extends BaseController
     public function success(
         int $profileId
     ): string {
+        $this->preventPageCaching();
         return view(
             'Prelaunch/Profile/Success',
             [

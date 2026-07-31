@@ -1837,4 +1837,19 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         }
     }
+
+    /**
+     * Reload the form when the browser restores it from back-forward cache.
+     *
+     * A restored form may contain an expired CSRF token or stale custom
+     * validation state.
+     */
+    window.addEventListener(
+        'pageshow',
+        (event) => {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        }
+    );
 });

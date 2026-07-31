@@ -95,7 +95,7 @@ $maximumPhotoSizeMb =
 
             <div>
                 <h5 class="mb-1 fs-14 fw-semibold">
-                    Photographs
+                    Photographs <span class="color-pink fw-normal fs-13">(Self and Family Photo)</span>
                 </h5>
 
                 <p class="text-muted mb-0 fs-12">
