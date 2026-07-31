@@ -5,6 +5,10 @@
 
 BEGIN;
 
+TRUNCATE TABLE master_states RESTART IDENTITY;
+
+TRUNCATE TABLE master_cities RESTART IDENTITY;
+
 DO $$
 DECLARE
     v_country_id SMALLINT := 1;
