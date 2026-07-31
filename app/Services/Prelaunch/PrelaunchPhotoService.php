@@ -337,19 +337,11 @@ final class PrelaunchPhotoService
     }
 
     /**
-     * Convert one uploaded image into optimized WebP variants.
-     *
-     * @param int          $sequence Photo sequence number.
-     * @param UploadedFile $photo    Uploaded photograph.
-     * @param string       $root     Profile storage root.
+     * Convert one uploaded image into one optimized WebP original.
      *
      * @return array{
      *     absolute_original: string,
-     *     absolute_medium: string,
-     *     absolute_thumbnail: string,
      *     relative_original: string,
-     *     relative_medium: string,
-     *     relative_thumbnail: string,
      *     mime_type: string,
      *     extension: string,
      *     file_size: int,

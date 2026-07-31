@@ -6,13 +6,14 @@ declare(strict_types=1);
  * Prelaunch profile photograph upload section.
  *
  * Supports:
- * - Client-side validation messages through data-validation-error.
- * - Server-side CI4 validation messages after redirect.
- * - Accessible error relationships through aria-describedby.
+ * - Configurable photograph count.
+ * - Client-side validation messages.
+ * - Server-side CI4 validation messages.
+ * - Accessible error relationships.
  *
  * @var array<string, string>|null $validationErrors
- * @var array<string, string>|null $validationErrors
- * @var int|null $maximumPhotoSizeKilobytes
+ * @var int|null                   $maximumPhotos
+ * @var int|null                   $maximumPhotoSizeKilobytes
  */
 
 $errorBag = is_array(
@@ -21,31 +22,44 @@ $errorBag = is_array(
     ? $validationErrors
     : [];
 
-$photoNumbers = [
+$requiredPhotoCount = max(
     1,
-    2,
-    3,
-];
+    (int) (
+        $maximumPhotos
+        ?? 2
+    )
+);
+
+/**
+ * Generate the photograph sequence from configuration instead of
+ * hardcoding photo_1, photo_2 or photo_3.
+ *
+ * @var list<int> $photoNumbers
+ */
+$photoNumbers = range(
+    1,
+    $requiredPhotoCount
+);
 
 /*
  * Detect whether any photograph has a server-side validation error.
- * This allows us to show a section-level alert in addition to the
- * individual field message.
  */
 $hasPhotoErrors = false;
 
 foreach ($photoNumbers as $photoNumber) {
-    $fieldName = 'photo_' . $photoNumber;
+    $fieldName =
+        'photo_' . $photoNumber;
 
-    if (
-        trim(
-            (string) (
-                $errorBag[$fieldName]
-                ?? ''
-            )
-        ) !== ''
-    ) {
+    $photoError = trim(
+        (string) (
+            $errorBag[$fieldName]
+            ?? ''
+        )
+    );
+
+    if ($photoError !== '') {
         $hasPhotoErrors = true;
+
         break;
     }
 }
@@ -85,7 +99,11 @@ $maximumPhotoSizeMb =
                 </h5>
 
                 <p class="text-muted mb-0 fs-12">
-                    Upload exactly three recent photographs.
+                    Upload exactly
+                    <?= esc(
+                        (string) $requiredPhotoCount
+                    ) ?>
+                    recent photographs.
                     Tap a placeholder to select an image.
                 </p>
             </div>
@@ -111,14 +129,15 @@ $maximumPhotoSizeMb =
 
         <hr class="my-2">
 
-        <div class="row g-2 g-md-3 pt-2">
+        <div
+            class="row g-2 g-md-3 pt-2 justify-content-center">
+
             <?php foreach (
                 $photoNumbers as $photoNumber
             ): ?>
                 <?php
                 $fieldName =
-                    'photo_'
-                    . $photoNumber;
+                    'photo_' . $photoNumber;
 
                 $previewId =
                     'photo-preview-'
@@ -140,10 +159,6 @@ $maximumPhotoSizeMb =
                     $photoLabel
                     . ' preview';
 
-                /*
-                 * Read the exact CI4 validation error associated
-                 * with the current uploaded photograph.
-                 */
                 $photoError = trim(
                     (string) (
                         $errorBag[$fieldName]
@@ -154,30 +169,32 @@ $maximumPhotoSizeMb =
                 $hasPhotoError =
                     $photoError !== '';
 
-                /*
-                 * Apply is-invalid to the input so the field retains
-                 * the standard Bootstrap invalid state.
-                 */
                 $photoInputClass =
                     $hasPhotoError
                     ? 'is-invalid'
                     : '';
 
-                /*
-                 * Bootstrap normally displays invalid-feedback using
-                 * a sibling selector. Since the input is nested inside
-                 * the label, use d-block when a server error exists.
-                 *
-                 * JavaScript can still populate and display the same
-                 * container for client-side errors.
-                 */
                 $feedbackClass =
                     $hasPhotoError
                     ? 'invalid-feedback d-block text-center'
                     : 'invalid-feedback text-center';
+
+                /*
+                 * Two photographs use half-width columns on tablet and
+                 * desktop while remaining compact and responsive.
+                 */
+                $columnClass =
+                    $requiredPhotoCount === 2
+                    ? 'col-6 col-md-5'
+                    : 'col-4';
                 ?>
 
-                <div class="col-4">
+                <div
+                    class="<?= esc(
+                                $columnClass,
+                                'attr'
+                            ) ?>">
+
                     <div class="h-100">
                         <label
                             for="<?= esc(
@@ -249,9 +266,7 @@ $maximumPhotoSizeMb =
                                 accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                                 aria-label="<?= esc(
                                                 'Select '
-                                                    . strtolower(
-                                                        $photoLabel
-                                                    ),
+                                                    . strtolower($photoLabel),
                                                 'attr'
                                             ) ?>"
                                 aria-describedby="<?= esc(
@@ -298,6 +313,7 @@ $maximumPhotoSizeMb =
 
         <div class="form-text small mt-1 color-pink">
             JPG, PNG or WebP images are allowed.
+            Images are securely optimized and stored as WebP.
         </div>
     </div>
 </div>

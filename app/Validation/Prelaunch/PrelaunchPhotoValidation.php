@@ -7,7 +7,7 @@ namespace App\Validation\Prelaunch;
 use Config\Prelaunch;
 
 /**
- * Upload validation rules for exactly three prelaunch photographs.
+ * Configuration-driven upload validation rules for prelaunch photographs.
  */
 final class PrelaunchPhotoValidation
 {

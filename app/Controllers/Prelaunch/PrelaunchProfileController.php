@@ -117,6 +117,9 @@ final class PrelaunchProfileController extends BaseController
                     'maximumPhotoSizeKilobytes' =>
                     $config->maximumPhotoSizeKilobytes,
 
+                    'maximumPhotos' =>
+                    $config->maximumPhotos,
+
                     'pageScripts' => [
                         'assets/js/pages/prelaunch-profile-form.js',
                         'assets/js/components/submit-loader.js',
@@ -420,21 +423,31 @@ final class PrelaunchProfileController extends BaseController
         }
 
         try {
+
             /** @var PrelaunchProfileService $service */
             $service = service(
                 'prelaunchProfileService'
             );
 
+            $photos = [];
+
+            for (
+                $sequence = 1;
+                $sequence <= $config->maximumPhotos;
+                $sequence++
+            ) {
+                $photo = $this->request->getFile(
+                    'photo_' . $sequence
+                );
+
+                if ($photo !== null) {
+                    $photos[] = $photo;
+                }
+            }
+
             $result = $service->createDraft(
                 $validation->getValidated(),
-                [
-                    $this->request->getFile(
-                        'photo_1'
-                    ),
-                    $this->request->getFile(
-                        'photo_2'
-                    )
-                ]
+                $photos
             );
 
             /*
