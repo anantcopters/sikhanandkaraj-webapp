@@ -21,6 +21,7 @@ use App\Services\Profile\MemberPhotoService;
 use App\Services\Profile\MemberProfileSummaryService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
+use App\Support\BooleanValue;
 use DomainException;
 use Throwable;
 
@@ -111,9 +112,14 @@ final class ProfileController extends BaseController
     /**
      * Display the authenticated member's public-profile preview.
      *
-     * The page reuses the existing profile-summary and photo services.
-     * Only approved photos are exposed in the preview because pending or
-     * rejected photos are not visible to other members.
+     * The profile preview follows the same media rules that apply when another
+     * authorized member views the profile:
+     *
+     * - only approved photos are displayed;
+     * - medium images are used for the main image and gallery;
+     * - original images remain available only for an explicitly opened
+     *   high-resolution modal;
+     * - pending and rejected photos are never exposed.
      */
     public function view(): string
     {
@@ -129,37 +135,114 @@ final class ProfileController extends BaseController
             'memberPhotoService'
         );
 
+        /*
+     * MemberProfileSummaryService already requests the approved primary
+     * profile image using the medium variant.
+     */
         $profileSummary = $profileSummaryService->getForUser(
             $userId
         );
 
+        /*
+     * Load the member-owned photos with their authorized signed URLs.
+     *
+     * The view will use mediumUrl for normal rendering and originalUrl only
+     * when the member explicitly opens the enlarged photo modal.
+     */
         $photoData = $memberPhotoService->getForMember(
             $userId
         );
 
-        /*
-        * The member preview should match what another member can see.
-        * Photos pending administrator approval must not appear here.
-        */
-        $approvedPhotos = array_values(
-            array_filter(
-                $photoData['photos'] ?? [],
-                static function (mixed $photo): bool {
-                    if (!is_array($photo)) {
-                        return false;
-                    }
+        $approvedPhotos = [];
 
-                    return strtoupper(
-                        trim(
-                            (string) (
-                                $photo['status']
-                                ?? ''
-                            )
-                        )
-                    ) === 'APPROVED';
-                }
-            )
-        );
+        foreach (
+            $photoData['photos'] ?? [] as $photo
+        ) {
+            if (!is_array($photo)) {
+                continue;
+            }
+
+            $status = strtoupper(
+                trim(
+                    (string) (
+                        $photo['status']
+                        ?? ''
+                    )
+                )
+            );
+
+            if ($status !== 'APPROVED') {
+                continue;
+            }
+
+            $signedUrls = $photo['signedUrls'] ?? [];
+
+            if (!is_array($signedUrls)) {
+                continue;
+            }
+
+            /*
+            * A medium image is mandatory for normal profile-page rendering.
+            * Do not silently use the original or thumbnail in its place.
+            */
+            $mediumUrl = trim(
+                (string) (
+                    $signedUrls['mediumUrl']
+                    ?? ''
+                )
+            );
+
+            if ($mediumUrl === '') {
+                log_message(
+                    'error',
+                    'Approved medium profile photo URL is unavailable. '
+                        . 'Member: {memberId}; photo: {photoId}.',
+                    [
+                        'memberId' => $userId,
+                        'photoId' => (int) (
+                            $photo['id']
+                            ?? 0
+                        ),
+                    ]
+                );
+
+                continue;
+            }
+
+            /*
+            * The original URL is optional. The profile gallery remains usable
+            * with the medium image when the original cannot be signed.
+            */
+            $originalUrl = trim(
+                (string) (
+                    $signedUrls['originalUrl']
+                    ?? ''
+                )
+            );
+
+            $approvedPhotos[] = [
+                'id' => (int) (
+                    $photo['id']
+                    ?? 0
+                ),
+
+                'mediumUrl' => $mediumUrl,
+
+                /*
+             * The modal may use the original after an explicit user action.
+             * Fall back to medium inside the modal only when the original
+             * URL is unavailable.
+             */
+                'modalUrl' => $originalUrl !== ''
+                    ? $originalUrl
+                    : $mediumUrl,
+
+                'isPrimary' => BooleanValue::fromDatabase(
+                    $photo['is_primary']
+                        ?? false
+                ),
+            ];
+        }
 
         return view(
             'Pages/Profile/View',
