@@ -140,6 +140,10 @@ External SMS, email, S3 or CloudFront calls must not keep a database transaction
 - Validate size, MIME type and decoded image content server-side.
 - Generate safe object keys; do not trust uploaded filenames.
 - Maintain required original/medium/thumbnail variants consistently.
+- Profile-photo variants must preserve the complete image and original aspect ratio; resizing or compression must not crop the uploaded photo.
+- Search results, match lists, recommendations and other multi-profile listings must fetch and render only the thumbnail variant.
+- Member profile and profile-detail pages must use the medium variant by default.
+- Fetch or render the original variant only for an explicit high-resolution use case after authorization; never use it as the default image for search results, listings or profile pages.
 - Enforce maximum photo count, approval, primary-photo and visibility rules in services and constraints where practical.
 
 ## 10. Frontend and CSS rules
