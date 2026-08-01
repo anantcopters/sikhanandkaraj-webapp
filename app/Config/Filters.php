@@ -81,17 +81,7 @@ class Filters extends BaseFilters
              * even when a later filter rejects a request.
              */
             'requestLog',
-            /*
-     * Temporarily exclude only the standalone prelaunch profile form.
-     *
-     * Do not use "prelaunch/*" because that would also exclude any future
-     * POST endpoints added under the prelaunch route group.
-     */
-            'csrf' => [
-                'except' => [
-                    'prelaunch/profile',
-                ],
-            ],
+            'csrf',
             'invalidchars',
         ],
         'after' => [

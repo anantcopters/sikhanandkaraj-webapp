@@ -33,42 +33,6 @@ final class RequestResponseLogFilter implements FilterInterface
         self::$startedAtNanoseconds =
             hrtime(true);
 
-        log_message(
-            'error',
-            'DIAGNOSTIC: Incoming HTTP request. '
-                . 'Request ID: {requestId}. '
-                . 'Method: {method}. '
-                . 'URI: {uri}. '
-                . 'Content length: {contentLength}. '
-                . 'User agent: {userAgent}.',
-            [
-                'requestId' =>
-                self::$requestId,
-
-                'method' =>
-                strtoupper(
-                    $request->getMethod()
-                ),
-
-                'uri' =>
-                (string) $request->getUri(),
-
-                'contentLength' =>
-                $request->getHeaderLine(
-                    'Content-Length'
-                ) ?: 'unknown',
-
-                'userAgent' =>
-                mb_substr(
-                    $request
-                        ->getUserAgent()
-                        ->getAgentString(),
-                    0,
-                    250
-                ),
-            ]
-        );
-
         /**
          * Return the identifier to the browser and make support/debugging
          * easier without exposing internal data.
@@ -138,3 +102,4 @@ final class RequestResponseLogFilter implements FilterInterface
         );
     }
 }
+

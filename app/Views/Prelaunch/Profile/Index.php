@@ -123,7 +123,7 @@ $this->section('content');
                 id="prelaunch-profile-form"
                 data-validate
                 novalidate>
-                
+                <?= csrf_field('prelaunch-csrf-token') ?>
 
                 <?= $this->include(
                     'Prelaunch/Profile/Partials/MemberDetails'
