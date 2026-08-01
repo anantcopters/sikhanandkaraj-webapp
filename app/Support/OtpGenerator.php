@@ -65,7 +65,7 @@ final class OtpGenerator
          * problem immediately.
          */
         if (
-            ENVIRONMENT === 'production'
+            env('APP_DEPLOYMENT', 'development') === 'production'
             && $configuredOtp !== ''
         ) {
             log_message(
