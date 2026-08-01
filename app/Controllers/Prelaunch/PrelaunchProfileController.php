@@ -398,7 +398,7 @@ final class PrelaunchProfileController extends BaseController
     {
 
         log_message(
-            'info',
+            'error',
             'Prelaunch profile store entered. '
                 . 'Host: {host}. '
                 . 'Scheme: {scheme}. '
