@@ -782,7 +782,7 @@ $messagesActive =
                         href="tel:+919887005392"
                         class="public-navbar__phone
                         hide-on-mobile"
-                        aria-label="Call SikhAnandKaraj at +91 98870 05320">
+                        aria-label="Call SikhAnandKaraj at +91 98870 05392">
 
                         <span
                             class="mdi
@@ -792,7 +792,7 @@ $messagesActive =
                         </span>
 
                         <span class="public-navbar__phone-number">
-                            +91 98870 05320
+                            +91 98870 05392
                         </span>
                     </a>
                 </div>

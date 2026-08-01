@@ -404,6 +404,29 @@ $this->section('content');
                                 )
                             ) ?>
                         </dd>
+                        <dt class="col-sm-4">
+                            Gotra
+                        </dt>
+                        <dd class="col-sm-8">
+                            <?= esc(
+                                $displayValue(
+                                    $profile['gotra']
+                                        ?? ''
+                                )
+                            ) ?>
+                        </dd>
+
+                        <dt class="col-sm-4">
+                            Nearest Gurudwara
+                        </dt>
+                        <dd class="col-sm-8">
+                            <?= esc(
+                                $displayValue(
+                                    $profile['nearest_gurudwara']
+                                        ?? ''
+                                )
+                            ) ?>
+                        </dd>
                     </dl>
                 </div>
             </div>

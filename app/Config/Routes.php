@@ -12,7 +12,7 @@ use CodeIgniter\Router\RouteCollection;
 // Member web routes
 // -----------------------------------------------------------------------------
 
-if (ENVIRONMENT === 'production') {
+if (env('APP_DEPLOYMENT', 'development') === 'production') {
 
     $prelaunchRedirect = static function () {
         return redirect()->to(
@@ -948,13 +948,13 @@ $routes->group(
             ]
         );
 
-        $routes->post(
-            'field-officer/verify',
-            'PrelaunchProfileController::verifyFieldOfficer',
-            [
-                'as' => 'prelaunch.field-officer.verify',
-            ]
-        );
+        // $routes->post(
+        //     'field-officer/verify',
+        //     'PrelaunchProfileController::verifyFieldOfficer',
+        //     [
+        //         'as' => 'prelaunch.field-officer.verify',
+        //     ]
+        // );
 
         /*
          * Public dependent master-data endpoints.

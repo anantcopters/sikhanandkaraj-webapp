@@ -7,6 +7,7 @@ namespace App\Services\Profile;
 use App\Models\MemberBasicDetailModel;
 use App\Models\UserModel;
 use App\Services\Profile\ProfileMasterDataService;
+use App\Support\BooleanValue;
 use DateTimeImmutable;
 use DomainException;
 use RuntimeException;
@@ -95,6 +96,120 @@ final class BasicDetailsService
             (int) $data['city_id']
         );
 
+        /*
+ * Optional numeric fields arrive as empty strings when no value is
+ * selected. Convert only non-empty validated values to integers.
+ *
+ * This preserves the intended distinction:
+ *
+ * - empty optional value => NULL
+ * - selected master value => positive integer
+ */
+        $drinkingHabitValue = trim(
+            (string) (
+                $data['drinking_habit_id']
+                ?? ''
+            )
+        );
+
+        $drinkingHabitId =
+            $drinkingHabitValue !== ''
+            ? (int) $drinkingHabitValue
+            : null;
+
+        $eatingHabitValue = trim(
+            (string) (
+                $data['eating_habit_id']
+                ?? ''
+            )
+        );
+
+        $eatingHabitId =
+            $eatingHabitValue !== ''
+            ? (int) $eatingHabitValue
+            : null;
+
+        $physicalStatusValue = trim(
+            (string) (
+                $data['physical_status_id']
+                ?? ''
+            )
+        );
+
+        $physicalStatusId =
+            $physicalStatusValue !== ''
+            ? (int) $physicalStatusValue
+            : null;
+
+        $numberOfChildrenValue = trim(
+            (string) (
+                $data['number_of_children']
+                ?? ''
+            )
+        );
+
+        $numberOfChildren =
+            $numberOfChildrenValue !== ''
+            ? (int) $numberOfChildrenValue
+            : null;
+
+        /*
+        * Preserve the difference between:
+        *
+        * - no selection: NULL
+        * - selected No: FALSE
+        * - selected Yes: TRUE
+        *
+        * BooleanValue::fromDatabase() is reused because it already understands
+        * PostgreSQL and HTML-form boolean representations.
+        */
+        $childrenLivingTogetherValue =
+            $data['children_living_together']
+            ?? null;
+
+        $childrenLivingTogether =
+            $childrenLivingTogetherValue === null
+            || trim(
+                (string) $childrenLivingTogetherValue
+            ) === ''
+            ? null
+            : BooleanValue::fromDatabase(
+                $childrenLivingTogetherValue
+            );
+
+        $this->masterDataService
+            ->assertValidOptionalBasicSelections(
+                $drinkingHabitId,
+                $eatingHabitId,
+                $physicalStatusId
+            );
+
+        $maritalStatusId =
+            (int) $data['marital_status_id'];
+
+        $isNeverMarried = $this
+            ->masterDataService
+            ->isNeverMarried(
+                $maritalStatusId
+            );
+
+        if ($isNeverMarried) {
+            /*
+            * Never Married profiles must not retain stale child details if the
+            * marital status is changed from a previous saved value.
+            */
+            $numberOfChildren = null;
+            $childrenLivingTogether = null;
+        } elseif (
+            $childrenLivingTogether !== null
+            && $numberOfChildren === null
+        ) {
+            throw new DomainException(
+                'Please enter the number of children before selecting '
+                    . 'whether they live together.'
+            );
+        }
+
         $database = db_connect();
 
         $database->transException(true);
@@ -145,6 +260,21 @@ final class BasicDetailsService
 
                 'city_id' =>
                 (int) $data['city_id'],
+
+                'drinking_habit_id' =>
+                $drinkingHabitId,
+
+                'eating_habit_id' =>
+                $eatingHabitId,
+
+                'physical_status_id' =>
+                $physicalStatusId,
+
+                'number_of_children' =>
+                $numberOfChildren,
+
+                'children_living_together' =>
+                $childrenLivingTogether,
             ];
 
             $existing = $this

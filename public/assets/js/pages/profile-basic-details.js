@@ -1,7 +1,7 @@
 'use strict';
 
 document.addEventListener('DOMContentLoaded', () => {
-    
+
     const form = document.getElementById(
         'basicDetailsForm'
     );
@@ -150,7 +150,135 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     });
 
-    
+    /**
+     * Show child-related fields only when marital status is not Never Married.
+     *
+     * @returns {void}
+     */
+    function initializeChildrenDetailsVisibility() {
+        const maritalStatus =
+            document.getElementById(
+                'maritalStatusId'
+            );
+
+        const childrenDetailSections =
+            document.querySelectorAll(
+                '[data-children-details]'
+            );
+
+        const numberOfChildren =
+            document.getElementById(
+                'numberOfChildren'
+            );
+
+        const livingTogetherInputs =
+            document.querySelectorAll(
+                'input[name="children_living_together"]'
+            );
+
+        if (
+            !(maritalStatus instanceof HTMLSelectElement)
+            || childrenDetailSections.length === 0
+            || !(numberOfChildren instanceof HTMLInputElement)
+        ) {
+            return;
+        }
+
+        /**
+         * Return the selected marital-status master code.
+         *
+         * @returns {string}
+         */
+        const selectedMaritalStatusCode = () => {
+            const selectedOption =
+                maritalStatus.options[
+                maritalStatus.selectedIndex
+                ];
+
+            return String(
+                selectedOption
+                    ?.dataset
+                    ?.maritalStatusCode
+                ?? ''
+            )
+                .trim()
+                .toUpperCase();
+        };
+
+        /**
+         * Synchronize child-field visibility and submitted state.
+         *
+         * @returns {void}
+         */
+        const updateChildrenDetails = () => {
+            const maritalStatusCode =
+                selectedMaritalStatusCode();
+
+            const shouldShow =
+                maritalStatus.value !== ''
+                && maritalStatusCode
+                !== 'NEVER_MARRIED';
+
+            childrenDetailSections.forEach(
+                (section) => {
+                    if (!(section instanceof HTMLElement)) {
+                        return;
+                    }
+
+                    section.classList.toggle(
+                        'd-none',
+                        !shouldShow
+                    );
+                }
+            );
+
+            numberOfChildren.disabled =
+                !shouldShow;
+
+            livingTogetherInputs.forEach(
+                (input) => {
+                    if (!(input instanceof HTMLInputElement)) {
+                        return;
+                    }
+
+                    input.disabled =
+                        !shouldShow;
+                }
+            );
+
+            if (shouldShow) {
+                return;
+            }
+
+            /*
+             * Clear stale child information when marital status changes
+             * to Never Married.
+             */
+            numberOfChildren.value = '';
+
+            livingTogetherInputs.forEach(
+                (input) => {
+                    if (input instanceof HTMLInputElement) {
+                        input.checked = false;
+                    }
+                }
+            );
+        };
+
+        maritalStatus.addEventListener(
+            'change',
+            updateChildrenDetails
+        );
+
+        updateChildrenDetails();
+    }
+
+    /*
+     * Initialize marital-status-dependent children fields after the form
+     * elements are available.
+     */
+    initializeChildrenDetailsVisibility();
+
     /**
      * Show the member's calculated age as helper text.
      */

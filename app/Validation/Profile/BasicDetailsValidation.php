@@ -95,6 +95,74 @@ final class BasicDetailsValidation
                 ],
             ],
 
+            'drinking_habit_id' => [
+                'label' => 'Drinking habit',
+                'rules' => [
+                    'permit_empty',
+                    'is_natural_no_zero',
+                ],
+                'errors' => [
+                    'is_natural_no_zero' =>
+                    'Please select a valid drinking habit.',
+                ],
+            ],
+
+            'eating_habit_id' => [
+                'label' => 'Eating habit',
+                'rules' => [
+                    'permit_empty',
+                    'is_natural_no_zero',
+                ],
+                'errors' => [
+                    'is_natural_no_zero' =>
+                    'Please select a valid eating habit.',
+                ],
+            ],
+
+            'physical_status_id' => [
+                'label' => 'Physical status',
+                'rules' => [
+                    'permit_empty',
+                    'is_natural_no_zero',
+                ],
+                'errors' => [
+                    'is_natural_no_zero' =>
+                    'Please select a valid physical status.',
+                ],
+            ],
+
+            'number_of_children' => [
+                'label' => 'Number of children',
+                'rules' => [
+                    'permit_empty',
+                    'integer',
+                    'greater_than_equal_to[1]',
+                    'less_than_equal_to[99]',
+                ],
+                'errors' => [
+                    'integer' =>
+                    'Number of children must be a whole number.',
+
+                    'greater_than_equal_to' =>
+                    'Number of children must be between 1 and 99.',
+
+                    'less_than_equal_to' =>
+                    'Number of children must be between 1 and 99.',
+                ],
+            ],
+
+            'children_living_together' => [
+                'label' => 'Children living together',
+                'rules' => [
+                    'permit_empty',
+                    'in_list[0,1]',
+                ],
+                'errors' => [
+                    'in_list' =>
+                    'Please select whether the children are living together.',
+                ],
+            ],
+
             'country_id' => [
                 'label' => 'Country',
                 'rules' => [

@@ -126,6 +126,47 @@ final class FieldOfficerModel extends Model
             : null;
     }
 
+    /**
+     * Find one active, non-deleted Field Officer by primary-key ID.
+     *
+     * Location joins are not required for prelaunch profile creation because
+     * only the verified database ID is persisted.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findActiveById(
+        int $fieldOfficerId
+    ): ?array {
+        if ($fieldOfficerId <= 0) {
+            return null;
+        }
+
+        $record = $this
+            ->select([
+                'field_officers.id',
+                'field_officers.officer_code',
+                'field_officers.full_name',
+                'field_officers.account_status',
+            ])
+            ->where(
+                'field_officers.id',
+                $fieldOfficerId
+            )
+            ->where(
+                'field_officers.account_status',
+                self::STATUS_ACTIVE
+            )
+            ->where(
+                'field_officers.deleted_at',
+                null
+            )
+            ->first();
+
+        return is_array($record)
+            ? $record
+            : null;
+    }
+
     public function mobileExists(
         string $mobileNumber,
         ?int $exceptId = null
@@ -204,5 +245,5 @@ final class FieldOfficerModel extends Model
         return is_array($record)
             ? $record
             : null;
-    }    
+    }
 }

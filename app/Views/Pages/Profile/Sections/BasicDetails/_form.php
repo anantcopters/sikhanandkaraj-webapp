@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Support\BooleanValue;
+
 /**
  * Basic Details add/edit form.
  *
@@ -138,6 +140,27 @@ $motherTongues = is_array(
     ? $resolvedMasterData['motherTongues']
     : [];
 
+$drinkingHabits = is_array(
+    $resolvedMasterData['drinkingHabits']
+        ?? null
+)
+    ? $resolvedMasterData['drinkingHabits']
+    : [];
+
+$eatingHabits = is_array(
+    $resolvedMasterData['eatingHabits']
+        ?? null
+)
+    ? $resolvedMasterData['eatingHabits']
+    : [];
+
+$physicalStatuses = is_array(
+    $resolvedMasterData['physicalStatuses']
+        ?? null
+)
+    ? $resolvedMasterData['physicalStatuses']
+    : [];
+
 $states = is_array(
     $resolvedMasterData['states'] ?? null
 )
@@ -203,6 +226,26 @@ $heightHasError = isset(
 
 $motherTongueHasError = isset(
     $errors['mother_tongue_id']
+);
+
+$drinkingHabitHasError = isset(
+    $errors['drinking_habit_id']
+);
+
+$eatingHabitHasError = isset(
+    $errors['eating_habit_id']
+);
+
+$physicalStatusHasError = isset(
+    $errors['physical_status_id']
+);
+
+$numberOfChildrenHasError = isset(
+    $errors['number_of_children']
+);
+
+$childrenLivingTogetherHasError = isset(
+    $errors['children_living_together']
 );
 
 $stateHasError = isset(
@@ -545,6 +588,17 @@ if ($isJourney) {
                                     (string) $status['id'],
                                     'attr'
                                 ) ?>"
+                        data-marital-status-code="<?= esc(
+                                                        strtoupper(
+                                                            trim(
+                                                                (string) (
+                                                                    $status['code']
+                                                                    ?? ''
+                                                                )
+                                                            )
+                                                        ),
+                                                        'attr'
+                                                    ) ?>"
                         <?= $isSelected(
                             'marital_status_id',
                             (string) $status['id'],
@@ -560,6 +614,141 @@ if ($isJourney) {
                 'errorId' => 'maritalStatusIdError',
                 'errors' => $errors,
             ]) ?>
+        </div>
+
+        <div
+            class="col-12 col-sm-6 col-lg-4"
+            data-children-details>
+
+            <label
+                for="numberOfChildren"
+                class="form-labelm">
+                Number of children
+            </label>
+
+            <input
+                type="number"
+                id="numberOfChildren"
+                name="number_of_children"
+                class="form-control <?= $numberOfChildrenHasError
+                                        ? 'is-invalid'
+                                        : '' ?>"
+                value="<?= esc(
+                            $fieldValue(
+                                'number_of_children',
+                                $details['number_of_children']
+                                    ?? ''
+                            ),
+                            'attr'
+                        ) ?>"
+                min="1"
+                max="99"
+                step="1"
+                inputmode="numeric"
+                aria-describedby="numberOfChildrenError"
+                data-error-min="Number of children must be between 1 and 99."
+                data-error-max="Number of children must be between 1 and 99.">
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' =>
+                    'number_of_children',
+
+                    'errorId' =>
+                    'numberOfChildrenError',
+
+                    'errors' =>
+                    $errors,
+                ]
+            ) ?>
+        </div>
+
+        <div
+            class="col-12 col-sm-6 col-lg-4"
+            data-children-details>
+
+            <fieldset>
+                <label class="form-labelm">
+                    Children living together
+                </label>
+
+                <?php
+                $storedChildrenLivingTogether =
+                    $details['children_living_together']
+                    ?? null;
+
+                $livingTogetherValue =
+                    $fieldValue(
+                        'children_living_together',
+                        $storedChildrenLivingTogether === null
+                            ? ''
+                            : (
+                                BooleanValue::fromDatabase(
+                                    $storedChildrenLivingTogether
+                                )
+                                ? '1'
+                                : '0'
+                            )
+                    );
+                ?>
+
+                <div class="d-flex flex-wrap gap-3 pt-1">
+                    <div class="form-check">
+                        <input
+                            type="radio"
+                            id="childrenLivingTogetherYes"
+                            name="children_living_together"
+                            class="form-check-input <?= $childrenLivingTogetherHasError
+                                                        ? 'is-invalid'
+                                                        : '' ?>"
+                            value="1"
+                            <?= $livingTogetherValue === '1'
+                                ? 'checked'
+                                : '' ?>>
+
+                        <label
+                            for="childrenLivingTogetherYes"
+                            class="form-check-label">
+                            Yes
+                        </label>
+                    </div>
+
+                    <div class="form-check">
+                        <input
+                            type="radio"
+                            id="childrenLivingTogetherNo"
+                            name="children_living_together"
+                            class="form-check-input <?= $childrenLivingTogetherHasError
+                                                        ? 'is-invalid'
+                                                        : '' ?>"
+                            value="0"
+                            <?= $livingTogetherValue === '0'
+                                ? 'checked'
+                                : '' ?>>
+
+                        <label
+                            for="childrenLivingTogetherNo"
+                            class="form-check-label">
+                            No
+                        </label>
+                    </div>
+                </div>
+
+                <?= view(
+                    'Components/Forms/FieldError',
+                    [
+                        'field' =>
+                        'children_living_together',
+
+                        'errorId' =>
+                        'childrenLivingTogetherError',
+
+                        'errors' =>
+                        $errors,
+                    ]
+                ) ?>
+            </fieldset>
         </div>
 
         <div class="col-12 col-sm-6 col-lg-4">
@@ -676,6 +865,176 @@ if ($isJourney) {
                 'errorId' => 'motherTongueIdError',
                 'errors' => $errors,
             ]) ?>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label
+                for="drinkingHabitId"
+                class="form-labelm">
+                Drinking habit
+            </label>
+
+            <select
+                id="drinkingHabitId"
+                name="drinking_habit_id"
+                class="form-select <?= $drinkingHabitHasError
+                                        ? 'is-invalid'
+                                        : '' ?>"
+                data-choice
+                data-choice-search="false"
+                data-choice-position="bottom"
+                aria-describedby="drinkingHabitIdError">
+
+                <option value="">
+                    Select drinking habit
+                </option>
+
+                <?php foreach ($drinkingHabits as $habit): ?>
+                    <option
+                        value="<?= esc(
+                                    (string) $habit['id'],
+                                    'attr'
+                                ) ?>"
+                        <?= $isSelected(
+                            'drinking_habit_id',
+                            (string) $habit['id'],
+                            $details['drinking_habit_id']
+                                ?? ''
+                        ) ?>>
+                        <?= esc(
+                            (string) $habit['name']
+                        ) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' =>
+                    'drinking_habit_id',
+
+                    'errorId' =>
+                    'drinkingHabitIdError',
+
+                    'errors' =>
+                    $errors,
+                ]
+            ) ?>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label
+                for="eatingHabitId"
+                class="form-labelm">
+                Eating habit
+            </label>
+
+            <select
+                id="eatingHabitId"
+                name="eating_habit_id"
+                class="form-select <?= $eatingHabitHasError
+                                        ? 'is-invalid'
+                                        : '' ?>"
+                data-choice
+                data-choice-search="false"
+                data-choice-position="bottom"
+                aria-describedby="eatingHabitIdError">
+
+                <option value="">
+                    Select eating habit
+                </option>
+
+                <?php foreach ($eatingHabits as $habit): ?>
+                    <option
+                        value="<?= esc(
+                                    (string) $habit['id'],
+                                    'attr'
+                                ) ?>"
+                        <?= $isSelected(
+                            'eating_habit_id',
+                            (string) $habit['id'],
+                            $details['eating_habit_id']
+                                ?? ''
+                        ) ?>>
+                        <?= esc(
+                            (string) $habit['name']
+                        ) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' =>
+                    'eating_habit_id',
+
+                    'errorId' =>
+                    'eatingHabitIdError',
+
+                    'errors' =>
+                    $errors,
+                ]
+            ) ?>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label
+                for="physicalStatusId"
+                class="form-labelm">
+                Physical status
+            </label>
+
+            <select
+                id="physicalStatusId"
+                name="physical_status_id"
+                class="form-select <?= $physicalStatusHasError
+                                        ? 'is-invalid'
+                                        : '' ?>"
+                data-choice
+                data-choice-search="false"
+                data-choice-position="bottom"
+                aria-describedby="physicalStatusIdError">
+
+                <option value="">
+                    Select physical status
+                </option>
+
+                <?php foreach (
+                    $physicalStatuses as $status
+                ): ?>
+                    <option
+                        value="<?= esc(
+                                    (string) $status['id'],
+                                    'attr'
+                                ) ?>"
+                        <?= $isSelected(
+                            'physical_status_id',
+                            (string) $status['id'],
+                            $details['physical_status_id']
+                                ?? ''
+                        ) ?>>
+                        <?= esc(
+                            (string) $status['name']
+                        ) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' =>
+                    'physical_status_id',
+
+                    'errorId' =>
+                    'physicalStatusIdError',
+
+                    'errors' =>
+                    $errors,
+                ]
+            ) ?>
         </div>
 
         <div class="col-12 col-sm-6 col-lg-4">

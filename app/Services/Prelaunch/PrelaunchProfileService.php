@@ -7,6 +7,7 @@ namespace App\Services\Prelaunch;
 use App\Models\Prelaunch\PrelaunchProfileModel;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\Files\UploadedFile;
+use Config\Prelaunch;
 use RuntimeException;
 use Throwable;
 
@@ -15,11 +16,19 @@ use Throwable;
  */
 final class PrelaunchProfileService
 {
+    /**
+     * @param PrelaunchProfileModel        $profileModel       Profile model.
+     * @param PrelaunchFieldOfficerService $fieldOfficerService Officer resolver.
+     * @param PrelaunchPhotoService        $photoService       Photo service.
+     * @param BaseConnection               $database           DB connection.
+     * @param Prelaunch                    $configuration      Module config.
+     */
     public function __construct(
         private readonly PrelaunchProfileModel $profileModel,
         private readonly PrelaunchFieldOfficerService $fieldOfficerService,
         private readonly PrelaunchPhotoService $photoService,
-        private readonly BaseConnection $database
+        private readonly BaseConnection $database,
+        private readonly Prelaunch $configuration
     ) {}
 
     /**
@@ -65,6 +74,18 @@ final class PrelaunchProfileService
                 'Gotra is required.'
             );
         }
+
+        $nearestGurudwara = trim(
+            (string) (
+                $input['nearest_gurudwara']
+                ?? ''
+            )
+        );
+
+        $nearestGurudwara =
+            $nearestGurudwara !== ''
+            ? $nearestGurudwara
+            : null;
 
         $profileCreatedFor = mb_strtoupper(
             trim(
@@ -129,32 +150,47 @@ final class PrelaunchProfileService
             );
         }
 
-        $fieldOfficerId = (int) (
-            $input['verified_field_officer_id']
-            ?? 0
-        );
+        // $fieldOfficerId = (int) (
+        //     $input['verified_field_officer_id']
+        //     ?? 0
+        // );
 
-        $fieldOfficerCode = (string) (
-            $input['field_officer_code']
-            ?? ''
-        );
+        // $fieldOfficerCode = (string) (
+        //     $input['field_officer_code']
+        //     ?? ''
+        // );
+
+        // /*
+        //  * Never trust the hidden Field Officer ID alone.
+        //  * Re-check the active officer and code on the server.
+        //  */
+        // try {
+        //     $this->fieldOfficerService
+        //         ->assertVerifiedOfficer(
+        //             $fieldOfficerId,
+        //             $fieldOfficerCode
+        //         );
+        // } catch (RuntimeException) {
+        //     return PrelaunchProfileResult::fieldFailure(
+        //         'field_officer_code',
+        //         'Please verify a valid active Field Officer code.'
+        //     );
+        // }
 
         /*
-         * Never trust the hidden Field Officer ID alone.
-         * Re-check the active officer and code on the server.
-         */
-        try {
-            $this->fieldOfficerService
-                ->assertVerifiedOfficer(
-                    $fieldOfficerId,
-                    $fieldOfficerCode
-                );
-        } catch (RuntimeException) {
-            return PrelaunchProfileResult::fieldFailure(
-                'field_officer_code',
-                'Please verify a valid active Field Officer code.'
+        * The Field Officer is server-configured and never accepted from the
+        * browser. Re-resolve the database record for every profile so an officer
+        * that has been disabled or deleted cannot continue receiving profiles.
+        */
+        $fieldOfficer = $this
+            ->fieldOfficerService
+            ->resolveConfiguredOfficer(
+                $this->configuration
+                    ->profileFieldOfficerId
             );
-        }
+
+        $fieldOfficerId =
+            (int) $fieldOfficer['id'];
 
         $profileReference =
             $this->generateReference();
@@ -230,6 +266,10 @@ final class PrelaunchProfileService
 
                         'gotra' =>
                         $gotra,
+
+                        'nearest_gurudwara' =>
+                        $nearestGurudwara,
+
 
                         'field_officer_id' =>
                         $fieldOfficerId,

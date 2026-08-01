@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Support\BooleanValue;
+
 /**
  * Authenticated member profile preview.
  *
@@ -73,20 +75,38 @@ $profileReference = trim(
     )
 );
 
-$profileCreatedFor = ucwords(
-    strtolower(
-        str_replace(
-            '_',
-            ' ',
-            trim(
-                (string) (
-                    $user['profile_created_for']
-                    ?? ''
-                )
-            )
+$profileCreatedForCode = strtoupper(
+    trim(
+        (string) (
+            $user['profile_created_for']
+            ?? ''
         )
     )
 );
+
+$profileCreatedForLabels = [
+    'SELF'     => 'Self',
+    'PARENT'   => 'Parents',
+    'SON'      => 'Parents',
+    'DAUGHTER' => 'Parents',
+    'BROTHER'  => 'Brother',
+    'SISTER'   => 'Sister',
+    'RELATIVE' => 'Relative',
+    'FRIEND'   => 'Friend',
+    'OTHER'    => 'Other',
+];
+
+$profileCreatedFor =
+    $profileCreatedForLabels[$profileCreatedForCode]
+    ?? ucwords(
+        strtolower(
+            str_replace(
+                '_',
+                ' ',
+                $profileCreatedForCode
+            )
+        )
+    );
 
 $gender = ucfirst(
     strtolower(
@@ -331,26 +351,103 @@ $getOriginalPhotoUrl = static function (
     return '';
 };
 
+$childrenLivingTogether = '';
+
+if (
+    array_key_exists(
+        'children_living_together',
+        $basicDetails
+    )
+    && $basicDetails['children_living_together']
+    !== null
+) {
+    $childrenLivingTogether =
+        BooleanValue::fromDatabase(
+            $basicDetails['children_living_together']
+        )
+        ? 'Yes'
+        : 'No';
+}
+
+$isNeverMarried = strtoupper(
+    trim(
+        (string) (
+            $basicDetails['marital_status_code']
+            ?? ''
+        )
+    )
+) === 'NEVER_MARRIED';
+
+if (
+    !$isNeverMarried
+    && strtoupper(
+        trim(
+            (string) (
+                $basicDetails['marital_status_name']
+                ?? ''
+            )
+        )
+    ) === 'NEVER MARRIED'
+) {
+    $isNeverMarried = true;
+}
+
 $personalDetails = [
-    'Profile Created For' => $profileCreatedFor,
-    'Gender' => $gender,
-    'Date of Birth' => $formattedDateOfBirth,
-    'Age' => $age !== null
+    'Gender' =>
+    $gender,
+
+    'Date of Birth' =>
+    $formattedDateOfBirth,
+
+    'Age' =>
+    $age !== null
         ? $age . ' Years'
         : '',
+
     'Marital Status' =>
     $basicDetails['marital_status_name']
         ?? '',
-    'Height' => $height,
+
+    'Number of Children' =>
+    $isNeverMarried
+        ? ''
+        : (
+            $basicDetails['number_of_children']
+            ?? ''
+        ),
+
+    'Children Living Together' =>
+    $isNeverMarried
+        ? ''
+        : $childrenLivingTogether,
+
+    'Height' =>
+    $height,
+
     'Mother Tongue' =>
     $basicDetails['mother_tongue_name']
         ?? '',
+
+    'Drinking Habit' =>
+    $basicDetails['drinking_habit_name']
+        ?? '',
+
+    'Eating Habit' =>
+    $basicDetails['eating_habit_name']
+        ?? '',
+
+    'Physical Status' =>
+    $basicDetails['physical_status_name']
+        ?? '',
+
     'Country' =>
     $basicDetails['country_name']
         ?? '',
+
     'State' =>
     $basicDetails['state_name']
         ?? '',
+
     'City' =>
     $basicDetails['city_name']
         ?? '',
@@ -668,14 +765,13 @@ $this->section('content');
                                         ) ?>
                                     </p>
                                 <?php endif; ?>
-
                                 <?php if (
                                     $community !== ''
                                     || $gotra !== ''
                                 ): ?>
                                     <p
                                         class="text-muted
-                                            mb-0">
+                                            mb-2">
 
                                         <i
                                             class="ri-community-line
@@ -695,6 +791,23 @@ $this->section('content');
                                                     ]
                                                 )
                                             )
+                                        ) ?>
+                                    </p>
+                                <?php endif; ?>
+                                <?php if (
+                                    $profileCreatedFor !== ''
+                                ): ?>
+                                    <p
+                                        class="text-danger fs-14
+                                            mb-0">
+
+                                        <i
+                                            class="ri-heart-line
+                                                me-1 text-muted"
+                                            aria-hidden="true"></i>
+                                        <span class="text-muted">Profile Created By : </span>
+                                        <?= esc(
+                                            $profileCreatedFor
                                         ) ?>
                                     </p>
                                 <?php endif; ?>

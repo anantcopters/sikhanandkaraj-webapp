@@ -992,10 +992,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
     /**
- * Initialize photo previews and client-side photo validation.
- *
- * @returns {void}
- */
+     * Initialize photo previews and client-side photo validation.
+     *
+     * @returns {void}
+     */
     const initializePhotoPreviews = () => {
         const photoInputs =
             document.querySelectorAll(
@@ -1007,9 +1007,6 @@ document.addEventListener('DOMContentLoaded', () => {
             'image/png',
             'image/webp',
         ];
-
-        const maximumFileSize =
-            5 * 1024 * 1024;
 
         /**
          * Ask the global form validator to refresh one file field.
@@ -1046,9 +1043,39 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                /*
+                 * Configuration is attached to each individual input in
+                 * Photos.php. querySelectorAll() returns a NodeList and does
+                 * not expose dataset values.
+                 */
+                const configuredMaximumFileSize =
+                    Number.parseInt(
+                        photoInput.dataset
+                            .maximumFileSize
+                        ?? '',
+                        10
+                    );
+
+                const maximumFileSize =
+                    Number.isFinite(
+                        configuredMaximumFileSize
+                    )
+                        && configuredMaximumFileSize > 0
+                        ? configuredMaximumFileSize
+                        : 18 * 1024 * 1024;
+
+                const maximumFileSizeLabel =
+                    photoInput.dataset
+                        .maximumFileSizeLabel
+                    ?? '18 MB';
+
                 photoInput.addEventListener(
                     'change',
                     () => {
+                        /*
+                         * Clear any validation message left by an earlier
+                         * invalid file selection.
+                         */
                         photoInput.setCustomValidity(
                             ''
                         );
@@ -1097,7 +1124,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             );
 
                             /*
-                             * Validate the required file field after the user cancels
+                             * Validate the required field after the user cancels
                              * or clears the file selection.
                              */
                             refreshPhotoValidation(
@@ -1127,10 +1154,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 'd-none'
                             );
 
-                            /*
-                            * Render the custom validation message through the global
-                            * form validator.
-                            */
                             refreshPhotoValidation(
                                 photoInput
                             );
@@ -1143,14 +1166,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             > maximumFileSize
                         ) {
                             photoInput.setCustomValidity(
-                                'The selected photograph must not exceed 5 MB.'
+                                `The selected photograph must not exceed ${maximumFileSizeLabel}.`
                             );
 
                             /*
                              * Clear the rejected file so it cannot be submitted.
                              */
                             photoInput.value = '';
-
                             previewImage.src = '';
 
                             previewImage.classList.add(
@@ -1161,10 +1183,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 'd-none'
                             );
 
-                            /*
-                             * The custom validity was applied after the native change
-                             * validation ran, so explicitly refresh the field state.
-                             */
                             refreshPhotoValidation(
                                 photoInput
                             );
@@ -1190,6 +1208,14 @@ document.addEventListener('DOMContentLoaded', () => {
                                 placeholder?.classList.add(
                                     'd-none'
                                 );
+
+                                /*
+                                 * Remove any previous Bootstrap invalid state
+                                 * after a valid photograph is selected.
+                                 */
+                                refreshPhotoValidation(
+                                    photoInput
+                                );
                             }
                         );
 
@@ -1211,572 +1237,789 @@ document.addEventListener('DOMContentLoaded', () => {
  *
  * @returns {void}
  */
-    const initializeFieldOfficerVerification = () => {
-        const verifyButton =
+    // const initializeFieldOfficerVerification = () => {
+    //     const verifyButton =
+    //         document.getElementById(
+    //             'verify-field-officer'
+    //         );
+
+    //     const officerCodeInput =
+    //         document.getElementById(
+    //             'field_officer_code'
+    //         );
+
+    //     const verifiedOfficerInput =
+    //         document.getElementById(
+    //             'verified_field_officer_id'
+    //         );
+
+    //     const resultColumn =
+    //         document.getElementById(
+    //             'field-officer-result-column'
+    //         );
+
+    //     const resultContainer =
+    //         document.getElementById(
+    //             'field-officer-result'
+    //         );
+
+    //     const resultIcon =
+    //         document.getElementById(
+    //             'field-officer-result-icon'
+    //         );
+
+    //     const resultMessage =
+    //         document.getElementById(
+    //             'field-officer-result-message'
+    //         );
+
+    //     const resultCode =
+    //         document.getElementById(
+    //             'verified-field-officer-code'
+    //         );
+
+    //     const resultLocation =
+    //         document.getElementById(
+    //             'verified-field-officer-location'
+    //         );
+
+    //     const errorElement =
+    //         document.getElementById(
+    //             'field_officer_codeError'
+    //         );
+
+    //     const verifyLabel =
+    //         document.getElementById(
+    //             'verify-field-officer-label'
+    //         );
+
+    //     const verifyLoading =
+    //         document.getElementById(
+    //             'verify-field-officer-loading'
+    //         );
+
+    //     if (
+    //         !(
+    //             verifyButton
+    //             instanceof HTMLButtonElement
+    //         )
+    //         || !(
+    //             officerCodeInput
+    //             instanceof HTMLInputElement
+    //         )
+    //         || !(
+    //             verifiedOfficerInput
+    //             instanceof HTMLInputElement
+    //         )
+    //         || !(
+    //             resultColumn
+    //             instanceof HTMLElement
+    //         )
+    //         || !(
+    //             resultContainer
+    //             instanceof HTMLElement
+    //         )
+    //         || !(
+    //             resultMessage
+    //             instanceof HTMLElement
+    //         )
+    //         || !(
+    //             resultCode
+    //             instanceof HTMLElement
+    //         )
+    //         || !(
+    //             resultLocation
+    //             instanceof HTMLElement
+    //         )
+    //     ) {
+    //         return;
+    //     }
+
+    //     /**
+    //      * Hide the successful verification panel.
+    //      *
+    //      * @returns {void}
+    //      */
+    //     const clearResult = () => {
+    //         resultMessage.textContent = '';
+    //         resultCode.textContent = '';
+    //         resultLocation.textContent = '';
+
+    //         resultColumn.classList.add(
+    //             'd-none'
+    //         );
+
+    //         resultContainer.classList.remove(
+    //             'alert-danger'
+    //         );
+
+    //         resultContainer.classList.add(
+    //             'alert-success'
+    //         );
+    //     };
+
+    //     /**
+    //      * Remove verification-specific inline errors.
+    //      *
+    //      * Native required, pattern and length validation remain active.
+    //      *
+    //      * @returns {void}
+    //      */
+    //     const clearVerificationError = () => {
+    //         officerCodeInput.setCustomValidity(
+    //             ''
+    //         );
+
+    //         officerCodeInput.classList.remove(
+    //             'is-invalid'
+    //         );
+
+    //         if (
+    //             errorElement
+    //             instanceof HTMLElement
+    //         ) {
+    //             errorElement.textContent = '';
+
+    //             errorElement.classList.remove(
+    //                 'd-block'
+    //             );
+    //         }
+    //     };
+
+    //     /**
+    //      * Reset verification after the entered code changes.
+    //      *
+    //      * This intentionally does not mark the textbox invalid.
+    //      *
+    //      * @returns {void}
+    //      */
+    //     const resetVerification = () => {
+    //         verifiedOfficerInput.value = '';
+
+    //         clearVerificationError();
+    //         clearResult();
+    //     };
+
+    //     /**
+    //      * Display an inline verification error.
+    //      *
+    //      * The success panel is not used for errors because that would
+    //      * duplicate the same message and enlarge the layout.
+    //      *
+    //      * @param {string} message
+    //      *
+    //      * @returns {void}
+    //      */
+    //     const showVerificationError = (
+    //         message
+    //     ) => {
+    //         verifiedOfficerInput.value = '';
+
+    //         clearResult();
+
+    //         officerCodeInput.setCustomValidity(
+    //             message
+    //         );
+
+    //         officerCodeInput.classList.add(
+    //             'is-invalid'
+    //         );
+
+    //         if (
+    //             errorElement
+    //             instanceof HTMLElement
+    //         ) {
+    //             errorElement.textContent =
+    //                 message;
+
+    //             errorElement.classList.add(
+    //                 'd-block'
+    //             );
+    //         }
+
+    //         officerCodeInput.focus();
+    //     };
+
+    //     /**
+    //      * Display successfully verified Field Officer details.
+    //      *
+    //      * @param {Object} officer
+    //      * @param {string} enteredCode
+    //      *
+    //      * @returns {void}
+    //      */
+    //     const showVerificationSuccess = (
+    //         officer,
+    //         enteredCode
+    //     ) => {
+    //         const fullName =
+    //             String(
+    //                 officer.fullName
+    //                 ?? 'Verified Field Officer'
+    //             ).trim();
+
+    //         const officerCode =
+    //             String(
+    //                 officer.officerCode
+    //                 ?? enteredCode
+    //             ).trim();
+
+    //         const providedLocation =
+    //             String(
+    //                 officer.location
+    //                 ?? ''
+    //             ).trim();
+
+    //         const generatedLocation = [
+    //             officer.cityName,
+    //             officer.stateName,
+    //             officer.countryName,
+    //         ]
+    //             .filter(Boolean)
+    //             .join(', ');
+
+    //         clearVerificationError();
+
+    //         resultMessage.textContent =
+    //             fullName !== ''
+    //                 ? fullName
+    //                 : 'Verified Field Officer';
+
+    //         resultCode.textContent =
+    //             `Code: ${officerCode}`;
+
+    //         resultLocation.textContent =
+    //             providedLocation
+    //             || generatedLocation;
+
+    //         if (
+    //             resultIcon
+    //             instanceof HTMLElement
+    //         ) {
+    //             resultIcon.className =
+    //                 'ri-checkbox-circle-line';
+    //         }
+
+    //         resultContainer.classList.remove(
+    //             'alert-danger'
+    //         );
+
+    //         resultContainer.classList.add(
+    //             'alert-success'
+    //         );
+
+    //         resultColumn.classList.remove(
+    //             'd-none'
+    //         );
+    //     };
+
+    //     /**
+    //      * Enable verification-button loading state.
+    //      *
+    //      * @returns {void}
+    //      */
+    //     const showVerificationLoader = () => {
+    //         verifyButton.disabled = true;
+
+    //         verifyButton.setAttribute(
+    //             'aria-disabled',
+    //             'true'
+    //         );
+
+    //         verifyLabel?.classList.add(
+    //             'd-none'
+    //         );
+
+    //         verifyLabel?.setAttribute(
+    //             'aria-hidden',
+    //             'true'
+    //         );
+
+    //         verifyLoading?.classList.remove(
+    //             'd-none'
+    //         );
+
+    //         verifyLoading?.setAttribute(
+    //             'aria-hidden',
+    //             'false'
+    //         );
+    //     };
+
+    //     /**
+    //      * Restore verification button.
+    //      *
+    //      * @returns {void}
+    //      */
+    //     const hideVerificationLoader = () => {
+    //         verifyButton.disabled = false;
+
+    //         verifyButton.removeAttribute(
+    //             'aria-disabled'
+    //         );
+
+    //         verifyLabel?.classList.remove(
+    //             'd-none'
+    //         );
+
+    //         verifyLabel?.setAttribute(
+    //             'aria-hidden',
+    //             'false'
+    //         );
+
+    //         verifyLoading?.classList.add(
+    //             'd-none'
+    //         );
+
+    //         verifyLoading?.setAttribute(
+    //             'aria-hidden',
+    //             'true'
+    //         );
+    //     };
+
+    //     /*
+    //      * Do not apply custom validity during page initialization.
+    //      * The user must be allowed to enter and leave the field without
+    //      * receiving a premature "Please verify" message.
+    //      */
+    //     verifiedOfficerInput.value = '';
+    //     clearResult();
+
+    //     officerCodeInput.addEventListener(
+    //         'input',
+    //         () => {
+    //             officerCodeInput.value =
+    //                 officerCodeInput.value
+    //                     .toUpperCase();
+
+    //             resetVerification();
+    //         }
+    //     );
+
+    //     verifyButton.addEventListener(
+    //         'click',
+    //         async () => {
+    //             const enteredCode =
+    //                 officerCodeInput.value
+    //                     .trim();
+
+    //             /*
+    //              * Remove a previous server-verification error before
+    //              * checking normal HTML constraints.
+    //              */
+    //             clearVerificationError();
+
+    //             if (
+    //                 !officerCodeInput
+    //                     .checkValidity()
+    //             ) {
+    //                 officerCodeInput.dispatchEvent(
+    //                     new Event(
+    //                         'blur',
+    //                         {
+    //                             bubbles: true,
+    //                         }
+    //                     )
+    //                 );
+
+    //                 officerCodeInput.focus();
+
+    //                 return;
+    //             }
+
+    //             const verificationUrl =
+    //                 verifyButton.dataset
+    //                     .verificationUrl
+    //                 ?? '';
+
+    //             if (verificationUrl === '') {
+    //                 showVerificationError(
+    //                     'Field Officer verification is currently unavailable.'
+    //                 );
+
+    //                 return;
+    //             }
+
+    //             const csrfInput =
+    //                 document.getElementById(
+    //                     'prelaunch-csrf-token'
+    //                 );
+
+    //             if (
+    //                 !(
+    //                     csrfInput
+    //                     instanceof HTMLInputElement
+    //                 )
+    //                 || csrfInput.name === ''
+    //                 || csrfInput.value === ''
+    //             ) {
+    //                 showVerificationError(
+    //                     'The security token is unavailable. Please refresh the page and try again.'
+    //                 );
+
+    //                 return;
+    //             }
+
+    //             const requestBody =
+    //                 new FormData();
+
+    //             requestBody.append(
+    //                 'field_officer_code',
+    //                 enteredCode
+    //             );
+
+    //             requestBody.append(
+    //                 csrfInput.name,
+    //                 csrfInput.value
+    //             );
+
+    //             showVerificationLoader();
+
+    //             try {
+    //                 const response =
+    //                     await fetch(
+    //                         verificationUrl,
+    //                         {
+    //                             method: 'POST',
+    //                             body: requestBody,
+    //                             credentials:
+    //                                 'same-origin',
+
+    //                             headers: {
+    //                                 Accept:
+    //                                     'application/json',
+
+    //                                 'X-Requested-With':
+    //                                     'XMLHttpRequest',
+    //                             },
+    //                         }
+    //                     );
+
+    //                 let payload = {};
+
+    //                 try {
+    //                     payload =
+    //                         await response.json();
+    //                 } catch (parseError) {
+    //                     throw new Error(
+    //                         'The Field Officer verification service returned an invalid response.'
+    //                     );
+    //                 }
+
+    //                 if (
+    //                     payload.csrfName
+    //                     && payload.csrfHash
+    //                 ) {
+    //                     csrfInput.name =
+    //                         String(
+    //                             payload.csrfName
+    //                         );
+
+    //                     csrfInput.value =
+    //                         String(
+    //                             payload.csrfHash
+    //                         );
+    //                 }
+
+    //                 if (
+    //                     !response.ok
+    //                     || payload.successful
+    //                     !== true
+    //                 ) {
+    //                     throw new Error(
+    //                         payload.message
+    //                         || 'The Field Officer code is invalid or inactive.'
+    //                     );
+    //                 }
+
+    //                 const officer =
+    //                     payload.fieldOfficer
+    //                     ?? {};
+
+    //                 const verifiedId =
+    //                     String(
+    //                         officer.id
+    //                         ?? ''
+    //                     ).trim();
+
+    //                 if (verifiedId === '') {
+    //                     throw new Error(
+    //                         'Field Officer verification returned an invalid response.'
+    //                     );
+    //                 }
+
+    //                 verifiedOfficerInput.value =
+    //                     verifiedId;
+
+    //                 showVerificationSuccess(
+    //                     officer,
+    //                     enteredCode
+    //                 );
+    //             } catch (error) {
+    //                 const message =
+    //                     error instanceof Error
+    //                         ? error.message
+    //                         : 'Field Officer verification failed.';
+
+    //                 showVerificationError(
+    //                     message
+    //                 );
+    //             } finally {
+    //                 hideVerificationLoader();
+    //             }
+    //         }
+    //     );
+
+    //     /**
+    //      * Verification must be complete before final form submission.
+    //      *
+    //      * This check runs only when the user actually attempts to save,
+    //      * rather than whenever the textbox loses focus.
+    //      */
+    //     form.addEventListener(
+    //         'submit',
+    //         (event) => {
+    //             const enteredCode =
+    //                 officerCodeInput.value
+    //                     .trim();
+
+    //             if (
+    //                 enteredCode !== ''
+    //                 && verifiedOfficerInput
+    //                     .value
+    //                     .trim() === ''
+    //             ) {
+    //                 event.preventDefault();
+
+    //                 showVerificationError(
+    //                     'Please verify the Field Officer code before saving the profile.'
+    //                 );
+    //             }
+    //         },
+    //         true
+    //     );
+    // };
+
+    /**
+ * Initialize the prelaunch profile saving modal.
+ *
+ * The current form uses a standard multipart submission. Messages are
+ * elapsed-time guidance and do not claim measured backend completion.
+ *
+ * @returns {void}
+ */
+    const initializeSavingModal = () => {
+        const modalElement =
             document.getElementById(
-                'verify-field-officer'
+                'prelaunchSavingModal'
             );
 
-        const officerCodeInput =
+        const messageElement =
             document.getElementById(
-                'field_officer_code'
+                'prelaunchSavingModalMessage'
             );
 
-        const verifiedOfficerInput =
+        const progressBar =
             document.getElementById(
-                'verified_field_officer_id'
-            );
-
-        const resultColumn =
-            document.getElementById(
-                'field-officer-result-column'
-            );
-
-        const resultContainer =
-            document.getElementById(
-                'field-officer-result'
-            );
-
-        const resultIcon =
-            document.getElementById(
-                'field-officer-result-icon'
-            );
-
-        const resultMessage =
-            document.getElementById(
-                'field-officer-result-message'
-            );
-
-        const resultCode =
-            document.getElementById(
-                'verified-field-officer-code'
-            );
-
-        const resultLocation =
-            document.getElementById(
-                'verified-field-officer-location'
-            );
-
-        const errorElement =
-            document.getElementById(
-                'field_officer_codeError'
-            );
-
-        const verifyLabel =
-            document.getElementById(
-                'verify-field-officer-label'
-            );
-
-        const verifyLoading =
-            document.getElementById(
-                'verify-field-officer-loading'
+                'prelaunchSavingProgressBar'
             );
 
         if (
-            !(
-                verifyButton
-                instanceof HTMLButtonElement
-            )
-            || !(
-                officerCodeInput
-                instanceof HTMLInputElement
-            )
-            || !(
-                verifiedOfficerInput
-                instanceof HTMLInputElement
-            )
-            || !(
-                resultColumn
-                instanceof HTMLElement
-            )
-            || !(
-                resultContainer
-                instanceof HTMLElement
-            )
-            || !(
-                resultMessage
-                instanceof HTMLElement
-            )
-            || !(
-                resultCode
-                instanceof HTMLElement
-            )
-            || !(
-                resultLocation
-                instanceof HTMLElement
-            )
+            !(modalElement instanceof HTMLElement)
+            || !(messageElement instanceof HTMLElement)
+            || !(progressBar instanceof HTMLElement)
+            || typeof bootstrap === 'undefined'
         ) {
             return;
         }
 
+        const modal =
+            bootstrap.Modal.getOrCreateInstance(
+                modalElement,
+                {
+                    backdrop: 'static',
+                    keyboard: false,
+                }
+            );
+
+        const stages = [
+            {
+                delay: 0,
+                message:
+                    'Saving profile details…',
+                progress: 18,
+            },
+            {
+                delay: 1200,
+                message:
+                    'Uploading and optimizing photographs…',
+                progress: 45,
+            },
+            {
+                delay: 4200,
+                message:
+                    'Saving additional information…',
+                progress: 72,
+            },
+            {
+                delay: 7500,
+                message:
+                    'Almost done. Please keep this page open…',
+                progress: 90,
+            },
+            {
+                delay: 12000,
+                message:
+                    'Large photographs can take a little longer to process…',
+                progress: 96,
+            },
+        ];
+
+        let timers = [];
+        let modalVisible = false;
+
         /**
-         * Hide the successful verification panel.
+         * Stop all pending message transitions.
          *
          * @returns {void}
          */
-        const clearResult = () => {
-            resultMessage.textContent = '';
-            resultCode.textContent = '';
-            resultLocation.textContent = '';
-
-            resultColumn.classList.add(
-                'd-none'
+        const clearTimers = () => {
+            timers.forEach(
+                (timerId) => {
+                    window.clearTimeout(
+                        timerId
+                    );
+                }
             );
 
-            resultContainer.classList.remove(
-                'alert-danger'
-            );
-
-            resultContainer.classList.add(
-                'alert-success'
-            );
+            timers = [];
         };
 
         /**
-         * Remove verification-specific inline errors.
-         *
-         * Native required, pattern and length validation remain active.
+         * Restore the default modal content.
          *
          * @returns {void}
          */
-        const clearVerificationError = () => {
-            officerCodeInput.setCustomValidity(
-                ''
-            );
+        const resetModal = () => {
+            clearTimers();
 
-            officerCodeInput.classList.remove(
-                'is-invalid'
-            );
+            messageElement.textContent =
+                stages[0].message;
 
-            if (
-                errorElement
-                instanceof HTMLElement
-            ) {
-                errorElement.textContent = '';
-
-                errorElement.classList.remove(
-                    'd-block'
-                );
-            }
+            progressBar.style.width =
+                `${stages[0].progress}%`;
         };
 
         /**
-         * Reset verification after the entered code changes.
-         *
-         * This intentionally does not mark the textbox invalid.
+         * Show the processing modal.
          *
          * @returns {void}
          */
-        const resetVerification = () => {
-            verifiedOfficerInput.value = '';
-
-            clearVerificationError();
-            clearResult();
-        };
-
-        /**
-         * Display an inline verification error.
-         *
-         * The success panel is not used for errors because that would
-         * duplicate the same message and enlarge the layout.
-         *
-         * @param {string} message
-         *
-         * @returns {void}
-         */
-        const showVerificationError = (
-            message
-        ) => {
-            verifiedOfficerInput.value = '';
-
-            clearResult();
-
-            officerCodeInput.setCustomValidity(
-                message
-            );
-
-            officerCodeInput.classList.add(
-                'is-invalid'
-            );
-
-            if (
-                errorElement
-                instanceof HTMLElement
-            ) {
-                errorElement.textContent =
-                    message;
-
-                errorElement.classList.add(
-                    'd-block'
-                );
+        const showModal = () => {
+            if (modalVisible) {
+                return;
             }
 
-            officerCodeInput.focus();
-        };
+            modalVisible = true;
+            resetModal();
 
-        /**
-         * Display successfully verified Field Officer details.
-         *
-         * @param {Object} officer
-         * @param {string} enteredCode
-         *
-         * @returns {void}
-         */
-        const showVerificationSuccess = (
-            officer,
-            enteredCode
-        ) => {
-            const fullName =
-                String(
-                    officer.fullName
-                    ?? 'Verified Field Officer'
-                ).trim();
+            modal.show();
 
-            const officerCode =
-                String(
-                    officer.officerCode
-                    ?? enteredCode
-                ).trim();
+            stages.forEach(
+                (stage) => {
+                    const timerId =
+                        window.setTimeout(
+                            () => {
+                                messageElement.textContent =
+                                    stage.message;
 
-            const providedLocation =
-                String(
-                    officer.location
-                    ?? ''
-                ).trim();
+                                progressBar.style.width =
+                                    `${stage.progress}%`;
+                            },
+                            stage.delay
+                        );
 
-            const generatedLocation = [
-                officer.cityName,
-                officer.stateName,
-                officer.countryName,
-            ]
-                .filter(Boolean)
-                .join(', ');
-
-            clearVerificationError();
-
-            resultMessage.textContent =
-                fullName !== ''
-                    ? fullName
-                    : 'Verified Field Officer';
-
-            resultCode.textContent =
-                `Code: ${officerCode}`;
-
-            resultLocation.textContent =
-                providedLocation
-                || generatedLocation;
-
-            if (
-                resultIcon
-                instanceof HTMLElement
-            ) {
-                resultIcon.className =
-                    'ri-checkbox-circle-line';
-            }
-
-            resultContainer.classList.remove(
-                'alert-danger'
-            );
-
-            resultContainer.classList.add(
-                'alert-success'
-            );
-
-            resultColumn.classList.remove(
-                'd-none'
+                    timers.push(
+                        timerId
+                    );
+                }
             );
         };
 
         /**
-         * Enable verification-button loading state.
+         * Hide and reset the modal when submission is cancelled.
          *
          * @returns {void}
          */
-        const showVerificationLoader = () => {
-            verifyButton.disabled = true;
+        const hideModal = () => {
+            clearTimers();
 
-            verifyButton.setAttribute(
-                'aria-disabled',
-                'true'
-            );
+            modalVisible = false;
 
-            verifyLabel?.classList.add(
-                'd-none'
-            );
-
-            verifyLabel?.setAttribute(
-                'aria-hidden',
-                'true'
-            );
-
-            verifyLoading?.classList.remove(
-                'd-none'
-            );
-
-            verifyLoading?.setAttribute(
-                'aria-hidden',
-                'false'
-            );
-        };
-
-        /**
-         * Restore verification button.
-         *
-         * @returns {void}
-         */
-        const hideVerificationLoader = () => {
-            verifyButton.disabled = false;
-
-            verifyButton.removeAttribute(
-                'aria-disabled'
-            );
-
-            verifyLabel?.classList.remove(
-                'd-none'
-            );
-
-            verifyLabel?.setAttribute(
-                'aria-hidden',
-                'false'
-            );
-
-            verifyLoading?.classList.add(
-                'd-none'
-            );
-
-            verifyLoading?.setAttribute(
-                'aria-hidden',
-                'true'
-            );
+            modal.hide();
+            resetModal();
         };
 
         /*
-         * Do not apply custom validity during page initialization.
-         * The user must be allowed to enter and leave the field without
-         * receiving a premature "Please verify" message.
-         */
-        verifiedOfficerInput.value = '';
-        clearResult();
-
-        officerCodeInput.addEventListener(
-            'input',
-            () => {
-                officerCodeInput.value =
-                    officerCodeInput.value
-                        .toUpperCase();
-
-                resetVerification();
-            }
-        );
-
-        verifyButton.addEventListener(
-            'click',
-            async () => {
-                const enteredCode =
-                    officerCodeInput.value
-                        .trim();
-
-                /*
-                 * Remove a previous server-verification error before
-                 * checking normal HTML constraints.
-                 */
-                clearVerificationError();
-
-                if (
-                    !officerCodeInput
-                        .checkValidity()
-                ) {
-                    officerCodeInput.dispatchEvent(
-                        new Event(
-                            'blur',
-                            {
-                                bubbles: true,
-                            }
-                        )
-                    );
-
-                    officerCodeInput.focus();
-
-                    return;
-                }
-
-                const verificationUrl =
-                    verifyButton.dataset
-                        .verificationUrl
-                    ?? '';
-
-                if (verificationUrl === '') {
-                    showVerificationError(
-                        'Field Officer verification is currently unavailable.'
-                    );
-
-                    return;
-                }
-
-                const csrfInput =
-                    document.getElementById(
-                        'prelaunch-csrf-token'
-                    );
-
-                if (
-                    !(
-                        csrfInput
-                        instanceof HTMLInputElement
-                    )
-                    || csrfInput.name === ''
-                    || csrfInput.value === ''
-                ) {
-                    showVerificationError(
-                        'The security token is unavailable. Please refresh the page and try again.'
-                    );
-
-                    return;
-                }
-
-                const requestBody =
-                    new FormData();
-
-                requestBody.append(
-                    'field_officer_code',
-                    enteredCode
-                );
-
-                requestBody.append(
-                    csrfInput.name,
-                    csrfInput.value
-                );
-
-                showVerificationLoader();
-
-                try {
-                    const response =
-                        await fetch(
-                            verificationUrl,
-                            {
-                                method: 'POST',
-                                body: requestBody,
-                                credentials:
-                                    'same-origin',
-
-                                headers: {
-                                    Accept:
-                                        'application/json',
-
-                                    'X-Requested-With':
-                                        'XMLHttpRequest',
-                                },
-                            }
-                        );
-
-                    let payload = {};
-
-                    try {
-                        payload =
-                            await response.json();
-                    } catch (parseError) {
-                        throw new Error(
-                            'The Field Officer verification service returned an invalid response.'
-                        );
-                    }
-
-                    if (
-                        payload.csrfName
-                        && payload.csrfHash
-                    ) {
-                        csrfInput.name =
-                            String(
-                                payload.csrfName
-                            );
-
-                        csrfInput.value =
-                            String(
-                                payload.csrfHash
-                            );
-                    }
-
-                    if (
-                        !response.ok
-                        || payload.successful
-                        !== true
-                    ) {
-                        throw new Error(
-                            payload.message
-                            || 'The Field Officer code is invalid or inactive.'
-                        );
-                    }
-
-                    const officer =
-                        payload.fieldOfficer
-                        ?? {};
-
-                    const verifiedId =
-                        String(
-                            officer.id
-                            ?? ''
-                        ).trim();
-
-                    if (verifiedId === '') {
-                        throw new Error(
-                            'Field Officer verification returned an invalid response.'
-                        );
-                    }
-
-                    verifiedOfficerInput.value =
-                        verifiedId;
-
-                    showVerificationSuccess(
-                        officer,
-                        enteredCode
-                    );
-                } catch (error) {
-                    const message =
-                        error instanceof Error
-                            ? error.message
-                            : 'Field Officer verification failed.';
-
-                    showVerificationError(
-                        message
-                    );
-                } finally {
-                    hideVerificationLoader();
-                }
-            }
-        );
-
-        /**
-         * Verification must be complete before final form submission.
-         *
-         * This check runs only when the user actually attempts to save,
-         * rather than whenever the textbox loses focus.
+         * Wait until every synchronous validation handler has completed.
          */
         form.addEventListener(
             'submit',
             (event) => {
-                const enteredCode =
-                    officerCodeInput.value
-                        .trim();
+                window.setTimeout(
+                    () => {
+                        if (
+                            event.defaultPrevented
+                            || !form.checkValidity()
+                        ) {
+                            hideModal();
 
-                if (
-                    enteredCode !== ''
-                    && verifiedOfficerInput
-                        .value
-                        .trim() === ''
-                ) {
-                    event.preventDefault();
+                            return;
+                        }
 
-                    showVerificationError(
-                        'Please verify the Field Officer code before saving the profile.'
-                    );
-                }
+                        showModal();
+                    },
+                    0
+                );
+            }
+        );
+
+        /*
+         * Hide the modal when native validation prevents submission.
+         */
+        form.addEventListener(
+            'invalid',
+            () => {
+                hideModal();
             },
             true
+        );
+
+        /*
+         * The page may return through browser back-forward cache.
+         */
+        window.addEventListener(
+            'pageshow',
+            () => {
+                hideModal();
+            }
+        );
+
+        /*
+         * Hide it when the reusable validator reports an invalid form.
+         */
+        form.addEventListener(
+            'app:form-invalid',
+            () => {
+                hideModal();
+            }
         );
     };
 
     initializeProfileGenderDependency();
     initializeDateOfBirthAge();
     initializePhotoPreviews();
-    initializeFieldOfficerVerification();
+    //initializeFieldOfficerVerification();
+    initializeSavingModal();
 
     /**
  * Initialize State → City dependency.
@@ -1811,4 +2054,19 @@ document.addEventListener('DOMContentLoaded', () => {
             );
         }
     }
+
+    /**
+     * Reload the form when the browser restores it from back-forward cache.
+     *
+     * A restored form may contain an expired CSRF token or stale custom
+     * validation state.
+     */
+    window.addEventListener(
+        'pageshow',
+        (event) => {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        }
+    );
 });

@@ -12,6 +12,17 @@ $reference = trim(
         ?? ''
     )
 );
+
+$createAnotherUrl =
+    route_to(
+        'prelaunch.profile.index'
+    )
+    . '?new='
+    . rawurlencode(
+        bin2hex(
+            random_bytes(8)
+        )
+    );
 ?>
 <?= $this->extend('Prelaunch/Layouts/Main') ?>
 
@@ -41,8 +52,9 @@ $reference = trim(
                     </p>
 
                     <a
-                        href="<?= route_to(
-                                    'prelaunch.profile.index'
+                        href="<?= esc(
+                                    $createAnotherUrl,
+                                    'attr'
                                 ) ?>"
                         class="btn btn-primary">
                         Create another profile

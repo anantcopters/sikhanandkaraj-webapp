@@ -38,6 +38,11 @@ $gotra = (string) old(
     ''
 );
 
+$nearestGurudwara = (string) old(
+    'nearest_gurudwara',
+    ''
+);
+
 $communityId = (string) old(
     'sikh_community_id',
     ''
@@ -64,6 +69,13 @@ $gotraError = trim(
     )
 );
 
+$nearestGurudwaraError = trim(
+    (string) (
+        $errorBag['nearest_gurudwara']
+        ?? ''
+    )
+);
+
 $communityError = trim(
     (string) (
         $errorBag['sikh_community_id']
@@ -83,6 +95,11 @@ $motherNameClass =
 
 $gotraClass =
     $gotraError !== ''
+    ? 'is-invalid'
+    : '';
+
+$nearestGurudwaraClass =
+    $nearestGurudwaraError !== ''
     ? 'is-invalid'
     : '';
 
@@ -108,7 +125,8 @@ $communityClass =
                 </h5>
 
                 <p class="text-muted mb-0 fs-12">
-                    Add parent names, community and Gotra information.
+                    Add parent names, community, Gotra and nearest
+                    Gurudwara information.
                 </p>
             </div>
         </div>
@@ -314,7 +332,50 @@ $communityClass =
                     <?= esc($gotraError) ?>
                 </div>
             </div>
+            <div class="col-12">
+                <label
+                    for="nearest_gurudwara"
+                    class="form-label">
 
+                    Nearest Gurudwara
+
+                    <span class="color-pink fs-12">
+                        (Optional)
+                    </span>
+                </label>
+
+                <input
+                    type="text"
+                    id="nearest_gurudwara"
+                    name="nearest_gurudwara"
+                    class="form-control <?= esc(
+                                            $nearestGurudwaraClass,
+                                            'attr'
+                                        ) ?>"
+                    value="<?= esc(
+                                $nearestGurudwara,
+                                'attr'
+                            ) ?>"
+                    aria-describedby="nearest_gurudwaraHelp nearest_gurudwaraError"
+                    placeholder="Enter the nearest Gurudwara name or location"
+                    maxlength="300"
+                    autocomplete="off"
+                    data-error-maxlength="Nearest Gurudwara cannot exceed 300 characters.">
+
+                <div
+                    id="nearest_gurudwaraHelp"
+                    class="form-text color-pink">
+                    Enter the Gurudwara name and locality, if known.
+                </div>
+
+                <div
+                    id="nearest_gurudwaraError"
+                    class="invalid-feedback"
+                    data-validation-error="nearest_gurudwara">
+
+                    <?= esc($nearestGurudwaraError) ?>
+                </div>
+            </div>
 
         </div>
     </div>

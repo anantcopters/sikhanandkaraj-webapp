@@ -11,6 +11,8 @@ use App\Validation\Profile\BasicDetailsValidation;
  */
 final class PrelaunchProfileValidation
 {
+
+    private const NEAREST_GURUDWARA_MAX_LENGTH = 300;
     /**
      * Return the complete profile-creation validation rules.
      *
@@ -207,43 +209,59 @@ final class PrelaunchProfileValidation
                     ],
                 ],
 
-                'field_officer_code' => [
-                    'label' => 'Field Officer code',
+                'nearest_gurudwara' => [
+                    'label' => 'Nearest Gurudwara',
                     'rules' => [
-                        'required',
-                        'min_length[4]',
-                        'max_length[20]',
-                        'regex_match[/^[A-Za-z0-9-]+$/]',
+                        'permit_empty',
+                        'max_length['
+                            . self::NEAREST_GURUDWARA_MAX_LENGTH
+                            . ']',
                     ],
                     'errors' => [
-                        'required' =>
-                        'Please enter the Field Officer code.',
-
-                        'min_length' =>
-                        'The Field Officer code is too short.',
-
                         'max_length' =>
-                        'The Field Officer code cannot exceed 20 characters.',
-
-                        'regex_match' =>
-                        'The Field Officer code may contain only letters, numbers and hyphens.',
+                        'Nearest Gurudwara cannot exceed '
+                            . self::NEAREST_GURUDWARA_MAX_LENGTH
+                            . ' characters.',
                     ],
                 ],
 
-                'verified_field_officer_id' => [
-                    'label' => 'Verified Field Officer',
-                    'rules' => [
-                        'required',
-                        'is_natural_no_zero',
-                    ],
-                    'errors' => [
-                        'required' =>
-                        'Please verify the Field Officer before saving the profile.',
+                // 'field_officer_code' => [
+                //     'label' => 'Field Officer code',
+                //     'rules' => [
+                //         'required',
+                //         'min_length[4]',
+                //         'max_length[20]',
+                //         'regex_match[/^[A-Za-z0-9-]+$/]',
+                //     ],
+                //     'errors' => [
+                //         'required' =>
+                //         'Please enter the Field Officer code.',
 
-                        'is_natural_no_zero' =>
-                        'Please verify a valid Field Officer.',
-                    ],
-                ],
+                //         'min_length' =>
+                //         'The Field Officer code is too short.',
+
+                //         'max_length' =>
+                //         'The Field Officer code cannot exceed 20 characters.',
+
+                //         'regex_match' =>
+                //         'The Field Officer code may contain only letters, numbers and hyphens.',
+                //     ],
+                // ],
+
+                // 'verified_field_officer_id' => [
+                //     'label' => 'Verified Field Officer',
+                //     'rules' => [
+                //         'required',
+                //         'is_natural_no_zero',
+                //     ],
+                //     'errors' => [
+                //         'required' =>
+                //         'Please verify the Field Officer before saving the profile.',
+
+                //         'is_natural_no_zero' =>
+                //         'Please verify a valid Field Officer.',
+                //     ],
+                // ],
 
                 'consent' => [
                     'label' => 'Consent',

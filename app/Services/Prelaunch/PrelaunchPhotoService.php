@@ -6,75 +6,123 @@ namespace App\Services\Prelaunch;
 
 use App\Models\Prelaunch\PrelaunchPhotoModel;
 use CodeIgniter\HTTP\Files\UploadedFile;
+use Config\Prelaunch;
 use Config\Services;
+use InvalidArgumentException;
 use RuntimeException;
 use Throwable;
-use InvalidArgumentException;
 
 /**
- * Stores pre-launch photographs in the CI4 writable directory.
+ * Converts and stores prelaunch photographs in the secure CI4 writable
+ * directory.
+ *
+ * Uploaded JPG, PNG and WebP files are never copied directly into permanent
+ * local storage. Every photograph is decoded and stored as optimized WebP.
  */
 final class PrelaunchPhotoService
 {
-    private const MEDIUM_WIDTH = 900;
-    private const MEDIUM_HEIGHT = 1200;
-    private const THUMBNAIL_WIDTH = 300;
-    private const THUMBNAIL_HEIGHT = 400;
+    /**
+     * MIME type used by every permanently stored prelaunch photograph.
+     */
+    private const STORED_MIME_TYPE = 'image/webp';
 
+    /**
+     * Extension used by every permanently stored prelaunch photograph.
+     */
+    private const STORED_EXTENSION = 'webp';
+
+    /**
+     * Supported source MIME types.
+     *
+     * @var list<string>
+     */
+    private const ALLOWED_SOURCE_MIME_TYPES = [
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+    ];
+
+    /**
+     * @param PrelaunchPhotoModel $photoModel Prelaunch photo persistence model.
+     */
     public function __construct(
         private readonly PrelaunchPhotoModel $photoModel
     ) {}
 
     /**
-     * Store exactly three uploaded photographs.
+     * Store exactly the configured number of uploaded photographs.
      *
      * User-correctable upload failures are raised as
-     * InvalidArgumentException so that the controller may safely display
-     * their messages through the existing formAlert mechanism.
+     * InvalidArgumentException so the controller can render them through
+     * the existing formAlert mechanism.
      *
      * Infrastructure, filesystem, image-processing and database failures
      * continue to use RuntimeException and must not be exposed directly.
      *
-     * @param array<int, UploadedFile> $photos
+     * @param int                       $profileId        Prelaunch profile ID.
+     * @param string                    $profileReference Public profile reference.
+     * @param array<int, UploadedFile>  $photos           Uploaded photographs.
      */
     public function storeProfilePhotos(
         int $profileId,
         string $profileReference,
         array $photos
     ): void {
-        if (count($photos) !== 3) {
+        /** @var Prelaunch $config */
+        $config = config('Prelaunch');
+
+        if (count($photos) !== $config->maximumPhotos) {
             throw new InvalidArgumentException(
-                'Exactly three photographs are required.'
+                sprintf(
+                    'Exactly %d photographs are required.',
+                    $config->maximumPhotos
+                )
             );
         }
 
-        if ($this->photoModel->countByProfile($profileId) !== 0) {
+        if (
+            $this->photoModel->countByProfile(
+                $profileId
+            ) !== 0
+        ) {
             throw new InvalidArgumentException(
                 'Photographs have already been uploaded for this profile.'
             );
         }
 
         /*
-     * Validate every photograph before creating directories, variants
-     * or database records. This ensures duplicate photos and invalid
-     * uploads are reported before any permanent work begins.
-     */
-        $this->ensurePhotosAreUnique($photos);
+         * Validate every photograph before creating directories, variants
+         * or database records. This avoids partial filesystem writes when
+         * duplicate or unreadable images are submitted.
+         */
+        $this->ensurePhotosAreValidAndUnique(
+            $photos
+        );
 
         $root = $this->profileDirectory(
             $profileReference
         );
 
-        $this->prepareDirectories($root);
+        $this->prepareDirectories(
+            $root
+        );
 
+        /**
+         * Files created during this operation.
+         *
+         * These files are deleted when image processing or database
+         * persistence fails.
+         *
+         * @var list<string> $createdFiles
+         */
         $createdFiles = [];
 
         try {
             foreach ($photos as $index => $photo) {
                 $sequence = $index + 1;
-
+                $processingStartedAt =
+                    microtime(true);
                 $stored = $this->storeSinglePhoto(
-                    $profileId,
                     $sequence,
                     $photo,
                     $root
@@ -83,9 +131,7 @@ final class PrelaunchPhotoService
                 $createdFiles = array_merge(
                     $createdFiles,
                     [
-                        $stored['absolute_original'],
-                        $stored['absolute_medium'],
-                        $stored['absolute_thumbnail'],
+                        $stored['absolute_original']
                     ]
                 );
 
@@ -101,29 +147,41 @@ final class PrelaunchPhotoService
                         $stored['relative_original'],
 
                         'medium_path' =>
-                        $stored['relative_medium'],
+                        null,
 
                         'thumbnail_path' =>
-                        $stored['relative_thumbnail'],
+                        null,
 
+                        /*
+                         * Retain the user's source filename for administrative
+                         * traceability. The stored file itself has a random
+                         * WebP filename.
+                         */
                         'original_filename' =>
                         $photo->getClientName(),
 
                         'mime_type' =>
-                        $stored['mime_type'],
+                        self::STORED_MIME_TYPE,
 
                         'file_extension' =>
-                        $stored['extension'],
+                        self::STORED_EXTENSION,
 
                         'file_size_bytes' =>
                         $stored['file_size'],
 
+                        /*
+                         * These dimensions describe the optimized stored
+                         * original, not the raw source upload.
+                         */
                         'width_px' =>
                         $stored['width'],
 
                         'height_px' =>
                         $stored['height'],
 
+                        /*
+                         * The checksum is generated after WebP conversion.
+                         */
                         'checksum_sha256' =>
                         $stored['checksum'],
 
@@ -144,9 +202,9 @@ final class PrelaunchPhotoService
             }
         } catch (Throwable $exception) {
             /*
-         * Database rollback does not remove files already generated.
-         * Delete those files before allowing the exception to propagate.
-         */
+             * A database rollback cannot delete files generated before the
+             * failure. Remove every generated file before rethrowing.
+             */
             foreach ($createdFiles as $path) {
                 if (is_file($path)) {
                     @unlink($path);
@@ -158,15 +216,15 @@ final class PrelaunchPhotoService
     }
 
     /**
-     * Ensure that all uploaded photographs are valid and unique.
+     * Ensure all uploaded photographs are valid, readable and unique.
      *
-     * Duplicate photos are detected using the SHA-256 checksum of the
-     * temporary uploaded file. The validation happens before image
-     * processing and database insertion.
+     * Duplicate detection uses checksums of the raw temporary uploads.
+     * This must happen before conversion because separately compressed
+     * source files may generate similar-looking output.
      *
-     * @param array<int, UploadedFile> $photos
+     * @param array<int, UploadedFile> $photos Uploaded photographs.
      */
-    private function ensurePhotosAreUnique(
+    private function ensurePhotosAreValidAndUnique(
         array $photos
     ): void {
         /**
@@ -191,7 +249,8 @@ final class PrelaunchPhotoService
                 );
             }
 
-            $temporaryPath = $photo->getTempName();
+            $temporaryPath =
+                $photo->getTempName();
 
             if (
                 $temporaryPath === ''
@@ -200,6 +259,37 @@ final class PrelaunchPhotoService
                 throw new InvalidArgumentException(
                     sprintf(
                         'Photograph %d could not be read. Please select it again.',
+                        $sequence
+                    )
+                );
+            }
+
+            $detectedMime =
+                mime_content_type($temporaryPath);
+
+            if (
+                $detectedMime === false
+                || !in_array(
+                    $detectedMime,
+                    self::ALLOWED_SOURCE_MIME_TYPES,
+                    true
+                )
+            ) {
+                throw new InvalidArgumentException(
+                    sprintf(
+                        'Photograph %d must be a valid JPG, PNG or WebP image.',
+                        $sequence
+                    )
+                );
+            }
+
+            $imageInfo =
+                @getimagesize($temporaryPath);
+
+            if ($imageInfo === false) {
+                throw new InvalidArgumentException(
+                    sprintf(
+                        'Photograph %d could not be decoded. Please select another image.',
                         $sequence
                     )
                 );
@@ -222,175 +312,475 @@ final class PrelaunchPhotoService
             if (isset($checksums[$checksum])) {
                 throw new InvalidArgumentException(
                     sprintf(
-                        'Photographs %d and %d are identical. Please upload three different photographs.',
+                        'Photographs %d and %d are identical. Please upload different photographs.',
                         $checksums[$checksum],
                         $sequence
                     )
                 );
             }
 
-            $checksums[$checksum] = $sequence;
+            $checksums[$checksum] =
+                $sequence;
         }
     }
 
     /**
-     * @return array<string, mixed>
+     * Convert one uploaded image into one optimized WebP original.
+     *
+     * @return array{
+     *     absolute_original: string,
+     *     relative_original: string,
+     *     mime_type: string,
+     *     extension: string,
+     *     file_size: int,
+     *     width: int,
+     *     height: int,
+     *     checksum: string
+     * }
      */
     private function storeSinglePhoto(
-        int $profileId,
         int $sequence,
         UploadedFile $photo,
         string $root
     ): array {
         if (!$photo->isValid()) {
-            throw new RuntimeException(
-                'One of the uploaded photographs is invalid.'
+            throw new InvalidArgumentException(
+                sprintf(
+                    'Photograph %d is invalid. Please select another image.',
+                    $sequence
+                )
             );
         }
 
-        $detectedMime = mime_content_type(
-            $photo->getTempName()
-        );
+        $sourcePath =
+            $photo->getTempName();
 
-        $extensions = [
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-            'image/webp' => 'webp',
-        ];
+        if (
+            $sourcePath === ''
+            || !is_file($sourcePath)
+        ) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    'Photograph %d could not be read. Please select it again.',
+                    $sequence
+                )
+            );
+        }
+
+        $detectedMime =
+            mime_content_type($sourcePath);
 
         if (
             $detectedMime === false
-            || !isset($extensions[$detectedMime])
+            || !in_array(
+                $detectedMime,
+                self::ALLOWED_SOURCE_MIME_TYPES,
+                true
+            )
         ) {
-            throw new RuntimeException(
+            throw new InvalidArgumentException(
                 'Only JPG, PNG and WebP photographs are allowed.'
             );
         }
 
-        $imageInfo = getimagesize(
-            $photo->getTempName()
-        );
+        $sourceImageInfo =
+            @getimagesize($sourcePath);
 
-        if ($imageInfo === false) {
-            throw new RuntimeException(
+        if ($sourceImageInfo === false) {
+            throw new InvalidArgumentException(
                 'The uploaded photograph could not be decoded.'
             );
         }
 
-        [$width, $height] = $imageInfo;
+        [$sourceWidth, $sourceHeight] =
+            $sourceImageInfo;
 
-        $extension = $extensions[$detectedMime];
         $randomName = sprintf(
-            '%02d_%s.%s',
+            '%02d_%s.webp',
             $sequence,
-            bin2hex(random_bytes(16)),
-            $extension
+            bin2hex(random_bytes(16))
         );
 
         $originalPath =
-            $root . DIRECTORY_SEPARATOR
-            . 'original' . DIRECTORY_SEPARATOR
+            $root
+            . DIRECTORY_SEPARATOR
+            . 'original'
+            . DIRECTORY_SEPARATOR
             . $randomName;
 
-        $mediumPath =
-            $root . DIRECTORY_SEPARATOR
-            . 'medium' . DIRECTORY_SEPARATOR
-            . $randomName;
+        // $mediumPath =
+        //     $root
+        //     . DIRECTORY_SEPARATOR
+        //     . 'medium'
+        //     . DIRECTORY_SEPARATOR
+        //     . $randomName;
 
-        $thumbnailPath =
-            $root . DIRECTORY_SEPARATOR
-            . 'thumbnail' . DIRECTORY_SEPARATOR
-            . $randomName;
+        // $thumbnailPath =
+        //     $root
+        //     . DIRECTORY_SEPARATOR
+        //     . 'thumbnail'
+        //     . DIRECTORY_SEPARATOR
+        //     . $randomName;
 
-        if (!copy($photo->getTempName(), $originalPath)) {
+        /*
+         * Generate the optimized WebP original directly from the temporary
+         * upload. The raw JPG, PNG or WebP source is not retained.
+         */
+        $this->createOptimizedOriginal(
+            $sourcePath,
+            $originalPath,
+            $sourceWidth,
+            $sourceHeight
+        );
+
+        /*
+         * Generate display variants from the optimized WebP original. This
+         * avoids repeatedly decoding a potentially very large source upload.
+         */
+        // $this->createDisplayVariant(
+        //     $originalPath,
+        //     $mediumPath,
+        //     'medium'
+        // );
+
+        // $this->createDisplayVariant(
+        //     $originalPath,
+        //     $thumbnailPath,
+        //     'thumbnail'
+        // );
+
+        $storedImageInfo =
+            @getimagesize($originalPath);
+
+        if ($storedImageInfo === false) {
             throw new RuntimeException(
-                'The original photograph could not be stored.'
+                'The optimized photograph metadata could not be read.'
+            );
+        }
+
+        [$storedWidth, $storedHeight] =
+            $storedImageInfo;
+
+        $storedFileSize =
+            filesize($originalPath);
+
+        if ($storedFileSize === false) {
+            throw new RuntimeException(
+                'The optimized photograph size could not be determined.'
+            );
+        }
+
+        $storedChecksum =
+            hash_file(
+                'sha256',
+                $originalPath
+            );
+
+        if ($storedChecksum === false) {
+            throw new RuntimeException(
+                'The optimized photograph checksum could not be generated.'
+            );
+        }
+
+        return [
+            'absolute_original' =>
+            $originalPath,
+
+            // 'absolute_medium' =>
+            // $mediumPath,
+
+            // 'absolute_thumbnail' =>
+            // $thumbnailPath,
+
+            'relative_original' =>
+            $this->relativePath(
+                $originalPath
+            ),
+
+            // 'relative_medium' =>
+            // $this->relativePath(
+            //     $mediumPath
+            // ),
+
+            // 'relative_thumbnail' =>
+            // $this->relativePath(
+            //     $thumbnailPath
+            // ),
+
+            'mime_type' =>
+            self::STORED_MIME_TYPE,
+
+            'extension' =>
+            self::STORED_EXTENSION,
+
+            'file_size' =>
+            $storedFileSize,
+
+            'width' =>
+            $storedWidth,
+
+            'height' =>
+            $storedHeight,
+
+            'checksum' =>
+            $storedChecksum,
+        ];
+    }
+
+    /**
+     * Create one optimized WebP photograph using a single processing pass.
+     *
+     * Prelaunch photographs are temporary staging assets, so expensive adaptive
+     * compression loops are intentionally avoided. Every source photograph is
+     * decoded once, optionally resized once, and encoded to WebP once.
+     */
+    private function createOptimizedOriginal(
+        string $sourcePath,
+        string $destinationPath,
+        int $sourceWidth,
+        int $sourceHeight
+    ): void {
+        /** @var \Config\Prelaunch $config */
+        $config = config('Prelaunch');
+
+        if (
+            $sourceWidth <= 0
+            || $sourceHeight <= 0
+        ) {
+            throw new InvalidArgumentException(
+                'The photograph dimensions are invalid.'
+            );
+        }
+
+        $targetDimensions =
+            $this->calculateContainedDimensions(
+                $sourceWidth,
+                $sourceHeight,
+                $config->optimizedOriginalWidth,
+                $config->optimizedOriginalHeight
+            );
+
+        $image = Services::image();
+
+        $image->withFile(
+            $sourcePath
+        );
+
+        /*
+     * Correct EXIF orientation for photographs captured using phones.
+     */
+        $image->reorient();
+
+        /*
+     * Resize only when the source exceeds the configured storage boundary.
+     * Smaller images are not enlarged.
+     */
+        if (
+            $sourceWidth > $targetDimensions['width']
+            || $sourceHeight > $targetDimensions['height']
+        ) {
+            $image->resize(
+                $targetDimensions['width'],
+                $targetDimensions['height'],
+                true,
+                $this->resizeMasterDimension(
+                    $sourceWidth,
+                    $sourceHeight,
+                    $targetDimensions['width'],
+                    $targetDimensions['height']
+                )
             );
         }
 
         /*
-         * CI4 image service is reused. No new third-party image package
-         * or separate image architecture is introduced.
-         */
-        $this->createVariant(
-            $originalPath,
-            $mediumPath,
-            self::MEDIUM_WIDTH,
-            self::MEDIUM_HEIGHT
+     * Explicitly encode the stored photograph as WebP.
+     */
+        $image->convert(
+            IMAGETYPE_WEBP
         );
 
-        $this->createVariant(
-            $originalPath,
-            $thumbnailPath,
-            self::THUMBNAIL_WIDTH,
-            self::THUMBNAIL_HEIGHT
+        $image->save(
+            $destinationPath,
+            $config->optimizedWebpQuality
+        );
+
+        clearstatcache(
+            true,
+            $destinationPath
+        );
+
+        if (
+            !is_file($destinationPath)
+            || filesize($destinationPath) === false
+            || filesize($destinationPath) === 0
+        ) {
+            throw new RuntimeException(
+                'The optimized photograph could not be generated.'
+            );
+        }
+    }
+
+    /**
+     * Calculate dimensions that fit completely inside the requested boundary
+     * while preserving the original aspect ratio.
+     *
+     * The returned dimensions never exceed the source dimensions, so smaller
+     * photographs are not enlarged.
+     *
+     * @return array{width: int, height: int}
+     */
+    private function calculateContainedDimensions(
+        int $sourceWidth,
+        int $sourceHeight,
+        int $maximumWidth,
+        int $maximumHeight
+    ): array {
+        if (
+            $sourceWidth <= 0
+            || $sourceHeight <= 0
+            || $maximumWidth <= 0
+            || $maximumHeight <= 0
+        ) {
+            throw new RuntimeException(
+                'Invalid photograph dimensions were provided.'
+            );
+        }
+
+        $scale = min(
+            $maximumWidth / $sourceWidth,
+            $maximumHeight / $sourceHeight,
+            1
         );
 
         return [
-            'absolute_original' => $originalPath,
-            'absolute_medium' => $mediumPath,
-            'absolute_thumbnail' => $thumbnailPath,
+            'width' => max(
+                1,
+                (int) floor(
+                    $sourceWidth * $scale
+                )
+            ),
 
-            'relative_original' =>
-            $this->relativePath($originalPath),
-
-            'relative_medium' =>
-            $this->relativePath($mediumPath),
-
-            'relative_thumbnail' =>
-            $this->relativePath($thumbnailPath),
-
-            'mime_type' => $detectedMime,
-            'extension' => $extension,
-            'file_size' => filesize($originalPath) ?: 0,
-            'width' => $width,
-            'height' => $height,
-            'checksum' => hash_file(
-                'sha256',
-                $originalPath
+            'height' => max(
+                1,
+                (int) floor(
+                    $sourceHeight * $scale
+                )
             ),
         ];
     }
 
     /**
-     * Create an unwatermarked prelaunch display variant.
-     *
-     * Prelaunch photographs are staging assets. The final watermark is
-     * applied later when these files are imported through the standard
-     * member-media S3 upload pipeline.
+     * Determine which resize boundary CI4 should strictly honour while
+     * maintaining the source aspect ratio.
      */
-    private function createVariant(
-        string $sourcePath,
-        string $destinationPath,
-        int $width,
-        int $height
-    ): void {
-        $image = Services::image()
-            ->withFile($sourcePath)
-            ->fit(
-                $width,
-                $height,
-                'center'
-            );
+    private function resizeMasterDimension(
+        int $sourceWidth,
+        int $sourceHeight,
+        int $targetWidth,
+        int $targetHeight
+    ): string {
+        $widthScale =
+            $targetWidth / $sourceWidth;
 
-        if (!$image->save($destinationPath, 85)) {
-            throw new RuntimeException(
-                'A photograph variant could not be generated.'
-            );
-        }
+        $heightScale =
+            $targetHeight / $sourceHeight;
+
+        /*
+     * The smaller scale is the restrictive boundary. Honouring that
+     * dimension ensures neither output dimension exceeds its target.
+     */
+        return $widthScale <= $heightScale
+            ? 'width'
+            : 'height';
     }
 
+    /**
+     * Create an unwatermarked prelaunch display variant in WebP format.
+     *
+     * Prelaunch photographs are staging assets. The final watermark is applied
+     * later by the standard member-media S3 import pipeline.
+     */
+    // private function createDisplayVariant(
+    //     string $sourcePath,
+    //     string $destinationPath,
+    //     string $variant
+    // ): void {
+    //     /** @var \Config\Prelaunch $config */
+    //     $config = config('Prelaunch');
+
+    //     if ($variant === 'medium') {
+    //         $width =
+    //             $config->mediumPhotoWidth;
+
+    //         $height =
+    //             $config->mediumPhotoHeight;
+
+    //         $quality =
+    //             $config->mediumWebpQuality;
+    //     } elseif ($variant === 'thumbnail') {
+    //         $width =
+    //             $config->thumbnailPhotoWidth;
+
+    //         $height =
+    //             $config->thumbnailPhotoHeight;
+
+    //         $quality =
+    //             $config->thumbnailWebpQuality;
+    //     } else {
+    //         throw new RuntimeException(
+    //             'Unsupported prelaunch photograph variant.'
+    //         );
+    //     }
+
+    //     $image = Services::image();
+
+    //     $image->withFile(
+    //         $sourcePath
+    //     );
+
+    //     $image->fit(
+    //         $width,
+    //         $height,
+    //         'center'
+    //     );
+
+    //     $image->convert(
+    //         IMAGETYPE_WEBP
+    //     );
+
+    //     $image->save(
+    //         $destinationPath,
+    //         $quality
+    //     );
+
+    //     if (
+    //         !is_file($destinationPath)
+    //         || filesize($destinationPath) === false
+    //     ) {
+    //         throw new RuntimeException(
+    //             sprintf(
+    //                 'The %s photograph variant could not be generated.',
+    //                 $variant
+    //             )
+    //         );
+    //     }
+    // }
+
+    /**
+     * Create all secure local profile directories.
+     */
     private function prepareDirectories(
         string $root
     ): void {
-        foreach (
-            [
-                $root,
-                $root . DIRECTORY_SEPARATOR . 'original',
-                $root . DIRECTORY_SEPARATOR . 'medium',
-                $root . DIRECTORY_SEPARATOR . 'thumbnail',
-            ] as $directory
-        ) {
+        $directories = [
+            $root,
+
+            $root
+                . DIRECTORY_SEPARATOR
+                . 'original',
+        ];
+
+        foreach ($directories as $directory) {
             if (
                 !is_dir($directory)
                 && !mkdir(
@@ -407,18 +797,26 @@ final class PrelaunchPhotoService
         }
     }
 
+    /**
+     * Return the absolute secure local directory for one profile.
+     */
     private function profileDirectory(
         string $profileReference
     ): string {
         $safeReference = preg_replace(
             '/[^A-Z0-9-]/',
             '',
-            mb_strtoupper($profileReference)
+            mb_strtoupper(
+                $profileReference
+            )
         );
 
-        if ($safeReference === '') {
+        if (
+            !is_string($safeReference)
+            || $safeReference === ''
+        ) {
             throw new RuntimeException(
-                'Invalid pre-launch profile reference.'
+                'Invalid prelaunch profile reference.'
             );
         }
 
@@ -430,6 +828,9 @@ final class PrelaunchPhotoService
             . $safeReference;
     }
 
+    /**
+     * Convert an absolute writable path into the stored relative path.
+     */
     private function relativePath(
         string $absolutePath
     ): string {
@@ -443,18 +844,25 @@ final class PrelaunchPhotoService
         );
     }
 
+    /**
+     * Resolve a stored relative prelaunch path into an absolute path.
+     */
     public function absolutePath(
         string $relativePath
     ): string {
         $normalized = str_replace(
-            ['../', '..\\'],
+            [
+                '../',
+                '..\\',
+            ],
             '',
             $relativePath
         );
 
-        return WRITEPATH . ltrim(
-            $normalized,
-            DIRECTORY_SEPARATOR
-        );
+        return WRITEPATH
+            . ltrim(
+                $normalized,
+                DIRECTORY_SEPARATOR
+            );
     }
 }

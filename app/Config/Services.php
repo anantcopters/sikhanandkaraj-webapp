@@ -77,11 +77,15 @@ use App\Services\Prelaunch\PrelaunchPhotoService;
 use App\Services\Prelaunch\PrelaunchProfileService;
 use App\Services\Profile\MemberProfileSummaryService;
 use App\Services\Authentication\OtpLoginService;
+use App\Models\MasterDrinkingHabitModel;
+use App\Models\MasterEatingHabitModel;
+use App\Models\MasterPhysicalStatusModel;
 use Config\TableCleanup;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
 use Config\MemberMedia;
 use Config\Database;
+use Config\Prelaunch;
 
 
 /**
@@ -373,7 +377,10 @@ class Services extends BaseService
             new MasterFamilyValueModel($database),
             new MasterFamilyTypeModel($database),
             new MasterFamilyStatusModel($database),
-            new MasterSikhCommunityModel($database)
+            new MasterSikhCommunityModel($database),
+            new MasterDrinkingHabitModel($database),
+            new MasterEatingHabitModel($database),
+            new MasterPhysicalStatusModel($database)
         );
     }
 
@@ -867,14 +874,33 @@ class Services extends BaseService
 
         $database = db_connect();
 
+        /** @var Prelaunch $configuration */
+        $configuration = config('Prelaunch');
+
         return new PrelaunchProfileService(
-            new PrelaunchProfileModel($database),
-            static::prelaunchFieldOfficerService(false),
-            new PrelaunchPhotoService(
-                new PrelaunchPhotoModel($database)
+            new PrelaunchProfileModel(
+                $database
             ),
-            $database
+            static::prelaunchFieldOfficerService(
+                false
+            ),
+            new PrelaunchPhotoService(
+                new PrelaunchPhotoModel(
+                    $database
+                )
+            ),
+            $database,
+            $configuration
         );
+
+        // return new PrelaunchProfileService(
+        //     new PrelaunchProfileModel($database),
+        //     static::prelaunchFieldOfficerService(false),
+        //     new PrelaunchPhotoService(
+        //         new PrelaunchPhotoModel($database)
+        //     ),
+        //     $database
+        // );
     }
 
     public static function prelaunchAdminReviewService(

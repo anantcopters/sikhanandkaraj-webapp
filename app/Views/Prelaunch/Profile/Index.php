@@ -122,7 +122,6 @@ $this->section('content');
                 enctype="multipart/form-data"
                 id="prelaunch-profile-form"
                 data-validate
-                data-submit-loader
                 novalidate>
                 <?= csrf_field('prelaunch-csrf-token') ?>
 
@@ -144,10 +143,6 @@ $this->section('content');
 
                 <?= $this->include(
                     'Prelaunch/Profile/Partials/Photos'
-                ) ?>
-
-                <?= $this->include(
-                    'Prelaunch/Profile/Partials/FieldOfficer'
                 ) ?>
 
                 <div class="card border border-danger border-opacity-25 shadow-sm mb-3">
@@ -203,31 +198,70 @@ $this->section('content');
                     <button
                         type="submit"
                         class="btn registration-form__submit w-auto px-3 py-2 fs-14 fw-medium text-uppercase"
-                        id="save-prelaunch-profile"
-                        data-submit-button>
-                        <span
-                            class="d-inline-flex align-items-center gap-2"
-                            data-submit-idle>
+                        id="save-prelaunch-profile">
+
+                        <span class="d-inline-flex align-items-center gap-2">
                             <i
                                 class="ri-save-line fs-18"
                                 aria-hidden="true"></i>
 
-                            Save Draft Profile
-                        </span>
-
-                        <span
-                            class="registration-submit__loading d-none align-items-center gap-2"
-                            data-submit-loading
-                            aria-hidden="true">
-                            <span
-                                class="spinner-border spinner-border-sm"
-                                aria-hidden="true"></span>
-
-                            Saving...
+                            Save Profile
                         </span>
                     </button>
                 </div>
             </form>
+            <div
+                class="modal fade"
+                id="prelaunchSavingModal"
+                tabindex="-1"
+                aria-labelledby="prelaunchSavingModalTitle"
+                aria-describedby="prelaunchSavingModalMessage"
+                aria-hidden="true">
+
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content border-0 shadow">
+                        <div class="modal-body p-4 p-md-5 text-center">
+                            <div class="mb-3">
+                                <span
+                                    class="spinner-border text-primary"
+                                    role="status"
+                                    aria-hidden="true">
+                                </span>
+                            </div>
+
+                            <h2
+                                id="prelaunchSavingModalTitle"
+                                class="h5 fw-semibold mb-2">
+                                Saving profile
+                            </h2>
+
+                            <p
+                                id="prelaunchSavingModalMessage"
+                                class="text-muted mb-3"
+                                aria-live="polite">
+                                Saving profile details…
+                            </p>
+
+                            <div
+                                class="progress mb-3"
+                                role="presentation"
+                                aria-hidden="true">
+
+                                <div
+                                    id="prelaunchSavingProgressBar"
+                                    class="progress-bar"
+                                    style="width: 18%">
+                                </div>
+                            </div>
+
+                            <p class="small text-muted mb-0">
+                                Large photographs may take a little longer to
+                                process. Please keep this page open.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
