@@ -12,7 +12,7 @@ use CodeIgniter\Router\RouteCollection;
 // Member web routes
 // -----------------------------------------------------------------------------
 
-if (ENVIRONMENT === 'production') {
+if (env('APP_DEPLOYMENT', 'development') === 'production') {
 
     $prelaunchRedirect = static function () {
         return redirect()->to(
