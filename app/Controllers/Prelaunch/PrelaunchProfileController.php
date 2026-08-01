@@ -396,44 +396,6 @@ final class PrelaunchProfileController extends BaseController
      */
     public function store(): RedirectResponse
     {
-
-        log_message(
-            'error',
-            'Prelaunch profile store entered. '
-                . 'Host: {host}. '
-                . 'Scheme: {scheme}. '
-                . 'Session ID: {sessionId}. '
-                . 'Content length: {contentLength}. '
-                . 'User agent: {userAgent}.',
-            [
-                'host' =>
-                $this->request->getUri()->getHost(),
-
-                'scheme' =>
-                $this->request->getUri()->getScheme(),
-
-                'sessionId' =>
-                session_id(),
-
-                'contentLength' =>
-                (string) (
-                    $this->request->getHeaderLine(
-                        'Content-Length'
-                    )
-                    ?: 'unknown'
-                ),
-
-                'userAgent' =>
-                mb_substr(
-                    $this->request
-                        ->getUserAgent()
-                        ->getAgentString(),
-                    0,
-                    250
-                ),
-            ]
-        );
-
         $config = config('Prelaunch');
 
         if (!$config->profileEntryEnabled) {
