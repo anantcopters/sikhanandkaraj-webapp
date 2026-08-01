@@ -557,6 +557,32 @@ if ($isJourney) {
 
         <div class="col-12 col-md-4">
             <label
+                for="familyCountryName"
+                class="form-label">
+                Country
+            </label>
+
+            <input
+                type="text"
+                id="familyCountryName"
+                class="form-control bg-light"
+                value="<?= esc(
+                            (string) ($country['name'] ?? 'India'),
+                            'attr'
+                        ) ?>"
+                readonly>
+
+            <input
+                type="hidden"
+                name="country_id"
+                value="<?= esc(
+                            (string) ($country['id'] ?? ''),
+                            'attr'
+                        ) ?>">
+        </div>
+
+        <div class="col-12 col-md-4">
+            <label
                 for="familyStateId"
                 class="form-label">
 
@@ -678,31 +704,7 @@ if ($isJourney) {
             ) ?>
         </div>
 
-        <div class="col-12 col-md-4">
-            <label
-                for="familyCountryName"
-                class="form-label">
-                Country
-            </label>
 
-            <input
-                type="text"
-                id="familyCountryName"
-                class="form-control bg-light"
-                value="<?= esc(
-                            (string) ($country['name'] ?? 'India'),
-                            'attr'
-                        ) ?>"
-                readonly>
-
-            <input
-                type="hidden"
-                name="country_id"
-                value="<?= esc(
-                            (string) ($country['id'] ?? ''),
-                            'attr'
-                        ) ?>">
-        </div>
 
 
         <div class="col-12">
