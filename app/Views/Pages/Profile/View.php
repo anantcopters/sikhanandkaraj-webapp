@@ -17,8 +17,7 @@ use App\Support\BooleanValue;
  * @var array<string, mixed>       $overallProfileSummary
  * @var list<array{
  *     id:int,
- *     mediumUrl:string,
- *     modalUrl:string,
+ *     thumbnailUrl:string,
  *     isPrimary:bool
  * }>                              $approvedPhotos
  */
@@ -458,16 +457,10 @@ $familyDetailList = [
 ];
 
 /*
- * Prepare one normalized photo collection for the profile gallery.
+ * Prepare the thumbnail-only profile gallery.
  *
- * The controller has already:
- *
- * - filtered non-approved photos;
- * - required a medium URL;
- * - resolved the modal URL;
- * - normalized the primary-photo flag.
- *
- * The view performs only defensive presentation normalization.
+ * Original and medium modal URLs are intentionally not present in the
+ * initial page data. They are fetched after the member opens a slide.
  */
 $galleryPhotos = [];
 
@@ -476,46 +469,44 @@ foreach ($approvedPhotos as $photo) {
         continue;
     }
 
-    $mediumUrl = trim(
+    $photoId = (int) (
+        $photo['id']
+        ?? 0
+    );
+
+    $thumbnailUrl = trim(
         (string) (
-            $photo['mediumUrl']
+            $photo['thumbnailUrl']
             ?? ''
         )
     );
 
-    $modalUrl = trim(
-        (string) (
-            $photo['modalUrl']
-            ?? ''
-        )
-    );
-
-    if ($mediumUrl === '') {
+    if (
+        $photoId <= 0
+        || $thumbnailUrl === ''
+    ) {
         continue;
     }
 
-    /*
-     * A modal can still display the medium photo if its explicitly
-     * authorized original URL was unavailable.
-     */
-    if ($modalUrl === '') {
-        $modalUrl = $mediumUrl;
-    }
-
     $galleryPhotos[] = [
-        'id' => (int) (
-            $photo['id']
-            ?? 0
-        ),
+        'id' => $photoId,
 
-        'mediumUrl' => $mediumUrl,
-
-        'modalUrl' => $modalUrl,
+        'thumbnailUrl' =>
+        $thumbnailUrl,
 
         'isPrimary' => (
             $photo['isPrimary']
             ?? false
         ) === true,
+
+        /*
+         * This is an authenticated application URL, not a signed S3 or
+         * CloudFront original-photo URL.
+         */
+        'modalUrlEndpoint' => url_to(
+            'web.profile.photos.original-url',
+            $photoId
+        ),
     ];
 }
 
@@ -624,7 +615,7 @@ $this->section('content');
                                                 'attr'
                                             ) ?>"
                                     class="w-100 profile-preview-main-photo
-            object-fit-cover"
+            object-fit-contain"
                                     loading="eager">
 
                             <?php else: ?>
@@ -873,7 +864,7 @@ $this->section('content');
                                     </div>
                                 </div>
 
-                                
+
 
                             </div>
                         </div>
@@ -885,119 +876,111 @@ $this->section('content');
         <div class="row mb-0">
             <div class="col-12">
                 <section
-                    class="card border border-danger border-opacity-25 shadow-sm
-                rounded-3">
+                    class="card border border-danger
+        border-opacity-25 shadow-sm
+        rounded-3 mb-4">
 
                     <div class="card-body p-3 p-lg-4">
 
                         <div
-                            class="d-flex
-                        align-items-center gap-2 mb-3">
+                            class="d-flex align-items-center
+                justify-content-between gap-2 mb-3">
 
-                            <span
-                                class="d-inline-flex
-                            align-items-center
-                            justify-content-center
-                            rounded-circle
-                            bg-primary-subtle
-                            text-primary"
-                                style="
-                            width: 34px;
-                            height: 34px;
-                        ">
+                            <div>
+                                <h2 class="fs-17 fw-semibold mb-1">
+                                    Profile Photos
+                                </h2>
 
-                                <i
-                                    class="ri-image-2-line"
-                                    aria-hidden="true"></i>
+                                <p class="text-muted fs-13 mb-0">
+                                    Select a photo to view the enlarged gallery.
+                                </p>
+                            </div>
+
+                            <span class="badge bg-primary p-2 text-white fs-12">
+                                <?= esc(
+                                    (string) count($galleryPhotos)
+                                ) ?>
                             </span>
-
-                            <h2
-                                class="fs-16
-                            fw-semibold mb-0">
-                                Gallery
-                            </h2>
                         </div>
 
-                        <?php
-                        $visiblePhotoCount = 0;
-                        ?>
+                        <?php if ($galleryPhotos === []): ?>
 
-                        <?php if ($galleryPhotos !== []): ?>
+                            <div
+                                class="border rounded-3
+                    text-center p-4 text-muted">
+
+                                <i
+                                    class="ri-image-line fs-24"
+                                    aria-hidden="true">
+                                </i>
+
+                                <p class="fs-13 mb-0 mt-2">
+                                    No approved photos are available.
+                                </p>
+                            </div>
+
+                        <?php else: ?>
 
                             <div class="row g-2 g-md-3">
 
                                 <?php foreach (
-                                    $galleryPhotos as $photoIndex => $galleryPhoto
+                                    $galleryPhotos as $index => $photo
                                 ): ?>
 
-                                    <?php
-                                    $mediumUrl = (string) (
-                                        $galleryPhoto['mediumUrl']
-                                        ?? ''
-                                    );
-
-                                    $modalUrl = (string) (
-                                        $galleryPhoto['modalUrl']
-                                        ?? $mediumUrl
-                                    );
-
-                                    $isPrimary = (
-                                        $galleryPhoto['isPrimary']
-                                        ?? false
-                                    ) === true;
-                                    ?>
-
-                                    <div class="col-6 col-md-4 col-lg-3">
+                                    <div
+                                        class="col-6 col-md-4 col-lg-3">
 
                                         <button
                                             type="button"
-                                            class="profile-preview-gallery-button
-                        d-block w-100 p-0 border rounded-3
-                        overflow-hidden bg-light
-                        position-relative"
+                                            class="d-block w-100 p-0
+                                border rounded-3
+                                overflow-hidden bg-light
+                                position-relative"
+                                            data-profile-gallery-trigger
+                                            data-slide-index="<?= esc(
+                                                                    (string) $index,
+                                                                    'attr'
+                                                                ) ?>"
                                             data-bs-toggle="modal"
-                                            data-bs-target="#profilePhotoModal"
-                                            data-profile-photo-index="<?= esc(
-                                                                            (string) $photoIndex,
-                                                                            'attr'
-                                                                        ) ?>"
+                                            data-bs-target="#profilePhotoGalleryModal"
                                             aria-label="<?= esc(
-                                                            'Open photo '
-                                                                . ($photoIndex + 1)
-                                                                . ' in enlarged view',
+                                                            'Open profile photo '
+                                                                . ($index + 1),
                                                             'attr'
                                                         ) ?>">
 
                                             <span
-                                                class="ratio ratio-1x1 d-block">
+                                                class="ratio ratio-16x9 d-block">
 
                                                 <img
                                                     src="<?= esc(
-                                                                $mediumUrl,
+                                                                $photo['thumbnailUrl'],
                                                                 'attr'
                                                             ) ?>"
                                                     alt="<?= esc(
                                                                 $fullName
                                                                     . ' profile photo '
-                                                                    . ($photoIndex + 1),
+                                                                    . ($index + 1),
                                                                 'attr'
                                                             ) ?>"
-                                                    class="w-100 h-100
-                                object-fit-cover"
+                                                    class="img-thumbnail"
                                                     loading="lazy">
 
                                             </span>
 
-                                            <?php if ($isPrimary): ?>
+                                            <?php if (
+                                                $photo['isPrimary'] === true
+                                            ): ?>
 
                                                 <span
                                                     class="badge bg-primary
-                                position-absolute
-                                top-0 start-0 m-2">
+                                        position-absolute
+                                        top-0 start-0 m-2">
 
                                                     <i
                                                         class="ri-star-fill me-1"
-                                                        aria-hidden="true"></i>
+                                                        aria-hidden="true">
+                                                    </i>
 
                                                     Main
                                                 </span>
@@ -1005,40 +988,14 @@ $this->section('content');
                                             <?php endif; ?>
 
                                         </button>
-
-                                        <input
-                                            type="hidden"
-                                            value="<?= esc(
-                                                        $modalUrl,
-                                                        'attr'
-                                                    ) ?>"
-                                            data-profile-modal-url="<?= esc(
-                                                                        (string) $photoIndex,
-                                                                        'attr'
-                                                                    ) ?>">
-
                                     </div>
 
                                 <?php endforeach; ?>
 
                             </div>
 
-                        <?php else: ?>
-
-                            <div
-                                class="border rounded-3
-            text-center p-4 text-muted">
-
-                                <i
-                                    class="ri-image-line fs-24"
-                                    aria-hidden="true"></i>
-
-                                <p class="fs-13 mb-0 mt-2">
-                                    No approved photos are available.
-                                </p>
-                            </div>
-
                         <?php endif; ?>
+
                     </div>
                 </section>
             </div>
@@ -1481,82 +1438,188 @@ $this->section('content');
 <?php endif; ?>
 <?php if ($galleryPhotos !== []): ?>
 
-    <script>
-        document.addEventListener(
-            'DOMContentLoaded',
-            function() {
-                'use strict';
+    <div
+        class="modal fade"
+        id="profilePhotoGalleryModal"
+        tabindex="-1"
+        aria-labelledby="profilePhotoGalleryModalLabel"
+        aria-hidden="true"
+        data-profile-gallery-modal>
 
-                const modalElement = document.getElementById(
-                    'profilePhotoModal'
-                );
+        <div
+            class="modal-dialog
+                modal-dialog-centered
+                modal-xl">
 
-                if (!modalElement) {
-                    return;
-                }
+            <div class="modal-content">
 
-                const modalImage = modalElement.querySelector(
-                    '[data-profile-modal-image]'
-                );
+                <div class="modal-header">
 
-                if (!modalImage) {
-                    return;
-                }
+                    <div>
+                        <h2
+                            class="modal-title fs-17"
+                            id="profilePhotoGalleryModalLabel">
 
-                modalElement.addEventListener(
-                    'show.bs.modal',
-                    function(event) {
-                        const trigger = event.relatedTarget;
+                            Profile Photos
+                        </h2>
 
-                        if (!(trigger instanceof HTMLElement)) {
-                            return;
-                        }
+                        <p
+                            class="text-muted fs-12 mb-0"
+                            data-profile-gallery-position>
 
-                        const photoIndex = trigger.dataset
-                            .profilePhotoIndex;
+                            1 of
+                            <?= esc(
+                                (string) count($galleryPhotos)
+                            ) ?>
+                        </p>
+                    </div>
 
-                        if (typeof photoIndex !== 'string') {
-                            return;
-                        }
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                    </button>
 
-                        const urlField = document.querySelector(
-                            '[data-profile-modal-url="' +
-                            CSS.escape(photoIndex) +
-                            '"]'
-                        );
+                </div>
 
-                        if (!(urlField instanceof HTMLInputElement)) {
-                            return;
-                        }
+                <div class="modal-body p-0">
 
-                        const modalUrl = urlField.value.trim();
+                    <div
+                        id="profilePhotoGalleryCarousel"
+                        class="carousel slide"
+                        data-bs-interval="false"
+                        data-bs-touch="true"
+                        data-profile-gallery-carousel>
 
-                        if (modalUrl === '') {
-                            return;
-                        }
+                        <div class="carousel-inner">
 
-                        /*
-                         * The original URL is assigned only after the member
-                         * explicitly opens the modal. Gallery images continue
-                         * to use the medium variant.
-                         */
-                        modalImage.src = modalUrl;
-                    }
-                );
+                            <?php foreach (
+                                $galleryPhotos as $index => $photo
+                            ): ?>
 
-                modalElement.addEventListener(
-                    'hidden.bs.modal',
-                    function() {
-                        /*
-                         * Remove the original signed URL from the active image
-                         * element after closing the modal.
-                         */
-                        modalImage.removeAttribute('src');
-                    }
-                );
-            }
-        );
-    </script>
+                                <div
+                                    class="carousel-item
+                                        <?= $index === 0
+                                            ? 'active'
+                                            : '' ?>"
+                                    data-gallery-slide
+                                    data-photo-id="<?= esc(
+                                                        (string) $photo['id'],
+                                                        'attr'
+                                                    ) ?>"
+                                    data-modal-url-endpoint="<?= esc(
+                                                                    $photo['modalUrlEndpoint'],
+                                                                    'attr'
+                                                                ) ?>"
+                                    data-slide-index="<?= esc(
+                                                            (string) $index,
+                                                            'attr'
+                                                        ) ?>">
+
+                                    <div
+                                        class="d-flex align-items-center
+                                            justify-content-center
+                                            bg-light position-relative
+                                            p-3"
+                                        style="min-height: 420px;">
+
+                                        <div
+                                            class="text-center"
+                                            data-slide-loading>
+
+                                            <span
+                                                class="spinner-border
+                                                    text-primary"
+                                                role="status"
+                                                aria-hidden="true">
+                                            </span>
+
+                                            <p
+                                                class="text-muted
+                                                    fs-13 mb-0 mt-2">
+
+                                                Loading photo...
+                                            </p>
+                                        </div>
+
+                                        <div
+                                            class="alert alert-danger
+                                                d-none m-3"
+                                            role="alert"
+                                            data-slide-error>
+                                        </div>
+
+                                        <img
+                                            src=""
+                                            alt="<?= esc(
+                                                        $fullName
+                                                            . ' enlarged profile photo '
+                                                            . ($index + 1),
+                                                        'attr'
+                                                    ) ?>"
+                                            class="img-fluid rounded-3
+                                                object-fit-contain d-none"
+                                            style="max-height: 78vh;"
+                                            data-slide-image>
+
+                                    </div>
+
+                                </div>
+
+                            <?php endforeach; ?>
+
+                        </div>
+
+                        <?php if (
+                            count($galleryPhotos) > 1
+                        ): ?>
+
+                            <button
+                                class="carousel-control-prev"
+                                type="button"
+                                data-bs-target="#profilePhotoGalleryCarousel"
+                                data-bs-slide="prev"
+                                aria-label="Previous photo">
+
+                                <span
+                                    class="carousel-control-prev-icon"
+                                    aria-hidden="true">
+                                </span>
+
+                                <span class="visually-hidden">
+                                    Previous
+                                </span>
+                            </button>
+
+                            <button
+                                class="carousel-control-next"
+                                type="button"
+                                data-bs-target="#profilePhotoGalleryCarousel"
+                                data-bs-slide="next"
+                                aria-label="Next photo">
+
+                                <span
+                                    class="carousel-control-next-icon"
+                                    aria-hidden="true">
+                                </span>
+
+                                <span class="visually-hidden">
+                                    Next
+                                </span>
+                            </button>
+
+                        <?php endif; ?>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
 
 <?php endif; ?>
 <?php $this->endSection(); ?>

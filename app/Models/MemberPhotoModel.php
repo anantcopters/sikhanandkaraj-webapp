@@ -188,4 +188,95 @@ final class MemberPhotoModel extends Model
             ->where('deleted_at', null)
             ->countAllResults();
     }
+
+    /**
+     * Return all approved active photos belonging to a member.
+     *
+     * Only columns needed for the thumbnail gallery are selected. Original
+     * object keys are deliberately excluded from the initial profile query.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findApprovedForMember(
+        int $memberId
+    ): array {
+        return $this
+            ->select([
+                'id',
+                'member_id',
+                'thumbnail_object_key',
+                'is_primary',
+                'status',
+                'created_at',
+            ])
+            ->where(
+                'member_id',
+                $memberId
+            )
+            ->where(
+                'status',
+                'APPROVED'
+            )
+            ->where(
+                'deleted_at',
+                null
+            )
+            ->orderBy(
+                'is_primary',
+                'DESC'
+            )
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->orderBy(
+                'id',
+                'DESC'
+            )
+            ->findAll();
+    }
+
+    /**
+     * Find one approved active photo owned by a member.
+     *
+     * Ownership, approval and active-state checks must all pass before an
+     * original signed URL can be generated.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findOwnedApprovedPhoto(
+        int $photoId,
+        int $memberId
+    ): ?array {
+        $photo = $this
+            ->select([
+                'id',
+                'member_id',
+                'original_object_key',
+                'medium_object_key',
+                'is_primary',
+                'status',
+            ])
+            ->where(
+                'id',
+                $photoId
+            )
+            ->where(
+                'member_id',
+                $memberId
+            )
+            ->where(
+                'status',
+                'APPROVED'
+            )
+            ->where(
+                'deleted_at',
+                null
+            )
+            ->first();
+
+        return is_array($photo)
+            ? $photo
+            : null;
+    }
 }

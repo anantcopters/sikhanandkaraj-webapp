@@ -362,6 +362,21 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
         );
 
         /*
+        * Lazily return the original and medium URLs for one approved,
+        * member-owned photo.
+        *
+        * The original is never signed during the initial profile-page request.
+        */
+        $routes->get(
+            'profile/photos/(:num)/original-url',
+            'ProfilePhotoController::originalUrl/$1',
+            [
+                'as' => 'web.profile.photos.original-url',
+                'filter' => 'webAuth',
+            ]
+        );
+
+        /*
         * Basic Details.
         */
         $routes->get(
