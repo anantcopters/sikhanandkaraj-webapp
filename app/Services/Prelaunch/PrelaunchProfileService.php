@@ -376,8 +376,6 @@ final class PrelaunchProfileService
                 $normalizedRelationship,
                 [
                     'SELF',
-                    'RELATIVE',
-                    'FRIEND',
                 ],
                 true
             )

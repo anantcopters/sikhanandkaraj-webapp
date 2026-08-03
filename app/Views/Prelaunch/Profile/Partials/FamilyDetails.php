@@ -338,10 +338,6 @@ $communityClass =
                     class="form-label">
 
                     Nearest Gurudwara
-
-                    <span class="color-pink fs-12">
-                        (Optional)
-                    </span>
                 </label>
 
                 <input
@@ -359,13 +355,14 @@ $communityClass =
                     aria-describedby="nearest_gurudwaraHelp nearest_gurudwaraError"
                     placeholder="Enter the nearest Gurudwara name or location"
                     maxlength="300"
-                    autocomplete="off"
+                    autocomplete="off"]
+                    data-error-required="Please enter the nearest Gurudwara name or location."
                     data-error-maxlength="Nearest Gurudwara cannot exceed 300 characters.">
 
                 <div
                     id="nearest_gurudwaraHelp"
                     class="form-text color-pink">
-                    Enter the Gurudwara name and locality, if known.
+                    Enter the Gurudwara name and locality.
                 </div>
 
                 <div

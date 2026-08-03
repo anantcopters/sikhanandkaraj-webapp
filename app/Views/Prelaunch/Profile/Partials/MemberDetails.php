@@ -133,8 +133,6 @@ $profileForOptions = [
     'DAUGHTER' => 'Daughter',
     'BROTHER' => 'Brother',
     'SISTER' => 'Sister',
-    'RELATIVE' => 'Relative',
-    'FRIEND' => 'Friend',
 ];
 
 $genderOptions = [
@@ -234,8 +232,6 @@ $genderOptions = [
                 [
                     '',
                     'SELF',
-                    'RELATIVE',
-                    'FRIEND',
                 ],
                 true
             );

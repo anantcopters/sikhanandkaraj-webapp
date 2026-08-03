@@ -715,7 +715,7 @@ if ($isJourney) {
             </h2>
 
             <p class="text-muted fs-12 mb-0">
-                These details are optional and may help with family verification.
+                These details will help with family verification.
             </p>
         </div>
 
@@ -725,10 +725,7 @@ if ($isJourney) {
                 class="form-label">
 
                 Nearest Gurudwara
-
-                <span class="text-muted fw-normal">
-                    (Optional)
-                </span>
+                <span class="text-danger">*</span>
             </label>
 
             <input
@@ -745,6 +742,7 @@ if ($isJourney) {
                         ) ?>"
                 placeholder="Enter Gurudwara name or location"
                 maxlength="300"
+                data-error-required="Please enter the nearest Gurudwara name or location."
                 data-error-maxlength="Nearest Gurudwara cannot exceed 200 characters."
                 autocomplete="off"
                 aria-describedby="nearestGurudwaraError">

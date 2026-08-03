@@ -212,12 +212,15 @@ final class PrelaunchProfileValidation
                 'nearest_gurudwara' => [
                     'label' => 'Nearest Gurudwara',
                     'rules' => [
-                        'permit_empty',
+                        'required',
                         'max_length['
                             . self::NEAREST_GURUDWARA_MAX_LENGTH
                             . ']',
                     ],
                     'errors' => [
+                        'required' =>
+                        'Please enter the nearest Gurudwara name or location.',
+
                         'max_length' =>
                         'Nearest Gurudwara cannot exceed '
                             . self::NEAREST_GURUDWARA_MAX_LENGTH

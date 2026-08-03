@@ -164,9 +164,10 @@ final class FamilyDetailsService
             'Please select a valid family city.'
         );
 
-        $nearestGurudwara = $this->optionalText(
+        $nearestGurudwara = $this->requiredText(
             $data['nearest_gurudwara'] ?? null,
             self::GURUDWARA_MAX_LENGTH,
+            'Please enter the nearest Gurudwara name or location.',
             'Nearest Gurudwara'
         );
 
@@ -279,6 +280,43 @@ final class FamilyDetailsService
             throw new DomainException(
                 'Parent name cannot exceed '
                     . self::PARENT_NAME_MAX_LENGTH
+                    . ' characters.'
+            );
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Normalize and require a profile text value.
+     */
+    private function requiredText(
+        mixed $value,
+        int $maximumLength,
+        string $requiredMessage,
+        string $label
+    ): string {
+        $normalized = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim((string) $value)
+        ) ?? '';
+
+        if ($normalized === '') {
+            throw new DomainException(
+                $requiredMessage
+            );
+        }
+
+        if (
+            mb_strlen(
+                $normalized,
+                'UTF-8'
+            ) > $maximumLength
+        ) {
+            throw new DomainException(
+                $label . ' cannot exceed '
+                    . $maximumLength
                     . ' characters.'
             );
         }
@@ -482,6 +520,11 @@ final class FamilyDetailsService
 
             $this->hasPositiveInteger(
                 $details['city_id'] ?? null
+            ),
+
+            $this->hasRequiredText(
+                $details['nearest_gurudwara']
+                    ?? null
             ),
         ];
 

@@ -63,3 +63,19 @@ ON user_contacts
     contact_type,
     normalized_value
 );
+
+
+ALTER TABLE prelaunch_profiles
+DROP CONSTRAINT IF EXISTS chk_prelaunch_profile_created_for;
+
+ALTER TABLE prelaunch_profiles
+ADD CONSTRAINT chk_prelaunch_profile_created_for
+CHECK (
+    profile_created_for IN (
+        'SELF',
+        'SON',
+        'DAUGHTER',
+        'BROTHER',
+        'SISTER'
+    )
+);

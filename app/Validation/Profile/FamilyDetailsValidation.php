@@ -125,10 +125,24 @@ final class FamilyDetailsValidation
                 'Please select your family city.'
             ),
 
-            'nearest_gurudwara' => self::optionalText(
-                'Nearest Gurudwara',
-                self::GURUDWARA_MAX_LENGTH
-            ),
+            'nearest_gurudwara' => [
+                'label' => 'Nearest Gurudwara',
+                'rules' => [
+                    'required',
+                    'max_length['
+                        . self::GURUDWARA_MAX_LENGTH
+                        . ']',
+                ],
+                'errors' => [
+                    'required' =>
+                    'Please enter the nearest Gurudwara name or location.',
+
+                    'max_length' =>
+                    'Nearest Gurudwara cannot exceed '
+                        . self::GURUDWARA_MAX_LENGTH
+                        . ' characters.',
+                ],
+            ],
 
             'reference_person_1' => self::optionalText(
                 'First reference person',
