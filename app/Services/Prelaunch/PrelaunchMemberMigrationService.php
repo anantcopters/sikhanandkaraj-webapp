@@ -12,17 +12,38 @@ use App\Models\UserModel;
 use App\Services\Aws\AwsMediaService;
 use App\Support\IndianMobileNormalizer;
 use CodeIgniter\Database\BaseConnection;
+use Config\Prelaunch;
 use RuntimeException;
 use Throwable;
 
 /**
- * Atomically migrates an approved prelaunch profile into member storage.
+ * Migrates an administrator-approved prelaunch profile into the normal
+ * member-account and profile tables.
  *
- * Database records are committed only after all approved photographs have
- * been processed and uploaded to S3.
+ * Important guarantees:
+ *
+ * - The prelaunch profile is migrated only once.
+ * - At least one prelaunch photograph must already be approved.
+ * - Mobile and optional email must not exist in the member contact table.
+ * - Approved photographs pass through the existing S3 media pipeline.
+ * - Database changes are atomic.
+ * - S3 objects are removed when the database transaction fails.
+ * - Migrated accounts are ACTIVE.
+ * - Migrated mobile and optional email contacts are verified.
  */
 final class PrelaunchMemberMigrationService
 {
+    /**
+     * Maximum attempts when generating a unique member profile reference.
+     */
+    private const PROFILE_REFERENCE_ATTEMPTS = 20;
+
+    /**
+     * Number of days to retain the local prelaunch photographs after
+     * successful migration.
+     */
+    private const LOCAL_PHOTO_RETENTION_DAYS = 7;
+
     public function __construct(
         private readonly PrelaunchProfileModel $prelaunchProfileModel,
         private readonly PrelaunchPhotoModel $prelaunchPhotoModel,
@@ -31,10 +52,13 @@ final class PrelaunchMemberMigrationService
         private readonly MemberPhotoModel $memberPhotoModel,
         private readonly PrelaunchPhotoService $prelaunchPhotoService,
         private readonly AwsMediaService $awsMediaService,
-        private readonly BaseConnection $database
+        private readonly BaseConnection $database,
+        private readonly Prelaunch $configuration
     ) {}
 
     /**
+     * Migrate one approved prelaunch profile.
+     *
      * @return array{
      *     memberId:int,
      *     profileReference:string,
@@ -45,20 +69,25 @@ final class PrelaunchMemberMigrationService
         int $prelaunchProfileId,
         int $adminUserId
     ): array {
-        if (
-            $prelaunchProfileId <= 0
-            || $adminUserId <= 0
-        ) {
+        if ($prelaunchProfileId <= 0) {
             throw new RuntimeException(
-                'Invalid prelaunch migration request.'
+                'Invalid prelaunch profile ID.'
+            );
+        }
+
+        if ($adminUserId <= 0) {
+            throw new RuntimeException(
+                'The reviewing administrator could not be identified.'
             );
         }
 
         /*
-         * Fast idempotency check before opening the transaction.
+         * Fast idempotency check before beginning the transaction.
+         *
+         * The database unique index on users.prelaunch_profile_id remains
+         * the final protection against concurrent duplicate migrations.
          */
-        $existingMember = $this
-            ->userModel
+        $existingMember = $this->userModel
             ->findByPrelaunchProfileId(
                 $prelaunchProfileId
             );
@@ -69,21 +98,31 @@ final class PrelaunchMemberMigrationService
             );
         }
 
+        /**
+         * Database rollback cannot remove objects already uploaded to S3.
+         * Keep every uploaded key so they can be removed if a later step fails.
+         *
+         * @var list<string> $uploadedObjectKeys
+         */
         $uploadedObjectKeys = [];
 
         $this->database->transBegin();
 
         try {
             /*
-             * Serialize approval attempts for the same profile.
+             * Lock the source row so two administrators cannot migrate the
+             * same prelaunch profile simultaneously.
              */
             $lockedProfile = $this->database
                 ->query(
-                    'SELECT * FROM prelaunch_profiles '
+                    'SELECT * '
+                        . 'FROM prelaunch_profiles '
                         . 'WHERE id = ? '
                         . 'AND deleted_at IS NULL '
                         . 'FOR UPDATE',
-                    [$prelaunchProfileId]
+                    [
+                        $prelaunchProfileId,
+                    ]
                 )
                 ->getRowArray();
 
@@ -94,25 +133,29 @@ final class PrelaunchMemberMigrationService
             }
 
             if (
-                (string) $lockedProfile['status']
+                (string) (
+                    $lockedProfile['status']
+                    ?? ''
+                )
                 !== PrelaunchProfileModel::STATUS_DRAFT
             ) {
                 throw new RuntimeException(
-                    'Only draft prelaunch profiles may be approved.'
+                    'Only DRAFT prelaunch profiles may be approved.'
                 );
             }
 
             if (
-                $lockedProfile['migrated_user_id']
-                !== null
+                (int) (
+                    $lockedProfile['migrated_user_id']
+                    ?? 0
+                ) > 0
             ) {
                 throw new RuntimeException(
                     'This prelaunch profile has already been migrated.'
                 );
             }
 
-            $approvedPhotos = $this
-                ->prelaunchPhotoModel
+            $approvedPhotos = $this->prelaunchPhotoModel
                 ->findApprovedByProfile(
                     $prelaunchProfileId
                 );
@@ -124,170 +167,52 @@ final class PrelaunchMemberMigrationService
                 );
             }
 
-            $email = mb_strtolower(
-                trim(
-                    (string) (
-                        $lockedProfile['email']
-                        ?? ''
-                    )
-                )
-            );
-
-            $countryCode = trim(
+            /*
+             * Normalize contacts once and reuse exactly the same value for:
+             *
+             * - uniqueness lookup;
+             * - contact_value;
+             * - normalized_value.
+             */
+            $normalizedMobile = $this->normalizeMobile(
                 (string) (
                     $lockedProfile['country_code']
                     ?? '+91'
-                )
-            );
-
-            $mobileNumber = trim(
+                ),
                 (string) (
                     $lockedProfile['mobile_number']
                     ?? ''
                 )
             );
 
-            $normalizedMobile =
-                IndianMobileNormalizer::normalize(
-                    $countryCode . $mobileNumber
-                );
+            $normalizedEmail = $this->normalizeEmail(
+                $lockedProfile['email']
+                    ?? null
+            );
 
-            if ($normalizedMobile === null) {
-                throw new RuntimeException(
-                    'The prelaunch profile does not contain '
-                        . 'a valid Indian mobile number.'
-                );
-            }
-
-            if (
-                $this->userContactModel
-                ->findByNormalizedValue(
-                    UserContactModel::TYPE_MOBILE,
-                    $normalizedMobile
-                ) !== null
-            ) {
-                throw new RuntimeException(
-                    'This mobile number already belongs to an existing '
-                        . 'member.'
-                );
-            }
-
-            if (
-                $email !== ''
-                && $this->userContactModel
-                ->findByNormalizedValue(
-                    UserContactModel::TYPE_EMAIL,
-                    $email
-                ) !== null
-            ) {
-                throw new RuntimeException(
-                    'This email address already belongs to an existing '
-                        . 'member.'
-                );
-            }
+            $this->assertMemberContactsAvailable(
+                $normalizedMobile,
+                $normalizedEmail
+            );
 
             $profileReference =
                 $this->generateMemberReference();
 
-            $memberId = $this->userModel->insert(
-                [
-                    'prelaunch_profile_id' =>
-                    $prelaunchProfileId,
-
-                    'profile_ref_number' =>
-                    $profileReference,
-
-                    /*
-         * The normal member registration flow stores relationship values
-         * in lowercase. Normalize the prelaunch uppercase value before
-         * inserting it into users.
-         */
-                    'profile_created_for' =>
-                    $this->resolveMemberProfileCreatedFor(
-                        (string) (
-                            $lockedProfile['profile_created_for']
-                            ?? ''
-                        )
-                    ),
-
-                    /*
-         * users.gender is CHAR(1). The prelaunch table stores readable
-         * values such as MALE/FEMALE, so it must be converted to M/F.
-         */
-                    'gender' =>
-                    $this->resolveMemberGender(
-                        (string) (
-                            $lockedProfile['gender']
-                            ?? ''
-                        ),
-                        (string) (
-                            $lockedProfile['profile_created_for']
-                            ?? ''
-                        )
-                    ),
-
-                    'full_name' =>
-                    trim(
-                        (string) (
-                            $lockedProfile['full_name']
-                            ?? ''
-                        )
-                    ),
-
-                    /*
-         * The migrated member will complete the normal password and mobile
-         * verification flow before the account becomes active.
-         */
-                    'password_hash' =>
-                    null,
-
-                    'account_status' =>
-                    UserModel::STATUS_PENDING,
-                ],
-                true
+            $memberId = $this->insertMemberAccount(
+                $prelaunchProfileId,
+                $profileReference,
+                $lockedProfile
             );
 
-            if (!is_numeric($memberId)) {
-                $modelErrors = $this->userModel
-                    ->errors();
-
-                log_message(
-                    'error',
-                    'Prelaunch member account insert failed. '
-                        . 'Profile: {profileId}; errors: {errors}.',
-                    [
-                        'profileId' =>
-                        $prelaunchProfileId,
-
-                        'errors' =>
-                        json_encode(
-                            $modelErrors,
-                            JSON_UNESCAPED_SLASHES
-                                | JSON_UNESCAPED_UNICODE
-                        ),
-                    ]
-                );
-
-                throw new RuntimeException(
-                    'The member account could not be created.'
-                );
-            }
-
-            $memberId = (int) $memberId;
-
-            if (!is_numeric($memberId)) {
-                throw new RuntimeException(
-                    'The member account could not be created.'
-                );
-            }
-
-            $memberId = (int) $memberId;
+            $verifiedAt = date(
+                'Y-m-d H:i:s'
+            );
 
             $this->insertMemberContacts(
                 $memberId,
-                $email,
-                $countryCode,
-                $normalizedMobile
+                $normalizedMobile,
+                $normalizedEmail,
+                $verifiedAt
             );
 
             $this->insertProfileDetails(
@@ -295,178 +220,65 @@ final class PrelaunchMemberMigrationService
                 $lockedProfile
             );
 
-            $migratedPhotoCount = 0;
-
-            foreach (
-                $approvedPhotos as $index => $photo
-            ) {
-                $prelaunchPhotoId = (int) (
-                    $photo['id']
-                    ?? 0
+            $migratedPhotoCount =
+                $this->migrateApprovedPhotos(
+                    memberId: $memberId,
+                    adminUserId: $adminUserId,
+                    approvedPhotos: $approvedPhotos,
+                    uploadedObjectKeys: $uploadedObjectKeys
                 );
 
-                if (
-                    $prelaunchPhotoId <= 0
-                    || $this->memberPhotoModel
-                    ->prelaunchPhotoWasMigrated(
-                        $prelaunchPhotoId
-                    )
-                ) {
-                    throw new RuntimeException(
-                        'A prelaunch photograph was already migrated.'
-                    );
-                }
-
-                $localPath = $this
-                    ->prelaunchPhotoService
-                    ->absolutePath(
-                        (string) (
-                            $photo['original_path']
-                            ?? ''
-                        )
-                    );
-
-                if (
-                    !is_file($localPath)
-                    || !is_readable($localPath)
-                ) {
-                    throw new RuntimeException(
-                        sprintf(
-                            'Approved photograph %d is unavailable.',
-                            $index + 1
-                        )
-                    );
-                }
-
-                $media = $this
-                    ->awsMediaService
-                    ->uploadProfilePhotoFromPath(
-                        $localPath,
-                        (string) (
-                            $photo['original_filename']
-                            ?? 'prelaunch-photo.webp'
-                        ),
-                        $memberId
-                    );
-
-                $uploadedObjectKeys = array_merge(
-                    $uploadedObjectKeys,
-                    [
-                        $media['originalObjectKey'],
-                        $media['mediumObjectKey'],
-                        $media['thumbnailObjectKey'],
-                    ]
-                );
-
-                $memberPhotoId =
-                    $this->memberPhotoModel->insert(
-                        [
-                            'uuid' =>
-                            $media['uuid'],
-                            'member_id' =>
-                            $memberId,
-                            'prelaunch_photo_id' =>
-                            $prelaunchPhotoId,
-                            'media_type' =>
-                            'PROFILE_PHOTO',
-                            'original_object_key' =>
-                            $media['originalObjectKey'],
-                            'medium_object_key' =>
-                            $media['mediumObjectKey'],
-                            'thumbnail_object_key' =>
-                            $media['thumbnailObjectKey'],
-                            'original_filename' =>
-                            $media['originalFilename'],
-                            'original_mime_type' =>
-                            $media['mimeType'],
-                            'original_extension' =>
-                            $media['extension'],
-                            'original_file_size' =>
-                            $media['fileSize'],
-                            'original_width' =>
-                            $media['width'],
-                            'original_height' =>
-                            $media['height'],
-
-                            /*
-                             * The prelaunch administrator has already
-                             * approved the source image.
-                             */
-                            'status' =>
-                            'APPROVED',
-                            'visibility' =>
-                            'PUBLIC',
-                            'is_primary' =>
-                            $index === 0,
-                            'uploaded_by_type' =>
-                            'ADMIN',
-                            'uploaded_by_id' =>
-                            $adminUserId,
-
-                            'approved_by' =>
-                            $adminUserId,
-
-                            'approved_at' =>
-                            date('Y-m-d H:i:s'),
-
-                            'rejected_by' =>
-                            null,
-
-                            'rejected_at' =>
-                            null,
-
-                            'rejection_reason' =>
-                            null,
-                        ],
-                        true
-                    );
-
-                if (!is_numeric($memberPhotoId)) {
-                    throw new RuntimeException(
-                        'The migrated member photo record '
-                            . 'could not be created.'
-                    );
-                }
-
-                $migratedPhotoCount++;
-            }
-
-            $now = date('Y-m-d H:i:s');
+            $now = date(
+                'Y-m-d H:i:s'
+            );
 
             $cleanupAfter = date(
                 'Y-m-d H:i:s',
-                strtotime('+7 days')
+                strtotime(
+                    sprintf(
+                        '+%d days',
+                        self::LOCAL_PHOTO_RETENTION_DAYS
+                    )
+                )
             );
 
-            if (
-                !$this->prelaunchProfileModel->update(
+            $profileUpdated =
+                $this->prelaunchProfileModel->update(
                     $prelaunchProfileId,
                     [
                         'status' =>
                         PrelaunchProfileModel
                         ::STATUS_APPROVED,
+
                         'reviewed_by' =>
                         $adminUserId,
+
                         'reviewed_at' =>
                         $now,
+
                         'rejection_reason' =>
                         null,
+
                         'migrated_user_id' =>
                         $memberId,
+
                         'migrated_at' =>
                         $now,
+
                         'local_photos_cleanup_after' =>
                         $cleanupAfter,
+
                         'local_photos_cleaned_at' =>
                         null,
+
                         'migration_error' =>
                         null,
                     ]
-                )
-            ) {
+                );
+
+            if ($profileUpdated === false) {
                 throw new RuntimeException(
-                    'The prelaunch migration status '
-                        . 'could not be recorded.'
+                    'The prelaunch migration status could not be recorded.'
                 );
             }
 
@@ -475,16 +287,19 @@ final class PrelaunchMemberMigrationService
                 === false
             ) {
                 throw new RuntimeException(
-                    'The profile migration transaction failed.'
+                    'The prelaunch profile migration transaction failed.'
                 );
             }
 
             $this->database->transCommit();
 
             return [
-                'memberId' => $memberId,
+                'memberId' =>
+                $memberId,
+
                 'profileReference' =>
                 $profileReference,
+
                 'migratedPhotoCount' =>
                 $migratedPhotoCount,
             ];
@@ -492,25 +307,64 @@ final class PrelaunchMemberMigrationService
             $this->database->transRollback();
 
             /*
-             * Database rollback cannot undo completed S3 uploads.
+             * Remove only the objects uploaded during this migration attempt.
              */
             if ($uploadedObjectKeys !== []) {
-                $this->awsMediaService
-                    ->deleteObjectKeys(
-                        $uploadedObjectKeys
+                try {
+                    $this->awsMediaService
+                        ->deleteObjectKeys(
+                            array_values(
+                                array_unique(
+                                    $uploadedObjectKeys
+                                )
+                            )
+                        );
+                } catch (Throwable $cleanupException) {
+                    log_message(
+                        'critical',
+                        'Unable to rollback S3 objects after failed '
+                            . 'prelaunch migration. '
+                            . 'Profile: {profileId}; '
+                            . 'migration error: {migrationError}; '
+                            . 'cleanup error: {cleanupError}.',
+                        [
+                            'profileId' =>
+                            $prelaunchProfileId,
+
+                            'migrationError' =>
+                            $exception->getMessage(),
+
+                            'cleanupError' =>
+                            $cleanupException
+                                ->getMessage(),
+                        ]
                     );
+                }
             }
 
             log_message(
                 'error',
                 'Prelaunch member migration failed. '
                     . 'Profile: {profileId}; '
-                    . 'reason: {message}',
+                    . 'exception: {exception}; '
+                    . 'reason: {message}; '
+                    . 'file: {file}; '
+                    . 'line: {line}.',
                 [
                     'profileId' =>
                     $prelaunchProfileId,
+
+                    'exception' =>
+                    $exception::class,
+
                     'message' =>
                     $exception->getMessage(),
+
+                    'file' =>
+                    $exception->getFile(),
+
+                    'line' =>
+                    $exception->getLine(),
                 ]
             );
 
@@ -518,43 +372,199 @@ final class PrelaunchMemberMigrationService
         }
     }
 
+    /**
+     * Insert the member account.
+     *
+     * Migrated accounts are ACTIVE because the administrator has completed
+     * the prelaunch review and the supplied contacts are treated as verified.
+     *
+     * Password remains NULL. The migrated member must use the applicable
+     * password-creation or password-reset flow before password login.
+     *
+     * @param array<string, mixed> $profile
+     */
+    private function insertMemberAccount(
+        int $prelaunchProfileId,
+        string $profileReference,
+        array $profile
+    ): int {
+        $memberId = $this->userModel->insert(
+            [
+                'prelaunch_profile_id' =>
+                $prelaunchProfileId,
+
+                'profile_ref_number' =>
+                $profileReference,
+
+                'profile_created_for' =>
+                $this->resolveMemberProfileCreatedFor(
+                    (string) (
+                        $profile['profile_created_for']
+                        ?? ''
+                    )
+                ),
+
+                'gender' =>
+                $this->resolveMemberGender(
+                    (string) (
+                        $profile['gender']
+                        ?? ''
+                    ),
+                    (string) (
+                        $profile['profile_created_for']
+                        ?? ''
+                    )
+                ),
+
+                'full_name' =>
+                $this->requireText(
+                    $profile['full_name']
+                        ?? null,
+                    'The prelaunch profile name is missing.'
+                ),
+
+                /*
+                 * config password is stored
+                 */
+                'password_hash' =>
+                $this->createMigratedMemberPasswordHash(),
+
+                /*
+                 * Business requirement:
+                 *
+                 * migrated prelaunch accounts are immediately active.
+                 */
+                'account_status' =>
+                UserModel::STATUS_ACTIVE,
+            ],
+            true
+        );
+
+        if (!is_numeric($memberId)) {
+            log_message(
+                'error',
+                'Prelaunch member-account insert failed. '
+                    . 'Profile: {profileId}; '
+                    . 'model errors: {errors}.',
+                [
+                    'profileId' =>
+                    $prelaunchProfileId,
+
+                    'errors' =>
+                    json_encode(
+                        $this->userModel->errors(),
+                        JSON_UNESCAPED_UNICODE
+                            | JSON_UNESCAPED_SLASHES
+                    ),
+                ]
+            );
+
+            throw new RuntimeException(
+                'The member account could not be created.'
+            );
+        }
+
+        return (int) $memberId;
+    }
+
+    /**
+     * Create the secure password hash required for an ACTIVE migrated account.
+     *
+     * The plain password comes from environment configuration. It must never be
+     * returned, logged, added to audit metadata, or stored outside password_hash.
+     */
+    private function createMigratedMemberPasswordHash(): string
+    {
+        $plainPassword = trim(
+            $this->configuration
+                ->migratedMemberDefaultPassword
+        );
+
+        if ($plainPassword === '') {
+            throw new RuntimeException(
+                'The default migrated-member password is not configured.'
+            );
+        }
+
+        /*
+     * Keep this aligned with the normal registration password requirements.
+     */
+        if (strlen($plainPassword) < 8) {
+            throw new RuntimeException(
+                'The configured migrated-member password must '
+                    . 'contain at least 8 characters.'
+            );
+        }
+
+        $passwordHash = password_hash(
+            $plainPassword,
+            PASSWORD_DEFAULT
+        );
+
+        if (!is_string($passwordHash)) {
+            throw new RuntimeException(
+                'The migrated-member password could not be secured.'
+            );
+        }
+
+        return $passwordHash;
+    }
+
+    /**
+     * Insert verified member contact rows.
+     *
+     * Email remains optional. When absent, only the verified mobile row is
+     * created.
+     */
     private function insertMemberContacts(
         int $memberId,
-        string $email,
-        string $countryCode,
-        string $normalizedMobile
+        string $normalizedMobile,
+        ?string $normalizedEmail,
+        string $verifiedAt
     ): void {
         $mobileContactId =
             $this->userContactModel->insert(
                 [
                     'user_id' =>
                     $memberId,
+
                     'contact_type' =>
                     UserContactModel::TYPE_MOBILE,
+
+                    /*
+                     * Follow the normal registration format:
+                     *
+                     * +919876543210
+                     */
                     'contact_value' =>
-                    $countryCode
-                        . ' '
-                        . $normalizedMobile,
+                    $normalizedMobile,
+
                     'normalized_value' =>
-                    $countryCode
-                        . $normalizedMobile,
+                    $normalizedMobile,
+
                     'is_primary' =>
                     true,
+
+                    /*
+                     * Migrated contacts are administrator-verified.
+                     */
                     'is_verified' =>
-                    false,
+                    true,
+
                     'verified_at' =>
-                    null,
+                    $verifiedAt,
                 ],
                 true
             );
 
         if (!is_numeric($mobileContactId)) {
             throw new RuntimeException(
-                'The member mobile contact could not be created.'
+                'The verified member mobile contact '
+                    . 'could not be created.'
             );
         }
 
-        if ($email === '') {
+        if ($normalizedEmail === null) {
             return;
         }
 
@@ -563,33 +573,82 @@ final class PrelaunchMemberMigrationService
                 [
                     'user_id' =>
                     $memberId,
+
                     'contact_type' =>
                     UserContactModel::TYPE_EMAIL,
+
                     'contact_value' =>
-                    $email,
+                    $normalizedEmail,
+
                     'normalized_value' =>
-                    $email,
+                    $normalizedEmail,
+
                     'is_primary' =>
                     true,
+
+                    /*
+                     * Business requirement:
+                     *
+                     * an email present on an approved prelaunch profile is
+                     * migrated as verified.
+                     */
                     'is_verified' =>
-                    false,
+                    true,
+
                     'verified_at' =>
-                    null,
+                    $verifiedAt,
                 ],
                 true
             );
 
         if (!is_numeric($emailContactId)) {
             throw new RuntimeException(
-                'The member email contact could not be created.'
+                'The verified member email contact '
+                    . 'could not be created.'
             );
         }
     }
 
     /**
-     * Map the prelaunch fields into the normal member profile tables.
-     *
-     * Keep this method in the migration service so controllers remain thin.
+     * Ensure contacts do not already belong to a member.
+     */
+    private function assertMemberContactsAvailable(
+        string $normalizedMobile,
+        ?string $normalizedEmail
+    ): void {
+        $existingMobile = $this->userContactModel
+            ->findByNormalizedValue(
+                UserContactModel::TYPE_MOBILE,
+                $normalizedMobile
+            );
+
+        if ($existingMobile !== null) {
+            throw new RuntimeException(
+                'This mobile number already belongs to '
+                    . 'an existing member.'
+            );
+        }
+
+        if ($normalizedEmail === null) {
+            return;
+        }
+
+        $existingEmail = $this->userContactModel
+            ->findByNormalizedValue(
+                UserContactModel::TYPE_EMAIL,
+                $normalizedEmail
+            );
+
+        if ($existingEmail !== null) {
+            throw new RuntimeException(
+                'This email address already belongs to '
+                    . 'an existing member.'
+            );
+        }
+    }
+
+    /**
+     * Migrate normal member profile-section records.
      *
      * @param array<string, mixed> $profile
      */
@@ -597,81 +656,439 @@ final class PrelaunchMemberMigrationService
         int $memberId,
         array $profile
     ): void {
-        $now = date('Y-m-d H:i:s');
+        $now = date(
+            'Y-m-d H:i:s'
+        );
 
-        $this->database->table(
-            'member_basic_details'
-        )->insert([
-            'user_id' =>
-            $memberId,
-            'date_of_birth' =>
-            $profile['date_of_birth'],
-            'marital_status_id' =>
-            $profile['marital_status_id'],
-            'height_id' =>
-            $profile['height_id'],
-            'country_id' =>
-            $profile['country_id'],
-            'state_id' =>
-            $profile['state_id'],
-            'city_id' =>
-            $profile['city_id'],
-            'created_at' =>
-            $now,
-            'updated_at' =>
-            $now,
-        ]);
+        $basicInserted = $this->database
+            ->table(
+                'member_basic_details'
+            )
+            ->insert(
+                [
+                    'user_id' =>
+                    $memberId,
 
-        $this->database->table(
-            'member_education_profession_details'
-        )->insert([
-            'user_id' =>
-            $memberId,
-            'highest_education_id' =>
-            $profile['highest_education_id'],
-            'employed_in' =>
-            $profile['employed_in'],
-            'occupation_id' =>
-            $profile['occupation_id'],
-            'created_at' =>
-            $now,
-            'updated_at' =>
-            $now,
-        ]);
+                    'date_of_birth' =>
+                    $profile['date_of_birth']
+                        ?? null,
 
-        $this->database->table(
-            'member_family_details'
-        )->insert([
-            'user_id' =>
-            $memberId,
-            'father_name' =>
-            $profile['father_name'],
-            'mother_name' =>
-            $profile['mother_name'],
-            'community_id' =>
-            $profile['sikh_community_id'],
-            'gotra' =>
-            $profile['gotra'],
-            'nearest_gurudwara' =>
-            $profile['nearest_gurudwara'],
-            'created_at' =>
-            $now,
-            'updated_at' =>
-            $now,
-        ]);
+                    'marital_status_id' =>
+                    $profile['marital_status_id']
+                        ?? null,
+
+                    'height_id' =>
+                    $profile['height_id']
+                        ?? null,
+
+                    'country_id' =>
+                    $profile['country_id']
+                        ?? null,
+
+                    'state_id' =>
+                    $profile['state_id']
+                        ?? null,
+
+                    'city_id' =>
+                    $profile['city_id']
+                        ?? null,
+
+                    'created_at' =>
+                    $now,
+
+                    'updated_at' =>
+                    $now,
+                ]
+            );
+
+        if ($basicInserted === false) {
+            throw new RuntimeException(
+                'The member basic details could not be migrated.'
+            );
+        }
+
+        $educationInserted = $this->database
+            ->table(
+                'member_education_profession_details'
+            )
+            ->insert(
+                [
+                    'user_id' =>
+                    $memberId,
+
+                    'highest_education_id' =>
+                    $profile['highest_education_id']
+                        ?? null,
+
+                    'employed_in' =>
+                    $profile['employed_in']
+                        ?? null,
+
+                    'occupation_id' =>
+                    $profile['occupation_id']
+                        ?? null,
+
+                    'created_at' =>
+                    $now,
+
+                    'updated_at' =>
+                    $now,
+                ]
+            );
+
+        if ($educationInserted === false) {
+            throw new RuntimeException(
+                'The member education and profession details '
+                    . 'could not be migrated.'
+            );
+        }
+
+        $familyInserted = $this->database
+            ->table(
+                'member_family_details'
+            )
+            ->insert(
+                [
+                    'user_id' =>
+                    $memberId,
+
+                    'father_name' =>
+                    $profile['father_name']
+                        ?? null,
+
+                    'mother_name' =>
+                    $profile['mother_name']
+                        ?? null,
+
+                    /*
+                     * Source prelaunch field:
+                     *     sikh_community_id
+                     *
+                     * Destination member-family field:
+                     *     community_id
+                     */
+                    'community_id' =>
+                    $profile['sikh_community_id']
+                        ?? null,
+
+                    'gotra' =>
+                    $this->nullableText(
+                        $profile['gotra']
+                            ?? null
+                    ),
+
+                    'nearest_gurudwara' =>
+                    $this->nullableText(
+                        $profile['nearest_gurudwara']
+                            ?? null
+                    ),
+
+                    /*
+                     * The prelaunch profile location represents the member's
+                     * primary location. Reuse it for family location where
+                     * the destination fields exist.
+                     */
+                    'country_id' =>
+                    $profile['country_id']
+                        ?? null,
+
+                    'state_id' =>
+                    $profile['state_id']
+                        ?? null,
+
+                    'city_id' =>
+                    $profile['city_id']
+                        ?? null,
+
+                    'created_at' =>
+                    $now,
+
+                    'updated_at' =>
+                    $now,
+                ]
+            );
+
+        if ($familyInserted === false) {
+            throw new RuntimeException(
+                'The member family details could not be migrated.'
+            );
+        }
     }
 
     /**
-     * Convert the prelaunch relationship value to the format used by users.
+     * Upload and persist all administrator-approved prelaunch photographs.
+     *
+     * @param list<array<string, mixed>> $approvedPhotos
+     * @param list<string>               $uploadedObjectKeys
+     */
+    private function migrateApprovedPhotos(
+        int $memberId,
+        int $adminUserId,
+        array $approvedPhotos,
+        array &$uploadedObjectKeys
+    ): int {
+        $migratedPhotoCount = 0;
+        $approvedAt = date(
+            'Y-m-d H:i:s'
+        );
+
+        foreach (
+            $approvedPhotos
+            as $index => $photo
+        ) {
+            $prelaunchPhotoId = (int) (
+                $photo['id']
+                ?? 0
+            );
+
+            if ($prelaunchPhotoId <= 0) {
+                throw new RuntimeException(
+                    'An approved prelaunch photograph '
+                        . 'contains an invalid ID.'
+                );
+            }
+
+            if (
+                $this->memberPhotoModel
+                ->prelaunchPhotoWasMigrated(
+                    $prelaunchPhotoId
+                )
+            ) {
+                throw new RuntimeException(
+                    'A prelaunch photograph has already been migrated.'
+                );
+            }
+
+            $relativePath = trim(
+                (string) (
+                    $photo['original_path']
+                    ?? ''
+                )
+            );
+
+            if ($relativePath === '') {
+                throw new RuntimeException(
+                    sprintf(
+                        'Approved photograph %d has no local path.',
+                        $index + 1
+                    )
+                );
+            }
+
+            $localPath = $this
+                ->prelaunchPhotoService
+                ->absolutePath(
+                    $relativePath
+                );
+
+            if (
+                !is_file($localPath)
+                || !is_readable($localPath)
+            ) {
+                throw new RuntimeException(
+                    sprintf(
+                        'Approved photograph %d is unavailable.',
+                        $index + 1
+                    )
+                );
+            }
+
+            /*
+             * Reuse the normal member-photo pipeline:
+             *
+             * - processed original;
+             * - medium WebP;
+             * - thumbnail WebP;
+             * - private S3 upload.
+             */
+            $media = $this->awsMediaService
+                ->uploadProfilePhotoFromPath(
+                    $localPath,
+                    (string) (
+                        $photo['original_filename']
+                        ?? 'prelaunch-photo.webp'
+                    ),
+                    $memberId
+                );
+
+            $uploadedObjectKeys[] =
+                $media['originalObjectKey'];
+
+            $uploadedObjectKeys[] =
+                $media['mediumObjectKey'];
+
+            $uploadedObjectKeys[] =
+                $media['thumbnailObjectKey'];
+
+            $memberPhotoId =
+                $this->memberPhotoModel->insert(
+                    [
+                        'uuid' =>
+                        $media['uuid'],
+
+                        'member_id' =>
+                        $memberId,
+
+                        'prelaunch_photo_id' =>
+                        $prelaunchPhotoId,
+
+                        'media_type' =>
+                        'PROFILE_PHOTO',
+
+                        'original_object_key' =>
+                        $media['originalObjectKey'],
+
+                        'medium_object_key' =>
+                        $media['mediumObjectKey'],
+
+                        'thumbnail_object_key' =>
+                        $media['thumbnailObjectKey'],
+
+                        'original_filename' =>
+                        $media['originalFilename'],
+
+                        'original_mime_type' =>
+                        $media['mimeType'],
+
+                        'original_extension' =>
+                        $media['extension'],
+
+                        'original_file_size' =>
+                        $media['fileSize'],
+
+                        'original_width' =>
+                        $media['width'],
+
+                        'original_height' =>
+                        $media['height'],
+
+                        /*
+                         * The administrator has already reviewed the source
+                         * prelaunch photograph.
+                         */
+                        'status' =>
+                        'APPROVED',
+
+                        'visibility' =>
+                        'PUBLIC',
+
+                        /*
+                         * The first approved photo in sequence order becomes
+                         * the main profile photograph.
+                         */
+                        'is_primary' =>
+                        $index === 0,
+
+                        'uploaded_by_type' =>
+                        'ADMIN',
+
+                        'uploaded_by_id' =>
+                        $adminUserId,
+
+                        'approved_by' =>
+                        $adminUserId,
+
+                        'approved_at' =>
+                        $approvedAt,
+
+                        'rejected_by' =>
+                        null,
+
+                        'rejected_at' =>
+                        null,
+
+                        'rejection_reason' =>
+                        null,
+
+                        'deleted_at' =>
+                        null,
+                    ],
+                    true
+                );
+
+            if (!is_numeric($memberPhotoId)) {
+                throw new RuntimeException(
+                    'The migrated member photograph record '
+                        . 'could not be created.'
+                );
+            }
+
+            $migratedPhotoCount++;
+        }
+
+        return $migratedPhotoCount;
+    }
+
+    /**
+     * Normalize an Indian mobile number using the same canonical format as
+     * normal registration.
+     *
+     * Output:
+     *
+     * +919876543210
+     */
+    private function normalizeMobile(
+        string $countryCode,
+        string $mobileNumber
+    ): string {
+        $normalizedMobile =
+            IndianMobileNormalizer::normalize(
+                trim($countryCode)
+                    . trim($mobileNumber)
+            );
+
+        if ($normalizedMobile === null) {
+            throw new RuntimeException(
+                'The prelaunch profile does not contain '
+                    . 'a valid Indian mobile number.'
+            );
+        }
+
+        return $normalizedMobile;
+    }
+
+    /**
+     * Normalize optional email consistently for uniqueness and storage.
+     *
+     * PostgreSQL comparisons may otherwise treat differently cased values as
+     * separate contacts when the database column is case-sensitive.
+     */
+    private function normalizeEmail(
+        mixed $email
+    ): ?string {
+        $normalizedEmail = mb_strtolower(
+            trim(
+                (string) $email
+            )
+        );
+
+        if ($normalizedEmail === '') {
+            return null;
+        }
+
+        if (
+            filter_var(
+                $normalizedEmail,
+                FILTER_VALIDATE_EMAIL
+            ) === false
+        ) {
+            throw new RuntimeException(
+                'The prelaunch profile contains an invalid email address.'
+            );
+        }
+
+        return $normalizedEmail;
+    }
+
+    /**
+     * Convert the prelaunch relationship format to the users-table format.
      */
     private function resolveMemberProfileCreatedFor(
         string $profileCreatedFor
     ): string {
-        $normalized = mb_strtoupper(
+        return match (mb_strtoupper(
             trim($profileCreatedFor)
-        );
-
-        return match ($normalized) {
+        )) {
             'SELF' =>
             'self',
 
@@ -687,11 +1104,6 @@ final class PrelaunchMemberMigrationService
             'SISTER' =>
             'sister',
 
-            /*
-         * These values are supported by the prelaunch form but may not be
-         * supported by the older public registration screen. Retain them in
-         * normalized lowercase form when the users column permits them.
-         */
             'RELATIVE' =>
             'relative',
 
@@ -707,7 +1119,7 @@ final class PrelaunchMemberMigrationService
     }
 
     /**
-     * Convert prelaunch gender values to users.gender CHAR(1).
+     * Convert readable prelaunch gender values to users.gender CHAR(1).
      */
     private function resolveMemberGender(
         string $gender,
@@ -717,11 +1129,6 @@ final class PrelaunchMemberMigrationService
             trim($gender)
         );
 
-        /*
-     * First accept all known representations. This supports existing records
-     * that may contain M/F as well as newer prelaunch records containing
-     * MALE/FEMALE.
-     */
         if (
             in_array(
                 $normalizedGender,
@@ -749,8 +1156,9 @@ final class PrelaunchMemberMigrationService
         }
 
         /*
-     * Fall back to relationship when gender is unambiguous.
-     */
+         * Fall back to relationship for relationships where gender is
+         * unambiguous.
+         */
         return match (mb_strtoupper(
             trim($profileCreatedFor)
         )) {
@@ -771,18 +1179,16 @@ final class PrelaunchMemberMigrationService
     }
 
     /**
-     * Generate a unique member profile reference.
+     * Generate a unique member reference matching the existing database
+     * check constraint:
      *
-     * This must follow the same database-approved format used by normal
-     * registration: SAK followed by exactly seven numeric digits.
+     * SAK followed by exactly seven digits.
      */
     private function generateMemberReference(): string
     {
-        $maximumAttempts = 20;
-
         for (
             $attempt = 1;
-            $attempt <= $maximumAttempts;
+            $attempt <= self::PROFILE_REFERENCE_ATTEMPTS;
             $attempt++
         ) {
             $reference = 'SAK' . str_pad(
@@ -809,5 +1215,40 @@ final class PrelaunchMemberMigrationService
             'A unique member profile reference '
                 . 'could not be generated.'
         );
+    }
+
+    /**
+     * Require a non-empty text value.
+     */
+    private function requireText(
+        mixed $value,
+        string $message
+    ): string {
+        $text = trim(
+            (string) $value
+        );
+
+        if ($text === '') {
+            throw new RuntimeException(
+                $message
+            );
+        }
+
+        return $text;
+    }
+
+    /**
+     * Normalize an optional text value for nullable database columns.
+     */
+    private function nullableText(
+        mixed $value
+    ): ?string {
+        $text = trim(
+            (string) $value
+        );
+
+        return $text !== ''
+            ? $text
+            : null;
     }
 }

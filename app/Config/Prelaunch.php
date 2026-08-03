@@ -17,6 +17,31 @@ final class Prelaunch extends BaseConfig
     public bool $profileEntryEnabled = true;
 
     /**
+     * Temporary password assigned to migrated prelaunch members.
+     */
+    public string $migratedMemberDefaultPassword;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->profileEntryEnabled = filter_var(
+            env(
+                'PRELAUNCH_PROFILE_ENTRY_ENABLED',
+                false
+            ),
+            FILTER_VALIDATE_BOOLEAN
+        );
+
+        $this->migratedMemberDefaultPassword = trim(
+            (string) env(
+                'PRELAUNCH_MEMBER_DEFAULT_PASSWORD',
+                ''
+            )
+        );
+    }
+
+    /**
      * Field Officer assigned to every prelaunch profile.
      *
      * This value must contain the primary-key ID of an ACTIVE,
