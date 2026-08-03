@@ -43,6 +43,7 @@ final class MemberPhotoModel extends Model
         'rejected_at',
         'rejection_reason',
         'deleted_at',
+        'prelaunch_photo_id',
     ];
 
     protected $useTimestamps = true;
@@ -278,5 +279,23 @@ final class MemberPhotoModel extends Model
         return is_array($photo)
             ? $photo
             : null;
+    }
+
+    /**
+     * Check whether a staged prelaunch photo was already migrated.
+     */
+    public function prelaunchPhotoWasMigrated(
+        int $prelaunchPhotoId
+    ): bool {
+        if ($prelaunchPhotoId <= 0) {
+            return false;
+        }
+
+        return $this
+            ->where(
+                'prelaunch_photo_id',
+                $prelaunchPhotoId
+            )
+            ->countAllResults() > 0;
     }
 }

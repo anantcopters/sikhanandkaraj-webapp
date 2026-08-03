@@ -227,13 +227,113 @@ final class PrelaunchProfileController extends BaseController
         );
     }
 
+    /**
+     * Save corrected contact details, approve and migrate the profile.
+     */
     public function approve(
         int $profileId
     ): RedirectResponse {
-        return $this->profileDecision(
-            $profileId,
-            'APPROVED'
+        $input = [
+            'email' =>
+            mb_strtolower(
+                trim(
+                    (string) $this->request
+                        ->getPost('email')
+                )
+            ),
+            'country_code' =>
+            trim(
+                (string) $this->request
+                    ->getPost('country_code')
+            ),
+            'mobile_number' =>
+            preg_replace(
+                '/\D+/',
+                '',
+                (string) $this->request
+                    ->getPost('mobile_number')
+            ) ?? '',
+        ];
+
+        $validation = service('validation');
+
+        $validation->setRules(
+            PrelaunchProfileValidation
+                ::adminContactRules()
         );
+
+        if (!$validation->run($input)) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with(
+                    'validationErrors',
+                    $validation->getErrors()
+                );
+        }
+
+        try {
+            /** @var PrelaunchAdminReviewService $service */
+            $service = service(
+                'prelaunchAdminReviewService'
+            );
+
+            $result = $service
+                ->saveContactAndApprove(
+                    $profileId,
+                    $validation->getValidated(),
+                    $this->adminUserId()
+                );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.prelaunch.profiles.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' => 'success',
+                        'title' =>
+                        'Profile approved',
+                        'message' =>
+                        sprintf(
+                            'The profile was migrated as member %s '
+                                . 'with %d approved photo(s).',
+                            $result['profileReference'],
+                            $result['migratedPhotoCount']
+                        ),
+                    ]
+                );
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Prelaunch approval failed. '
+                    . 'Profile: {profileId}; '
+                    . 'reason: {message}',
+                [
+                    'profileId' =>
+                    $profileId,
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with(
+                    'formAlert',
+                    [
+                        'type' => 'danger',
+                        'title' =>
+                        'Profile not approved',
+                        'message' =>
+                        $exception->getMessage(),
+                    ]
+                );
+        }
     }
 
     public function reject(

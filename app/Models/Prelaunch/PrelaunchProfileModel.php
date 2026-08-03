@@ -60,6 +60,11 @@ final class PrelaunchProfileModel extends Model
         'reviewed_by',
         'reviewed_at',
         'rejection_reason',
+        'migrated_user_id',
+        'migrated_at',
+        'local_photos_cleanup_after',
+        'local_photos_cleaned_at',
+        'migration_error',
     ];
 
     public function __construct(
@@ -305,5 +310,43 @@ final class PrelaunchProfileModel extends Model
                     . 'prelaunch_profiles.sikh_community_id',
                 'left'
             );
+    }
+
+    /**
+     * Return migrated profiles whose locally staged photos may be removed.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findDueForPhotoCleanup(
+        int $limit = 100
+    ): array {
+        $safeLimit = max(
+            1,
+            min($limit, 500)
+        );
+
+        return $this
+            ->where(
+                'migrated_user_id IS NOT NULL',
+                null,
+                false
+            )
+            ->where(
+                'local_photos_cleanup_after <=',
+                date('Y-m-d H:i:s')
+            )
+            ->where(
+                'local_photos_cleaned_at',
+                null
+            )
+            ->where(
+                'deleted_at',
+                null
+            )
+            ->orderBy(
+                'local_photos_cleanup_after',
+                'ASC'
+            )
+            ->findAll($safeLimit);
     }
 }

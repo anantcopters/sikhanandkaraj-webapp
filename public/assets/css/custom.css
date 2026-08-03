@@ -1628,3 +1628,78 @@ form[aria-busy="true"] {
         transition: none;
     }
 }
+
+/* --------------------------------------------------------------------------
+ * Administrator prelaunch profile review
+ * ----------------------------------------------------------------------- */
+
+.prelaunch-review-photo {
+    display: block;
+    cursor: pointer;
+}
+
+.prelaunch-review-photo__frame {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    width: 100%;
+    aspect-ratio: 4 / 5;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.75rem;
+    background: var(--bs-light);
+}
+
+.prelaunch-review-photo__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 180ms ease;
+}
+
+.prelaunch-review-photo:hover .prelaunch-review-photo__image,
+.prelaunch-review-photo:focus-visible .prelaunch-review-photo__image {
+    transform: scale(1.025);
+}
+
+.prelaunch-review-photo:focus-visible {
+    outline: 3px solid rgba(174, 21, 54, 0.25);
+    outline-offset: 3px;
+    border-radius: 0.75rem;
+}
+
+.prelaunch-photo-ribbon {
+    position: absolute;
+    top: 0.75rem;
+    right: -2.25rem;
+    min-width: 8rem;
+    padding: 0.35rem 1rem;
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    letter-spacing: 0.04em;
+    transform: rotate(45deg);
+    box-shadow: 0 0.15rem 0.5rem rgba(0, 0, 0, 0.2);
+}
+
+.prelaunch-photo-ribbon.is-approved {
+    background-color: var(--bs-success);
+}
+
+.prelaunch-photo-ribbon.is-rejected {
+    background-color: var(--bs-danger);
+}
+
+.prelaunch-photo-ribbon.is-pending {
+    background-color: var(--bs-secondary);
+}
+
+@media (max-width: 575.98px) {
+    .prelaunch-photo-ribbon {
+        top: 0.55rem;
+        right: -2.6rem;
+        min-width: 8.5rem;
+        font-size: 0.625rem;
+    }
+}

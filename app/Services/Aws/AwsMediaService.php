@@ -41,120 +41,44 @@ final class AwsMediaService
         UploadedFile $uploadedFile,
         int $memberId
     ): array {
-        $uuid = $this->uuidV4();
+        if (!$uploadedFile->isValid()) {
+            throw new RuntimeException(
+                'The uploaded profile photograph is invalid.'
+            );
+        }
 
         $requestDirectory = WRITEPATH
             . 'uploads'
             . DIRECTORY_SEPARATOR
             . 'temp'
             . DIRECTORY_SEPARATOR
-            . $uuid;
+            . $this->uuidV4();
 
-        $sourcePath = '';
+        $this->createPrivateDirectory(
+            $requestDirectory
+        );
 
-        $uploadedObjectKeys = [];
+        $sourcePath = $requestDirectory
+            . DIRECTORY_SEPARATOR
+            . 'source-upload';
 
         try {
-            $this->createPrivateDirectory(
-                $requestDirectory
-            );
-
-            $temporaryFilename = 'source-upload';
-
             $uploadedFile->move(
                 $requestDirectory,
-                $temporaryFilename,
+                'source-upload',
                 true
             );
 
-            $sourcePath = $requestDirectory
-                . DIRECTORY_SEPARATOR
-                . $temporaryFilename;
-
-            $processed = $this
-                ->imageProcessor
-                ->processProfilePhoto(
-                    $sourcePath,
-                    $requestDirectory,
-                    $uuid
-                );
-
-            $paths = $this
-                ->mediaPathService
-                ->profilePhotoPaths(
-                    $uuid,
-                    $processed['extension']
-                );
-
-            $metadata = [
-                'uploaded-by' => (string) $memberId,
-                'uploaded-at' =>
-                gmdate('Y-m-d\TH:i:s\Z'),
-                'application' =>
-                $this->config->applicationName,
-                'environment' =>
-                $this->config->environmentName,
-                'media-uuid' => $uuid,
-            ];
-
-            $uploadedObjectKeys[] =
-                $this->s3Service->upload(
-                    $processed['originalPath'],
-                    $paths['original'],
-                    $processed['mimeType'],
-                    $metadata + [
-                        'variant' => 'original',
-                    ]
-                );
-
-            $uploadedObjectKeys[] =
-                $this->s3Service->upload(
-                    $processed['mediumPath'],
-                    $paths['medium'],
-                    'image/webp',
-                    $metadata + [
-                        'variant' => 'medium',
-                    ]
-                );
-
-            $uploadedObjectKeys[] =
-                $this->s3Service->upload(
-                    $processed['thumbnailPath'],
-                    $paths['thumbnail'],
-                    'image/webp',
-                    $metadata + [
-                        'variant' => 'thumbnail',
-                    ]
-                );
-
-            return [
-                'uuid' => $uuid,
-                'originalObjectKey' =>
-                $paths['original'],
-                'mediumObjectKey' => $paths['medium'],
-                'thumbnailObjectKey' =>
-                $paths['thumbnail'],
-                'originalFilename' =>
-                $this->safeOriginalFilename(
-                    $uploadedFile->getClientName()
-                ),
-                'mimeType' => $processed['mimeType'],
-                'extension' => $processed['extension'],
-                'fileSize' =>
-                $processed['originalFileSize'],
-                'width' => $processed['originalWidth'],
-                'height' => $processed['originalHeight'],
-            ];
-        } catch (Throwable $exception) {
-            if ($uploadedObjectKeys !== []) {
-                $this->s3Service->deleteMany(
-                    $uploadedObjectKeys
-                );
-            }
-
-            throw $exception;
+            return $this->processAndUploadProfilePhoto(
+                sourcePath: $sourcePath,
+                originalFilename: $uploadedFile->getClientName(),
+                memberId: $memberId,
+                removeSource: false
+            );
         } finally {
-            $this->removeDirectory($requestDirectory);
+            $this->removeDirectory(
+                $requestDirectory
+            );
         }
     }
 
@@ -218,6 +142,195 @@ final class AwsMediaService
         return $this->s3Service->deleteMany(
             $objectKeys
         );
+    }
+
+    /**
+     * Upload an already validated local image through the normal member-photo
+     * processing pipeline.
+     *
+     * The method creates original, medium and thumbnail variants exactly like
+     * a normal member upload.
+     *
+     * @return array{
+     *     uuid:string,
+     *     originalObjectKey:string,
+     *     mediumObjectKey:string,
+     *     thumbnailObjectKey:string,
+     *     originalFilename:string,
+     *     mimeType:string,
+     *     extension:string,
+     *     fileSize:int,
+     *     width:int,
+     *     height:int
+     * }
+     */
+    public function uploadProfilePhotoFromPath(
+        string $sourcePath,
+        string $originalFilename,
+        int $memberId
+    ): array {
+        $sourcePath = trim($sourcePath);
+
+        if (
+            $memberId <= 0
+            || $sourcePath === ''
+            || !is_file($sourcePath)
+            || !is_readable($sourcePath)
+        ) {
+            throw new RuntimeException(
+                'The staged profile photograph is unavailable.'
+            );
+        }
+
+        return $this->processAndUploadProfilePhoto(
+            sourcePath: $sourcePath,
+            originalFilename: $originalFilename,
+            memberId: $memberId,
+            removeSource: false
+        );
+    }
+
+    /**
+     * Process a local source and upload every generated variant.
+     *
+     * @return array{
+     *     uuid:string,
+     *     originalObjectKey:string,
+     *     mediumObjectKey:string,
+     *     thumbnailObjectKey:string,
+     *     originalFilename:string,
+     *     mimeType:string,
+     *     extension:string,
+     *     fileSize:int,
+     *     width:int,
+     *     height:int
+     * }
+     */
+    private function processAndUploadProfilePhoto(
+        string $sourcePath,
+        string $originalFilename,
+        int $memberId,
+        bool $removeSource = false
+    ): array {
+        $uuid = $this->uuidV4();
+
+        $requestDirectory = WRITEPATH
+            . 'uploads'
+            . DIRECTORY_SEPARATOR
+            . 'temp'
+            . DIRECTORY_SEPARATOR
+            . $uuid;
+
+        $uploadedObjectKeys = [];
+
+        try {
+            $this->createPrivateDirectory(
+                $requestDirectory
+            );
+
+            $processed = $this
+                ->imageProcessor
+                ->processProfilePhoto(
+                    $sourcePath,
+                    $requestDirectory,
+                    $uuid
+                );
+
+            $paths = $this
+                ->mediaPathService
+                ->profilePhotoPaths(
+                    $uuid,
+                    $processed['extension']
+                );
+
+            $metadata = [
+                'uploaded-by' =>
+                (string) $memberId,
+                'uploaded-at' =>
+                gmdate('Y-m-d\TH:i:s\Z'),
+                'application' =>
+                $this->config->applicationName,
+                'environment' =>
+                $this->config->environmentName,
+                'media-uuid' =>
+                $uuid,
+                'source' =>
+                'prelaunch-migration',
+            ];
+
+            $uploadedObjectKeys[] =
+                $this->s3Service->upload(
+                    $processed['originalPath'],
+                    $paths['original'],
+                    $processed['mimeType'],
+                    $metadata + [
+                        'variant' => 'original',
+                    ]
+                );
+
+            $uploadedObjectKeys[] =
+                $this->s3Service->upload(
+                    $processed['mediumPath'],
+                    $paths['medium'],
+                    'image/webp',
+                    $metadata + [
+                        'variant' => 'medium',
+                    ]
+                );
+
+            $uploadedObjectKeys[] =
+                $this->s3Service->upload(
+                    $processed['thumbnailPath'],
+                    $paths['thumbnail'],
+                    'image/webp',
+                    $metadata + [
+                        'variant' => 'thumbnail',
+                    ]
+                );
+
+            return [
+                'uuid' => $uuid,
+                'originalObjectKey' =>
+                $paths['original'],
+                'mediumObjectKey' =>
+                $paths['medium'],
+                'thumbnailObjectKey' =>
+                $paths['thumbnail'],
+                'originalFilename' =>
+                $this->safeOriginalFilename(
+                    $originalFilename
+                ),
+                'mimeType' =>
+                $processed['mimeType'],
+                'extension' =>
+                $processed['extension'],
+                'fileSize' =>
+                $processed['originalFileSize'],
+                'width' =>
+                $processed['originalWidth'],
+                'height' =>
+                $processed['originalHeight'],
+            ];
+        } catch (Throwable $exception) {
+            if ($uploadedObjectKeys !== []) {
+                $this->s3Service->deleteMany(
+                    $uploadedObjectKeys
+                );
+            }
+
+            throw $exception;
+        } finally {
+            $this->removeDirectory(
+                $requestDirectory
+            );
+
+            if (
+                $removeSource
+                && is_file($sourcePath)
+            ) {
+                @unlink($sourcePath);
+            }
+        }
     }
 
     private function safeOriginalFilename(

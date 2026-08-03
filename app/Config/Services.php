@@ -80,6 +80,8 @@ use App\Services\Authentication\OtpLoginService;
 use App\Models\MasterDrinkingHabitModel;
 use App\Models\MasterEatingHabitModel;
 use App\Models\MasterPhysicalStatusModel;
+use App\Services\Maintenance\FileCleanupService;
+use Config\FileCleanup;
 use Config\TableCleanup;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
@@ -946,6 +948,37 @@ class Services extends BaseService
             static::memberPhotoService(false),
             static::memberPhotoUrlService(false),
             static::profileCompletionService(false)
+        );
+    }
+
+    /**
+     * Return the reusable filesystem cleanup service.
+     */
+    public static function fileCleanupService(
+        bool $getShared = true
+    ): FileCleanupService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'fileCleanupService'
+            );
+        }
+
+        $database = Database::connect();
+
+        return new FileCleanupService(
+            profileModel: new PrelaunchProfileModel(
+                $database
+            ),
+            photoModel: new PrelaunchPhotoModel(
+                $database
+            ),
+            photoService: static::prelaunchPhotoService(
+                false
+            ),
+            database: $database,
+            configuration: config(
+                FileCleanup::class
+            )
         );
     }
 }

@@ -820,14 +820,14 @@ $routes->group('admin', [
                     ]
                 );
 
-                $routes->post(
-                    '(:num)/contact',
-                    'PrelaunchProfileController::updateContact/$1',
-                    [
-                        'as' =>
-                        'admin.prelaunch.profiles.contact',
-                    ]
-                );
+                // $routes->post(
+                //     '(:num)/contact',
+                //     'PrelaunchProfileController::updateContact/$1',
+                //     [
+                //         'as' =>
+                //         'admin.prelaunch.profiles.contact',
+                //     ]
+                // );
 
                 $routes->post(
                     '(:num)/approve',

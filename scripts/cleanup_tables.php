@@ -173,6 +173,47 @@ try {
         );
     }
 
+    /** @var FileCleanupService $fileCleanupService */
+    $fileCleanupService = service(
+        'fileCleanupService'
+    );
+
+    $fileResults = $fileCleanupService
+        ->runAll();
+
+    foreach ($fileResults as $result) {
+        if (!$result->successful) {
+            CLI::error(
+                sprintf(
+                    'File cleanup "%s" failed: %s',
+                    $result->jobName,
+                    $result->errorMessage
+                        ?? 'Unknown error'
+                )
+            );
+
+            continue;
+        }
+
+        CLI::write(
+            sprintf(
+                'File cleanup "%s": '
+                    . '%d profile(s), '
+                    . '%d file(s), '
+                    . '%d directorie(s), '
+                    . '%d failure(s).',
+                $result->jobName,
+                $result->processedProfiles,
+                $result->deletedFiles,
+                $result->deletedDirectories,
+                $result->failedProfiles
+            ),
+            $result->failedProfiles > 0
+                ? 'yellow'
+                : 'green'
+        );
+    }
+
     exit($hasFailure ? 1 : 0);
 } catch (Throwable $exception) {
     fwrite(

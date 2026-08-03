@@ -42,6 +42,7 @@ final class UserModel extends Model
     protected $useSoftDeletes = true;
 
     protected $allowedFields = [
+        'prelaunch_profile_id',
         'profile_ref_number',
         'profile_created_for',
         'gender',
@@ -70,5 +71,29 @@ final class UserModel extends Model
         return $this
             ->where('profile_ref_number', $reference)
             ->countAllResults() > 0;
+    }
+
+    /**
+     * Find the member created from a prelaunch profile.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findByPrelaunchProfileId(
+        int $prelaunchProfileId
+    ): ?array {
+        if ($prelaunchProfileId <= 0) {
+            return null;
+        }
+
+        $record = $this
+            ->where(
+                'prelaunch_profile_id',
+                $prelaunchProfileId
+            )
+            ->first();
+
+        return is_array($record)
+            ? $record
+            : null;
     }
 }

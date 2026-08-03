@@ -2,39 +2,24 @@
 
 declare(strict_types=1);
 
+use App\Models\Prelaunch\PrelaunchPhotoModel;
+use App\Models\Prelaunch\PrelaunchProfileModel;
+
 /**
- * @var string                     $pageTitle
  * @var array<string, mixed>       $profile
  * @var list<array<string, mixed>> $photos
  * @var array<string, mixed>       $photoSummary
  * @var array<string, string>      $validationErrors
  * @var array<string, string>|null $formAlert
- * @var list<string>               $pageScripts
  */
 
-$profile = is_array(
-    $profile ?? null
-)
+$profile = is_array($profile ?? null)
     ? $profile
     : [];
 
-$photos = is_array(
-    $photos ?? null
-)
+$photos = is_array($photos ?? null)
     ? $photos
     : [];
-
-$photoSummary = is_array(
-    $photoSummary ?? null
-)
-    ? $photoSummary
-    : [
-        'total' => count($photos),
-        'pending' => 0,
-        'approved' => 0,
-        'rejected' => 0,
-        'allApproved' => false,
-    ];
 
 $errors = is_array(
     $validationErrors ?? null
@@ -42,826 +27,1084 @@ $errors = is_array(
     ? $validationErrors
     : [];
 
-$alert = is_array(
-    $formAlert ?? null
-)
-    ? $formAlert
-    : null;
-
-$isDraft = mb_strtoupper(
+$status = mb_strtoupper(
     trim(
         (string) (
             $profile['status']
             ?? ''
         )
     )
-) === 'DRAFT';
+);
 
-$allPhotosApproved = (
-    $photoSummary['allApproved']
-    ?? false
-) === true;
+$isDraft =
+    $status
+    === PrelaunchProfileModel::STATUS_DRAFT;
 
-/**
- * Convert a nullable profile value into safe display text.
- */
-$displayValue = static function (
-    mixed $value
-): string {
-    $text = trim(
-        (string) $value
-    );
+$isRejected =
+    $status
+    === PrelaunchProfileModel::STATUS_REJECTED;
 
-    return $text !== ''
-        ? $text
-        : '—';
-};
+$isApproved =
+    $status
+    === PrelaunchProfileModel::STATUS_APPROVED;
+
+$approvedPhotoCount = (int) (
+    $photoSummary['approved']
+    ?? 0
+);
+
+$canApprove =
+    $isDraft
+    && $approvedPhotoCount >= 1;
 
 $this->extend('Admin/Layouts/Main');
 $this->section('content');
 ?>
 
 <div class="container-fluid py-3 pt-0">
-    <div
-        class="d-flex flex-column flex-md-row
-            justify-content-between align-items-md-center
-            gap-3 mb-4">
-        <div>
-            <h1 class="h3 mb-1">
-                <?= esc(
-                    $displayValue(
-                        $profile['full_name']
-                            ?? ''
-                    )
-                ) ?>
-            </h1>
+    <section class="py-3">
+        <div class="container-fluid">
 
-            <p class="text-muted mb-0">
-                <?= esc(
-                    $displayValue(
-                        $profile['profile_reference']
-                            ?? ''
-                    )
-                ) ?>
+            <?php if (is_array($formAlert ?? null)): ?>
+                <div
+                    class="alert alert-<?= esc(
+                                            $formAlert['type']
+                                                ?? 'danger',
+                                            'attr'
+                                        ) ?>"
+                    role="alert">
+                    <strong>
+                        <?= esc(
+                            $formAlert['title']
+                                ?? ''
+                        ) ?>
+                    </strong>
 
-                <span aria-hidden="true">·</span>
-
-                <?= esc(
-                    $displayValue(
-                        $profile['status']
-                            ?? ''
-                    )
-                ) ?>
-            </p>
-        </div>
-
-        <a
-            href="<?= route_to(
-                        'admin.prelaunch.profiles.index'
-                    ) ?>"
-            class="btn btn-outline-secondary">
-            Back
-        </a>
-    </div>
-
-    <?php if ($alert !== null): ?>
-        <div
-            class="alert alert-<?= esc(
-                                    $alert['type']
-                                        ?? 'danger'
-                                ) ?>"
-            role="alert">
-            <?php if (
-                trim(
-                    (string) (
-                        $alert['title']
-                        ?? ''
-                    )
-                ) !== ''
-            ): ?>
-                <strong>
-                    <?= esc(
-                        $alert['title']
-                    ) ?>
-                </strong>
+                    <div>
+                        <?= esc(
+                            $formAlert['message']
+                                ?? ''
+                        ) ?>
+                    </div>
+                </div>
             <?php endif ?>
 
-            <div>
-                <?= esc(
-                    $alert['message']
-                        ?? ''
-                ) ?>
-            </div>
-        </div>
-    <?php endif ?>
+            <div
+                class="d-flex flex-column flex-md-row
+                justify-content-between align-items-md-center
+                gap-3 mb-3">
 
-    <div class="row g-4">
-        <div class="col-12 col-xl-8">
-            <!-- Profile information is read-only for administrators. -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header">
-                    <h2 class="h5 mb-0">
-                        Member details
-                    </h2>
-                </div>
+                <div>
+                    <a
+                        href="<?= route_to(
+                                    'admin.prelaunch.profiles.index'
+                                ) ?>"
+                        class="d-inline-flex align-items-center
+                        gap-1 text-primary fw-medium mb-2">
 
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-4">
-                            Profile created for
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['profile_created_for'] ?? ''
-                                )
-                            ) ?>
-                        </dd>
+                        <i
+                            class="ri-arrow-left-line"
+                            aria-hidden="true"></i>
 
-                        <dt class="col-sm-4">
-                            Full name
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['full_name']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
+                        Back to prelaunch profiles
+                    </a>
 
-                        <dt class="col-sm-4">
-                            Date of birth
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['date_of_birth']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Gender
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['gender']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Marital status
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['marital_status_name'] ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Height
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['height_name']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Mother tongue
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['mother_tongue_name'] ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Location
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                implode(
-                                    ', ',
-                                    array_filter([
-                                        trim((string) (
-                                            $profile['city_name']
-                                            ?? ''
-                                        )),
-                                        trim((string) (
-                                            $profile['state_name']
-                                            ?? ''
-                                        )),
-                                        trim((string) (
-                                            $profile['country_name']
-                                            ?? ''
-                                        )),
-                                    ])
-                                ) ?: '—'
-                            ) ?>
-                        </dd>
-                    </dl>
-                </div>
-            </div>
-
-            <div class="card shadow-sm mb-4">
-                <div class="card-header">
-                    <h2 class="h5 mb-0">
-                        Education and profession
-                    </h2>
-                </div>
-
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-4">
-                            Highest education
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['education_name']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Employed in
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['employed_in']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Occupation
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['occupation_name']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-                    </dl>
-                </div>
-            </div>
-
-            <div class="card shadow-sm mb-4">
-                <div class="card-header">
-                    <h2 class="h5 mb-0">
-                        Family details
-                    </h2>
-                </div>
-
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-4">
-                            Father name
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['father_name']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Mother name
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['mother_name']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Family value
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['family_value_name']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Family type
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['family_type_name']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Family status
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['family_status_name']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Community
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['community_name']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-                        <dt class="col-sm-4">
-                            Gotra
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['gotra']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Nearest Gurudwara
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['nearest_gurudwara']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-                    </dl>
-                </div>
-            </div>
-
-            <div class="card shadow-sm mb-4">
-                <div class="card-header">
-                    <h2 class="h5 mb-0">
-                        Field Officer
-                    </h2>
-                </div>
-
-                <div class="card-body">
-                    <dl class="row mb-0">
-                        <dt class="col-sm-4">
-                            Name
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['field_officer_name']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Officer code
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['officer_code']
-                                        ?? ''
-                                )
-                            ) ?>
-                        </dd>
-
-                        <dt class="col-sm-4">
-                            Current status
-                        </dt>
-                        <dd class="col-sm-8">
-                            <?= esc(
-                                $displayValue(
-                                    $profile['field_officer_status'] ?? ''
-                                )
-                            ) ?>
-                        </dd>
-                    </dl>
-                </div>
-            </div>
-
-            <div class="card shadow-sm">
-                <div
-                    class="card-header d-flex
-                        justify-content-between align-items-center">
-                    <h2 class="h5 mb-0">
-                        Photographs
-                    </h2>
-
-                    <span class="badge text-bg-secondary">
+                    <h1 class="h3 mb-1">
                         <?= esc(
-                            $photoSummary['approved']
-                                ?? 0
+                            $profile['full_name']
+                                ?? 'Prelaunch Profile'
                         ) ?>
-                        / 3 approved
-                    </span>
+                    </h1>
+
+                    <div
+                        class="d-flex align-items-center
+                        flex-wrap gap-2">
+
+                        <span class="text-muted">
+                            <?= esc(
+                                $profile['profile_reference']
+                                    ?? ''
+                            ) ?>
+                        </span>
+
+                        <span
+                            class="badge <?= match ($status) {
+                                                'APPROVED' =>
+                                                'text-bg-success',
+                                                'REJECTED' =>
+                                                'text-bg-danger',
+                                                default =>
+                                                'text-bg-warning',
+                                            } ?>">
+                            <?= esc($status) ?>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <?php if ($isRejected): ?>
+                <div
+                    class="alert alert-danger"
+                    role="alert">
+                    <strong>Profile rejected.</strong>
+
+                    This profile is locked. Contact details and
+                    photograph decisions can no longer be changed.
+
+                    <?php if (
+                        trim(
+                            (string) (
+                                $profile['rejection_reason']
+                                ?? ''
+                            )
+                        ) !== ''
+                    ): ?>
+                        <div class="mt-2">
+                            Reason:
+                            <?= esc(
+                                $profile['rejection_reason']
+                            ) ?>
+                        </div>
+                    <?php endif ?>
+                </div>
+            <?php endif ?>
+
+            <?php if ($isApproved): ?>
+                <div
+                    class="alert alert-success"
+                    role="alert">
+                    <strong>
+                        Profile migrated successfully.
+                    </strong>
+
+                    <?php if (
+                        (int) (
+                            $profile['migrated_user_id']
+                            ?? 0
+                        ) > 0
+                    ): ?>
+                        Member ID:
+                        <?= esc(
+                            $profile['migrated_user_id']
+                        ) ?>.
+                    <?php endif ?>
+                </div>
+            <?php endif ?>
+
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-xl-8">
+                    <article
+                        class="card border shadow-sm
+                        rounded-3 h-100">
+
+                        <div
+                            class="card-header d-flex
+                            justify-content-between
+                            align-items-center gap-2">
+
+                            <h2 class="h5 mb-0">
+                                Photo Gallery
+                            </h2>
+
+                            <span
+                                class="badge text-bg-secondary">
+                                <?= esc(
+                                    $approvedPhotoCount
+                                ) ?>
+                                approved
+                            </span>
+                        </div>
+
+                        <div class="card-body">
+                            <div
+                                class="row g-3"
+                                data-prelaunch-gallery>
+
+                                <?php foreach (
+                                    $photos as $photo
+                                ): ?>
+                                    <?php
+                                    $photoId = (int) (
+                                        $photo['id']
+                                        ?? 0
+                                    );
+
+                                    if ($photoId <= 0) {
+                                        continue;
+                                    }
+
+                                    $photoStatus =
+                                        mb_strtoupper(
+                                            trim(
+                                                (string) (
+                                                    $photo['approval_status']
+                                                    ?? 'PENDING'
+                                                )
+                                            )
+                                        );
+
+                                    $ribbonClass =
+                                        match ($photoStatus) {
+                                            'APPROVED' =>
+                                            'is-approved',
+                                            'REJECTED' =>
+                                            'is-rejected',
+                                            default =>
+                                            'is-pending',
+                                        };
+
+                                    $modalId =
+                                        'prelaunch-photo-modal-'
+                                        . $photoId;
+                                    ?>
+
+                                    <div
+                                        class="col-6 col-md-4">
+
+                                        <button
+                                            type="button"
+                                            class="prelaunch-review-photo
+                                            border-0 bg-transparent
+                                            p-0 w-100 text-start"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#<?= esc(
+                                                                    $modalId,
+                                                                    'attr'
+                                                                ) ?>">
+
+                                            <span
+                                                class="prelaunch-review-photo__frame">
+
+                                                <img
+                                                    src="<?= esc(
+                                                                route_to(
+                                                                    'admin.prelaunch.photos.view',
+                                                                    $photoId,
+                                                                    'original'
+                                                                ),
+                                                                'attr'
+                                                            ) ?>"
+                                                    class="prelaunch-review-photo__image"
+                                                    alt="Prelaunch profile photograph"
+                                                    loading="lazy">
+
+                                                <span
+                                                    class="prelaunch-photo-ribbon
+                                                    <?= esc(
+                                                        $ribbonClass,
+                                                        'attr'
+                                                    ) ?>">
+                                                    <?= esc(
+                                                        $photoStatus
+                                                    ) ?>
+                                                </span>
+                                            </span>
+                                        </button>
+                                    </div>
+
+                                    <div
+                                        class="modal fade"
+                                        id="<?= esc(
+                                                $modalId,
+                                                'attr'
+                                            ) ?>"
+                                        tabindex="-1"
+                                        aria-hidden="true">
+
+                                        <div
+                                            class="modal-dialog
+                                            modal-dialog-centered
+                                            modal-lg">
+
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h3
+                                                        class="modal-title h5">
+                                                        Review Photo
+                                                    </h3>
+
+                                                    <button
+                                                        type="button"
+                                                        class="btn-close"
+                                                        data-bs-dismiss="modal"
+                                                        aria-label="Close">
+                                                    </button>
+                                                </div>
+
+                                                <div class="modal-body">
+                                                    <img
+                                                        src="<?= esc(
+                                                                    route_to(
+                                                                        'admin.prelaunch.photos.view',
+                                                                        $photoId,
+                                                                        'original'
+                                                                    ),
+                                                                    'attr'
+                                                                ) ?>"
+                                                        class="img-fluid rounded
+                                                        d-block mx-auto"
+                                                        alt="Prelaunch profile photograph">
+                                                </div>
+
+                                                <?php if ($isDraft): ?>
+                                                    <div class="modal-footer">
+                                                        <form
+                                                            action="<?= esc(
+                                                                        route_to(
+                                                                            'admin.prelaunch.photos.approve',
+                                                                            $photoId
+                                                                        ),
+                                                                        'attr'
+                                                                    ) ?>"
+                                                            method="post"
+                                                            data-submit-loader>
+
+                                                            <?= csrf_field() ?>
+
+                                                            <button
+                                                                type="submit"
+                                                                class="btn btn-success">
+                                                                <span
+                                                                    data-submit-loader-label>
+                                                                    Approve
+                                                                </span>
+
+                                                                <span
+                                                                    class="d-none"
+                                                                    data-submit-loader-spinner>
+                                                                    <span
+                                                                        class="spinner-border
+                                                                        spinner-border-sm"
+                                                                        aria-hidden="true">
+                                                                    </span>
+                                                                </span>
+                                                            </button>
+                                                        </form>
+
+                                                        <form
+                                                            action="<?= esc(
+                                                                        route_to(
+                                                                            'admin.prelaunch.photos.reject',
+                                                                            $photoId
+                                                                        ),
+                                                                        'attr'
+                                                                    ) ?>"
+                                                            method="post"
+                                                            class="flex-grow-1"
+                                                            data-submit-loader>
+
+                                                            <?= csrf_field() ?>
+
+                                                            <div class="input-group">
+                                                                <input
+                                                                    type="text"
+                                                                    name="rejection_reason"
+                                                                    class="form-control"
+                                                                    minlength="5"
+                                                                    maxlength="500"
+                                                                    placeholder="Photo rejection reason"
+                                                                    required>
+
+                                                                <button
+                                                                    type="submit"
+                                                                    class="btn btn-outline-danger">
+                                                                    Reject
+                                                                </button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                <?php endif ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach ?>
+                            </div>
+                        </div>
+                    </article>
                 </div>
 
-                <div class="card-body">
-                    <div class="row g-4">
-                        <?php if ($photos === []): ?>
-                            <div class="col-12">
-                                <div
-                                    class="alert alert-warning mb-0"
-                                    role="alert">
-                                    No photographs were found for this profile.
-                                </div>
-                            </div>
-                        <?php else: ?>
-                            <?php foreach ($photos as $photo): ?>
-                                <?php
-                                /*
-         * Protect the template from malformed service data.
-         */
-                                if (!is_array($photo)) {
-                                    continue;
-                                }
+                <div class="col-12 col-xl-4">
+                    <article
+                        class="card border shadow-sm
+                        rounded-3 h-100">
 
-                                $photoId = filter_var(
-                                    $photo['id'] ?? null,
-                                    FILTER_VALIDATE_INT
-                                );
+                        <div class="card-header">
+                            <h2 class="h5 mb-0">
+                                Contact and Decision
+                            </h2>
+                        </div>
 
-                                if (
-                                    $photoId === false
-                                    || $photoId <= 0
-                                ) {
-                                    continue;
-                                }
+                        <div class="card-body">
+                            <form
+                                action="<?= esc(
+                                            route_to(
+                                                'admin.prelaunch.profiles.approve',
+                                                (int) $profile['id']
+                                            ),
+                                            'attr'
+                                        ) ?>"
+                                method="post"
+                                data-submit-loader>
 
-                                $photoIdString = (string) $photoId;
+                                <?= csrf_field() ?>
 
-                                $sequenceNumber = filter_var(
-                                    $photo['sequence_no'] ?? null,
-                                    FILTER_VALIDATE_INT
-                                );
+                                <div class="mb-3">
+                                    <label
+                                        for="country_code"
+                                        class="form-label">
+                                        Country Code
+                                    </label>
 
-                                $sequenceNumber = $sequenceNumber !== false
-                                    ? $sequenceNumber
-                                    : 0;
-
-                                $photoStatus = mb_strtoupper(
-                                    trim(
-                                        (string) (
-                                            $photo['approval_status']
-                                            ?? 'PENDING'
+                                    <input
+                                        id="country_code"
+                                        name="country_code"
+                                        type="text"
+                                        class="form-control
+                                        <?= isset(
+                                            $errors['country_code']
                                         )
-                                    )
-                                );
-
-                                $photoBadgeClass = match ($photoStatus) {
-                                    'APPROVED' =>
-                                    'text-bg-success',
-
-                                    'REJECTED' =>
-                                    'text-bg-danger',
-
-                                    default =>
-                                    'text-bg-secondary',
-                                };
-
-                                $rejectionFieldId =
-                                    'photo_reason_' . $photoIdString;
-                                ?>
-
-                                <div class="col-12 col-md-4">
-                                    <img
-                                        src="<?= esc(
-                                                    route_to(
-                                                        'admin.prelaunch.photos.view',
-                                                        $photoId,
-                                                        'medium'
+                                            ? 'is-invalid'
+                                            : '' ?>"
+                                        value="<?= esc(
+                                                    old(
+                                                        'country_code',
+                                                        $profile['country_code']
+                                                            ?? ''
                                                     ),
                                                     'attr'
                                                 ) ?>"
-                                        class="img-fluid rounded mb-3"
-                                        alt="<?= esc(
-                                                    'Member photograph '
-                                                        . $sequenceNumber,
-                                                    'attr'
-                                                ) ?>">
+                                        maxlength="8"
+                                        <?= !$isDraft
+                                            ? 'disabled'
+                                            : '' ?>
+                                        required>
 
-                                    <div class="mb-3">
-                                        <span
-                                            class="badge <?= esc(
-                                                                $photoBadgeClass,
-                                                                'attr'
-                                                            ) ?>">
-                                            <?= esc($photoStatus) ?>
-                                        </span>
-                                    </div>
-
-                                    <?php if ($isDraft): ?>
-                                        <form
-                                            action="<?= esc(
-                                                        route_to(
-                                                            'admin.prelaunch.photos.approve',
-                                                            $photoId
-                                                        ),
-                                                        'attr'
-                                                    ) ?>"
-                                            method="post"
-                                            class="mb-3"
-                                            data-submit-loader>
-                                            <?= csrf_field() ?>
-
-                                            <button
-                                                type="submit"
-                                                class="btn btn-success w-100">
-                                                Approve Photo
-                                            </button>
-                                        </form>
-
-                                        <form
-                                            action="<?= esc(
-                                                        route_to(
-                                                            'admin.prelaunch.photos.reject',
-                                                            $photoId
-                                                        ),
-                                                        'attr'
-                                                    ) ?>"
-                                            method="post"
-                                            data-submit-loader>
-                                            <?= csrf_field() ?>
-
-                                            <label
-                                                for="<?= esc(
-                                                            $rejectionFieldId,
-                                                            'attr'
-                                                        ) ?>"
-                                                class="form-label">
-                                                Rejection reason
-                                            </label>
-
-                                            <textarea
-                                                class="form-control mb-2"
-                                                id="<?= esc(
-                                                        $rejectionFieldId,
-                                                        'attr'
-                                                    ) ?>"
-                                                name="rejection_reason"
-                                                minlength="5"
-                                                maxlength="500"
-                                                required></textarea>
-
-                                            <button
-                                                type="submit"
-                                                class="btn btn-outline-danger w-100">
-                                                Reject Photo
-                                            </button>
-                                        </form>
+                                    <?php if (isset(
+                                        $errors['country_code']
+                                    )): ?>
+                                        <div
+                                            class="invalid-feedback">
+                                            <?= esc(
+                                                $errors['country_code']
+                                            ) ?>
+                                        </div>
                                     <?php endif ?>
                                 </div>
-                            <?php endforeach ?>
-                        <?php endif ?>
-                    </div>
+
+                                <div class="mb-3">
+                                    <label
+                                        for="mobile_number"
+                                        class="form-label">
+                                        Mobile Number
+                                    </label>
+
+                                    <input
+                                        id="mobile_number"
+                                        name="mobile_number"
+                                        type="tel"
+                                        class="form-control
+                                        <?= isset(
+                                            $errors['mobile_number']
+                                        )
+                                            ? 'is-invalid'
+                                            : '' ?>"
+                                        value="<?= esc(
+                                                    old(
+                                                        'mobile_number',
+                                                        $profile['mobile_number']
+                                                            ?? ''
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
+                                        maxlength="15"
+                                        <?= !$isDraft
+                                            ? 'disabled'
+                                            : '' ?>
+                                        required>
+
+                                    <?php if (isset(
+                                        $errors['mobile_number']
+                                    )): ?>
+                                        <div
+                                            class="invalid-feedback">
+                                            <?= esc(
+                                                $errors['mobile_number']
+                                            ) ?>
+                                        </div>
+                                    <?php endif ?>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label
+                                        for="email"
+                                        class="form-label">
+                                        Email
+                                        <span class="text-muted">
+                                            (optional)
+                                        </span>
+                                    </label>
+
+                                    <input
+                                        id="email"
+                                        name="email"
+                                        type="email"
+                                        class="form-control
+                                        <?= isset(
+                                            $errors['email']
+                                        )
+                                            ? 'is-invalid'
+                                            : '' ?>"
+                                        value="<?= esc(
+                                                    old(
+                                                        'email',
+                                                        $profile['email']
+                                                            ?? ''
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
+                                        maxlength="254"
+                                        <?= !$isDraft
+                                            ? 'disabled'
+                                            : '' ?>>
+
+                                    <?php if (isset(
+                                        $errors['email']
+                                    )): ?>
+                                        <div
+                                            class="invalid-feedback">
+                                            <?= esc(
+                                                $errors['email']
+                                            ) ?>
+                                        </div>
+                                    <?php endif ?>
+                                </div>
+
+                                <?php if ($isDraft): ?>
+                                    <button
+                                        type="submit"
+                                        class="btn btn-success
+                                        w-100 mb-3"
+                                        <?= !$canApprove
+                                            ? 'disabled'
+                                            : '' ?>>
+
+                                        <span
+                                            data-submit-loader-label>
+                                            Save Contact and Approve
+                                        </span>
+
+                                        <span
+                                            class="d-none"
+                                            data-submit-loader-spinner>
+                                            <span
+                                                class="spinner-border
+                                                spinner-border-sm"
+                                                aria-hidden="true">
+                                            </span>
+
+                                            Migrating Profile...
+                                        </span>
+                                    </button>
+                                <?php endif ?>
+                            </form>
+
+                            <?php if (
+                                $isDraft
+                                && !$canApprove
+                            ): ?>
+                                <div
+                                    class="alert alert-warning
+                                    py-2 fs-13">
+                                    Approve at least one photograph
+                                    before approving this profile.
+                                </div>
+                            <?php endif ?>
+
+                            <?php if ($isDraft): ?>
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-danger
+                                    w-100"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#reject-profile-modal">
+                                    Reject Profile
+                                </button>
+                            <?php endif ?>
+                        </div>
+                    </article>
                 </div>
             </div>
-        </div>
 
-        <div class="col-12 col-xl-4">
-            <!-- Only email and mobile may be edited by administrators. -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header">
-                    <h2 class="h5 mb-0">
-                        Contact correction
-                    </h2>
+            <div class="row g-4 align-items-start">
+
+                <!-- One single card for every section in the left column. -->
+                <div class="col-12 col-lg-7">
+                    <div
+                        class="card border border-danger border-opacity-25 shadow-sm
+                        rounded-3 overflow-hidden">
+
+                        <section
+                            class="card-body p-3 p-lg-4
+                            border-bottom">
+
+
+
+                            <div
+                                class="d-flex
+                                align-items-center gap-2 mb-3">
+
+                                <span
+                                    class="d-inline-flex
+                                    align-items-center
+                                    justify-content-center
+                                    rounded-circle
+                                    bg-primary-subtle
+                                    text-primary"
+                                    style="
+                                    width: 34px;
+                                    height: 34px;
+                                ">
+
+                                    <i
+                                        class=" fs-18
+                                        ri-user-smile-line"
+                                        aria-hidden="true"></i>
+                                </span>
+
+                                <h2
+                                    class="fs-16
+                                    fw-semibold mb-0">
+                                    About Me
+                                </h2>
+                            </div>
+
+                            <?php if ($aboutMe !== ''): ?>
+                                <p
+                                    class="text-body-secondary
+                                    lh-lg mb-0">
+                                    <?= nl2br(
+                                        esc($aboutMe)
+                                    ) ?>
+                                </p>
+                            <?php else: ?>
+                                <p class="text-muted mb-0">
+                                    About Me has not been added yet.
+                                </p>
+                            <?php endif; ?>
+                        </section>
+
+                        <section
+                            class="card-body p-3 p-lg-4
+                            border-bottom">
+
+                            <div
+                                class="d-flex
+                                align-items-center gap-2 mb-3">
+
+                                <span
+                                    class="d-inline-flex
+                                    align-items-center
+                                    justify-content-center
+                                    rounded-circle
+                                    bg-primary-subtle
+                                    text-primary"
+                                    style="
+                                    width: 34px;
+                                    height: 34px;
+                                ">
+
+                                    <i
+                                        class="fs-18 ri-id-card-line"
+                                        aria-hidden="true"></i>
+                                </span>
+
+                                <h2
+                                    class="fs-16
+                                    fw-semibold mb-0">
+                                    Basic Details
+                                </h2>
+                            </div>
+
+                            <div class="row g-3">
+                                <?php foreach (
+                                    $personalDetails
+                                    as $label => $value
+                                ): ?>
+                                    <div class="col-12 col-sm-6">
+                                        <div
+                                            class="border-bottom
+                                            pb-2 h-100">
+
+                                            <div
+                                                class="text-muted
+                                                fs-12 mb-1">
+                                                <?= esc($label) ?>
+                                            </div>
+
+                                            <div
+                                                class="fw-medium fs-14">
+                                                <?= esc(
+                                                    $displayValue(
+                                                        $value
+                                                    )
+                                                ) ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </section>
+
+                        <section
+                            class="card-body p-3 p-lg-4
+                            border-bottom">
+
+                            <div
+                                class="d-flex
+                                align-items-center gap-2 mb-3">
+
+                                <span
+                                    class="d-inline-flex
+                                    align-items-center
+                                    justify-content-center
+                                    rounded-circle
+                                    bg-primary-subtle
+                                    text-primary"
+                                    style="
+                                    width: 34px;
+                                    height: 34px;
+                                ">
+
+                                    <i
+                                        class=" fs-18
+                                        ri-briefcase-line"
+                                        aria-hidden="true"></i>
+                                </span>
+
+                                <h2
+                                    class="fs-16
+                                    fw-semibold mb-0">
+                                    Education & Profession
+                                </h2>
+                            </div>
+
+                            <div class="row g-3">
+                                <?php foreach (
+                                    $professionDetails
+                                    as $label => $value
+                                ): ?>
+                                    <div class="col-12 col-sm-6">
+                                        <div
+                                            class="border-bottom
+                                            pb-2 h-100">
+
+                                            <div
+                                                class="text-muted
+                                                fs-12 mb-1">
+                                                <?= esc($label) ?>
+                                            </div>
+
+                                            <div
+                                                class="fw-medium fs-14">
+                                                <?= esc(
+                                                    $displayValue(
+                                                        $value
+                                                    )
+                                                ) ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </section>
+
+
+
+                    </div>
                 </div>
 
-                <div class="card-body">
-                    <form
-                        action="<?= route_to(
-                                    'admin.prelaunch.profiles.contact',
-                                    $profile['id']
-                                ) ?>"
-                        method="post"
-                        data-submit-loader
-                        novalidate>
-                        <?= csrf_field() ?>
+                <!-- One single card for every section in the right column. -->
+                <div class="col-12 col-lg-5">
+                    <div
+                        class="card border border-danger border-opacity-25 shadow-sm
+                        rounded-3 overflow-hidden">
 
-                        <div class="mb-3">
-                            <label
-                                for="email"
-                                class="form-label">
-                                Email
-                                <span class="text-muted fs-12">
-                                    (Optional)
+                        <section
+                            class="card-body p-3 p-lg-4
+                            border-bottom">
+
+                            <div
+                                class="d-flex
+                                align-items-center gap-2 mb-3">
+
+                                <span
+                                    class="d-inline-flex
+                                    align-items-center
+                                    justify-content-center
+                                    rounded-circle
+                                    bg-warning-subtle
+                                    text-warning"
+                                    style="
+                                    width: 34px;
+                                    height: 34px;
+                                ">
+
+                                    <i
+                                        class="fs-18 ri-group-line"
+                                        aria-hidden="true"></i>
                                 </span>
-                            </label>
 
-                            <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                class="form-control"
-                                value="<?= esc(
-                                            (string) ($profile['email'] ?? ''),
-                                            'attr'
-                                        ) ?>"
-                                maxlength="190"
-                                autocomplete="email">
-
-                            <div class="invalid-feedback">
-                                <?= esc(
-                                    $errors['email']
-                                        ?? 'Please enter a valid email.'
-                                ) ?>
+                                <h2
+                                    class="fs-16
+                                    fw-semibold mb-0">
+                                    Family Details
+                                </h2>
                             </div>
-                        </div>
 
-                        <div class="row g-2 mb-3">
-                            <div class="col-4">
-                                <label
-                                    for="country_code"
-                                    class="form-label">
-                                    Code
-                                </label>
+                            <?php foreach (
+                                $familyDetailList
+                                as $label => $value
+                            ): ?>
+                                <div
+                                    class="d-flex
+                                    justify-content-between
+                                    align-items-start
+                                    gap-3 py-2
+                                    border-bottom">
 
-                                <input
-                                    type="text"
-                                    class="form-control <?= isset(
-                                                            $errors['country_code']
-                                                        )
-                                                            ? 'is-invalid'
-                                                            : '' ?>"
-                                    id="country_code"
-                                    name="country_code"
-                                    value="<?= esc(
-                                                old(
-                                                    'country_code',
-                                                    $profile['country_code']
-                                                        ?? '+91'
-                                                )
-                                            ) ?>"
-                                    maxlength="5"
-                                    required>
+                                    <span
+                                        class="text-muted
+                                        fs-13">
+                                        <?= esc($label) ?>
+                                    </span>
 
-                                <div class="invalid-feedback">
-                                    <?= esc(
-                                        $errors['country_code']
-                                            ?? 'Enter a valid code.'
-                                    ) ?>
+                                    <span
+                                        class="fw-medium fs-13
+                                        text-end">
+                                        <?= esc(
+                                            $displayValue($value)
+                                        ) ?>
+                                    </span>
                                 </div>
+                            <?php endforeach; ?>
+                        </section>
+
+                        <section
+                            class="card-body p-3 p-lg-4
+                            border-bottom">
+
+                            <div
+                                class="d-flex
+                                align-items-center gap-2 mb-3">
+
+                                <span
+                                    class="d-inline-flex
+                                    align-items-center
+                                    justify-content-center
+                                    rounded-circle
+                                    bg-primary-subtle
+                                    text-primary"
+                                    style="
+                                    width: 34px;
+                                    height: 34px;
+                                ">
+
+                                    <i
+                                        class="fs-18 
+                                        ri-heart-pulse-line"
+                                        aria-hidden="true"></i>
+                                </span>
+
+                                <h2
+                                    class="fs-16
+                                    fw-semibold mb-0">
+                                    Lifestyle
+                                </h2>
                             </div>
 
-                            <div class="col-8">
-                                <label
-                                    for="mobile_number"
-                                    class="form-label">
-                                    Mobile
-                                </label>
+                            <?php if (
+                                $lifestyleDetails !== []
+                            ): ?>
+                                <div
+                                    class="d-flex
+                                    flex-wrap gap-2">
 
-                                <input
-                                    type="tel"
-                                    inputmode="numeric"
-                                    class="form-control <?= isset(
-                                                            $errors['mobile_number']
-                                                        )
-                                                            ? 'is-invalid'
-                                                            : '' ?>"
-                                    id="mobile_number"
-                                    name="mobile_number"
-                                    value="<?= esc(
-                                                old(
-                                                    'mobile_number',
-                                                    $profile['mobile_number']
-                                                        ?? ''
-                                                )
-                                            ) ?>"
-                                    pattern="[0-9]{10,15}"
-                                    maxlength="15"
-                                    required>
+                                    <?php foreach (
+                                        $lifestyleDetails
+                                        as $detail
+                                    ): ?>
+                                        <?php
+                                        if (!is_array($detail)) {
+                                            continue;
+                                        }
 
-                                <div class="invalid-feedback">
-                                    <?= esc(
-                                        $errors['mobile_number']
-                                            ?? 'Please enter a valid mobile number.'
-                                    ) ?>
+                                        $label = trim(
+                                            (string) (
+                                                $detail['option_name']
+                                                ?? $detail['name']
+                                                ?? ''
+                                            )
+                                        );
+
+                                        if ($label === '') {
+                                            continue;
+                                        }
+                                        ?>
+
+                                        <span
+                                            class="
+                                            badge rounded-pill
+                                            bg-primary-subtle
+                                            text-black
+                                            fw-medium p-2">
+                                            <?= esc($label) ?>
+                                        </span>
+                                    <?php endforeach; ?>
                                 </div>
+                            <?php else: ?>
+                                <p class="text-muted mb-0">
+                                    Lifestyle preferences have not
+                                    been added.
+                                </p>
+                            <?php endif; ?>
+                        </section>
+
+                        <section class="card-body p-3 p-lg-4">
+                            <div
+                                class="d-flex
+                                align-items-center gap-2 mb-3">
+
+                                <span
+                                    class="d-inline-flex
+                                    align-items-center
+                                    justify-content-center
+                                    rounded-circle
+                                    bg-primary-subtle
+                                    text-primary"
+                                    style="
+                                    width: 34px;
+                                    height: 34px;
+                                ">
+
+                                    <i
+                                        class="fs-18 ri-lock-2-line"
+                                        aria-hidden="true"></i>
+                                </span>
+
+                                <h2
+                                    class="fs-16
+                                    fw-semibold mb-0">
+                                    Privacy
+                                </h2>
                             </div>
-                        </div>
+
+                            <p class="text-muted fs-13 mb-0">
+                                This profile information is visible
+                                only to authenticated members according
+                                to the applicable privacy rules.
+                            </p>
+                        </section>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+</div>
+<?php if ($isDraft): ?>
+    <div
+        class="modal fade"
+        id="reject-profile-modal"
+        tabindex="-1"
+        aria-hidden="true">
+
+        <div
+            class="modal-dialog
+                modal-dialog-centered">
+
+            <div class="modal-content">
+                <form
+                    action="<?= esc(
+                                route_to(
+                                    'admin.prelaunch.profiles.reject',
+                                    (int) $profile['id']
+                                ),
+                                'attr'
+                            ) ?>"
+                    method="post"
+                    data-submit-loader>
+
+                    <?= csrf_field() ?>
+
+                    <div class="modal-header">
+                        <h2 class="modal-title h5">
+                            Reject Profile
+                        </h2>
+
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                        </button>
+                    </div>
+
+                    <div class="modal-body">
+                        <label
+                            for="profile_rejection_reason"
+                            class="form-label">
+                            Rejection reason
+                        </label>
+
+                        <textarea
+                            id="profile_rejection_reason"
+                            name="rejection_reason"
+                            class="form-control"
+                            rows="4"
+                            minlength="5"
+                            maxlength="1000"
+                            required></textarea>
+
+                        <p class="text-muted fs-13 mt-2 mb-0">
+                            A rejected profile is permanently
+                            locked from further review.
+                        </p>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button
+                            type="button"
+                            class="btn btn-light"
+                            data-bs-dismiss="modal">
+                            Cancel
+                        </button>
 
                         <button
                             type="submit"
-                            class="btn btn-primary w-100">
-                            Save Contact Changes
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <?php if ($isDraft): ?>
-                <div class="card shadow-sm">
-                    <div class="card-header">
-                        <h2 class="h5 mb-0">
-                            Profile decision
-                        </h2>
-                    </div>
-
-                    <div class="card-body">
-                        <?php if (
-                            !$allPhotosApproved
-                        ): ?>
-                            <div
-                                class="alert alert-warning"
-                                role="alert">
-                                Approve all three photographs
-                                before approving this profile.
-                            </div>
-                        <?php endif ?>
-
-                        <form
-                            action="<?= route_to(
-                                        'admin.prelaunch.profiles.approve',
-                                        $profile['id']
-                                    ) ?>"
-                            method="post"
-                            class="mb-3"
-                            data-submit-loader>
-                            <?= csrf_field() ?>
-
-                            <button
-                                type="submit"
-                                class="btn btn-success w-100"
-                                <?= !$allPhotosApproved
-                                    ? 'disabled'
-                                    : '' ?>>
-                                Approve Profile
-                            </button>
-                        </form>
-
-                        <form
-                            action="<?= route_to(
-                                        'admin.prelaunch.profiles.reject',
-                                        $profile['id']
-                                    ) ?>"
-                            method="post"
-                            data-submit-loader>
-                            <?= csrf_field() ?>
-
-                            <label
-                                for="rejection_reason"
-                                class="form-label">
-                                Rejection reason
-                            </label>
-
-                            <textarea
-                                class="form-control mb-3"
-                                id="rejection_reason"
-                                name="rejection_reason"
-                                minlength="5"
-                                maxlength="1000"
-                                required></textarea>
-
-                            <button
-                                type="submit"
-                                class="btn btn-outline-danger w-100">
+                            class="btn btn-danger">
+                            <span
+                                data-submit-loader-label>
                                 Reject Profile
-                            </button>
-                        </form>
+                            </span>
+
+                            <span
+                                class="d-none"
+                                data-submit-loader-spinner>
+                                <span
+                                    class="spinner-border
+                                        spinner-border-sm"
+                                    aria-hidden="true">
+                                </span>
+
+                                Rejecting...
+                            </span>
+                        </button>
                     </div>
-                </div>
-            <?php endif ?>
+                </form>
+            </div>
         </div>
     </div>
-</div>
-
+<?php endif ?>
 <?= $this->endSection() ?>

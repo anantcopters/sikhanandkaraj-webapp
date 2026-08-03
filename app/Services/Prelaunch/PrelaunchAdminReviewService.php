@@ -22,7 +22,9 @@ final class PrelaunchAdminReviewService
         private readonly PrelaunchProfileModel $profileModel,
         private readonly PrelaunchPhotoModel $photoModel,
         private readonly AdminAuditService $auditService,
-        private readonly BaseConnection $database
+        private readonly BaseConnection $database,
+        private readonly PrelaunchContactAvailabilityService $contactAvailabilityService,
+        private readonly PrelaunchMemberMigrationService $migrationService
     ) {}
 
     /**
@@ -121,9 +123,8 @@ final class PrelaunchAdminReviewService
             $photoSummary['pending']++;
         }
 
-        $photoSummary['allApproved'] =
-            $photoSummary['total'] === 3
-            && $photoSummary['approved'] === 3;
+        $photoSummary['hasApproved'] =
+            $photoSummary['approved'] >= 1;
 
         return [
             'profile' =>
@@ -137,50 +138,96 @@ final class PrelaunchAdminReviewService
         ];
     }
 
-    public function approveProfile(
+    /**
+     * Save final contact values, validate approval rules and migrate the profile.
+     *
+     * @param array<string, mixed> $contactInput
+     *
+     * @return array{
+     *     memberId:int,
+     *     profileReference:string,
+     *     migratedPhotoCount:int
+     * }
+     */
+    public function saveContactAndApprove(
         int $profileId,
+        array $contactInput,
         int $adminUserId
-    ): void {
+    ): array {
         $profile = $this->requireDraftProfile(
             $profileId
         );
 
-        $photos = $this->photoModel
-            ->findByProfile($profileId);
+        $countryCode = trim(
+            (string) (
+                $contactInput['country_code']
+                ?? ''
+            )
+        );
 
-        if (count($photos) !== 3) {
+        $mobileNumber = preg_replace(
+            '/\D+/',
+            '',
+            (string) (
+                $contactInput['mobile_number']
+                ?? ''
+            )
+        ) ?? '';
+
+        $normalizedEmail = mb_strtolower(
+            trim(
+                (string) (
+                    $contactInput['email']
+                    ?? ''
+                )
+            )
+        );
+
+        $email = $normalizedEmail !== ''
+            ? $normalizedEmail
+            : null;
+
+        if (
+            $this->photoModel
+            ->countApprovedByProfile(
+                $profileId
+            ) < 1
+        ) {
             throw new RuntimeException(
-                'The profile must contain exactly three photographs.'
+                'Approve at least one photograph before '
+                    . 'approving the profile.'
             );
         }
 
-        foreach ($photos as $photo) {
-            if (
-                (string) $photo['approval_status']
-                !== PrelaunchPhotoModel::STATUS_APPROVED
-            ) {
-                throw new RuntimeException(
-                    'All three photographs must be approved first.'
-                );
-            }
-        }
+        $this->contactAvailabilityService
+            ->assertAvailable(
+                $profileId,
+                $countryCode,
+                $mobileNumber,
+                $email
+            );
 
-        $this->profileModel->update(
+        /*
+     * Save the final administrator-corrected contact before migration.
+     */
+        $this->updateContact(
             $profileId,
             [
-                'status' =>
-                PrelaunchProfileModel::STATUS_APPROVED,
-
-                'reviewed_by' =>
-                $adminUserId,
-
-                'reviewed_at' =>
-                date('Y-m-d H:i:s'),
-
-                'rejection_reason' =>
-                null,
-            ]
+                'country_code' =>
+                $countryCode,
+                'mobile_number' =>
+                $mobileNumber,
+                'email' =>
+                $email,
+            ],
+            $adminUserId
         );
+
+        $result = $this->migrationService
+            ->migrate(
+                $profileId,
+                $adminUserId
+            );
 
         $this->recordAudit(
             AdminAuditAction::PRELAUNCH_PROFILE_APPROVED,
@@ -192,10 +239,15 @@ final class PrelaunchAdminReviewService
             ],
             [
                 'status' =>
-                PrelaunchProfileModel::STATUS_APPROVED,
+                PrelaunchProfileModel
+                ::STATUS_APPROVED,
+                'migrated_user_id' =>
+                $result['memberId'],
             ],
-            'The pre-launch profile was approved.'
+            'The prelaunch profile was approved and migrated.'
         );
+
+        return $result;
     }
 
     public function rejectProfile(
@@ -335,7 +387,7 @@ final class PrelaunchAdminReviewService
         array $input,
         int $adminUserId
     ): void {
-        $profile = $this->profileModel->find(
+        $profile = $this->requireDraftProfile(
             $profileId
         );
 
