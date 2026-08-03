@@ -81,6 +81,8 @@ use App\Models\MasterDrinkingHabitModel;
 use App\Models\MasterEatingHabitModel;
 use App\Models\MasterPhysicalStatusModel;
 use App\Services\Maintenance\FileCleanupService;
+use App\Services\Prelaunch\PrelaunchContactAvailabilityService;
+use App\Services\Prelaunch\PrelaunchMemberMigrationService;
 use Config\FileCleanup;
 use Config\TableCleanup;
 use Aws\CloudFront\CloudFrontClient;
@@ -849,6 +851,9 @@ class Services extends BaseService
         );
     }
 
+    /**
+     * Return the local prelaunch-photo storage service.
+     */
     public static function prelaunchPhotoService(
         bool $getShared = true
     ): PrelaunchPhotoService {
@@ -861,10 +866,15 @@ class Services extends BaseService
         $database = db_connect();
 
         return new PrelaunchPhotoService(
-            new PrelaunchPhotoModel($database)
+            new PrelaunchPhotoModel(
+                $database
+            )
         );
     }
 
+    /**
+     * Return the standalone prelaunch-profile creation service.
+     */
     public static function prelaunchProfileService(
         bool $getShared = true
     ): PrelaunchProfileService {
@@ -877,7 +887,9 @@ class Services extends BaseService
         $database = db_connect();
 
         /** @var Prelaunch $configuration */
-        $configuration = config('Prelaunch');
+        $configuration = config(
+            'Prelaunch'
+        );
 
         return new PrelaunchProfileService(
             new PrelaunchProfileModel(
@@ -894,17 +906,82 @@ class Services extends BaseService
             $database,
             $configuration
         );
-
-        // return new PrelaunchProfileService(
-        //     new PrelaunchProfileModel($database),
-        //     static::prelaunchFieldOfficerService(false),
-        //     new PrelaunchPhotoService(
-        //         new PrelaunchPhotoModel($database)
-        //     ),
-        //     $database
-        // );
     }
 
+    /**
+     * Return the contact-availability validator used before migration.
+     */
+    public static function prelaunchContactAvailabilityService(
+        bool $getShared = true
+    ): PrelaunchContactAvailabilityService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'prelaunchContactAvailabilityService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new PrelaunchContactAvailabilityService(
+            new PrelaunchProfileModel(
+                $database
+            ),
+            new UserContactModel(
+                $database
+            )
+        );
+    }
+
+    /**
+     * Return the service that migrates one approved prelaunch profile into the
+     * normal member tables and uploads approved photographs through S3.
+     */
+    public static function prelaunchMemberMigrationService(
+        bool $getShared = true
+    ): PrelaunchMemberMigrationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'prelaunchMemberMigrationService'
+            );
+        }
+
+        /*
+     * All model and service dependencies use the same database connection.
+     * This is required for the migration transaction.
+     */
+        $database = db_connect();
+
+        return new PrelaunchMemberMigrationService(
+            new PrelaunchProfileModel(
+                $database
+            ),
+            new PrelaunchPhotoModel(
+                $database
+            ),
+            new UserModel(
+                $database
+            ),
+            new UserContactModel(
+                $database
+            ),
+            new MemberPhotoModel(
+                $database
+            ),
+            new PrelaunchPhotoService(
+                new PrelaunchPhotoModel(
+                    $database
+                )
+            ),
+            static::awsMediaService(
+                false
+            ),
+            $database
+        );
+    }
+
+    /**
+     * Return the prelaunch administrator review service.
+     */
     public static function prelaunchAdminReviewService(
         bool $getShared = true
     ): PrelaunchAdminReviewService {
@@ -917,10 +994,50 @@ class Services extends BaseService
         $database = db_connect();
 
         return new PrelaunchAdminReviewService(
-            new PrelaunchProfileModel($database),
-            new PrelaunchPhotoModel($database),
-            static::adminAuditService(false),
-            $database
+            new PrelaunchProfileModel(
+                $database
+            ),
+            new PrelaunchPhotoModel(
+                $database
+            ),
+            static::adminAuditService(
+                false
+            ),
+            $database,
+            new PrelaunchContactAvailabilityService(
+                new PrelaunchProfileModel(
+                    $database
+                ),
+                new UserContactModel(
+                    $database
+                )
+            ),
+            new PrelaunchMemberMigrationService(
+                new PrelaunchProfileModel(
+                    $database
+                ),
+                new PrelaunchPhotoModel(
+                    $database
+                ),
+                new UserModel(
+                    $database
+                ),
+                new UserContactModel(
+                    $database
+                ),
+                new MemberPhotoModel(
+                    $database
+                ),
+                new PrelaunchPhotoService(
+                    new PrelaunchPhotoModel(
+                        $database
+                    )
+                ),
+                static::awsMediaService(
+                    false
+                ),
+                $database
+            )
         );
     }
 
@@ -963,7 +1080,12 @@ class Services extends BaseService
             );
         }
 
-        $database = Database::connect();
+        $database = db_connect();
+
+        /** @var FileCleanup $configuration */
+        $configuration = config(
+            FileCleanup::class
+        );
 
         return new FileCleanupService(
             profileModel: new PrelaunchProfileModel(
@@ -972,13 +1094,13 @@ class Services extends BaseService
             photoModel: new PrelaunchPhotoModel(
                 $database
             ),
-            photoService: static::prelaunchPhotoService(
-                false
+            photoService: new PrelaunchPhotoService(
+                new PrelaunchPhotoModel(
+                    $database
+                )
             ),
             database: $database,
-            configuration: config(
-                FileCleanup::class
-            )
+            configuration: $configuration
         );
     }
 }

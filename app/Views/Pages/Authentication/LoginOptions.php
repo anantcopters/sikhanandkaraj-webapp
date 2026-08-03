@@ -45,12 +45,12 @@ $this->section('content');
                             ]
                         ) ?>
 
-                        <div class="d-grid gap-3">
+                        <div class="d-grid gap-4">
                             <a
                                 href="<?= route_to(
                                             'web.login.password'
                                         ) ?>"
-                                class="btn btn-outline-success fs-16 fw-semibold text-uppercase">
+                                class="btn btn-success fs-16 fw-semibold text-uppercase">
 
                                 <i
                                     class="ri-lock-password-line me-2"
