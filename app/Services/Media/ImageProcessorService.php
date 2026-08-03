@@ -77,7 +77,8 @@ final class ImageProcessorService
     public function processProfilePhoto(
         string $sourcePath,
         string $workingDirectory,
-        string $uuid
+        string $uuid,
+        bool $allowTrustedWebpSource = false
     ): array {
         $this->assertGdAvailable();
 
@@ -91,10 +92,10 @@ final class ImageProcessorService
             $sourcePath
         );
 
-        $extension = $this
-            ->config
-            ->allowedImageMimeTypes[$actualMimeType]
-            ?? null;
+        $extension = $this->resolveSourceExtension(
+            $actualMimeType,
+            $allowTrustedWebpSource
+        );
 
         if ($extension === null) {
             throw new RuntimeException(
@@ -319,16 +320,28 @@ final class ImageProcessorService
     }
 
     /**
-     * Decode a supported image into a GD image resource.
+     * Decode a supported source image.
+     *
+     * WebP decoding is available only to trusted internal migration calls.
      */
     private function createImageResource(
         string $path,
         string $mimeType
     ): GdImage {
         $image = match ($mimeType) {
-            'image/jpeg' => @imagecreatefromjpeg($path),
-            'image/png' => @imagecreatefrompng($path),
-            default => false,
+            'image/jpeg' =>
+            @imagecreatefromjpeg($path),
+
+            'image/png' =>
+            @imagecreatefrompng($path),
+
+            'image/webp' =>
+            function_exists('imagecreatefromwebp')
+                ? @imagecreatefromwebp($path)
+                : false,
+
+            default =>
+            false,
         };
 
         if (!$image instanceof GdImage) {
@@ -337,10 +350,61 @@ final class ImageProcessorService
             );
         }
 
-        imagealphablending($image, true);
-        imagesavealpha($image, true);
+        imagealphablending(
+            $image,
+            true
+        );
+
+        imagesavealpha(
+            $image,
+            true
+        );
 
         return $image;
+    }
+
+    /**
+     * Resolve the verified source extension.
+     *
+     * Public member uploads remain limited to JPEG and PNG. WebP is accepted
+     * only for internally generated prelaunch files during migration.
+     */
+    private function resolveSourceExtension(
+        string $mimeType,
+        bool $allowTrustedWebpSource
+    ): string {
+        $configuredExtension = $this
+            ->config
+            ->allowedImageMimeTypes[$mimeType]
+            ?? null;
+
+        if (is_string($configuredExtension)) {
+            return $configuredExtension;
+        }
+
+        if (
+            $allowTrustedWebpSource
+            && $mimeType === 'image/webp'
+        ) {
+            if (
+                !function_exists(
+                    'imagecreatefromwebp'
+                )
+                || !function_exists(
+                    'imagewebp'
+                )
+            ) {
+                throw new RuntimeException(
+                    'The server GD extension does not support WebP.'
+                );
+            }
+
+            return 'webp';
+        }
+
+        throw new RuntimeException(
+            'Only JPEG and PNG photos are allowed.'
+        );
     }
 
     /**
@@ -724,7 +788,17 @@ final class ImageProcessorService
                 $path,
                 6
             ),
-            default => false,
+            'image/webp' =>
+            function_exists('imagewebp')
+                ? imagewebp(
+                    $image,
+                    $path,
+                    90
+                )
+                : false,
+
+            default =>
+            false,
         };
 
         if (!$saved) {

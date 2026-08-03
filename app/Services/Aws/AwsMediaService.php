@@ -73,7 +73,8 @@ final class AwsMediaService
                 sourcePath: $sourcePath,
                 originalFilename: $uploadedFile->getClientName(),
                 memberId: $memberId,
-                removeSource: false
+                removeSource: false,
+                allowTrustedWebpSource: false
             );
         } finally {
             $this->removeDirectory(
@@ -186,7 +187,8 @@ final class AwsMediaService
             sourcePath: $sourcePath,
             originalFilename: $originalFilename,
             memberId: $memberId,
-            removeSource: false
+            removeSource: false,
+            allowTrustedWebpSource: true
         );
     }
 
@@ -210,7 +212,8 @@ final class AwsMediaService
         string $sourcePath,
         string $originalFilename,
         int $memberId,
-        bool $removeSource = false
+        bool $removeSource = false,
+        bool $allowTrustedWebpSource = false
     ): array {
         $uuid = $this->uuidV4();
 
@@ -233,7 +236,8 @@ final class AwsMediaService
                 ->processProfilePhoto(
                     $sourcePath,
                     $requestDirectory,
-                    $uuid
+                    $uuid,
+                    $allowTrustedWebpSource
                 );
 
             $paths = $this

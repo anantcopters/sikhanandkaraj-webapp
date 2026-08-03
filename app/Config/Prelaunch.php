@@ -25,14 +25,6 @@ final class Prelaunch extends BaseConfig
     {
         parent::__construct();
 
-        $this->profileEntryEnabled = filter_var(
-            env(
-                'PRELAUNCH_PROFILE_ENTRY_ENABLED',
-                false
-            ),
-            FILTER_VALIDATE_BOOLEAN
-        );
-
         $this->migratedMemberDefaultPassword = trim(
             (string) env(
                 'PRELAUNCH_MEMBER_DEFAULT_PASSWORD',
