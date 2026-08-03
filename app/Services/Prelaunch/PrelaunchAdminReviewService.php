@@ -433,27 +433,39 @@ final class PrelaunchAdminReviewService
         $beforeData = [
             'email' =>
             $this->maskEmail(
-                (string) $profile['email']
+                isset($profile['email'])
+                    ? (string) $profile['email']
+                    : null
             ),
 
             'country_code' =>
-            $profile['country_code'],
+            (string) (
+                $profile['country_code']
+                ?? ''
+            ),
 
             'mobile_number' =>
             $this->maskMobile(
-                (string) $profile['mobile_number']
+                (string) (
+                    $profile['mobile_number']
+                    ?? ''
+                )
             ),
         ];
 
         $afterData = [
             'email' =>
-            $this->maskEmail($email),
+            $this->maskEmail(
+                $email
+            ),
 
             'country_code' =>
             $countryCode,
 
             'mobile_number' =>
-            $this->maskMobile($mobileNumber),
+            $this->maskMobile(
+                $mobileNumber
+            ),
         ];
 
         $this->database->transBegin();
@@ -550,26 +562,85 @@ final class PrelaunchAdminReviewService
         );
     }
 
+    /**
+     * Mask an email address before storing it in the administrator audit log.
+     *
+     * Email is optional, so null and blank values are represented explicitly
+     * rather than causing a type error.
+     */
     private function maskEmail(
-        string $email
+        ?string $email
     ): string {
+        $email = mb_strtolower(
+            trim((string) $email)
+        );
+
+        if ($email === '') {
+            return 'Not provided';
+        }
+
         [$name, $domain] = array_pad(
-            explode('@', $email, 2),
+            explode(
+                '@',
+                $email,
+                2
+            ),
             2,
             ''
         );
 
-        return mb_substr($name, 0, 2)
+        /*
+     * Defensively handle malformed legacy data. Normal input is already
+     * validated before reaching this service.
+     */
+        if (
+            $name === ''
+            || $domain === ''
+        ) {
+            return 'Invalid email';
+        }
+
+        $visibleCharacters = min(
+            2,
+            mb_strlen($name)
+        );
+
+        return mb_substr(
+            $name,
+            0,
+            $visibleCharacters
+        )
             . '***@'
             . $domain;
     }
 
+    /**
+     * Mask a mobile number before recording it in the audit log.
+     */
     private function maskMobile(
-        string $mobile
+        ?string $mobile
     ): string {
+        $mobile = preg_replace(
+            '/\D+/',
+            '',
+            (string) $mobile
+        ) ?? '';
+
+        if ($mobile === '') {
+            return 'Not provided';
+        }
+
+        if (strlen($mobile) <= 4) {
+            return $mobile;
+        }
+
         return str_repeat(
             '*',
-            max(0, strlen($mobile) - 4)
-        ) . substr($mobile, -4);
+            strlen($mobile) - 4
+        )
+            . substr(
+                $mobile,
+                -4
+            );
     }
 }

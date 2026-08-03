@@ -10,6 +10,7 @@ use App\Models\Prelaunch\PrelaunchProfileModel;
 use App\Models\UserContactModel;
 use App\Models\UserModel;
 use App\Services\Aws\AwsMediaService;
+use App\Support\IndianMobileNormalizer;
 use CodeIgniter\Database\BaseConnection;
 use RuntimeException;
 use Throwable;
@@ -135,27 +136,28 @@ final class PrelaunchMemberMigrationService
             $countryCode = trim(
                 (string) (
                     $lockedProfile['country_code']
-                    ?? ''
+                    ?? '+91'
                 )
             );
 
-            $mobileNumber = preg_replace(
-                '/\D+/',
-                '',
+            $mobileNumber = trim(
                 (string) (
                     $lockedProfile['mobile_number']
                     ?? ''
                 )
-            ) ?? '';
-
-            if ($mobileNumber === '') {
-                throw new RuntimeException(
-                    'A valid mobile number is required.'
-                );
-            }
+            );
 
             $normalizedMobile =
-                $countryCode . $mobileNumber;
+                IndianMobileNormalizer::normalize(
+                    $countryCode . $mobileNumber
+                );
+
+            if ($normalizedMobile === null) {
+                throw new RuntimeException(
+                    'The prelaunch profile does not contain '
+                        . 'a valid Indian mobile number.'
+                );
+            }
 
             if (
                 $this->userContactModel
@@ -191,28 +193,89 @@ final class PrelaunchMemberMigrationService
                 [
                     'prelaunch_profile_id' =>
                     $prelaunchProfileId,
+
                     'profile_ref_number' =>
                     $profileReference,
-                    'profile_created_for' =>
-                    $lockedProfile['profile_created_for'],
-                    'gender' =>
-                    $lockedProfile['gender'],
-                    'full_name' =>
-                    $lockedProfile['full_name'],
 
                     /*
-                     * The migrated account must complete its normal
-                     * verification/password activation flow.
-                     */
+         * The normal member registration flow stores relationship values
+         * in lowercase. Normalize the prelaunch uppercase value before
+         * inserting it into users.
+         */
+                    'profile_created_for' =>
+                    $this->resolveMemberProfileCreatedFor(
+                        (string) (
+                            $lockedProfile['profile_created_for']
+                            ?? ''
+                        )
+                    ),
+
+                    /*
+         * users.gender is CHAR(1). The prelaunch table stores readable
+         * values such as MALE/FEMALE, so it must be converted to M/F.
+         */
+                    'gender' =>
+                    $this->resolveMemberGender(
+                        (string) (
+                            $lockedProfile['gender']
+                            ?? ''
+                        ),
+                        (string) (
+                            $lockedProfile['profile_created_for']
+                            ?? ''
+                        )
+                    ),
+
+                    'full_name' =>
+                    trim(
+                        (string) (
+                            $lockedProfile['full_name']
+                            ?? ''
+                        )
+                    ),
+
+                    /*
+         * The migrated member will complete the normal password and mobile
+         * verification flow before the account becomes active.
+         */
                     'password_hash' =>
                     null,
+
                     'account_status' =>
                     UserModel::STATUS_PENDING,
                 ],
                 true
             );
 
-            if ($memberId === false) {
+            if (!is_numeric($memberId)) {
+                $modelErrors = $this->userModel
+                    ->errors();
+
+                log_message(
+                    'error',
+                    'Prelaunch member account insert failed. '
+                        . 'Profile: {profileId}; errors: {errors}.',
+                    [
+                        'profileId' =>
+                        $prelaunchProfileId,
+
+                        'errors' =>
+                        json_encode(
+                            $modelErrors,
+                            JSON_UNESCAPED_SLASHES
+                                | JSON_UNESCAPED_UNICODE
+                        ),
+                    ]
+                );
+
+                throw new RuntimeException(
+                    'The member account could not be created.'
+                );
+            }
+
+            $memberId = (int) $memberId;
+
+            if (!is_numeric($memberId)) {
                 throw new RuntimeException(
                     'The member account could not be created.'
                 );
@@ -224,7 +287,7 @@ final class PrelaunchMemberMigrationService
                 $memberId,
                 $email,
                 $countryCode,
-                $mobileNumber
+                $normalizedMobile
             );
 
             $this->insertProfileDetails(
@@ -339,11 +402,26 @@ final class PrelaunchMemberMigrationService
                             'ADMIN',
                             'uploaded_by_id' =>
                             $adminUserId,
+
+                            'approved_by' =>
+                            $adminUserId,
+
+                            'approved_at' =>
+                            date('Y-m-d H:i:s'),
+
+                            'rejected_by' =>
+                            null,
+
+                            'rejected_at' =>
+                            null,
+
+                            'rejection_reason' =>
+                            null,
                         ],
                         true
                     );
 
-                if ($memberPhotoId === false) {
+                if (!is_numeric($memberPhotoId)) {
                     throw new RuntimeException(
                         'The migrated member photo record '
                             . 'could not be created.'
@@ -444,7 +522,7 @@ final class PrelaunchMemberMigrationService
         int $memberId,
         string $email,
         string $countryCode,
-        string $mobileNumber
+        string $normalizedMobile
     ): void {
         $mobileContactId =
             $this->userContactModel->insert(
@@ -456,10 +534,10 @@ final class PrelaunchMemberMigrationService
                     'contact_value' =>
                     $countryCode
                         . ' '
-                        . $mobileNumber,
+                        . $normalizedMobile,
                     'normalized_value' =>
                     $countryCode
-                        . $mobileNumber,
+                        . $normalizedMobile,
                     'is_primary' =>
                     true,
                     'is_verified' =>
@@ -470,7 +548,7 @@ final class PrelaunchMemberMigrationService
                 true
             );
 
-        if ($mobileContactId === false) {
+        if (!is_numeric($mobileContactId)) {
             throw new RuntimeException(
                 'The member mobile contact could not be created.'
             );
@@ -501,7 +579,7 @@ final class PrelaunchMemberMigrationService
                 true
             );
 
-        if ($emailContactId === false) {
+        if (!is_numeric($emailContactId)) {
             throw new RuntimeException(
                 'The member email contact could not be created.'
             );
@@ -570,7 +648,7 @@ final class PrelaunchMemberMigrationService
             $profile['father_name'],
             'mother_name' =>
             $profile['mother_name'],
-            'sikh_community_id' =>
+            'community_id' =>
             $profile['sikh_community_id'],
             'gotra' =>
             $profile['gotra'],
@@ -583,20 +661,139 @@ final class PrelaunchMemberMigrationService
         ]);
     }
 
+    /**
+     * Convert the prelaunch relationship value to the format used by users.
+     */
+    private function resolveMemberProfileCreatedFor(
+        string $profileCreatedFor
+    ): string {
+        $normalized = mb_strtoupper(
+            trim($profileCreatedFor)
+        );
+
+        return match ($normalized) {
+            'SELF' =>
+            'self',
+
+            'SON' =>
+            'son',
+
+            'DAUGHTER' =>
+            'daughter',
+
+            'BROTHER' =>
+            'brother',
+
+            'SISTER' =>
+            'sister',
+
+            /*
+         * These values are supported by the prelaunch form but may not be
+         * supported by the older public registration screen. Retain them in
+         * normalized lowercase form when the users column permits them.
+         */
+            'RELATIVE' =>
+            'relative',
+
+            'FRIEND' =>
+            'friend',
+
+            default =>
+            throw new RuntimeException(
+                'The prelaunch profile relationship '
+                    . 'is not supported.'
+            ),
+        };
+    }
+
+    /**
+     * Convert prelaunch gender values to users.gender CHAR(1).
+     */
+    private function resolveMemberGender(
+        string $gender,
+        string $profileCreatedFor
+    ): string {
+        $normalizedGender = mb_strtoupper(
+            trim($gender)
+        );
+
+        /*
+     * First accept all known representations. This supports existing records
+     * that may contain M/F as well as newer prelaunch records containing
+     * MALE/FEMALE.
+     */
+        if (
+            in_array(
+                $normalizedGender,
+                [
+                    'M',
+                    'MALE',
+                ],
+                true
+            )
+        ) {
+            return 'M';
+        }
+
+        if (
+            in_array(
+                $normalizedGender,
+                [
+                    'F',
+                    'FEMALE',
+                ],
+                true
+            )
+        ) {
+            return 'F';
+        }
+
+        /*
+     * Fall back to relationship when gender is unambiguous.
+     */
+        return match (mb_strtoupper(
+            trim($profileCreatedFor)
+        )) {
+            'SON',
+            'BROTHER' =>
+            'M',
+
+            'DAUGHTER',
+            'SISTER' =>
+            'F',
+
+            default =>
+            throw new RuntimeException(
+                'The prelaunch profile does not contain '
+                    . 'a valid gender.'
+            ),
+        };
+    }
+
+    /**
+     * Generate a unique member profile reference.
+     *
+     * This must follow the same database-approved format used by normal
+     * registration: SAK followed by exactly seven numeric digits.
+     */
     private function generateMemberReference(): string
     {
+        $maximumAttempts = 20;
+
         for (
-            $attempt = 0;
-            $attempt < 20;
+            $attempt = 1;
+            $attempt <= $maximumAttempts;
             $attempt++
         ) {
-            $reference = 'SK'
-                . date('ymd')
-                . strtoupper(
-                    bin2hex(
-                        random_bytes(3)
-                    )
-                );
+            $reference = 'SAK' . str_pad(
+                (string) random_int(
+                    0,
+                    9_999_999
+                ),
+                7,
+                '0',
+                STR_PAD_LEFT
+            );
 
             if (
                 !$this->userModel
@@ -609,7 +806,7 @@ final class PrelaunchMemberMigrationService
         }
 
         throw new RuntimeException(
-            'A unique member reference '
+            'A unique member profile reference '
                 . 'could not be generated.'
         );
     }
