@@ -330,17 +330,6 @@ final class PrelaunchAdminReviewService
             (int) $photo['prelaunch_profile_id']
         );
 
-        $reason = trim((string) $reason);
-
-        if (
-            $status === PrelaunchPhotoModel::STATUS_REJECTED
-            && mb_strlen($reason) < 5
-        ) {
-            throw new RuntimeException(
-                'Please provide a photograph rejection reason.'
-            );
-        }
-
         $this->photoModel->update(
             $photoId,
             [
@@ -348,10 +337,7 @@ final class PrelaunchAdminReviewService
                 $status,
 
                 'rejection_reason' =>
-                $status
-                    === PrelaunchPhotoModel::STATUS_REJECTED
-                    ? $reason
-                    : null,
+                null,
 
                 'reviewed_by' =>
                 $adminUserId,

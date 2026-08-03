@@ -514,7 +514,7 @@ $this->section(
                                 $rejectedPhotoCount > 0
                             ): ?>
                                 <span
-                                    class="badge
+                                    class="badge p-2 text-black
                                         text-bg-danger">
                                     <?= esc(
                                         (string) $rejectedPhotoCount
@@ -801,6 +801,7 @@ $this->section(
                     <hr class="my-2 mb-3">
 
                     <form
+                        id="prelaunch-contact-approval-form"
                         action="<?= esc(
                                     route_to(
                                         'admin.prelaunch.profiles.approve',
@@ -809,44 +810,71 @@ $this->section(
                                     'attr'
                                 ) ?>"
                         method="post"
-                        data-submit-loader>
+                        data-validate
+                        data-prelaunch-approval-form
+                        novalidate>
 
                         <?= csrf_field() ?>
 
-                        <!--
-                            Keep country code and mobile in one input group,
-                            matching the prelaunch profile-entry UI.
-                        -->
                         <div class="mb-3">
                             <label
                                 for="mobile_number"
                                 class="form-label">
+
                                 Mobile Number
+
+                                <span class="text-danger">
+                                    *
+                                </span>
                             </label>
+
+                            <?php
+                            /*
+         * The existing prelaunch profile flow currently supports Indian
+         * mobile numbers and stores +91 separately.
+         */
+                            $resolvedCountryCode = trim(
+                                (string) old(
+                                    'country_code',
+                                    $profile['country_code']
+                                        ?? '+91'
+                                )
+                            );
+
+                            if ($resolvedCountryCode === '') {
+                                $resolvedCountryCode = '+91';
+                            }
+
+                            $mobileError = trim(
+                                (string) (
+                                    $errors['mobile_number']
+                                    ?? $errors['country_code']
+                                    ?? ''
+                                )
+                            );
+
+                            $mobileInvalidClass =
+                                $mobileError !== ''
+                                ? 'is-invalid'
+                                : '';
+                            ?>
 
                             <input
                                 type="hidden"
                                 id="country_code"
                                 name="country_code"
                                 value="<?= esc(
-                                            old(
-                                                'country_code',
-                                                $profile['country_code'] ?? '+91'
-                                            ),
+                                            $resolvedCountryCode,
                                             'attr'
                                         ) ?>">
 
-                            <div
-                                class="input-group
-                                    has-validation">
-
+                            <div class="input-group has-validation">
                                 <span
-                                    class="input-group-text">
+                                    class="input-group-text"
+                                    aria-hidden="true">
+
                                     <?= esc(
-                                        old(
-                                            'country_code',
-                                            $profile['country_code'] ?? '+91'
-                                        )
+                                        $resolvedCountryCode
                                     ) ?>
                                 </span>
 
@@ -854,21 +882,15 @@ $this->section(
                                     type="tel"
                                     id="mobile_number"
                                     name="mobile_number"
-                                    class="form-control
-                                        <?= (
-                                            isset(
-                                                $errors['mobile_number']
-                                            )
-                                            || isset(
-                                                $errors['country_code']
-                                            )
-                                        )
-                                            ? 'is-invalid'
-                                            : '' ?>"
+                                    class="form-control <?= esc(
+                                                            $mobileInvalidClass,
+                                                            'attr'
+                                                        ) ?>"
                                     value="<?= esc(
                                                 old(
                                                     'mobile_number',
-                                                    $profile['mobile_number'] ?? ''
+                                                    $profile['mobile_number']
+                                                        ?? ''
                                                 ),
                                                 'attr'
                                             ) ?>"
@@ -878,20 +900,29 @@ $this->section(
                                     minlength="10"
                                     maxlength="10"
                                     autocomplete="tel-national"
+                                    aria-describedby="mobile_numberError"
+                                    data-error-required="Please enter mobile number."
+                                    data-error-pattern="Please enter a valid 10-digit Indian mobile number."
+                                    data-error-minlength="Please enter a 10-digit mobile number."
+                                    data-error-maxlength="Please enter a 10-digit mobile number."
                                     <?= !$isDraft
                                         ? 'disabled'
                                         : '' ?>
                                     required>
 
                                 <div
-                                    class="invalid-feedback">
-                                    <?= esc(
-                                        $errors['mobile_number']
-                                            ?? $errors['country_code']
-                                            ?? 'Please enter a valid '
-                                            . '10-digit mobile number.'
-                                    ) ?>
+                                    id="mobile_numberError"
+                                    class="invalid-feedback <?= $mobileError !== ''
+                                                                ? 'd-block'
+                                                                : '' ?>"
+                                    data-validation-error="mobile_number">
+
+                                    <?= esc($mobileError) ?>
                                 </div>
+                            </div>
+
+                            <div class="form-text color-pink">
+                                Enter the member’s active mobile or WhatsApp number.
                             </div>
                         </div>
 
@@ -899,24 +930,36 @@ $this->section(
                             <label
                                 for="email"
                                 class="form-label">
+
                                 Email
 
-                                <span
-                                    class="color-pink fs-12">
+                                <span class="color-pink fs-12">
                                     (Optional)
                                 </span>
                             </label>
+
+                            <?php
+                            $emailError = trim(
+                                (string) (
+                                    $errors['email']
+                                    ?? ''
+                                )
+                            );
+
+                            $emailInvalidClass =
+                                $emailError !== ''
+                                ? 'is-invalid'
+                                : '';
+                            ?>
 
                             <input
                                 type="email"
                                 id="email"
                                 name="email"
-                                class="form-control
-                                    <?= isset(
-                                        $errors['email']
-                                    )
-                                        ? 'is-invalid'
-                                        : '' ?>"
+                                class="form-control <?= esc(
+                                                        $emailInvalidClass,
+                                                        'attr'
+                                                    ) ?>"
                                 value="<?= esc(
                                             old(
                                                 'email',
@@ -928,64 +971,53 @@ $this->section(
                                 placeholder="Enter email address"
                                 maxlength="190"
                                 autocomplete="email"
+                                aria-describedby="emailHelp emailError"
+                                data-error-email="Please enter a valid email address."
+                                data-error-maxlength="Email address cannot exceed 190 characters."
                                 <?= !$isDraft
                                     ? 'disabled'
                                     : '' ?>>
 
                             <div
-                                class="invalid-feedback">
-                                <?= esc(
-                                    $errors['email']
-                                        ?? 'Please enter a '
-                                        . 'valid email address.'
-                                ) ?>
+                                id="emailHelp"
+                                class="form-text color-pink">
+                                Email may remain empty.
                             </div>
 
                             <div
-                                class="form-text
-                                    color-pink">
-                                Email may remain empty.
+                                id="emailError"
+                                class="invalid-feedback <?= $emailError !== ''
+                                                            ? 'd-block'
+                                                            : '' ?>"
+                                data-validation-error="email">
+
+                                <?= esc($emailError) ?>
                             </div>
                         </div>
 
                         <?php if ($isDraft): ?>
                             <button
                                 type="submit"
-                                class="btn
-                                    registration-form__submit
-                                    w-80
-                                    fs-14 fw-semibold
-                                    text-uppercase
-                                    mb-3"
+                                id="prelaunch-contact-approval-submit"
+                                class="btn registration-form__submit
+                w-100 fs-14 fw-semibold
+                text-uppercase mb-3"
                                 <?= !$canApprove
                                     ? 'disabled'
                                     : '' ?>>
 
                                 <span
-                                    data-submit-loader-label
                                     class="d-inline-flex
-                                        align-items-center
-                                        justify-content-center
-                                        gap-2">
+                    align-items-center
+                    justify-content-center
+                    gap-2"
+                                    data-approval-button-label>
 
                                     <i
                                         class="ri-user-follow-line"
                                         aria-hidden="true"></i>
 
                                     Save Contact and Approve
-                                </span>
-
-                                <span
-                                    class="d-none"
-                                    data-submit-loader-spinner>
-
-                                    <span
-                                        class="spinner-border
-                                            spinner-border-sm"
-                                        aria-hidden="true">
-                                    </span>
-
-                                    Migrating Profile...
                                 </span>
                             </button>
                         <?php endif ?>
@@ -1421,79 +1453,47 @@ $this->section(
                                         'attr'
                                     ) ?>"
                             method="post"
-                            class="flex-grow-1 mb-0"
+                            class="mb-0"
                             data-submit-loader>
 
                             <?= csrf_field() ?>
 
-                            <div
-                                class="input-group
-                                    has-validation">
+                            <button
+                                type="submit"
+                                class="btn btn-outline-danger
+            w-100
+            d-inline-flex
+            align-items-center
+            justify-content-center
+            gap-2">
 
-                                <input
-                                    type="text"
-                                    name="rejection_reason"
-                                    class="form-control"
-                                    minlength="5"
-                                    maxlength="500"
-                                    placeholder="Enter rejection reason"
-                                    required>
+                                <span
+                                    data-submit-loader-label
+                                    class="d-inline-flex
+                align-items-center
+                gap-2">
 
-                                <button
-                                    type="submit"
-                                    class="btn
-                                        btn-outline-danger">
+                                    <i
+                                        class="ri-close-circle-line"
+                                        aria-hidden="true"></i>
 
-                                    <span
-                                        data-submit-loader-label
-                                        class="d-inline-flex
-                                            align-items-center
-                                            gap-1">
+                                    Reject Photo
+                                </span>
 
-                                        <i
-                                            class="ri-close-circle-line"
-                                            aria-hidden="true"></i>
-
-                                        Reject Photo
-                                    </span>
+                                <span
+                                    class="d-none"
+                                    data-submit-loader-spinner>
 
                                     <span
-                                        class="d-none"
-                                        data-submit-loader-spinner>
-
-                                        <span
-                                            class="spinner-border
-                                                spinner-border-sm"
-                                            aria-hidden="true">
-                                        </span>
+                                        class="spinner-border
+                    spinner-border-sm"
+                                        aria-hidden="true">
                                     </span>
-                                </button>
-                            </div>
+
+                                    Rejecting...
+                                </span>
+                            </button>
                         </form>
-                    </div>
-                <?php elseif (
-                    $photoModal['status']
-                    === PrelaunchPhotoModel
-                    ::STATUS_REJECTED
-                    && $photoModal['rejectionReason'] !== ''
-                ): ?>
-                    <div
-                        class="modal-footer
-                            justify-content-start">
-
-                        <div
-                            class="alert
-                                alert-danger
-                                py-2 mb-0 w-100">
-
-                            <strong>
-                                Rejection reason:
-                            </strong>
-
-                            <?= esc(
-                                $photoModal['rejectionReason']
-                            ) ?>
-                        </div>
                     </div>
                 <?php endif ?>
             </div>
@@ -1628,5 +1628,75 @@ $this->section(
         </div>
     </div>
 <?php endif ?>
+<?php if ($isDraft): ?>
+    <div
+        class="modal fade"
+        id="prelaunchApprovalSavingModal"
+        tabindex="-1"
+        aria-labelledby="prelaunchApprovalSavingModalTitle"
+        aria-describedby="prelaunchApprovalSavingModalMessage"
+        data-bs-backdrop="static"
+        data-bs-keyboard="false"
+        aria-hidden="true">
 
+        <div
+            class="modal-dialog
+                modal-dialog-centered">
+
+            <div
+                class="modal-content
+                    border-0 shadow">
+
+                <div
+                    class="modal-body
+                        p-4 p-md-5
+                        text-center">
+
+                    <div class="mb-3">
+                        <span
+                            class="spinner-border
+                                text-primary"
+                            role="status"
+                            aria-hidden="true">
+                        </span>
+                    </div>
+
+                    <h2
+                        id="prelaunchApprovalSavingModalTitle"
+                        class="h5 fw-semibold mb-2">
+
+                        Approving profile
+                    </h2>
+
+                    <p
+                        id="prelaunchApprovalSavingModalMessage"
+                        class="text-muted mb-3"
+                        aria-live="polite">
+
+                        Validating contact information…
+                    </p>
+
+                    <div
+                        class="progress mb-3"
+                        role="presentation"
+                        aria-hidden="true">
+
+                        <div
+                            id="prelaunchApprovalSavingProgressBar"
+                            class="progress-bar
+                                progress-bar-striped
+                                progress-bar-animated"
+                            style="width: 15%">
+                        </div>
+                    </div>
+
+                    <p class="small text-muted mb-0">
+                        Approved photographs are being processed and
+                        uploaded securely. Please keep this page open.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif ?>
 <?= $this->endSection() ?>

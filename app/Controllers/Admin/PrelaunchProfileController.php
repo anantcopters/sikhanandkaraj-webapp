@@ -116,6 +116,7 @@ final class PrelaunchProfileController extends BaseController
 
                     'pageScripts' => [
                         'assets/js/components/submit-loader.js',
+                        'assets/js/pages/admin-prelaunch-review.js',
                     ],
                 ]
             );
@@ -568,10 +569,7 @@ final class PrelaunchProfileController extends BaseController
             $service->updatePhotoStatus(
                 $photoId,
                 $status,
-                (string) $this->request
-                    ->getPost(
-                        'rejection_reason'
-                    ),
+                null,
                 $this->adminUserId()
             );
 
