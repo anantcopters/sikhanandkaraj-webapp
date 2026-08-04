@@ -599,42 +599,39 @@ $this->section(
         <?php if (
             $resolvedProfiles !== []
         ): ?>
-            <div
-                class="card-footer
-                    d-flex
-                    flex-column
-                    flex-sm-row
-                    align-items-sm-center
-                    justify-content-between
-                    gap-3">
+            <?php
+            /*
+            * Preserve the active filters in every generated pagination URL.
+            */
+            $pager->only([
+                'status',
+                'search',
+            ]);
+            ?>
 
-                <span class="text-muted fs-13">
-                    <?= esc(
-                        (string) $resolvedPerPage
-                    ) ?>
-                    profiles per page
-                </span>
+            <div class="card-footer py-3">
+                <?= view(
+                    'Components/Pagination',
+                    [
+                        'pager' =>
+                        $pager,
 
-                <div>
-                    <?php
-                    /*
-                     * Preserve filters when moving between pages.
-                     *
-                     * CI4 manages the page query parameter as:
-                     *
-                     * page_prelaunchProfiles
-                     */
-                    $pager->only([
-                        'status',
-                        'search',
-                    ]);
-                    ?>
-
-                    <?= $pager->links(
+                        'group' =>
                         'prelaunchProfiles',
-                        'default_full'
-                    ) ?>
-                </div>
+
+                        'perPage' =>
+                        $resolvedPerPage,
+
+                        'itemLabel' =>
+                        'profiles',
+
+                        /*
+                 * Show two pages on either side of the active page.
+                 */
+                        'surroundCount' =>
+                        2,
+                    ]
+                ) ?>
             </div>
         <?php endif ?>
     </div>
