@@ -1,8 +1,8 @@
 /**
  * Administrator prelaunch profile-list interactions.
  *
- * The global SelectChoice component enhances the status select. This file
- * handles only page-specific filter submission.
+ * Choices.js is initialized globally by select-choice.js. This page script
+ * submits the status filter when its underlying select value changes.
  */
 (function (document) {
     'use strict';
@@ -14,7 +14,7 @@
         'prelaunch-status-filter';
 
     /**
-     * Initialize automatic status-filter submission.
+     * Initialize the prelaunch status filter.
      *
      * @returns {void}
      */
@@ -38,8 +38,8 @@
             'change',
             function () {
                 /*
-                 * A status change always returns to page one because the
-                 * previous page may not exist for the newly selected status.
+                 * Do not carry the current page into a different status.
+                 * The form includes only status and the optional search term.
                  */
                 form.submit();
             }

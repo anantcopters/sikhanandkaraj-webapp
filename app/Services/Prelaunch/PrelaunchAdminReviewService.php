@@ -142,6 +142,84 @@ final class PrelaunchAdminReviewService
     }
 
     /**
+     * Return one native CI4-paginated prelaunch profile list.
+     *
+     * @return array{
+     *     profiles:list<array<string, mixed>>,
+     *     pager:\CodeIgniter\Pager\Pager,
+     *     status:string,
+     *     search:string
+     * }
+     */
+    public function paginatedProfiles(
+        string $status,
+        string $search,
+        int $perPage = 10
+    ): array {
+        $normalizedStatus = mb_strtoupper(
+            trim($status)
+        );
+
+        if (
+            !in_array(
+                $normalizedStatus,
+                [
+                    PrelaunchProfileModel::STATUS_DRAFT,
+                    PrelaunchProfileModel::STATUS_APPROVED,
+                    PrelaunchProfileModel::STATUS_REJECTED,
+                ],
+                true
+            )
+        ) {
+            $normalizedStatus =
+                PrelaunchProfileModel::STATUS_DRAFT;
+        }
+
+        $normalizedSearch = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim($search)
+        ) ?? '';
+
+        $normalizedSearch = mb_substr(
+            $normalizedSearch,
+            0,
+            100
+        );
+
+        $safePerPage = max(
+            1,
+            min($perPage, 100)
+        );
+
+        $profiles = $this->profileModel
+            ->adminListQuery(
+                $normalizedStatus,
+                $normalizedSearch
+            )
+            ->paginate(
+                $safePerPage,
+                'prelaunchProfiles'
+            );
+
+        return [
+            'profiles' =>
+            is_array($profiles)
+                ? $profiles
+                : [],
+
+            'pager' =>
+            $this->profileModel->pager,
+
+            'status' =>
+            $normalizedStatus,
+
+            'search' =>
+            $normalizedSearch,
+        ];
+    }
+
+    /**
      * Build the complete data contract required by Review.php.
      *
      * @return array{

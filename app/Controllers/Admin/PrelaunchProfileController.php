@@ -21,6 +21,11 @@ use Throwable;
 final class PrelaunchProfileController extends BaseController
 {
     /**
+     * Number of profiles shown on one administrator list page.
+     */
+    private const PROFILES_PER_PAGE = 10;
+
+    /**
      * Display the searchable and paginated prelaunch profile listing.
      */
     public function index(): string
@@ -38,14 +43,15 @@ final class PrelaunchProfileController extends BaseController
             !in_array(
                 $status,
                 [
-                    'DRAFT',
-                    'APPROVED',
-                    'REJECTED',
+                    PrelaunchProfileModel::STATUS_DRAFT,
+                    PrelaunchProfileModel::STATUS_APPROVED,
+                    PrelaunchProfileModel::STATUS_REJECTED,
                 ],
                 true
             )
         ) {
-            $status = 'DRAFT';
+            $status =
+                PrelaunchProfileModel::STATUS_DRAFT;
         }
 
         $search = preg_replace(
@@ -63,42 +69,15 @@ final class PrelaunchProfileController extends BaseController
             100
         );
 
-        $page = max(
-            1,
-            (int) $this->request
-                ->getGet('page')
-        );
-
-        /*
-     * A fixed page size keeps the screen and query predictable.
-     */
-        $perPage = 20;
-
         /** @var PrelaunchAdminReviewService $service */
         $service = service(
             'prelaunchAdminReviewService'
         );
 
-        $result = $service->listProfiles(
+        $result = $service->paginatedProfiles(
             $status,
             $search,
-            $page,
-            $perPage
-        );
-
-        $pager = service('pager');
-
-        /*
-     * Pager links use the existing query-string pagination mode. The view
-     * also preserves status and search in its navigation URLs.
-     */
-        $pagerLinks = $pager->makeLinks(
-            $result['page'],
-            $result['perPage'],
-            $result['total'],
-            'default_full',
-            0,
-            'prelaunch_profiles'
+            self::PROFILES_PER_PAGE
         );
 
         return view(
@@ -110,43 +89,24 @@ final class PrelaunchProfileController extends BaseController
                 'profiles' =>
                 $result['profiles'],
 
+                'pager' =>
+                $result['pager'],
+
                 'selectedStatus' =>
                 $result['status'],
 
                 'searchTerm' =>
                 $result['search'],
 
-                'currentPage' =>
-                $result['page'],
-
                 'perPage' =>
-                $result['perPage'],
-
-                'totalProfiles' =>
-                $result['total'],
-
-                'firstResultNumber' =>
-                $result['total'] > 0
-                    ? $result['offset'] + 1
-                    : 0,
-
-                'lastResultNumber' =>
-                min(
-                    $result['offset']
-                        + count(
-                            $result['profiles']
-                        ),
-                    $result['total']
-                ),
-
-                'pagerLinks' =>
-                $pagerLinks,
+                self::PROFILES_PER_PAGE,
 
                 'formAlert' =>
                 session('formAlert'),
 
                 'pageScripts' => [
-                    'assets/js/pages/admin-prelaunch-profiles.js',
+                    'assets/js/pages/'
+                        . 'admin-prelaunch-profiles.js',
                 ],
             ]
         );

@@ -2,16 +2,14 @@
 
 declare(strict_types=1);
 
+use CodeIgniter\Pager\Pager;
+
 /**
  * @var list<array<string, mixed>> $profiles
+ * @var Pager                      $pager
  * @var string                     $selectedStatus
  * @var string                     $searchTerm
- * @var int                        $currentPage
  * @var int                        $perPage
- * @var int                        $totalProfiles
- * @var int                        $firstResultNumber
- * @var int                        $lastResultNumber
- * @var string                     $pagerLinks
  * @var array<string, string>|null $formAlert
  */
 
@@ -46,35 +44,13 @@ $resolvedSearch = trim(
     )
 );
 
-$resolvedTotal = max(
-    0,
+$resolvedPerPage = max(
+    1,
     (int) (
-        $totalProfiles
-        ?? 0
+        $perPage
+        ?? 10
     )
 );
-
-$resolvedFirst = max(
-    0,
-    (int) (
-        $firstResultNumber
-        ?? 0
-    )
-);
-
-$resolvedLast = max(
-    0,
-    (int) (
-        $lastResultNumber
-        ?? 0
-    )
-);
-
-$resolvedPagerLinks = is_string(
-    $pagerLinks ?? null
-)
-    ? $pagerLinks
-    : '';
 
 $this->extend(
     'Admin/Layouts/Main'
@@ -86,22 +62,22 @@ $this->section(
 ?>
 
 <div class="container-fluid">
-    <!-- Page heading and status filter. -->
+    <!-- Page heading and Choices.js status filter. -->
     <div class="row">
         <div class="col-12">
             <div
                 class="page-title-box
                     d-sm-flex
-                    align-items-center
+                    align-items-sm-center
                     justify-content-between
                     gap-3">
 
                 <div>
-                    <h1 class="mb-sm-0 fs-18">
+                    <h1 class="mb-1 fs-18">
                         Pre-launch Profiles
                     </h1>
 
-                    <p class="text-muted mb-0 mt-1">
+                    <p class="text-muted mb-0">
                         Review submitted profile details
                         and photographs.
                     </p>
@@ -138,8 +114,8 @@ $this->section(
 
                         <select
                             id="prelaunch-status-filter"
-                            class="form-select"
                             name="status"
+                            class="form-select"
                             data-choice
                             data-choice-search="false"
                             data-choice-position="bottom"
@@ -192,129 +168,98 @@ $this->section(
             border-danger
             border-opacity-25">
 
-        <div class="card-body p-3 p-lg-4">
-            <!-- Search and result summary. -->
-            <div
-                class="d-flex
-                    flex-column
-                    flex-lg-row
-                    align-items-lg-center
-                    justify-content-between
-                    gap-3">
+        <!--
+            Match the working Pending Approval search UI:
+            left-aligned label, input group, Search and Reset buttons.
+        -->
+        <div class="card-header">
+            <form
+                method="get"
+                action="<?= route_to(
+                            'admin.prelaunch.profiles.index'
+                        ) ?>">
 
-                <form
-                    method="get"
-                    action="<?= route_to(
-                                'admin.prelaunch.profiles.index'
-                            ) ?>"
-                    class="flex-grow-1"
-                    role="search">
+                <input
+                    type="hidden"
+                    name="status"
+                    value="<?= esc(
+                                $resolvedStatus,
+                                'attr'
+                            ) ?>">
 
-                    <input
-                        type="hidden"
-                        name="status"
-                        value="<?= esc(
-                                    $resolvedStatus,
-                                    'attr'
-                                ) ?>">
-
+                <div class="row g-2 align-items-end">
                     <div
-                        class="input-group
-                            admin-list-search">
+                        class="col-12
+                            col-md-6
+                            col-xl-4">
 
-                        <span
-                            class="input-group-text
-                                bg-white"
-                            aria-hidden="true">
+                        <label
+                            for="prelaunchProfileSearch"
+                            class="form-label">
+                            Search profiles
+                        </label>
 
-                            <i class="ri-search-line"></i>
-                        </span>
+                        <div class="input-group">
+                            <span
+                                class="input-group-text"
+                                aria-hidden="true">
 
-                        <input
-                            type="search"
-                            id="prelaunch-profile-search"
-                            name="search"
-                            class="form-control"
-                            value="<?= esc(
-                                        $resolvedSearch,
-                                        'attr'
-                                    ) ?>"
-                            maxlength="100"
-                            placeholder="Search reference, member, contact, location or Field Officer"
-                            aria-label="Search prelaunch profiles">
+                                <i class="ri-search-line"></i>
+                            </span>
 
+                            <input
+                                type="search"
+                                id="prelaunchProfileSearch"
+                                name="search"
+                                class="form-control"
+                                value="<?= esc(
+                                            $resolvedSearch,
+                                            'attr'
+                                        ) ?>"
+                                maxlength="100"
+                                placeholder="Name, reference, contact or location">
+                        </div>
+                    </div>
+
+                    <div class="col-6 col-md-auto">
                         <button
                             type="submit"
-                            class="btn btn-primary">
+                            class="btn
+                                btn-primary
+                                w-100">
+
+                            <i
+                                class="ri-search-line me-1"
+                                aria-hidden="true"></i>
 
                             Search
                         </button>
-
-                        <?php if (
-                            $resolvedSearch !== ''
-                        ): ?>
-                            <a
-                                href="<?= esc(
-                                            site_url(
-                                                'admin/prelaunch/profiles'
-                                            )
-                                                . '?status='
-                                                . rawurlencode(
-                                                    $resolvedStatus
-                                                ),
-                                            'attr'
-                                        ) ?>"
-                                class="btn
-                                    btn-soft-secondary">
-
-                                <i
-                                    class="ri-close-line"
-                                    aria-hidden="true"></i>
-
-                                Reset
-                            </a>
-                        <?php endif ?>
                     </div>
-                </form>
 
-                <div
-                    class="text-muted
-                        fs-13 flex-shrink-0">
+                    <div class="col-6 col-md-auto">
+                        <a
+                            href="<?= esc(
+                                        route_to(
+                                            'admin.prelaunch.profiles.index'
+                                        )
+                                            . '?status='
+                                            . rawurlencode(
+                                                $resolvedStatus
+                                            ),
+                                        'attr'
+                                    ) ?>"
+                            class="btn
+                                btn-soft-secondary
+                                w-100">
 
-                    <?php if (
-                        $resolvedTotal > 0
-                    ): ?>
-                        Showing
-
-                        <strong>
-                            <?= esc(
-                                (string) $resolvedFirst
-                            ) ?>
-                        </strong>
-
-                        –
-
-                        <strong>
-                            <?= esc(
-                                (string) $resolvedLast
-                            ) ?>
-                        </strong>
-
-                        of
-
-                        <strong>
-                            <?= esc(
-                                (string) $resolvedTotal
-                            ) ?>
-                        </strong>
-                    <?php else: ?>
-                        No profiles found
-                    <?php endif ?>
+                            Reset
+                        </a>
+                    </div>
                 </div>
-            </div>
+            </form>
         </div>
 
-        <div class="card-body p-0 border-top">
+        <div class="card-body p-0">
             <div class="table-responsive">
                 <table
                     class="table
@@ -362,34 +307,33 @@ $this->section(
                             $resolvedProfiles === []
                         ): ?>
                             <tr>
-                                <td
-                                    colspan="7"
-                                    class="text-center
-                                        text-muted
-                                        py-5">
+                                <td colspan="7">
+                                    <div class="text-center py-5">
+                                        <div
+                                            class="avatar-md
+                                                mx-auto mb-3">
 
-                                    <div
-                                        class="avatar-lg
-                                            rounded-circle
-                                            bg-light
-                                            d-inline-flex
-                                            align-items-center
-                                            justify-content-center
-                                            mb-3">
+                                            <span
+                                                class="avatar-title
+                                                    rounded-circle
+                                                    bg-primary-subtle
+                                                    text-primary
+                                                    fs-24">
 
-                                        <i
-                                            class="ri-user-search-line
-                                                fs-24"
-                                            aria-hidden="true"></i>
-                                    </div>
+                                                <i
+                                                    class="ri-user-search-line"
+                                                    aria-hidden="true"></i>
+                                            </span>
+                                        </div>
 
-                                    <div class="fw-semibold mb-1">
-                                        No prelaunch profiles found
-                                    </div>
+                                        <h2 class="h5 mb-1">
+                                            No profiles found
+                                        </h2>
 
-                                    <div class="fs-13">
-                                        Change the search term or
-                                        selected status.
+                                        <p class="text-muted mb-0">
+                                            Change the search term or
+                                            selected status.
+                                        </p>
                                     </div>
                                 </td>
                             </tr>
@@ -542,10 +486,7 @@ $this->section(
                                     <?php if (
                                         $gender !== ''
                                     ): ?>
-                                        <div
-                                            class="small
-                                                text-muted">
-
+                                        <div class="small text-muted">
                                             <?= esc(
                                                 ucfirst(
                                                     mb_strtolower(
@@ -561,24 +502,19 @@ $this->section(
                                     <?php if (
                                         $email !== ''
                                     ): ?>
-                                        <p class="mb-0">
+                                        <div>
                                             <?= esc($email) ?>
-                                        </p>
+                                        </div>
                                     <?php else: ?>
-                                        <p
-                                            class="text-muted
-                                                mb-0">
+                                        <div class="text-muted">
                                             Not provided
-                                        </p>
+                                        </div>
                                     <?php endif ?>
 
                                     <?php if (
                                         $mobileNumber !== ''
                                     ): ?>
-                                        <div
-                                            class="small
-                                                text-muted">
-
+                                        <div class="small text-muted">
                                             <?= esc(
                                                 trim(
                                                     $countryCode
@@ -608,10 +544,7 @@ $this->section(
                                     <?php if (
                                         $officerCode !== ''
                                     ): ?>
-                                        <div
-                                            class="small
-                                                text-muted">
-
+                                        <div class="small text-muted">
                                             <?= esc(
                                                 $officerCode
                                             ) ?>
@@ -667,23 +600,41 @@ $this->section(
         </div>
 
         <?php if (
-            $resolvedTotal
-            > (int) ($perPage ?? 20)
-            && $resolvedPagerLinks !== ''
+            $resolvedProfiles !== []
         ): ?>
             <div
-                class="card-body
-                    border-top
+                class="card-footer
                     d-flex
-                    justify-content-end
-                    py-3">
+                    flex-column
+                    flex-sm-row
+                    align-items-sm-center
+                    justify-content-between
+                    gap-3">
 
-                <nav
-                    aria-label="Prelaunch profile pages"
-                    class="admin-list-pagination">
+                <span class="text-muted fs-13">
+                    <?= esc(
+                        (string) $resolvedPerPage
+                    ) ?>
+                    profiles per page
+                </span>
 
-                    <?= $resolvedPagerLinks ?>
-                </nav>
+                <div>
+                    <?php
+                    /*
+                     * Preserve filters while paging. The active page value is
+                     * managed separately by CI4 as page_prelaunchProfiles.
+                     */
+                    $pager->only([
+                        'status',
+                        'search',
+                    ]);
+                    ?>
+
+                    <?= $pager->links(
+                        'prelaunchProfiles',
+                        'default_full'
+                    ) ?>
+                </div>
             </div>
         <?php endif ?>
     </div>
