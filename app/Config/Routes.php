@@ -347,8 +347,8 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
         );
 
         /*
-        * Authenticated member partner preferences.
-        */
+ * Authenticated member Partner Preference routes.
+ */
         $routes->group(
             'partner-preference',
             [
@@ -361,10 +361,14 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                     '',
                     'PartnerPreferenceController::index',
                     [
-                        'as' => 'web.partner-preference',
+                        'as' =>
+                        'web.partner-preference',
                     ]
                 );
 
+                /*
+         * Existing Basic preference item routes.
+         */
                 $routes->get(
                     'basic/(:segment)',
                     'PartnerPreferenceController'
@@ -382,6 +386,42 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                     [
                         'as' =>
                         'web.partner-preference.basic.update',
+                    ]
+                );
+
+                /*
+         * Religious, Professional, Location and Special Request.
+         */
+                $routes->get(
+                    'item/(:segment)',
+                    'PartnerPreferenceController'
+                        . '::editItem/$1',
+                    [
+                        'as' =>
+                        'web.partner-preference.item.edit',
+                    ]
+                );
+
+                $routes->post(
+                    'item/(:segment)',
+                    'PartnerPreferenceController'
+                        . '::updateItem/$1',
+                    [
+                        'as' =>
+                        'web.partner-preference.item.update',
+                    ]
+                );
+
+                /*
+         * Dependent state-city master endpoint.
+         */
+                $routes->get(
+                    'master/cities/(:num)',
+                    'PartnerPreferenceController'
+                        . '::cities/$1',
+                    [
+                        'as' =>
+                        'web.partner-preference.master.cities',
                     ]
                 );
             }

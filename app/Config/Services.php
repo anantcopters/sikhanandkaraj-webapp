@@ -87,6 +87,12 @@ use App\Models\MemberPartnerPreferenceDrinkingHabitModel;
 use App\Models\MemberPartnerPreferenceEatingHabitModel;
 use App\Models\MemberPartnerPreferenceMotherTongueModel;
 use App\Services\PartnerPreference\BasicPartnerPreferenceService;
+use App\Models\MemberPartnerLocationPreferenceModel;
+use App\Models\MemberPartnerProfessionalPreferenceModel;
+use App\Models\MemberPartnerReligiousPreferenceModel;
+use App\Models\MemberPartnerSpecialRequestModel;
+use App\Models\PartnerPreferenceSelectionModel;
+use App\Services\PartnerPreference\AdditionalPartnerPreferenceService;
 use App\Services\Sms\SmsProviderFactory;
 use App\Services\Sms\SmsProviderInterface;
 use Aws\CloudFront\CloudFrontClient;
@@ -1153,6 +1159,65 @@ final class Services extends BaseService
             ),
 
             new MemberPartnerPreferenceDrinkingHabitModel(
+                $database
+            ),
+
+            static::profileMasterDataService(false),
+
+            $database
+        );
+    }
+
+    /**
+     * Return the remaining Partner Preference service.
+     */
+    public static function additionalPartnerPreferenceService(
+        bool $getShared = true
+    ): AdditionalPartnerPreferenceService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'additionalPartnerPreferenceService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new AdditionalPartnerPreferenceService(
+            new UserModel($database),
+
+            new MemberPartnerReligiousPreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerProfessionalPreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerLocationPreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerSpecialRequestModel(
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'community',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'education',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'employed_in',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'occupation',
                 $database
             ),
 

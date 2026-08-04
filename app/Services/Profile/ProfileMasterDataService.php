@@ -188,6 +188,74 @@ final class ProfileMasterDataService
     }
 
     /**
+     * Return active master values used by partner preferences.
+     *
+     * @return array<string, mixed>
+     */
+    public function additionalPartnerPreferenceOptions(): array
+    {
+        $india = $this->countryModel->findIndia();
+
+        if (!is_array($india)) {
+            throw new DomainException(
+                'India master data is not configured.'
+            );
+        }
+
+        return [
+            'communities' =>
+            $this->communityModel
+                ->activeOptions(),
+
+            'educations' =>
+            $this->educationModel
+                ->activeOptions(),
+
+            'employmentTypes' => [
+                [
+                    'value' => 'GOVERNMENT_PSU',
+                    'label' => 'Government / PSU',
+                ],
+                [
+                    'value' => 'PRIVATE',
+                    'label' => 'Private',
+                ],
+                [
+                    'value' => 'BUSINESS',
+                    'label' => 'Business',
+                ],
+                [
+                    'value' => 'DEFENSE',
+                    'label' => 'Defense',
+                ],
+                [
+                    'value' => 'SELF_EMPLOYED',
+                    'label' => 'Self Employed',
+                ],
+                [
+                    'value' => 'NOT_WORKING',
+                    'label' => 'Not Working',
+                ],
+            ],
+
+            'occupations' =>
+            $this->occupationModel
+                ->activeOptions(),
+
+            'annualIncomes' =>
+            $this->annualIncomeModel
+                ->activeOptions(),
+
+            'country' => $india,
+
+            'states' =>
+            $this->stateModel->activeForCountry(
+                (int) $india['id']
+            ),
+        ];
+    }
+
+    /**
      * Determine whether an active marital status represents Never Married.
      */
     public function isNeverMarried(
