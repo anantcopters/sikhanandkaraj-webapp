@@ -1394,11 +1394,11 @@ $this->section(
                 <?php if ($isDraft): ?>
                     <div
                         class="modal-footer
-                            flex-column
-                            flex-md-row
-                            align-items-stretch
-                            align-items-md-center">
+        justify-content-end
+        align-items-center
+        gap-2">
 
+                        <!-- Approve photograph -->
                         <form
                             action="<?= esc(
                                         route_to(
@@ -1415,18 +1415,12 @@ $this->section(
 
                             <button
                                 type="submit"
-                                class="btn btn-success
-                                    w-100
-                                    d-inline-flex
-                                    align-items-center
-                                    justify-content-center
-                                    gap-2">
+                                class="btn btn-success"
+                                data-submit-button>
 
                                 <span
-                                    data-submit-loader-label
-                                    class="d-inline-flex
-                                        align-items-center
-                                        gap-2">
+                                    data-submit-idle
+                                    class="d-inline-flex align-items-center gap-2">
 
                                     <i
                                         class="ri-checkbox-circle-line"
@@ -1436,18 +1430,19 @@ $this->section(
                                 </span>
 
                                 <span
-                                    class="d-none"
-                                    data-submit-loader-spinner>
+                                    data-submit-loading
+                                    class="d-none align-items-center gap-2">
 
                                     <span
-                                        class="spinner-border
-                                            spinner-border-sm"
-                                        aria-hidden="true">
-                                    </span>
+                                        class="spinner-border spinner-border-sm"
+                                        aria-hidden="true"></span>
+
+                                    Approving...
                                 </span>
                             </button>
                         </form>
 
+                        <!-- Reject photograph -->
                         <form
                             action="<?= esc(
                                         route_to(
@@ -1464,18 +1459,12 @@ $this->section(
 
                             <button
                                 type="submit"
-                                class="btn btn-outline-danger
-            w-100
-            d-inline-flex
-            align-items-center
-            justify-content-center
-            gap-2">
+                                class="btn btn-outline-danger"
+                                data-submit-button>
 
                                 <span
-                                    data-submit-loader-label
-                                    class="d-inline-flex
-                align-items-center
-                gap-2">
+                                    data-submit-idle
+                                    class="d-inline-flex align-items-center gap-2">
 
                                     <i
                                         class="ri-close-circle-line"
@@ -1485,14 +1474,12 @@ $this->section(
                                 </span>
 
                                 <span
-                                    class="d-none"
-                                    data-submit-loader-spinner>
+                                    data-submit-loading
+                                    class="d-none align-items-center gap-2">
 
                                     <span
-                                        class="spinner-border
-                    spinner-border-sm"
-                                        aria-hidden="true">
-                                    </span>
+                                        class="spinner-border spinner-border-sm"
+                                        aria-hidden="true"></span>
 
                                     Rejecting...
                                 </span>
