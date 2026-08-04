@@ -1800,65 +1800,81 @@ document.addEventListener('DOMContentLoaded', () => {
     // };
 
     /**
-     * Show a mobile-number recommendation when Female is selected.
-     *
-     * @returns {void}
-     */
-    function initializeFemaleMobileRecommendation() {
-        const genderInputs = Array.from(
-            document.querySelectorAll(
-                'select[name="gender"]'
-            )
-        ).filter(function (input) {
-            return input instanceof HTMLInputElement;
-        });
+ * Show the parent's-mobile recommendation when the
+ * prelaunch profile represents a female member.
+ *
+ * The Prelaunch form uses a Gender select with values
+ * MALE and FEMALE. Gender may also be assigned
+ * automatically from Profile Created For.
+ *
+ * @returns {void}
+ */
+    const initializeFemaleMobileRecommendation = () => {
+        const genderSelect =
+            document.getElementById(
+                'gender'
+            );
 
-        const recommendation = document.getElementById(
-            'femaleMobileRecommendation'
-        );
+        const recommendation =
+            document.getElementById(
+                'femaleMobileRecommendation'
+            );
 
         if (
-            genderInputs.length === 0
-            || !(recommendation instanceof HTMLElement)
+            !(
+                genderSelect
+                instanceof HTMLSelectElement
+            )
+            || !(
+                recommendation
+                instanceof HTMLElement
+            )
         ) {
             return;
         }
 
         /**
+         * Show or hide the recommendation using the
+         * current value of the original Gender select.
+         *
+         * Choices.js keeps the original select synchronized
+         * and the existing profile-gender dependency dispatches
+         * a native change event after assigning Gender.
+         *
          * @returns {void}
          */
-        function updateRecommendation() {
-            const selectedGender = genderInputs.find(
-                function (input) {
-                    return input.checked;
-                }
-            );
+        const updateRecommendation = () => {
+            const selectedGender =
+                genderSelect.value
+                    .trim()
+                    .toUpperCase();
 
             recommendation.classList.toggle(
                 'd-none',
-                !selectedGender
-                || selectedGender.value !== 'F'
+                selectedGender !== 'FEMALE'
             );
-        }
+        };
 
-        genderInputs.forEach(function (input) {
-            input.addEventListener(
-                'change',
-                updateRecommendation
-            );
-        });
+        genderSelect.addEventListener(
+            'change',
+            updateRecommendation
+        );
 
+        /*
+         * Restore the correct state after initial page load,
+         * old input or a server-side validation redirect.
+         */
         updateRecommendation();
-    }
+    };
 
     /**
- * Initialize the prelaunch profile saving modal.
- *
- * The current form uses a standard multipart submission. Messages are
- * elapsed-time guidance and do not claim measured backend completion.
- *
- * @returns {void}
- */
+     * Initialize the prelaunch profile saving modal.
+     *
+     * The current form uses a standard multipart submission. Messages are
+     * elapsed-time guidance and do not claim measured backend completion.
+     *
+     * @returns {void}
+     */
     const initializeSavingModal = () => {
         const modalElement =
             document.getElementById(

@@ -483,10 +483,11 @@ $genderOptions = [
                         data-validation-error="mobile_number">
                         <?= esc($mobileDisplayError) ?>
                     </div>
-                    <?= view(
-                        'Components/Forms/FemaleMobileRecommendation'
-                    ) ?>
+
                 </div>
+                <?= view(
+                    'Components/Forms/FemaleMobileRecommendation'
+                ) ?>
             </div>
         </div>
     </div>
