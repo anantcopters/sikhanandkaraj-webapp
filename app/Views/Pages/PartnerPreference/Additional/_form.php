@@ -439,14 +439,29 @@ $formAction = url_to(
             $resolvedItem ===
             AdditionalPreferenceItem::LOCATION
         ): ?>
+            <?php
+            $resolvedStateValues = $arrayValue(
+                'state_ids',
+                $selectedStates
+            );
+
+            $resolvedCityValues = $arrayValue(
+                'city_ids',
+                $selectedCities
+            );
+
+            $hasSelectedStates =
+                $resolvedStateValues !== [];
+            ?>
+
             <div class="col-12">
                 <div
                     class="alert alert-light
                 border mb-0 fs-14">
 
-                    Select the preferred states first. The city
-                    list will then show active cities belonging
-                    to those states.
+                    Select one or more preferred states.
+                    Cities belonging to the selected states
+                    will appear below.
                 </div>
             </div>
 
@@ -473,12 +488,12 @@ $formAction = url_to(
                     'name',
 
                     'selectedValues' =>
-                    $arrayValue(
-                        'state_ids',
-                        $selectedStates
-                    ),
+                    $resolvedStateValues,
 
                     'showSelectAll' =>
+                    true,
+
+                    'disabled' =>
                     false,
 
                     'errors' =>
@@ -513,19 +528,17 @@ $formAction = url_to(
                     'name',
 
                     'selectedValues' =>
-                    $arrayValue(
-                        'city_ids',
-                        $selectedCities
-                    ),
+                    $resolvedCityValues,
 
                     'showSelectAll' =>
-                    false,
+                    true,
 
+                    /*
+             * City remains disabled until at least
+             * one state has been selected.
+             */
                     'disabled' =>
-                    $arrayValue(
-                        'state_ids',
-                        $selectedStates
-                    ) === [],
+                    !$hasSelectedStates,
 
                     'errors' =>
                     $errors,

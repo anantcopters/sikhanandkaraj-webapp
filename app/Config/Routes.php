@@ -413,12 +413,14 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                 );
 
                 /*
-         * Dependent state-city master endpoint.
-         */
+                * Return active cities for one or more selected states.
+                *
+                * Example:
+                * GET /partner-preference/master/cities?state_ids=1,2,3
+                */
                 $routes->get(
-                    'master/cities/(:num)',
-                    'PartnerPreferenceController'
-                        . '::cities/$1',
+                    'master/cities',
+                    'PartnerPreferenceController::cities',
                     [
                         'as' =>
                         'web.partner-preference.master.cities',
@@ -1059,7 +1061,7 @@ $routes->group(
          * collection page is intentionally public.
          */
         $routes->get(
-            'master/cities',
+            'partner-preference/master/cities',
             'PartnerPreferenceController::cities',
             [
                 'as' =>

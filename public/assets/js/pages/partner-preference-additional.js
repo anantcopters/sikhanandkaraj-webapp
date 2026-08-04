@@ -128,6 +128,47 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
+     * Enable or disable the Select All control attached
+     * to a multi-select field.
+     *
+     * @param {HTMLSelectElement} select
+     * @param {boolean} disabled
+     *
+     * @returns {void}
+     */
+    function setSelectAllDisabled(
+        select,
+        disabled
+    ) {
+        const checkbox = form.querySelector(
+            `[data-select-all-target="${select.id}"]`
+        );
+
+        if (
+            !(
+                checkbox
+                instanceof HTMLInputElement
+            )
+        ) {
+            return;
+        }
+
+        checkbox.disabled = disabled;
+
+        if (disabled) {
+            checkbox.checked = false;
+            checkbox.indeterminate = false;
+
+            return;
+        }
+
+        synchronizeSelectAll(
+            checkbox,
+            select
+        );
+    }
+
+    /**
      * Initialize generic Select All controls.
      *
      * @returns {void}
@@ -194,18 +235,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Replace city options while preserving valid selections.
-     *
-     * @param {HTMLSelectElement} citySelect
-     * @param {Array<{
-     *     value:string,
-     *     label:string,
-     *     stateId:string
-     * }>} cities
-     * @param {string[]} previousSelections
-     *
-     * @returns {void}
-     */
+ * Replace city options while preserving selections that
+ * still belong to one of the currently selected states.
+ *
+ * @param {HTMLSelectElement} citySelect
+ * @param {Array<{
+ *     value:string,
+ *     label:string,
+ *     stateId:string
+ * }>} cities
+ * @param {string[]} previousSelections
+ *
+ * @returns {void}
+ */
     function replaceCities(
         citySelect,
         cities,
@@ -261,8 +303,16 @@ document.addEventListener('DOMContentLoaded', () => {
             citySelect.appendChild(option);
         });
 
+        const hasCities =
+            cities.length > 0;
+
         citySelect.disabled =
-            cities.length === 0;
+            !hasCities;
+
+        setSelectAllDisabled(
+            citySelect,
+            !hasCities
+        );
 
         if (
             window.SelectChoice
@@ -273,6 +323,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 citySelect
             );
         }
+
+        citySelect.dispatchEvent(
+            new Event(
+                'change',
+                {
+                    bubbles: true
+                }
+            )
+        );
     }
 
     /**
@@ -312,6 +371,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ) {
             return;
         }
+
+        setSelectAllDisabled(
+            citySelect,
+            citySelect.disabled
+            || citySelect.options.length === 0
+        );
 
         const baseUrl =
             cityUrlInput.value.trim();
