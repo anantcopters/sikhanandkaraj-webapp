@@ -239,11 +239,6 @@ $communityClass =
                     class="form-label">
 
                     Parent/Guardian Contact Number
-                    <span
-                        class="text-danger"
-                        aria-hidden="true">
-                        *
-                    </span>
                 </label>
 
                 <div class="input-group has-validation">
@@ -289,7 +284,7 @@ $communityClass =
                 <div
                     id="parent_contact_numberHelp"
                     class="form-text color-pink">
-                    Enter the mobile number of either parent, when available.
+                    Enter the mobile number of either parent/guardian, when available.
                 </div>
             </div>
 
@@ -413,7 +408,7 @@ $communityClass =
                     <?= esc($gotraError) ?>
                 </div>
             </div>
-            <div class="col-12">
+            <div class="col-12 col-md-6">
                 <label
                     for="nearest_gurudwara"
                     class="form-label">

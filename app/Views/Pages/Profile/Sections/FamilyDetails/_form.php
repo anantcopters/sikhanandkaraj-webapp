@@ -518,7 +518,7 @@ if ($isJourney) {
             <div
                 id="parentContactNumberHelp"
                 class="form-text text-muted">
-                Enter the mobile number of either parent, when available.
+                Enter the mobile number of either parent/guardian, when available.
             </div>
         </div>
         <div class="col-12">
