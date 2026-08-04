@@ -385,6 +385,25 @@ $messagesActive =
                                 </span>
                             </a>
 
+                            <!-- Edit Preference -->
+                            <a
+                                class="dropdown-item"
+                                href="<?= url_to('web.partner-preference') ?>">
+
+                                <i
+                                    class="ri-equalizer-line
+                                    text-muted
+                                    fs-16
+                                    align-middle
+                                    me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                <span class="align-middle">
+                                    Edit Preferences
+                                </span>
+                            </a>
+
                             <!-- Account Settings -->
                             <a
                                 class="dropdown-item"
