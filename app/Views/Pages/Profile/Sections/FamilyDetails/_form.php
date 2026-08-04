@@ -460,9 +460,10 @@ if ($isJourney) {
                 class="form-label">
 
                 Parent/Guardian Contact Number
-
-                <span class="text-muted fw-normal">
-                    (Optional)
+                <span
+                    class="text-danger"
+                    aria-hidden="true">
+                    *
                 </span>
             </label>
 
@@ -493,6 +494,7 @@ if ($isJourney) {
                     minlength="10"
                     maxlength="10"
                     autocomplete="tel"
+                    data-error-required="Please enter a contact number for either parent/guardian."
                     data-error-pattern="Please enter a valid 10-digit Indian parent/guardian contact number."
                     data-error-minlength="Parent contact number must contain 10 digits."
                     data-error-maxlength="Parent contact number must contain 10 digits."

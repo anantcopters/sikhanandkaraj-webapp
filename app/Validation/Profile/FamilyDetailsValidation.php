@@ -79,12 +79,15 @@ final class FamilyDetailsValidation
             ),
 
             'parent_contact_number' => [
-                'label' => 'Parent/Guardian Contact Number',
+                'label' => 'Any Parent/Guardian Contact Number',
                 'rules' => [
-                    'permit_empty',
+                    'required',
                     'regex_match[/^[6-9][0-9]{9}$/]',
                 ],
                 'errors' => [
+                    'required' =>
+                    'Please enter a contact number for either parent/guardian.',
+
                     'regex_match' =>
                     'Please enter a valid 10-digit Indian parent/guardian contact number.',
                 ],

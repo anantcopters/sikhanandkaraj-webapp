@@ -13,6 +13,8 @@ final class PrelaunchProfileValidation
 {
 
     private const NEAREST_GURUDWARA_MAX_LENGTH = 300;
+
+    private const PARENT_CONTACT_NUMBER_LENGTH = 10;
     /**
      * Return the complete profile-creation validation rules.
      *
@@ -182,12 +184,15 @@ final class PrelaunchProfileValidation
                 ),
 
                 'parent_contact_number' => [
-                    'label' => 'Parent/Guardian Contact Number',
+                    'label' => 'Any Parent/Guradian Contact Number',
                     'rules' => [
-                        'permit_empty',
+                        'required',
                         'regex_match[/^[6-9][0-9]{9}$/]',
                     ],
                     'errors' => [
+                        'required' =>
+                        'Please enter a contact number for either parent/guardian.',
+
                         'regex_match' =>
                         'Please enter a valid 10-digit Indian parent/guardian contact number.',
                     ],

@@ -33,10 +33,14 @@ $motherName = (string) old(
     ''
 );
 
-$parentContactNumber = (string) old(
-    'parent_contact_number',
-    ''
-);
+$parentContactNumber = preg_replace(
+    '/^\+91/',
+    '',
+    (string) old(
+        'parent_contact_number',
+        ''
+    )
+) ?? '';
 
 $gotra = (string) old(
     'gotra',
@@ -235,9 +239,10 @@ $communityClass =
                     class="form-label">
 
                     Parent/Guardian Contact Number
-
-                    <span class="color-pink fs-12">
-                        (Optional)
+                    <span
+                        class="text-danger"
+                        aria-hidden="true">
+                        *
                     </span>
                 </label>
 
@@ -265,6 +270,7 @@ $communityClass =
                         maxlength="10"
                         autocomplete="tel"
                         aria-describedby="parent_contact_numberHelp parent_contact_numberError"
+                        data-error-required="Please enter a contact number for either parent/guardian."
                         data-error-pattern="Please enter a valid 10-digit Indian parent/guardian contact number."
                         data-error-minlength="Parent contact number must contain 10 digits."
                         data-error-maxlength="Parent contact number must contain 10 digits.">

@@ -131,7 +131,7 @@ final class FamilyDetailsService
         );
 
         $parentContactNumber =
-            $this->optionalParentContactNumber(
+            $this->requiredParentContactNumber(
                 $data['parent_contact_number']
                     ?? null
             );
@@ -264,11 +264,11 @@ final class FamilyDetailsService
     }
 
     /**
-     * Normalize an optional Indian parent contact number.
+     * Normalize and require an Indian parent contact number.
      */
-    private function optionalParentContactNumber(
+    private function requiredParentContactNumber(
         mixed $value
-    ): ?string {
+    ): string {
         $submittedValue = preg_replace(
             '/\D+/',
             '',
@@ -276,7 +276,9 @@ final class FamilyDetailsService
         ) ?? '';
 
         if ($submittedValue === '') {
-            return null;
+            throw new DomainException(
+                'Please enter a contact number for either parent/guardian.'
+            );
         }
 
         $normalized =
@@ -287,7 +289,7 @@ final class FamilyDetailsService
         if ($normalized === null) {
             throw new DomainException(
                 'Please enter a valid 10-digit Indian '
-                    . 'parent contact number.'
+                    . 'parent/guardian contact number.'
             );
         }
 
@@ -538,6 +540,11 @@ final class FamilyDetailsService
 
             $this->hasRequiredText(
                 $details['mother_name'] ?? null
+            ),
+
+            $this->hasRequiredText(
+                $details['parent_contact_number']
+                    ?? null
             ),
 
             $this->hasValidSiblingCount(

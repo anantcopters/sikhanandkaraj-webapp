@@ -761,8 +761,9 @@ final class PrelaunchMemberMigrationService
                         ?? null,
 
                     'parent_contact_number' =>
-                    $this->nullableText(
-                        $profile['parent_contact_number'] ?? null
+                    $this->requireText(
+                        $profile['parent_contact_number'] ?? null,
+                        'The prelaunch parent contact number is missing.'
                     ),
 
                     /*
