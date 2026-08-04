@@ -129,16 +129,30 @@ final class PrelaunchProfileModel extends Model
     }
 
     /**
-     * Return pre-launch profiles for the administrator list.
+     * Return one page of prelaunch profiles for administrator review.
      *
-     * LEFT JOIN is intentional. A missing or inactive master record must
-     * not make the complete pre-launch profile disappear from admin review.
+     * Search is performed only against administrator-visible profile fields.
+     * The query remains server-side so the listing scales when prelaunch data
+     * becomes large.
      *
      * @return list<array<string, mixed>>
      */
     public function listForAdmin(
-        ?string $status = null
+        ?string $status = null,
+        ?string $search = null,
+        int $limit = 20,
+        int $offset = 0
     ): array {
+        $safeLimit = max(
+            1,
+            min($limit, 100)
+        );
+
+        $safeOffset = max(
+            0,
+            $offset
+        );
+
         $builder = $this->db
             ->table(
                 $this->table
@@ -149,30 +163,227 @@ final class PrelaunchProfileModel extends Model
             $builder
         );
 
-        if ($status !== null) {
-            $builder->where(
-                'prelaunch_profiles.status',
-                mb_strtoupper(
-                    trim($status)
-                )
-            );
-        }
+        $this->applyAdminListFilters(
+            $builder,
+            $status,
+            $search
+        );
 
-        $builder
-            ->where(
-                'prelaunch_profiles.deleted_at',
-                null
-            )
+        return $builder
             ->orderBy(
                 'prelaunch_profiles.created_at',
                 'DESC'
-            );
-
-        return $builder
+            )
+            ->limit(
+                $safeLimit,
+                $safeOffset
+            )
             ->get()
             ->getResultArray();
     }
 
+    /**
+     * Count profiles matching the administrator list filters.
+     */
+    public function countForAdmin(
+        ?string $status = null,
+        ?string $search = null
+    ): int {
+        $builder = $this->db
+            ->table(
+                $this->table
+                    . ' AS prelaunch_profiles'
+            )
+            ->select(
+                'COUNT(DISTINCT prelaunch_profiles.id) AS aggregate_count',
+                false
+            );
+
+        /*
+     * Only joins needed by searchable administrator fields are applied.
+     */
+        $builder
+            ->join(
+                'field_officers',
+                'field_officers.id = '
+                    . 'prelaunch_profiles.field_officer_id',
+                'left'
+            )
+            ->join(
+                'master_countries',
+                'master_countries.id = '
+                    . 'prelaunch_profiles.country_id',
+                'left'
+            )
+            ->join(
+                'master_states',
+                'master_states.id = '
+                    . 'prelaunch_profiles.state_id',
+                'left'
+            )
+            ->join(
+                'master_cities',
+                'master_cities.id = '
+                    . 'prelaunch_profiles.city_id',
+                'left'
+            );
+
+        $this->applyAdminListFilters(
+            $builder,
+            $status,
+            $search
+        );
+
+        $record = $builder
+            ->get()
+            ->getRowArray();
+
+        return max(
+            0,
+            (int) (
+                $record['aggregate_count']
+                ?? 0
+            )
+        );
+    }
+
+    /**
+     * Apply filters shared by administrator list and count queries.
+     */
+    private function applyAdminListFilters(
+        \CodeIgniter\Database\BaseBuilder $builder,
+        ?string $status,
+        ?string $search
+    ): void {
+        $normalizedStatus = mb_strtoupper(
+            trim((string) $status)
+        );
+
+        if (
+            in_array(
+                $normalizedStatus,
+                [
+                    self::STATUS_DRAFT,
+                    self::STATUS_APPROVED,
+                    self::STATUS_REJECTED,
+                ],
+                true
+            )
+        ) {
+            $builder->where(
+                'prelaunch_profiles.status',
+                $normalizedStatus
+            );
+        }
+
+        $builder->where(
+            'prelaunch_profiles.deleted_at',
+            null
+        );
+
+        $normalizedSearch = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim((string) $search)
+        ) ?? '';
+
+        if ($normalizedSearch === '') {
+            return;
+        }
+
+        /*
+     * Escape LIKE wildcard characters so user input such as %, _ and \
+     * is treated as ordinary search text.
+     */
+        $escapedSearch = $this->db
+            ->escapeLikeString(
+                mb_strtolower(
+                    $normalizedSearch
+                )
+            );
+
+        /*
+     * Quote the complete LIKE value through the database connection.
+     *
+     * Example:
+     *
+     * '%toor%' becomes the SQL-safe literal '\'%toor%\''
+     */
+        $quotedPattern = $this->db->escape(
+            '%' . $escapedSearch . '%'
+        );
+
+        /*
+     * PostgreSQL expressions are written as complete SQL conditions.
+     * The search value itself has already been safely escaped and quoted.
+     */
+        $builder
+            ->groupStart()
+            ->where(
+                'LOWER(prelaunch_profiles.profile_reference) '
+                    . 'LIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'LOWER(prelaunch_profiles.full_name) '
+                    . 'LIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'LOWER(COALESCE(prelaunch_profiles.email, \'\')) '
+                    . 'LIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'LOWER(CONCAT('
+                    . 'COALESCE(prelaunch_profiles.country_code, \'\'), '
+                    . 'COALESCE(prelaunch_profiles.mobile_number, \'\')'
+                    . ')) LIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'LOWER(COALESCE('
+                    . 'prelaunch_profiles.mobile_number, \'\''
+                    . ')) LIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'LOWER(COALESCE(field_officers.full_name, \'\')) '
+                    . 'LIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'LOWER(COALESCE(field_officers.officer_code, \'\')) '
+                    . 'LIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'LOWER(COALESCE(master_countries.name, \'\')) '
+                    . 'LIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'LOWER(COALESCE(master_states.name, \'\')) '
+                    . 'LIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'LOWER(COALESCE(master_cities.name, \'\')) '
+                    . 'LIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->groupEnd();
+    }
     /**
      * Return one complete profile for administrator review.
      *

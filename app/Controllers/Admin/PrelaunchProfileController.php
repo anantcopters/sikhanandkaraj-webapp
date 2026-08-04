@@ -21,16 +21,11 @@ use Throwable;
 final class PrelaunchProfileController extends BaseController
 {
     /**
-     * Display the administrator prelaunch-profile listing.
+     * Display the searchable and paginated prelaunch profile listing.
      */
     public function index(): string
     {
         $this->assertFeatureEnabled();
-
-        /** @var PrelaunchAdminReviewService $service */
-        $service = service(
-            'prelaunchAdminReviewService'
-        );
 
         $status = mb_strtoupper(
             trim(
@@ -53,6 +48,59 @@ final class PrelaunchProfileController extends BaseController
             $status = 'DRAFT';
         }
 
+        $search = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim(
+                (string) $this->request
+                    ->getGet('search')
+            )
+        ) ?? '';
+
+        $search = mb_substr(
+            $search,
+            0,
+            100
+        );
+
+        $page = max(
+            1,
+            (int) $this->request
+                ->getGet('page')
+        );
+
+        /*
+     * A fixed page size keeps the screen and query predictable.
+     */
+        $perPage = 20;
+
+        /** @var PrelaunchAdminReviewService $service */
+        $service = service(
+            'prelaunchAdminReviewService'
+        );
+
+        $result = $service->listProfiles(
+            $status,
+            $search,
+            $page,
+            $perPage
+        );
+
+        $pager = service('pager');
+
+        /*
+     * Pager links use the existing query-string pagination mode. The view
+     * also preserves status and search in its navigation URLs.
+     */
+        $pagerLinks = $pager->makeLinks(
+            $result['page'],
+            $result['perPage'],
+            $result['total'],
+            'default_full',
+            0,
+            'prelaunch_profiles'
+        );
+
         return view(
             'Admin/Prelaunch/Profiles/Index',
             [
@@ -60,15 +108,46 @@ final class PrelaunchProfileController extends BaseController
                 'Pre-launch Profiles',
 
                 'profiles' =>
-                $service->listProfiles(
-                    $status
-                ),
+                $result['profiles'],
 
                 'selectedStatus' =>
-                $status,
+                $result['status'],
+
+                'searchTerm' =>
+                $result['search'],
+
+                'currentPage' =>
+                $result['page'],
+
+                'perPage' =>
+                $result['perPage'],
+
+                'totalProfiles' =>
+                $result['total'],
+
+                'firstResultNumber' =>
+                $result['total'] > 0
+                    ? $result['offset'] + 1
+                    : 0,
+
+                'lastResultNumber' =>
+                min(
+                    $result['offset']
+                        + count(
+                            $result['profiles']
+                        ),
+                    $result['total']
+                ),
+
+                'pagerLinks' =>
+                $pagerLinks,
 
                 'formAlert' =>
                 session('formAlert'),
+
+                'pageScripts' => [
+                    'assets/js/pages/admin-prelaunch-profiles.js',
+                ],
             ]
         );
     }
