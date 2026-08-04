@@ -9,6 +9,7 @@ use App\Models\Prelaunch\PrelaunchPhotoModel;
 use App\Services\Prelaunch\PrelaunchAdminReviewService;
 use App\Services\Prelaunch\PrelaunchPhotoService;
 use App\Validation\Prelaunch\PrelaunchProfileValidation;
+use App\Models\Prelaunch\PrelaunchProfileModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -26,7 +27,7 @@ final class PrelaunchProfileController extends BaseController
     private const PROFILES_PER_PAGE = 10;
 
     /**
-     * Display the searchable and paginated prelaunch profile listing.
+     * Display the searchable and paginated prelaunch-profile listing.
      */
     public function index(): string
     {

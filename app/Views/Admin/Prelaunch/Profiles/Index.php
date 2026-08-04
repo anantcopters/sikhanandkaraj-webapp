@@ -62,7 +62,6 @@ $this->section(
 ?>
 
 <div class="container-fluid">
-    <!-- Page heading and Choices.js status filter. -->
     <div class="row">
         <div class="col-12">
             <div
@@ -83,6 +82,7 @@ $this->section(
                     </p>
                 </div>
 
+                <!-- Choices.js status filter -->
                 <div
                     class="page-title-right
                         mt-3 mt-sm-0">
@@ -168,10 +168,7 @@ $this->section(
             border-danger
             border-opacity-25">
 
-        <!--
-            Match the working Pending Approval search UI:
-            left-aligned label, input group, Search and Reset buttons.
-        -->
+        <!-- Search UI matching Pending Approval -->
         <div class="card-header">
             <form
                 method="get"
@@ -621,8 +618,11 @@ $this->section(
                 <div>
                     <?php
                     /*
-                     * Preserve filters while paging. The active page value is
-                     * managed separately by CI4 as page_prelaunchProfiles.
+                     * Preserve filters when moving between pages.
+                     *
+                     * CI4 manages the page query parameter as:
+                     *
+                     * page_prelaunchProfiles
                      */
                     $pager->only([
                         'status',
