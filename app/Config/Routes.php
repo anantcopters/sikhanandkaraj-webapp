@@ -1059,10 +1059,11 @@ $routes->group(
          * collection page is intentionally public.
          */
         $routes->get(
-            'master/cities/(:num)',
-            'PrelaunchProfileController::cities/$1',
+            'master/cities',
+            'PartnerPreferenceController::cities',
             [
-                'as' => 'prelaunch.master.cities',
+                'as' =>
+                'web.partner-preference.master.cities',
             ]
         );
 

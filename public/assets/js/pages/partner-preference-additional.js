@@ -14,116 +14,372 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Initialize dependent state-city selection.
+     * Return all selectable option values.
+     *
+     * @param {HTMLSelectElement} select
+     *
+     * @returns {string[]}
+     */
+    function optionValues(select) {
+        return Array.from(select.options)
+            .filter((option) => {
+                return (
+                    option.value !== ''
+                    && !option.disabled
+                );
+            })
+            .map((option) => {
+                return option.value;
+            });
+    }
+
+    /**
+     * Return currently selected values.
+     *
+     * @param {HTMLSelectElement} select
+     *
+     * @returns {string[]}
+     */
+    function selectedValues(select) {
+        return Array.from(
+            select.selectedOptions
+        )
+            .map((option) => {
+                return option.value;
+            })
+            .filter((value) => {
+                return value !== '';
+            });
+    }
+
+    /**
+     * Update Choices.js or native selection values.
+     *
+     * @param {HTMLSelectElement} select
+     * @param {string[]} values
+     *
+     * @returns {void}
+     */
+    function setSelectedValues(select, values) {
+        const normalized = new Set(
+            values.map(String)
+        );
+
+        Array.from(select.options)
+            .forEach((option) => {
+                option.selected =
+                    normalized.has(
+                        option.value
+                    );
+            });
+
+        /*
+         * The project SelectChoice wrapper may expose a
+         * refresh/recreate method. Recreate is used only when
+         * it is available; native selection remains the fallback.
+         */
+        if (
+            window.SelectChoice
+            && typeof window.SelectChoice.destroy
+            === 'function'
+            && typeof window.SelectChoice.create
+            === 'function'
+        ) {
+            window.SelectChoice.destroy(select);
+
+            window.SelectChoice.create(select);
+        }
+
+        select.dispatchEvent(
+            new Event(
+                'change',
+                {
+                    bubbles: true
+                }
+            )
+        );
+    }
+
+    /**
+     * Synchronize one Select All checkbox.
+     *
+     * @param {HTMLInputElement} checkbox
+     * @param {HTMLSelectElement} select
+     *
+     * @returns {void}
+     */
+    function synchronizeSelectAll(
+        checkbox,
+        select
+    ) {
+        const allValues = optionValues(select);
+
+        const selected = selectedValues(select);
+
+        checkbox.checked =
+            allValues.length > 0
+            && selected.length
+            === allValues.length;
+
+        checkbox.indeterminate =
+            selected.length > 0
+            && selected.length
+            < allValues.length;
+    }
+
+    /**
+     * Initialize generic Select All controls.
+     *
+     * @returns {void}
+     */
+    function initializeSelectAll() {
+        const checkboxes = form.querySelectorAll(
+            '[data-select-all-target]'
+        );
+
+        checkboxes.forEach((element) => {
+            if (
+                !(element
+                    instanceof HTMLInputElement)
+            ) {
+                return;
+            }
+
+            const targetId = String(
+                element.dataset
+                    .selectAllTarget || ''
+            );
+
+            const select =
+                document.getElementById(
+                    targetId
+                );
+
+            if (
+                !(
+                    select
+                    instanceof HTMLSelectElement
+                )
+            ) {
+                return;
+            }
+
+            synchronizeSelectAll(
+                element,
+                select
+            );
+
+            element.addEventListener(
+                'change',
+                () => {
+                    setSelectedValues(
+                        select,
+                        element.checked
+                            ? optionValues(select)
+                            : []
+                    );
+                }
+            );
+
+            select.addEventListener(
+                'change',
+                () => {
+                    synchronizeSelectAll(
+                        element,
+                        select
+                    );
+                }
+            );
+        });
+    }
+
+    /**
+     * Replace city options while preserving valid selections.
+     *
+     * @param {HTMLSelectElement} citySelect
+     * @param {Array<{
+     *     value:string,
+     *     label:string,
+     *     stateId:string
+     * }>} cities
+     * @param {string[]} previousSelections
+     *
+     * @returns {void}
+     */
+    function replaceCities(
+        citySelect,
+        cities,
+        previousSelections
+    ) {
+        if (
+            window.SelectChoice
+            && typeof window.SelectChoice.destroy
+            === 'function'
+        ) {
+            window.SelectChoice.destroy(
+                citySelect
+            );
+        }
+
+        citySelect.replaceChildren();
+
+        const validValues = new Set(
+            cities.map((city) => {
+                return String(city.value);
+            })
+        );
+
+        const preservedSelections =
+            previousSelections.filter(
+                (value) => {
+                    return validValues.has(
+                        String(value)
+                    );
+                }
+            );
+
+        cities.forEach((city) => {
+            const option =
+                document.createElement(
+                    'option'
+                );
+
+            option.value =
+                String(city.value);
+
+            option.textContent =
+                String(city.label);
+
+            option.dataset.stateId =
+                String(city.stateId);
+
+            option.selected =
+                preservedSelections.includes(
+                    String(city.value)
+                );
+
+            citySelect.appendChild(option);
+        });
+
+        citySelect.disabled =
+            cities.length === 0;
+
+        if (
+            window.SelectChoice
+            && typeof window.SelectChoice.create
+            === 'function'
+        ) {
+            window.SelectChoice.create(
+                citySelect
+            );
+        }
+    }
+
+    /**
+     * Initialize multi-state dependent city selection.
      *
      * @returns {void}
      */
     function initializeStateCity() {
-        const stateSelect = document.getElementById(
-            'partnerStateId'
-        );
+        const stateSelect =
+            document.getElementById(
+                'stateIds'
+            );
 
-        const citySelect = document.getElementById(
-            'partnerCityId'
-        );
+        const citySelect =
+            document.getElementById(
+                'cityIds'
+            );
+
+        const cityUrlInput =
+            document.getElementById(
+                'partnerCitiesUrl'
+            );
 
         if (
-            !(stateSelect instanceof HTMLSelectElement)
-            || !(citySelect instanceof HTMLSelectElement)
+            !(
+                stateSelect
+                instanceof HTMLSelectElement
+            )
+            || !(
+                citySelect
+                instanceof HTMLSelectElement
+            )
+            || !(
+                cityUrlInput
+                instanceof HTMLInputElement
+            )
         ) {
             return;
         }
 
-        const baseUrl = String(
-            citySelect.dataset.citiesUrl || ''
-        );
+        const baseUrl =
+            cityUrlInput.value.trim();
 
         if (baseUrl === '') {
             return;
         }
 
+        let requestController = null;
+
         /**
-         * @param {Array<{value:string,label:string}>} cities
-         * @param {string} selectedValue
+         * Load cities for every selected state.
+         *
+         * @returns {Promise<void>}
          */
-        function replaceCities(
-            cities,
-            selectedValue = ''
-        ) {
-            window.SelectChoice?.destroy(
-                citySelect
-            );
+        async function loadCities() {
+            const stateIds =
+                selectedValues(stateSelect);
 
-            citySelect.replaceChildren();
+            const previousCities =
+                selectedValues(citySelect);
 
-            const placeholder =
-                document.createElement('option');
-
-            placeholder.value = '';
-            placeholder.textContent =
-                cities.length > 0
-                    ? 'Select city'
-                    : 'No cities available';
-
-            citySelect.appendChild(
-                placeholder
-            );
-
-            cities.forEach((city) => {
-                const option =
-                    document.createElement(
-                        'option'
-                    );
-
-                option.value =
-                    String(city.value);
-
-                option.textContent =
-                    String(city.label);
-
-                option.selected =
-                    String(city.value)
-                    === String(selectedValue);
-
-                citySelect.appendChild(
-                    option
+            if (stateIds.length === 0) {
+                replaceCities(
+                    citySelect,
+                    [],
+                    []
                 );
-            });
 
-            citySelect.disabled =
-                cities.length === 0;
-
-            window.SelectChoice?.create(
-                citySelect
-            );
-        }
-
-        /**
-         * @param {string} stateId
-         * @param {string} selectedCityId
-         */
-        async function loadCities(
-            stateId,
-            selectedCityId = ''
-        ) {
-            if (stateId === '') {
-                replaceCities([], '');
                 return;
             }
 
+            if (
+                requestController
+                instanceof AbortController
+            ) {
+                requestController.abort();
+            }
+
+            requestController =
+                new AbortController();
+
             citySelect.disabled = true;
+
+            const query = new URLSearchParams({
+                state_ids:
+                    stateIds.join(',')
+            });
 
             try {
                 const response = await fetch(
-                    `${baseUrl}/${encodeURIComponent(stateId)}`,
+                    `${baseUrl}?${query.toString()}`,
                     {
                         method: 'GET',
+
                         headers: {
-                            Accept: 'application/json',
+                            Accept:
+                                'application/json',
+
                             'X-Requested-With':
                                 'XMLHttpRequest'
                         },
-                        credentials: 'same-origin'
+
+                        credentials:
+                            'same-origin',
+
+                        signal:
+                            requestController.signal
                     }
                 );
 
@@ -137,98 +393,45 @@ document.addEventListener('DOMContentLoaded', () => {
                     await response.json();
 
                 replaceCities(
+                    citySelect,
+
                     Array.isArray(payload.data)
                         ? payload.data
                         : [],
-                    selectedCityId
+
+                    previousCities
                 );
             } catch (error) {
+                if (
+                    error instanceof DOMException
+                    && error.name
+                    === 'AbortError'
+                ) {
+                    return;
+                }
+
                 console.error(error);
 
-                replaceCities([], '');
+                replaceCities(
+                    citySelect,
+                    [],
+                    []
+                );
             }
         }
 
         stateSelect.addEventListener(
             'change',
             () => {
-                loadCities(
-                    stateSelect.value
-                );
+                loadCities();
             }
         );
-
-        const selectedCityId = String(
-            citySelect.dataset.selectedCity
-            || ''
-        );
-
-        if (
-            stateSelect.value !== ''
-            && citySelect.options.length <= 1
-        ) {
-            loadCities(
-                stateSelect.value,
-                selectedCityId
-            );
-        }
     }
 
     /**
-     * Validate annual-income From/To ordering.
+     * Activate the existing project loader.
      *
-     * This assumes master options are rendered in increasing
-     * income order. Server-side validation remains authoritative.
-     *
-     * @returns {boolean}
-     */
-    function validateIncomeRange() {
-        const item = String(
-            form.dataset.preferenceItem || ''
-        );
-
-        if (item !== 'annual-income') {
-            return true;
-        }
-
-        const from = document.getElementById(
-            'annualIncomeFromId'
-        );
-
-        const to = document.getElementById(
-            'annualIncomeToId'
-        );
-
-        if (
-            !(from instanceof HTMLSelectElement)
-            || !(to instanceof HTMLSelectElement)
-            || from.value === ''
-            || to.value === ''
-        ) {
-            return true;
-        }
-
-        if (
-            from.selectedIndex
-            > to.selectedIndex
-        ) {
-            to.setCustomValidity(
-                'Minimum annual income cannot exceed maximum annual income.'
-            );
-
-            to.reportValidity();
-            to.focus();
-
-            return false;
-        }
-
-        to.setCustomValidity('');
-
-        return true;
-    }
-
-    /**
-     * Display the existing project loader.
+     * @returns {void}
      */
     function showSavingState() {
         if (
@@ -263,11 +466,6 @@ document.addEventListener('DOMContentLoaded', () => {
     form.addEventListener(
         'submit',
         (event) => {
-            if (!validateIncomeRange()) {
-                event.preventDefault();
-                return;
-            }
-
             if (
                 event.defaultPrevented
                 || !form.checkValidity()
@@ -287,6 +485,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 0);
         }
     );
+
+    initializeSelectAll();
 
     initializeStateCity();
 });

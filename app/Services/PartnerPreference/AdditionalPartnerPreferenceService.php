@@ -63,6 +63,15 @@ final class AdditionalPartnerPreferenceService
         private readonly PartnerPreferenceSelectionModel
         $occupationSelectionModel,
 
+        private readonly PartnerPreferenceSelectionModel
+        $annualIncomeSelectionModel,
+
+        private readonly PartnerPreferenceSelectionModel
+        $stateSelectionModel,
+
+        private readonly PartnerPreferenceSelectionModel
+        $citySelectionModel,
+
         private readonly ProfileMasterDataService
         $masterDataService,
 
@@ -70,7 +79,8 @@ final class AdditionalPartnerPreferenceService
     ) {}
 
     /**
-     * Return overview sections.
+     * Return Religious, Professional, Location and Special Request
+     * sections for the overview screen.
      *
      * @return list<array<string, mixed>>
      */
@@ -119,6 +129,30 @@ final class AdditionalPartnerPreferenceService
             $this->occupationSelectionModel
         );
 
+        $annualIncomeIds = $this->selectedValues(
+            $professional,
+            $this->annualIncomeSelectionModel
+        );
+
+        $stateIds = $this->selectedValues(
+            $location,
+            $this->stateSelectionModel
+        );
+
+        $cityIds = $this->selectedValues(
+            $location,
+            $this->citySelectionModel
+        );
+
+        $cities = $this
+            ->masterDataService
+            ->citiesForStates(
+                array_map(
+                    'intval',
+                    $stateIds
+                )
+            );
+
         $religiousItems = [
             $this->summaryItem(
                 AdditionalPreferenceItem::COMMUNITY,
@@ -164,39 +198,54 @@ final class AdditionalPartnerPreferenceService
 
             $this->summaryItem(
                 AdditionalPreferenceItem::ANNUAL_INCOME,
-                isset(
-                    $professional['annual_income_from_id'],
-                    $professional['annual_income_to_id']
-                ),
-                $this->incomeRangeLabel(
-                    $professional['annual_income_from_id'] ?? null,
-                    $professional['annual_income_to_id'] ?? null,
+                $annualIncomeIds !== [],
+                $this->masterLabels(
+                    $annualIncomeIds,
                     $masterData['annualIncomes']
                 ),
                 $professional['annual_income_match_mode'] ?? false
             ),
         ];
 
+        $stateLabels = $this->masterLabels(
+            $stateIds,
+            $masterData['states']
+        );
+
+        $cityLabels = $this->masterLabels(
+            $cityIds,
+            $cities
+        );
+
+        $locationValue = null;
+
+        if (
+            $stateLabels !== null
+            && $cityLabels !== null
+        ) {
+            $locationValue =
+                'States: '
+                . $stateLabels
+                . ' | Cities: '
+                . $cityLabels;
+        }
+
         $locationItems = [
             $this->summaryItem(
                 AdditionalPreferenceItem::LOCATION,
-                is_array($location),
-                is_array($location)
-                    ? trim(
-                        (string) (
-                            $location['city_name'] ?? ''
-                        )
-                    )
-                    . ', '
-                    . trim(
-                        (string) (
-                            $location['state_name'] ?? ''
-                        )
-                    )
-                    : null,
+                $stateIds !== []
+                    && $cityIds !== [],
+                $locationValue,
                 $location['location_match_mode'] ?? false
             ),
         ];
+
+        $requestText = trim(
+            (string) (
+                $specialRequest['request_text']
+                ?? ''
+            )
+        );
 
         $specialItems = [
             [
@@ -209,25 +258,15 @@ final class AdditionalPartnerPreferenceService
                 ),
 
                 'value' =>
-                trim(
-                    (string) (
-                        $specialRequest['request_text']
-                        ?? ''
-                    )
-                ) !== ''
-                    ? (string) $specialRequest['request_text']
+                $requestText !== ''
+                    ? $requestText
                     : 'Not added',
 
                 'isCompleted' =>
-                is_array($specialRequest)
-                    && trim(
-                        (string) (
-                            $specialRequest['request_text']
-                            ?? ''
-                        )
-                    ) !== '',
+                $requestText !== '',
 
-                'isCompulsory' => false,
+                'isCompulsory' =>
+                false,
             ],
         ];
 
@@ -251,7 +290,7 @@ final class AdditionalPartnerPreferenceService
             $this->section(
                 'location',
                 'Location',
-                'Preferred state and city.',
+                'Select one or more preferred states and cities.',
                 'ri-map-pin-line text-primary',
                 $locationItems
             ),
@@ -267,7 +306,7 @@ final class AdditionalPartnerPreferenceService
     }
 
     /**
-     * Return one edit-page payload.
+     * Return data required by one Additional Preference form.
      *
      * @return array<string, mixed>
      */
@@ -276,6 +315,7 @@ final class AdditionalPartnerPreferenceService
         string $item
     ): array {
         $this->assertSupportedItem($item);
+
         $this->assertUserExists($userId);
 
         $religious = $this
@@ -294,31 +334,36 @@ final class AdditionalPartnerPreferenceService
             ->specialRequestModel
             ->findForUser($userId);
 
-        $selectedStateId = is_array($location)
-            && is_numeric(
-                $location['state_id'] ?? null
+        $selectedStateIds = array_map(
+            'intval',
+            $this->selectedValues(
+                $location,
+                $this->stateSelectionModel
             )
-            ? (int) $location['state_id']
-            : null;
+        );
 
         $masterData = $this
             ->masterDataService
             ->additionalPartnerPreferenceOptions();
 
-        $masterData['cities'] =
-            $selectedStateId !== null
-            ? $this->masterDataService
-            ->citiesForState($selectedStateId)
-            : [];
+        $masterData['cities'] = $this
+            ->masterDataService
+            ->citiesForStates(
+                $selectedStateIds
+            );
 
         return [
             'item' => $item,
 
             'itemTitle' =>
-            AdditionalPreferenceItem::title($item),
+            AdditionalPreferenceItem::title(
+                $item
+            ),
 
             'sectionKey' =>
-            AdditionalPreferenceItem::section($item),
+            AdditionalPreferenceItem::section(
+                $item
+            ),
 
             'religiousPreference' =>
             $religious,
@@ -356,9 +401,25 @@ final class AdditionalPartnerPreferenceService
                     $professional,
                     $this->occupationSelectionModel
                 ),
+
+                'annualIncomes' =>
+                $this->selectedValues(
+                    $professional,
+                    $this->annualIncomeSelectionModel
+                ),
+
+                'states' =>
+                $selectedStateIds,
+
+                'cities' =>
+                $this->selectedValues(
+                    $location,
+                    $this->citySelectionModel
+                ),
             ],
 
-            'masterData' => $masterData,
+            'masterData' =>
+            $masterData,
         ];
     }
 
@@ -633,18 +694,17 @@ final class AdditionalPartnerPreferenceService
     }
 
     /**
+     * Save selected annual-income brackets.
+     *
      * @param array<string, mixed> $data
      */
     private function saveAnnualIncome(
         int $userId,
         array $data
     ): void {
-        $fromId = (int) (
-            $data['annual_income_from_id'] ?? 0
-        );
-
-        $toId = (int) (
-            $data['annual_income_to_id'] ?? 0
+        $ids = $this->normalizeIntegerIds(
+            $data['annual_income_ids']
+                ?? []
         );
 
         $masterData = $this
@@ -652,28 +712,9 @@ final class AdditionalPartnerPreferenceService
             ->additionalPartnerPreferenceOptions();
 
         $this->assertMasterIds(
-            [$fromId, $toId],
+            $ids,
             $masterData['annualIncomes']
         );
-
-        $fromRow = $this->masterRow(
-            $fromId,
-            $masterData['annualIncomes']
-        );
-
-        $toRow = $this->masterRow(
-            $toId,
-            $masterData['annualIncomes']
-        );
-
-        if (
-            (int) ($fromRow['min_amount'] ?? 0)
-            > (int) ($toRow['min_amount'] ?? 0)
-        ) {
-            throw new DomainException(
-                'Minimum annual income cannot exceed maximum annual income.'
-            );
-        }
 
         $parentId = $this->ensureParent(
             $this->professionalModel,
@@ -684,75 +725,92 @@ final class AdditionalPartnerPreferenceService
             $this->professionalModel->update(
                 $parentId,
                 [
-                    'annual_income_from_id' =>
-                    $fromId,
-
-                    'annual_income_to_id' =>
-                    $toId,
-
                     'annual_income_match_mode' =>
                     $this->strictMode($data),
                 ]
             )
         );
+
+        $this->assertSaved(
+            $this->annualIncomeSelectionModel
+                ->replaceSelections(
+                    $parentId,
+                    $ids
+                )
+        );
     }
 
     /**
+     * Save selected states and cities.
+     *
      * @param array<string, mixed> $data
      */
     private function saveLocation(
         int $userId,
         array $data
     ): void {
-        $stateId = (int) (
-            $data['state_id'] ?? 0
+        $stateIds = $this->normalizeIntegerIds(
+            $data['state_ids'] ?? []
         );
 
-        $cityId = (int) (
-            $data['city_id'] ?? 0
+        $cityIds = $this->normalizeIntegerIds(
+            $data['city_ids'] ?? []
         );
 
-        $states = $this
+        $masterData = $this
             ->masterDataService
-            ->additionalPartnerPreferenceOptions()['states'];
+            ->additionalPartnerPreferenceOptions();
 
         $this->assertMasterIds(
-            [$stateId],
-            $states
+            $stateIds,
+            $masterData['states']
         );
 
         $cities = $this
             ->masterDataService
-            ->citiesForState($stateId);
+            ->citiesForStates(
+                $stateIds
+            );
 
         $this->assertMasterIds(
-            [$cityId],
+            $cityIds,
             $cities
         );
 
-        $existing = $this
-            ->locationModel
-            ->findForUser($userId);
+        /*
+     * City validation against citiesForStates() ensures every
+     * selected city belongs to one of the selected states.
+     */
+        $parentId = $this->ensureParent(
+            $this->locationModel,
+            $userId
+        );
 
-        $payload = [
-            'user_id' => $userId,
-            'state_id' => $stateId,
-            'city_id' => $cityId,
-            'location_match_mode' =>
-            $this->strictMode($data),
-        ];
-
-        $saved = is_array($existing)
-            ? $this->locationModel->update(
-                (int) $existing['id'],
-                $payload
+        $this->assertSaved(
+            $this->locationModel->update(
+                $parentId,
+                [
+                    'location_match_mode' =>
+                    $this->strictMode($data),
+                ]
             )
-            : $this->locationModel->insert(
-                $payload,
-                false
-            );
+        );
 
-        $this->assertSaved($saved);
+        $this->assertSaved(
+            $this->stateSelectionModel
+                ->replaceSelections(
+                    $parentId,
+                    $stateIds
+                )
+        );
+
+        $this->assertSaved(
+            $this->citySelectionModel
+                ->replaceSelections(
+                    $parentId,
+                    $cityIds
+                )
+        );
     }
 
     /**

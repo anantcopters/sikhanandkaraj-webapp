@@ -26,11 +26,11 @@ final class MemberPartnerProfessionalPreferenceModel extends Model
         'user_id',
 
         'education_match_mode',
+
         'employed_in_match_mode',
+
         'occupation_match_mode',
 
-        'annual_income_from_id',
-        'annual_income_to_id',
         'annual_income_match_mode',
     ];
 
@@ -45,6 +45,8 @@ final class MemberPartnerProfessionalPreferenceModel extends Model
     protected $skipValidation = true;
 
     /**
+     * Find the professional preference parent for one user.
+     *
      * @return array<string, mixed>|null
      */
     public function findForUser(int $userId): ?array

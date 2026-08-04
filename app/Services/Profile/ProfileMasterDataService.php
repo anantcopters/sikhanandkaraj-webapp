@@ -323,6 +323,40 @@ final class ProfileMasterDataService
         return $this->cityModel->activeForState($stateId);
     }
 
+    /**
+     * Return active cities for multiple states.
+     *
+     * @param list<int> $stateIds
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function citiesForStates(
+        array $stateIds
+    ): array {
+        $normalizedStateIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $stateIds
+                    ),
+                    static fn(int $stateId): bool =>
+                    $stateId > 0
+                )
+            )
+        );
+
+        if ($normalizedStateIds === []) {
+            return [];
+        }
+
+        return $this
+            ->cityModel
+            ->activeForStates(
+                $normalizedStateIds
+            );
+    }
+
     public function assertValidSelection(
         int $maritalStatusId,
         int $heightId,

@@ -312,11 +312,44 @@ final class PartnerPreferenceController extends BaseController
     }
 
     /**
-     * Return active cities for the Location preference.
+     * Return active cities for one or more selected states.
      */
-    public function cities(int $stateId)
+    public function cities()
     {
-        if ($stateId <= 0) {
+        $stateIds = $this->request
+            ->getGet('state_ids');
+
+        if (is_string($stateIds)) {
+            $stateIds = explode(
+                ',',
+                $stateIds
+            );
+        }
+
+        if (!is_array($stateIds)) {
+            $stateIds = [];
+        }
+
+        $normalizedStateIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        static function (
+                            mixed $stateId
+                        ): int {
+                            return (int) trim(
+                                (string) $stateId
+                            );
+                        },
+                        $stateIds
+                    ),
+                    static fn(int $stateId): bool =>
+                    $stateId > 0
+                )
+            )
+        );
+
+        if ($normalizedStateIds === []) {
             return $this->response->setJSON([
                 'data' => [],
             ]);
@@ -324,7 +357,9 @@ final class PartnerPreferenceController extends BaseController
 
         $cities = service(
             'profileMasterDataService'
-        )->citiesForState($stateId);
+        )->citiesForStates(
+            $normalizedStateIds
+        );
 
         return $this->response->setJSON([
             'data' => array_map(
@@ -334,6 +369,9 @@ final class PartnerPreferenceController extends BaseController
 
                     'label' =>
                     (string) $city['name'],
+
+                    'stateId' =>
+                    (string) $city['state_id'],
                 ],
                 $cities
             ),
@@ -395,20 +433,9 @@ final class PartnerPreferenceController extends BaseController
             ],
 
             AdditionalPreferenceItem::ANNUAL_INCOME => [
-                'annual_income_from_id' =>
-                trim(
-                    (string) $this->request
-                        ->getPost(
-                            'annual_income_from_id'
-                        )
-                ),
-
-                'annual_income_to_id' =>
-                trim(
-                    (string) $this->request
-                        ->getPost(
-                            'annual_income_to_id'
-                        )
+                'annual_income_ids' =>
+                $this->arrayInput(
+                    'annual_income_ids'
                 ),
 
                 'is_compulsory' =>
@@ -416,16 +443,14 @@ final class PartnerPreferenceController extends BaseController
             ],
 
             AdditionalPreferenceItem::LOCATION => [
-                'state_id' =>
-                trim(
-                    (string) $this->request
-                        ->getPost('state_id')
+                'state_ids' =>
+                $this->arrayInput(
+                    'state_ids'
                 ),
 
-                'city_id' =>
-                trim(
-                    (string) $this->request
-                        ->getPost('city_id')
+                'city_ids' =>
+                $this->arrayInput(
+                    'city_ids'
                 ),
 
                 'is_compulsory' =>

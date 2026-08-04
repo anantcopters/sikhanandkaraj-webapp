@@ -132,6 +132,25 @@ $selectedOccupations = is_array(
     ? $resolvedSelectedValues['occupations']
     : [];
 
+
+$selectedAnnualIncomes = is_array(
+    $resolvedSelectedValues['annualIncomes'] ?? null
+)
+    ? $resolvedSelectedValues['annualIncomes']
+    : [];
+
+$selectedStates = is_array(
+    $resolvedSelectedValues['states'] ?? null
+)
+    ? $resolvedSelectedValues['states']
+    : [];
+
+$selectedCities = is_array(
+    $resolvedSelectedValues['cities'] ?? null
+)
+    ? $resolvedSelectedValues['cities']
+    : [];
+
 /**
  * Resolve submitted array input before stored values.
  *
@@ -371,122 +390,48 @@ $formAction = url_to(
             $resolvedItem ===
             AdditionalPreferenceItem::ANNUAL_INCOME
         ): ?>
-            <?php foreach (
+            <?= view(
+                'Pages/PartnerPreference/'
+                    . 'Additional/_multi_select',
                 [
-                    'annual_income_from_id' => [
-                        'id' =>
-                        'annualIncomeFromId',
-                        'label' =>
-                        'Annual Income From',
-                        'placeholder' =>
-                        'Select minimum income',
-                    ],
+                    'field' =>
+                    'annual_income_ids',
 
-                    'annual_income_to_id' => [
-                        'id' =>
-                        'annualIncomeToId',
-                        'label' =>
-                        'Annual Income To',
-                        'placeholder' =>
-                        'Select maximum income',
-                    ],
-                ] as $field => $configuration
-            ): ?>
-                <div class="col-12 col-sm-6">
-                    <label
-                        for="<?= esc(
-                                    $configuration['id'],
-                                    'attr'
-                                ) ?>"
-                        class="form-labelm">
+                    'label' =>
+                    'Annual Income',
 
-                        <?= esc(
-                            $configuration['label']
-                        ) ?>
+                    'placeholder' =>
+                    'Select annual income options',
 
-                        <span class="text-danger">*</span>
-                    </label>
+                    'options' =>
+                    $annualIncomes,
 
-                    <select
-                        id="<?= esc(
-                                $configuration['id'],
-                                'attr'
-                            ) ?>"
-                        name="<?= esc(
-                                    $field,
-                                    'attr'
-                                ) ?>"
-                        class="form-select <?= isset(
-                                                $errors[$field]
-                                            )
-                                                ? 'is-invalid'
-                                                : '' ?>"
-                        data-choice
-                        data-choice-position="bottom"
-                        required>
+                    'optionValueKey' =>
+                    'id',
 
-                        <option value="">
-                            <?= esc(
-                                $configuration['placeholder']
-                            ) ?>
-                        </option>
+                    'optionLabelKey' =>
+                    'display_name',
 
-                        <?php foreach (
-                            $annualIncomes as $income
-                        ): ?>
-                            <?php
-                            $incomeId = (int) (
-                                $income['id'] ?? 0
-                            );
+                    'selectedValues' =>
+                    $arrayValue(
+                        'annual_income_ids',
+                        $selectedAnnualIncomes
+                    ),
 
-                            $incomeLabel = trim(
-                                (string) (
-                                    $income['display_name']
-                                    ?? $income['name']
-                                    ?? ''
-                                )
-                            );
-                            ?>
+                    'showSelectAll' =>
+                    false,
 
-                            <?php if (
-                                $incomeId > 0
-                                && $incomeLabel !== ''
-                            ): ?>
-                                <option
-                                    value="<?= esc(
-                                                (string) $incomeId,
-                                                'attr'
-                                            ) ?>"
-                                    <?= $fieldValue(
-                                        $field,
-                                        $professional[$field] ?? ''
-                                    ) ===
-                                        (string) $incomeId
-                                        ? 'selected'
-                                        : '' ?>>
+                    'errors' =>
+                    $errors,
+                ]
+            ) ?>
 
-                                    <?= esc(
-                                        $incomeLabel
-                                    ) ?>
-                                </option>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                    </select>
-
-                    <?= view(
-                        'Components/Forms/FieldError',
-                        [
-                            'field' => $field,
-
-                            'errorId' =>
-                            $configuration['id']
-                                . 'Error',
-
-                            'errors' => $errors,
-                        ]
-                    ) ?>
+            <div class="col-12">
+                <div class="form-text text-secondary">
+                    Select one or more acceptable annual-income
+                    brackets.
                 </div>
-            <?php endforeach; ?>
+            </div>
         <?php endif; ?>
 
 
@@ -494,147 +439,109 @@ $formAction = url_to(
             $resolvedItem ===
             AdditionalPreferenceItem::LOCATION
         ): ?>
-            <?php
-            $selectedStateId = $fieldValue(
-                'state_id',
-                $location['state_id'] ?? ''
-            );
+            <div class="col-12">
+                <div
+                    class="alert alert-light
+                border mb-0 fs-14">
 
-            $selectedCityId = $fieldValue(
-                'city_id',
-                $location['city_id'] ?? ''
-            );
-            ?>
-
-            <div class="col-12 col-sm-6">
-                <label
-                    for="partnerStateId"
-                    class="form-labelm">
-
-                    State
-                    <span class="text-danger">*</span>
-                </label>
-
-                <select
-                    id="partnerStateId"
-                    name="state_id"
-                    class="form-select <?= isset(
-                                            $errors['state_id']
-                                        )
-                                            ? 'is-invalid'
-                                            : '' ?>"
-                    data-choice
-                    data-choice-search="true"
-                    data-choice-position="bottom"
-                    required>
-
-                    <option value="">
-                        Select state
-                    </option>
-
-                    <?php foreach (
-                        $states as $state
-                    ): ?>
-                        <option
-                            value="<?= esc(
-                                        (string) $state['id'],
-                                        'attr'
-                                    ) ?>"
-                            <?= $selectedStateId ===
-                                (string) $state['id']
-                                ? 'selected'
-                                : '' ?>>
-
-                            <?= esc(
-                                (string) $state['name']
-                            ) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-
-                <?= view(
-                    'Components/Forms/FieldError',
-                    [
-                        'field' => 'state_id',
-                        'errorId' =>
-                        'partnerStateIdError',
-                        'errors' => $errors,
-                    ]
-                ) ?>
+                    Select the preferred states first. The city
+                    list will then show active cities belonging
+                    to those states.
+                </div>
             </div>
 
-            <div class="col-12 col-sm-6">
-                <label
-                    for="partnerCityId"
-                    class="form-labelm">
+            <?= view(
+                'Pages/PartnerPreference/'
+                    . 'Additional/_multi_select',
+                [
+                    'field' =>
+                    'state_ids',
 
-                    City
-                    <span class="text-danger">*</span>
-                </label>
+                    'label' =>
+                    'Preferred States',
 
-                <select
-                    id="partnerCityId"
-                    name="city_id"
-                    class="form-select <?= isset(
-                                            $errors['city_id']
-                                        )
-                                            ? 'is-invalid'
-                                            : '' ?>"
-                    data-choice
-                    data-choice-search="true"
-                    data-choice-position="bottom"
-                    data-cities-url="<?= esc(
-                                            site_url(
-                                                'partner-preference/'
-                                                    . 'master/cities'
-                                            ),
-                                            'attr'
-                                        ) ?>"
-                    data-selected-city="<?= esc(
-                                            $selectedCityId,
-                                            'attr'
-                                        ) ?>"
-                    <?= $selectedStateId === ''
-                        ? 'disabled'
-                        : '' ?>
-                    required>
+                    'placeholder' =>
+                    'Select states',
 
-                    <option value="">
-                        <?= $selectedStateId === ''
-                            ? 'Select state first'
-                            : 'Select city' ?>
-                    </option>
+                    'options' =>
+                    $states,
 
-                    <?php foreach (
-                        $cities as $city
-                    ): ?>
-                        <option
-                            value="<?= esc(
-                                        (string) $city['id'],
-                                        'attr'
-                                    ) ?>"
-                            <?= $selectedCityId ===
-                                (string) $city['id']
-                                ? 'selected'
-                                : '' ?>>
+                    'optionValueKey' =>
+                    'id',
 
-                            <?= esc(
-                                (string) $city['name']
-                            ) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                    'optionLabelKey' =>
+                    'name',
 
-                <?= view(
-                    'Components/Forms/FieldError',
-                    [
-                        'field' => 'city_id',
-                        'errorId' =>
-                        'partnerCityIdError',
-                        'errors' => $errors,
-                    ]
-                ) ?>
+                    'selectedValues' =>
+                    $arrayValue(
+                        'state_ids',
+                        $selectedStates
+                    ),
+
+                    'showSelectAll' =>
+                    false,
+
+                    'errors' =>
+                    $errors,
+                ]
+            ) ?>
+
+            <div class="col-12">
+                <hr class="my-1">
             </div>
+
+            <?= view(
+                'Pages/PartnerPreference/'
+                    . 'Additional/_multi_select',
+                [
+                    'field' =>
+                    'city_ids',
+
+                    'label' =>
+                    'Preferred Cities',
+
+                    'placeholder' =>
+                    'Select cities',
+
+                    'options' =>
+                    $cities,
+
+                    'optionValueKey' =>
+                    'id',
+
+                    'optionLabelKey' =>
+                    'name',
+
+                    'selectedValues' =>
+                    $arrayValue(
+                        'city_ids',
+                        $selectedCities
+                    ),
+
+                    'showSelectAll' =>
+                    false,
+
+                    'disabled' =>
+                    $arrayValue(
+                        'state_ids',
+                        $selectedStates
+                    ) === [],
+
+                    'errors' =>
+                    $errors,
+                ]
+            ) ?>
+
+            <input
+                type="hidden"
+                id="partnerCitiesUrl"
+                value="<?= esc(
+                            url_to(
+                                'web.partner-preference'
+                                    . '.master.cities'
+                            ),
+                            'attr'
+                        ) ?>">
         <?php endif; ?>
 
 

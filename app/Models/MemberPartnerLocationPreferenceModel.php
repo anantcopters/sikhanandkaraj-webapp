@@ -7,7 +7,9 @@ namespace App\Models;
 use CodeIgniter\Model;
 
 /**
- * Stores the member's preferred state and city.
+ * Stores the parent Location Partner Preference row.
+ *
+ * States and cities are stored in dedicated junction tables.
  */
 final class MemberPartnerLocationPreferenceModel extends Model
 {
@@ -24,8 +26,6 @@ final class MemberPartnerLocationPreferenceModel extends Model
 
     protected $allowedFields = [
         'user_id',
-        'state_id',
-        'city_id',
         'location_match_mode',
     ];
 
@@ -40,32 +40,14 @@ final class MemberPartnerLocationPreferenceModel extends Model
     protected $skipValidation = true;
 
     /**
+     * Find the location preference parent for one user.
+     *
      * @return array<string, mixed>|null
      */
     public function findForUser(int $userId): ?array
     {
         $row = $this
-            ->select([
-                'member_partner_location_preferences.*',
-                'master_states.name AS state_name',
-                'master_cities.name AS city_name',
-            ])
-            ->join(
-                'master_states',
-                'master_states.id = '
-                    . 'member_partner_location_preferences.state_id',
-                'left'
-            )
-            ->join(
-                'master_cities',
-                'master_cities.id = '
-                    . 'member_partner_location_preferences.city_id',
-                'left'
-            )
-            ->where(
-                'member_partner_location_preferences.user_id',
-                $userId
-            )
+            ->where('user_id', $userId)
             ->first();
 
         return is_array($row)

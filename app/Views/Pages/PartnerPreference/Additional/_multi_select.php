@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 /**
+ * Reusable searchable multi-select with a Select All option.
+ *
  * @var string                     $field
  * @var string                     $label
  * @var string                     $placeholder
@@ -11,7 +13,53 @@ declare(strict_types=1);
  * @var string                     $optionLabelKey
  * @var list<int|string>           $selectedValues
  * @var array<string, string>      $errors
+ * @var bool|null                  $showSelectAll
+ * @var bool|null                  $disabled
  */
+
+$resolvedField = trim(
+    (string) ($field ?? '')
+);
+
+$resolvedLabel = trim(
+    (string) ($label ?? '')
+);
+
+$resolvedPlaceholder = trim(
+    (string) ($placeholder ?? '')
+);
+
+$resolvedOptions = is_array(
+    $options ?? null
+)
+    ? $options
+    : [];
+
+$resolvedSelectedValues = is_array(
+    $selectedValues ?? null
+)
+    ? $selectedValues
+    : [];
+
+$resolvedErrors = is_array(
+    $errors ?? null
+)
+    ? $errors
+    : [];
+
+$resolvedValueKey = trim(
+    (string) ($optionValueKey ?? 'id')
+);
+
+$resolvedLabelKey = trim(
+    (string) ($optionLabelKey ?? 'name')
+);
+
+$resolvedShowSelectAll =
+    ($showSelectAll ?? true) === true;
+
+$isDisabled =
+    ($disabled ?? false) === true;
 
 $fieldId = lcfirst(
     str_replace(
@@ -21,16 +69,21 @@ $fieldId = lcfirst(
             str_replace(
                 '_',
                 ' ',
-                $field
+                $resolvedField
             )
         )
     )
 );
 
-$selectedStrings = array_map(
-    static fn(mixed $value): string =>
-    (string) $value,
-    $selectedValues
+$selectAllId =
+    $fieldId . 'SelectAll';
+
+$selectedStrings = array_values(
+    array_map(
+        static fn(mixed $value): string =>
+        (string) $value,
+        $resolvedSelectedValues
+    )
 );
 ?>
 
@@ -42,10 +95,45 @@ $selectedStrings = array_map(
                 ) ?>"
         class="form-labelm">
 
-        <?= esc($label) ?>
+        <?= esc($resolvedLabel) ?>
 
         <span class="text-danger">*</span>
     </label>
+
+    <?php if ($resolvedShowSelectAll): ?>
+        <div
+            class="d-flex align-items-center
+                justify-content-end mb-2">
+
+            <div class="form-check">
+                <input
+                    type="checkbox"
+                    class="form-check-input"
+                    id="<?= esc(
+                            $selectAllId,
+                            'attr'
+                        ) ?>"
+                    data-select-all-target="<?= esc(
+                                                $fieldId,
+                                                'attr'
+                                            ) ?>"
+                    <?= $isDisabled
+                        ? 'disabled'
+                        : '' ?>>
+
+                <label
+                    class="form-check-label
+                        fs-13 fw-medium"
+                    for="<?= esc(
+                                $selectAllId,
+                                'attr'
+                            ) ?>">
+
+                    Select All
+                </label>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <select
         id="<?= esc(
@@ -53,11 +141,11 @@ $selectedStrings = array_map(
                 'attr'
             ) ?>"
         name="<?= esc(
-                    $field,
+                    $resolvedField,
                     'attr'
                 ) ?>[]"
         class="form-select <?= isset(
-                                $errors[$field]
+                                $resolvedErrors[$resolvedField]
                             )
                                 ? 'is-invalid'
                                 : '' ?>"
@@ -65,22 +153,33 @@ $selectedStrings = array_map(
         data-choice-search="true"
         data-choice-position="bottom"
         data-choice-search-placeholder="Search"
+        data-error-required="<?= esc(
+                                    'Please select at least one '
+                                        . strtolower(
+                                            $resolvedLabel
+                                        )
+                                        . '.',
+                                    'attr'
+                                ) ?>"
+        <?= $isDisabled
+            ? 'disabled'
+            : '' ?>
         multiple
         required>
 
         <?php foreach (
-            $options as $option
+            $resolvedOptions as $option
         ): ?>
             <?php
             $value = trim(
                 (string) (
-                    $option[$optionValueKey] ?? ''
+                    $option[$resolvedValueKey] ?? ''
                 )
             );
 
             $text = trim(
                 (string) (
-                    $option[$optionLabelKey] ?? ''
+                    $option[$resolvedLabelKey] ?? ''
                 )
             );
             ?>
@@ -111,12 +210,14 @@ $selectedStrings = array_map(
     <?= view(
         'Components/Forms/FieldError',
         [
-            'field' => $field,
+            'field' =>
+            $resolvedField,
 
             'errorId' =>
             $fieldId . 'Error',
 
-            'errors' => $errors,
+            'errors' =>
+            $resolvedErrors,
         ]
     ) ?>
 </div>

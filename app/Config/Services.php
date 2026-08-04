@@ -1169,7 +1169,8 @@ final class Services extends BaseService
     }
 
     /**
-     * Return the remaining Partner Preference service.
+     * Return the Religious, Professional, Location and
+     * Special Request Partner Preference service.
      */
     public static function additionalPartnerPreferenceService(
         bool $getShared = true
@@ -1218,6 +1219,21 @@ final class Services extends BaseService
 
             new PartnerPreferenceSelectionModel(
                 'occupation',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'annual_income',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'state',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'city',
                 $database
             ),
 
