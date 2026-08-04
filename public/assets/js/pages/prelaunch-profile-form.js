@@ -1800,6 +1800,58 @@ document.addEventListener('DOMContentLoaded', () => {
     // };
 
     /**
+     * Show a mobile-number recommendation when Female is selected.
+     *
+     * @returns {void}
+     */
+    function initializeFemaleMobileRecommendation() {
+        const genderInputs = Array.from(
+            document.querySelectorAll(
+                'select[name="gender"]'
+            )
+        ).filter(function (input) {
+            return input instanceof HTMLInputElement;
+        });
+
+        const recommendation = document.getElementById(
+            'femaleMobileRecommendation'
+        );
+
+        if (
+            genderInputs.length === 0
+            || !(recommendation instanceof HTMLElement)
+        ) {
+            return;
+        }
+
+        /**
+         * @returns {void}
+         */
+        function updateRecommendation() {
+            const selectedGender = genderInputs.find(
+                function (input) {
+                    return input.checked;
+                }
+            );
+
+            recommendation.classList.toggle(
+                'd-none',
+                !selectedGender
+                || selectedGender.value !== 'F'
+            );
+        }
+
+        genderInputs.forEach(function (input) {
+            input.addEventListener(
+                'change',
+                updateRecommendation
+            );
+        });
+
+        updateRecommendation();
+    }
+
+    /**
  * Initialize the prelaunch profile saving modal.
  *
  * The current form uses a standard multipart submission. Messages are
@@ -2020,6 +2072,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializePhotoPreviews();
     //initializeFieldOfficerVerification();
     initializeSavingModal();
+    initializeFemaleMobileRecommendation();
 
     /**
  * Initialize State → City dependency.

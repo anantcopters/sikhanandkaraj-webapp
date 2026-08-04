@@ -41,7 +41,7 @@ $this->section('content');
             <div class="col-12 col-lg-5">
                 <div class="registration-card">
 
-                    
+
                     <div class="registration-card__body mt-4">
 
                         <h2 class="fs-20 fw-semibold text-center lh-base mt-0 mb-3">
@@ -353,7 +353,7 @@ $this->section('content');
                                             <?= $mobileHasError
                                                 ? 'aria-invalid="true"'
                                                 : '' ?>
-                                            aria-describedby="mobileNumberError mobileNumberHelp"
+                                            aria-describedby="mobileNumberError mobileNumberHelp femaleMobileRecommendation"
                                             placeholder="Enter Mobile Number"
                                             inputmode="numeric"
                                             pattern="[6-9][0-9]{9}"
@@ -377,6 +377,9 @@ $this->section('content');
                                             class="form-text color-pink">
                                             OTP will be sent to this number. Prefer WhatsApp Number
                                         </div>
+                                        <?= view(
+                                            'Components/Forms/FemaleMobileRecommendation'
+                                        ) ?>
                                     </div>
                                 </div>
                             </div>

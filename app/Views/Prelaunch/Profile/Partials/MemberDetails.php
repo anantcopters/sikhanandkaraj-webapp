@@ -464,7 +464,7 @@ $genderOptions = [
                                     $mobileNumber,
                                     'attr'
                                 ) ?>"
-                        aria-describedby="mobile_numberError"
+                        aria-describedby="mobile_numberError femaleMobileRecommendation"
                         placeholder="Enter mobile number"
                         inputmode="numeric"
                         pattern="[6-9][0-9]{9}"
@@ -483,6 +483,9 @@ $genderOptions = [
                         data-validation-error="mobile_number">
                         <?= esc($mobileDisplayError) ?>
                     </div>
+                    <?= view(
+                        'Components/Forms/FemaleMobileRecommendation'
+                    ) ?>
                 </div>
             </div>
         </div>
