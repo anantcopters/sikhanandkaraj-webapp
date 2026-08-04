@@ -144,6 +144,40 @@ final class ProfileMasterDataService
     }
 
     /**
+     * Return active master data used by Basic Partner Preference.
+     *
+     * @return array<string, list<array<string, mixed>>>
+     */
+    public function partnerBasicPreferenceOptions(): array
+    {
+        return [
+            'maritalStatuses' =>
+            $this->maritalStatusModel
+                ->activeOrdered(),
+
+            'heights' =>
+            $this->heightModel
+                ->activeOrdered(),
+
+            'motherTongues' =>
+            $this->motherTongueModel
+                ->activeOrdered(),
+
+            'physicalStatuses' =>
+            $this->physicalStatusModel
+                ->activeOrdered(),
+
+            'eatingHabits' =>
+            $this->eatingHabitModel
+                ->activeOrdered(),
+
+            'drinkingHabits' =>
+            $this->drinkingHabitModel
+                ->activeOrdered(),
+        ];
+    }
+
+    /**
      * Determine whether an active marital status represents Never Married.
      */
     public function isNeverMarried(

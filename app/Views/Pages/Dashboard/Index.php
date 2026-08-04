@@ -225,14 +225,9 @@ $matchSections = [
                                 <span>Edit Profile</span>
                             </a>
 
-                            <!--
-                                Preference management route has not yet been
-                                added to Routes.php.
-                            -->
-                            <span
-                                class="list-group-item d-flex align-items-center gap-2 py-3 text-muted"
-                                aria-disabled="true"
-                                title="Preference management will be available soon">
+                            <a
+                                href="<?= url_to('web.partner-preference') ?>"
+                                class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-3">
 
                                 <i
                                     class="ri-equalizer-line fs-18"
@@ -240,7 +235,7 @@ $matchSections = [
                                 </i>
 
                                 <span>Edit Preferences</span>
-                            </span>
+                            </a>
 
                             <a
                                 href="<?= url_to(

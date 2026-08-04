@@ -347,6 +347,47 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
         );
 
         /*
+        * Authenticated member partner preferences.
+        */
+        $routes->group(
+            'partner-preference',
+            [
+                'filter' => 'webAuth',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->get(
+                    '',
+                    'PartnerPreferenceController::index',
+                    [
+                        'as' => 'web.partner-preference',
+                    ]
+                );
+
+                $routes->get(
+                    'basic/(:segment)',
+                    'PartnerPreferenceController'
+                        . '::editBasicItem/$1',
+                    [
+                        'as' =>
+                        'web.partner-preference.basic.edit',
+                    ]
+                );
+
+                $routes->post(
+                    'basic/(:segment)',
+                    'PartnerPreferenceController'
+                        . '::updateBasicItem/$1',
+                    [
+                        'as' =>
+                        'web.partner-preference.basic.update',
+                    ]
+                );
+            }
+        );
+
+        /*
         * Authenticated member profile preview.
         *
         * This page shows the logged-in member how the approved profile

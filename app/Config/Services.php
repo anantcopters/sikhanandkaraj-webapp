@@ -82,6 +82,11 @@ use App\Services\Profile\ProfileMasterDataService;
 use App\Services\Profile\SikhReligiousDetailsService;
 use App\Services\Registration\RegisterFreeService;
 use App\Services\Registration\RegistrationOtpService;
+use App\Models\MemberPartnerBasicPreferenceModel;
+use App\Models\MemberPartnerPreferenceDrinkingHabitModel;
+use App\Models\MemberPartnerPreferenceEatingHabitModel;
+use App\Models\MemberPartnerPreferenceMotherTongueModel;
+use App\Services\PartnerPreference\BasicPartnerPreferenceService;
 use App\Services\Sms\SmsProviderFactory;
 use App\Services\Sms\SmsProviderInterface;
 use Aws\CloudFront\CloudFrontClient;
@@ -1115,6 +1120,45 @@ final class Services extends BaseService
             database: $database,
 
             configuration: $configuration
+        );
+    }
+
+    /**
+     * Return the Basic Partner Preference service.
+     */
+    public static function basicPartnerPreferenceService(
+        bool $getShared = true
+    ): BasicPartnerPreferenceService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'basicPartnerPreferenceService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new BasicPartnerPreferenceService(
+            new UserModel($database),
+
+            new MemberPartnerBasicPreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerPreferenceMotherTongueModel(
+                $database
+            ),
+
+            new MemberPartnerPreferenceEatingHabitModel(
+                $database
+            ),
+
+            new MemberPartnerPreferenceDrinkingHabitModel(
+                $database
+            ),
+
+            static::profileMasterDataService(false),
+
+            $database
         );
     }
 }
