@@ -82,34 +82,7 @@ final class BasicPartnerPreferenceService
                     'isCompleted' =>
                     $completedItems === count($items),
                     'items' => $items,
-                ],
-                [
-                    'key' => 'religious',
-                    'title' => 'Religious',
-                    'description' =>
-                    'Community, religious values and related preferences.',
-                    'icon' => 'ri-mental-health-line text-primary',
-                    'isCompleted' => false,
-                    'items' => [],
-                ],
-                [
-                    'key' => 'location',
-                    'title' => 'Location',
-                    'description' =>
-                    'Preferred country, state and city.',
-                    'icon' => 'ri-map-pin-line text-primary',
-                    'isCompleted' => false,
-                    'items' => [],
-                ],
-                [
-                    'key' => 'special-request',
-                    'title' => 'Any Special Request',
-                    'description' =>
-                    'Add any additional expectations or notes.',
-                    'icon' => 'ri-chat-heart-line text-primary',
-                    'isCompleted' => false,
-                    'items' => [],
-                ],
+                ]
             ],
             'completion' => [
                 'completed' => $completedItems,

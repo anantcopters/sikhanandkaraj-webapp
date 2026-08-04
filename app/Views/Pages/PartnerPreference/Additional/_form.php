@@ -685,7 +685,7 @@ $formAction = url_to(
                 ) ?>
 
                 <div
-                    class="form-text text-secondary">
+                    class="form-text color-pink">
 
                     Maximum 1000 characters. Do not add
                     phone numbers, email addresses or other

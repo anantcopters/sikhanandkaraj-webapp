@@ -315,7 +315,7 @@ $approvedPhotoCount = max(
         </div>
     </section>
 
-    
+
     <!-- Trust and verification -->
     <section
         class="card border border-danger border-opacity-25 shadow-none mb-0"
@@ -327,7 +327,7 @@ $approvedPhotoCount = max(
                 <div class="avatar-sm flex-shrink-0">
                     <span
                         class="avatar-title rounded-circle
-                            bg-light text-primary fs-20"
+                             bg-primary-subtle text-primary fs-20"
                         aria-hidden="true">
                         <i class="ri-shield-check-line"></i>
                     </span>
