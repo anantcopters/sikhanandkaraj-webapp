@@ -454,7 +454,71 @@ if ($isJourney) {
                 ) ?>
             </div>
         <?php endforeach; ?>
+        <div class="col-12 col-md-6">
+            <label
+                for="parentContactNumber"
+                class="form-label">
 
+                Parent/Guardian Contact Number
+
+                <span class="text-muted fw-normal">
+                    (Optional)
+                </span>
+            </label>
+
+            <div class="input-group has-validation">
+                <span class="input-group-text">
+                    +91
+                </span>
+
+                <input
+                    type="tel"
+                    id="parentContactNumber"
+                    name="parent_contact_number"
+                    class="form-control"
+                    value="<?= esc(
+                                preg_replace(
+                                    '/^\+91/',
+                                    '',
+                                    $fieldValue(
+                                        'parent_contact_number',
+                                        $details['parent_contact_number'] ?? ''
+                                    )
+                                ) ?? '',
+                                'attr'
+                            ) ?>"
+                    placeholder="Enter parent contact number"
+                    inputmode="numeric"
+                    pattern="[6-9][0-9]{9}"
+                    minlength="10"
+                    maxlength="10"
+                    autocomplete="tel"
+                    data-error-pattern="Please enter a valid 10-digit Indian parent/guardian contact number."
+                    data-error-minlength="Parent contact number must contain 10 digits."
+                    data-error-maxlength="Parent contact number must contain 10 digits."
+                    aria-describedby="parentContactNumberHelp parentContactNumberError">
+
+                <?= view(
+                    'Components/Forms/FieldError',
+                    [
+                        'field' =>
+                        'parent_contact_number',
+
+                        'errorId' =>
+                        'parentContactNumberError',
+
+                        'errors' =>
+                        $errors,
+                    ]
+                ) ?>
+            </div>
+
+            <div
+                id="parentContactNumberHelp"
+                class="form-text text-muted">
+                Enter the mobile number of either parent, when available.
+            </div>
+        </div>
         <div class="col-12">
             <hr class="my-2 mb-3">
 

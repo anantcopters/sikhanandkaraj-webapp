@@ -210,6 +210,10 @@ $familyDetails = [
     $profile['mother_name']
         ?? '',
 
+    'Parent/Guardian Contact Number' =>
+    $profile['parent_contact_number']
+        ?? '',
+
     'Community' =>
     $profile['community_name']
         ?? '',

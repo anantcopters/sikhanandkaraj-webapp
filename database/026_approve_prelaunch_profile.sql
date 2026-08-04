@@ -79,3 +79,9 @@ CHECK (
         'SISTER'
     )
 );
+
+ALTER TABLE prelaunch_profiles
+ADD COLUMN IF NOT EXISTS parent_contact_number VARCHAR(16) NULL;
+
+ALTER TABLE member_family_details
+ADD COLUMN IF NOT EXISTS parent_contact_number VARCHAR(16) NULL;

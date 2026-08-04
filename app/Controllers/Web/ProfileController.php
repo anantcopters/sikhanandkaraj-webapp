@@ -1290,6 +1290,16 @@ final class ProfileController extends BaseController
                 )
             ),
 
+            'parent_contact_number' =>
+            preg_replace(
+                '/\D+/',
+                '',
+                (string) $this->request
+                    ->getPost(
+                        'parent_contact_number'
+                    )
+            ) ?? '',
+
             'father_occupation_id' => trim(
                 (string) $this->request->getPost(
                     'father_occupation_id'

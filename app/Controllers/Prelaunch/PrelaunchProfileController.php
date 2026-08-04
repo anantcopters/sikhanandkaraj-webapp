@@ -722,6 +722,16 @@ final class PrelaunchProfileController extends BaseController
                 'mother_name'
             )),
 
+            'parent_contact_number' =>
+            preg_replace(
+                '/\D+/',
+                '',
+                (string) $this->request
+                    ->getPost(
+                        'parent_contact_number'
+                    )
+            ) ?? '',
+
             'gotra' =>
             trim((string) $this->request->getPost(
                 'gotra'

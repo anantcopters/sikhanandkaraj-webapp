@@ -760,6 +760,11 @@ final class PrelaunchMemberMigrationService
                     $profile['mother_name']
                         ?? null,
 
+                    'parent_contact_number' =>
+                    $this->nullableText(
+                        $profile['parent_contact_number'] ?? null
+                    ),
+
                     /*
                      * Source prelaunch field:
                      *     sikh_community_id

@@ -78,6 +78,18 @@ final class FamilyDetailsValidation
                 "Please enter your mother's name."
             ),
 
+            'parent_contact_number' => [
+                'label' => 'Parent/Guardian Contact Number',
+                'rules' => [
+                    'permit_empty',
+                    'regex_match[/^[6-9][0-9]{9}$/]',
+                ],
+                'errors' => [
+                    'regex_match' =>
+                    'Please enter a valid 10-digit Indian parent/guardian contact number.',
+                ],
+            ],
+
             'father_occupation_id' => [
                 'label' => "Father's occupation",
                 'rules' => [

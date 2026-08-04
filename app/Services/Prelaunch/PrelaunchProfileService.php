@@ -7,6 +7,7 @@ namespace App\Services\Prelaunch;
 use App\Models\Prelaunch\PrelaunchProfileModel;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\Files\UploadedFile;
+use App\Support\IndianMobileNormalizer;
 use Config\Prelaunch;
 use RuntimeException;
 use Throwable;
@@ -195,6 +196,12 @@ final class PrelaunchProfileService
         $profileReference =
             $this->generateReference();
 
+        $parentContactNumber =
+            $this->normalizeOptionalParentContact(
+                $input['parent_contact_number']
+                    ?? null
+            );
+
         $this->database->transBegin();
 
         try {
@@ -260,6 +267,9 @@ final class PrelaunchProfileService
                         trim(
                             (string) $input['mother_name']
                         ),
+
+                        'parent_contact_number' =>
+                        $parentContactNumber,
 
                         'sikh_community_id' =>
                         (int) $input['sikh_community_id'],
@@ -437,5 +447,45 @@ final class PrelaunchProfileService
         throw new RuntimeException(
             'A unique profile reference could not be generated.'
         );
+    }
+
+    /**
+     * Normalize an optional parent mobile number.
+     *
+     * The field is not used for authentication and is not subject to member
+     * contact uniqueness rules.
+     */
+    private function normalizeOptionalParentContact(
+        mixed $value
+    ): ?string {
+        $submittedValue = trim(
+            (string) $value
+        );
+
+        if ($submittedValue === '') {
+            return null;
+        }
+
+        $normalized = IndianMobileNormalizer::normalize(
+            $submittedValue
+        );
+
+        if ($normalized === null) {
+            /*
+         * The browser submits the national ten-digit value. Prefix +91 when
+         * the normalizer expects a complete Indian number.
+         */
+            $normalized = IndianMobileNormalizer::normalize(
+                '+91' . $submittedValue
+            );
+        }
+
+        if ($normalized === null) {
+            throw new RuntimeException(
+                'Please enter a valid parent contact number.'
+            );
+        }
+
+        return $normalized;
     }
 }

@@ -28,6 +28,7 @@ final class MemberFamilyDetailModel extends Model
         'gotra',
         'father_name',
         'mother_name',
+        'parent_contact_number',
         'father_occupation_id',
         'mother_occupation_id',
         'brothers_count',
@@ -35,9 +36,6 @@ final class MemberFamilyDetailModel extends Model
         'country_id',
         'state_id',
         'city_id',
-        /*
-        * Optional Gurudwara and family-reference information.
-        */
         'nearest_gurudwara',
         'reference_person_1',
         'reference_person_2',

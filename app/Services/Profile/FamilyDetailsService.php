@@ -6,6 +6,7 @@ namespace App\Services\Profile;
 
 use App\Models\MemberFamilyDetailModel;
 use App\Models\UserModel;
+use App\Support\IndianMobileNormalizer;
 use CodeIgniter\Database\BaseConnection;
 use DomainException;
 use RuntimeException;
@@ -129,6 +130,12 @@ final class FamilyDetailsService
             "Please enter your mother's name."
         );
 
+        $parentContactNumber =
+            $this->optionalParentContactNumber(
+                $data['parent_contact_number']
+                    ?? null
+            );
+
         $fatherOccupationId = $this->nullableInteger(
             $data['father_occupation_id'] ?? null,
             "Please select a valid father's occupation."
@@ -205,6 +212,8 @@ final class FamilyDetailsService
             'gotra' => $gotra,
             'father_name' => $fatherName,
             'mother_name' => $motherName,
+            'parent_contact_number' =>
+            $parentContactNumber,
             'father_occupation_id' => $fatherOccupationId,
             'mother_occupation_id' => $motherOccupationId,
             'brothers_count' => $brothersCount,
@@ -252,6 +261,37 @@ final class FamilyDetailsService
 
             throw $exception;
         }
+    }
+
+    /**
+     * Normalize an optional Indian parent contact number.
+     */
+    private function optionalParentContactNumber(
+        mixed $value
+    ): ?string {
+        $submittedValue = preg_replace(
+            '/\D+/',
+            '',
+            (string) $value
+        ) ?? '';
+
+        if ($submittedValue === '') {
+            return null;
+        }
+
+        $normalized =
+            IndianMobileNormalizer::normalize(
+                '+91' . $submittedValue
+            );
+
+        if ($normalized === null) {
+            throw new DomainException(
+                'Please enter a valid 10-digit Indian '
+                    . 'parent contact number.'
+            );
+        }
+
+        return $normalized;
     }
 
     /**

@@ -33,6 +33,11 @@ $motherName = (string) old(
     ''
 );
 
+$parentContactNumber = (string) old(
+    'parent_contact_number',
+    ''
+);
+
 $gotra = (string) old(
     'gotra',
     ''
@@ -58,6 +63,13 @@ $fatherNameError = trim(
 $motherNameError = trim(
     (string) (
         $errorBag['mother_name']
+        ?? ''
+    )
+);
+
+$parentContactNumberError = trim(
+    (string) (
+        $errorBag['parent_contact_number']
         ?? ''
     )
 );
@@ -90,6 +102,11 @@ $fatherNameClass =
 
 $motherNameClass =
     $motherNameError !== ''
+    ? 'is-invalid'
+    : '';
+
+$parentContactNumberClass =
+    $parentContactNumberError !== ''
     ? 'is-invalid'
     : '';
 
@@ -209,6 +226,64 @@ $communityClass =
                     data-validation-error="mother_name">
 
                     <?= esc($motherNameError) ?>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <label
+                    for="parent_contact_number"
+                    class="form-label">
+
+                    Parent/Guardian Contact Number
+
+                    <span class="color-pink fs-12">
+                        (Optional)
+                    </span>
+                </label>
+
+                <div class="input-group has-validation">
+                    <span class="input-group-text">
+                        +91
+                    </span>
+
+                    <input
+                        type="tel"
+                        id="parent_contact_number"
+                        name="parent_contact_number"
+                        class="form-control <?= esc(
+                                                $parentContactNumberClass,
+                                                'attr'
+                                            ) ?>"
+                        value="<?= esc(
+                                    $parentContactNumber,
+                                    'attr'
+                                ) ?>"
+                        placeholder="Enter parent contact number"
+                        inputmode="numeric"
+                        pattern="[6-9][0-9]{9}"
+                        minlength="10"
+                        maxlength="10"
+                        autocomplete="tel"
+                        aria-describedby="parent_contact_numberHelp parent_contact_numberError"
+                        data-error-pattern="Please enter a valid 10-digit Indian parent/guardian contact number."
+                        data-error-minlength="Parent contact number must contain 10 digits."
+                        data-error-maxlength="Parent contact number must contain 10 digits.">
+
+                    <div
+                        id="parent_contact_numberError"
+                        class="invalid-feedback"
+                        data-validation-error="parent_contact_number">
+
+                        <?= esc(
+                            $parentContactNumberError
+                        ) ?>
+                    </div>
+                </div>
+
+                <div
+                    id="parent_contact_numberHelp"
+                    class="form-text color-pink">
+                    Enter the mobile number of either parent, when available.
                 </div>
             </div>
 
@@ -355,7 +430,7 @@ $communityClass =
                     aria-describedby="nearest_gurudwaraHelp nearest_gurudwaraError"
                     placeholder="Enter the nearest Gurudwara name or location"
                     maxlength="300"
-                    autocomplete="off"]
+                    autocomplete="off" ]
                     data-error-required="Please enter the nearest Gurudwara name or location."
                     data-error-maxlength="Nearest Gurudwara cannot exceed 300 characters.">
 
