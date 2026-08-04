@@ -76,7 +76,9 @@ final class BasicPartnerPreferenceService
                 [
                     'key' => 'basic',
                     'title' => 'Basic',
-                    'icon' => 'ri-user-heart-line',
+                    'description' =>
+                    'Age, height, marital status and lifestyle preferences.',
+                    'icon' => 'ri-user-heart-line text-primary',
                     'isCompleted' =>
                     $completedItems === count($items),
                     'items' => $items,
@@ -84,21 +86,27 @@ final class BasicPartnerPreferenceService
                 [
                     'key' => 'religious',
                     'title' => 'Religious',
-                    'icon' => 'ri-mental-health-line',
+                    'description' =>
+                    'Community, religious values and related preferences.',
+                    'icon' => 'ri-mental-health-line text-primary',
                     'isCompleted' => false,
                     'items' => [],
                 ],
                 [
                     'key' => 'location',
                     'title' => 'Location',
-                    'icon' => 'ri-map-pin-line',
+                    'description' =>
+                    'Preferred country, state and city.',
+                    'icon' => 'ri-map-pin-line text-primary',
                     'isCompleted' => false,
                     'items' => [],
                 ],
                 [
                     'key' => 'special-request',
                     'title' => 'Any Special Request',
-                    'icon' => 'ri-chat-heart-line',
+                    'description' =>
+                    'Add any additional expectations or notes.',
+                    'icon' => 'ri-chat-heart-line text-primary',
                     'isCompleted' => false,
                     'items' => [],
                 ],
@@ -233,7 +241,7 @@ final class BasicPartnerPreferenceService
                 [
                     'age_from' => $data['age_from'],
                     'age_to' => $data['age_to'],
-                    'is_age_compulsory' =>
+                    'age_match_mode' =>
                     $data['is_compulsory'],
                 ]
             ),
@@ -246,7 +254,7 @@ final class BasicPartnerPreferenceService
                     $data['height_from_id'],
                     'height_to_id' =>
                     $data['height_to_id'],
-                    'is_height_compulsory' =>
+                    'height_match_mode' =>
                     $data['is_compulsory'],
                 ]
             ),
@@ -257,7 +265,7 @@ final class BasicPartnerPreferenceService
                 [
                     'marital_status_id' =>
                     $data['marital_status_id'],
-                    'is_marital_status_compulsory' =>
+                    'marital_status_match_mode' =>
                     $data['is_compulsory'],
                 ]
             ),
@@ -268,7 +276,7 @@ final class BasicPartnerPreferenceService
                 [
                     'have_children' =>
                     $data['have_children'],
-                    'is_have_children_compulsory' =>
+                    'have_children_match_mode' =>
                     $data['is_compulsory'],
                 ]
             ),
@@ -279,7 +287,7 @@ final class BasicPartnerPreferenceService
                 [
                     'physical_status_id' =>
                     $data['physical_status_id'],
-                    'is_physical_status_compulsory' =>
+                    'physical_status_match_mode' =>
                     $data['is_compulsory'],
                 ]
             ),
@@ -290,7 +298,7 @@ final class BasicPartnerPreferenceService
                 $data['mother_tongue_ids'],
                 $this->motherTongueModel,
                 'mother_tongue_id',
-                'is_mother_tongue_compulsory',
+                'mother_tongue_match_mode',
                 $data['is_compulsory']
             ),
 
@@ -300,7 +308,7 @@ final class BasicPartnerPreferenceService
                 $data['eating_habit_ids'],
                 $this->eatingHabitModel,
                 'eating_habit_id',
-                'is_eating_habit_compulsory',
+                'eating_habit_match_mode',
                 $data['is_compulsory']
             ),
 
@@ -310,7 +318,7 @@ final class BasicPartnerPreferenceService
                 $data['drinking_habit_ids'],
                 $this->drinkingHabitModel,
                 'drinking_habit_id',
-                'is_drinking_habit_compulsory',
+                'drinking_habit_match_mode',
                 $data['is_compulsory']
             ),
 
@@ -644,7 +652,7 @@ final class BasicPartnerPreferenceService
                         (int) $preference['age_to']
                     )
                     : null,
-                $preference['is_age_compulsory']
+                $preference['age_match_mode']
                     ?? false
             ),
 
@@ -659,7 +667,7 @@ final class BasicPartnerPreferenceService
                     $preference['height_to_id'] ?? null,
                     $masterData['heights']
                 ),
-                $preference['is_height_compulsory']
+                $preference['height_match_mode']
                     ?? false
             ),
 
@@ -670,7 +678,7 @@ final class BasicPartnerPreferenceService
                     $preference['marital_status_id'] ?? null,
                     $masterData['maritalStatuses']
                 ),
-                $preference['is_marital_status_compulsory'] ?? false
+                $preference['marital_status_match_mode'] ?? false
             ),
 
             $this->summaryItem(
@@ -683,7 +691,7 @@ final class BasicPartnerPreferenceService
                 $this->booleanLabel(
                     $preference['have_children'] ?? null
                 ),
-                $preference['is_have_children_compulsory'] ?? false
+                $preference['have_children_match_mode'] ?? false
             ),
 
             $this->summaryItem(
@@ -693,7 +701,7 @@ final class BasicPartnerPreferenceService
                     $selected['motherTongues'],
                     $masterData['motherTongues']
                 ),
-                $preference['is_mother_tongue_compulsory'] ?? false
+                $preference['mother_tongue_match_mode'] ?? false
             ),
 
             $this->summaryItem(
@@ -703,7 +711,7 @@ final class BasicPartnerPreferenceService
                     $preference['physical_status_id'] ?? null,
                     $masterData['physicalStatuses']
                 ),
-                $preference['is_physical_status_compulsory'] ?? false
+                $preference['physical_status_match_mode'] ?? false
             ),
 
             $this->summaryItem(
@@ -713,7 +721,7 @@ final class BasicPartnerPreferenceService
                     $selected['eatingHabits'],
                     $masterData['eatingHabits']
                 ),
-                $preference['is_eating_habit_compulsory'] ?? false
+                $preference['eating_habit_match_mode'] ?? false
             ),
 
             $this->summaryItem(
@@ -723,7 +731,7 @@ final class BasicPartnerPreferenceService
                     $selected['drinkingHabits'],
                     $masterData['drinkingHabits']
                 ),
-                $preference['is_drinking_habit_compulsory'] ?? false
+                $preference['drinking_habit_match_mode'] ?? false
             ),
         ];
     }
@@ -749,6 +757,11 @@ final class BasicPartnerPreferenceService
     }
 
     /**
+     * Resolve the readable label of one selected master record.
+     *
+     * Most master tables use "name". Height master data uses
+     * "display_name", so both supported keys are handled here.
+     *
      * @param list<array<string, mixed>> $rows
      */
     private function singleLabel(
@@ -759,10 +772,28 @@ final class BasicPartnerPreferenceService
             return null;
         }
 
+        $resolvedSelectedId = (int) $selectedId;
+
         foreach ($rows as $row) {
-            if ((int) $row['id'] === (int) $selectedId) {
-                return (string) $row['name'];
+            if (
+                !isset($row['id'])
+                || (int) $row['id']
+                !== $resolvedSelectedId
+            ) {
+                continue;
             }
+
+            $label = trim(
+                (string) (
+                    $row['name']
+                    ?? $row['display_name']
+                    ?? ''
+                )
+            );
+
+            return $label !== ''
+                ? $label
+                : null;
         }
 
         return null;
@@ -787,6 +818,8 @@ final class BasicPartnerPreferenceService
     }
 
     /**
+     * Resolve readable labels for multiple selected master records.
+     *
      * @param list<int>                  $selectedIds
      * @param list<array<string, mixed>> $rows
      */
@@ -802,13 +835,26 @@ final class BasicPartnerPreferenceService
 
         foreach ($rows as $row) {
             if (
-                in_array(
+                !isset($row['id'])
+                || !in_array(
                     (int) $row['id'],
                     $selectedIds,
                     true
                 )
             ) {
-                $labels[] = (string) $row['name'];
+                continue;
+            }
+
+            $label = trim(
+                (string) (
+                    $row['name']
+                    ?? $row['display_name']
+                    ?? ''
+                )
+            );
+
+            if ($label !== '') {
+                $labels[] = $label;
             }
         }
 

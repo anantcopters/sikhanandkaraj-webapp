@@ -98,28 +98,28 @@ $selectedMultiValues = match ($item) {
 
 $storedCompulsory = match ($item) {
     BasicPreferenceItem::AGE =>
-    $preference['is_age_compulsory'] ?? false,
+    $preference['age_match_mode'] ?? false,
 
     BasicPreferenceItem::HEIGHT =>
-    $preference['is_height_compulsory'] ?? false,
+    $preference['height_match_mode'] ?? false,
 
     BasicPreferenceItem::MARITAL_STATUS =>
-    $preference['is_marital_status_compulsory'] ?? false,
+    $preference['marital_status_match_mode'] ?? false,
 
     BasicPreferenceItem::HAVE_CHILDREN =>
-    $preference['is_have_children_compulsory'] ?? false,
+    $preference['have_children_match_mode'] ?? false,
 
     BasicPreferenceItem::MOTHER_TONGUE =>
-    $preference['is_mother_tongue_compulsory'] ?? false,
+    $preference['mother_tongue_match_mode'] ?? false,
 
     BasicPreferenceItem::PHYSICAL_STATUS =>
-    $preference['is_physical_status_compulsory'] ?? false,
+    $preference['physical_status_match_mode'] ?? false,
 
     BasicPreferenceItem::EATING_HABITS =>
-    $preference['is_eating_habit_compulsory'] ?? false,
+    $preference['eating_habit_match_mode'] ?? false,
 
     BasicPreferenceItem::DRINKING_HABITS =>
-    $preference['is_drinking_habit_compulsory'] ?? false,
+    $preference['drinking_habit_match_mode'] ?? false,
 
     default => false,
 };
@@ -308,60 +308,129 @@ $drinkingHabits = is_array(
         <?php if (
             $item === BasicPreferenceItem::HEIGHT
         ): ?>
+            <?php
+            $heightFields = [
+                'height_from_id' => [
+                    'id' => 'heightFromId',
+                    'label' => 'Height From',
+                    'placeholder' =>
+                    'Select minimum height',
+                ],
+                'height_to_id' => [
+                    'id' => 'heightToId',
+                    'label' => 'Height To',
+                    'placeholder' =>
+                    'Select maximum height',
+                ],
+            ];
+            ?>
+
             <?php foreach (
-                [
-                    'height_from_id' =>
-                    'Height From',
-                    'height_to_id' =>
-                    'Height To',
-                ] as $field => $label
+                $heightFields as $field => $configuration
             ): ?>
+                <?php
+                $fieldHasError = isset(
+                    $errors[$field]
+                );
+
+                $selectedHeightId = $fieldValue(
+                    $field,
+                    $preference[$field] ?? ''
+                );
+                ?>
+
                 <div class="col-12 col-sm-6">
                     <label
                         for="<?= esc(
-                                    $field,
+                                    $configuration['id'],
                                     'attr'
                                 ) ?>"
                         class="form-labelm">
-                        <?= esc($label) ?>
+
+                        <?= esc(
+                            $configuration['label']
+                        ) ?>
+
                         <span class="text-danger">*</span>
                     </label>
 
                     <select
-                        id="<?= esc($field, 'attr') ?>"
-                        name="<?= esc($field, 'attr') ?>"
-                        class="form-select <?= isset(
-                                                $errors[$field]
-                                            )
+                        id="<?= esc(
+                                $configuration['id'],
+                                'attr'
+                            ) ?>"
+                        name="<?= esc(
+                                    $field,
+                                    'attr'
+                                ) ?>"
+                        class="form-select <?= $fieldHasError
                                                 ? 'is-invalid'
                                                 : '' ?>"
+                        <?= $fieldHasError
+                            ? 'aria-invalid="true"'
+                            : '' ?>
+                        aria-describedby="<?= esc(
+                                                $configuration['id']
+                                                    . 'Error',
+                                                'attr'
+                                            ) ?>"
                         data-choice
+                        data-choice-search="true"
+                        data-choice-search-placeholder="Search height"
                         data-choice-position="bottom"
-                        data-error-required="
-                            Please select a height."
+                        data-error-required="<?= esc(
+                                                    'Please select '
+                                                        . strtolower(
+                                                            $configuration['label']
+                                                        )
+                                                        . '.',
+                                                    'attr'
+                                                ) ?>"
                         required>
+
                         <option value="">
-                            Select height
+                            <?= esc(
+                                $configuration['placeholder']
+                            ) ?>
                         </option>
 
                         <?php foreach (
                             $heights as $height
                         ): ?>
+                            <?php
+                            $heightId = isset(
+                                $height['id']
+                            )
+                                ? (int) $height['id']
+                                : 0;
+
+                            $heightDisplayName = trim(
+                                (string) (
+                                    $height['display_name']
+                                    ?? ''
+                                )
+                            );
+
+                            if (
+                                $heightId <= 0
+                                || $heightDisplayName === ''
+                            ) {
+                                continue;
+                            }
+                            ?>
+
                             <option
                                 value="<?= esc(
-                                            (string) $height['id'],
+                                            (string) $heightId,
                                             'attr'
                                         ) ?>"
-                                <?= $fieldValue(
-                                    $field,
-                                    $preference[$field] ?? ''
-                                ) ===
-                                    (string) $height['id']
+                                <?= $selectedHeightId
+                                    === (string) $heightId
                                     ? 'selected'
                                     : '' ?>>
+
                                 <?= esc(
-                                    (string)
-                                    $height['name']
+                                    $heightDisplayName
                                 ) ?>
                             </option>
                         <?php endforeach; ?>
@@ -371,8 +440,11 @@ $drinkingHabits = is_array(
                         'Components/Forms/FieldError',
                         [
                             'field' => $field,
+
                             'errorId' =>
-                            $field . 'Error',
+                            $configuration['id']
+                                . 'Error',
+
                             'errors' => $errors,
                         ]
                     ) ?>
@@ -597,23 +669,95 @@ $drinkingHabits = is_array(
 
 
         <div class="col-12">
-            <div class="form-check">
-                <input
-                    type="checkbox"
-                    class="form-check-input"
-                    id="isCompulsory"
-                    name="is_compulsory"
-                    value="1"
-                    <?= $isCompulsory
-                        ? 'checked'
-                        : '' ?>>
 
-                <label
-                    class="form-check-label"
-                    for="isCompulsory">
-                    <?= esc($compulsoryText) ?>
-                </label>
+            <div
+                class="border rounded p-3 bg-light mt-2">
+
+                <div
+                    class="fw-semibold text-dark mb-3">
+
+                    Matching Preference
+                </div>
+
+                <?php
+                $strictMatch = $isCompulsory;
+                ?>
+
+                <div class="form-check mb-2">
+
+                    <input
+                        class="form-check-input"
+                        type="radio"
+                        name="is_compulsory"
+                        id="preferredMatch"
+                        value="0"
+                        <?= !$strictMatch
+                            ? 'checked'
+                            : '' ?>>
+
+                    <label
+                        class="form-check-label"
+                        for="preferredMatch">
+
+                        Prefer profiles matching this preference
+
+                        <span
+                            class="badge
+                        bg-success-subtle
+                        text-success
+                        ms-2">
+
+                            Recommended
+
+                        </span>
+
+                    </label>
+
+                </div>
+
+                <div class="form-check">
+
+                    <input
+                        class="form-check-input"
+                        type="radio"
+                        name="is_compulsory"
+                        id="strictMatch"
+                        value="1"
+                        <?= $strictMatch
+                            ? 'checked'
+                            : '' ?>>
+
+                    <label
+                        class="form-check-label"
+                        for="strictMatch">
+
+                        Show only profiles matching this preference
+
+                        <span
+                            class="badge
+                        bg-danger-subtle
+                        text-danger
+                        ms-2">
+
+                            Strict Match
+
+                        </span>
+
+                    </label>
+
+                </div>
+
+                <div
+                    class="form-text color-pink mt-3">
+
+                    Recommended provides more matching profiles,
+                    while Strict Match only shows profiles that
+                    exactly satisfy this preference.
+
+                </div>
+
             </div>
+
         </div>
 
 
@@ -626,39 +770,54 @@ $drinkingHabits = is_array(
 
 
         <div class="col-12">
-            <div
-                class="d-flex flex-column
-                    flex-sm-row gap-2
-                    justify-content-end">
-                <a
-                    href="<?= url_to(
-                                'web.partner-preference'
-                            ) ?>#basic"
-                    class="btn btn-light">
-                    Cancel
-                </a>
+            <div class="row g-2 mt-4">
+                <div
+                    class="col-12 col-sm-6 col-md-3
+            ms-md-auto order-2 order-sm-1">
 
-                <button
-                    type="submit"
-                    class="btn btn-primary
-                        registration-form__submit"
-                    id="savePartnerPreferenceButton">
-                    <span
-                        class="registration-submit__label">
-                        Save Preference
-                    </span>
+                    <a
+                        href="<?= url_to(
+                                    'web.partner-preference'
+                                ) ?>#basic"
+                        class="btn btn-outline-danger
+                fs-14 fw-medium w-100">
 
-                    <span
-                        class="registration-submit__loading
-                            d-none"
-                        aria-hidden="true">
+                        Cancel
+                    </a>
+                </div>
+
+                <div
+                    class="col-12 col-sm-6 col-md-3
+            order-1 order-sm-2">
+
+                    <button
+                        type="submit"
+                        class="btn registration-form__submit
+                fs-14 fw-semibold text-uppercase"
+                        id="savePartnerPreferenceButton">
+
                         <span
-                            class="spinner-border
-                                spinner-border-sm me-2"
-                            role="status"></span>
-                        Saving...
-                    </span>
-                </button>
+                            class="registration-submit__label">
+                            Save
+                        </span>
+
+                        <span
+                            class="registration-submit__loading
+                    d-none"
+                            aria-hidden="true">
+
+                            <span
+                                class="spinner-border
+                        spinner-border-sm"
+                                role="status"
+                                aria-hidden="true"></span>
+
+                            <span>
+                                Saving...
+                            </span>
+                        </span>
+                    </button>
+                </div>
             </div>
         </div>
 

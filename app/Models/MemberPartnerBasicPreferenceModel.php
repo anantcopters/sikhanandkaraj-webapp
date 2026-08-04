@@ -28,24 +28,23 @@ final class MemberPartnerBasicPreferenceModel extends Model
 
         'age_from',
         'age_to',
-        'is_age_compulsory',
 
         'height_from_id',
         'height_to_id',
-        'is_height_compulsory',
 
         'marital_status_id',
-        'is_marital_status_compulsory',
 
         'have_children',
-        'is_have_children_compulsory',
 
         'physical_status_id',
-        'is_physical_status_compulsory',
-
-        'is_mother_tongue_compulsory',
-        'is_eating_habit_compulsory',
-        'is_drinking_habit_compulsory',
+        'age_match_mode',
+        'height_match_mode',
+        'marital_status_match_mode',
+        'have_children_match_mode',
+        'mother_tongue_match_mode',
+        'physical_status_match_mode',
+        'eating_habit_match_mode',
+        'drinking_habit_match_mode',
 
         'created_at',
         'updated_at',

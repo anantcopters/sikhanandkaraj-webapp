@@ -209,4 +209,44 @@ ON member_partner_preference_drinking_habits(
     drinking_habit_id
 );
 
+BEGIN;
+
+-- ============================================================
+-- Rename existing boolean columns
+-- FALSE = Preferred Match
+-- TRUE  = Strict Match
+-- ============================================================
+
+ALTER TABLE member_partner_basic_preferences
+    RENAME COLUMN is_age_compulsory
+    TO age_match_mode;
+
+ALTER TABLE member_partner_basic_preferences
+    RENAME COLUMN is_height_compulsory
+    TO height_match_mode;
+
+ALTER TABLE member_partner_basic_preferences
+    RENAME COLUMN is_marital_status_compulsory
+    TO marital_status_match_mode;
+
+ALTER TABLE member_partner_basic_preferences
+    RENAME COLUMN is_have_children_compulsory
+    TO have_children_match_mode;
+
+ALTER TABLE member_partner_basic_preferences
+    RENAME COLUMN is_mother_tongue_compulsory
+    TO mother_tongue_match_mode;
+
+ALTER TABLE member_partner_basic_preferences
+    RENAME COLUMN is_physical_status_compulsory
+    TO physical_status_match_mode;
+
+ALTER TABLE member_partner_basic_preferences
+    RENAME COLUMN is_eating_habit_compulsory
+    TO eating_habit_match_mode;
+
+ALTER TABLE member_partner_basic_preferences
+    RENAME COLUMN is_drinking_habit_compulsory
+    TO drinking_habit_match_mode;
+
 COMMIT;

@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Support\PartnerPreference;
 
 /**
- * Defines the supported Basic Partner Preference item keys.
+ * Defines supported Basic Partner Preference item keys,
+ * labels and helper messages.
  */
 final class BasicPreferenceItem
 {
@@ -26,6 +27,8 @@ final class BasicPreferenceItem
     public const DRINKING_HABITS = 'drinking-habits';
 
     /**
+     * Return all supported Basic Preference item keys.
+     *
      * @return list<string>
      */
     public static function all(): array
@@ -42,6 +45,9 @@ final class BasicPreferenceItem
         ];
     }
 
+    /**
+     * Determine whether the supplied URL item is supported.
+     */
     public static function isValid(string $item): bool
     {
         return in_array(
@@ -57,39 +63,67 @@ final class BasicPreferenceItem
     public static function title(string $item): string
     {
         return match ($item) {
-            self::AGE => 'Age',
-            self::HEIGHT => 'Height',
-            self::MARITAL_STATUS => 'Marital Status',
-            self::HAVE_CHILDREN => 'Have Children',
-            self::MOTHER_TONGUE => 'Mother Tongue',
-            self::PHYSICAL_STATUS => 'Physical Status',
-            self::EATING_HABITS => 'Eating Habits',
-            self::DRINKING_HABITS => 'Drinking Habits',
+            self::AGE =>
+            'Age',
+
+            self::HEIGHT =>
+            'Height',
+
+            self::MARITAL_STATUS =>
+            'Marital Status',
+
+            self::HAVE_CHILDREN =>
+            'Have Children',
+
+            self::MOTHER_TONGUE =>
+            'Mother Tongue',
+
+            self::PHYSICAL_STATUS =>
+            'Physical Status',
+
+            self::EATING_HABITS =>
+            'Eating Habits',
+
+            self::DRINKING_HABITS =>
+            'Drinking Habits',
+
             default => '',
         };
     }
 
     /**
-     * Return text used beside the compulsory checkbox.
+     * Return user-friendly text for the compulsory checkbox.
      */
-    public static function compulsoryText(string $item): string
-    {
-        $criterion = match ($item) {
-            self::AGE => 'age range',
-            self::HEIGHT => 'height range',
-            self::MARITAL_STATUS => 'marital status',
-            self::HAVE_CHILDREN => 'children preference',
-            self::MOTHER_TONGUE => 'mother tongue criteria',
-            self::PHYSICAL_STATUS => 'physical status',
-            self::EATING_HABITS => 'eating habit criteria',
-            self::DRINKING_HABITS => 'drinking habit criteria',
-            default => 'selected criteria',
-        };
+    public static function compulsoryText(
+        string $item
+    ): string {
+        return match ($item) {
+            self::AGE =>
+            'Show only matches within this preferred age range.',
 
-        return sprintf(
-            'Mark as compulsory to get matches exactly as per '
-                . 'the specified %s.',
-            $criterion
-        );
+            self::HEIGHT =>
+            'Show only matches within this preferred height range.',
+
+            self::MARITAL_STATUS =>
+            'Show only matches with the selected marital status.',
+
+            self::HAVE_CHILDREN =>
+            'Show only matches that meet this children preference.',
+
+            self::MOTHER_TONGUE =>
+            'Show only matches with one of the selected mother tongues.',
+
+            self::PHYSICAL_STATUS =>
+            'Show only matches with the selected physical status.',
+
+            self::EATING_HABITS =>
+            'Show only matches with one of the selected eating habits.',
+
+            self::DRINKING_HABITS =>
+            'Show only matches with one of the selected drinking habits.',
+
+            default =>
+            'Show only matches that meet this preference.',
+        };
     }
 }

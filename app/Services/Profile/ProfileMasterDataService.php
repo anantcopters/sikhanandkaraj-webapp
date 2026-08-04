@@ -144,36 +144,46 @@ final class ProfileMasterDataService
     }
 
     /**
-     * Return active master data used by Basic Partner Preference.
+     * Return active master data required by Basic Partner Preference.
      *
-     * @return array<string, list<array<string, mixed>>>
+     * Existing profile master-model methods are reused so that partner
+     * preferences and member profile details use the same active options.
+     *
+     * @return array{
+     *     maritalStatuses: array<int, array<string, mixed>>,
+     *     heights: array<int, array<string, mixed>>,
+     *     motherTongues: array<int, array<string, mixed>>,
+     *     drinkingHabits: array<int, array<string, mixed>>,
+     *     eatingHabits: array<int, array<string, mixed>>,
+     *     physicalStatuses: array<int, array<string, mixed>>
+     * }
      */
     public function partnerBasicPreferenceOptions(): array
     {
         return [
             'maritalStatuses' =>
             $this->maritalStatusModel
-                ->activeOrdered(),
+                ->activeOptions(),
 
             'heights' =>
             $this->heightModel
-                ->activeOrdered(),
+                ->activeOptions(),
 
             'motherTongues' =>
             $this->motherTongueModel
-                ->activeOrdered(),
-
-            'physicalStatuses' =>
-            $this->physicalStatusModel
-                ->activeOrdered(),
-
-            'eatingHabits' =>
-            $this->eatingHabitModel
-                ->activeOrdered(),
+                ->activeOptions(),
 
             'drinkingHabits' =>
             $this->drinkingHabitModel
-                ->activeOrdered(),
+                ->activeOptions(),
+
+            'eatingHabits' =>
+            $this->eatingHabitModel
+                ->activeOptions(),
+
+            'physicalStatuses' =>
+            $this->physicalStatusModel
+                ->activeOptions(),
         ];
     }
 

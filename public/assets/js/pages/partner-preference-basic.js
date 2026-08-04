@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Display or clear a cross-field validation error.
      *
      * @param {string} message
+     *
      * @returns {void}
      */
     function setRangeError(message) {
@@ -29,6 +30,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         rangeError.textContent = message;
+    }
+
+    /**
+     * Resolve the numeric value of a selected field.
+     *
+     * @param {string} selector
+     *
+     * @returns {number|null}
+     */
+    function selectedNumber(selector) {
+        const field = form.querySelector(selector);
+
+        if (!(field instanceof HTMLSelectElement)) {
+            return null;
+        }
+
+        if (field.value === '') {
+            return null;
+        }
+
+        const value = Number(field.value);
+
+        return Number.isFinite(value)
+            ? value
+            : null;
     }
 
     /**
@@ -44,56 +70,58 @@ document.addEventListener('DOMContentLoaded', () => {
         setRangeError('');
 
         if (item === 'age') {
-            const ageFrom = form.querySelector(
+            const ageFrom = selectedNumber(
                 '[name="age_from"]'
             );
 
-            const ageTo = form.querySelector(
+            const ageTo = selectedNumber(
                 '[name="age_to"]'
             );
 
             if (
-                ageFrom instanceof HTMLSelectElement
-                && ageTo instanceof HTMLSelectElement
-                && ageFrom.value !== ''
-                && ageTo.value !== ''
-                && Number(ageFrom.value)
-                > Number(ageTo.value)
+                ageFrom !== null
+                && ageTo !== null
+                && ageFrom > ageTo
             ) {
                 setRangeError(
                     'Minimum age cannot be greater '
                     + 'than maximum age.'
                 );
 
-                ageTo.focus();
+                form
+                    .querySelector(
+                        '[name="age_to"]'
+                    )
+                    ?.focus();
 
                 return false;
             }
         }
 
         if (item === 'height') {
-            const heightFrom = form.querySelector(
+            const heightFrom = selectedNumber(
                 '[name="height_from_id"]'
             );
 
-            const heightTo = form.querySelector(
+            const heightTo = selectedNumber(
                 '[name="height_to_id"]'
             );
 
             if (
-                heightFrom instanceof HTMLSelectElement
-                && heightTo instanceof HTMLSelectElement
-                && heightFrom.value !== ''
-                && heightTo.value !== ''
-                && Number(heightFrom.value)
-                > Number(heightTo.value)
+                heightFrom !== null
+                && heightTo !== null
+                && heightFrom > heightTo
             ) {
                 setRangeError(
                     'Minimum height cannot be greater '
                     + 'than maximum height.'
                 );
 
-                heightTo.focus();
+                form
+                    .querySelector(
+                        '[name="height_to_id"]'
+                    )
+                    ?.focus();
 
                 return false;
             }
@@ -102,20 +130,59 @@ document.addEventListener('DOMContentLoaded', () => {
         return true;
     }
 
+    /**
+     * Activate the existing project save loader.
+     *
+     * @returns {void}
+     */
+    function showSavingState() {
+        if (
+            !(
+                submitButton
+                instanceof HTMLButtonElement
+            )
+        ) {
+            return;
+        }
+
+        submitButton.disabled = true;
+
+        submitButton.setAttribute(
+            'aria-busy',
+            'true'
+        );
+
+        submitButton
+            .querySelector(
+                '.registration-submit__label'
+            )
+            ?.classList.add('d-none');
+
+        submitButton
+            .querySelector(
+                '.registration-submit__loading'
+            )
+            ?.classList.remove('d-none');
+    }
+
     form.addEventListener('submit', (event) => {
         if (!validateRange()) {
             event.preventDefault();
+
             return;
         }
 
         if (
             event.defaultPrevented
             || !form.checkValidity()
-            || !(submitButton instanceof HTMLButtonElement)
         ) {
             return;
         }
 
+        /*
+         * Delay the loader until the shared client-validation
+         * handler has had an opportunity to prevent submission.
+         */
         window.setTimeout(() => {
             if (
                 event.defaultPrevented
@@ -124,24 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            submitButton.disabled = true;
-
-            submitButton.setAttribute(
-                'aria-busy',
-                'true'
-            );
-
-            submitButton
-                .querySelector(
-                    '.registration-submit__label'
-                )
-                ?.classList.add('d-none');
-
-            submitButton
-                .querySelector(
-                    '.registration-submit__loading'
-                )
-                ?.classList.remove('d-none');
+            showSavingState();
         }, 0);
     });
 });

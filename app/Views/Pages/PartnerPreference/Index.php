@@ -3,25 +3,19 @@
 declare(strict_types=1);
 
 /**
+ * Partner Preference overview.
+ *
  * @var list<array<string, mixed>> $sections
- * @var array<string, int>         $completion
  * @var array<string, string>|null $formAlert
  */
 
 $this->extend('Layouts/Main');
+
 $this->section('content');
 
 $resolvedSections = is_array($sections ?? null)
     ? $sections
     : [];
-
-$resolvedCompletion = is_array($completion ?? null)
-    ? $completion
-    : [
-        'completed' => 0,
-        'total' => 8,
-        'percentage' => 0,
-    ];
 ?>
 
 <section class="py-3 py-lg-4">
@@ -37,27 +31,41 @@ $resolvedCompletion = is_array($completion ?? null)
                     ]
                 ) ?>
 
-                <div class="d-flex align-items-start gap-3 mb-3">
+                <div
+                    class="d-flex align-items-start
+                        gap-3 mb-3">
+
                     <div>
                         <a
                             href="<?= url_to(
                                         'web.dashboard'
                                     ) ?>"
-                            class="d-inline-flex align-items-center
-                                gap-1 text-primary fw-medium mb-2">
+                            class="d-inline-flex
+                                align-items-center
+                                gap-1 text-primary
+                                fw-medium mb-2">
+
                             <i
                                 class="ri-arrow-left-line"
                                 aria-hidden="true"></i>
+
                             Back to Dashboard
                         </a>
 
-                        <div class="d-flex align-items-center gap-2 mt-2">
+                        <div
+                            class="d-flex align-items-center
+                                gap-2 mt-2">
+
                             <div
                                 class="avatar-sm flex-shrink-0"
                                 aria-hidden="true">
+
                                 <span
-                                    class="avatar-title rounded-circle
-                                        bg-primary-subtle text-primary">
+                                    class="avatar-title
+                                        rounded-circle
+                                        bg-primary-subtle
+                                        text-primary">
+
                                     <i
                                         class="ri-user-heart-line
                                             fs-20"></i>
@@ -65,50 +73,18 @@ $resolvedCompletion = is_array($completion ?? null)
                             </div>
 
                             <div>
-                                <h2 class="fs-16 fw-semibold mb-1">
+                                <h2
+                                    class="fs-16 fw-semibold mb-1">
                                     Partner Preference
                                 </h2>
 
-                                <p class="text-muted fs-13 mb-0">
+                                <p
+                                    class="text-muted fs-13 mb-0">
                                     Define the criteria you prefer
                                     in your partner.
                                 </p>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <div
-                    class="alert alert-light border mb-3"
-                    role="status">
-                    <div
-                        class="d-flex align-items-center
-                            justify-content-between gap-3">
-                        <div>
-                            <div class="fw-semibold">
-                                Basic preferences
-                            </div>
-
-                            <div class="text-muted fs-13">
-                                <?= esc(
-                                    (string)
-                                    $resolvedCompletion['completed']
-                                ) ?>
-                                of
-                                <?= esc(
-                                    (string)
-                                    $resolvedCompletion['total']
-                                ) ?>
-                                completed
-                            </div>
-                        </div>
-
-                        <span class="badge bg-primary-subtle text-primary">
-                            <?= esc(
-                                (string)
-                                $resolvedCompletion['percentage']
-                            ) ?>%
-                        </span>
                     </div>
                 </div>
 
@@ -126,53 +102,88 @@ $resolvedCompletion = is_array($completion ?? null)
                         ($section['isCompleted'] ?? false)
                         === true;
 
-                    $sectionKey = (string) (
-                        $section['key'] ?? ''
+                    $sectionKey = trim(
+                        (string) (
+                            $section['key'] ?? ''
+                        )
+                    );
+
+                    $sectionTitle = trim(
+                        (string) (
+                            $section['title'] ?? ''
+                        )
+                    );
+
+                    $sectionDescription = trim(
+                        (string) (
+                            $section['description'] ?? ''
+                        )
+                    );
+
+                    $sectionIcon = trim(
+                        (string) (
+                            $section['icon']
+                            ?? 'ri-list-check'
+                        )
                     );
                     ?>
 
                     <div
-                        class="card border shadow-none mb-3"
+                        class="card border border-danger
+                        border-opacity-25 shadow-none mb-3"
                         id="<?= esc(
                                 $sectionKey,
                                 'attr'
                             ) ?>">
+
                         <div class="card-body p-3 p-md-4">
+
                             <div
                                 class="d-flex align-items-center
-                                    justify-content-between gap-3">
+                                    justify-content-between
+                                    gap-3">
+
                                 <div
                                     class="d-flex align-items-center
                                         gap-2">
+
                                     <span
                                         class="avatar-sm
                                             flex-shrink-0">
+
                                         <span
                                             class="avatar-title
                                                 rounded-circle
-                                                bg-light
+                                                bg-primary-subtle
                                                 text-primary">
+
                                             <i
                                                 class="<?= esc(
-                                                            (string) (
-                                                                $section['icon']
-                                                                ?? 'ri-list-check'
-                                                            ),
+                                                            $sectionIcon,
                                                             'attr'
-                                                        ) ?>"></i>
+                                                        ) ?> fs-18"
+                                                aria-hidden="true"></i>
                                         </span>
                                     </span>
 
                                     <div>
-                                        <h3
-                                            class="fs-15
-                                                fw-semibold mb-0">
-                                            <?= esc(
-                                                (string) (
-                                                    $section['title'] ?? ''
-                                                )
-                                            ) ?>
-                                        </h3>
+                                        <h2
+                                            class="fs-16 fw-semibold mb-0 mt-2">
+
+                                            <?= esc($sectionTitle) ?>
+                                        </h2>
+
+                                        <?php if (
+                                            $sectionDescription !== ''
+                                        ): ?>
+                                            <p
+                                                class="text-muted fs-13 mb-0">
+
+                                                <?= esc(
+                                                    $sectionDescription
+                                                ) ?>
+                                            </p>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
 
@@ -183,6 +194,7 @@ $resolvedCompletion = is_array($completion ?? null)
                                         class="text-success"
                                         title="Completed"
                                         aria-label="Completed">
+
                                         <i
                                             class="ri-checkbox-circle-fill
                                                 fs-20"
@@ -193,9 +205,10 @@ $resolvedCompletion = is_array($completion ?? null)
                                         class="text-muted"
                                         title="Incomplete"
                                         aria-label="Incomplete">
+
                                         <i
                                             class="ri-checkbox-blank-circle-line
-                                                fs-20"
+                                                fs-20 text-warning"
                                             aria-hidden="true"></i>
                                     </span>
                                 <?php endif; ?>
@@ -206,12 +219,17 @@ $resolvedCompletion = is_array($completion ?? null)
                             ): ?>
                                 <div
                                     class="alert alert-light
-                                        border mt-3 mb-0">
+                                        border mt-3 mb-0
+                                        text-body fs-14">
+
                                     This section will be added
                                     in the next preference phase.
                                 </div>
                             <?php else: ?>
-                                <div class="list-group list-group-flush mt-3">
+                                <div
+                                    class="list-group
+                                        list-group-flush mt-3">
+
                                     <?php foreach (
                                         $sectionItems as $item
                                     ): ?>
@@ -220,70 +238,105 @@ $resolvedCompletion = is_array($completion ?? null)
                                             (
                                                 $item['isCompleted'] ?? false
                                             ) === true;
+
+                                        $itemCompulsory =
+                                            (
+                                                $item['isCompulsory'] ?? false
+                                            ) === true;
+
+                                        $itemKey = trim(
+                                            (string) (
+                                                $item['key']
+                                                ?? ''
+                                            )
+                                        );
+
+                                        $itemTitle = trim(
+                                            (string) (
+                                                $item['title']
+                                                ?? ''
+                                            )
+                                        );
+
+                                        $itemValue = trim(
+                                            (string) (
+                                                $item['value']
+                                                ?? 'Not added'
+                                            )
+                                        );
                                         ?>
 
                                         <a
                                             href="<?= url_to(
                                                         'web.partner-preference'
                                                             . '.basic.edit',
-                                                        (string)
-                                                        $item['key']
+                                                        $itemKey
                                                     ) ?>"
                                             class="list-group-item
                                                 list-group-item-action
                                                 px-0 py-3">
+
                                             <div
                                                 class="d-flex
                                                     align-items-center
                                                     justify-content-between
                                                     gap-3">
+
                                                 <div class="min-w-0">
+
                                                     <div
                                                         class="d-flex
                                                             align-items-center
+                                                            flex-wrap
                                                             gap-2 mb-1">
+
                                                         <?php if (
                                                             $itemComplete
                                                         ): ?>
                                                             <i
                                                                 class="ri-checkbox-circle-fill
-                                                                    text-success"
+                                                                    text-success
+                                                                    fs-18"
                                                                 aria-hidden="true"></i>
                                                         <?php else: ?>
                                                             <i
                                                                 class="ri-checkbox-blank-circle-line
-                                                                    text-muted"
+                                                                    text-warning
+                                                                    fs-18"
                                                                 aria-hidden="true"></i>
                                                         <?php endif; ?>
 
                                                         <span
-                                                            class="fw-medium">
+                                                            class="fw-medium
+                                                                text-dark
+                                                                fs-14">
+
                                                             <?= esc(
-                                                                (string)
-                                                                $item['title']
+                                                                $itemTitle
                                                             ) ?>
                                                         </span>
 
                                                         <?php if (
-                                                            (
-                                                                $item['isCompulsory'] ?? false
-                                                            ) === true
+                                                            $itemCompulsory
                                                         ): ?>
                                                             <span
                                                                 class="badge
                                                                     bg-danger-subtle
-                                                                    text-danger">
+                                                                    text-danger p-2">
+
                                                                 Compulsory
                                                             </span>
                                                         <?php endif; ?>
                                                     </div>
 
                                                     <div
-                                                        class="text-muted
-                                                            fs-13">
+                                                        class="<?= $itemComplete
+                                                                    ? 'text-body'
+                                                                    : 'text-secondary' ?>
+                                                            fs-14">
+
                                                         <?= esc(
-                                                            (string)
-                                                            $item['value']
+                                                            $itemValue
                                                         ) ?>
                                                     </div>
                                                 </div>
@@ -292,7 +345,9 @@ $resolvedCompletion = is_array($completion ?? null)
                                                     class="<?= $itemComplete
                                                                 ? 'ri-edit-line'
                                                                 : 'ri-add-circle-line' ?>
-                                                        text-primary fs-18"
+                                                        text-primary
+                                                        fs-20
+                                                        flex-shrink-0"
                                                     aria-hidden="true"></i>
                                             </div>
                                         </a>
