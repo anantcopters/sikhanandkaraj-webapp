@@ -731,9 +731,7 @@ $this->section('content');
 
                 <div>
                     <h4 class="mb-sm-0">
-                        <i
-                            class="ri-user-search-line me-1"
-                            aria-hidden="true"></i>
+
 
                         Member Profile
                     </h4>
@@ -1272,10 +1270,10 @@ $this->section('content');
             <?php else: ?>
                 <div
                     class="row
-                    flex-nowrap
-                    overflow-auto
-                    g-3
-                    pb-2">
+        flex-nowrap
+        overflow-auto
+        g-3
+        pb-2">
 
                     <?php foreach (
                         $resolvedAdminPhotos
@@ -1286,15 +1284,12 @@ $this->section('content');
                             continue;
                         }
 
-                        $photoId = max(
-                            0,
-                            (int) (
-                                $photo['id']
-                                ?? 0
-                            )
+                        $photoId = (int) (
+                            $photo['id']
+                            ?? 0
                         );
 
-                        $photoStatus = mb_strtoupper(
+                        $status = mb_strtoupper(
                             trim(
                                 (string) (
                                     $photo['status']
@@ -1317,65 +1312,58 @@ $this->section('content');
                             continue;
                         }
 
-                        $ribbonClass = match ($photoStatus) {
-                            'APPROVED' =>
+                        $ribbonClass = match ($status) {
+                            MemberPhotoModel::STATUS_APPROVED =>
                             'ribbon-success',
 
-                            'REJECTED' =>
+                            MemberPhotoModel::STATUS_REJECTED =>
                             'ribbon-danger',
 
-                            'PENDING' =>
+                            MemberPhotoModel::STATUS_PENDING =>
                             'ribbon-warning',
 
                             default =>
                             'ribbon-secondary',
                         };
 
-                        $statusLabel = match ($photoStatus) {
-                            'APPROVED' =>
+                        $statusLabel = match ($status) {
+                            MemberPhotoModel::STATUS_APPROVED =>
                             'Approved',
 
-                            'REJECTED' =>
+                            MemberPhotoModel::STATUS_REJECTED =>
                             'Rejected',
 
-                            'PENDING' =>
+                            MemberPhotoModel::STATUS_PENDING =>
                             'Pending',
 
                             default =>
                             'Unknown',
                         };
-
-                        $rejectionReason = trim(
-                            (string) (
-                                $photo['rejectionReason']
-                                ?? ''
-                            )
-                        );
                         ?>
 
                         <div
                             class="col-8
-                            col-sm-5
-                            col-md-4
-                            col-lg-3
-                            col-xl-2
-                            flex-shrink-0">
+                col-sm-5
+                col-md-4
+                col-lg-3
+                col-xl-2
+                flex-shrink-0">
 
                             <div
                                 class="card
-                                ribbon-box
-                                border
-                                shadow-none
-                                h-100
-                                mb-0">
+                    ribbon-box
+                    border
+                    shadow-none
+                    h-100
+                    mb-0">
 
                                 <div
                                     class="ribbon
-                                    ribbon-shape
-                                    <?= esc(
-                                        $ribbonClass,
-                                        'attr'
-                                    ) ?>">
+                        ribbon-shape
+                        <?= esc(
+                            $ribbonClass,
+                            'attr'
+                        ) ?>">
 
                                     <?= esc($statusLabel) ?>
                                 </div>
@@ -1384,9 +1372,9 @@ $this->section('content');
                                     <button
                                         type="button"
                                         class="btn
-                                        border-0
-                                        p-0
-                                        w-100"
+                            border-0
+                            p-0
+                            w-100"
                                         data-admin-photo
                                         data-modal-url-endpoint="<?= esc(
                                                                         route_to(
@@ -1417,63 +1405,46 @@ $this->section('content');
                                                             . ' photograph',
                                                         'attr'
                                                     ) ?>"
-                                            class="img-thumbnail
-                                            w-100"
+                                            class="img-thumbnail w-100"
                                             loading="lazy">
                                     </button>
 
-                                    <div
-                                        class="d-flex
-                                        align-items-center
-                                        justify-content-between
-                                        gap-2
-                                        mt-2">
+                                    <?php if (
+                                        ($photo['isPrimary'] ?? false)
+                                        === true
+                                    ): ?>
+                                        <span
+                                            class="badge
+                                bg-primary-subtle
+                                text-primary
+                                mt-2">
 
-                                        <span class="text-muted fs-12">
-                                            <?= esc(
-                                                trim(
-                                                    (string) (
-                                                        $photo['visibility']
-                                                        ?? '—'
-                                                    )
-                                                )
-                                            ) ?>
+                                            <i
+                                                class="ri-star-fill me-1"
+                                                aria-hidden="true"></i>
+
+                                            Main
                                         </span>
-
-                                        <?php if (
-                                            ($photo['isPrimary']
-                                                ?? false)
-                                            === true
-                                        ): ?>
-                                            <span
-                                                class="badge
-                                                bg-primary-subtle
-                                                text-primary">
-
-                                                <i
-                                                    class="ri-star-fill me-1"
-                                                    aria-hidden="true"></i>
-
-                                                Main
-                                            </span>
-                                        <?php endif; ?>
-                                    </div>
+                                    <?php endif; ?>
 
                                     <?php if (
-                                        $photoStatus === 'REJECTED'
+                                        $status
+                                        === MemberPhotoModel::STATUS_REJECTED
                                     ): ?>
                                         <div class="mt-2">
-                                            <div
-                                                class="text-muted
-                                                fs-12
-                                                mb-1">
+                                            <div class="text-muted fs-12">
                                                 Rejection reason
                                             </div>
 
                                             <div class="fs-12">
                                                 <?= esc(
-                                                    $rejectionReason !== ''
-                                                        ? $rejectionReason
+                                                    trim(
+                                                        (string) (
+                                                            $photo['rejectionReason']
+                                                            ?? ''
+                                                        )
+                                                    ) !== ''
+                                                        ? $photo['rejectionReason']
                                                         : 'No reason recorded.'
                                                 ) ?>
                                             </div>
@@ -1859,10 +1830,10 @@ $this->section('content');
                                 'attr'
                             ) ?>">
 
-                <div class="modal-header bg-info text-white">
+                <div class="modal-header bg-info-subtle py-2">
                     <div>
                         <h5
-                            class="modal-title text-white mb-1"
+                            class="modal-title mb-1"
                             id="member-status-modal-title">
                             Change Member Status
                         </h5>
@@ -1875,7 +1846,7 @@ $this->section('content');
 
                     <button
                         type="button"
-                        class="btn-close btn-close-white"
+                        class="btn-close"
                         data-bs-dismiss="modal"
                         aria-label="Close">
                     </button>
@@ -1884,7 +1855,7 @@ $this->section('content');
                 <div class="modal-body">
                     <div
                         class="alert
-                            alert-info
+                            alert-success
                             border-0"
                         role="status">
 
@@ -1927,7 +1898,7 @@ $this->section('content');
 
                     <div
                         id="member-status-reason-help"
-                        class="form-text">
+                        class="form-text color-pink">
                         Maximum 64 characters.
                     </div>
 
@@ -1974,7 +1945,7 @@ $this->section('content');
             modal-dialog-scrollable">
 
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header bg-info-subtle py-2">
                 <h5
                     class="modal-title"
                     id="member-history-modal-title">
@@ -2016,7 +1987,7 @@ $this->section('content');
             modal-dialog-centered">
 
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header bg-info-subtle py-2">
                 <h5
                     class="modal-title"
                     id="admin-photo-modal-title">

@@ -7,24 +7,27 @@ use CodeIgniter\Pager\Pager;
 
 /**
  * @var list<array<string, mixed>> $members
- * @var Pager $pager
- * @var string $searchTerm
- * @var int $perPage
+ * @var Pager                      $pager
+ * @var string                     $selectedStatus
+ * @var string                     $searchTerm
+ * @var int                        $perPage
  * @var array<string, string>|null $formAlert
+ * @var array<string, string>      $validationErrors
+ * @var array<string, mixed>|null  $statusModal
  */
 
 $resolvedStatus = in_array(
     $selectedStatus ?? '',
     [
         'ALL',
-        'PENDING',
-        'ACTIVE',
-        'SUSPENDED',
-        'DELETED',
+        UserModel::STATUS_PENDING,
+        UserModel::STATUS_ACTIVE,
+        UserModel::STATUS_SUSPENDED,
+        UserModel::STATUS_DELETED,
     ],
     true
 )
-    ? $selectedStatus
+    ? (string) $selectedStatus
     : 'ALL';
 
 $resolvedMembers = is_array(
@@ -93,13 +96,10 @@ $this->section('content');
                 gap-3">
 
                 <div>
-                    <h1 class="mb-1 fs-18">
-                        <i
-                            class="ri-team-line me-1"
-                            aria-hidden="true"></i>
+                    <h4 class="mb-sm-0">
 
                         Members
-                    </h1>
+                    </h4>
 
                     <p class="text-muted mb-0">
                         Search, review and manage registered members.
@@ -578,12 +578,12 @@ $this->section('content');
                                                     class="ri-forbid-line"
                                                     aria-hidden="true"></i>
                                             </button>
-                                        <?php elseif (
-                                            $canUnblock
-                                        ): ?>
+                                        <?php elseif ($canUnblock): ?>
                                             <button
                                                 type="button"
-                                                class="btn btn-sm btn-soft-danger"
+                                                class="btn
+            btn-sm
+            btn-soft-success"
                                                 data-member-status
                                                 data-action="UNBLOCK"
                                                 data-member-name="<?= esc(
@@ -596,15 +596,19 @@ $this->section('content');
                                                                     ) ?>"
                                                 data-form-action="<?= esc(
                                                                         route_to(
-                                                                            'admin.members.block',
+                                                                            'admin.members.unblock',
                                                                             $userId
                                                                         ),
                                                                         'attr'
                                                                     ) ?>"
-                                                title="Block member">
+                                                title="Unblock member"
+                                                aria-label="Unblock <?= esc(
+                                                                        $fullName,
+                                                                        'attr'
+                                                                    ) ?>">
 
                                                 <i
-                                                    class="ri-forbid-line"
+                                                    class="ri-checkbox-circle-line"
                                                     aria-hidden="true"></i>
                                             </button>
                                         <?php endif; ?>
@@ -665,17 +669,37 @@ $this->section('content');
             <form
                 method="post"
                 id="member-status-form"
-                data-validate
                 novalidate>
 
                 <?= csrf_field() ?>
 
-                <div class="modal-header">
-                    <h5
-                        class="modal-title"
-                        id="member-status-modal-title">
-                        Change member status
-                    </h5>
+                <input
+                    type="hidden"
+                    name="return_url"
+                    value="<?= esc(
+                                current_url()
+                                    . (
+                                        $_SERVER['QUERY_STRING'] ?? ''
+                                        ? '?'
+                                        . $_SERVER['QUERY_STRING']
+                                        : ''
+                                    ),
+                                'attr'
+                            ) ?>">
+
+                <div class="modal-header bg-info-subtle py-2">
+                    <div>
+                        <h5
+                            class="modal-title mb-1"
+                            id="member-status-modal-title">
+                            Change Member Status
+                        </h5>
+
+                        <div
+                            id="member-status-identity"
+                            class="fs-13">
+                        </div>
+                    </div>
 
                     <button
                         type="button"
@@ -686,6 +710,27 @@ $this->section('content');
                 </div>
 
                 <div class="modal-body">
+                    <div
+                        class="alert
+                            alert-info
+                            border-0"
+                        role="status">
+
+                        <div class="fw-semibold">
+                            Member
+                        </div>
+
+                        <div id="member-status-member-name">
+                            —
+                        </div>
+
+                        <div
+                            id="member-status-member-code"
+                            class="fs-13">
+                            Member Code: —
+                        </div>
+                    </div>
+
                     <p
                         id="member-status-message"
                         class="text-muted">
@@ -704,16 +749,9 @@ $this->section('content');
                         class="form-control"
                         maxlength="64"
                         required
-                        value="<?= esc(
-                                    (string) (
-                                        $resolvedStatusModal['reason']
-                                        ?? ''
-                                    ),
-                                    'attr'
-                                ) ?>"
-                        aria-describedby="member-status-reason-help member-status-reason-error"
-                        data-error-required="Please enter the reason."
-                        data-error-maxlength="The reason cannot exceed 64 characters.">
+                        aria-describedby="
+                            member-status-reason-help
+                            member-status-reason-error">
 
                     <div
                         id="member-status-reason-help"
@@ -721,19 +759,12 @@ $this->section('content');
                         Maximum 64 characters.
                     </div>
 
-                    <?= view(
-                        'Components/Forms/FieldError',
-                        [
-                            'field' =>
-                            'reason',
-
-                            'errorId' =>
-                            'member-status-reason-error',
-
-                            'errors' =>
-                            $resolvedValidationErrors,
-                        ]
-                    ) ?>
+                    <div
+                        id="member-status-reason-error"
+                        class="invalid-feedback">
+                        Please enter a reason of no more than
+                        64 characters.
+                    </div>
                 </div>
 
                 <div class="modal-footer">
@@ -771,11 +802,11 @@ $this->section('content');
             modal-dialog-scrollable">
 
         <div class="modal-content">
-            <div class="modal-header">
+            <div class="modal-header bg-info-subtle py-2">
                 <h5
                     class="modal-title"
                     id="member-history-modal-title">
-                    Member status history
+                    Member Status History
                 </h5>
 
                 <button
@@ -791,7 +822,7 @@ $this->section('content');
                 id="member-history-content">
 
                 <div class="text-center text-muted py-4">
-                    Select a member to load history.
+                    No history loaded.
                 </div>
             </div>
         </div>

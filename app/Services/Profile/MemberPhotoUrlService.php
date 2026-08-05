@@ -12,13 +12,11 @@ use DomainException;
 use Throwable;
 
 /**
- * Provides authorized read-only profile-photo URLs.
+ * Provides authorized, short-lived member-photo URLs.
  *
- * Media variant rules:
- *
- * - medium: main profile image;
- * - thumbnail: profile gallery and multi-photo listings;
- * - original: generated only after an explicit authorized request.
+ * Member-facing methods expose approved photos only.
+ * Administrator methods may expose retained approved, pending and rejected
+ * photos after administrator authorization has already been applied.
  */
 final class MemberPhotoUrlService
 {
@@ -30,8 +28,6 @@ final class MemberPhotoUrlService
 
     /**
      * Return the approved primary profile-photo URL.
-     *
-     * The profile summary requests the medium variant.
      */
     public function getApprovedPrimaryUrl(
         int $memberId,
@@ -50,7 +46,7 @@ final class MemberPhotoUrlService
             return '';
         }
 
-        $column = match (strtolower(
+        $column = match (mb_strtolower(
             trim($variant)
         )) {
             'original' =>
@@ -86,10 +82,7 @@ final class MemberPhotoUrlService
     }
 
     /**
-     * Return approved photos with thumbnail URLs only.
-     *
-     * Original and medium gallery URLs are not generated during the
-     * initial page request.
+     * Return approved photographs with thumbnail URLs.
      *
      * @return list<array{
      *     id:int,
@@ -132,23 +125,12 @@ final class MemberPhotoUrlService
                 $photoId <= 0
                 || $objectKey === ''
             ) {
-                log_message(
-                    'error',
-                    'Approved thumbnail is unavailable. '
-                        . 'Member: {memberId}; '
-                        . 'photo: {photoId}.',
-                    [
-                        'memberId' => $memberId,
-                        'photoId' => $photoId,
-                    ]
-                );
-
                 continue;
             }
 
             $thumbnailUrl = $this->createSignedUrl(
                 objectKey: $objectKey,
-                context: 'Profile gallery thumbnail',
+                context: 'Approved profile thumbnail',
                 memberId: $memberId,
                 photoId: $photoId
             );
@@ -158,7 +140,8 @@ final class MemberPhotoUrlService
             }
 
             $result[] = [
-                'id' => $photoId,
+                'id' =>
+                $photoId,
 
                 'thumbnailUrl' =>
                 $thumbnailUrl,
@@ -175,18 +158,157 @@ final class MemberPhotoUrlService
     }
 
     /**
-     * Return original and medium URLs for one approved photo.
+     * Return every retained administrator-visible member photograph.
      *
-     * The original URL is requested only when the member explicitly opens
-     * a photo in the modal. Medium is returned as an authorized fallback.
+     * Deleted rows and rows marked DELETED are excluded by
+     * MemberPhotoModel::findActiveForMember().
+     *
+     * @return list<array{
+     *     id:int,
+     *     status:string,
+     *     thumbnailUrl:string,
+     *     isPrimary:bool,
+     *     visibility:string,
+     *     rejectionReason:string,
+     *     createdAt:string
+     * }>
+     */
+    public function getAdminThumbnailPhotos(
+        int $memberId
+    ): array {
+        if ($memberId <= 0) {
+            return [];
+        }
+
+        $photos = $this->photoModel
+            ->findActiveForMember(
+                $memberId
+            );
+
+        $result = [];
+
+        foreach ($photos as $photo) {
+            if (!is_array($photo)) {
+                continue;
+            }
+
+            $photoId = (int) (
+                $photo['id']
+                ?? 0
+            );
+
+            $status = mb_strtoupper(
+                trim(
+                    (string) (
+                        $photo['status']
+                        ?? ''
+                    )
+                )
+            );
+
+            if (
+                $photoId <= 0
+                || !in_array(
+                    $status,
+                    [
+                        MemberPhotoModel::STATUS_PENDING,
+                        MemberPhotoModel::STATUS_APPROVED,
+                        MemberPhotoModel::STATUS_REJECTED,
+                    ],
+                    true
+                )
+            ) {
+                continue;
+            }
+
+            /*
+             * Prefer the thumbnail. Use medium only when an older retained
+             * record does not contain a thumbnail object key.
+             */
+            $objectKey = trim(
+                (string) (
+                    $photo['thumbnail_object_key']
+                    ?? ''
+                )
+            );
+
+            if ($objectKey === '') {
+                $objectKey = trim(
+                    (string) (
+                        $photo['medium_object_key']
+                        ?? ''
+                    )
+                );
+            }
+
+            if ($objectKey === '') {
+                continue;
+            }
+
+            $thumbnailUrl = $this->createSignedUrl(
+                objectKey: $objectKey,
+                context: 'Administrator profile thumbnail',
+                memberId: $memberId,
+                photoId: $photoId
+            );
+
+            if ($thumbnailUrl === '') {
+                continue;
+            }
+
+            $result[] = [
+                'id' =>
+                $photoId,
+
+                'status' =>
+                $status,
+
+                'thumbnailUrl' =>
+                $thumbnailUrl,
+
+                'isPrimary' =>
+                BooleanValue::fromDatabase(
+                    $photo['is_primary']
+                        ?? false
+                ),
+
+                'visibility' =>
+                trim(
+                    (string) (
+                        $photo['visibility']
+                        ?? ''
+                    )
+                ),
+
+                'rejectionReason' =>
+                trim(
+                    (string) (
+                        $photo['rejection_reason']
+                        ?? ''
+                    )
+                ),
+
+                'createdAt' =>
+                trim(
+                    (string) (
+                        $photo['created_at']
+                        ?? ''
+                    )
+                ),
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Return original and medium URLs for one approved member-owned photo.
      *
      * @return array{
      *     photoId:int,
      *     originalUrl:string,
      *     mediumUrl:string
      * }
-     *
-     * @throws DomainException
      */
     public function getOwnedApprovedModalUrls(
         int $memberId,
@@ -208,15 +330,106 @@ final class MemberPhotoUrlService
             );
 
         if (!is_array($photo)) {
-            /*
-             * Return the same response for an unknown, foreign, pending,
-             * rejected or deleted photo.
-             */
             throw new DomainException(
                 'The requested photo is unavailable.'
             );
         }
 
+        return $this->createModalUrls(
+            $photo,
+            $memberId,
+            $photoId,
+            'Approved member photo'
+        );
+    }
+
+    /**
+     * Return original and medium URLs for one retained Admin-visible photo.
+     *
+     * This permits approved, pending and rejected photographs, but still
+     * requires the photo to belong to the supplied member and remain active.
+     *
+     * @return array{
+     *     photoId:int,
+     *     originalUrl:string,
+     *     mediumUrl:string
+     * }
+     */
+    public function getAdminModalUrls(
+        int $memberId,
+        int $photoId
+    ): array {
+        if (
+            $memberId <= 0
+            || $photoId <= 0
+        ) {
+            throw new DomainException(
+                'The requested photo is invalid.'
+            );
+        }
+
+        $photo = $this->photoModel
+            ->findOwnedActivePhoto(
+                $photoId,
+                $memberId
+            );
+
+        if (!is_array($photo)) {
+            throw new DomainException(
+                'The requested photo is unavailable.'
+            );
+        }
+
+        $status = mb_strtoupper(
+            trim(
+                (string) (
+                    $photo['status']
+                    ?? ''
+                )
+            )
+        );
+
+        if (
+            !in_array(
+                $status,
+                [
+                    MemberPhotoModel::STATUS_PENDING,
+                    MemberPhotoModel::STATUS_APPROVED,
+                    MemberPhotoModel::STATUS_REJECTED,
+                ],
+                true
+            )
+        ) {
+            throw new DomainException(
+                'The requested photo is unavailable.'
+            );
+        }
+
+        return $this->createModalUrls(
+            $photo,
+            $memberId,
+            $photoId,
+            'Administrator member photo'
+        );
+    }
+
+    /**
+     * Generate original and medium signed URLs.
+     *
+     * @param array<string, mixed> $photo
+     *
+     * @return array{
+     *     photoId:int,
+     *     originalUrl:string,
+     *     mediumUrl:string
+     * }
+     */
+    private function createModalUrls(
+        array $photo,
+        int $memberId,
+        int $photoId,
+        string $context
+    ): array {
         $originalObjectKey = trim(
             (string) (
                 $photo['original_object_key']
@@ -239,7 +452,7 @@ final class MemberPhotoUrlService
 
         $originalUrl = $this->createSignedUrl(
             objectKey: $originalObjectKey,
-            context: 'Original profile photo',
+            context: $context . ' original',
             memberId: $memberId,
             photoId: $photoId
         );
@@ -255,21 +468,26 @@ final class MemberPhotoUrlService
         if ($mediumObjectKey !== '') {
             $mediumUrl = $this->createSignedUrl(
                 objectKey: $mediumObjectKey,
-                context: 'Medium profile photo fallback',
+                context: $context . ' medium',
                 memberId: $memberId,
                 photoId: $photoId
             );
         }
 
         return [
-            'photoId' => $photoId,
-            'originalUrl' => $originalUrl,
-            'mediumUrl' => $mediumUrl,
+            'photoId' =>
+            $photoId,
+
+            'originalUrl' =>
+            $originalUrl,
+
+            'mediumUrl' =>
+            $mediumUrl,
         ];
     }
 
     /**
-     * Generate a short-lived CloudFront signed URL.
+     * Generate one short-lived signed CloudFront URL.
      */
     private function createSignedUrl(
         string $objectKey,
@@ -290,11 +508,17 @@ final class MemberPhotoUrlService
                 '{context} URL generation failed. '
                     . 'Member: {memberId}; '
                     . 'photo: {photoId}; '
-                    . 'reason: {message}',
+                    . 'reason: {message}.',
                 [
-                    'context' => $context,
-                    'memberId' => $memberId,
-                    'photoId' => $photoId,
+                    'context' =>
+                    $context,
+
+                    'memberId' =>
+                    $memberId,
+
+                    'photoId' =>
+                    $photoId,
+
                     'message' =>
                     $exception->getMessage(),
                 ]

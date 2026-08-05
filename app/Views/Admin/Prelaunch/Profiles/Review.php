@@ -1319,7 +1319,7 @@ $this->section(
                 class="modal-content
                     border-0 shadow">
 
-                <div class="modal-header">
+                <div class="modal-header bg-info-subtle py-2">
                     <div>
                         <h2
                             id="<?= esc(
@@ -1521,7 +1521,7 @@ $this->section(
 
                     <?= csrf_field() ?>
 
-                    <div class="modal-header">
+                    <div class="modal-header bg-info-subtle py-2">
                         <div>
                             <h2
                                 id="reject-profile-modal-title"

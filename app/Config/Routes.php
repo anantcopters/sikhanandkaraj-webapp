@@ -933,22 +933,18 @@ $routes->group('admin', [
         );
 
         /*
- * Member administration.
- *
- * Both ADMIN and SUPER_ADMIN may access these routes. Do not add the
- * superAdmin filter to this group.
- */
+        * Member administration.
+        *
+        * Both ADMIN and SUPER_ADMIN may access these routes because this group is
+        * inside the existing adminAuth group and does not use the superAdmin filter.
+        */
         $routes->group(
             'members',
-            [
-                'namespace' =>
-                'App\Controllers\Admin',
-            ],
             static function (
-                $routes
+                RouteCollection $routes
             ): void {
                 $routes->get(
-                    '/',
+                    '',
                     'MemberController::index',
                     [
                         'as' =>
@@ -956,12 +952,24 @@ $routes->group('admin', [
                     ]
                 );
 
+                /*
+                * More-specific routes are declared before members/(:num).
+                */
                 $routes->get(
-                    '(:num)',
-                    'MemberController::view/$1',
+                    '(:num)/status-history',
+                    'MemberController::history/$1',
                     [
                         'as' =>
-                        'admin.members.view',
+                        'admin.members.history',
+                    ]
+                );
+
+                $routes->get(
+                    '(:num)/photos/(:num)/modal-urls',
+                    'MemberController::photoModalUrls/$1/$2',
+                    [
+                        'as' =>
+                        'admin.members.photos.modal-urls',
                     ]
                 );
 
@@ -984,11 +992,11 @@ $routes->group('admin', [
                 );
 
                 $routes->get(
-                    '(:num)/status-history',
-                    'MemberController::history/$1',
+                    '(:num)',
+                    'MemberController::view/$1',
                     [
                         'as' =>
-                        'admin.members.history',
+                        'admin.members.view',
                     ]
                 );
             }

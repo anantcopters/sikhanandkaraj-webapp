@@ -7,7 +7,6 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\MemberAccountStatusHistoryModel;
 use App\Services\Admin\MemberManagementService;
-use App\Services\Profile\MemberPhotoUrlService;
 use App\Validation\Admin\MemberAccountStatusValidation;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
@@ -20,9 +19,6 @@ use Throwable;
  */
 final class MemberController extends BaseController
 {
-    /**
-     * Number of members displayed on each list page.
-     */
     private const MEMBERS_PER_PAGE = 10;
 
     /**
@@ -37,18 +33,16 @@ final class MemberController extends BaseController
             )
         );
 
-        $allowedStatuses = [
-            'ALL',
-            'PENDING',
-            'ACTIVE',
-            'SUSPENDED',
-            'DELETED',
-        ];
-
         if (
             !in_array(
                 $status,
-                $allowedStatuses,
+                [
+                    'ALL',
+                    'PENDING',
+                    'ACTIVE',
+                    'SUSPENDED',
+                    'DELETED',
+                ],
                 true
             )
         ) {
@@ -133,11 +127,6 @@ final class MemberController extends BaseController
                 'memberManagementService'
             );
 
-            $profile = $service
-                ->profilePreview(
-                    $userId
-                );
-
             return view(
                 'Admin/Members/View',
                 array_merge(
@@ -159,15 +148,13 @@ final class MemberController extends BaseController
                         'formAlert' =>
                         session('formAlert'),
 
-                        /*
-                         * This script attaches History, Block/Unblock and
-                         * photo-preview modal handlers on the profile page.
-                         */
                         'pageScripts' => [
                             'assets/js/pages/admin-member-view.js',
                         ],
                     ],
-                    $profile
+                    $service->profilePreview(
+                        $userId
+                    )
                 )
             );
         } catch (
@@ -177,8 +164,9 @@ final class MemberController extends BaseController
         } catch (Throwable $exception) {
             log_message(
                 'error',
-                'Unable to display member {userId} '
-                    . 'for administrator: {message}',
+                'Unable to display Admin member profile. '
+                    . 'Member: {userId}; '
+                    . 'message: {message}.',
                 [
                     'userId' =>
                     $userId,
@@ -193,34 +181,26 @@ final class MemberController extends BaseController
         }
     }
 
-    /**
-     * Block an active member.
-     */
     public function block(
         int $userId
     ): RedirectResponse {
         return $this->changeStatus(
             $userId,
-            MemberAccountStatusHistoryModel
-            ::ACTION_BLOCK
+            MemberAccountStatusHistoryModel::ACTION_BLOCK
         );
     }
 
-    /**
-     * Unblock a suspended member.
-     */
     public function unblock(
         int $userId
     ): RedirectResponse {
         return $this->changeStatus(
             $userId,
-            MemberAccountStatusHistoryModel
-            ::ACTION_UNBLOCK
+            MemberAccountStatusHistoryModel::ACTION_UNBLOCK
         );
     }
 
     /**
-     * Return member block/unblock history as JSON.
+     * Return block/unblock history.
      */
     public function history(
         int $userId
@@ -236,62 +216,57 @@ final class MemberController extends BaseController
             );
 
             $history = array_map(
-                static function (
-                    array $row
-                ): array {
-                    return [
-                        'action' =>
-                        (string) (
-                            $row['action']
-                            ?? ''
-                        ),
+                static fn(array $row): array => [
+                    'action' =>
+                    (string) (
+                        $row['action']
+                        ?? ''
+                    ),
 
-                        'previousStatus' =>
-                        (string) (
-                            $row['previous_status']
-                            ?? ''
-                        ),
+                    'previousStatus' =>
+                    (string) (
+                        $row['previous_status']
+                        ?? ''
+                    ),
 
-                        'newStatus' =>
-                        (string) (
-                            $row['new_status']
-                            ?? ''
-                        ),
+                    'newStatus' =>
+                    (string) (
+                        $row['new_status']
+                        ?? ''
+                    ),
 
-                        'reason' =>
-                        (string) (
-                            $row['reason']
-                            ?? ''
-                        ),
+                    'reason' =>
+                    (string) (
+                        $row['reason']
+                        ?? ''
+                    ),
 
-                        'adminName' =>
-                        (string) (
-                            $row['admin_name']
-                            ?? 'Administrator'
-                        ),
+                    'adminName' =>
+                    (string) (
+                        $row['admin_name']
+                        ?? 'Administrator'
+                    ),
 
-                        'adminRole' =>
-                        (string) (
-                            $row['admin_role']
-                            ?? ''
-                        ),
+                    'adminRole' =>
+                    (string) (
+                        $row['admin_role']
+                        ?? ''
+                    ),
 
-                        'changedAt' =>
-                        (string) (
-                            $row['changed_at']
-                            ?? ''
-                        ),
-                    ];
-                },
+                    'changedAt' =>
+                    (string) (
+                        $row['changed_at']
+                        ?? ''
+                    ),
+                ],
                 $result['history']
             );
 
             return $this->response
                 ->setHeader(
                     'Cache-Control',
-                    'private, no-store, '
-                        . 'no-cache, must-revalidate, '
-                        . 'max-age=0'
+                    'private, no-store, no-cache, '
+                        . 'must-revalidate, max-age=0'
                 )
                 ->setJSON([
                     'successful' =>
@@ -314,8 +289,7 @@ final class MemberController extends BaseController
                     'history' =>
                     $history,
                 ]);
-        } catch (
-            PageNotFoundException) {
+        } catch (PageNotFoundException) {
             return $this->response
                 ->setStatusCode(404)
                 ->setJSON([
@@ -328,7 +302,7 @@ final class MemberController extends BaseController
         } catch (Throwable $exception) {
             log_message(
                 'error',
-                'Unable to load member status history. '
+                'Unable to load member history. '
                     . 'Member: {userId}; '
                     . 'message: {message}.',
                 [
@@ -353,22 +327,12 @@ final class MemberController extends BaseController
     }
 
     /**
-     * Return original and medium signed URLs for one retained member photo.
-     *
-     * Unlike the member-facing endpoint, the administrator endpoint may read
-     * an approved, pending or rejected photo. Deleted photos remain excluded.
+     * Return signed modal URLs for one retained member photograph.
      */
     public function photoModalUrls(
         int $userId,
         int $photoId
     ): ResponseInterface {
-        if (
-            $userId <= 0
-            || $photoId <= 0
-        ) {
-            return $this->photoNotFoundResponse();
-        }
-
         try {
             /** @var MemberManagementService $service */
             $service = service(
@@ -384,9 +348,8 @@ final class MemberController extends BaseController
             return $this->response
                 ->setHeader(
                     'Cache-Control',
-                    'private, no-store, '
-                        . 'no-cache, must-revalidate, '
-                        . 'max-age=0'
+                    'private, no-store, no-cache, '
+                        . 'must-revalidate, max-age=0'
                 )
                 ->setHeader(
                     'Pragma',
@@ -412,7 +375,7 @@ final class MemberController extends BaseController
         } catch (Throwable $exception) {
             log_message(
                 'error',
-                'Administrator photo URL generation failed. '
+                'Unable to create Admin photo URL. '
                     . 'Member: {userId}; '
                     . 'photo: {photoId}; '
                     . 'message: {message}.',
@@ -441,7 +404,7 @@ final class MemberController extends BaseController
     }
 
     /**
-     * Validate and perform a block or unblock action.
+     * Validate and perform a block/unblock action.
      */
     private function changeStatus(
         int $userId,
@@ -459,6 +422,8 @@ final class MemberController extends BaseController
             ) ?? '',
         ];
 
+        $returnUrl = $this->safeReturnUrl();
+
         $validation = service(
             'validation'
         );
@@ -468,42 +433,12 @@ final class MemberController extends BaseController
                 ::reasonRules()
         );
 
-        $returnUrl = trim(
-            (string) $this->request
-                ->getPost('return_url')
-        );
-
-        if (
-            $returnUrl === ''
-            || !str_starts_with(
-                $returnUrl,
-                site_url('admin/members')
-            )
-        ) {
-            $returnUrl = route_to(
-                'admin.members.index'
-            );
-        }
-
         if (!$validation->run($input)) {
             return redirect()
                 ->to($returnUrl)
                 ->with(
                     'validationErrors',
                     $validation->getErrors()
-                )
-                ->with(
-                    'statusModal',
-                    [
-                        'userId' =>
-                        $userId,
-
-                        'action' =>
-                        $action,
-
-                        'reason' =>
-                        $input['reason'],
-                    ]
                 );
         }
 
@@ -515,8 +450,7 @@ final class MemberController extends BaseController
 
             if (
                 $action
-                === MemberAccountStatusHistoryModel
-                ::ACTION_BLOCK
+                === MemberAccountStatusHistoryModel::ACTION_BLOCK
             ) {
                 $service->block(
                     $userId,
@@ -556,9 +490,7 @@ final class MemberController extends BaseController
                         $message,
                     ]
                 );
-        } catch (
-            DomainException $exception
-        ) {
+        } catch (DomainException $exception) {
             return redirect()
                 ->to($returnUrl)
                 ->with(
@@ -612,8 +544,42 @@ final class MemberController extends BaseController
     }
 
     /**
-     * Resolve the authenticated administrator identifier.
+     * Accept only local Admin member return URLs.
      */
+    private function safeReturnUrl(): string
+    {
+        $returnUrl = trim(
+            (string) $this->request
+                ->getPost('return_url')
+        );
+
+        $memberBaseUrl = rtrim(
+            site_url('admin/members'),
+            '/'
+        );
+
+        if (
+            $returnUrl !== ''
+            && (
+                $returnUrl === $memberBaseUrl
+                || str_starts_with(
+                    $returnUrl,
+                    $memberBaseUrl . '/'
+                )
+                || str_starts_with(
+                    $returnUrl,
+                    $memberBaseUrl . '?'
+                )
+            )
+        ) {
+            return $returnUrl;
+        }
+
+        return route_to(
+            'admin.members.index'
+        );
+    }
+
     private function adminUserId(): int
     {
         $adminUserId = session(
@@ -630,9 +596,6 @@ final class MemberController extends BaseController
         return (int) $adminUserId;
     }
 
-    /**
-     * Return one generic unavailable-photo response.
-     */
     private function photoNotFoundResponse(): ResponseInterface
     {
         return $this->response

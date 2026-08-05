@@ -42,7 +42,7 @@ $carouselId = $modalId . 'Carousel';
 
         <div class="modal-content">
 
-            <div class="modal-header">
+            <div class="modal-header bg-info-subtle">
 
                 <div>
                     <h5

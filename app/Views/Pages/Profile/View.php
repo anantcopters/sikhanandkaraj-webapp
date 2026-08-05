@@ -1480,7 +1480,7 @@ $this->section('content');
 
             <div class="modal-content">
 
-                <div class="modal-header">
+                <div class="modal-header bg-info-subtle py-2">
 
                     <h2
                         class="modal-title fs-17"
@@ -1542,7 +1542,7 @@ $this->section('content');
 
             <div class="modal-content">
 
-                <div class="modal-header">
+                <div class="modal-header bg-info-subtle py-2">
 
                     <div>
                         <h2

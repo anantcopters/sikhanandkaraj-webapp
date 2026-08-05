@@ -12,13 +12,12 @@ use App\Services\Profile\MemberPhotoUrlService;
 use App\Services\Profile\MemberProfileSummaryService;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\Exceptions\PageNotFoundException;
-use CodeIgniter\Pager\Pager;
 use DomainException;
 use RuntimeException;
 use Throwable;
 
 /**
- * Administrator member-list, preview and status-transition service.
+ * Administrator member listing, profile review and status-transition service.
  */
 final class MemberManagementService
 {
@@ -32,7 +31,7 @@ final class MemberManagementService
     ) {}
 
     /**
-     * Return a searchable and status-filtered paginated member listing.
+     * Return a searchable and status-filtered member page.
      *
      * @return array{
      *     members:list<array<string, mixed>>,
@@ -117,26 +116,45 @@ final class MemberManagementService
     }
 
     /**
-     * Return the existing member profile-summary contract for admin preview.
+     * Return one administrator-visible member.
      *
      * @return array<string, mixed>
      */
-    public function profilePreview(
+    public function memberForAdmin(
         int $userId
     ): array {
         $member = $this->userModel
-            ->findForAdmin($userId);
+            ->findForAdmin(
+                $userId
+            );
 
         if (!is_array($member)) {
             throw PageNotFoundException
                 ::forPageNotFound();
         }
 
-        $summary = $this->profileSummaryService
-            ->getForUser($userId);
+        return $member;
+    }
 
-        $approvedPhotos = $this->photoUrlService
-            ->getApprovedThumbnailPhotos(
+    /**
+     * Return the Admin profile-view contract.
+     *
+     * @return array<string, mixed>
+     */
+    public function profilePreview(
+        int $userId
+    ): array {
+        $member = $this->memberForAdmin(
+            $userId
+        );
+
+        $summary = $this->profileSummaryService
+            ->getForUser(
+                $userId
+            );
+
+        $adminPhotos = $this->photoUrlService
+            ->getAdminThumbnailPhotos(
                 $userId
             );
 
@@ -146,10 +164,34 @@ final class MemberManagementService
                 'adminMember' =>
                 $member,
 
-                'approvedPhotos' =>
-                $approvedPhotos,
+                'adminPhotos' =>
+                $adminPhotos,
             ]
         );
+    }
+
+    /**
+     * Return administrator-authorized modal photo URLs.
+     *
+     * @return array{
+     *     photoId:int,
+     *     originalUrl:string,
+     *     mediumUrl:string
+     * }
+     */
+    public function adminPhotoModalUrls(
+        int $userId,
+        int $photoId
+    ): array {
+        $this->memberForAdmin(
+            $userId
+        );
+
+        return $this->photoUrlService
+            ->getAdminModalUrls(
+                $userId,
+                $photoId
+            );
     }
 
     /**
@@ -161,13 +203,12 @@ final class MemberManagementService
         int $adminUserId
     ): void {
         $this->changeStatus(
-            $userId,
-            UserModel::STATUS_ACTIVE,
-            UserModel::STATUS_SUSPENDED,
-            MemberAccountStatusHistoryModel
-            ::ACTION_BLOCK,
-            $reason,
-            $adminUserId
+            userId: $userId,
+            expectedStatus: UserModel::STATUS_ACTIVE,
+            newStatus: UserModel::STATUS_SUSPENDED,
+            action: MemberAccountStatusHistoryModel::ACTION_BLOCK,
+            reason: $reason,
+            adminUserId: $adminUserId
         );
     }
 
@@ -180,13 +221,12 @@ final class MemberManagementService
         int $adminUserId
     ): void {
         $this->changeStatus(
-            $userId,
-            UserModel::STATUS_SUSPENDED,
-            UserModel::STATUS_ACTIVE,
-            MemberAccountStatusHistoryModel
-            ::ACTION_UNBLOCK,
-            $reason,
-            $adminUserId
+            userId: $userId,
+            expectedStatus: UserModel::STATUS_SUSPENDED,
+            newStatus: UserModel::STATUS_ACTIVE,
+            action: MemberAccountStatusHistoryModel::ACTION_UNBLOCK,
+            reason: $reason,
+            adminUserId: $adminUserId
         );
     }
 
@@ -201,26 +241,22 @@ final class MemberManagementService
     public function history(
         int $userId
     ): array {
-        $member = $this->userModel
-            ->findForAdmin($userId);
-
-        if (!is_array($member)) {
-            throw PageNotFoundException
-                ::forPageNotFound();
-        }
-
         return [
             'member' =>
-            $member,
+            $this->memberForAdmin(
+                $userId
+            ),
 
             'history' =>
             $this->historyModel
-                ->forUser($userId),
+                ->forUser(
+                    $userId
+                ),
         ];
     }
 
     /**
-     * Persist one constraint-backed status transition.
+     * Persist one locked, constraint-backed status transition.
      */
     private function changeStatus(
         int $userId,
@@ -230,7 +266,10 @@ final class MemberManagementService
         string $reason,
         int $adminUserId
     ): void {
-        if ($userId <= 0 || $adminUserId <= 0) {
+        if (
+            $userId <= 0
+            || $adminUserId <= 0
+        ) {
             throw new DomainException(
                 'A valid member and administrator are required.'
             );
@@ -276,14 +315,11 @@ final class MemberManagementService
             );
 
             if ($currentStatus !== $expectedStatus) {
-                $message = $action
-                    === MemberAccountStatusHistoryModel
-                    ::ACTION_BLOCK
-                    ? 'Only an active member can be blocked.'
-                    : 'Only a blocked member can be unblocked.';
-
                 throw new DomainException(
-                    $message
+                    $action
+                        === MemberAccountStatusHistoryModel::ACTION_BLOCK
+                        ? 'Only an active member can be blocked.'
+                        : 'Only a blocked member can be unblocked.'
                 );
             }
 
@@ -351,11 +387,6 @@ final class MemberManagementService
             throw $exception;
         }
 
-        /*
-         * Audit is written after the business transaction. The existing audit
-         * service safely logs audit failures without falsely rolling back the
-         * completed member status change.
-         */
         $this->auditService->record(
             new AdminAuditEvent(
                 action: 'MEMBER_' . $action,
