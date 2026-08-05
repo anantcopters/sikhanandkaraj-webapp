@@ -25,7 +25,7 @@ class Logger extends BaseConfig
      */
     public $threshold =
     ENVIRONMENT === 'production'
-        ? 4
+        ? 5
         : 9;
 
     public string $dateFormat =
