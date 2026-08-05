@@ -95,6 +95,10 @@ use App\Models\PartnerPreferenceSelectionModel;
 use App\Services\PartnerPreference\AdditionalPartnerPreferenceService;
 use App\Models\MemberAccountStatusHistoryModel;
 use App\Services\Admin\MemberManagementService;
+use App\Logging\ApplicationErrorLogWriter;
+use App\Logging\ErrorLogSanitizer;
+use App\Services\Logging\ApplicationErrorLogger;
+use Config\ErrorLogging;
 use App\Services\Sms\SmsProviderFactory;
 use App\Services\Sms\SmsProviderInterface;
 use Aws\CloudFront\CloudFrontClient;
@@ -1273,6 +1277,26 @@ final class Services extends BaseService
             ),
             static::adminAuditService(
                 false
+            )
+        );
+    }
+
+    /**
+     * Structured, failure-safe application error logger.
+     */
+    public static function applicationErrorLogger(
+        bool $getShared = true
+    ): ApplicationErrorLogger {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'applicationErrorLogger'
+            );
+        }
+
+        return new ApplicationErrorLogger(
+            new ApplicationErrorLogWriter(
+                config(ErrorLogging::class),
+                new ErrorLogSanitizer()
             )
         );
     }
