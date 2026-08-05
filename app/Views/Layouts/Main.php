@@ -39,8 +39,11 @@
     <main>
         <?= $this->renderSection('content') ?>
     </main>
+    <?php
+    $footerView = $footerView ?? 'Components/Footer';
+    ?>
 
-    <?= $this->include('Components/Footer') ?>
+    <?= $this->include($footerView) ?>
 
     <?= view('Components/FeedbackModal') ?>
 

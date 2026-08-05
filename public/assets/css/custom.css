@@ -1716,3 +1716,247 @@ form[aria-busy="true"] {
         height: 52vh;
     }
 }
+/*
+|--------------------------------------------------------------------------
+| Home registration hero
+|--------------------------------------------------------------------------
+|
+| bg_index.png covers the full left side of the section rather than only
+| the Bootstrap column. The content remains aligned with the site container.
+|
+*/
+
+.home-registration-section {
+  position: relative;
+  min-height: 650px;
+  overflow: hidden;
+  background-color: #f8fcf8;
+  isolation: isolate;
+}
+
+/*
+ * Full-height image layer.
+ *
+ * It starts at the browser's left edge and extends slightly beyond the
+ * seven-column desktop region. This removes the empty strip created by the
+ * Bootstrap container and column gutters.
+ */
+.home-registration-section::before {
+  position: absolute;
+  z-index: -2;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 61%;
+  background-image: url("../images/bg_index.png");
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  content: "";
+}
+
+/*
+ * Continuous fade toward the registration form.
+ *
+ * The gradient belongs to the section, so the fade extends across the full
+ * image height without producing a separate rectangular image block.
+ */
+.home-registration-section::after {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 66%;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255, 248, 245, 0.1) 0%,
+      rgba(255, 248, 245, 0.04) 42%,
+      rgba(248, 252, 248, 0.16) 64%,
+      rgba(248, 252, 248, 0.7) 83%,
+      #f8fcf8 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 249, 247, 0.82) 0%,
+      rgba(255, 249, 247, 0.58) 25%,
+      rgba(255, 249, 247, 0.1) 52%,
+      rgba(255, 249, 247, 0.03) 100%
+    );
+  content: "";
+  pointer-events: none;
+}
+
+.home-registration-section__row {
+  min-height: 650px;
+}
+
+/*
+ * The left column now contains only overlay content.
+ * It does not limit or crop the section-level image.
+ */
+.home-registration-visual {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  min-height: 650px;
+  height: 100%;
+}
+
+/*
+ * Text overlays the image near the top.
+ */
+.home-registration-visual__content {
+  width: min(100%, 650px);
+  padding: 46px 34px 30px;
+  text-align: center;
+}
+
+.home-registration-visual__eyebrow {
+  margin: 0 0 10px;
+  color: #945b66;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1.5;
+  text-transform: uppercase;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95),
+    0 2px 10px rgba(255, 255, 255, 0.82);
+}
+
+.home-registration-visual__title {
+  margin: 0;
+  color: #432053;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(36px, 3.15vw, 54px);
+  font-weight: 600;
+  line-height: 1.06;
+  letter-spacing: -0.025em;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.95),
+    0 4px 18px rgba(255, 255, 255, 0.82);
+}
+
+.home-registration-visual__title span {
+  display: block;
+  margin-top: 5px;
+  color: #ae1536;
+}
+
+.home-registration-visual__divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(100%, 330px);
+  margin: 20px auto 16px;
+  color: #d69a47;
+}
+
+.home-registration-visual__divider span {
+  display: block;
+  flex: 1 1 auto;
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.82;
+}
+
+.home-registration-visual__divider i {
+  flex: 0 0 auto;
+  margin: 0 12px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.home-registration-visual__description {
+  margin: 0;
+  color: #514a4c;
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.65;
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.98),
+    0 3px 14px rgba(255, 255, 255, 0.9);
+}
+
+/*
+ * Keep the form vertically centered without changing registration-card
+ * styling.
+ */
+.home-registration-section .col-lg-5 {
+  display: flex;
+  align-items: flex-start;
+}
+
+.home-registration-section .registration-card {
+  width: 100%;
+  margin-top: 35px;
+}
+
+/*
+ * Wide desktop screens need a slightly larger image area because the
+ * Bootstrap container leaves more space outside the content.
+ */
+@media (min-width: 1200px) {
+  .home-registration-section,
+  .home-registration-section__row,
+  .home-registration-visual {
+    min-height: 670px;
+  }
+
+  .home-registration-section::before {
+    width: 62%;
+  }
+
+  .home-registration-section::after {
+    width: 67%;
+  }
+
+  .home-registration-visual__content {
+    padding-top: 50px;
+  }
+}
+
+@media (min-width: 1400px) {
+  .home-registration-section,
+  .home-registration-section__row,
+  .home-registration-visual {
+    min-height: 690px;
+  }
+
+  .home-registration-section::before {
+    width: 63%;
+  }
+
+  .home-registration-section::after {
+    width: 68%;
+  }
+}
+
+/*
+ * The artwork remains hidden on mobile because the corresponding left
+ * Bootstrap column is hidden. Remove section pseudo-elements as well.
+ */
+@media (max-width: 991.98px) {
+  .home-registration-section {
+    min-height: auto;
+    padding-top: 24px;
+    padding-bottom: 32px;
+  }
+
+  .home-registration-section::before,
+  .home-registration-section::after {
+    display: none;
+  }
+
+  .home-registration-section__row {
+    min-height: auto;
+  }
+
+  .home-registration-section .col-lg-5 {
+    display: block;
+  }
+}
