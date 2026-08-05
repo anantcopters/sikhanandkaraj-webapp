@@ -93,6 +93,8 @@ use App\Models\MemberPartnerReligiousPreferenceModel;
 use App\Models\MemberPartnerSpecialRequestModel;
 use App\Models\PartnerPreferenceSelectionModel;
 use App\Services\PartnerPreference\AdditionalPartnerPreferenceService;
+use App\Models\MemberAccountStatusHistoryModel;
+use App\Services\Admin\MemberManagementService;
 use App\Services\Sms\SmsProviderFactory;
 use App\Services\Sms\SmsProviderInterface;
 use Aws\CloudFront\CloudFrontClient;
@@ -1240,6 +1242,38 @@ final class Services extends BaseService
             static::profileMasterDataService(false),
 
             $database
+        );
+    }
+
+    /**
+     * Administrator member listing and account-status management.
+     */
+    public static function memberManagementService(
+        bool $getShared = true
+    ): MemberManagementService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberManagementService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberManagementService(
+            $database,
+            new UserModel($database),
+            new MemberAccountStatusHistoryModel(
+                $database
+            ),
+            static::memberProfileSummaryService(
+                false
+            ),
+            static::memberPhotoUrlService(
+                false
+            ),
+            static::adminAuditService(
+                false
+            )
         );
     }
 }

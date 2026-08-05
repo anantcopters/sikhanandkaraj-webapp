@@ -11,6 +11,27 @@ use CodeIgniter\Model;
  */
 final class MemberPhotoModel extends Model
 {
+
+    /**
+     * Photograph is awaiting administrator moderation.
+     */
+    public const STATUS_PENDING = 'PENDING';
+
+    /**
+     * Photograph is approved for authorized member-facing display.
+     */
+    public const STATUS_APPROVED = 'APPROVED';
+
+    /**
+     * Photograph was rejected but remains privately retained until deleted.
+     */
+    public const STATUS_REJECTED = 'REJECTED';
+
+    /**
+     * Photograph is logically deleted and must not be displayed.
+     */
+    public const STATUS_DELETED = 'DELETED';
+    
     protected $table = 'member_photos';
 
     protected $primaryKey = 'id';

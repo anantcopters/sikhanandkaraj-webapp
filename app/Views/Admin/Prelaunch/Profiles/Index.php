@@ -72,11 +72,11 @@ $this->section(
                     gap-3">
 
                 <div>
-                    <h1 class="mb-1 fs-18">
+                    <h4 class="mb-sm-0">
                         Pre-launch Profiles
-                    </h1>
+                    </h4>
 
-                    <p class="text-muted mb-0">
+                    <p class="text-muted mb-0 mt-1">
                         Review submitted profile details
                         and photographs.
                     </p>

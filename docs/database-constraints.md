@@ -358,3 +358,17 @@ These values are used by current business logic and must either have matching Po
 - Could two concurrent requests bypass an application pre-check?
 - Does a new strict constraint require data cleanup/backfill before deployment?
 - Is the SQL update immutable, ordered, and recorded in `deployment_sql_history`?
+
+## `member_account_status_history`
+
+| Column(s) | Constraint | Enforcement | Allowed values / rule |
+|---|---|---|---|
+| `id` | Primary key | Database | Unique generated identifier. |
+| `user_id` | Foreign key, `NOT NULL` | Database | Must reference `users.id`; deletion restricted. |
+| `action` | `CHECK`, `NOT NULL` | Database | `BLOCK`, `UNBLOCK`. |
+| `previous_status` | `CHECK`, `NOT NULL` | Database | `ACTIVE`, `SUSPENDED`. |
+| `new_status` | `CHECK`, `NOT NULL` | Database | `ACTIVE`, `SUSPENDED`. |
+| action/status combination | `CHECK` | Database | `BLOCK`: `ACTIVE → SUSPENDED`; `UNBLOCK`: `SUSPENDED → ACTIVE`. |
+| `reason` | `VARCHAR(64)`, `CHECK`, `NOT NULL` | Database | Trimmed length must be between 1 and 64. |
+| `changed_by_admin_id` | Foreign key, `NOT NULL` | Database | Must reference `admin_users.id`; deletion restricted. |
+| `changed_at` | `NOT NULL`, default | Database | Defaults to `CURRENT_TIMESTAMP`. |

@@ -931,6 +931,68 @@ $routes->group('admin', [
                 );
             }
         );
+
+        /*
+ * Member administration.
+ *
+ * Both ADMIN and SUPER_ADMIN may access these routes. Do not add the
+ * superAdmin filter to this group.
+ */
+        $routes->group(
+            'members',
+            [
+                'namespace' =>
+                'App\Controllers\Admin',
+            ],
+            static function (
+                $routes
+            ): void {
+                $routes->get(
+                    '/',
+                    'MemberController::index',
+                    [
+                        'as' =>
+                        'admin.members.index',
+                    ]
+                );
+
+                $routes->get(
+                    '(:num)',
+                    'MemberController::view/$1',
+                    [
+                        'as' =>
+                        'admin.members.view',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)/block',
+                    'MemberController::block/$1',
+                    [
+                        'as' =>
+                        'admin.members.block',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)/unblock',
+                    'MemberController::unblock/$1',
+                    [
+                        'as' =>
+                        'admin.members.unblock',
+                    ]
+                );
+
+                $routes->get(
+                    '(:num)/status-history',
+                    'MemberController::history/$1',
+                    [
+                        'as' =>
+                        'admin.members.history',
+                    ]
+                );
+            }
+        );
     });
 
     /*

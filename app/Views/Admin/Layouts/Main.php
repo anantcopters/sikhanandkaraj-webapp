@@ -85,6 +85,11 @@ $pageScripts = $pageScripts ?? [];
                 'admin/prelaunch/profiles'
             );
 
+        $membersActive = str_starts_with(
+            $currentPath,
+            'admin/members'
+        );
+
         $isSuperAdmin =
             session('admin_role')
             === \App\Models\AdminUserModel::ROLE_SUPER_ADMIN;
@@ -232,6 +237,40 @@ $pageScripts = $pageScripts ?? [];
                                                     ? 'fw-semibold'
                                                     : '' ?>">
                                         Pre-launch Profiles
+                                    </span>
+                                </a>
+                            </li>
+
+                            <li class="nav-item">
+                                <a
+                                    href="<?= route_to(
+                                                'admin.members.index'
+                                            ) ?>"
+                                    class="nav-link
+            d-flex
+            align-items-center
+            gap-2
+            py-1
+            py-lg-2
+            <?= $membersActive
+                ? 'active text-primary'
+                : '' ?>"
+                                    <?= $membersActive
+                                        ? 'aria-current="page"'
+                                        : '' ?>>
+
+                                    <i
+                                        class="ri-team-line
+                fw-normal
+                flex-shrink-0"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <span
+                                        class="<?= $membersActive
+                                                    ? 'fw-semibold'
+                                                    : '' ?>">
+                                        Members
                                     </span>
                                 </a>
                             </li>

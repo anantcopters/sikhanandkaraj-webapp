@@ -5,6 +5,95 @@ declare(strict_types=1);
 use App\Support\BooleanValue;
 
 /**
+ * The same profile view is used for both member and administrator previews.
+ *
+ * Member mode:
+ * - uses the normal member layout;
+ * - shows profile editing actions;
+ * - uses the member-owned original-photo endpoint.
+ *
+ * Admin mode:
+ * - uses the administrator layout;
+ * - hides member editing actions;
+ * - uses the administrator-authorized original-photo endpoint.
+ */
+$profileViewMode = mb_strtolower(
+    trim(
+        (string) (
+            $profileViewMode
+            ?? 'member'
+        )
+    )
+);
+
+$isAdminProfileView =
+    $profileViewMode === 'admin';
+
+$profileLayout = $isAdminProfileView
+    ? 'Admin/Layouts/Main'
+    : 'Layouts/Main';
+
+$showMemberActions = !$isAdminProfileView;
+
+$adminMemberId = max(
+    0,
+    (int) (
+        $adminMemberId
+        ?? 0
+    )
+);
+
+$profileBackUrl = trim(
+    (string) (
+        $profileBackUrl
+        ?? (
+            $isAdminProfileView
+            ? route_to(
+                'admin.members.index'
+            )
+            : url_to(
+                'web.profile.edit'
+            )
+        )
+    )
+);
+
+$profileBackLabel = trim(
+    (string) (
+        $profileBackLabel
+        ?? (
+            $isAdminProfileView
+            ? 'Back to Members'
+            : 'Back to profile'
+        )
+    )
+);
+
+$profileNoticeTitle = trim(
+    (string) (
+        $profileNoticeTitle
+        ?? (
+            $isAdminProfileView
+            ? 'Administrator member preview'
+            : 'This is your profile preview'
+        )
+    )
+);
+
+$profileNoticeMessage = trim(
+    (string) (
+        $profileNoticeMessage
+        ?? (
+            $isAdminProfileView
+            ? 'This screen displays the member profile using '
+            . 'the same information shown in the member-facing preview.'
+            : 'Only approved photos and saved profile '
+            . 'details are displayed below.'
+        )
+    )
+);
+
+/**
  * Authenticated member profile preview.
  *
  * @var array<string, mixed>       $user
