@@ -9,6 +9,7 @@ use App\Models\MemberAccountStatusHistoryModel;
 use App\Services\Admin\MemberManagementService;
 use App\Validation\Admin\MemberAccountStatusValidation;
 use App\Support\AdminErrorContext;
+use App\Support\DateDisplay;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -259,11 +260,29 @@ final class MemberController extends BaseController
                         ?? ''
                     ),
 
-                    'changedAt' =>
-                    (string) (
-                        $row['changed_at']
-                        ?? ''
-                    ),
+                    /*
+                 * Machine-readable ISO timestamp after conversion from UTC
+                 * to the configured display timezone.
+                 */
+                    'changedAtIso' =>
+                    DateDisplay
+                        ::utcToDisplayIso(
+                            $row['changed_at']
+                                ?? null
+                        ),
+
+                    /*
+                 * User-facing local timestamp.
+                 *
+                 * Example:
+                 * 5th Aug 2026 10:58 PM
+                 */
+                    'changedAtDisplay' =>
+                    DateDisplay
+                        ::formatUtcDateTime(
+                            $row['changed_at']
+                                ?? null
+                        ),
                 ],
                 $result['history']
             );

@@ -287,7 +287,8 @@
                     '</td>',
                     '<td>',
                     escapeHtml(
-                        item.reason ?? '—'
+                        item.reason
+                        ?? '—'
                     ),
                     '</td>',
                     '<td>',
@@ -297,16 +298,21 @@
                     ),
                     '<div class="small text-muted">',
                     escapeHtml(
-                        item.adminRole ?? ''
+                        item.adminRole
+                        ?? ''
                     ),
                     '</div>',
                     '</td>',
                     '<td>',
-                    escapeHtml(
-                        formatDateTime(
-                            item.changedAt
-                        )
-                    ),
+                    changedAtIso !== ''
+                        ? [
+                            '<time datetime="',
+                            escapeHtml(changedAtIso),
+                            '">',
+                            escapeHtml(changedAtDisplay),
+                            '</time>'
+                        ].join('')
+                        : escapeHtml(changedAtDisplay),
                     '</td>',
                     '</tr>'
                 ].join('');

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Prelaunch\PrelaunchPhotoModel;
 use App\Models\Prelaunch\PrelaunchProfileModel;
+use App\Support\DateDisplay;
 
 /**
  * Administrator prelaunch-profile review.
@@ -162,6 +163,15 @@ $location = implode(
     )
 );
 
+/*
+ * Date of birth is a date-only field. Do not convert it from UTC.
+ */
+$displayDateOfBirth =
+    DateDisplay::formatDateOrEmpty(
+        $profile['date_of_birth']
+            ?? null
+    );
+
 $personalDetails = [
     'Profile Created For' =>
     $profile['profile_created_for']
@@ -172,8 +182,7 @@ $personalDetails = [
         ?? '',
 
     'Date of Birth' =>
-    $profile['date_of_birth']
-        ?? '',
+    $displayDateOfBirth,
 
     'Marital Status' =>
     $profile['marital_status_name']

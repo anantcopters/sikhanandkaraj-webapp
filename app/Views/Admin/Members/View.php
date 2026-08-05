@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Models\MemberPhotoModel;
 use App\Models\UserModel;
 use App\Support\BooleanValue;
+use App\Support\DateDisplay;
 
 /**
  * Administrator member profile view.
@@ -272,6 +273,27 @@ $dateOfBirth = trim(
     )
 );
 
+/*
+ * Date of birth is a calendar date and must not be timezone-converted.
+ */
+$displayDateOfBirth =
+    DateDisplay::formatDateOrEmpty(
+        $dateOfBirth
+    );
+
+/*
+ * created_at is stored in UTC. Convert it to IST before display.
+ */
+$displayAccountCreated =
+    DateDisplay::formatUtcDateTime(
+        $resolvedAdminMember['created_at']
+            ?? null
+    );
+
+$age = null;
+
+$age = null;
+
 if ($dateOfBirth !== '') {
     try {
         $birthDate = new DateTimeImmutable(
@@ -279,7 +301,12 @@ if ($dateOfBirth !== '') {
         );
 
         $today = new DateTimeImmutable(
-            'today'
+            'today',
+            new DateTimeZone(
+                config(
+                    \Config\DateDisplay::class
+                )->timezone
+            )
         );
 
         if ($birthDate <= $today) {
@@ -383,7 +410,7 @@ $personalDetails = [
     $genderLabel,
 
     'Date of Birth' =>
-    $dateOfBirth,
+    $displayDateOfBirth,
 
     'Age' =>
     $age !== null
@@ -1112,12 +1139,19 @@ $this->section('content');
                                 </div>
 
                                 <div class="fw-medium">
-                                    <?= esc(
-                                        $displayValue(
-                                            $resolvedAdminMember['created_at']
-                                                ?? ''
-                                        )
-                                    ) ?>
+                                    <time
+                                        datetime="<?= esc(
+                                                        DateDisplay::utcToDisplayIso(
+                                                            $resolvedAdminMember['created_at']
+                                                                ?? null
+                                                        ),
+                                                        'attr'
+                                                    ) ?>">
+
+                                        <?= esc(
+                                            $displayAccountCreated
+                                        ) ?>
+                                    </time>
                                 </div>
                             </div>
                         </div>
