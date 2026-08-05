@@ -8,6 +8,7 @@ use App\Controllers\BaseController;
 use App\Services\Admin\FieldOfficerService;
 use App\Services\Profile\ProfileMasterDataService;
 use App\Validation\FieldOfficerValidation;
+use App\Support\AdminErrorContext;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
 use Throwable;
@@ -170,6 +171,20 @@ final class FieldOfficerController extends BaseController
                         : 'The Field Officer was created in inactive status. Add a valid UPI ID before activating the Field Officer.',
                 ]);
         } catch (Throwable $exception) {
+
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'field_officer_create',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+                )
+            );
             return redirect()
                 ->to(
                     route_to(
@@ -369,6 +384,24 @@ final class FieldOfficerController extends BaseController
                     'The Field Officer details were updated.',
                 ]);
         } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'field_officer_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'field_officer_id' =>
+                        $fieldOfficerId,
+                    ]
+                )
+            );
             return redirect()
                 ->to(
                     route_to(
@@ -481,6 +514,24 @@ final class FieldOfficerController extends BaseController
                     'The Field Officer is now active.',
                 ]);
         } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'field_officer_activate',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'field_officer_id' =>
+                        $fieldOfficerId,
+                    ]
+                )
+            );
             return redirect()
                 ->to(
                     route_to(
@@ -536,6 +587,24 @@ final class FieldOfficerController extends BaseController
                     'The Field Officer is now inactive.',
                 ]);
         } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'field_officer_deactivate',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'field_officer_id' =>
+                        $fieldOfficerId,
+                    ]
+                )
+            );
             return redirect()
                 ->to(
                     route_to(

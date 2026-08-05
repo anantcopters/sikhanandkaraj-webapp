@@ -8,6 +8,7 @@ use App\Controllers\BaseController;
 use App\Models\MemberAccountStatusHistoryModel;
 use App\Services\Admin\MemberManagementService;
 use App\Validation\Admin\MemberAccountStatusValidation;
+use App\Support\AdminErrorContext;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -161,19 +162,28 @@ final class MemberController extends BaseController
             PageNotFoundException $exception
         ) {
             throw $exception;
+        } catch (
+            PageNotFoundException $exception
+        ) {
+            throw $exception;
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Unable to display Admin member profile. '
-                    . 'Member: {userId}; '
-                    . 'message: {message}.',
-                [
-                    'userId' =>
-                    $userId,
+                AdminErrorContext::forOperation(
+                    operation: 'admin_member_profile_view',
 
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_member_user_id' =>
+                        $userId,
+                    ]
+                )
             );
 
             throw PageNotFoundException
@@ -300,18 +310,23 @@ final class MemberController extends BaseController
                     'The member was not found.',
                 ]);
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Unable to load member history. '
-                    . 'Member: {userId}; '
-                    . 'message: {message}.',
-                [
-                    'userId' =>
-                    $userId,
+                AdminErrorContext::forOperation(
+                    operation: 'admin_member_status_history',
 
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_member_user_id' =>
+                        $userId,
+                    ]
+                )
             );
 
             return $this->response
@@ -373,22 +388,26 @@ final class MemberController extends BaseController
             | DomainException) {
             return $this->photoNotFoundResponse();
         } catch (Throwable $exception) {
-            log_message(
-                'error',
-                'Unable to create Admin photo URL. '
-                    . 'Member: {userId}; '
-                    . 'photo: {photoId}; '
-                    . 'message: {message}.',
-                [
-                    'userId' =>
-                    $userId,
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'warning',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_member_photo_modal_url',
 
-                    'photoId' =>
-                    $photoId,
+                    component: self::class,
 
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_member_user_id' =>
+                        $userId,
+
+                        'photo_id' =>
+                        $photoId,
+                    ]
+                )
             );
 
             return $this->response
@@ -507,22 +526,26 @@ final class MemberController extends BaseController
                     ]
                 );
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Member status update failed. '
-                    . 'Member: {userId}; '
-                    . 'action: {action}; '
-                    . 'message: {message}.',
-                [
-                    'userId' =>
-                    $userId,
+                AdminErrorContext::forOperation(
+                    operation: 'admin_member_status_change',
 
-                    'action' =>
-                    $action,
+                    component: self::class,
 
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_member_user_id' =>
+                        $userId,
+
+                        'status_action' =>
+                        $action,
+                    ]
+                )
             );
 
             return redirect()

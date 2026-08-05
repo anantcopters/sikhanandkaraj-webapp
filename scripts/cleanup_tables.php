@@ -321,22 +321,26 @@ try {
         )
     );
 
-    log_message(
+    service(
+        'applicationErrorLogger'
+    )->exception(
+        $exception,
         'critical',
-        'Maintenance cleanup script failed. '
-            . 'Exception: {exception}; '
-            . 'message: {message}; '
-            . 'file: {file}; '
-            . 'line: {line}.',
         [
-            'exception' =>
-            $exception::class,
-            'message' =>
-            $exception->getMessage(),
-            'file' =>
-            $exception->getFile(),
-            'line' =>
-            $exception->getLine(),
+            'operation' =>
+            'maintenance_cleanup_script',
+
+            'component' =>
+            basename(__FILE__),
+
+            'method' =>
+            'main',
+
+            'requested_job' =>
+            $requestedJob,
+
+            'execution_source' =>
+            'CRON',
         ]
     );
 

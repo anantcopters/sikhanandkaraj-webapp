@@ -7,6 +7,7 @@ namespace App\Controllers\Web;
 use App\Controllers\BaseController;
 use App\Services\Registration\RegisterFreeResult;
 use App\Services\Registration\RegisterFreeService;
+use App\Support\AuthenticationErrorContext;
 use App\Validation\RegisterFreeValidation;
 use CodeIgniter\HTTP\RedirectResponse;
 use Throwable;
@@ -23,10 +24,14 @@ final class RegistrationController extends BaseController
     {
         $input = $this->getRegistrationInput();
 
-        $validation = service('validation');
+        $validation = service(
+            'validation'
+        );
 
         $validation->setRules(
-            RegisterFreeValidation::rulesFor($input)
+            RegisterFreeValidation::rulesFor(
+                $input
+            )
         );
 
         if (!$validation->run($input)) {
@@ -40,26 +45,35 @@ final class RegistrationController extends BaseController
         }
 
         /*
-         * getValidated() returns only fields that participated in successful
-         * validation. This also prevents unexpected POST fields, including an
-         * injected email field, from reaching the registration service.
+         * Only successfully validated fields enter the service. Unexpected
+         * submitted fields cannot enter the registration workflow.
          */
-        $validatedData = $validation->getValidated();
+        $validatedData = $validation
+            ->getValidated();
 
         try {
             /** @var RegisterFreeService $service */
-            $service = service('registerFreeService');
+            $service = service(
+                'registerFreeService'
+            );
 
-            $result = $service->register($validatedData);
+            $result = $service->register(
+                $validatedData
+            );
 
+            /*
+             * Duplicate contact, invalid business state and OTP-limit results
+             * are expected outcomes and must not be logged as runtime errors.
+             */
             if (!$result->successful) {
-                return $this->handleRegistrationFailure(
-                    $result
-                );
+                return $this
+                    ->handleRegistrationFailure(
+                        $result
+                    );
             }
 
             /*
-             * Store only identifiers required by the OTP flow.
+             * Store only identifiers required by the registration OTP flow.
              * Never store the plain OTP in the session.
              */
             session()->set([
@@ -74,83 +88,160 @@ final class RegistrationController extends BaseController
             ]);
 
             return redirect()
-                ->to(route_to('web.registration.verify'))
-                ->with('formAlert', [
-                    'type' => 'success',
-                    'title' => 'OTP sent',
-                    'message' =>
-                    'Please enter the OTP sent to your mobile number.',
-                ]);
+                ->to(
+                    route_to(
+                        'web.registration.verify'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'success',
+
+                        'title' =>
+                        'OTP sent',
+
+                        'message' =>
+                        'Please enter the OTP sent to your mobile number.',
+                    ]
+                );
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Register Free failed: {message}',
                 [
-                    'message' => $exception->getMessage(),
+                    'operation' =>
+                    'member_registration',
+
+                    'controller' =>
+                    self::class,
+
+                    'method' =>
+                    __FUNCTION__,
+
+                    /*
+                     * Store only non-sensitive registration classification.
+                     */
+                    'profile_created_for' =>
+                    (string) (
+                        $validatedData['profile_created_for']
+                        ?? $input['profile_created_for']
+                        ?? ''
+                    ),
+
+                    'gender' =>
+                    (string) (
+                        $validatedData['gender']
+                        ?? $input['gender']
+                        ?? ''
+                    ),
+
+                    /*
+                     * Limited correlation only; never store the complete
+                     * submitted mobile number.
+                     */
+                    'mobile_suffix' =>
+                    AuthenticationErrorContext
+                        ::mobileSuffix(
+                            (string) (
+                                $validatedData['mobile_number']
+                                ?? $input['mobile_number']
+                                ?? ''
+                            )
+                        ),
                 ]
             );
 
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Registration failed',
-                    'message' =>
-                    'We could not complete your registration. '
-                        . 'Please try again.',
-                ]);
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Registration failed',
+
+                        'message' =>
+                        'We could not complete your registration. '
+                            . 'Please try again.',
+                    ]
+                );
         }
     }
 
     /**
      * Read and normalize only fields expected from the registration form.
      *
-     * Email is intentionally excluded. Even when a malicious or outdated
-     * client posts an email field, it cannot enter the validated registration
-     * payload.
+     * Email is intentionally excluded. Even when an outdated or malicious
+     * client submits an email field, it cannot enter the validated payload.
      *
      * @return array<string, string>
      */
     private function getRegistrationInput(): array
     {
         return [
-            'profile_created_for' => trim(
-                (string) $this->request->getPost(
-                    'profile_created_for'
-                )
+            'profile_created_for' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'profile_created_for'
+                    )
             ),
 
-            'gender' => trim(
-                (string) $this->request->getPost('gender')
+            'gender' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'gender'
+                    )
             ),
 
-            'full_name' => trim(
-                (string) $this->request->getPost('full_name')
+            'full_name' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'full_name'
+                    )
             ),
 
-            'country_code' => trim(
-                (string) $this->request->getPost(
-                    'country_code'
-                )
+            'country_code' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'country_code'
+                    )
             ),
 
-            'mobile_number' => preg_replace(
+            'mobile_number' =>
+            preg_replace(
                 '/\D+/',
                 '',
-                (string) $this->request->getPost(
-                    'mobile_number'
-                )
+                (string) $this->request
+                    ->getPost(
+                        'mobile_number'
+                    )
             ) ?? '',
 
-            'password' => (string) $this->request->getPost(
-                'password'
-            ),
+            /*
+             * Passwords must not be trimmed because spaces may legitimately
+             * form part of the submitted password.
+             */
+            'password' =>
+            (string) $this->request
+                ->getPost(
+                    'password'
+                ),
         ];
     }
 
     /**
-     * Convert service failures into field-level or form-level errors.
+     * Convert expected service failures into field or form errors.
      */
     private function handleRegistrationFailure(
         RegisterFreeResult $result
@@ -162,19 +253,31 @@ final class RegistrationController extends BaseController
             return redirect()
                 ->back()
                 ->withInput()
-                ->with('validationErrors', [
-                    $result->field => $result->message,
-                ]);
+                ->with(
+                    'validationErrors',
+                    [
+                        $result->field =>
+                        $result->message,
+                    ]
+                );
         }
 
         return redirect()
             ->back()
             ->withInput()
-            ->with('formAlert', [
-                'type' => 'danger',
-                'title' => 'Registration failed',
-                'message' => $result->message
-                    ?? 'The registration could not be completed.',
-            ]);
+            ->with(
+                'formAlert',
+                [
+                    'type' =>
+                    'danger',
+
+                    'title' =>
+                    'Registration failed',
+
+                    'message' =>
+                    $result->message
+                        ?? 'The registration could not be completed.',
+                ]
+            );
     }
 }

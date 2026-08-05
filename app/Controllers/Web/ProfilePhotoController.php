@@ -6,13 +6,14 @@ namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
 use App\Services\Profile\MemberPhotoUrlService;
+use App\Support\ProfileErrorContext;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\ResponseInterface;
 use DomainException;
 use Throwable;
 
 /**
- * Provides authorized profile-photo read endpoints.
+ * Provides authorized member-profile photo read endpoints.
  */
 final class ProfilePhotoController extends BaseController
 {
@@ -39,7 +40,7 @@ final class ProfilePhotoController extends BaseController
             return $this->response
                 ->setHeader(
                     'Cache-Control',
-                    'no-store, no-cache, '
+                    'private, no-store, no-cache, '
                         . 'must-revalidate, max-age=0'
                 )
                 ->setHeader(
@@ -47,46 +48,75 @@ final class ProfilePhotoController extends BaseController
                     'no-cache'
                 )
                 ->setJSON([
-                    'status' => 'success',
-                    'data' => $urls,
+                    'status' =>
+                    'success',
+
+                    'data' =>
+                    $urls,
                 ]);
         } catch (DomainException $exception) {
+            /*
+             * An unavailable, unapproved or foreign photo is an expected
+             * authorization outcome. Do not log it as an application error.
+             */
             return $this->response
                 ->setStatusCode(404)
                 ->setHeader(
                     'Cache-Control',
-                    'no-store, no-cache, '
+                    'private, no-store, no-cache, '
                         . 'must-revalidate, max-age=0'
                 )
+                ->setHeader(
+                    'Pragma',
+                    'no-cache'
+                )
                 ->setJSON([
-                    'status' => 'error',
+                    'status' =>
+                    'error',
+
+                    /*
+                     * Do not expose internal ownership or moderation details.
+                     */
                     'message' =>
-                    $exception->getMessage(),
+                    'The requested photo is unavailable.',
                 ]);
         } catch (Throwable $exception) {
-            log_message(
-                'error',
-                'Profile modal photo request failed. '
-                    . 'Member: {memberId}; '
-                    . 'photo: {photoId}; '
-                    . 'reason: {message}',
-                [
-                    'memberId' => $memberId,
-                    'photoId' => $photoId,
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'warning',
+                ProfileErrorContext::forMember(
+                    memberId: $memberId,
+
+                    operation: 'member_profile_photo_modal_url',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'photo_id' =>
+                        $photoId,
+                    ]
+                )
             );
 
             return $this->response
                 ->setStatusCode(500)
                 ->setHeader(
                     'Cache-Control',
-                    'no-store, no-cache, '
+                    'private, no-store, no-cache, '
                         . 'must-revalidate, max-age=0'
                 )
+                ->setHeader(
+                    'Pragma',
+                    'no-cache'
+                )
                 ->setJSON([
-                    'status' => 'error',
+                    'status' =>
+                    'error',
+
                     'message' =>
                     'The enlarged photo could not be loaded.',
                 ]);
@@ -94,7 +124,7 @@ final class ProfilePhotoController extends BaseController
     }
 
     /**
-     * Resolve the authenticated member ID.
+     * Resolve the authenticated member identifier.
      */
     private function authenticatedUserId(): int
     {
@@ -105,9 +135,20 @@ final class ProfilePhotoController extends BaseController
         if (!is_numeric($memberId)) {
             session()->destroy();
 
-            throw PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException
+                ::forPageNotFound();
         }
 
-        return (int) $memberId;
+        $resolvedMemberId =
+            (int) $memberId;
+
+        if ($resolvedMemberId <= 0) {
+            session()->destroy();
+
+            throw PageNotFoundException
+                ::forPageNotFound();
+        }
+
+        return $resolvedMemberId;
     }
 }

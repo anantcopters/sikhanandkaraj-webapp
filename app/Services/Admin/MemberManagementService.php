@@ -6,6 +6,7 @@ namespace App\Services\Admin;
 
 use App\Models\MemberAccountStatusHistoryModel;
 use App\Models\UserModel;
+use App\Services\Admin\Audit\AdminAuditAction;
 use App\Services\Admin\Audit\AdminAuditEvent;
 use App\Services\Admin\Audit\AdminAuditService;
 use App\Services\Profile\MemberPhotoUrlService;
@@ -256,7 +257,11 @@ final class MemberManagementService
     }
 
     /**
-     * Persist one locked, constraint-backed status transition.
+     * Persist one locked, constraint-backed member status transition.
+     *
+     * The business transaction is completed first. A successful audit is then
+     * written after commit so an audit-table problem cannot roll back a valid
+     * member status change.
      */
     private function changeStatus(
         int $userId,
@@ -266,10 +271,48 @@ final class MemberManagementService
         string $reason,
         int $adminUserId
     ): void {
+        $isBlockAction =
+            $action
+            === MemberAccountStatusHistoryModel::ACTION_BLOCK;
+
+        $successAuditAction = $isBlockAction
+            ? AdminAuditAction::MEMBER_BLOCKED
+            : AdminAuditAction::MEMBER_UNBLOCKED;
+
+        $deniedAuditAction = $isBlockAction
+            ? AdminAuditAction::MEMBER_BLOCK_DENIED
+            : AdminAuditAction::MEMBER_UNBLOCK_DENIED;
+
+        $failedAuditAction = $isBlockAction
+            ? AdminAuditAction::MEMBER_BLOCK_FAILED
+            : AdminAuditAction::MEMBER_UNBLOCK_FAILED;
+
+        /*
+     * Reject malformed identifiers before opening a transaction.
+     */
         if (
             $userId <= 0
             || $adminUserId <= 0
         ) {
+            $this->auditService->record(
+                new AdminAuditEvent(
+                    action: $deniedAuditAction,
+                    outcome: 'DENIED',
+                    actorAdminId: $adminUserId > 0
+                        ? $adminUserId
+                        : null,
+                    targetType: 'MEMBER',
+                    targetId: $userId > 0
+                        ? $userId
+                        : null,
+                    description: 'Member account status change was denied because '
+                        . 'the member or administrator identifier was invalid.',
+                    metadata: [
+                        'requested_action' => $action,
+                    ]
+                )
+            );
+
             throw new DomainException(
                 'A valid member and administrator are required.'
             );
@@ -285,12 +328,42 @@ final class MemberManagementService
             $normalizedReason === ''
             || mb_strlen($normalizedReason) > 64
         ) {
+            $this->auditService->record(
+                new AdminAuditEvent(
+                    action: $deniedAuditAction,
+                    outcome: 'DENIED',
+                    actorAdminId: $adminUserId,
+                    targetType: 'MEMBER',
+                    targetId: $userId,
+                    description: 'Member account status change was denied because '
+                        . 'the supplied reason was invalid.',
+                    metadata: [
+                        'requested_action' => $action,
+                        'reason_provided' =>
+                        $normalizedReason !== '',
+                        'reason_length' =>
+                        mb_strlen($normalizedReason),
+                    ]
+                )
+            );
+
             throw new DomainException(
                 'Please enter a reason of no more than 64 characters.'
             );
         }
 
+        /**
+         * Retain safe target information for the post-commit audit record.
+         *
+         * @var array<string, mixed>|null $member
+         */
         $member = null;
+
+        $currentStatus = null;
+
+        $historyId = null;
+
+        $transactionCompleted = false;
 
         $this->database->transBegin();
 
@@ -315,9 +388,43 @@ final class MemberManagementService
             );
 
             if ($currentStatus !== $expectedStatus) {
+                /*
+             * Roll back before writing the denial audit. The audit entry must
+             * not be part of the business transaction being rolled back.
+             */
+                $this->database->transRollback();
+
+                $this->auditService->record(
+                    new AdminAuditEvent(
+                        action: $deniedAuditAction,
+                        outcome: 'DENIED',
+                        actorAdminId: $adminUserId,
+                        targetType: 'MEMBER',
+                        targetId: $userId,
+                        targetLabel: (string) (
+                            $member['profile_ref_number']
+                            ?? ''
+                        ),
+                        description: $isBlockAction
+                            ? 'Member block was denied because the account was not active.'
+                            : 'Member unblock was denied because the account was not suspended.',
+                        beforeData: [
+                            'account_status' =>
+                            $currentStatus,
+                        ],
+                        metadata: [
+                            'expected_status' =>
+                            $expectedStatus,
+                            'requested_status' =>
+                            $newStatus,
+                            'reason' =>
+                            $normalizedReason,
+                        ]
+                    )
+                );
+
                 throw new DomainException(
-                    $action
-                        === MemberAccountStatusHistoryModel::ACTION_BLOCK
+                    $isBlockAction
                         ? 'Only an active member can be blocked.'
                         : 'Only a blocked member can be unblocked.'
                 );
@@ -381,48 +488,113 @@ final class MemberManagementService
             }
 
             $this->database->transCommit();
+            $transactionCompleted = true;
+        } catch (DomainException $exception) {
+            /*
+         * A status mismatch has already rolled back and audited above.
+         */
+            if (!$transactionCompleted) {
+                $this->database->transRollback();
+            }
+
+            throw $exception;
+        } catch (PageNotFoundException $exception) {
+            $this->database->transRollback();
+
+            $this->auditService->record(
+                new AdminAuditEvent(
+                    action: $failedAuditAction,
+                    outcome: 'FAILURE',
+                    actorAdminId: $adminUserId,
+                    targetType: 'MEMBER',
+                    targetId: $userId,
+                    description: 'Member account status change failed because '
+                        . 'the member was not found.',
+                    metadata: [
+                        'requested_action' =>
+                        $action,
+                        'reason' =>
+                        $normalizedReason,
+                    ]
+                )
+            );
+
+            throw $exception;
         } catch (Throwable $exception) {
             $this->database->transRollback();
+
+            $this->auditService->record(
+                new AdminAuditEvent(
+                    action: $failedAuditAction,
+                    outcome: 'FAILURE',
+                    actorAdminId: $adminUserId,
+                    targetType: 'MEMBER',
+                    targetId: $userId,
+                    targetLabel: is_array($member)
+                        ? (string) (
+                            $member['profile_ref_number']
+                            ?? ''
+                        )
+                        : null,
+                    description: 'Member account status change failed.',
+                    beforeData: $currentStatus !== null
+                        ? [
+                            'account_status' =>
+                            $currentStatus,
+                        ]
+                        : null,
+                    metadata: [
+                        'requested_action' =>
+                        $action,
+                        'requested_status' =>
+                        $newStatus,
+                        'reason' =>
+                        $normalizedReason,
+                        /*
+                     * Store the exception class for diagnostics but do not
+                     * expose SQL, stack traces or internal exception messages.
+                     */
+                        'exception_class' =>
+                        $exception::class,
+                    ]
+                )
+            );
 
             throw $exception;
         }
 
+        /*
+     * Record success only after the member and history transactions commit.
+     */
         $this->auditService->record(
             new AdminAuditEvent(
-                action: 'MEMBER_' . $action,
-
+                action: $successAuditAction,
                 outcome: 'SUCCESS',
-
                 actorAdminId: $adminUserId,
-
                 targetType: 'MEMBER',
-
                 targetId: $userId,
-
                 targetLabel: (string) (
                     $member['profile_ref_number']
                     ?? ''
                 ),
-
-                description: sprintf(
-                    'Member account changed from %s to %s.',
-                    $expectedStatus,
-                    $newStatus
-                ),
-
+                description: $isBlockAction
+                    ? 'Member account was blocked by an administrator.'
+                    : 'Member account was unblocked by an administrator.',
                 beforeData: [
                     'account_status' =>
-                    $expectedStatus,
+                    $currentStatus,
                 ],
-
                 afterData: [
                     'account_status' =>
                     $newStatus,
                 ],
-
                 metadata: [
                     'reason' =>
                     $normalizedReason,
+                    'status_history_id' =>
+                    is_numeric($historyId)
+                        ? (int) $historyId
+                        : null,
                 ]
             )
         );

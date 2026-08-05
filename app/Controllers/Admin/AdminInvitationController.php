@@ -6,6 +6,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Services\Admin\AdminInvitationService;
+use App\Support\AdminErrorContext;
 use App\Validation\AdminUserValidation;
 use CodeIgniter\HTTP\RedirectResponse;
 use RuntimeException;
@@ -64,13 +65,29 @@ final class AdminInvitationController extends BaseController
                     ]
                 );
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Unable to display administrator invitation: {message}',
-                [
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+                AdminErrorContext::forOperation(
+                    operation: 'admin_invitation_page',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        /*
+                 * Never log the invitation token itself.
+                 */
+                        'token_hash' =>
+                        hash(
+                            'sha256',
+                            $token
+                        ),
+                    ]
+                )
             );
 
             return redirect()
@@ -166,32 +183,43 @@ final class AdminInvitationController extends BaseController
                     ]
                 );
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Administrator invitation acceptance failed: {message}',
-                [
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+                AdminErrorContext::forOperation(
+                    operation: 'admin_invitation_accept',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'token_hash' =>
+                        hash(
+                            'sha256',
+                            $token
+                        ),
+                    ]
+                )
             );
 
             return redirect()
-                ->to(
-                    route_to(
-                        'admin.invitation.show',
-                        $token
-                    )
-                )
+                ->back()
                 ->withInput()
                 ->with(
                     'formAlert',
                     [
-                        'type' => 'danger',
+                        'type' =>
+                        'danger',
+
                         'title' =>
-                        'Activation failed',
+                        'Invitation not accepted',
 
                         'message' =>
-                        'The administrator account could not be activated. Please try again.',
+                        'The invitation could not be completed. '
+                            . 'Please try again.',
                     ]
                 );
         }

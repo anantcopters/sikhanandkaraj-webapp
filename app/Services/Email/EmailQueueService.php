@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace App\Services\Email;
 
 use App\Models\EmailQueueModel;
+use App\Support\InfrastructureErrorContext;
 use CodeIgniter\Database\BaseConnection;
 use InvalidArgumentException;
 use JsonException;
 use RuntimeException;
 use Throwable;
 
+/**
+ * Manages durable email queue records.
+ */
 final class EmailQueueService
 {
     private const DEFAULT_MAX_ATTEMPTS = 3;
@@ -23,8 +27,15 @@ final class EmailQueueService
         ?BaseConnection $database = null,
         ?EmailQueueModel $queueModel = null
     ) {
-        $this->database = $database ?? db_connect();
-        $this->queueModel = $queueModel ?? new EmailQueueModel();
+        $this->database =
+            $database
+            ?? db_connect();
+
+        $this->queueModel =
+            $queueModel
+            ?? new EmailQueueModel(
+                $this->database
+            );
     }
 
     /**
@@ -44,33 +55,50 @@ final class EmailQueueService
         ?int $referenceId = null,
         ?string $availableAt = null
     ): int {
-        $recipientEmail = strtolower(trim($recipientEmail));
-        $recipientName = trim($recipientName);
-        $subject = trim($subject);
-        $viewName = trim($viewName);
+        $resolvedEmail = mb_strtolower(
+            trim($recipientEmail)
+        );
+
+        $resolvedName = trim(
+            $recipientName
+        );
+
+        $resolvedSubject = trim(
+            $subject
+        );
+
+        $resolvedViewName = trim(
+            $viewName
+        );
 
         if (
-            $recipientEmail === ''
-            || !filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)
+            $resolvedEmail === ''
+            || filter_var(
+                $resolvedEmail,
+                FILTER_VALIDATE_EMAIL
+            ) === false
         ) {
             throw new InvalidArgumentException(
                 'A valid recipient email address is required.'
             );
         }
 
-        if ($subject === '') {
+        if ($resolvedSubject === '') {
             throw new InvalidArgumentException(
                 'Email subject cannot be empty.'
             );
         }
 
-        if ($viewName === '') {
+        if ($resolvedViewName === '') {
             throw new InvalidArgumentException(
                 'Email view name cannot be empty.'
             );
         }
 
-        if ($maxAttempts < 1 || $maxAttempts > 10) {
+        if (
+            $maxAttempts < 1
+            || $maxAttempts > 10
+        ) {
             throw new InvalidArgumentException(
                 'Maximum attempts must be between 1 and 10.'
             );
@@ -91,37 +119,122 @@ final class EmailQueueService
             );
         }
 
-        $queueId = $this->queueModel->insert([
-            'queue_name' => 'default',
-            'recipient_email' => $recipientEmail,
-            'recipient_name' => $recipientName,
-            'subject' => $subject,
-            'view_name' => $viewName,
-            'view_data' => $encodedViewData,
-            'status' => EmailQueueModel::STATUS_PENDING,
-            'priority' => max(1, min($priority, 1000)),
-            'attempts' => 0,
-            'max_attempts' => $maxAttempts,
-            'available_at' => $availableAt
-                ?? date('Y-m-d H:i:s'),
-            'reference_type' => $referenceType,
-            'reference_id' => $referenceId,
-        ], true);
+        try {
+            $queueId = $this->queueModel
+                ->insert(
+                    [
+                        'queue_name' =>
+                        'default',
 
-        if (!is_numeric($queueId)) {
-            throw new RuntimeException(
-                'Email could not be added to the queue.'
+                        'recipient_email' =>
+                        $resolvedEmail,
+
+                        'recipient_name' =>
+                        $resolvedName,
+
+                        'subject' =>
+                        $resolvedSubject,
+
+                        'view_name' =>
+                        $resolvedViewName,
+
+                        'view_data' =>
+                        $encodedViewData,
+
+                        'status' =>
+                        EmailQueueModel
+                        ::STATUS_PENDING,
+
+                        'priority' =>
+                        max(
+                            1,
+                            min(
+                                $priority,
+                                1000
+                            )
+                        ),
+
+                        'attempts' =>
+                        0,
+
+                        'max_attempts' =>
+                        $maxAttempts,
+
+                        'available_at' =>
+                        $availableAt
+                            ?? date(
+                                'Y-m-d H:i:s'
+                            ),
+
+                        'reference_type' =>
+                        $referenceType,
+
+                        'reference_id' =>
+                        $referenceId,
+                    ],
+                    true
+                );
+
+            if (!is_numeric($queueId)) {
+                throw new RuntimeException(
+                    'Email could not be added to the queue.'
+                );
+            }
+
+            return (int) $queueId;
+        } catch (Throwable $exception) {
+            /*
+             * enqueue() throws to the workflow owner. Log here only because
+             * the queue operation itself is the infrastructure boundary and
+             * recipient details are safely reduced.
+             */
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                InfrastructureErrorContext::forOperation(
+                    operation: 'email_queue_enqueue',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'recipient_domain' =>
+                        InfrastructureErrorContext
+                            ::emailDomain(
+                                $resolvedEmail
+                            ),
+
+                        'view_name' =>
+                        mb_substr(
+                            $resolvedViewName,
+                            0,
+                            255
+                        ),
+
+                        'reference_type' =>
+                        $referenceType,
+
+                        'reference_id' =>
+                        $referenceId,
+
+                        'max_attempts' =>
+                        $maxAttempts,
+                    ]
+                )
             );
-        }
 
-        return (int) $queueId;
+            throw $exception;
+        }
     }
 
     /**
      * Atomically reserve pending emails.
      *
-     * PostgreSQL SKIP LOCKED prevents two workers from reserving the
-     * same records.
+     * PostgreSQL SKIP LOCKED prevents two workers from reserving the same
+     * records.
      *
      * @return list<QueuedEmail>
      */
@@ -129,8 +242,26 @@ final class EmailQueueService
         int $limit,
         string $workerName
     ): array {
-        $limit = max(1, min($limit, 20));
-        $workerName = substr(trim($workerName), 0, 100);
+        $resolvedLimit = max(
+            1,
+            min(
+                $limit,
+                20
+            )
+        );
+
+        $resolvedWorkerName =
+            mb_substr(
+                trim($workerName),
+                0,
+                100
+            );
+
+        if ($resolvedWorkerName === '') {
+            throw new InvalidArgumentException(
+                'A worker name is required.'
+            );
+        }
 
         $this->releaseStaleJobs();
 
@@ -164,26 +295,37 @@ final class EmailQueueService
         $this->database->transBegin();
 
         try {
-            $query = $this->database->query(
-                $sql,
-                [
-                    $limit,
-                    $workerName,
-                ]
-            );
+            $query = $this->database
+                ->query(
+                    $sql,
+                    [
+                        $resolvedLimit,
+                        $resolvedWorkerName,
+                    ]
+                );
 
-            $rows = $query->getResultArray();
+            $rows = $query
+                ->getResultArray();
 
-            if (!$this->database->transStatus()) {
+            if (
+                !$this->database
+                    ->transStatus()
+            ) {
                 throw new RuntimeException(
                     'Email queue reservation transaction failed.'
                 );
             }
 
-            $this->database->transCommit();
+            $this->database
+                ->transCommit();
         } catch (Throwable $exception) {
-            $this->database->transRollback();
+            $this->database
+                ->transRollback();
 
+            /*
+             * The queue worker script should log the top-level run failure.
+             * Throw with the original exception attached.
+             */
             throw new RuntimeException(
                 'Unable to reserve queued emails.',
                 0,
@@ -195,18 +337,33 @@ final class EmailQueueService
 
         foreach ($rows as $row) {
             $viewData = json_decode(
-                (string) ($row['view_data'] ?? '{}'),
+                (string) (
+                    $row['view_data']
+                    ?? '{}'
+                ),
                 true
             );
 
             $emails[] = new QueuedEmail(
                 id: (int) $row['id'],
+
                 recipientEmail: (string) $row['recipient_email'],
-                recipientName: (string) ($row['recipient_name'] ?? ''),
+
+                recipientName: (string) (
+                    $row['recipient_name']
+                    ?? ''
+                ),
+
                 subject: (string) $row['subject'],
+
                 viewName: (string) $row['view_name'],
-                viewData: is_array($viewData) ? $viewData : [],
+
+                viewData: is_array($viewData)
+                    ? $viewData
+                    : [],
+
                 attemptNumber: (int) $row['attempts'],
+
                 maxAttempts: (int) $row['max_attempts']
             );
         }
@@ -214,52 +371,226 @@ final class EmailQueueService
         return $emails;
     }
 
-    public function markSent(int $queueId): void
-    {
-        $this->queueModel->update($queueId, [
-            'status' => EmailQueueModel::STATUS_SENT,
-            'sent_at' => date('Y-m-d H:i:s'),
-            'failed_at' => null,
-            'locked_at' => null,
-            'locked_by' => null,
-            'last_error' => null,
-        ]);
+    /**
+     * Mark one queue item as sent.
+     */
+    public function markSent(
+        int $queueId
+    ): void {
+        if ($queueId <= 0) {
+            throw new InvalidArgumentException(
+                'A valid email queue ID is required.'
+            );
+        }
+
+        $updated = $this->queueModel
+            ->update(
+                $queueId,
+                [
+                    'status' =>
+                    EmailQueueModel
+                    ::STATUS_SENT,
+
+                    'sent_at' =>
+                    date(
+                        'Y-m-d H:i:s'
+                    ),
+
+                    'failed_at' =>
+                    null,
+
+                    'locked_at' =>
+                    null,
+
+                    'locked_by' =>
+                    null,
+
+                    'last_error' =>
+                    null,
+                ]
+            );
+
+        if ($updated === false) {
+            throw new RuntimeException(
+                'The sent email queue record could not be updated.'
+            );
+        }
     }
 
+    /**
+     * Mark a delivery failure and return FAILED or RETRY.
+     */
     public function markFailed(
         QueuedEmail $email,
         string $error
     ): string {
-        $error = $this->truncateError($error);
+        $safeError = $this
+            ->truncateError(
+                $error
+            );
 
-        if ($email->attemptNumber >= $email->maxAttempts) {
-            $this->queueModel->update($email->id, [
-                'status' => EmailQueueModel::STATUS_FAILED,
-                'failed_at' => date('Y-m-d H:i:s'),
-                'locked_at' => null,
-                'locked_by' => null,
-                'last_error' => $error,
-            ]);
+        if (
+            $email->attemptNumber
+            >= $email->maxAttempts
+        ) {
+            $updated = $this->queueModel
+                ->update(
+                    $email->id,
+                    [
+                        'status' =>
+                        EmailQueueModel
+                        ::STATUS_FAILED,
 
-            return EmailQueueModel::STATUS_FAILED;
+                        'failed_at' =>
+                        date(
+                            'Y-m-d H:i:s'
+                        ),
+
+                        'locked_at' =>
+                        null,
+
+                        'locked_by' =>
+                        null,
+
+                        'last_error' =>
+                        $safeError,
+                    ]
+                );
+
+            if ($updated === false) {
+                throw new RuntimeException(
+                    'The failed email queue record could not be updated.'
+                );
+            }
+
+            service(
+                'applicationErrorLogger'
+            )->error(
+                'Email delivery retry limit exhausted.',
+                InfrastructureErrorContext::forOperation(
+                    operation: 'email_queue_delivery_exhausted',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'email_queue_id' =>
+                        $email->id,
+
+                        'recipient_domain' =>
+                        InfrastructureErrorContext
+                            ::emailDomain(
+                                $email
+                                    ->recipientEmail
+                            ),
+
+                        'view_name' =>
+                        mb_substr(
+                            $email->viewName,
+                            0,
+                            255
+                        ),
+
+                        'attempt_number' =>
+                        $email->attemptNumber,
+
+                        'max_attempts' =>
+                        $email->maxAttempts,
+                    ]
+                ),
+                'error'
+            );
+
+            return EmailQueueModel
+            ::STATUS_FAILED;
         }
 
-        $retryDelayMinutes = $this->retryDelayMinutes(
-            $email->attemptNumber
-        );
+        $retryDelayMinutes =
+            $this->retryDelayMinutes(
+                $email->attemptNumber
+            );
 
-        $this->queueModel->update($email->id, [
-            'status' => EmailQueueModel::STATUS_PENDING,
-            'available_at' => date(
-                'Y-m-d H:i:s',
-                strtotime("+{$retryDelayMinutes} minutes")
-            ),
-            'locked_at' => null,
-            'locked_by' => null,
-            'last_error' => $error,
-        ]);
+        $updated = $this->queueModel
+            ->update(
+                $email->id,
+                [
+                    'status' =>
+                    EmailQueueModel
+                    ::STATUS_PENDING,
+
+                    'available_at' =>
+                    date(
+                        'Y-m-d H:i:s',
+                        strtotime(
+                            sprintf(
+                                '+%d minutes',
+                                $retryDelayMinutes
+                            )
+                        )
+                    ),
+
+                    'locked_at' =>
+                    null,
+
+                    'locked_by' =>
+                    null,
+
+                    'last_error' =>
+                    $safeError,
+                ]
+            );
+
+        if ($updated === false) {
+            throw new RuntimeException(
+                'The email retry record could not be updated.'
+            );
+        }
 
         return 'RETRY';
+    }
+
+    /**
+     * Return one job to pending after an interrupted worker operation.
+     */
+    public function releaseForRetry(
+        QueuedEmail $email,
+        string $error
+    ): void {
+        $updated = $this->queueModel
+            ->update(
+                $email->id,
+                [
+                    'status' =>
+                    EmailQueueModel
+                    ::STATUS_PENDING,
+
+                    'available_at' =>
+                    date(
+                        'Y-m-d H:i:s',
+                        strtotime(
+                            '+2 minutes'
+                        )
+                    ),
+
+                    'locked_at' =>
+                    null,
+
+                    'locked_by' =>
+                    null,
+
+                    'last_error' =>
+                    $this->truncateError(
+                        $error
+                    ),
+                ]
+            );
+
+        if ($updated === false) {
+            throw new RuntimeException(
+                'The email queue record could not be released for retry.'
+            );
+        }
     }
 
     /**
@@ -295,7 +626,8 @@ final class EmailQueueService
                     updated_at = CURRENT_TIMESTAMP
                 WHERE status = 'PROCESSING'
                   AND locked_at <
-                      CURRENT_TIMESTAMP - INTERVAL '10 minutes'
+                      CURRENT_TIMESTAMP
+                      - INTERVAL '10 minutes'
             SQL
         );
     }
@@ -307,36 +639,35 @@ final class EmailQueueService
         int $attemptNumber
     ): int {
         return match ($attemptNumber) {
-            1 => 2,
-            2 => 10,
-            default => 30,
+            1 =>
+            2,
+
+            2 =>
+            10,
+
+            default =>
+            30,
         };
     }
 
-    private function truncateError(string $error): string
-    {
-        $error = trim($error);
+    /**
+     * Bound a provider error before storing it in email_queue.
+     */
+    private function truncateError(
+        string $error
+    ): string {
+        $resolvedError = trim(
+            $error
+        );
 
-        if ($error === '') {
+        if ($resolvedError === '') {
             return 'Unknown email delivery failure.';
         }
 
-        return mb_substr($error, 0, 5000);
-    }
-
-    public function releaseForRetry(
-        QueuedEmail $email,
-        string $error
-    ): void {
-        $this->queueModel->update($email->id, [
-            'status' => EmailQueueModel::STATUS_PENDING,
-            'available_at' => date(
-                'Y-m-d H:i:s',
-                strtotime('+2 minutes')
-            ),
-            'locked_at' => null,
-            'locked_by' => null,
-            'last_error' => $this->truncateError($error),
-        ]);
+        return mb_substr(
+            $resolvedError,
+            0,
+            5000
+        );
     }
 }

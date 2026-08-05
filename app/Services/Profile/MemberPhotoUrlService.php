@@ -6,6 +6,7 @@ namespace App\Services\Profile;
 
 use App\Models\MemberPhotoModel;
 use App\Services\Aws\CloudFrontService;
+use App\Support\ProfileErrorContext;
 use App\Support\BooleanValue;
 use Config\MemberMedia;
 use DomainException;
@@ -503,25 +504,41 @@ final class MemberPhotoUrlService
                         ->profileUrlTtlSeconds
                 );
         } catch (Throwable $exception) {
-            log_message(
-                'error',
-                '{context} URL generation failed. '
-                    . 'Member: {memberId}; '
-                    . 'photo: {photoId}; '
-                    . 'reason: {message}.',
-                [
-                    'context' =>
-                    $context,
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'warning',
+                ProfileErrorContext::forMember(
+                    memberId: $memberId,
 
-                    'memberId' =>
-                    $memberId,
+                    operation: 'member_photo_signed_url_generation',
 
-                    'photoId' =>
-                    $photoId,
+                    component: self::class,
 
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'photo_id' =>
+                        $photoId,
+
+                        'photo_context' =>
+                        mb_substr(
+                            trim($context),
+                            0,
+                            100
+                        ),
+
+                        /*
+                 * Never store the actual private S3 object key.
+                 */
+                        'object_key_hash' =>
+                        hash(
+                            'sha256',
+                            $objectKey
+                        ),
+                    ]
+                )
             );
 
             return '';

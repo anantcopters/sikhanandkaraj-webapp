@@ -48,6 +48,24 @@ final class AdminAuditAction
     public const MEMBER_PHOTOS_BULK_APPROVED =
     'MEMBER_PHOTOS_BULK_APPROVED';
 
+    public const MEMBER_BLOCKED =
+    'MEMBER_BLOCKED';
+
+    public const MEMBER_UNBLOCKED =
+    'MEMBER_UNBLOCKED';
+
+    public const MEMBER_BLOCK_DENIED =
+    'MEMBER_BLOCK_DENIED';
+
+    public const MEMBER_UNBLOCK_DENIED =
+    'MEMBER_UNBLOCK_DENIED';
+
+    public const MEMBER_BLOCK_FAILED =
+    'MEMBER_BLOCK_FAILED';
+
+    public const MEMBER_UNBLOCK_FAILED =
+    'MEMBER_UNBLOCK_FAILED';
+
     public const FIELD_OFFICER_CREATED =
     'FIELD_OFFICER_CREATED';
 

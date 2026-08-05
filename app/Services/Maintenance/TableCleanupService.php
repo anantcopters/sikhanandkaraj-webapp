@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Maintenance;
 
 use CodeIgniter\Database\BaseConnection;
+use App\Support\InfrastructureErrorContext;
 use Config\Database;
 use Config\TableCleanup;
 use DateTimeImmutable;
@@ -88,42 +89,71 @@ final class TableCleanupService
     public function run(
         string $jobName
     ): TableCleanupResult {
-        try {
-            $job = $this->resolveJob($jobName);
+        $resolvedJobName = trim(
+            $jobName
+        );
 
-            $deletedCount = $this->deleteInBatches(
-                table: $job['table'],
-                timestampColumn: $job['timestampColumn'],
-                retentionDays: $job['retentionDays'],
-                conditions: $job['conditions'],
-                batchSize: $job['batchSize']
+        try {
+            $job = $this->resolveJob(
+                $resolvedJobName
             );
 
+            $deletedCount =
+                $this->deleteInBatches(
+                    table: $job['table'],
+
+                    timestampColumn: $job['timestampColumn'],
+
+                    retentionDays: $job['retentionDays'],
+
+                    conditions: $job['conditions'],
+
+                    batchSize: $job['batchSize']
+                );
+
+            /*
+         * Informational logs remain in the normal file log. The database
+         * handler is configured for warning and above only.
+         */
             log_message(
                 'info',
-                'Table cleanup completed. Job: {job}; deleted: {count}.',
+                'Table cleanup completed. '
+                    . 'Job: {job}; deleted: {count}.',
                 [
-                    'job'   => $jobName,
-                    'count' => $deletedCount,
+                    'job' =>
+                    $resolvedJobName,
+
+                    'count' =>
+                    $deletedCount,
                 ]
             );
 
             return TableCleanupResult::success(
-                $jobName,
+                $resolvedJobName,
                 $deletedCount
             );
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Table cleanup failed. Job: {job}; error: {error}.',
-                [
-                    'job'   => $jobName,
-                    'error' => $exception->getMessage(),
-                ]
+                InfrastructureErrorContext::forOperation(
+                    operation: 'table_cleanup_job',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'cleanup_job' =>
+                        $resolvedJobName,
+                    ]
+                )
             );
 
             return TableCleanupResult::failure(
-                $jobName,
+                $resolvedJobName,
                 $exception->getMessage()
             );
         }

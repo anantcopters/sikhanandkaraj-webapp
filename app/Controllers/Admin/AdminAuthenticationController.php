@@ -6,6 +6,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Services\Admin\Authentication\AdminLoginService;
+use App\Support\AdminErrorContext;
 use App\Validation\AdminLoginValidation;
 use CodeIgniter\HTTP\RedirectResponse;
 use Throwable;
@@ -228,27 +229,51 @@ final class AdminAuthenticationController extends BaseController
                     'Administrator login successful.',
                 ]);
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Administrator login failed: {message}',
-                [
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+                AdminErrorContext::forOperation(
+                    operation: 'admin_login',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        /*
+                 * Never store the submitted email, password or complete
+                 * login identifier.
+                 */
+                        'identifier_type' =>
+                        filter_var(
+                            $identifier,
+                            FILTER_VALIDATE_EMAIL
+                        ) !== false
+                            ? 'EMAIL'
+                            : 'OTHER',
+                    ]
+                )
             );
 
             return redirect()
-                ->to(route_to('admin.login'))
+                ->back()
+                ->withInput()
                 ->with(
-                    'adminLoginIdentifier',
-                    $identifier
-                )
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Login unavailable',
-                    'message' =>
-                    'Administrator login is temporarily unavailable.',
-                ]);
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Login unavailable',
+
+                        'message' =>
+                        'Administrator login could not be completed. '
+                            . 'Please try again.',
+                    ]
+                );
         }
     }
 

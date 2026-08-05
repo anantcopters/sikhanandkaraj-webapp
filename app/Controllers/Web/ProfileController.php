@@ -17,6 +17,7 @@ use App\Services\Profile\AboutMeService;
 use App\Validation\Profile\AboutMeValidation;
 use App\Services\Profile\MemberPhotoService;
 use App\Services\Profile\MemberProfileSummaryService;
+use App\Support\ProfileErrorContext;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use App\Support\BooleanValue;
@@ -282,14 +283,28 @@ final class ProfileController extends BaseController
                 ]
             );
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Basic profile update failed for user {userId}: '
-                    . '{message}',
-                [
-                    'userId' => $userId,
-                    'message' => $exception->getMessage(),
-                ]
+                ProfileErrorContext::forMember(
+                    memberId: $userId,
+
+                    operation: 'profile_basic_details_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'profile_section' =>
+                        'BASIC_DETAILS',
+
+                        'journey_mode' =>
+                        $this->isProfileJourney(),
+                    ]
+                )
             );
 
             return redirect()
@@ -299,13 +314,20 @@ final class ProfileController extends BaseController
                     )
                 )
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Details not saved',
-                    'message' =>
-                    'We could not save your details. '
-                        . 'Please try again.',
-                ]);
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Details not saved',
+
+                        'message' =>
+                        'We could not save your details. '
+                            . 'Please try again.',
+                    ]
+                );
         }
     }
 
@@ -416,14 +438,37 @@ final class ProfileController extends BaseController
                     'message' => $exception->getMessage(),
                 ]);
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Lifestyle update failed for user {userId}: '
-                    . '{message}',
-                [
-                    'userId' => $userId,
-                    'message' => $exception->getMessage(),
-                ]
+                ProfileErrorContext::forMember(
+                    memberId: $userId,
+
+                    operation: 'profile_lifestyle_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'profile_section' =>
+                        'LIFESTYLE',
+
+                        'journey_mode' =>
+                        $this->isProfileJourney(),
+
+                        /*
+                 * Store only the count, not selected option IDs.
+                 */
+                        'submitted_option_count' =>
+                        count(
+                            $input['lifestyle_option_ids']
+                                ?? []
+                        ),
+                    ]
+                )
             );
 
             return redirect()
@@ -433,13 +478,20 @@ final class ProfileController extends BaseController
                     )
                 )
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Lifestyle not saved',
-                    'message' =>
-                    'We could not save your lifestyle details. '
-                        . 'Please try again.',
-                ]);
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Lifestyle not saved',
+
+                        'message' =>
+                        'We could not save your lifestyle details. '
+                            . 'Please try again.',
+                    ]
+                );
         }
     }
 
@@ -741,14 +793,28 @@ final class ProfileController extends BaseController
                     'message' => $exception->getMessage(),
                 ]);
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Education and profession update failed '
-                    . 'for user {userId}: {message}',
-                [
-                    'userId' => $userId,
-                    'message' => $exception->getMessage(),
-                ]
+                ProfileErrorContext::forMember(
+                    memberId: $userId,
+
+                    operation: 'profile_education_profession_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'profile_section' =>
+                        'EDUCATION_PROFESSION',
+
+                        'journey_mode' =>
+                        $this->isProfileJourney(),
+                    ]
+                )
             );
 
             return redirect()
@@ -758,13 +824,20 @@ final class ProfileController extends BaseController
                     )
                 )
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Details not saved',
-                    'message' =>
-                    'We could not save your details. '
-                        . 'Please try again.',
-                ]);
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Details not saved',
+
+                        'message' =>
+                        'We could not save your details. '
+                            . 'Please try again.',
+                    ]
+                );
         }
     }
 
@@ -940,14 +1013,28 @@ final class ProfileController extends BaseController
                     'message' => $exception->getMessage(),
                 ]);
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Family details update failed for user '
-                    . '{userId}: {message}',
-                [
-                    'userId' => $userId,
-                    'message' => $exception->getMessage(),
-                ]
+                ProfileErrorContext::forMember(
+                    memberId: $userId,
+
+                    operation: 'profile_family_details_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'profile_section' =>
+                        'FAMILY_DETAILS',
+
+                        'journey_mode' =>
+                        $this->isProfileJourney(),
+                    ]
+                )
             );
 
             return redirect()
@@ -957,13 +1044,20 @@ final class ProfileController extends BaseController
                     )
                 )
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Details not saved',
-                    'message' =>
-                    'We could not save your family details. '
-                        . 'Please try again.',
-                ]);
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Details not saved',
+
+                        'message' =>
+                        'We could not save your family details. '
+                            . 'Please try again.',
+                    ]
+                );
         }
     }
 
@@ -1213,14 +1307,39 @@ final class ProfileController extends BaseController
                     'message' => $exception->getMessage(),
                 ]);
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'About Me update failed for user {userId}: '
-                    . '{message}',
-                [
-                    'userId' => $userId,
-                    'message' => $exception->getMessage(),
-                ]
+                ProfileErrorContext::forMember(
+                    memberId: $userId,
+
+                    operation: 'profile_about_me_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'profile_section' =>
+                        'ABOUT_ME',
+
+                        'journey_mode' =>
+                        $this->isProfileJourney(),
+
+                        /*
+                 * Store only text length. Never store the About Me text.
+                 */
+                        'submitted_length' =>
+                        mb_strlen(
+                            (string) (
+                                $input['about_me']
+                                ?? ''
+                            )
+                        ),
+                    ]
+                )
             );
 
             return redirect()
@@ -1230,13 +1349,20 @@ final class ProfileController extends BaseController
                     )
                 )
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'About Me not saved',
-                    'message' =>
-                    'We could not save your introduction. '
-                        . 'Please try again.',
-                ]);
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'About Me not saved',
+
+                        'message' =>
+                        'We could not save your introduction. '
+                            . 'Please try again.',
+                    ]
+                );
         }
     }
 

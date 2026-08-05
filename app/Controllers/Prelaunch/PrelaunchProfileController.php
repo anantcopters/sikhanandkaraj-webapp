@@ -10,6 +10,7 @@ use App\Services\Prelaunch\PrelaunchProfileService;
 use App\Services\Profile\ProfileMasterDataService;
 use App\Validation\Prelaunch\PrelaunchPhotoValidation;
 use App\Validation\Prelaunch\PrelaunchProfileValidation;
+use App\Support\PrelaunchErrorContext;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -128,33 +129,41 @@ final class PrelaunchProfileController extends BaseController
                 ]
             );
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Unable to render standalone pre-launch form. '
-                    . 'Exception: {exception}. '
-                    . 'Message: {message}. '
-                    . 'File: {file}. '
-                    . 'Line: {line}.',
-                [
-                    'exception' =>
-                    $exception::class,
+                PrelaunchErrorContext::forOperation(
+                    operation: 'prelaunch_profile_form_render',
 
-                    'message' =>
-                    $exception->getMessage(),
+                    component: self::class,
 
-                    'file' =>
-                    $exception->getFile(),
+                    method: __FUNCTION__,
 
-                    'line' =>
-                    $exception->getLine(),
-                ]
+                    additionalContext: [
+                        'selected_state_id' =>
+                        $selectedStateId > 0
+                            ? $selectedStateId
+                            : null,
+
+                        'profile_entry_enabled' =>
+                        (bool) $config
+                            ->profileEntryEnabled,
+                    ]
+                )
             );
 
+            /*
+            * Development retains the normal detailed exception page.
+            * Production continues to hide implementation details.
+            */
             if (ENVIRONMENT === 'development') {
                 throw $exception;
             }
 
-            throw PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException
+                ::forPageNotFound();
         }
     }
 
@@ -210,27 +219,36 @@ final class PrelaunchProfileController extends BaseController
                 ),
             ]);
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Unable to load prelaunch cities. '
-                    . 'State ID: {stateId}. '
-                    . 'Message: {message}.',
-                [
-                    'stateId' =>
-                    $stateId,
+                PrelaunchErrorContext::forOperation(
+                    operation: 'prelaunch_city_master_load',
 
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'state_id' =>
+                        $stateId,
+                    ]
+                )
             );
 
             return $this->response
                 ->setStatusCode(500)
                 ->setJSON([
-                    'successful' => false,
+                    'successful' =>
+                    false,
+
                     'message' =>
                     'Cities could not be loaded.',
-                    'items' => [],
+
+                    'items' =>
+                    [],
                 ]);
         }
     }
@@ -403,10 +421,24 @@ final class PrelaunchProfileController extends BaseController
         }
 
         if ($config->profileFieldOfficerId <= 0) {
-            log_message(
-                'critical',
+            service(
+                'applicationErrorLogger'
+            )->error(
                 'Prelaunch profile entry is unavailable because '
-                    . 'profileFieldOfficerId is not configured.'
+                    . 'profileFieldOfficerId is not configured.',
+                PrelaunchErrorContext::forOperation(
+                    operation: 'prelaunch_profile_configuration',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'profile_field_officer_id' =>
+                        $config->profileFieldOfficerId,
+                    ]
+                ),
+                'critical'
             );
 
             return redirect()
@@ -558,30 +590,38 @@ final class PrelaunchProfileController extends BaseController
                     ]
                 );
         } catch (Throwable $exception) {
-            /*
-            * Database, filesystem, image-processing and programming errors
-            * must not expose their internal messages in the browser.
-            */
-            log_message(
+            $uploadedPhotoCount = isset($photos)
+                && is_array($photos)
+                ? count($photos)
+                : 0;
+
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Prelaunch profile creation failed. '
-                    . 'Exception: {exception}. '
-                    . 'Message: {message}. '
-                    . 'File: {file}. '
-                    . 'Line: {line}.',
-                [
-                    'exception' =>
-                    $exception::class,
+                PrelaunchErrorContext::forOperation(
+                    operation: 'prelaunch_profile_create',
 
-                    'message' =>
-                    $exception->getMessage(),
+                    component: self::class,
 
-                    'file' =>
-                    $exception->getFile(),
+                    method: __FUNCTION__,
 
-                    'line' =>
-                    $exception->getLine(),
-                ]
+                    additionalContext: [
+                        /*
+                 * Only operational metadata is retained.
+                 * Submitted profile/contact values are intentionally excluded.
+                 */
+                        'uploaded_photo_count' =>
+                        $uploadedPhotoCount,
+
+                        'maximum_photos' =>
+                        $config->maximumPhotos,
+
+                        'configured_field_officer_id' =>
+                        $config->profileFieldOfficerId,
+                    ]
+                )
             );
 
             return redirect()
@@ -590,10 +630,15 @@ final class PrelaunchProfileController extends BaseController
                 ->with(
                     'formAlert',
                     [
-                        'type' => 'danger',
-                        'title' => 'Profile not saved',
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Profile not saved',
+
                         'message' =>
-                        'The profile could not be saved. Please try again.',
+                        'The profile could not be saved. '
+                            . 'Please try again.',
                     ]
                 );
         }

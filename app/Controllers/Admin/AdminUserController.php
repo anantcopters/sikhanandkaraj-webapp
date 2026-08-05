@@ -8,6 +8,7 @@ use App\Controllers\BaseController;
 use App\Models\AdminUserModel;
 use App\Services\Admin\AdminInvitationService;
 use App\Services\Admin\AdminManagementService;
+use App\Support\AdminErrorContext;
 use App\Validation\AdminUserValidation;
 use CodeIgniter\HTTP\RedirectResponse;
 use Throwable;
@@ -104,16 +105,45 @@ final class AdminUserController extends BaseController
                         . 'an invitation email was queued.',
                 ]);
         } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_user_create',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        /*
+                 * Do not log the invited administrator's email or name.
+                 */
+                        'requested_role' =>
+                        $validatedData['role']
+                            ?? null,
+                    ]
+                )
+            );
+
             return redirect()
-                ->to(route_to('admin.users.create'))
-                ->with('adminFormInput', $input)
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' =>
-                    'Administrator not created',
-                    'message' =>
-                    $exception->getMessage(),
-                ]);
+                ->back()
+                ->withInput()
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Administrator not created',
+
+                        'message' =>
+                        'The administrator could not be created.',
+                    ]
+                );
         }
     }
 
@@ -140,14 +170,40 @@ final class AdminUserController extends BaseController
                     'A new invitation email was queued.',
                 ]);
         } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_invitation_resend',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_admin_user_id' =>
+                        $adminUserId,
+                    ]
+                )
+            );
+
             return redirect()
-                ->to(route_to('admin.users.index'))
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Unable to resend',
-                    'message' =>
-                    $exception->getMessage(),
-                ]);
+                ->back()
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Invitation not resent',
+
+                        'message' =>
+                        'The invitation could not be resent.',
+                    ]
+                );
         }
     }
 
@@ -174,15 +230,40 @@ final class AdminUserController extends BaseController
                     'The administrator can no longer log in.',
                 ]);
         } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_user_suspend',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_admin_user_id' =>
+                        $adminUserId,
+                    ]
+                )
+            );
+
             return redirect()
-                ->to(route_to('admin.users.index'))
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' =>
-                    'Unable to suspend administrator',
-                    'message' =>
-                    $exception->getMessage(),
-                ]);
+                ->back()
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Administrator not suspended',
+
+                        'message' =>
+                        'The administrator status could not be changed.',
+                    ]
+                );
         }
     }
 }

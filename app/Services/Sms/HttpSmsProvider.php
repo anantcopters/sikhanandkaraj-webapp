@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Sms;
 
+use App\Support\InfrastructureErrorContext;
 use CodeIgniter\HTTP\CURLRequest;
 use Throwable;
 
@@ -20,47 +21,99 @@ final class HttpSmsProvider implements SmsProviderInterface
         private readonly string $apiUrl,
         private readonly string $apiKey,
         private readonly string $senderId
-    ) {
-    }
+    ) {}
 
+    /**
+     * Send one SMS message.
+     *
+     * The method returns a result instead of throwing, so it owns failure
+     * logging.
+     */
     public function send(
         SmsMessage $message
     ): SmsSendResult {
-        try {
-            /**
-             * The real SMS API call is made here.
-             */
-            $response = $this->httpClient->post(
-                $this->apiUrl,
-                [
-                    'headers' => [
-                        'Accept' => 'application/json',
-                        'Content-Type' => 'application/json',
+        if (!$this->configurationValid()) {
+            service(
+                'applicationErrorLogger'
+            )->error(
+                'SMS provider configuration is incomplete.',
+                InfrastructureErrorContext::forOperation(
+                    operation: 'sms_provider_configuration',
 
-                        /**
-                         * Change this header according to the provider.
-                         *
-                         * MSG91, Twilio and other vendors use different
-                         * authorization formats.
-                         */
-                        'Authorization' =>
-                            'Bearer ' . $this->apiKey,
-                    ],
+                    component: self::class,
 
-                    'json' => $this->buildPayload(
-                        $message
-                    ),
+                    method: __FUNCTION__,
 
-                    'connect_timeout' => 5,
-                    'timeout' => 15,
-                    'http_errors' => false,
-                ]
+                    additionalContext: [
+                        'api_url_configured' =>
+                        trim(
+                            $this->apiUrl
+                        ) !== '',
+
+                        'api_key_configured' =>
+                        trim(
+                            $this->apiKey
+                        ) !== '',
+
+                        'sender_id_configured' =>
+                        trim(
+                            $this->senderId
+                        ) !== '',
+                    ]
+                ),
+                'critical'
             );
 
-            $statusCode = $response->getStatusCode();
+            return SmsSendResult::failure(
+                'SMS provider is not configured.'
+            );
+        }
 
-            $responseBody = json_decode(
-                $response->getBody(),
+        try {
+            $response = $this->httpClient
+                ->post(
+                    $this->apiUrl,
+                    [
+                        'headers' => [
+                            'Accept' =>
+                            'application/json',
+
+                            'Content-Type' =>
+                            'application/json',
+
+                            /*
+                             * Change this header according to the provider.
+                             */
+                            'Authorization' =>
+                            'Bearer '
+                                . $this->apiKey,
+                        ],
+
+                        'json' =>
+                        $this->buildPayload(
+                            $message
+                        ),
+
+                        'connect_timeout' =>
+                        5,
+
+                        'timeout' =>
+                        15,
+
+                        'http_errors' =>
+                        false,
+                    ]
+                );
+
+            $statusCode =
+                $response->getStatusCode();
+
+            $responseBody =
+                (string) $response
+                    ->getBody();
+
+            $decodedResponse = json_decode(
+                $responseBody,
                 true
             );
 
@@ -68,13 +121,45 @@ final class HttpSmsProvider implements SmsProviderInterface
                 $statusCode < 200
                 || $statusCode >= 300
             ) {
-                log_message(
-                    'error',
-                    'SMS provider HTTP error: status={status}, response={response}',
-                    [
-                        'status' => $statusCode,
-                        'response' => $response->getBody(),
-                    ]
+                service(
+                    'applicationErrorLogger'
+                )->error(
+                    'SMS provider returned an unsuccessful HTTP response.',
+                    InfrastructureErrorContext::forOperation(
+                        operation: 'sms_provider_http_response',
+
+                        component: self::class,
+
+                        method: __FUNCTION__,
+
+                        additionalContext: [
+                            'http_status' =>
+                            $statusCode,
+
+                            'mobile_suffix' =>
+                            InfrastructureErrorContext
+                                ::mobileSuffix(
+                                    $message
+                                        ->mobileNumber
+                                ),
+
+                            'template_id' =>
+                            mb_substr(
+                                trim(
+                                    $message
+                                        ->templateId
+                                ),
+                                0,
+                                100
+                            ),
+
+                            'response_size_bytes' =>
+                            strlen(
+                                $responseBody
+                            ),
+                        ]
+                    ),
+                    'error'
                 );
 
                 return SmsSendResult::failure(
@@ -84,30 +169,64 @@ final class HttpSmsProvider implements SmsProviderInterface
                 );
             }
 
-            /**
-             * Adjust these response keys for the chosen provider.
+            /*
+             * Adjust these keys for the selected provider.
              */
-            $providerMessageId = is_array($responseBody)
+            $providerMessageId =
+                is_array(
+                    $decodedResponse
+                )
                 ? (
-                    $responseBody['message_id']
-                    ?? $responseBody['request_id']
-                    ?? $responseBody['sid']
+                    $decodedResponse['message_id']
+                    ?? $decodedResponse['request_id']
+                    ?? $decodedResponse['sid']
                     ?? null
                 )
                 : null;
 
             return SmsSendResult::success(
-                is_scalar($providerMessageId)
-                    ? (string) $providerMessageId
+                is_scalar(
+                    $providerMessageId
+                )
+                    ? mb_substr(
+                        (string) $providerMessageId,
+                        0,
+                        255
+                    )
                     : null
             );
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'SMS provider request failed: {message}',
-                [
-                    'message' => $exception->getMessage(),
-                ]
+                InfrastructureErrorContext::forOperation(
+                    operation: 'sms_provider_request',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'mobile_suffix' =>
+                        InfrastructureErrorContext
+                            ::mobileSuffix(
+                                $message
+                                    ->mobileNumber
+                            ),
+
+                        'template_id' =>
+                        mb_substr(
+                            trim(
+                                $message
+                                    ->templateId
+                            ),
+                            0,
+                            100
+                        ),
+                    ]
+                )
             );
 
             return SmsSendResult::failure(
@@ -119,7 +238,7 @@ final class HttpSmsProvider implements SmsProviderInterface
     /**
      * Generic request payload.
      *
-     * Change this method according to the selected provider's API.
+     * Change this method according to the selected provider API.
      *
      * @return array<string, mixed>
      */
@@ -127,11 +246,36 @@ final class HttpSmsProvider implements SmsProviderInterface
         SmsMessage $message
     ): array {
         return [
-            'sender_id' => $this->senderId,
-            'mobile' => $message->mobileNumber,
-            'message' => $message->message,
-            'template_id' => $message->templateId,
-            'variables' => $message->variables,
+            'sender_id' =>
+            $this->senderId,
+
+            'mobile' =>
+            $message->mobileNumber,
+
+            'message' =>
+            $message->message,
+
+            'template_id' =>
+            $message->templateId,
+
+            'variables' =>
+            $message->variables,
         ];
+    }
+
+    /**
+     * Confirm mandatory provider settings.
+     */
+    private function configurationValid(): bool
+    {
+        return trim(
+            $this->apiUrl
+        ) !== ''
+            && trim(
+                $this->apiKey
+            ) !== ''
+            && trim(
+                $this->senderId
+            ) !== '';
     }
 }

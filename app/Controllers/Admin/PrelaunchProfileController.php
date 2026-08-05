@@ -10,6 +10,7 @@ use App\Services\Prelaunch\PrelaunchAdminReviewService;
 use App\Services\Prelaunch\PrelaunchPhotoService;
 use App\Validation\Prelaunch\PrelaunchProfileValidation;
 use App\Models\Prelaunch\PrelaunchProfileModel;
+use App\Support\AdminErrorContext;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -164,33 +165,31 @@ final class PrelaunchProfileController extends BaseController
             PageNotFoundException $exception
         ) {
             throw $exception;
+        } catch (
+            PageNotFoundException $exception
+        ) {
+            throw $exception;
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Unable to render prelaunch review. '
-                    . 'Profile: {profileId}; '
-                    . 'exception: {exception}; '
-                    . 'message: {message}; '
-                    . 'file: {file}; '
-                    . 'line: {line}.',
-                [
-                    'profileId' =>
-                    $profileId,
-                    'exception' =>
-                    $exception::class,
-                    'message' =>
-                    $exception->getMessage(),
-                    'file' =>
-                    $exception->getFile(),
-                    'line' =>
-                    $exception->getLine(),
-                ]
+                AdminErrorContext::forOperation(
+                    operation: 'admin_prelaunch_profile_review',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'prelaunch_profile_id' =>
+                        $profileId,
+                    ]
+                )
             );
 
-            if (
-                ENVIRONMENT
-                === 'development'
-            ) {
+            if (ENVIRONMENT === 'development') {
                 throw $exception;
             }
 
@@ -416,20 +415,23 @@ final class PrelaunchProfileController extends BaseController
                     ]
                 );
         } catch (Throwable $exception) {
-            log_message(
-                'error',
-                'Prelaunch approval failed. '
-                    . 'Profile: {profileId}; '
-                    . 'exception: {exception}; '
-                    . 'message: {message}.',
-                [
-                    'profileId' =>
-                    $profileId,
-                    'exception' =>
-                    $exception::class,
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'critical',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_prelaunch_profile_approve_and_migrate',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'prelaunch_profile_id' =>
+                        $profileId,
+                    ]
+                )
             );
 
             return redirect()
@@ -445,7 +447,8 @@ final class PrelaunchProfileController extends BaseController
                         'Profile not approved',
 
                         'message' =>
-                        $exception->getMessage(),
+                        'The profile could not be approved or migrated. '
+                            . 'Please try again.',
                     ]
                 );
         }
@@ -495,6 +498,25 @@ final class PrelaunchProfileController extends BaseController
                     ]
                 );
         } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_prelaunch_profile_reject',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'prelaunch_profile_id' =>
+                        $profileId,
+                    ]
+                )
+            );
+
             return redirect()
                 ->back()
                 ->with(
@@ -506,8 +528,12 @@ final class PrelaunchProfileController extends BaseController
                         'title' =>
                         'Profile not rejected',
 
+                        /*
+                 * Never display an unexpected internal exception message.
+                 */
                         'message' =>
-                        $exception->getMessage(),
+                        'The profile could not be rejected. '
+                            . 'Please try again.',
                     ]
                 );
         }
@@ -572,6 +598,25 @@ final class PrelaunchProfileController extends BaseController
                     ]
                 );
         } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_prelaunch_contact_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'prelaunch_profile_id' =>
+                        $profileId,
+                    ]
+                )
+            );
+
             return redirect()
                 ->back()
                 ->withInput()
@@ -584,8 +629,11 @@ final class PrelaunchProfileController extends BaseController
                         'title' =>
                         'Contact not updated',
 
+                        /*
+                 * Email and mobile are deliberately excluded from logging.
+                 */
                         'message' =>
-                        $exception->getMessage(),
+                        'The profile contact details could not be updated.',
                     ]
                 );
         }
@@ -638,6 +686,28 @@ final class PrelaunchProfileController extends BaseController
                     ]
                 );
         } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_prelaunch_photo_moderation',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'prelaunch_photo_id' =>
+                        $photoId,
+
+                        'requested_status' =>
+                        $status,
+                    ]
+                )
+            );
+
             return redirect()
                 ->back()
                 ->with(
@@ -650,7 +720,7 @@ final class PrelaunchProfileController extends BaseController
                         'Photo not updated',
 
                         'message' =>
-                        $exception->getMessage(),
+                        'The photograph status could not be updated.',
                     ]
                 );
         }
