@@ -42,7 +42,7 @@ $carouselId = $modalId . 'Carousel';
 
         <div class="modal-content">
 
-            <div class="modal-header bg-info-subtle">
+            <div class="modal-header bg-info-subtle py-2">
 
                 <div>
                     <h5
