@@ -7,6 +7,7 @@ namespace App\Services\Maintenance;
 use App\Models\Prelaunch\PrelaunchPhotoModel;
 use App\Models\Prelaunch\PrelaunchProfileModel;
 use App\Services\Prelaunch\PrelaunchPhotoService;
+use App\Support\InfrastructureErrorContext;
 use CodeIgniter\Database\BaseConnection;
 use Config\FileCleanup;
 use InvalidArgumentException;
@@ -50,7 +51,10 @@ final class FileCleanupService
     {
         $results = [];
 
-        foreach ($this->getRegisteredJobs() as $jobName) {
+        foreach (
+            $this->getRegisteredJobs()
+            as $jobName
+        ) {
             $results[] = $this->run(
                 $jobName
             );
@@ -65,15 +69,19 @@ final class FileCleanupService
     public function run(
         string $jobName
     ): FileCleanupResult {
+        $resolvedJobName = trim(
+            $jobName
+        );
+
         try {
             $job = $this->resolveJob(
-                $jobName
+                $resolvedJobName
             );
 
-            return match ($jobName) {
+            return match ($resolvedJobName) {
                 'prelaunch-approved-photos' =>
                 $this->cleanupPrelaunchPhotos(
-                    $jobName,
+                    $resolvedJobName,
                     $job
                 ),
 
@@ -81,31 +89,44 @@ final class FileCleanupService
                 throw new InvalidArgumentException(
                     sprintf(
                         'Unsupported file cleanup job "%s".',
-                        $jobName
+                        $resolvedJobName
                     )
                 ),
             };
         } catch (Throwable $exception) {
-            log_message(
+            /*
+             * runAll() continues after one job failure, so this service owns
+             * the error log for the failed job.
+             */
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'File cleanup failed. '
-                    . 'Job: {job}; error: {error}.',
-                [
-                    'job' =>
-                    $jobName,
-                    'error' =>
-                    $exception->getMessage(),
-                ]
+                InfrastructureErrorContext::forOperation(
+                    operation: 'file_cleanup_job',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'cleanup_job' =>
+                        $resolvedJobName,
+                    ]
+                )
             );
 
             return FileCleanupResult::failure(
-                $jobName,
+                $resolvedJobName,
                 $exception->getMessage()
             );
         }
     }
 
     /**
+     * Clean staged local photos belonging to migrated prelaunch profiles.
+     *
      * @param array{
      *     rootDirectory:string,
      *     retentionDays:int,
@@ -138,10 +159,11 @@ final class FileCleanupService
             }
 
             try {
-                $result = $this->cleanupOneProfile(
-                    $profile,
-                    $job
-                );
+                $result = $this
+                    ->cleanupOneProfile(
+                        $profile,
+                        $job
+                    );
 
                 $deletedFiles +=
                     $result['deletedFiles'];
@@ -153,27 +175,41 @@ final class FileCleanupService
             } catch (Throwable $exception) {
                 $failedProfiles++;
 
-                log_message(
+                /*
+                 * A single profile failure is swallowed so the remaining
+                 * profiles can be processed. Log it here exactly once.
+                 *
+                 * The profile reference and filesystem path are deliberately
+                 * excluded.
+                 */
+                service(
+                    'applicationErrorLogger'
+                )->exception(
+                    $exception,
                     'error',
-                    'Prelaunch photo cleanup failed. '
-                        . 'Profile: {profileId}; '
-                        . 'reference: {reference}; '
-                        . 'error: {error}.',
-                    [
-                        'profileId' =>
-                        $profileId,
-                        'reference' =>
-                        (string) (
-                            $profile['profile_reference']
-                            ?? ''
-                        ),
-                        'error' =>
-                        $exception->getMessage(),
-                    ]
+                    InfrastructureErrorContext::forOperation(
+                        operation: 'prelaunch_photo_file_cleanup',
+
+                        component: self::class,
+
+                        method: __FUNCTION__,
+
+                        additionalContext: [
+                            'cleanup_job' =>
+                            $jobName,
+
+                            'prelaunch_profile_id' =>
+                            $profileId,
+                        ]
+                    )
                 );
             }
         }
 
+        /*
+         * Informational completion details remain in file logs. The database
+         * error handler processes warning and higher levels only.
+         */
         log_message(
             'info',
             'File cleanup completed. '
@@ -185,12 +221,16 @@ final class FileCleanupService
             [
                 'job' =>
                 $jobName,
+
                 'profiles' =>
                 $processedProfiles,
+
                 'files' =>
                 $deletedFiles,
+
                 'directories' =>
                 $deletedDirectories,
+
                 'failures' =>
                 $failedProfiles,
             ]
@@ -198,15 +238,19 @@ final class FileCleanupService
 
         return FileCleanupResult::success(
             jobName: $jobName,
+
             processedProfiles: $processedProfiles,
+
             deletedFiles: $deletedFiles,
+
             deletedDirectories: $deletedDirectories,
+
             failedProfiles: $failedProfiles
         );
     }
 
     /**
-     * Find only successfully migrated profiles whose retention period ended.
+     * Find successfully migrated profiles whose retention period ended.
      *
      * @return list<array<string, mixed>>
      */
@@ -228,7 +272,8 @@ final class FileCleanupService
             ])
             ->where(
                 'status',
-                PrelaunchProfileModel::STATUS_APPROVED
+                PrelaunchProfileModel
+                ::STATUS_APPROVED
             )
             ->where(
                 'migrated_user_id IS NOT NULL',
@@ -256,12 +301,16 @@ final class FileCleanupService
                 'local_photos_cleanup_after',
                 'ASC'
             )
-            ->limit($batchSize)
+            ->limit(
+                $batchSize
+            )
             ->get()
             ->getResultArray();
     }
 
     /**
+     * Clean one migrated prelaunch profile folder.
+     *
      * @param array<string, mixed> $profile
      * @param array{
      *     rootDirectory:string,
@@ -329,7 +378,8 @@ final class FileCleanupService
                     'original_path',
                     'medium_path',
                     'thumbnail_path',
-                ] as $pathField
+                ]
+                as $pathField
             ) {
                 $relativePath = trim(
                     (string) (
@@ -360,9 +410,8 @@ final class FileCleanupService
 
                 if (!is_file($absolutePath)) {
                     /*
-                     * Missing files do not block cleanup. The filesystem may
-                     * already have been partially cleaned during an earlier
-                     * interrupted run.
+                     * Missing files do not block cleanup. An earlier,
+                     * interrupted run may already have removed them.
                      */
                     continue;
                 }
@@ -407,6 +456,7 @@ final class FileCleanupService
         return [
             'deletedFiles' =>
             $deletedFiles,
+
             'deletedDirectories' =>
             $deletedDirectories,
         ];
@@ -479,7 +529,10 @@ final class FileCleanupService
         $remainingItems = array_values(
             array_diff(
                 $remainingItems,
-                ['.', '..']
+                [
+                    '.',
+                    '..',
+                ]
             )
         );
 
@@ -506,31 +559,32 @@ final class FileCleanupService
     private function resolveJob(
         string $jobName
     ): array {
-        $jobName = trim(
+        $resolvedJobName = trim(
             $jobName
         );
 
         if (
-            $jobName === ''
+            $resolvedJobName === ''
             || !isset(
                 $this->configuration
-                    ->jobs[$jobName]
+                    ->jobs[$resolvedJobName]
             )
         ) {
             throw new InvalidArgumentException(
                 sprintf(
                     'Unknown file cleanup job "%s".',
-                    $jobName
+                    $resolvedJobName
                 )
             );
         }
 
         $job = $this->configuration
-            ->jobs[$jobName];
+            ->jobs[$resolvedJobName];
 
         if (
-            trim($job['rootDirectory'])
-            === ''
+            trim(
+                $job['rootDirectory']
+            ) === ''
         ) {
             throw new InvalidArgumentException(
                 'A file cleanup root directory is required.'
@@ -556,6 +610,9 @@ final class FileCleanupService
         return $job;
     }
 
+    /**
+     * Validate a profile reference before using it in a local path.
+     */
     private function assertSafeReference(
         string $profileReference
     ): void {
@@ -571,12 +628,18 @@ final class FileCleanupService
         }
     }
 
+    /**
+     * Ensure cleanup never operates outside WRITEPATH.
+     */
     private function assertInsideWritePath(
         string $path
     ): void {
         $normalizedWritePath = rtrim(
             str_replace(
-                ['/', '\\'],
+                [
+                    '/',
+                    '\\',
+                ],
                 DIRECTORY_SEPARATOR,
                 WRITEPATH
             ),
@@ -585,7 +648,10 @@ final class FileCleanupService
             . DIRECTORY_SEPARATOR;
 
         $normalizedPath = str_replace(
-            ['/', '\\'],
+            [
+                '/',
+                '\\',
+            ],
             DIRECTORY_SEPARATOR,
             $path
         );

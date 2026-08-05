@@ -184,49 +184,15 @@ final class EmailQueueService
             return (int) $queueId;
         } catch (Throwable $exception) {
             /*
-             * enqueue() throws to the workflow owner. Log here only because
-             * the queue operation itself is the infrastructure boundary and
-             * recipient details are safely reduced.
-             */
-            service(
-                'applicationErrorLogger'
-            )->exception(
-                $exception,
-                'error',
-                InfrastructureErrorContext::forOperation(
-                    operation: 'email_queue_enqueue',
-
-                    component: self::class,
-
-                    method: __FUNCTION__,
-
-                    additionalContext: [
-                        'recipient_domain' =>
-                        InfrastructureErrorContext
-                            ::emailDomain(
-                                $resolvedEmail
-                            ),
-
-                        'view_name' =>
-                        mb_substr(
-                            $resolvedViewName,
-                            0,
-                            255
-                        ),
-
-                        'reference_type' =>
-                        $referenceType,
-
-                        'reference_id' =>
-                        $referenceId,
-
-                        'max_attempts' =>
-                        $maxAttempts,
-                    ]
-                )
+            * enqueue() propagates failures to the calling workflow. The controller,
+            * command, or top-level workflow that converts the exception into a user
+            * response owns the single application-error record.
+            */
+            throw new RuntimeException(
+                'Email could not be added to the queue.',
+                0,
+                $exception
             );
-
-            throw $exception;
         }
     }
 

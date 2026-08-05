@@ -3,21 +3,23 @@
 declare(strict_types=1);
 
 use App\Services\Email\EmailQueueWorker;
+use App\Support\InfrastructureErrorContext;
 use CodeIgniter\Boot;
 use Config\Paths;
 use Throwable;
 
 /*
 |--------------------------------------------------------------------------
-| Restrict execution to CLI
+| CLI restriction
 |--------------------------------------------------------------------------
 |
-| This file must never run through Apache or a browser.
+| This worker must never run through Apache or a browser.
 |
 */
 
 if (PHP_SAPI !== 'cli') {
     http_response_code(403);
+
     exit('CLI access only.');
 }
 
@@ -25,11 +27,8 @@ if (PHP_SAPI !== 'cli') {
 |--------------------------------------------------------------------------
 | Resolve project directories
 |--------------------------------------------------------------------------
-|
-| scripts/email_worker.php
-| project root = dirname(__DIR__)
-|
 */
+
 $projectRoot = dirname(__DIR__);
 
 define(
@@ -40,36 +39,35 @@ define(
         . DIRECTORY_SEPARATOR
 );
 
-/*
-|--------------------------------------------------------------------------
-| Set working directory
-|--------------------------------------------------------------------------
-*/
 chdir($projectRoot);
 
 /*
 |--------------------------------------------------------------------------
-| Define environment
+| Environment
 |--------------------------------------------------------------------------
 |
-| Cron may not provide CI_ENVIRONMENT. Production is therefore the safe
-| default. Locally, you may run:
+| Cron may not provide CI_ENVIRONMENT. Production is the safe fallback.
+|
+| Local example:
 |
 | CI_ENVIRONMENT=development php scripts/email_worker.php
 |
 */
+
 if (!defined('ENVIRONMENT')) {
     define(
         'ENVIRONMENT',
-        getenv('CI_ENVIRONMENT') ?: 'production'
+        getenv('CI_ENVIRONMENT')
+            ?: 'production'
     );
 }
 
 /*
 |--------------------------------------------------------------------------
-| Load CI4 paths
+| Boot CodeIgniter
 |--------------------------------------------------------------------------
 */
+
 require $projectRoot
     . DIRECTORY_SEPARATOR
     . 'app'
@@ -80,16 +78,13 @@ require $projectRoot
 
 $paths = new Paths();
 
-/*
-|--------------------------------------------------------------------------
-| Boot CodeIgniter for a standalone console script
-|--------------------------------------------------------------------------
-*/
 require $paths->systemDirectory
     . DIRECTORY_SEPARATOR
     . 'Boot.php';
 
-Boot::bootConsole($paths);
+Boot::bootConsole(
+    $paths
+);
 
 /*
 |--------------------------------------------------------------------------
@@ -101,16 +96,34 @@ Boot::bootConsole($paths);
 | php scripts/email_worker.php
 | php scripts/email_worker.php 5
 |
-| Maximum batch size is deliberately restricted to avoid server load.
+| The batch limit is bounded to reduce SMTP and database load.
 |
 */
+
 $requestedLimit = isset($argv[1])
     ? (int) $argv[1]
     : 5;
 
 $batchLimit = max(
     1,
-    min($requestedLimit, 20)
+    min(
+        $requestedLimit,
+        20
+    )
+);
+
+$workerName = sprintf(
+    '%s:%d',
+    gethostname() !== false
+        ? gethostname()
+        : 'unknown',
+    getmypid()
+);
+
+$workerName = mb_substr(
+    $workerName,
+    0,
+    100
 );
 
 $startedAt = microtime(true);
@@ -118,60 +131,120 @@ $startedAt = microtime(true);
 try {
     $result = (
         new EmailQueueWorker()
-    )->process($batchLimit);
+    )->process(
+        $batchLimit,
+        $workerName
+    );
 
     $durationMs = (int) round(
-        (microtime(true) - $startedAt) * 1000
+        (
+            microtime(true)
+            - $startedAt
+        ) * 1000
     );
 
-    $message = sprintf(
-        '[%s] Email worker completed. '
-            . 'Reserved=%d Sent=%d Retried=%d Failed=%d Duration=%dms',
-        date('Y-m-d H:i:s'),
-        $result['reserved'],
-        $result['sent'],
-        $result['retried'],
-        $result['failed'],
-        $durationMs
+    fwrite(
+        STDOUT,
+        sprintf(
+            '[%s] Email worker completed. '
+                . 'Reserved=%d Sent=%d Retried=%d '
+                . 'Failed=%d Duration=%dms%s',
+            date('Y-m-d H:i:s'),
+            $result['reserved'],
+            $result['sent'],
+            $result['retried'],
+            $result['failed'],
+            $durationMs,
+            PHP_EOL
+        )
     );
 
-    echo $message . PHP_EOL;
-
+    /*
+     * Completion is operational information, not an application error.
+     * It remains in the standard file log only because the database handler
+     * processes warning and higher levels.
+     */
     if ($result['reserved'] > 0) {
         log_message(
             'info',
-            'Email worker completed. Reserved={reserved}, '
-                . 'sent={sent}, retried={retried}, '
-                . 'failed={failed}, durationMs={durationMs}',
+            'Email worker completed. '
+                . 'Reserved={reserved}; '
+                . 'sent={sent}; '
+                . 'retried={retried}; '
+                . 'failed={failed}; '
+                . 'durationMs={durationMs}.',
             [
-                'reserved' => $result['reserved'],
-                'sent' => $result['sent'],
-                'retried' => $result['retried'],
-                'failed' => $result['failed'],
-                'durationMs' => $durationMs,
+                'reserved' =>
+                $result['reserved'],
+
+                'sent' =>
+                $result['sent'],
+
+                'retried' =>
+                $result['retried'],
+
+                'failed' =>
+                $result['failed'],
+
+                'durationMs' =>
+                $durationMs,
             ]
         );
     }
 
+    /*
+     * A completed worker run may contain terminal message failures, but those
+     * failures are already logged by EmailQueueService::markFailed().
+     */
     exit(0);
 } catch (Throwable $exception) {
-    $message = sprintf(
-        '[%s] Email worker failed: %s',
-        date('Y-m-d H:i:s'),
-        $exception->getMessage()
+    $durationMs = (int) round(
+        (
+            microtime(true)
+            - $startedAt
+        ) * 1000
     );
 
     fwrite(
         STDERR,
-        $message . PHP_EOL
+        sprintf(
+            '[%s] Email worker failed: %s%s',
+            date('Y-m-d H:i:s'),
+            $exception->getMessage(),
+            PHP_EOL
+        )
     );
 
-    log_message(
+    /*
+     * The outer script owns errors that prevent the worker batch itself from
+     * running, such as reservation, boot, database or queue-state failures.
+     */
+    service(
+        'applicationErrorLogger'
+    )->exception(
+        $exception,
         'critical',
-        'Email queue worker failed: {message}',
-        [
-            'message' => $exception->getMessage(),
-        ]
+        InfrastructureErrorContext::forOperation(
+            operation: 'email_queue_worker',
+
+            component: basename(__FILE__),
+
+            method: 'main',
+
+            additionalContext: [
+                'worker_name' =>
+                $workerName,
+
+                'batch_limit' =>
+                $batchLimit,
+
+                'duration_ms' =>
+                $durationMs,
+
+                'execution_source' =>
+                'CRON',
+            ]
+        )
     );
 
     exit(1);
