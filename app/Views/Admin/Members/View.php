@@ -262,10 +262,8 @@ $displayValue = static function (
 };
 
 /*
- * Calculate the member's age from the saved date of birth.
+ * Date of birth is a calendar date. It must never be converted from UTC.
  */
-$age = null;
-
 $dateOfBirth = trim(
     (string) (
         $resolvedBasicDetails['date_of_birth']
@@ -273,16 +271,14 @@ $dateOfBirth = trim(
     )
 );
 
-/*
- * Date of birth is a calendar date and must not be timezone-converted.
- */
 $displayDateOfBirth =
     DateDisplay::formatDateOrEmpty(
         $dateOfBirth
     );
 
 /*
- * created_at is stored in UTC. Convert it to IST before display.
+ * created_at is a UTC timestamp. Convert it into the configured display
+ * timezone before showing it to the administrator.
  */
 $displayAccountCreated =
     DateDisplay::formatUtcDateTime(
@@ -290,26 +286,43 @@ $displayAccountCreated =
             ?? null
     );
 
-$age = null;
+$accountCreatedIso =
+    DateDisplay::utcToDisplayIso(
+        $resolvedAdminMember['created_at']
+            ?? null
+    );
 
 $age = null;
 
 if ($dateOfBirth !== '') {
     try {
-        $birthDate = new DateTimeImmutable(
-            $dateOfBirth
+        $birthDate = DateTimeImmutable
+            ::createFromFormat(
+                '!Y-m-d',
+                mb_substr(
+                    $dateOfBirth,
+                    0,
+                    10
+                )
+            );
+
+        $displayDateConfig = config(
+            \Config\DateDisplay::class
         );
 
         $today = new DateTimeImmutable(
             'today',
             new DateTimeZone(
-                config(
-                    \Config\DateDisplay::class
-                )->timezone
+                $displayDateConfig
+                    ->timezone
             )
         );
 
-        if ($birthDate <= $today) {
+        if (
+            $birthDate
+            instanceof DateTimeImmutable
+            && $birthDate <= $today
+        ) {
             $age = $birthDate
                 ->diff($today)
                 ->y;
@@ -1139,19 +1152,24 @@ $this->section('content');
                                 </div>
 
                                 <div class="fw-medium">
-                                    <time
-                                        datetime="<?= esc(
-                                                        DateDisplay::utcToDisplayIso(
-                                                            $resolvedAdminMember['created_at']
-                                                                ?? null
-                                                        ),
-                                                        'attr'
-                                                    ) ?>">
+                                    <?php if (
+                                        $accountCreatedIso !== ''
+                                    ): ?>
+                                        <time
+                                            datetime="<?= esc(
+                                                            $accountCreatedIso,
+                                                            'attr'
+                                                        ) ?>">
 
+                                            <?= esc(
+                                                $displayAccountCreated
+                                            ) ?>
+                                        </time>
+                                    <?php else: ?>
                                         <?= esc(
                                             $displayAccountCreated
                                         ) ?>
-                                    </time>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>

@@ -1,28 +1,69 @@
 (function () {
     'use strict';
 
+    /**
+     * Escape dynamically generated HTML.
+     *
+     * @param {unknown} value
+     * @returns {string}
+     */
     function escapeHtml(value) {
-        const element = document.createElement('div');
+        const element = document.createElement(
+            'div'
+        );
 
-        element.textContent = String(value ?? '');
+        element.textContent = String(
+            value ?? ''
+        );
 
         return element.innerHTML;
     }
 
-    function formatDateTime(value) {
-        const rawValue = String(value ?? '').trim();
+    /**
+     * Render one local date-time value supplied by PHP.
+     *
+     * JavaScript must not use new Date() or toLocaleString() because PHP has
+     * already converted the database UTC timestamp to the configured display
+     * timezone.
+     *
+     * @param {object} item
+     * @returns {string}
+     */
+    function renderDateTime(item) {
+        const changedAtDisplay = String(
+            item.changedAtDisplay
+            ?? '—'
+        ).trim();
 
-        if (rawValue === '') {
-            return '—';
+        const changedAtIso = String(
+            item.changedAtIso
+            ?? ''
+        ).trim();
+
+        if (changedAtIso === '') {
+            return escapeHtml(
+                changedAtDisplay !== ''
+                    ? changedAtDisplay
+                    : '—'
+            );
         }
 
-        const date = new Date(rawValue);
-
-        return Number.isNaN(date.getTime())
-            ? rawValue
-            : date.toLocaleString();
+        return [
+            '<time datetime="',
+            escapeHtml(changedAtIso),
+            '">',
+            escapeHtml(
+                changedAtDisplay !== ''
+                    ? changedAtDisplay
+                    : '—'
+            ),
+            '</time>'
+        ].join('');
     }
 
+    /**
+     * Submit the member listing when the status filter changes.
+     */
     function initializeStatusFilter() {
         const select = document.getElementById(
             'member-status-filter'
@@ -44,6 +85,9 @@
         );
     }
 
+    /**
+     * Initialize list-page Block/Unblock modal actions.
+     */
     function initializeStatusModal() {
         const modalElement = document.getElementById(
             'member-status-modal'
@@ -66,8 +110,8 @@
             return;
         }
 
-        const modal = bootstrap.Modal
-            .getOrCreateInstance(
+        const modal =
+            bootstrap.Modal.getOrCreateInstance(
                 modalElement
             );
 
@@ -78,7 +122,8 @@
                 'click',
                 function () {
                     const action = String(
-                        button.dataset.action ?? ''
+                        button.dataset.action
+                        ?? ''
                     ).toUpperCase();
 
                     const name = String(
@@ -108,55 +153,95 @@
 
                     form.action = formAction;
 
-                    document.getElementById(
-                        'member-status-modal-title'
-                    ).textContent = action === 'BLOCK'
-                            ? 'Block Member'
-                            : 'Unblock Member';
+                    const title =
+                        document.getElementById(
+                            'member-status-modal-title'
+                        );
 
-                    document.getElementById(
-                        'member-status-identity'
-                    ).textContent = code !== ''
-                            ? name + ' · ' + code
-                            : name;
+                    const identity =
+                        document.getElementById(
+                            'member-status-identity'
+                        );
 
-                    document.getElementById(
-                        'member-status-member-name'
-                    ).textContent = name;
+                    const memberName =
+                        document.getElementById(
+                            'member-status-member-name'
+                        );
 
-                    document.getElementById(
-                        'member-status-member-code'
-                    ).textContent = code !== ''
-                            ? 'Member Code: ' + code
-                            : 'Member Code: —';
+                    const memberCode =
+                        document.getElementById(
+                            'member-status-member-code'
+                        );
 
-                    document.getElementById(
-                        'member-status-message'
-                    ).textContent = action === 'BLOCK'
-                            ? 'Enter the reason for blocking this member.'
-                            : 'Enter the reason for unblocking this member.';
+                    const statusMessage =
+                        document.getElementById(
+                            'member-status-message'
+                        );
 
-                    const submit = document.getElementById(
-                        'member-status-submit'
-                    );
+                    const submit =
+                        document.getElementById(
+                            'member-status-submit'
+                        );
 
-                    submit.textContent = action === 'BLOCK'
-                        ? 'Block Member'
-                        : 'Unblock Member';
+                    if (title) {
+                        title.textContent =
+                            action === 'BLOCK'
+                                ? 'Block Member'
+                                : 'Unblock Member';
+                    }
 
-                    submit.classList.remove(
-                        'btn-primary',
-                        'btn-danger',
-                        'btn-success'
-                    );
+                    if (identity) {
+                        identity.textContent =
+                            code !== ''
+                                ? name
+                                + ' · '
+                                + code
+                                : name;
+                    }
 
-                    submit.classList.add(
-                        action === 'BLOCK'
-                            ? 'btn-danger'
-                            : 'btn-success'
-                    );
+                    if (memberName) {
+                        memberName.textContent =
+                            name;
+                    }
+
+                    if (memberCode) {
+                        memberCode.textContent =
+                            code !== ''
+                                ? 'Member Code: '
+                                + code
+                                : 'Member Code: —';
+                    }
+
+                    if (statusMessage) {
+                        statusMessage.textContent =
+                            action === 'BLOCK'
+                                ? 'Enter the reason for '
+                                + 'blocking this member.'
+                                : 'Enter the reason for '
+                                + 'unblocking this member.';
+                    }
+
+                    if (submit) {
+                        submit.textContent =
+                            action === 'BLOCK'
+                                ? 'Block Member'
+                                : 'Unblock Member';
+
+                        submit.classList.remove(
+                            'btn-primary',
+                            'btn-danger',
+                            'btn-success'
+                        );
+
+                        submit.classList.add(
+                            action === 'BLOCK'
+                                ? 'btn-danger'
+                                : 'btn-success'
+                        );
+                    }
 
                     reason.value = '';
+
                     reason.classList.remove(
                         'is-invalid'
                     );
@@ -180,67 +265,98 @@
                     || value.length > 64
                 ) {
                     event.preventDefault();
+
                     reason.classList.add(
                         'is-invalid'
                     );
+
                     reason.focus();
                 }
             }
         );
     }
 
+    /**
+     * Render member account-status history.
+     *
+     * @param {Array<object>} history
+     * @returns {string}
+     */
     function renderHistory(history) {
         if (
             !Array.isArray(history)
             || history.length === 0
         ) {
             return [
-                '<div class="text-center text-muted py-4">',
-                '<i class="ri-history-line fs-24 ',
-                'd-block mb-2" aria-hidden="true"></i>',
-                'No block or unblock history is available.',
+                '<div class="text-center ',
+                'text-muted py-4">',
+                '<i class="ri-history-line ',
+                'fs-24 d-block mb-2" ',
+                'aria-hidden="true"></i>',
+                'No block or unblock history ',
+                'is available.',
                 '</div>'
             ].join('');
         }
 
-        const rows = history.map(function (item) {
-            const action = String(
-                item.action ?? ''
-            ).toUpperCase();
+        const rows = history.map(
+            function (item) {
+                const action = String(
+                    item.action
+                    ?? ''
+                ).toUpperCase();
 
-            const badge = action === 'BLOCK'
-                ? 'bg-danger-subtle text-danger'
-                : 'bg-success-subtle text-success';
+                const badgeClass =
+                    action === 'BLOCK'
+                        ? 'bg-danger-subtle '
+                        + 'text-danger'
+                        : 'bg-success-subtle '
+                        + 'text-success';
 
-            return [
-                '<tr>',
-                '<td><span class="badge ',
-                badge,
-                '">',
-                escapeHtml(action),
-                '</span></td>',
-                '<td>',
-                escapeHtml(item.previousStatus ?? '—'),
-                ' <i class="ri-arrow-right-line mx-1"',
-                ' aria-hidden="true"></i> ',
-                escapeHtml(item.newStatus ?? '—'),
-                '</td>',
-                '<td>',
-                escapeHtml(item.reason ?? '—'),
-                '</td>',
-                '<td>',
-                escapeHtml(
-                    item.adminName ?? 'Administrator'
-                ),
-                '</td>',
-                '<td>',
-                escapeHtml(
-                    formatDateTime(item.changedAt)
-                ),
-                '</td>',
-                '</tr>'
-            ].join('');
-        }).join('');
+                return [
+                    '<tr>',
+                    '<td><span class="badge ',
+                    badgeClass,
+                    '">',
+                    escapeHtml(action),
+                    '</span></td>',
+                    '<td>',
+                    escapeHtml(
+                        item.previousStatus
+                        ?? '—'
+                    ),
+                    ' <i class="ri-arrow-right-line ',
+                    'mx-1" aria-hidden="true"></i> ',
+                    escapeHtml(
+                        item.newStatus
+                        ?? '—'
+                    ),
+                    '</td>',
+                    '<td>',
+                    escapeHtml(
+                        item.reason
+                        ?? '—'
+                    ),
+                    '</td>',
+                    '<td>',
+                    escapeHtml(
+                        item.adminName
+                        ?? 'Administrator'
+                    ),
+                    '<div class="small text-muted">',
+                    escapeHtml(
+                        item.adminRole
+                        ?? ''
+                    ),
+                    '</div>',
+                    '</td>',
+                    '<td>',
+                    renderDateTime(item),
+                    '</td>',
+                    '</tr>'
+                ].join('');
+            }
+        ).join('');
 
         return [
             '<div class="table-responsive">',
@@ -248,11 +364,11 @@
             'table-nowrap align-middle mb-0">',
             '<thead class="bg-info-subtle">',
             '<tr>',
-            '<th>Action</th>',
-            '<th>Transition</th>',
-            '<th>Reason</th>',
-            '<th>Administrator</th>',
-            '<th>Date</th>',
+            '<th scope="col">Action</th>',
+            '<th scope="col">Transition</th>',
+            '<th scope="col">Reason</th>',
+            '<th scope="col">Administrator</th>',
+            '<th scope="col">Date</th>',
             '</tr>',
             '</thead>',
             '<tbody>',
@@ -263,6 +379,9 @@
         ].join('');
     }
 
+    /**
+     * Initialize member status-history modal.
+     */
     function initializeHistoryModal() {
         const modalElement = document.getElementById(
             'member-history-modal'
@@ -285,8 +404,8 @@
             return;
         }
 
-        const modal = bootstrap.Modal
-            .getOrCreateInstance(
+        const modal =
+            bootstrap.Modal.getOrCreateInstance(
                 modalElement
             );
 
@@ -306,25 +425,32 @@
                     }
 
                     content.innerHTML = [
-                        '<div class="text-center text-muted py-4">',
+                        '<div class="text-center ',
+                        'text-muted py-4">',
                         '<span class="spinner-border ',
-                        'spinner-border-sm me-2"></span>',
+                        'spinner-border-sm me-2" ',
+                        'aria-hidden="true"></span>',
                         'Loading history...',
                         '</div>'
                     ].join('');
 
                     modal.show();
+                    button.disabled = true;
 
                     try {
                         const response = await fetch(
                             url,
                             {
+                                method: 'GET',
+
                                 headers: {
                                     'Accept':
                                         'application/json',
+
                                     'X-Requested-With':
                                         'XMLHttpRequest'
                                 },
+
                                 credentials:
                                     'same-origin'
                             }
@@ -335,11 +461,13 @@
 
                         if (
                             !response.ok
-                            || payload.successful !== true
+                            || payload.successful
+                            !== true
                         ) {
                             throw new Error(
                                 payload.message
-                                ?? 'History could not be loaded.'
+                                ?? 'History could not '
+                                + 'be loaded.'
                             );
                         }
 
@@ -353,26 +481,33 @@
                             ?? ''
                         );
 
-                        title.textContent = reference !== ''
-                            ? memberName
-                            + ' ('
-                            + reference
-                            + ')'
-                            : memberName;
+                        title.textContent =
+                            reference !== ''
+                                ? memberName
+                                + ' ('
+                                + reference
+                                + ')'
+                                : memberName;
 
-                        content.innerHTML = renderHistory(
-                            payload.history
-                        );
+                        content.innerHTML =
+                            renderHistory(
+                                payload.history
+                            );
                     } catch (error) {
                         content.innerHTML = [
-                            '<div class="alert alert-danger mb-0">',
+                            '<div class="alert ',
+                            'alert-danger mb-0" ',
+                            'role="alert">',
                             escapeHtml(
                                 error instanceof Error
                                     ? error.message
-                                    : 'History could not be loaded.'
+                                    : 'History could not '
+                                    + 'be loaded.'
                             ),
                             '</div>'
                         ].join('');
+                    } finally {
+                        button.disabled = false;
                     }
                 }
             );

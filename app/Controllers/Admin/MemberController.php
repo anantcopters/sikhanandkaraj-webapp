@@ -208,6 +208,9 @@ final class MemberController extends BaseController
 
     /**
      * Return block/unblock history.
+     *
+     * UTC timestamps are converted into the configured user-facing timezone
+     * before they are returned to the browser.
      */
     public function history(
         int $userId
@@ -261,28 +264,29 @@ final class MemberController extends BaseController
                     ),
 
                     /*
-                 * Machine-readable ISO timestamp after conversion from UTC
-                 * to the configured display timezone.
-                 */
+                    * Machine-readable ISO-8601 timestamp converted from UTC to
+                    * the configured display timezone.
+                    *
+                    * Example:
+                    * 2026-08-05T22:58:00+05:30
+                    */
                     'changedAtIso' =>
-                    DateDisplay
-                        ::utcToDisplayIso(
-                            $row['changed_at']
-                                ?? null
-                        ),
+                    DateDisplay::utcToDisplayIso(
+                        $row['changed_at']
+                            ?? null
+                    ),
 
                     /*
-                 * User-facing local timestamp.
+                 * User-facing local date and time.
                  *
                  * Example:
                  * 5th Aug 2026 10:58 PM
                  */
                     'changedAtDisplay' =>
-                    DateDisplay
-                        ::formatUtcDateTime(
-                            $row['changed_at']
-                                ?? null
-                        ),
+                    DateDisplay::formatUtcDateTime(
+                        $row['changed_at']
+                            ?? null
+                    ),
                 ],
                 $result['history']
             );

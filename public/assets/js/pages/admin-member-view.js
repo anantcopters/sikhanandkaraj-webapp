@@ -20,30 +20,6 @@
     }
 
     /**
-     * Format a database timestamp in the administrator's browser locale.
-     *
-     * @param {unknown} value
-     * @returns {string}
-     */
-    function formatDateTime(value) {
-        const rawValue = String(
-            value ?? ''
-        ).trim();
-
-        if (rawValue === '') {
-            return '—';
-        }
-
-        const date = new Date(rawValue);
-
-        if (Number.isNaN(date.getTime())) {
-            return rawValue;
-        }
-
-        return date.toLocaleString();
-    }
-
-    /**
      * Configure the Block/Unblock modal.
      */
     function initializeStatusModal() {
@@ -191,8 +167,12 @@
                         );
                     }
 
-                    if (reason) {
+                    if (
+                        reason
+                        instanceof HTMLInputElement
+                    ) {
                         reason.value = '';
+
                         reason.classList.remove(
                             'is-invalid'
                         );
@@ -206,7 +186,12 @@
         form.addEventListener(
             'submit',
             function (event) {
-                if (!reason) {
+                if (
+                    !(
+                        reason
+                        instanceof HTMLInputElement
+                    )
+                ) {
                     return;
                 }
 
@@ -221,13 +206,56 @@
                     || value.length > 64
                 ) {
                     event.preventDefault();
+
                     reason.classList.add(
                         'is-invalid'
                     );
+
                     reason.focus();
                 }
             }
         );
+    }
+
+    /**
+     * Render one local date-time value supplied by PHP.
+     *
+     * JavaScript must not parse or timezone-convert this value. PHP has
+     * already converted it from UTC to the configured display timezone.
+     *
+     * @param {object} item
+     * @returns {string}
+     */
+    function renderDateTime(item) {
+        const changedAtDisplay = String(
+            item.changedAtDisplay
+            ?? '—'
+        ).trim();
+
+        const changedAtIso = String(
+            item.changedAtIso
+            ?? ''
+        ).trim();
+
+        if (changedAtIso === '') {
+            return escapeHtml(
+                changedAtDisplay !== ''
+                    ? changedAtDisplay
+                    : '—'
+            );
+        }
+
+        return [
+            '<time datetime="',
+            escapeHtml(changedAtIso),
+            '">',
+            escapeHtml(
+                changedAtDisplay !== ''
+                    ? changedAtDisplay
+                    : '—'
+            ),
+            '</time>'
+        ].join('');
     }
 
     /**
@@ -256,7 +284,8 @@
         const rows = history.map(
             function (item) {
                 const action = String(
-                    item.action ?? ''
+                    item.action
+                    ?? ''
                 ).toUpperCase();
 
                 const badgeClass =
@@ -304,15 +333,7 @@
                     '</div>',
                     '</td>',
                     '<td>',
-                    changedAtIso !== ''
-                        ? [
-                            '<time datetime="',
-                            escapeHtml(changedAtIso),
-                            '">',
-                            escapeHtml(changedAtDisplay),
-                            '</time>'
-                        ].join('')
-                        : escapeHtml(changedAtDisplay),
+                    renderDateTime(item),
                     '</td>',
                     '</tr>'
                 ].join('');
@@ -403,12 +424,15 @@
                             url,
                             {
                                 method: 'GET',
+
                                 headers: {
                                     'Accept':
                                         'application/json',
+
                                     'X-Requested-With':
                                         'XMLHttpRequest'
                                 },
+
                                 credentials:
                                     'same-origin'
                             }
@@ -534,10 +558,23 @@
                     }
 
                     title.textContent = photoTitle;
-                    loading.classList.remove('d-none');
-                    errorElement.classList.add('d-none');
-                    image.classList.add('d-none');
-                    image.removeAttribute('src');
+
+                    loading.classList.remove(
+                        'd-none'
+                    );
+
+                    errorElement.classList.add(
+                        'd-none'
+                    );
+
+                    image.classList.add(
+                        'd-none'
+                    );
+
+                    image.removeAttribute(
+                        'src'
+                    );
+
                     image.alt = photoTitle;
 
                     modal.show();
@@ -548,12 +585,15 @@
                             endpoint,
                             {
                                 method: 'GET',
+
                                 headers: {
                                     'Accept':
                                         'application/json',
+
                                     'X-Requested-With':
                                         'XMLHttpRequest'
                                 },
+
                                 credentials:
                                     'same-origin'
                             }
@@ -587,7 +627,10 @@
                         }
 
                         image.src = imageUrl;
-                        image.classList.remove('d-none');
+
+                        image.classList.remove(
+                            'd-none'
+                        );
                     } catch (error) {
                         errorElement.textContent =
                             error instanceof Error
@@ -599,7 +642,10 @@
                             'd-none'
                         );
                     } finally {
-                        loading.classList.add('d-none');
+                        loading.classList.add(
+                            'd-none'
+                        );
+
                         button.disabled = false;
                     }
                 }
@@ -609,10 +655,21 @@
         modalElement.addEventListener(
             'hidden.bs.modal',
             function () {
-                image.removeAttribute('src');
-                image.classList.add('d-none');
-                errorElement.classList.add('d-none');
-                loading.classList.remove('d-none');
+                image.removeAttribute(
+                    'src'
+                );
+
+                image.classList.add(
+                    'd-none'
+                );
+
+                errorElement.classList.add(
+                    'd-none'
+                );
+
+                loading.classList.remove(
+                    'd-none'
+                );
             }
         );
     }
