@@ -82,42 +82,42 @@ $totalSteps = max(
  * controls labels, descriptions and display ordering.
  */
 $matchSections = [
-    [
-        'title' => 'Daily Recommendations',
-        'description' => 'Profiles selected for you based on your information.',
-        'profiles' => $dailyRecommendations ?? [],
-        'emptyMessage' => 'No daily recommendations are available yet.',
-    ],
-    [
-        'title' => 'All Matches',
-        'description' => 'Members matching your current partner preferences.',
-        'profiles' => $allMatches ?? [],
-        'emptyMessage' => 'No matching profiles are available yet.',
-    ],
-    [
-        'title' => 'New Matches',
-        'description' => 'Recently added profiles that may interest you.',
-        'profiles' => $newMatches ?? [],
-        'emptyMessage' => 'No new matches are available yet.',
-    ],
-    [
-        'title' => 'Who Viewed Your Profile',
-        'description' => 'Members who recently visited your profile.',
-        'profiles' => $profileVisitors ?? [],
-        'emptyMessage' => 'Your profile has not received any visitors yet.',
-    ],
-    [
-        'title' => 'Profiles Shortlisted By You',
-        'description' => 'Members you have saved for later consideration.',
-        'profiles' => $shortlistedProfiles ?? [],
-        'emptyMessage' => 'You have not shortlisted any profiles yet.',
-    ],
-    [
-        'title' => 'Profiles Who Shortlisted You',
-        'description' => 'Members who have shown interest in your profile.',
-        'profiles' => $shortlistedByProfiles ?? [],
-        'emptyMessage' => 'No member has shortlisted your profile yet.',
-    ],
+    // [
+    //     'title' => 'Daily Recommendations',
+    //     'description' => 'Profiles selected for you based on your information.',
+    //     'profiles' => $dailyRecommendations ?? [],
+    //     'emptyMessage' => 'No daily recommendations are available yet.',
+    // ],
+    // [
+    //     'title' => 'All Matches',
+    //     'description' => 'Members matching your current partner preferences.',
+    //     'profiles' => $allMatches ?? [],
+    //     'emptyMessage' => 'No matching profiles are available yet.',
+    // ],
+    // [
+    //     'title' => 'New Matches',
+    //     'description' => 'Recently added profiles that may interest you.',
+    //     'profiles' => $newMatches ?? [],
+    //     'emptyMessage' => 'No new matches are available yet.',
+    // ],
+    // [
+    //     'title' => 'Who Viewed Your Profile',
+    //     'description' => 'Members who recently visited your profile.',
+    //     'profiles' => $profileVisitors ?? [],
+    //     'emptyMessage' => 'Your profile has not received any visitors yet.',
+    // ],
+    // [
+    //     'title' => 'Profiles Shortlisted By You',
+    //     'description' => 'Members you have saved for later consideration.',
+    //     'profiles' => $shortlistedProfiles ?? [],
+    //     'emptyMessage' => 'You have not shortlisted any profiles yet.',
+    // ],
+    // [
+    //     'title' => 'Profiles Who Shortlisted You',
+    //     'description' => 'Members who have shown interest in your profile.',
+    //     'profiles' => $shortlistedByProfiles ?? [],
+    //     'emptyMessage' => 'No member has shortlisted your profile yet.',
+    // ],
 ];
 ?>
 

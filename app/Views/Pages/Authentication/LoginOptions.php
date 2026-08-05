@@ -50,7 +50,7 @@ $this->section('content');
                                 href="<?= route_to(
                                             'web.login.password'
                                         ) ?>"
-                                class="btn btn-success fs-16 fw-semibold text-uppercase">
+                                class="btn btn-success fs-14 fw-medium text-uppercase">
 
                                 <i
                                     class="ri-lock-password-line me-2"
@@ -63,7 +63,7 @@ $this->section('content');
                                 href="<?= route_to(
                                             'web.login.otp'
                                         ) ?>"
-                                class="btn btn-outline-primary fs-16 fw-semibold text-uppercase">
+                                class="btn btn-outline-primary fs-14 fw-medium text-uppercase">
 
                                 <i
                                     class="ri-smartphone-line me-2"
