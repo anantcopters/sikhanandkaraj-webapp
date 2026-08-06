@@ -20,7 +20,7 @@ $currentYear = date('Y');
 
                     <img
                         src="<?= base_url(
-                                    'assets/images/sikhanandkaraj_removebg_2.png'
+                                    'assets/images/logo_sak_bgremove.png'
                                 ) ?>"
                         alt="Sikhanandkaraj"
                         class="public-navbar__logo">
@@ -79,7 +79,7 @@ $currentYear = date('Y');
 
                     <li>
                         <a
-                            href="<?= site_url('/') ?>#how-it-works"
+                            href="<?= site_url('/') ?>#faqs"
                             class="
                                 text-decoration-none">
 

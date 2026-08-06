@@ -30,7 +30,7 @@ $documentTitle = $resolvedPageTitle
 $homeUrl = site_url('/prelaunch/profile');
 
 $logoUrl = base_url(
-    'assets/images/sikhanandkaraj_removebg_2.png'
+    'assets/images/logo_sak_bgremove.png'
 );
 
 /*

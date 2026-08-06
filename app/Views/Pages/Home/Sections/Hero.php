@@ -44,7 +44,7 @@ $this->section('content');
                             Sikh Matrimony with Shared Values
                         </p>
 
-                        <h1 class="home-registration-visual__title">
+                        <h1 class="home-registration-visual__title fs-36">
                             Where Faith Unites,
 
                             <span>
