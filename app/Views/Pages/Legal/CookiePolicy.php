@@ -387,7 +387,7 @@ $this->section('content');
                                 10. Contact us
                             </h2>
 
-                            <div class="card bg-light border-0">
+                            <div class="card bg-light border border-danger border-opacity-25">
                                 <div class="card-body">
                                     <address class="lh-lg mb-0">
                                         <strong>

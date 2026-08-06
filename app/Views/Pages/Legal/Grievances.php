@@ -320,7 +320,7 @@ $this->section('content');
                                 7. Contact the Grievance Officer
                             </h2>
 
-                            <div class="card bg-light border-0">
+                            <div class="card bg-light border border-danger border-opacity-25">
                                 <div class="card-body">
                                     <address class="lh-lg mb-0">
                                         <strong>

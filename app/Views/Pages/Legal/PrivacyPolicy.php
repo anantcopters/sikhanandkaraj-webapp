@@ -712,7 +712,7 @@ $this->section('content');
                                 Privacy questions, correction requests, deletion
                                 requests and grievances may be sent to:
                             </p>
-                            <div class="card bg-light border-0">
+                            <div class="card bg-light border border-danger border-opacity-25">
                                 <div class="card-body">
                                     <address class="lh-lg mb-0">
                                         <strong>
