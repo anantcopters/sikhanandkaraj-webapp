@@ -1108,6 +1108,7 @@ form[aria-busy="true"] {
     background-color: rgba(174, 21, 54, 0.08);
     color: var(--sak-primary);
     font-size: 3rem;
+    object-fit: cover;
 }
 
 /**

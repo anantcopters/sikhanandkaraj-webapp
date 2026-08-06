@@ -85,10 +85,15 @@ $pageScripts = $pageScripts ?? [];
                 'admin/prelaunch/profiles'
             );
 
-        $membersActive = str_starts_with(
-            $currentPath,
-            'admin/members'
-        );
+        $membersActive =
+            str_starts_with(
+                $currentPath,
+                'admin/members'
+            )
+            && !str_starts_with(
+                $currentPath,
+                'admin/members/photo-approvals'
+            );
 
         $isSuperAdmin =
             session('admin_role')

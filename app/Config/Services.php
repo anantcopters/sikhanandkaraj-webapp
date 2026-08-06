@@ -95,6 +95,7 @@ use App\Models\PartnerPreferenceSelectionModel;
 use App\Services\PartnerPreference\AdditionalPartnerPreferenceService;
 use App\Models\MemberAccountStatusHistoryModel;
 use App\Services\Admin\MemberManagementService;
+use App\Services\Development\DevelopmentProfileLoaderService;
 use App\Logging\ApplicationErrorLogWriter;
 use App\Logging\ErrorLogSanitizer;
 use App\Services\Logging\ApplicationErrorLogger;
@@ -1298,6 +1299,33 @@ final class Services extends BaseService
                 config(ErrorLogging::class),
                 new ErrorLogSanitizer()
             )
+        );
+    }
+
+    /**
+     * Development-only bulk member profile loader.
+     */
+    public static function developmentProfileLoaderService(
+        bool $getShared = true
+    ): DevelopmentProfileLoaderService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'developmentProfileLoaderService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new DevelopmentProfileLoaderService(
+            new UserModel($database),
+            new UserContactModel($database),
+            new MemberPhotoModel($database),
+            static::basicDetailsService(),
+            static::educationProfessionService(),
+            static::basicPartnerPreferenceService(),
+            static::additionalPartnerPreferenceService(),
+            static::awsMediaService(),
+            $database
         );
     }
 }
