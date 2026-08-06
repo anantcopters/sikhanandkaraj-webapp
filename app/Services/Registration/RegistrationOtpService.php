@@ -164,7 +164,7 @@ final class RegistrationOtpService
                 new SmsMessage(
                     mobileNumber: (string) $contact['normalized_value'],
 
-                    message: 'Your SikhAnandKaraj verification OTP is '
+                    message: 'Your Sikhanandkaraj verification OTP is '
                         . $otp
                         . '. It is valid for '
                         . OTP_EXPIRY_MINUTES

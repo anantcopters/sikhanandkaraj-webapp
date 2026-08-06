@@ -13,7 +13,7 @@
         content="width=device-width, initial-scale=1">
 
     <title>
-        <?= esc($pageTitle ?? 'SikhAnandKaraj') ?>
+        <?= esc($pageTitle ?? 'Sikhanandkaraj') ?>
     </title>
 
     <link
@@ -40,10 +40,18 @@
         <?= $this->renderSection('content') ?>
     </main>
     <?php
-    $footerView = $footerView ?? 'Components/Footer';
+
+    $resolvedFooterView = isset($footerView)
+        && is_string($footerView)
+        && trim($footerView) !== ''
+        ? trim($footerView)
+        : 'Components/Footer';
+
     ?>
 
-    <?= $this->include($footerView) ?>
+    <?= $this->include(
+        $resolvedFooterView
+    ) ?>
 
     <?= view('Components/FeedbackModal') ?>
 

@@ -1904,7 +1904,7 @@ form[aria-busy="true"] {
   .home-registration-section,
   .home-registration-section__row,
   .home-registration-visual {
-    min-height: 670px;
+    min-height: 530px;
   }
 
   .home-registration-section::before {
@@ -1924,7 +1924,7 @@ form[aria-busy="true"] {
   .home-registration-section,
   .home-registration-section__row,
   .home-registration-visual {
-    min-height: 690px;
+    min-height: 550px;
   }
 
   .home-registration-section::before {

@@ -2584,7 +2584,6 @@ video {
 .custom-accordionwithicon .accordion-button:not(.collapsed)::after {
   background-image: none !important;
   content: "\f0140";
-  margin-left: -3px;
 }
 
 .custom-accordionwithicon-plus .accordion-button::after {
@@ -17819,7 +17818,7 @@ span.flatpickr-weekday {
 }
 
 .bg-overlay-pattern {
-  background-image: url("../images/landing/bg-pattern.png");
+  background-image: url("../images/bg-pattern.png");
   background-color: transparent;
   background-position: center;
   background-size: cover;

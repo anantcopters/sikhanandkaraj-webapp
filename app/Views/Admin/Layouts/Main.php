@@ -20,7 +20,7 @@ $pageScripts = $pageScripts ?? [];
         content="width=device-width, initial-scale=1">
 
     <title>
-        <?= esc($pageTitle) ?> | SikhAnandKaraj
+        <?= esc($pageTitle) ?> | Sikhanandkaraj
     </title>
 
     <link
@@ -121,7 +121,7 @@ $pageScripts = $pageScripts ?? [];
                             src="<?= base_url(
                                         'assets/images/sikhanandkaraj_removebg_2.png'
                                     ) ?>"
-                            alt="SikhAnandKaraj"
+                            alt="Sikhanandkaraj"
                             class="public-navbar__logo">
                     </a>
 
@@ -526,7 +526,7 @@ $pageScripts = $pageScripts ?? [];
             <div class="text-center">
 
                 <small class="text-muted">
-                    © <?= esc(date('Y')) ?> SikhAnandKaraj. All rights reserved.
+                    © <?= esc(date('Y')) ?> Sikhanandkaraj. All rights reserved.
                 </small>
 
             </div>

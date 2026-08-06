@@ -18,8 +18,17 @@ $formAlert = isset($formAlert)
     ? $formAlert
     : null;
 
-$footerView = 'Components/Home/Footer';
-$this->extend('Layouts/Main');
+/*
+ * setVar() places the value in the shared CodeIgniter view renderer.
+ * A normal PHP variable declared here is not reliably inherited by the
+ * extended layout.
+ */
+$this->setVar(
+    'footerView',
+    'Components/Home/Footer'
+)->extend(
+    'Layouts/Main'
+);
 $this->section('content');
 ?>
 
@@ -43,27 +52,11 @@ $this->section('content');
 ) ?>
 
 <?= $this->include(
-    'Pages/Home/Sections/FeaturedProfiles'
-) ?>
-
-<?= $this->include(
-    'Pages/Home/Sections/SuccessStories'
-) ?>
-
-<?= $this->include(
-    'Pages/Home/Sections/HowItWorks'
-) ?>
-
-<?= $this->include(
-    'Pages/Home/Sections/AppDownload'
+    'Pages/Home/Sections/Pricing'
 ) ?>
 
 <?= $this->include(
     'Pages/Home/Sections/FAQ'
-) ?>
-
-<?= $this->include(
-    'Pages/Home/Sections/ContactUs'
 ) ?>
 
 <?php $this->endSection(); ?>

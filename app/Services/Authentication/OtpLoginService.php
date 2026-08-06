@@ -641,7 +641,7 @@ final class OtpLoginService
                 new SmsMessage(
                     mobileNumber: $normalizedMobile,
 
-                    message: 'Your SikhAnandKaraj login OTP is '
+                    message: 'Your Sikhanandkaraj login OTP is '
                         . $otp
                         . '. It is valid for '
                         . self::OTP_EXPIRY_MINUTES

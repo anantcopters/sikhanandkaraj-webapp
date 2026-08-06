@@ -117,13 +117,13 @@ $messagesActive =
                 href="<?= $isAuthenticated
                             ? url_to('web.dashboard')
                             : site_url('/') ?>"
-                aria-label="SikhAnandKaraj home">
+                aria-label="Sikhanandkaraj home">
 
                 <img
                     src="<?= base_url(
                                 'assets/images/sikhanandkaraj_removebg_2.png'
                             ) ?>"
-                    alt="SikhAnandKaraj"
+                    alt="Sikhanandkaraj"
                     class="public-navbar__logo">
             </a>
 
@@ -801,7 +801,7 @@ $messagesActive =
                         href="tel:+919887005392"
                         class="public-navbar__phone
                         hide-on-mobile"
-                        aria-label="Call SikhAnandKaraj at +91 98870 05392">
+                        aria-label="Call Sikhanandkaraj at +91 98870 05392">
 
                         <span
                             class="mdi

@@ -111,7 +111,7 @@
         <div class="text-center">
 
             <small class="text-muted">
-                © <?= esc(date('Y')) ?> SikhAnandKaraj. All rights reserved.
+                © <?= esc(date('Y')) ?> Sikhanandkaraj. All rights reserved.
             </small>
 
         </div>

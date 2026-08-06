@@ -18,7 +18,7 @@ $currentYear = date('Y');
                         text-decoration-none
                         mb-3">
 
-                    SikhAnandKaraj
+                    Sikhanandkaraj
                 </a>
 
                 <p
@@ -32,7 +32,7 @@ $currentYear = date('Y');
                 </p>
             </div>
 
-            <div class="col-6 col-md-4 col-lg-2">
+            <div class="col-6 col-md-3 col-lg-2">
                 <h2 class="fs-15 fw-semibold text-white mb-3">
                     Explore
                 </h2>
@@ -70,7 +70,7 @@ $currentYear = date('Y');
                 </ul>
             </div>
 
-            <div class="col-6 col-md-4 col-lg-2">
+            <div class="col-6 col-md-3 col-lg-2">
                 <h2 class="fs-15 fw-semibold text-white mb-3">
                     Legal
                 </h2>
@@ -99,10 +99,66 @@ $currentYear = date('Y');
                             Privacy Policy
                         </a>
                     </li>
+
+                    <li>
+                        <a
+                            href="<?= site_url(
+                                        'privacy-policy'
+                                    ) ?>"
+                            class="text-white-50
+                                text-decoration-none">
+
+                            Grievances
+                        </a>
+                    </li>
                 </ul>
             </div>
 
-            <div class="col-12 col-md-4 col-lg-3">
+            <div class="col-6 col-md-3 col-lg-2">
+                <h2 class="fs-15 fw-semibold text-white mb-3">
+                    Legal
+                </h2>
+
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <a
+                            href="<?= site_url(
+                                        'terms-and-conditions'
+                                    ) ?>"
+                            class="text-white-50
+                                text-decoration-none">
+
+                            Terms &amp; Conditions
+                        </a>
+                    </li>
+
+                    <li>
+                        <a
+                            href="<?= site_url(
+                                        'privacy-policy'
+                                    ) ?>"
+                            class="text-white-50
+                                text-decoration-none">
+
+                            Privacy Policy
+                        </a>
+                    </li>
+
+                    <li>
+                        <a
+                            href="<?= site_url(
+                                        'privacy-policy'
+                                    ) ?>"
+                            class="text-white-50
+                                text-decoration-none">
+
+                            Grievances
+                        </a>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="col-12 col-md-3 col-lg-3">
                 <h2 class="fs-15 fw-semibold text-white mb-3">
                     Our Commitment
                 </h2>
@@ -175,7 +231,7 @@ $currentYear = date('Y');
             <p class="text-white-50 fs-13 mb-0">
                 &copy;
                 <?= esc((string) $currentYear) ?>
-                SikhAnandKaraj. All rights reserved.
+                Sikhanandkaraj. All rights reserved.
             </p>
 
             <p class="text-white-50 fs-13 mb-0">

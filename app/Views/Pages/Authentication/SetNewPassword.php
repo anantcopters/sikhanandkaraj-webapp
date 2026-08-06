@@ -79,7 +79,7 @@ $this->section('content');
 
                             <p class="text-muted mb-0">
                                 Create a strong new password for your
-                                SikhAnandKaraj account.
+                                Sikhanandkaraj account.
                             </p>
                         </div>
 

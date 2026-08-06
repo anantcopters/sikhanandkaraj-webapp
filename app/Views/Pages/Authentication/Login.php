@@ -55,7 +55,7 @@ $this->section('content');
                             </h1>
 
                             <p class="text-muted mb-0">
-                                Login to continue to SikhAnandKaraj
+                                Login to continue to Sikhanandkaraj
                             </p>
                         </div>
 

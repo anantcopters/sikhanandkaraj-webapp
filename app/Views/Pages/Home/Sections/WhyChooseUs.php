@@ -3,123 +3,112 @@
 declare(strict_types=1);
 ?>
 
-<section class="py-5 bg-white">
-    <div class="container py-lg-4">
-        <div class="row justify-content-center mb-5">
-            <div class="col-12 col-lg-8 text-center">
-                <span
-                    class="badge
-                        bg-danger-subtle
-                        text-danger
-                        text-uppercase
-                        mb-3">
+<section class="section py-5">
 
-                    Why SikhAnandKaraj
-                </span>
-
-                <h2 class="fw-bold mb-3">
-                    A trusted space for meaningful relationships
-                </h2>
-
-                <p class="text-muted fs-16 mb-0">
-                    Designed around Sikh values, family participation,
-                    privacy and genuine matrimonial intent.
-                </p>
-            </div>
-        </div>
+    <div class="container py-3 pt-0">
 
         <div class="row g-4">
-            <?php
-            $items = [
-                [
-                    'icon' =>
-                    'ri-shield-check-line',
 
-                    'title' =>
-                    'Secure & Trusted',
+            <div class="col-12 col-md-6 col-xl-3">
 
-                    'text' =>
-                    'Privacy-focused access and secure profile '
-                        . 'management throughout your journey.',
-                ],
-                [
-                    'icon' =>
-                    'ri-group-line',
+                <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
 
-                    'title' =>
-                    'Family Oriented',
+                    <i class="ri-shield-check-line fs-2 text-success"></i>
 
-                    'text' =>
-                    'A matrimonial experience that respects family, '
-                        . 'traditions and shared responsibilities.',
-                ],
-                [
-                    'icon' =>
-                    'ri-heart-3-line',
+                    <div>
 
-                    'title' =>
-                    'Relevant Matches',
-
-                    'text' =>
-                    'Discover members through preferences that matter '
-                        . 'to you and your family.',
-                ],
-                [
-                    'icon' =>
-                    'ri-user-follow-line',
-
-                    'title' =>
-                    'Reviewed Profiles',
-
-                    'text' =>
-                    'Profile and photograph reviews help maintain '
-                        . 'trust across the platform.',
-                ],
-            ];
-            ?>
-
-            <?php foreach ($items as $item): ?>
-                <div class="col-12 col-md-6 col-xl-3">
-                    <article
-                        class="card
-                            h-100
-                            border
-                            border-light
-                            shadow-sm
-                            text-center">
-
-                        <div class="card-body p-4">
-                            <span
-                                class="d-inline-flex
-                                    align-items-center
-                                    justify-content-center
-                                    rounded-circle
-                                    bg-danger-subtle
-                                    text-danger
-                                    fs-2
-                                    p-3
-                                    mb-3">
-
-                                <i
-                                    class="<?= esc(
-                                                $item['icon'],
-                                                'attr'
-                                            ) ?>"
-                                    aria-hidden="true">
-                                </i>
-                            </span>
-
-                            <h3 class="fs-18 fw-semibold mb-2">
-                                <?= esc($item['title']) ?>
-                            </h3>
-
-                            <p class="text-muted mb-0">
-                                <?= esc($item['text']) ?>
-                            </p>
+                        <div class="fw-semibold fs-16">
+                            Secure & Trusted
                         </div>
-                    </article>
+
+                        <small class="text-muted fs-14">
+                            Your safety is our priority
+                        </small>
+
+                    </div>
+
                 </div>
-            <?php endforeach; ?>
+
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+
+                <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
+
+                    <i class="ri-group-line fs-2 text-primary"></i>
+
+                    <div>
+
+                        <div class="fw-semibold fs-16">
+                            Family Oriented
+                        </div>
+
+                        <small class="text-muted fs-14">
+                            Built for families, by families
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+
+                <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
+
+                    <i class="ri-heart-line fs-2 text-danger"></i>
+
+                    <div>
+
+                        <div class="fw-semibold fs-16">
+                            Smart Matches
+                        </div>
+
+                        <small class="text-muted fs-14">
+                            AI powered better matches
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-12 col-md-6 col-xl-3">
+
+                <div class="d-flex
+    align-items-center
+    justify-content-center
+    gap-3">
+
+                    <i class="ri-shield-check-line fs-2 text-warning"></i>
+
+                    <div>
+
+                        <div class="fw-semibold fs-16">
+                            Verified Profiles
+                        </div>
+
+                        <small class="text-muted fs-14">
+                            100% verified for trust
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+
         </div>
     </div>
 </section>

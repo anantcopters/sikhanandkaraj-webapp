@@ -61,7 +61,7 @@ declare(strict_types=1);
                                     margin:0;
                                     font-size:22px;
                                 ">
-                                SikhAnandKaraj
+                                Sikhanandkaraj
                             </h1>
 
                             <p
@@ -82,7 +82,7 @@ declare(strict_types=1);
 
                             <p>
                                 You have been invited to become an
-                                administrator for SikhAnandKaraj.
+                                administrator for Sikhanandkaraj.
                             </p>
 
                             <p>

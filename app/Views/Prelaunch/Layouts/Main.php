@@ -21,7 +21,7 @@ $scriptFiles = is_array($pageScripts ?? null)
     ? $pageScripts
     : [];
 
-$siteName = 'SikhAnandKaraj';
+$siteName = 'Sikhanandkaraj';
 
 $documentTitle = $resolvedPageTitle
     . ' | '
@@ -120,7 +120,7 @@ $phoneUrl = 'tel:' . $phoneDialValue;
                             ) ?>"
                     class="public-navbar__phone
                         "
-                    aria-label="Call SikhAnandKaraj at <?= esc($phoneDisplay) ?>">
+                    aria-label="Call Sikhanandkaraj at <?= esc($phoneDisplay) ?>">
 
                     <span
                         class="mdi
@@ -254,7 +254,7 @@ $phoneUrl = 'tel:' . $phoneDialValue;
             <div class="text-center">
 
                 <small class="text-muted">
-                    © <?= esc(date('Y')) ?> SikhAnandKaraj. All rights reserved.
+                    © <?= esc(date('Y')) ?> Sikhanandkaraj. All rights reserved.
                 </small>
 
             </div>
