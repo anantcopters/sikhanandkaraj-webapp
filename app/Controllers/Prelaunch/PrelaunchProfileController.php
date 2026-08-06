@@ -105,8 +105,20 @@ final class PrelaunchProfileController extends BaseController
                     $educationProfession['educations']
                         ?? [],
 
+                    /*
+                    * Retain the flat collection for backward compatibility
+                    * with any included prelaunch components.
+                    */
                     'occupations' =>
                     $educationProfession['occupations']
+                        ?? [],
+
+                    /*
+                    * The Education & Profession prelaunch partial renders
+                    * occupations using accessible HTML optgroups.
+                    */
+                    'occupationGroups' =>
+                    $educationProfession['occupationGroups']
                         ?? [],
 
                     'employmentTypes' =>

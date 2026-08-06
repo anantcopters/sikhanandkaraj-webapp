@@ -944,19 +944,17 @@ final class Services extends BaseService
         );
 
         return new PrelaunchProfileService(
-            new PrelaunchProfileModel(
-                $database
-            ),
-            static::prelaunchFieldOfficerService(
-                false
-            ),
+            new PrelaunchProfileModel($database),
+
+            static::prelaunchFieldOfficerService(false),
+
             new PrelaunchPhotoService(
-                new PrelaunchPhotoModel(
-                    $database
-                )
+                new PrelaunchPhotoModel($database)
             ),
-            $database,
-            $configuration
+
+            static::profileMasterDataService(false),
+
+            $database
         );
     }
 

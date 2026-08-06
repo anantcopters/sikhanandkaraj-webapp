@@ -28,10 +28,10 @@ $educations = is_array(
     ? $resolvedMasterData['educations']
     : [];
 
-$occupations = is_array(
-    $resolvedMasterData['occupations'] ?? null
+$occupationGroups = is_array(
+    $masterData['occupationGroups'] ?? null
 )
-    ? $resolvedMasterData['occupations']
+    ? $masterData['occupationGroups']
     : [];
 
 $annualIncomes = is_array(
@@ -380,38 +380,75 @@ if ($isJourney) {
                     Select occupation
                 </option>
 
-                <?php foreach ($occupations as $occupation): ?>
+                <?php foreach ($occupationGroups as $group): ?>
                     <?php
-                    $occupationId = (string) (
-                        $occupation['id'] ?? ''
+                    $groupName = trim(
+                        (string) (
+                            $group['name'] ?? ''
+                        )
                     );
 
-                    $occupationCode = (string) (
-                        $occupation['code'] ?? ''
-                    );
+                    $groupOccupations = is_array(
+                        $group['occupations'] ?? null
+                    )
+                        ? $group['occupations']
+                        : [];
+
+                    if (
+                        $groupName === ''
+                        || $groupOccupations === []
+                    ) {
+                        continue;
+                    }
                     ?>
 
-                    <option
-                        value="<?= esc(
-                                    $occupationId,
+                    <optgroup
+                        label="<?= esc(
+                                    $groupName,
                                     'attr'
-                                ) ?>"
-                        data-code="<?= esc(
-                                        $occupationCode,
-                                        'attr'
-                                    ) ?>"
-                        <?= $isSelected(
-                            'occupation_id',
-                            $occupationId,
-                            $details['occupation_id'] ?? ''
-                        ) ?>>
+                                ) ?>">
 
-                        <?= esc(
-                            (string) (
+                        <?php foreach ($groupOccupations as $occupation): ?>
+                            <?php
+                            $occupationId = (string) (
+                                $occupation['id'] ?? ''
+                            );
+
+                            $occupationCode = (string) (
+                                $occupation['code'] ?? ''
+                            );
+
+                            $occupationName = (string) (
                                 $occupation['name'] ?? ''
-                            )
-                        ) ?>
-                    </option>
+                            );
+
+                            if (
+                                $occupationId === ''
+                                || $occupationName === ''
+                            ) {
+                                continue;
+                            }
+                            ?>
+
+                            <option
+                                value="<?= esc(
+                                            $occupationId,
+                                            'attr'
+                                        ) ?>"
+                                data-code="<?= esc(
+                                                $occupationCode,
+                                                'attr'
+                                            ) ?>"
+                                <?= $isSelected(
+                                    'occupation_id',
+                                    $occupationId,
+                                    $details['occupation_id'] ?? ''
+                                ) ?>>
+
+                                <?= esc($occupationName) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </optgroup>
                 <?php endforeach; ?>
             </select>
 

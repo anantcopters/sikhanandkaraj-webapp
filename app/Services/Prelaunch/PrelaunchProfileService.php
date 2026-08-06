@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Prelaunch;
 
 use App\Models\Prelaunch\PrelaunchProfileModel;
+use App\Services\Profile\ProfileMasterDataService;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\Files\UploadedFile;
 use App\Support\IndianMobileNormalizer;
@@ -28,8 +29,8 @@ final class PrelaunchProfileService
         private readonly PrelaunchProfileModel $profileModel,
         private readonly PrelaunchFieldOfficerService $fieldOfficerService,
         private readonly PrelaunchPhotoService $photoService,
-        private readonly BaseConnection $database,
-        private readonly Prelaunch $configuration
+        private readonly ProfileMasterDataService $profileMasterDataService,
+        private readonly BaseConnection $database
     ) {}
 
     /**
@@ -200,6 +201,31 @@ final class PrelaunchProfileService
             $this->normalizeOptionalParentContact(
                 $input['parent_contact_number']
                     ?? null
+            );
+
+        $educationId = (int) (
+            $input['highest_education_id']
+            ?? 0
+        );
+
+        $occupationId = (int) (
+            $input['occupation_id']
+            ?? 0
+        );
+
+        /*
+ * Prelaunch does not collect annual income, so NULL is passed
+ * for that optional master selection.
+ *
+ * Reuse the same active-master validation as the live member
+ * Education & Profession flow. This prevents inactive or
+ * fabricated IDs from being persisted.
+ */
+        $this->profileMasterDataService
+            ->assertValidEducationProfessionSelection(
+                $educationId,
+                $occupationId,
+                null
             );
 
         $this->database->transBegin();

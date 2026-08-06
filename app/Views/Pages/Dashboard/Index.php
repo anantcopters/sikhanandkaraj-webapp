@@ -136,14 +136,14 @@ $matchSections = [
                                                 $resolvedProfileImage,
                                                 'attr'
                                             ) ?>"
-                                    class="dashboard-avatar mx-auto mb-3"
+                                    class="img-thumbnail mx-auto mb-3 w-75"
                                     alt="<?= esc(
                                                 $resolvedName . ' profile photo',
                                                 'attr'
                                             ) ?>">
                             <?php else: ?>
                                 <div
-                                    class="dashboard-avatar mx-auto mb-3"
+                                    class="img-thumbnail mx-auto mb-3 w-75"
                                     aria-hidden="true">
 
                                     <i class="ri-user-3-line"></i>

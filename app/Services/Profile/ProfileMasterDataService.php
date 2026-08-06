@@ -437,23 +437,44 @@ final class ProfileMasterDataService
     /**
      * Return master data required by Education & Profession.
      *
+     * Both flat and grouped occupation collections are supplied.
+     *
+     * The flat collection preserves compatibility with existing
+     * application consumers. The grouped collection is intended for
+     * profile forms that render accessible HTML optgroups.
+     *
      * @return array<string, mixed>
      */
     public function educationProfessionOptions(): array
     {
         return [
             'educations' =>
-            $this->educationModel->activeOptions(),
-
-            'occupations' =>
-            $this->occupationModel->activeOptions(),
-
-            'annualIncomes' =>
-            $this->annualIncomeModel->activeOptions(),
+            $this->educationModel
+                ->activeOptions(),
 
             /*
-         * Keep enum values centralized here rather than duplicating
-         * them in the view and service.
+         * Preserve the existing flat contract for consumers that
+         * do not render HTML optgroups.
+         */
+            'occupations' =>
+            $this->occupationModel
+                ->activeOptions(),
+
+            /*
+         * Member and prelaunch forms render occupations grouped
+         * by their configured active category.
+         */
+            'occupationGroups' =>
+            $this->occupationModel
+                ->activeGroupedOptions(),
+
+            'annualIncomes' =>
+            $this->annualIncomeModel
+                ->activeOptions(),
+
+            /*
+         * Keep employment enum values centralized here rather
+         * than duplicating them across profile forms.
          */
             'employmentTypes' => [
                 [

@@ -3,22 +3,30 @@
 declare(strict_types=1);
 
 /**
+ * Prelaunch Education & Profession fields.
+ *
  * @var array<string, string>|null            $validationErrors
  * @var array<int, array<string, mixed>>|null $educations
- * @var array<int, array<string, mixed>>|null $occupations
+ * @var array<int, array<string, mixed>>|null $occupationGroups
  * @var array<int, array<string, mixed>>|null $employmentTypes
  */
 
-$errorBag = is_array($validationErrors ?? null)
+$errorBag = is_array(
+    $validationErrors ?? null
+)
     ? $validationErrors
     : [];
 
-$educationOptions = is_array($educations ?? null)
+$educationOptions = is_array(
+    $educations ?? null
+)
     ? $educations
     : [];
 
-$occupationOptions = is_array($occupations ?? null)
-    ? $occupations
+$groupedOccupationOptions = is_array(
+    $occupationGroups ?? null
+)
+    ? $occupationGroups
     : [];
 
 $employmentOptions = is_array(
@@ -67,18 +75,19 @@ $educationClass = $educationError !== ''
     ? 'is-invalid'
     : '';
 
-$employmentClass =
-    $employmentError !== ''
+$employmentClass = $employmentError !== ''
     ? 'is-invalid'
     : '';
 
-$occupationClass =
-    $occupationError !== ''
+$occupationClass = $occupationError !== ''
     ? 'is-invalid'
     : '';
 ?>
 
-<div class="card border border-danger border-opacity-25 shadow-sm mb-3">
+<div
+    class="card border border-danger
+        border-opacity-25 shadow-sm mb-3">
+
     <div class="card-body p-3 p-md-4">
         <div class="d-flex align-items-start gap-3 mb-3">
             <div class="fs-3 text-primary">
@@ -100,12 +109,13 @@ $occupationClass =
         </div>
 
         <hr class="my-2 mb-2">
-        </hr>
+
         <div class="row g-3 pt-2">
             <div class="col-12 col-md-6">
                 <label
                     for="highest_education_id"
                     class="form-label">
+
                     Highest education
                 </label>
 
@@ -116,11 +126,16 @@ $occupationClass =
                                             $educationClass,
                                             'attr'
                                         ) ?>"
+                    <?= $educationError !== ''
+                        ? 'aria-invalid="true"'
+                        : '' ?>
+                    aria-describedby="highest_education_idError"
                     data-choice
                     data-choice-position="bottom"
                     data-choice-search-placeholder="Search education"
                     data-error-required="Please select your highest education."
                     required>
+
                     <option value="">
                         Select education
                     </option>
@@ -166,14 +181,17 @@ $occupationClass =
                             <?= $optionSelected
                                 ? 'selected'
                                 : '' ?>>
+
                             <?= esc($optionName) ?>
                         </option>
                     <?php endforeach ?>
                 </select>
+
                 <div
                     id="highest_education_idError"
                     class="invalid-feedback"
                     data-validation-error="highest_education_id">
+
                     <?= esc($educationError) ?>
                 </div>
             </div>
@@ -182,6 +200,7 @@ $occupationClass =
                 <label
                     for="employed_in"
                     class="form-label">
+
                     Employed in
                 </label>
 
@@ -192,11 +211,16 @@ $occupationClass =
                                             $employmentClass,
                                             'attr'
                                         ) ?>"
+                    <?= $employmentError !== ''
+                        ? 'aria-invalid="true"'
+                        : '' ?>
+                    aria-describedby="employed_inError"
                     data-choice
                     data-choice-search="false"
                     data-choice-position="bottom"
                     data-error-required="Please select employment details."
                     required>
+
                     <option value="">
                         Select employment type
                     </option>
@@ -225,6 +249,14 @@ $occupationClass =
                             )
                         );
 
+                        /*
+                         * Prelaunch database validation currently uses
+                         * DEFENCE while the reusable member service
+                         * exposes DEFENSE.
+                         *
+                         * Preserve the existing prelaunch persistence
+                         * contract until the enum is standardized.
+                         */
                         if ($optionValue === 'DEFENSE') {
                             $optionValue = 'DEFENCE';
                         }
@@ -249,14 +281,17 @@ $occupationClass =
                             <?= $optionSelected
                                 ? 'selected'
                                 : '' ?>>
+
                             <?= esc($optionLabel) ?>
                         </option>
                     <?php endforeach ?>
                 </select>
+
                 <div
                     id="employed_inError"
                     class="invalid-feedback"
                     data-validation-error="employed_in">
+
                     <?= esc($employmentError) ?>
                 </div>
             </div>
@@ -265,6 +300,7 @@ $occupationClass =
                 <label
                     for="occupation_id"
                     class="form-label">
+
                     Occupation
                 </label>
 
@@ -275,64 +311,127 @@ $occupationClass =
                                             $occupationClass,
                                             'attr'
                                         ) ?>"
+                    <?= $occupationError !== ''
+                        ? 'aria-invalid="true"'
+                        : '' ?>
+                    aria-describedby="occupation_idError"
                     data-choice
-                    data-choice-search="false"
                     data-choice-position="bottom"
+                    data-choice-search="true"
+                    data-choice-search-placeholder="Search occupation"
                     data-error-required="Please select occupation."
                     required>
+
                     <option value="">
                         Select occupation
                     </option>
 
                     <?php foreach (
-                        $occupationOptions as
-                        $occupationOption
+                        $groupedOccupationOptions as
+                        $occupationGroup
                     ): ?>
                         <?php
-                        if (!is_array($occupationOption)) {
+                        if (!is_array($occupationGroup)) {
                             continue;
                         }
 
-                        $optionId = (string) (
-                            $occupationOption['id']
-                            ?? ''
-                        );
-
-                        $optionName = trim(
+                        $groupName = trim(
                             (string) (
-                                $occupationOption['name']
-                                ?? $occupationOption['label']
+                                $occupationGroup['name']
                                 ?? ''
                             )
                         );
 
+                        $groupOccupations = is_array(
+                            $occupationGroup['occupations']
+                                ?? null
+                        )
+                            ? $occupationGroup['occupations']
+                            : [];
+
                         if (
-                            $optionId === ''
-                            || $optionName === ''
+                            $groupName === ''
+                            || $groupOccupations === []
                         ) {
                             continue;
                         }
-
-                        $optionSelected =
-                            $occupationId === $optionId;
                         ?>
 
-                        <option
-                            value="<?= esc(
-                                        $optionId,
+                        <optgroup
+                            label="<?= esc(
+                                        $groupName,
                                         'attr'
-                                    ) ?>"
-                            <?= $optionSelected
-                                ? 'selected'
-                                : '' ?>>
-                            <?= esc($optionName) ?>
-                        </option>
+                                    ) ?>">
+
+                            <?php foreach (
+                                $groupOccupations as
+                                $occupationOption
+                            ): ?>
+                                <?php
+                                if (
+                                    !is_array(
+                                        $occupationOption
+                                    )
+                                ) {
+                                    continue;
+                                }
+
+                                $optionId = (string) (
+                                    $occupationOption['id']
+                                    ?? ''
+                                );
+
+                                $optionCode = trim(
+                                    (string) (
+                                        $occupationOption['code']
+                                        ?? ''
+                                    )
+                                );
+
+                                $optionName = trim(
+                                    (string) (
+                                        $occupationOption['name']
+                                        ?? ''
+                                    )
+                                );
+
+                                if (
+                                    $optionId === ''
+                                    || $optionName === ''
+                                ) {
+                                    continue;
+                                }
+
+                                $optionSelected =
+                                    $occupationId
+                                    === $optionId;
+                                ?>
+
+                                <option
+                                    value="<?= esc(
+                                                $optionId,
+                                                'attr'
+                                            ) ?>"
+                                    data-code="<?= esc(
+                                                    $optionCode,
+                                                    'attr'
+                                                ) ?>"
+                                    <?= $optionSelected
+                                        ? 'selected'
+                                        : '' ?>>
+
+                                    <?= esc($optionName) ?>
+                                </option>
+                            <?php endforeach ?>
+                        </optgroup>
                     <?php endforeach ?>
                 </select>
+
                 <div
                     id="occupation_idError"
                     class="invalid-feedback"
                     data-validation-error="occupation_id">
+
                     <?= esc($occupationError) ?>
                 </div>
             </div>

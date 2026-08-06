@@ -214,7 +214,7 @@ $approvedPhotoCount = max(
                                         'attr'
                                     ) ?>"
                             alt="Approved main profile photo"
-                            class="rounded-circle img-thumbnail
+                            class="img-thumbnail
                             object-fit-cover w-100 h-100"
                             loading="lazy">
                     <?php else: ?>
