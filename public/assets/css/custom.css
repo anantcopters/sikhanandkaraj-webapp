@@ -11,6 +11,7 @@
     z-index: 1030;
     width: 100%;
     background-color: var(--sak-page-background);
+    border-bottom: 1px solid #EBCFCA;;
 }
 
 /**

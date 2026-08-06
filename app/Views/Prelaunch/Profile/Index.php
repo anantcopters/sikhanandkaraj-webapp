@@ -179,8 +179,20 @@ $this->section('content');
                                 data-validation-error="consent">
                                 <?= esc($consentError) ?>
                             </div>
+                            <p class="registration-form__terms fs-12 text-muted mb-0 mt-2">
+                                I agree to the
+                                <a href="<?= site_url('terms-and-conditions') ?>">
+                                    T&amp;C
+                                </a>
+                                and
+                                <a href="<?= site_url('privacy-policy') ?>">
+                                    Privacy Policy
+                                </a>
+                            </p>
                         </div>
+
                     </div>
+
                 </div>
 
                 <div class="d-flex flex-column flex-md-row align-items-end align-items-md-center justify-content-between gap-3">

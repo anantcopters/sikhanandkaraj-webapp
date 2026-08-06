@@ -81,9 +81,9 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 </head>
 
 <body>
-    <header class="border-bottom public-header">
+    <header class="public-header">
         <nav
-            class="navbar py-2"
+            class="navbar public-navbar"
             aria-label="Prelaunch profile header">
             <div
                 class="container d-flex align-items-center justify-content-between">
@@ -138,10 +138,10 @@ $phoneUrl = 'tel:' . $phoneDialValue;
         </nav>
     </header>
 
-    <main>
+    <main class="light-yellowish">
         <?= $this->renderSection('content') ?>
     </main>
-    <footer class="mt-5 pt-4 border-top border-secondary-subtle bg-light">
+    <footer class="pt-4 border-top border-secondary-subtle bg-light">
 
         <div class="container py-3 pt-0">
 
