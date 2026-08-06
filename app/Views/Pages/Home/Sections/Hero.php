@@ -41,7 +41,7 @@ $this->section('content');
                 <div class="home-registration-visual">
                     <div class="home-registration-visual__content">
                         <p class="home-registration-visual__eyebrow">
-                            Sikh Matrimony with Shared Values
+                            Trusted Sikh Matrimonial Platform
                         </p>
 
                         <h1 class="home-registration-visual__title fs-36">

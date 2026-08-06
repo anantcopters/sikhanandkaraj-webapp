@@ -40,7 +40,7 @@
 .public-navbar__logo {
     display: block;
     width: auto;
-    max-width: 318px;
+    max-width: 290px;
     max-height: 90px;
     object-fit: contain;
 }

@@ -7,6 +7,17 @@ declare(strict_types=1);
 
     <div class="container py-3 pt-0">
 
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="text-center mb-5">
+                    <h3 class="mb-3 fw-semibold">Why Families Trust Sikhanandkaraj</h3>
+                    <p class="text-muted fs-14">
+                        Our platform brings family expectations, privacy, and long-term responsibility into the journey instead of treating compatibility as a simple profile match.
+                    </p>
+                </div>
+            </div>
+        </div>
+
         <div class="row g-4">
 
             <div class="col-12 col-md-6 col-xl-3">
