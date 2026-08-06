@@ -3,7 +3,7 @@
 declare(strict_types=1);
 ?>
 
-<section class="section py-5" style="background-color: #f8fcf8;" id="how-it-works">
+<section class="section py-5 light-yellowish" id="how-it-works">
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-8">

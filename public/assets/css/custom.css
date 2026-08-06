@@ -1716,6 +1716,7 @@ form[aria-busy="true"] {
         height: 52vh;
     }
 }
+
 /*
 |--------------------------------------------------------------------------
 | Home registration hero
@@ -1727,11 +1728,11 @@ form[aria-busy="true"] {
 */
 
 .home-registration-section {
-  position: relative;
-  min-height: 650px;
-  overflow: hidden;
-  background-color: #f8fcf8;
-  isolation: isolate;
+    position: relative;
+    min-height: 650px;
+    overflow: hidden;
+    background-color: #f8fcf8;
+    isolation: isolate;
 }
 
 /*
@@ -1742,17 +1743,17 @@ form[aria-busy="true"] {
  * Bootstrap container and column gutters.
  */
 .home-registration-section::before {
-  position: absolute;
-  z-index: -2;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 61%;
-  background-image: url("../images/bg_index.png");
-  background-repeat: no-repeat;
-  background-position: center center;
-  background-size: cover;
-  content: "";
+    position: absolute;
+    z-index: -2;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 61%;
+    background-image: url("../images/bg_index.png");
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: cover;
+    content: "";
 }
 
 /*
@@ -1762,34 +1763,30 @@ form[aria-busy="true"] {
  * image height without producing a separate rectangular image block.
  */
 .home-registration-section::after {
-  position: absolute;
-  z-index: -1;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 66%;
-  background:
-    linear-gradient(
-      90deg,
-      rgba(255, 248, 245, 0.1) 0%,
-      rgba(255, 248, 245, 0.04) 42%,
-      rgba(248, 252, 248, 0.16) 64%,
-      rgba(248, 252, 248, 0.7) 83%,
-      #f8fcf8 100%
-    ),
-    linear-gradient(
-      180deg,
-      rgba(255, 249, 247, 0.82) 0%,
-      rgba(255, 249, 247, 0.58) 25%,
-      rgba(255, 249, 247, 0.1) 52%,
-      rgba(255, 249, 247, 0.03) 100%
-    );
-  content: "";
-  pointer-events: none;
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 66%;
+    background:
+        linear-gradient(90deg,
+            rgba(255, 248, 245, 0.1) 0%,
+            rgba(255, 248, 245, 0.04) 42%,
+            rgba(248, 252, 248, 0.16) 64%,
+            rgba(248, 252, 248, 0.7) 83%,
+            #f8fcf8 100%),
+        linear-gradient(180deg,
+            rgba(255, 249, 247, 0.82) 0%,
+            rgba(255, 249, 247, 0.58) 25%,
+            rgba(255, 249, 247, 0.1) 52%,
+            rgba(255, 249, 247, 0.03) 100%);
+    content: "";
+    pointer-events: none;
 }
 
 .home-registration-section__row {
-  min-height: 650px;
+    min-height: 650px;
 }
 
 /*
@@ -1797,87 +1794,87 @@ form[aria-busy="true"] {
  * It does not limit or crop the section-level image.
  */
 .home-registration-visual {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  width: 100%;
-  min-height: 650px;
-  height: 100%;
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    min-height: 650px;
+    height: 100%;
 }
 
 /*
  * Text overlays the image near the top.
  */
 .home-registration-visual__content {
-  width: min(100%, 650px);
-  padding: 46px 34px 30px;
-  text-align: center;
+    width: min(100%, 650px);
+    padding: 46px 34px 30px;
+    text-align: center;
 }
 
 .home-registration-visual__eyebrow {
-  margin: 0 0 10px;
-  color: #945b66;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  line-height: 1.5;
-  text-transform: uppercase;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.95),
-    0 2px 10px rgba(255, 255, 255, 0.82);
+    margin: 0 0 10px;
+    color: #945b66;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    line-height: 1.5;
+    text-transform: uppercase;
+    text-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.95),
+        0 2px 10px rgba(255, 255, 255, 0.82);
 }
 
 .home-registration-visual__title {
-  margin: 0;
-  color: #432053;
-  font-weight: 600;
-  line-height: 1.06;
-  letter-spacing: -0.025em;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.95),
-    0 4px 18px rgba(255, 255, 255, 0.82);
+    margin: 0;
+    color: #432053;
+    font-weight: 600;
+    line-height: 1.06;
+    letter-spacing: -0.025em;
+    text-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.95),
+        0 4px 18px rgba(255, 255, 255, 0.82);
 }
 
 .home-registration-visual__title span {
-  display: block;
-  margin-top: 5px;
-  color: #ae1536;
+    display: block;
+    margin-top: 5px;
+    color: #ae1536;
 }
 
 .home-registration-visual__divider {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: min(100%, 330px);
-  margin: 20px auto 16px;
-  color: #d69a47;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(100%, 330px);
+    margin: 20px auto 16px;
+    color: #d69a47;
 }
 
 .home-registration-visual__divider span {
-  display: block;
-  flex: 1 1 auto;
-  height: 1px;
-  background-color: currentColor;
-  opacity: 0.82;
+    display: block;
+    flex: 1 1 auto;
+    height: 1px;
+    background-color: currentColor;
+    opacity: 0.82;
 }
 
 .home-registration-visual__divider i {
-  flex: 0 0 auto;
-  margin: 0 12px;
-  font-size: 20px;
-  line-height: 1;
+    flex: 0 0 auto;
+    margin: 0 12px;
+    font-size: 20px;
+    line-height: 1;
 }
 
 .home-registration-visual__description {
-  margin: 0;
-  color: #514a4c;
-  font-size: 17px;
-  font-weight: 400;
-  line-height: 1.65;
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.98),
-    0 3px 14px rgba(255, 255, 255, 0.9);
+    margin: 0;
+    color: #514a4c;
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1.65;
+    text-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.98),
+        0 3px 14px rgba(255, 255, 255, 0.9);
 }
 
 /*
@@ -1885,13 +1882,13 @@ form[aria-busy="true"] {
  * styling.
  */
 .home-registration-section .col-lg-5 {
-  display: flex;
-  align-items: flex-start;
+    display: flex;
+    align-items: flex-start;
 }
 
 .home-registration-section .registration-card {
-  width: 100%;
-  margin-top: 35px;
+    width: 100%;
+    margin-top: 35px;
 }
 
 /*
@@ -1899,39 +1896,41 @@ form[aria-busy="true"] {
  * Bootstrap container leaves more space outside the content.
  */
 @media (min-width: 1200px) {
-  .home-registration-section,
-  .home-registration-section__row,
-  .home-registration-visual {
-    min-height: 530px;
-  }
 
-  .home-registration-section::before {
-    width: 62%;
-  }
+    .home-registration-section,
+    .home-registration-section__row,
+    .home-registration-visual {
+        min-height: 530px;
+    }
 
-  .home-registration-section::after {
-    width: 67%;
-  }
+    .home-registration-section::before {
+        width: 62%;
+    }
 
-  .home-registration-visual__content {
-    padding-top: 50px;
-  }
+    .home-registration-section::after {
+        width: 67%;
+    }
+
+    .home-registration-visual__content {
+        padding-top: 50px;
+    }
 }
 
 @media (min-width: 1400px) {
-  .home-registration-section,
-  .home-registration-section__row,
-  .home-registration-visual {
-    min-height: 550px;
-  }
 
-  .home-registration-section::before {
-    width: 63%;
-  }
+    .home-registration-section,
+    .home-registration-section__row,
+    .home-registration-visual {
+        min-height: 550px;
+    }
 
-  .home-registration-section::after {
-    width: 68%;
-  }
+    .home-registration-section::before {
+        width: 63%;
+    }
+
+    .home-registration-section::after {
+        width: 68%;
+    }
 }
 
 /*
@@ -1939,22 +1938,160 @@ form[aria-busy="true"] {
  * Bootstrap column is hidden. Remove section pseudo-elements as well.
  */
 @media (max-width: 991.98px) {
-  .home-registration-section {
-    min-height: auto;
-    padding-top: 24px;
-    padding-bottom: 32px;
-  }
+    .home-registration-section {
+        min-height: auto;
+        padding-top: 24px;
+        padding-bottom: 32px;
+    }
 
-  .home-registration-section::before,
-  .home-registration-section::after {
-    display: none;
-  }
+    .home-registration-section::before,
+    .home-registration-section::after {
+        display: none;
+    }
 
-  .home-registration-section__row {
-    min-height: auto;
-  }
+    .home-registration-section__row {
+        min-height: auto;
+    }
 
-  .home-registration-section .col-lg-5 {
-    display: block;
-  }
+    .home-registration-section .col-lg-5 {
+        display: block;
+    }
+}
+
+.light-yellowish {
+    background-color: #f8fcf8;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Public legal pages
+|--------------------------------------------------------------------------
+*/
+
+.legal-page {
+    min-height: 70vh;
+    background:
+        linear-gradient(180deg,
+            rgba(174, 21, 54, 0.04) 0,
+            rgba(255, 255, 255, 0) 260px),
+        #ffffff;
+}
+
+.legal-page__header {
+    max-width: 760px;
+    margin-inline: auto;
+}
+
+.legal-page__eyebrow {
+    color: #ae1536;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.legal-page__title {
+    color: #432053;
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 700;
+    line-height: 1.15;
+}
+
+.legal-page__updated {
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.legal-page__content {
+    padding: clamp(24px, 4vw, 48px);
+    border: 1px solid rgba(67, 32, 83, 0.1);
+    border-radius: 20px;
+    background-color: #ffffff;
+    box-shadow: 0 14px 40px rgba(67, 32, 83, 0.07);
+}
+
+.legal-page__section+.legal-page__section {
+    padding-top: 28px;
+    margin-top: 28px;
+    border-top: 1px solid rgba(67, 32, 83, 0.1);
+}
+
+.legal-page__section h2 {
+    margin-bottom: 16px;
+    color: #432053;
+    font-size: clamp(20px, 2.5vw, 24px);
+    font-weight: 700;
+    line-height: 1.35;
+}
+
+.legal-page__section h3 {
+    margin-top: 22px;
+    margin-bottom: 12px;
+    color: #432053;
+    font-size: 18px;
+    font-weight: 650;
+    line-height: 1.4;
+}
+
+.legal-page__section p,
+.legal-page__section li {
+    color: #4f4f4f;
+    font-size: 15px;
+    line-height: 1.8;
+}
+
+.legal-page__section p:last-child {
+    margin-bottom: 0;
+}
+
+.legal-page__section ul {
+    padding-left: 20px;
+    margin-bottom: 20px;
+}
+
+.legal-page__section li+li {
+    margin-top: 8px;
+}
+
+.legal-page__section a {
+    color: #ae1536;
+    font-weight: 600;
+    text-underline-offset: 3px;
+}
+
+.legal-page__section a:hover,
+.legal-page__section a:focus {
+    color: #82102a;
+}
+
+.legal-page__contact {
+    padding: 20px;
+    border-left: 4px solid #ae1536;
+    border-radius: 0 12px 12px 0;
+    background-color: rgba(174, 21, 54, 0.05);
+    color: #4f4f4f;
+    font-size: 15px;
+    font-style: normal;
+    line-height: 1.8;
+}
+
+@media (max-width: 575.98px) {
+    .legal-page {
+        padding-top: 32px !important;
+        padding-bottom: 32px !important;
+    }
+
+    .legal-page__header {
+        margin-bottom: 32px !important;
+    }
+
+    .legal-page__content {
+        border-radius: 14px;
+        box-shadow: 0 8px 24px rgba(67, 32, 83, 0.06);
+    }
+
+    .legal-page__section+.legal-page__section {
+        padding-top: 22px;
+        margin-top: 22px;
+    }
 }

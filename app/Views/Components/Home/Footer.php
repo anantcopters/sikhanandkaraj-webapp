@@ -113,7 +113,7 @@ $currentYear = date('Y');
                     <li class="mb-2">
                         <a
                             href="<?= site_url(
-                                        'privacy-policy'
+                                        'grievances'
                                     ) ?>"
                             class="text-decoration-none">
                             Grievances
@@ -123,7 +123,7 @@ $currentYear = date('Y');
                     <li class="mb-2">
                         <a
                             href="<?= site_url(
-                                        'privacy-policy'
+                                        'fraud-alert'
                                     ) ?>"
                             class="text-decoration-none">
                             Fraud Alert
@@ -133,7 +133,7 @@ $currentYear = date('Y');
                     <li>
                         <a
                             href="<?= site_url(
-                                        'privacy-policy'
+                                        'cookie-policy'
                                     ) ?>"
                             class="text-decoration-none">
                             Cookie Policy
@@ -225,7 +225,7 @@ $currentYear = date('Y');
                             aria-hidden="true">
                         </i>
 
-                        <span>
+                        <span class="mt-1">
                             Secure profile access
                         </span>
                     </li>
@@ -247,7 +247,7 @@ $currentYear = date('Y');
                             aria-hidden="true">
                         </i>
 
-                        <span>
+                        <span class="mt-1">
                             Reviewed member profiles
                         </span>
                     </li>
@@ -268,8 +268,8 @@ $currentYear = date('Y');
                             aria-hidden="true">
                         </i>
 
-                        <span>
-                            Privacy-focused experience
+                        <span class="mt-1">
+                            Privacy-focused
                         </span>
                     </li>
                 </ul>

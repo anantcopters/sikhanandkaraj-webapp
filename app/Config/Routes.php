@@ -9,6 +9,64 @@ use CodeIgniter\Router\RouteCollection;
  */
 
 // -----------------------------------------------------------------------------
+// Public legal pages
+// -----------------------------------------------------------------------------
+//
+// These routes intentionally remain outside the deployment-specific homepage
+// condition. Terms and privacy information must remain accessible in
+// development, QA and production environments.
+//
+$routes->group(
+    '',
+    [
+        'namespace' => 'App\Controllers\Web',
+    ],
+    static function (
+        RouteCollection $routes
+    ): void {
+        $routes->get(
+            'terms-and-conditions',
+            'LegalController::termsAndConditions',
+            [
+                'as' => 'web.legal.terms',
+            ]
+        );
+
+        $routes->get(
+            'privacy-policy',
+            'LegalController::privacyPolicy',
+            [
+                'as' => 'web.legal.privacy',
+            ]
+        );
+
+        $routes->get(
+            'grievances',
+            'LegalController::grievances',
+            [
+                'as' => 'web.legal.grievances',
+            ]
+        );
+
+        $routes->get(
+            'fraud-alert',
+            'LegalController::fraudAlert',
+            [
+                'as' => 'web.legal.fraud-alert',
+            ]
+        );
+
+        $routes->get(
+            'cookie-policy',
+            'LegalController::cookiePolicy',
+            [
+                'as' => 'web.legal.cookie-policy',
+            ]
+        );
+    }
+);
+
+// -----------------------------------------------------------------------------
 // Member web routes
 // -----------------------------------------------------------------------------
 
