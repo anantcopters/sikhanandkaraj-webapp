@@ -67,6 +67,55 @@ $routes->group(
 );
 
 // -----------------------------------------------------------------------------
+// Public information pages
+// -----------------------------------------------------------------------------
+//
+// These pages remain publicly accessible in development, QA and production.
+// They must therefore remain outside the deployment-specific homepage routes.
+//
+$routes->group(
+    '',
+    [
+        'namespace' => 'App\Controllers\Web',
+    ],
+    static function (
+        RouteCollection $routes
+    ): void {
+        $routes->get(
+            'about-us',
+            'InformationController::aboutUs',
+            [
+                'as' => 'web.information.about',
+            ]
+        );
+
+        $routes->get(
+            'advertise-with-us',
+            'InformationController::advertiseWithUs',
+            [
+                'as' => 'web.information.advertise',
+            ]
+        );
+
+        $routes->get(
+            'payment-options',
+            'InformationController::paymentOptions',
+            [
+                'as' => 'web.information.payment-options',
+            ]
+        );
+
+        $routes->get(
+            'careers',
+            'InformationController::career',
+            [
+                'as' => 'web.information.careers',
+            ]
+        );
+    }
+);
+
+// -----------------------------------------------------------------------------
 // Member web routes
 // -----------------------------------------------------------------------------
 

@@ -152,7 +152,7 @@ $currentYear = date('Y');
                     <li class="mb-2">
                         <a
                             href="<?= site_url(
-                                        'terms-and-conditions'
+                                        'about-us'
                                     ) ?>"
                             class="text-decoration-none">
                             About Us
@@ -172,7 +172,7 @@ $currentYear = date('Y');
                     <li class="mb-2">
                         <a
                             href="<?= site_url(
-                                        'privacy-policy'
+                                        'advertise-with-us'
                                     ) ?>"
                             class="text-decoration-none">
                             Advertise with us
@@ -182,7 +182,7 @@ $currentYear = date('Y');
                     <li class="mb-2">
                         <a
                             href="<?= site_url(
-                                        'privacy-policy'
+                                        'payment-options'
                                     ) ?>"
                             class="text-decoration-none">
                             Payment Options
@@ -192,7 +192,7 @@ $currentYear = date('Y');
                     <li>
                         <a
                             href="<?= site_url(
-                                        'privacy-policy'
+                                        'careers'
                                     ) ?>"
                             class="text-decoration-none">
                             Career
