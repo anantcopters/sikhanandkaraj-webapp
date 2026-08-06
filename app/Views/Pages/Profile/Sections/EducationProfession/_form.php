@@ -29,9 +29,10 @@ $educations = is_array(
     : [];
 
 $occupationGroups = is_array(
-    $masterData['occupationGroups'] ?? null
+    $resolvedMasterData['occupationGroups']
+        ?? null
 )
-    ? $masterData['occupationGroups']
+    ? $resolvedMasterData['occupationGroups']
     : [];
 
 $annualIncomes = is_array(
