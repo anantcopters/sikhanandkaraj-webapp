@@ -5,24 +5,29 @@ declare(strict_types=1);
 $currentYear = date('Y');
 ?>
 
-<footer class="bg-dark text-white pt-5">
+<footer class="section py-5">
     <div class="container">
-        <div class="row g-4 pb-4">
+        <div class="row pb-4">
             <div class="col-12 col-lg-5">
                 <a
+                    class="navbar-brand
+                d-inline-flex
+                align-items-center
+                flex-shrink-0
+                m-0 p-0"
                     href="<?= site_url('/') ?>"
-                    class="d-inline-block
-                        text-white
-                        fs-24
-                        fw-bold
-                        text-decoration-none
-                        mb-3">
+                    aria-label="Sikhanandkaraj home">
 
-                    Sikhanandkaraj
+                    <img
+                        src="<?= base_url(
+                                    'assets/images/sikhanandkaraj_removebg_2.png'
+                                ) ?>"
+                        alt="Sikhanandkaraj"
+                        class="public-navbar__logo">
                 </a>
 
                 <p
-                    class="text-white-50
+                    class="
                         lh-lg
                         mb-0">
 
@@ -30,10 +35,14 @@ $currentYear = date('Y');
                     individuals and families discover meaningful
                     relationships rooted in faith and shared values.
                 </p>
+                <p class="lh-lg mb-3 color-pink">
+
+                    This website is strictly for matrimonial purpose only and not a dating website.
+                </p>
             </div>
 
             <div class="col-6 col-md-3 col-lg-2">
-                <h2 class="fs-15 fw-semibold text-white mb-3">
+                <h2 class="fs-15 fw-semibold  mb-3">
                     Explore
                 </h2>
 
@@ -41,7 +50,7 @@ $currentYear = date('Y');
                     <li class="mb-2">
                         <a
                             href="<?= site_url('/') ?>"
-                            class="text-white-50
+                            class="
                                 text-decoration-none">
 
                             Home
@@ -51,27 +60,37 @@ $currentYear = date('Y');
                     <li class="mb-2">
                         <a
                             href="<?= site_url('login') ?>"
-                            class="text-white-50
+                            class="
                                 text-decoration-none">
 
                             Login
                         </a>
                     </li>
 
-                    <li>
+                    <li class="mb-2">
                         <a
                             href="<?= site_url('/') ?>#how-it-works"
-                            class="text-white-50
+                            class="
                                 text-decoration-none">
 
                             How It Works
                         </a>
                     </li>
+
+                    <li>
+                        <a
+                            href="<?= site_url('/') ?>#how-it-works"
+                            class="
+                                text-decoration-none">
+
+                            FAQs
+                        </a>
+                    </li>
                 </ul>
             </div>
 
             <div class="col-6 col-md-3 col-lg-2">
-                <h2 class="fs-15 fw-semibold text-white mb-3">
+                <h2 class="fs-15 fw-semibold  mb-3">
                     Legal
                 </h2>
 
@@ -81,42 +100,66 @@ $currentYear = date('Y');
                             href="<?= site_url(
                                         'terms-and-conditions'
                                     ) ?>"
-                            class="text-white-50
+                            class="
                                 text-decoration-none">
 
                             Terms &amp; Conditions
                         </a>
                     </li>
 
-                    <li>
+                    <li class="mb-2">
                         <a
                             href="<?= site_url(
                                         'privacy-policy'
                                     ) ?>"
-                            class="text-white-50
+                            class="
                                 text-decoration-none">
 
                             Privacy Policy
                         </a>
                     </li>
 
+                    <li class="mb-2">
+                        <a
+                            href="<?= site_url(
+                                        'privacy-policy'
+                                    ) ?>"
+                            class="
+                                text-decoration-none">
+
+                            Grievances
+                        </a>
+                    </li>
+
+                    <li class="mb-2">
+                        <a
+                            href="<?= site_url(
+                                        'privacy-policy'
+                                    ) ?>"
+                            class="
+                                text-decoration-none">
+
+                            Fraud Alert
+                        </a>
+                    </li>
+
                     <li>
                         <a
                             href="<?= site_url(
                                         'privacy-policy'
                                     ) ?>"
-                            class="text-white-50
+                            class="
                                 text-decoration-none">
 
-                            Grievances
+                            Cookie Policy
                         </a>
                     </li>
                 </ul>
             </div>
 
             <div class="col-6 col-md-3 col-lg-2">
-                <h2 class="fs-15 fw-semibold text-white mb-3">
-                    Legal
+                <h2 class="fs-15 fw-semibold  mb-3">
+                    Information
                 </h2>
 
                 <ul class="list-unstyled mb-0">
@@ -125,10 +168,46 @@ $currentYear = date('Y');
                             href="<?= site_url(
                                         'terms-and-conditions'
                                     ) ?>"
-                            class="text-white-50
+                            class="
                                 text-decoration-none">
 
-                            Terms &amp; Conditions
+                            About Us
+                        </a>
+                    </li>
+
+                    <li class="mb-2">
+                        <a
+                            href="<?= site_url(
+                                        'privacy-policy'
+                                    ) ?>"
+                            class="
+                                text-decoration-none">
+
+                            Register Free
+                        </a>
+                    </li>
+
+                    <li class="mb-2">
+                        <a
+                            href="<?= site_url(
+                                        'privacy-policy'
+                                    ) ?>"
+                            class="
+                                text-decoration-none">
+
+                            Advertise with us
+                        </a>
+                    </li>
+
+                    <li class="mb-2">
+                        <a
+                            href="<?= site_url(
+                                        'privacy-policy'
+                                    ) ?>"
+                            class="
+                                text-decoration-none">
+
+                            Payment Options
                         </a>
                     </li>
 
@@ -137,29 +216,17 @@ $currentYear = date('Y');
                             href="<?= site_url(
                                         'privacy-policy'
                                     ) ?>"
-                            class="text-white-50
+                            class="
                                 text-decoration-none">
 
-                            Privacy Policy
-                        </a>
-                    </li>
-
-                    <li>
-                        <a
-                            href="<?= site_url(
-                                        'privacy-policy'
-                                    ) ?>"
-                            class="text-white-50
-                                text-decoration-none">
-
-                            Grievances
+                            Career
                         </a>
                     </li>
                 </ul>
             </div>
 
             <div class="col-12 col-md-3 col-lg-3">
-                <h2 class="fs-15 fw-semibold text-white mb-3">
+                <h2 class="fs-15 fw-semibold  mb-3">
                     Our Commitment
                 </h2>
 
@@ -168,7 +235,7 @@ $currentYear = date('Y');
                         class="d-flex
                             align-items-center
                             gap-2
-                            text-white-50
+                            
                             mb-2">
 
                         <i
@@ -185,7 +252,7 @@ $currentYear = date('Y');
                         class="d-flex
                             align-items-center
                             gap-2
-                            text-white-50
+                            
                             mb-2">
 
                         <i
@@ -202,7 +269,7 @@ $currentYear = date('Y');
                         class="d-flex
                             align-items-center
                             gap-2
-                            text-white-50">
+                            ">
 
                         <i
                             class="ri-lock-2-line
@@ -228,14 +295,14 @@ $currentYear = date('Y');
                 border-secondary
                 py-3">
 
-            <p class="text-white-50 fs-13 mb-0">
+            <p class=" fs-13 mb-0">
                 &copy;
                 <?= esc((string) $currentYear) ?>
                 Sikhanandkaraj. All rights reserved.
             </p>
 
-            <p class="text-white-50 fs-13 mb-0">
-                United by faith, bound by values.
+            <p class="fs-13 mb-0">
+                United by Faith, Bound by Values.
             </p>
         </div>
     </div>
