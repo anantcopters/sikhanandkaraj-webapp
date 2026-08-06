@@ -162,7 +162,7 @@ $currentYear = date('Y');
                     <li class="mb-2">
                         <a
                             href="<?= site_url(
-                                        'privacy-policy'
+                                        '/'
                                     ) ?>"
                             class="text-decoration-none">
                             Register Free

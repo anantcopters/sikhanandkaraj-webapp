@@ -65,14 +65,14 @@ $this->section('content');
                                 d-flex
                                 align-items-start
                                 gap-3
-                                mb-5
+                                mb-3
                             "
                             role="alert">
 
                             <i
                                 class="
                                     ri-shield-flash-line
-                                    fs-24
+                                    fs-22
                                     flex-shrink-0
                                 "
                                 aria-hidden="true">
@@ -94,12 +94,12 @@ $this->section('content');
                         </div>
 
                         <section
-                            class="mb-5"
+                            class="mb-3"
                             aria-labelledby="fraud-purpose">
 
                             <h2
                                 id="fraud-purpose"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 1. Purpose of this alert
                             </h2>
@@ -115,12 +115,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="fraud-warning-signs">
 
                             <h2
                                 id="fraud-warning-signs"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 2. Common warning signs
                             </h2>
@@ -176,12 +176,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="fraud-protection">
 
                             <h2
                                 id="fraud-protection"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 3. Protect yourself
                             </h2>
@@ -231,12 +231,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="fraud-payments">
 
                             <h2
                                 id="fraud-payments"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 4. Payments to Sikhanandkaraj
                             </h2>
@@ -256,12 +256,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="fraud-compromised">
 
                             <h2
                                 id="fraud-compromised"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 5. When your account may be compromised
                             </h2>
@@ -295,12 +295,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="fraud-report">
 
                             <h2
                                 id="fraud-report"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 6. Reporting suspected fraud
                             </h2>
@@ -335,12 +335,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="fraud-loss">
 
                             <h2
                                 id="fraud-loss"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 7. If money has already been transferred
                             </h2>
@@ -367,7 +367,7 @@ $this->section('content');
 
                             <h2
                                 id="fraud-contact"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 8. Contact us
                             </h2>

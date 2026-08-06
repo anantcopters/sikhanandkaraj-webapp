@@ -59,12 +59,12 @@ $this->section('content');
                 <article class="card border border-danger border-opacity-25 shadow-sm">
                     <div class="card-body p-4 p-lg-5">
                         <section
-                            class="mb-5"
+                            class="mb-3"
                             aria-labelledby="cookie-introduction">
 
                             <h2
                                 id="cookie-introduction"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 1. Introduction
                             </h2>
@@ -90,12 +90,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="cookie-definition">
 
                             <h2
                                 id="cookie-definition"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 2. What cookies are
                             </h2>
@@ -110,12 +110,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="cookie-types">
 
                             <h2
                                 id="cookie-types"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 3. Cookies we may use
                             </h2>
@@ -230,12 +230,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="cookie-essential">
 
                             <h2
                                 id="cookie-essential"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 4. Essential cookies
                             </h2>
@@ -250,12 +250,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="cookie-session">
 
                             <h2
                                 id="cookie-session"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 5. Session and persistent cookies
                             </h2>
@@ -275,12 +275,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="cookie-third-party">
 
                             <h2
                                 id="cookie-third-party"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 6. Third-party technologies
                             </h2>
@@ -296,12 +296,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="cookie-management">
 
                             <h2
                                 id="cookie-management"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 7. Managing cookies
                             </h2>
@@ -337,12 +337,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="cookie-sensitive">
 
                             <h2
                                 id="cookie-sensitive"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 8. Information stored in cookies
                             </h2>
@@ -358,12 +358,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="cookie-updates">
 
                             <h2
                                 id="cookie-updates"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 9. Changes to this Policy
                             </h2>
@@ -382,7 +382,7 @@ $this->section('content');
 
                             <h2
                                 id="cookie-contact"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 10. Contact us
                             </h2>

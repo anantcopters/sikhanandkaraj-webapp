@@ -47,10 +47,10 @@ $this->section('content');
                 <article class="card border border-danger border-opacity-25 shadow-sm">
                     <div class="card-body p-4 p-lg-5">
                         <section
-                            class="legal-page__section"
+                            class="mb-3"
                             aria-labelledby="terms-introduction">
 
-                            <h2 id="terms-introduction">
+                            <h2 id="terms-introduction" class="fs-22 fw-semibold mb-3">
                                 1. Introduction
                             </h2>
 
@@ -79,10 +79,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-eligibility">
 
-                            <h2 id="terms-eligibility">
+                            <h2 id="terms-eligibility" class="fs-22 fw-semibold mb-3">
                                 2. Eligibility
                             </h2>
 
@@ -109,10 +109,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-registration">
 
-                            <h2 id="terms-registration">
+                            <h2 id="terms-registration" class="fs-22 fw-semibold mb-3">
                                 3. Account registration
                             </h2>
 
@@ -126,18 +126,18 @@ $this->section('content');
                                 You are responsible for:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-0">
+                                <li class="mb-2">
                                     Keeping your login credentials and OTPs
                                     confidential.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Maintaining control over your registered mobile
                                     number and email account.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Reviewing and updating inaccurate or outdated
                                     profile information.
                                 </li>
@@ -155,10 +155,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-profile-content">
 
-                            <h2 id="terms-profile-content">
+                            <h2 id="terms-profile-content" class="fs-22 fw-semibold mb-3">
                                 4. Profile information and content
                             </h2>
 
@@ -180,23 +180,23 @@ $this->section('content');
                                 You must not upload or publish content that:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-0">
+                                <li class="mb-2">
                                     Belongs to another person without their
                                     permission.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Is false, misleading, fraudulent or materially
                                     incomplete.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Is obscene, abusive, threatening,
                                     discriminatory or unlawful.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Contains malware, advertisements, commercial
                                     solicitation or unrelated promotional material.
                                 </li>
@@ -209,10 +209,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-review">
 
-                            <h2 id="terms-review">
+                            <h2 id="terms-review" class="fs-22 fw-semibold mb-3">
                                 5. Profile review and verification
                             </h2>
 
@@ -233,10 +233,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-conduct">
 
-                            <h2 id="terms-conduct">
+                            <h2 id="terms-conduct" class="fs-22 fw-semibold mb-3">
                                 6. Acceptable use
                             </h2>
 
@@ -244,33 +244,33 @@ $this->section('content');
                                 While using the Platform, you must not:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-0">
+                                <li class="mb-2">
                                     Harass, threaten, stalk or intimidate another
                                     person.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Request or transfer money as a condition of a
                                     matrimonial interaction.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Collect, scrape, download or republish member
                                     information without permission.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Circumvent access controls, privacy settings or
                                     security protections.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Introduce automated bots, crawlers, malicious
                                     code or excessive traffic.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Use the Platform for dating, friendship-only
                                     solicitation, commercial promotion,
                                     recruitment or unlawful activity.
@@ -285,10 +285,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-interactions">
 
-                            <h2 id="terms-interactions">
+                            <h2 id="terms-interactions" class="fs-22 fw-semibold mb-3">
                                 7. Member interactions
                             </h2>
 
@@ -304,17 +304,17 @@ $this->section('content');
                                 Exercise reasonable caution before:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-0">
+                                <li class="mb-2">
                                     Sharing sensitive personal or financial
                                     information.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Meeting another member in person.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Transferring money, gifts or documents.
                                 </li>
 
@@ -332,10 +332,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-fees">
 
-                            <h2 id="terms-fees">
+                            <h2 id="terms-fees" class="fs-22 fw-semibold mb-3">
                                 8. Free and paid services
                             </h2>
 
@@ -360,10 +360,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-suspension">
 
-                            <h2 id="terms-suspension">
+                            <h2 id="terms-suspension" class="fs-22 fw-semibold mb-3">
                                 9. Suspension and termination
                             </h2>
 
@@ -372,21 +372,21 @@ $this->section('content');
                                 account where we reasonably believe that:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-0">
+                                <li class="mb-2">
                                     These Terms have been violated.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     The account presents a safety, fraud or security
                                     risk.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Information or documents are materially false.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     The account is being used without proper
                                     authority.
                                 </li>
@@ -405,10 +405,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-ip">
 
-                            <h2 id="terms-ip">
+                            <h2 id="terms-ip" class="fs-22 fw-semibold mb-3">
                                 10. Intellectual property
                             </h2>
 
@@ -428,10 +428,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-third-party">
 
-                            <h2 id="terms-third-party">
+                            <h2 id="terms-third-party" class="fs-22 fw-semibold mb-3">
                                 11. Third-party services
                             </h2>
 
@@ -451,10 +451,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-availability">
 
-                            <h2 id="terms-availability">
+                            <h2 id="terms-availability" class="fs-22 fw-semibold mb-3">
                                 12. Platform availability
                             </h2>
 
@@ -472,10 +472,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-liability">
 
-                            <h2 id="terms-liability">
+                            <h2 id="terms-liability" class="fs-22 fw-semibold mb-3">
                                 13. Disclaimer and limitation of liability
                             </h2>
 
@@ -488,16 +488,16 @@ $this->section('content');
                                 Sikhanandkaraj does not guarantee:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-0">
+                                <li class="mb-2">
                                     The accuracy of every member-provided detail.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Compatibility between members.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     That a member will respond or proceed with a
                                     proposal.
                                 </li>
@@ -522,10 +522,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-indemnity">
 
-                            <h2 id="terms-indemnity">
+                            <h2 id="terms-indemnity" class="fs-22 fw-semibold mb-3">
                                 14. Indemnity
                             </h2>
 
@@ -539,10 +539,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-law">
 
-                            <h2 id="terms-law">
+                            <h2 id="terms-law" class="fs-22 fw-semibold mb-3">
                                 15. Governing law and disputes
                             </h2>
 
@@ -563,10 +563,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-changes">
 
-                            <h2 id="terms-changes">
+                            <h2 id="terms-changes" class="fs-22 fw-semibold mb-3">
                                 16. Changes to these Terms
                             </h2>
 
@@ -584,10 +584,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="terms-contact">
 
-                            <h2 id="terms-contact">
+                            <h2 id="terms-contact" class="fs-22 fw-semibold mb-3">
                                 17. Contact and grievances
                             </h2>
 
@@ -596,26 +596,39 @@ $this->section('content');
                                 concerning these Terms may be sent to:
                             </p>
 
-                            <address class="legal-page__contact mb-0">
-                                <strong>
-                                    Grievance Officer
-                                </strong>
+                            <div class="card bg-light border-0">
+                                <div class="card-body">
+                                    <address class="lh-lg mb-0">
+                                        <strong>
+                                            Grievance Officer
+                                        </strong>
 
-                                <br>
+                                        <br>
 
-                                Sikhanandkaraj
+                                        Sikhanandkaraj
 
-                                <br>
+                                        <br>
 
-                                Kota, Rajasthan, India
+                                        Kota, Rajasthan, India
 
-                                <br>
+                                        <br>
 
-                                Email:
-                                <a href="mailto:info@sikhanandkaraj.com">
-                                    info@sikhanandkaraj.com
-                                </a>
-                            </address>
+                                        Email:
+
+                                        <a
+                                            href="
+                                                mailto:info@sikhanandkaraj.com
+                                            "
+                                            class="
+                                                color-pink
+                                                fw-semibold
+                                            ">
+
+                                            info@sikhanandkaraj.com
+                                        </a>
+                                    </address>
+                                </div>
+                            </div>
                         </section>
                     </div>
                 </article>

@@ -59,12 +59,12 @@ $this->section('content');
                 <article class="card border border-danger border-opacity-25 shadow-sm">
                     <div class="card-body p-4 p-lg-5">
                         <section
-                            class="mb-5"
+                            class="mb-3"
                             aria-labelledby="grievance-introduction">
 
                             <h2
                                 id="grievance-introduction"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 1. Our commitment
                             </h2>
@@ -87,12 +87,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="grievance-types">
 
                             <h2
                                 id="grievance-types"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 2. Concerns you may report
                             </h2>
@@ -143,12 +143,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="grievance-details">
 
                             <h2
                                 id="grievance-details"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 3. Information to include
                             </h2>
@@ -194,12 +194,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="grievance-process">
 
                             <h2
                                 id="grievance-process"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 4. Grievance process
                             </h2>
@@ -241,12 +241,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="grievance-emergency">
 
                             <h2
                                 id="grievance-emergency"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 5. Immediate safety concerns
                             </h2>
@@ -265,7 +265,7 @@ $this->section('content');
                                 <i
                                     class="
                                         ri-alarm-warning-line
-                                        fs-24
+                                        fs-22
                                         flex-shrink-0
                                     "
                                     aria-hidden="true">
@@ -289,12 +289,12 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="border-top pt-4 mb-5"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="grievance-confidentiality">
 
                             <h2
                                 id="grievance-confidentiality"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 6. Confidentiality
                             </h2>
@@ -315,7 +315,7 @@ $this->section('content');
 
                             <h2
                                 id="grievance-contact"
-                                class="fs-24 fw-semibold mb-3">
+                                class="fs-22 fw-semibold mb-3">
 
                                 7. Contact the Grievance Officer
                             </h2>

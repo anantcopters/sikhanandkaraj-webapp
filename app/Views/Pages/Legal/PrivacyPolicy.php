@@ -22,7 +22,7 @@ $this->setVar(
 
 $this->section('content');
 ?>
-<section class="section py-5 bg-light">
+<section class="section py-5 light-yellowish">
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-12 col-xl-10">
@@ -44,21 +44,21 @@ $this->section('content');
                 <article class="card border border-danger border-opacity-25 shadow-sm">
                     <div class="card-body p-4 p-lg-5">
                         <section
-                            class="legal-page__section"
+                            class="mb-3"
                             aria-labelledby="privacy-introduction">
 
-                            <h2 id="privacy-introduction">
+                            <h2 id="privacy-introduction" class="fs-22 fw-semibold mb-3">
                                 1. Introduction
                             </h2>
 
-                            <p>
+                            <p class="lh-lg">
                                 This Privacy Policy explains how Sikhanandkaraj
                                 collects, uses, stores, shares and protects personal
                                 information when you access or use our website,
                                 applications and related matrimonial services.
                             </p>
 
-                            <p>
+                            <p class="lh-lg mb-0">
                                 It should be read together with our
                                 <a href="<?= route_to('web.legal.terms') ?>">
                                     Terms and Conditions
@@ -67,10 +67,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-scope">
 
-                            <h2 id="privacy-scope">
+                            <h2 id="privacy-scope" class="fs-22 fw-semibold mb-3">
                                 2. Scope
                             </h2>
 
@@ -80,17 +80,17 @@ $this->section('content');
                                 information submitted by:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-3">
+                                <li class="mb-2">
                                     A person creating their own matrimonial profile.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     A parent, guardian, sibling or authorised family
                                     member managing a profile.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     A visitor who contacts support or submits
                                     feedback.
                                 </li>
@@ -103,27 +103,27 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-information">
 
-                            <h2 id="privacy-information">
+                            <h2 id="privacy-information" class="fs-22 fw-semibold mb-3">
                                 3. Information we collect
                             </h2>
 
-                            <h3>
+                            <h3 class="fs-20 fw-medium mb-3">
                                 3.1 Account and contact information
                             </h3>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-3">
+                                <li class="mb-2">
                                     Name, date of birth and gender.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Mobile number and email address.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Login, verification and account-status
                                     information.
                                 </li>
@@ -133,25 +133,25 @@ $this->section('content');
                                 </li>
                             </ul>
 
-                            <h3>
+                            <h3 class="fs-20 fw-medium mb-3">
                                 3.2 Matrimonial profile information
                             </h3>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-3">
+                                <li class="mb-2">
                                     Education, occupation, income and organisation.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Religion, community and family information.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Location, lifestyle and personal-preference
                                     information.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Photographs and profile descriptions.
                                 </li>
 
@@ -160,7 +160,7 @@ $this->section('content');
                                 </li>
                             </ul>
 
-                            <h3>
+                            <h3 class="fs-20 fw-medium mb-3">
                                 3.3 Verification and safety information
                             </h3>
 
@@ -171,20 +171,20 @@ $this->section('content');
                                 grievances or protect members.
                             </p>
 
-                            <h3>
+                            <h3 class="fs-20 fw-medium mb-3">
                                 3.4 Usage and technical information
                             </h3>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-3">
+                                <li class="mb-2">
                                     IP address, browser and device information.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Login dates, session data and security events.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Pages viewed and Platform interactions.
                                 </li>
 
@@ -193,7 +193,7 @@ $this->section('content');
                                 </li>
                             </ul>
 
-                            <h3>
+                            <h3 class="fs-20 fw-medium">
                                 3.5 Communications
                             </h3>
 
@@ -212,10 +212,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-source">
 
-                            <h2 id="privacy-source">
+                            <h2 id="privacy-source" class="fs-22 fw-semibold mb-3">
                                 4. How information is collected
                             </h2>
 
@@ -223,27 +223,27 @@ $this->section('content');
                                 We collect information:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-3">
+                                <li class="mb-2">
                                     Directly from you or your authorised family
                                     representative.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     When you create, edit or verify a profile.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     When you upload photographs or use Platform
                                     features.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Automatically through security logs, cookies
                                     and similar technologies.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     From authorised field officers or service
                                     providers assisting with registration.
                                 </li>
@@ -256,10 +256,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-purpose">
 
-                            <h2 id="privacy-purpose">
+                            <h2 id="privacy-purpose" class="fs-22 fw-semibold mb-3">
                                 5. How we use information
                             </h2>
 
@@ -267,42 +267,42 @@ $this->section('content');
                                 Personal information may be used to:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-3">
+                                <li class="mb-2">
                                     Create, verify and maintain member accounts.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Display matrimonial profiles according to
                                     selected visibility settings.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Generate matches and recommendations.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Enable interests, messages and notifications.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Moderate photographs and profile content.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Prevent impersonation, fraud, abuse and
                                     unauthorised access.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Provide member support and resolve grievances.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Process subscriptions and payments.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Improve security, performance and user
                                     experience.
                                 </li>
@@ -315,10 +315,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-basis">
 
-                            <h2 id="privacy-basis">
+                            <h2 id="privacy-basis" class="fs-22 fw-semibold mb-3">
                                 6. Consent and lawful processing
                             </h2>
 
@@ -340,10 +340,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-display">
 
-                            <h2 id="privacy-display">
+                            <h2 id="privacy-display" class="fs-22 fw-semibold mb-3">
                                 7. Profile visibility
                             </h2>
 
@@ -359,12 +359,12 @@ $this->section('content');
                                 be visible to:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-3">
+                                <li class="mb-2">
                                     Eligible registered members.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Members whose interest has been accepted.
                                 </li>
 
@@ -383,10 +383,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-sharing">
 
-                            <h2 id="privacy-sharing">
+                            <h2 id="privacy-sharing" class="fs-22 fw-semibold mb-3">
                                 8. Information sharing
                             </h2>
 
@@ -398,23 +398,23 @@ $this->section('content');
                                 Information may be shared with:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-3">
+                                <li class="mb-2">
                                     Other eligible members according to profile
                                     visibility and matchmaking functionality.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Cloud hosting, storage, CDN, email, SMS,
                                     payment, security and support providers.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Professional advisers and auditors under
                                     confidentiality obligations.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Government, regulatory, law-enforcement or
                                     judicial authorities where disclosure is
                                     legally required.
@@ -435,10 +435,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-storage">
 
-                            <h2 id="privacy-storage">
+                            <h2 id="privacy-storage" class="fs-22 fw-semibold mb-3">
                                 9. Storage and international processing
                             </h2>
 
@@ -457,10 +457,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-retention">
 
-                            <h2 id="privacy-retention">
+                            <h2 id="privacy-retention" class="fs-22 fw-semibold mb-3">
                                 10. Data retention
                             </h2>
 
@@ -469,18 +469,18 @@ $this->section('content');
                                 reasonably necessary to:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-3">
+                                <li class="mb-2">
                                     Operate the member account and provide requested
                                     services.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Maintain security, fraud-prevention and consent
                                     records.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Resolve disputes and grievances.
                                 </li>
 
@@ -499,10 +499,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-security">
 
-                            <h2 id="privacy-security">
+                            <h2 id="privacy-security" class="fs-22 fw-semibold mb-3">
                                 11. Information security
                             </h2>
 
@@ -517,24 +517,24 @@ $this->section('content');
                                 Measures may include:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-3">
+                                <li class="mb-2">
                                     Access controls and role-based authorisation.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Password hashing and OTP-based verification.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Private media storage and controlled delivery.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Security logging and monitoring.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Data backup and recovery procedures.
                                 </li>
 
@@ -551,10 +551,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-rights">
 
-                            <h2 id="privacy-rights">
+                            <h2 id="privacy-rights" class="fs-22 fw-semibold mb-3">
                                 12. Your privacy choices and rights
                             </h2>
 
@@ -563,29 +563,29 @@ $this->section('content');
                                 request, you may ask us to:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-3">
+                                <li class="mb-2">
                                     Provide information about personal data being
                                     processed.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Correct inaccurate or incomplete information.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Update outdated information.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Delete information that is no longer required.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Withdraw consent for consent-based processing.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Close your account.
                                 </li>
 
@@ -603,10 +603,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-cookies">
 
-                            <h2 id="privacy-cookies">
+                            <h2 id="privacy-cookies" class="fs-22 fw-semibold mb-3">
                                 13. Cookies and similar technologies
                             </h2>
 
@@ -615,16 +615,16 @@ $this->section('content');
                                 technologies for:
                             </p>
 
-                            <ul>
-                                <li>
+                            <ul class="lh-lg mb-3">
+                                <li class="mb-2">
                                     Authentication and session management.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Security and fraud prevention.
                                 </li>
 
-                                <li>
+                                <li class="mb-2">
                                     Remembering user preferences.
                                 </li>
 
@@ -640,10 +640,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-children">
 
-                            <h2 id="privacy-children">
+                            <h2 id="privacy-children" class="fs-22 fw-semibold mb-3">
                                 14. Children
                             </h2>
 
@@ -663,10 +663,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-third-party">
 
-                            <h2 id="privacy-third-party">
+                            <h2 id="privacy-third-party" class="fs-22 fw-semibold mb-3">
                                 15. Third-party links
                             </h2>
 
@@ -680,10 +680,10 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4 mb-3"
                             aria-labelledby="privacy-change">
 
-                            <h2 id="privacy-change">
+                            <h2 id="privacy-change" class="fs-22 fw-semibold mb-3">
                                 16. Policy updates
                             </h2>
 
@@ -702,38 +702,49 @@ $this->section('content');
                         </section>
 
                         <section
-                            class="legal-page__section"
+                            class="border-top pt-4"
                             aria-labelledby="privacy-contact">
 
-                            <h2 id="privacy-contact">
+                            <h2 id="privacy-contact" class="fs-22 fw-semibold mb-3">
                                 17. Contact and grievances
                             </h2>
-
                             <p>
                                 Privacy questions, correction requests, deletion
                                 requests and grievances may be sent to:
                             </p>
+                            <div class="card bg-light border-0">
+                                <div class="card-body">
+                                    <address class="lh-lg mb-0">
+                                        <strong>
+                                            Grievance Officer
+                                        </strong>
 
-                            <address class="legal-page__contact mb-0">
-                                <strong>
-                                    Grievance Officer
-                                </strong>
+                                        <br>
 
-                                <br>
+                                        Sikhanandkaraj
 
-                                Sikhanandkaraj
+                                        <br>
 
-                                <br>
+                                        Kota, Rajasthan, India
 
-                                Kota, Rajasthan, India
+                                        <br>
 
-                                <br>
+                                        Email:
 
-                                Email:
-                                <a href="mailto:info@sikhanandkaraj.com">
-                                    info@sikhanandkaraj.com
-                                </a>
-                            </address>
+                                        <a
+                                            href="
+                                                mailto:info@sikhanandkaraj.com
+                                            "
+                                            class="
+                                                color-pink
+                                                fw-semibold
+                                            ">
+
+                                            info@sikhanandkaraj.com
+                                        </a>
+                                    </address>
+                                </div>
+                            </div>
                         </section>
                     </div>
                 </article>
