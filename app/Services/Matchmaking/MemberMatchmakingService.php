@@ -4,283 +4,489 @@ declare(strict_types=1);
 
 namespace App\Services\Matchmaking;
 
+use App\Models\MemberMatchCandidateModel;
 use App\Models\UserModel;
 use App\Services\Profile\MemberPhotoUrlService;
-use App\Services\Profile\MemberProfileSummaryService;
-use CodeIgniter\Exceptions\PageNotFoundException;
+use Config\Matchmaking;
+use DateTimeImmutable;
+use DomainException;
+use Throwable;
 
 /**
- * Builds an authorized profile view of one member for another member.
+ * Produces member-facing matchmaking collections.
  *
- * This service owns the security sequence:
+ * Partner matching remains isolated in PartnerPreferenceMatchService.
+ * This service coordinates:
  *
- * 1. Resolve active target by public profile reference.
- * 2. Prevent self-view through the other-member route.
- * 3. Reject blocked relationships.
- * 4. Load profile data without signing owner-context media.
- * 5. Determine interest relationship.
- * 6. Apply photo visibility and generate an authorized medium URL.
- * 7. Record the successful profile view.
+ * - eligible candidates;
+ * - configurable minimum match percentage;
+ * - New Match age;
+ * - interests;
+ * - profile views;
+ * - viewer-authorized thumbnail URLs.
  */
-final class MemberProfileViewService
+final class MemberMatchmakingService
 {
     public function __construct(
         private readonly UserModel
         $userModel,
 
-        private readonly MemberProfileSummaryService
-        $profileSummaryService,
+        private readonly MemberMatchCandidateModel
+        $candidateModel,
+
+        private readonly PartnerPreferenceMatchService
+        $matchService,
+
+        private readonly MemberInteractionService
+        $interactionService,
 
         private readonly MemberPhotoUrlService
         $photoUrlService,
 
-        private readonly MemberInteractionService
-        $interactionService
+        private readonly Matchmaking
+        $configuration
     ) {}
 
     /**
-     * Return another member's authorized profile.
+     * Return all matchmaking collections required by the dashboard.
      *
      * @return array<string, mixed>
      */
-    public function profileForViewer(
-        int $viewerUserId,
-        string $profileReference
+    public function dashboardCollections(
+        int $userId
     ): array {
-        $target = $this
-            ->resolveVisibleTarget(
-                $viewerUserId,
-                $profileReference
+        $viewer = $this->userModel
+            ->find(
+                $userId
             );
 
-        $targetUserId = (int) (
-            $target['id']
-            ?? 0
+        if (!is_array($viewer)) {
+            throw new DomainException(
+                'The member account could not be found.'
+            );
+        }
+
+        $viewerGender = trim(
+            (string) (
+                $viewer['gender']
+                ?? ''
+            )
         );
 
         /*
-         * IMPORTANT:
+         * Candidate eligibility already excludes:
          *
-         * Do not generate the normal owner-context profile-image URL.
-         *
-         * The target's photo visibility has not yet been evaluated for
-         * this viewer.
+         * - the logged-in member;
+         * - non-ACTIVE accounts;
+         * - soft-deleted accounts;
+         * - same-gender candidates under the current M/F model;
+         * - blocked relationships in either direction.
          */
-        $summary = $this
-            ->profileSummaryService
-            ->getForUser(
-                $targetUserId,
-                false
+        $candidateRows = $this
+            ->candidateModel
+            ->eligibleCandidates(
+                $userId,
+                $viewerGender
             );
 
         /*
-         * INTERESTED_MEMBERS visibility is satisfied when an interest
-         * exists in either direction.
+         * Product matching IP stays in the dedicated algorithm service.
          */
-        $hasInterestRelationship =
-            $this
-            ->interactionService
-            ->hasInterestBetween(
-                $viewerUserId,
-                $targetUserId
+        $scoredCandidates = $this
+            ->matchService
+            ->scoreCandidates(
+                $userId,
+                $candidateRows
             );
 
+        $minimumPercentage =
+            $this->configuration
+            ->minimumMatchPercentage;
+
         /*
-         * Profile-detail page uses MEDIUM according to current media rules.
+         * A candidate is a match only when:
          *
-         * No URL is generated when:
+         * 1. at least one structured preference is configured;
+         * 2. compulsory preferences passed;
+         * 3. score meets configured threshold.
          *
-         * - photo is not approved;
-         * - no primary photo exists;
-         * - visibility is invalid;
-         * - visibility is INTERESTED_MEMBERS but there is no interest.
+         * Compulsory failures have already been removed by
+         * PartnerPreferenceMatchService.
          */
-        $authorizedProfileImage =
-            $this
-            ->photoUrlService
-            ->getApprovedPrimaryUrlForViewer(
-                memberId: $targetUserId,
+        $matchedCandidates = array_values(
+            array_filter(
+                $scoredCandidates,
+                static function (
+                    array $candidate
+                ) use (
+                    $minimumPercentage
+                ): bool {
+                    $totalPreferences = max(
+                        0,
+                        (int) (
+                            $candidate['total_preferences']
+                            ?? 0
+                        )
+                    );
 
-                viewerUserId: $viewerUserId,
+                    $percentage = max(
+                        0,
+                        (int) (
+                            $candidate['match_percentage']
+                            ?? 0
+                        )
+                    );
 
-                hasInterestRelationship: $hasInterestRelationship,
-
-                variant: 'medium'
-            );
-
-        /*
-         * Replace the intentionally empty owner-context image with the
-         * viewer-authorized image.
-         */
-        $summary['profileImage'] =
-            $authorizedProfileImage;
-
-        /*
-         * getForUser(..., false) correctly built the summary without an
-         * image. Now synchronize presentation metadata with the authorized
-         * result so downstream views receive a consistent contract.
-         */
-        if (
-            isset(
-                $summary['overallProfileSummary']
+                    return $totalPreferences > 0
+                        && $percentage
+                        >= $minimumPercentage;
+                }
             )
-            && is_array(
-                $summary['overallProfileSummary']
+        );
+
+        /*
+         * New Match is a subset of All Matches.
+         */
+        $newMatches = array_values(
+            array_filter(
+                $matchedCandidates,
+                fn(array $candidate): bool =>
+                $this->isNewMatch(
+                    $candidate['created_at']
+                        ?? null
+                )
             )
-        ) {
-            $summary['overallProfileSummary']['hasProfilePhoto'] =
-                $authorizedProfileImage
-                !== '';
-
-            $summary['overallProfileSummary']['profilePhotoUrl'] =
-                $authorizedProfileImage;
-        }
+        );
 
         /*
-         * The existing member-owned approvedPhotos/gallery endpoint must
-         * not be reused for another-member viewing.
-         *
-         * Until viewer-authorized gallery support is added, pass an empty
-         * collection rather than leaking owner-authorized gallery URLs.
+         * Interest/activity lists also pass through the shared visible
+         * candidate query. A previously recorded interaction therefore
+         * disappears from member-facing UI when either side blocks the other.
          */
-        $summary['approvedPhotos'] = [];
-
-        /*
-         * Record only a successfully authorized profile view.
-         *
-         * Blocked/invalid/direct-URL attempts are rejected before this point
-         * and therefore do not inflate profile-view counts.
-         */
-        $this
-            ->interactionService
-            ->recordView(
-                $viewerUserId,
-                $targetUserId
-            );
-
-        return array_merge(
-            $summary,
-            [
-                /*
-                 * Internal ID remains server-side. The controller/view
-                 * should continue using profile_ref_number in member URLs.
-                 */
-                'viewedMemberId' =>
-                $targetUserId,
-
-                'viewedProfileReference' =>
-                (string) (
-                    $target['profile_ref_number']
-                    ?? ''
-                ),
-
-                'hasShownInterest' =>
+        $interestReceived =
+            $this->visibleRowsForIds(
+                $userId,
+                $viewerGender,
                 $this
                     ->interactionService
-                    ->hasShownInterest(
-                        $viewerUserId,
-                        $targetUserId
-                    ),
+                    ->interestReceivedIds(
+                        $userId
+                    )
+            );
 
-                'hasInterestRelationship' =>
-                $hasInterestRelationship,
-            ]
-        );
+        $interestSent =
+            $this->visibleRowsForIds(
+                $userId,
+                $viewerGender,
+                $this
+                    ->interactionService
+                    ->interestSentIds(
+                        $userId
+                    )
+            );
+
+        $profileVisitors =
+            $this->visibleRowsForIds(
+                $userId,
+                $viewerGender,
+                $this
+                    ->interactionService
+                    ->profileVisitorIds(
+                        $userId
+                    )
+            );
+
+        $profilesViewed =
+            $this->visibleRowsForIds(
+                $userId,
+                $viewerGender,
+                $this
+                    ->interactionService
+                    ->profilesViewedIds(
+                        $userId
+                    )
+            );
+
+        return [
+            'minimumMatchPercentage' =>
+            $minimumPercentage,
+
+            'newMatchDays' =>
+            $this->configuration
+                ->newMatchDays,
+
+            'allMatches' =>
+            $this->presentationProfiles(
+                $userId,
+                $matchedCandidates
+            ),
+
+            'newMatches' =>
+            $this->presentationProfiles(
+                $userId,
+                $newMatches
+            ),
+
+            'interestReceived' =>
+            $this->presentationProfiles(
+                $userId,
+                $interestReceived
+            ),
+
+            'interestSent' =>
+            $this->presentationProfiles(
+                $userId,
+                $interestSent
+            ),
+
+            'profileVisitors' =>
+            $this->presentationProfiles(
+                $userId,
+                $profileVisitors
+            ),
+
+            'profilesViewed' =>
+            $this->presentationProfiles(
+                $userId,
+                $profilesViewed
+            ),
+        ];
     }
 
     /**
-     * Resolve a target for POST actions without recording a profile view.
+     * Return currently visible member rows while preserving the supplied
+     * interaction ordering.
      *
-     * Interest/block actions must not increase profile-view counts.
+     * @param list<int> $memberIds
      *
-     * @return array<string, mixed>
+     * @return list<array<string, mixed>>
      */
-    public function targetForAction(
+    private function visibleRowsForIds(
         int $viewerUserId,
-        string $profileReference
+        string $viewerGender,
+        array $memberIds
     ): array {
         return $this
-            ->resolveVisibleTarget(
+            ->candidateModel
+            ->visibleCandidatesByIds(
                 $viewerUserId,
-                $profileReference
+                $viewerGender,
+                $memberIds
             );
     }
 
     /**
-     * Resolve an active target which remains visible to the viewer.
+     * Convert candidate rows into the contract consumed by Dashboard.
      *
-     * A generic 404 is intentional for blocked pairs so the endpoint does
-     * not reveal whether the profile still exists.
+     * @param list<array<string, mixed>> $rows
      *
-     * @return array<string, mixed>
+     * @return list<array<string, mixed>>
      */
-    private function resolveVisibleTarget(
+    private function presentationProfiles(
         int $viewerUserId,
-        string $profileReference
+        array $rows
     ): array {
-        if ($viewerUserId <= 0) {
-            throw PageNotFoundException
-                ::forPageNotFound();
-        }
+        $result = [];
 
-        $normalizedReference =
-            mb_strtoupper(
-                trim(
-                    $profileReference
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $memberId = max(
+                0,
+                (int) (
+                    $row['id']
+                    ?? 0
                 )
             );
 
-        if ($normalizedReference === '') {
-            throw PageNotFoundException
-                ::forPageNotFound();
-        }
-
-        $target = $this
-            ->userModel
-            ->findActiveByProfileReference(
-                $normalizedReference
+            $profileReference = trim(
+                (string) (
+                    $row['profile_ref_number']
+                    ?? ''
+                )
             );
 
-        if (!is_array($target)) {
-            throw PageNotFoundException
-                ::forPageNotFound();
+            if (
+                $memberId <= 0
+                || $profileReference === ''
+            ) {
+                continue;
+            }
+
+            /*
+             * INTERESTED_MEMBERS photo visibility is satisfied by an
+             * interest in either direction.
+             */
+            $hasInterestRelationship =
+                $this
+                ->interactionService
+                ->hasInterestBetween(
+                    $viewerUserId,
+                    $memberId
+                );
+
+            /*
+             * Project rule:
+             * match/search/multi-profile listings use THUMBNAIL only.
+             */
+            $profileImage = $this
+                ->photoUrlService
+                ->getApprovedPrimaryUrlForViewer(
+                    memberId: $memberId,
+
+                    viewerUserId: $viewerUserId,
+
+                    hasInterestRelationship: $hasInterestRelationship,
+
+                    variant: 'thumbnail'
+                );
+
+            $result[] = [
+                'referenceId' =>
+                $profileReference,
+
+                'name' =>
+                trim(
+                    (string) (
+                        $row['full_name']
+                        ?? 'Member'
+                    )
+                ),
+
+                'age' =>
+                $this->age(
+                    $row['date_of_birth']
+                        ?? null
+                ),
+
+                'city' =>
+                trim(
+                    (string) (
+                        $row['city_name']
+                        ?? ''
+                    )
+                ),
+
+                'image' =>
+                $profileImage,
+
+                /*
+                 * Never expose the internal numeric user ID in member URLs.
+                 */
+                'profileUrl' =>
+                route_to(
+                    'web.members.view',
+                    $profileReference
+                ),
+
+                'matchPercentage' =>
+                isset(
+                    $row['match_percentage']
+                )
+                    && is_numeric(
+                        $row['match_percentage']
+                    )
+                    ? (int) $row['match_percentage']
+                    : null,
+            ];
         }
 
-        $targetUserId = (int) (
-            $target['id']
-            ?? 0
+        return $result;
+    }
+
+    /**
+     * Determine whether a matched member falls inside the configured
+     * New Match window.
+     */
+    private function isNewMatch(
+        mixed $createdAt
+    ): bool {
+        $value = trim(
+            (string) $createdAt
         );
 
-        if (
-            $targetUserId <= 0
-            || $targetUserId
-            === $viewerUserId
-        ) {
-            throw PageNotFoundException
-                ::forPageNotFound();
+        if ($value === '') {
+            return false;
         }
 
-        /*
-         * Blocking is bidirectional for member visibility:
-         *
-         * A blocked B
-         * OR
-         * B blocked A
-         *
-         * => neither sees the other's profile.
-         */
-        if (
-            $this
-            ->interactionService
-            ->isBlockedBetween(
-                $viewerUserId,
-                $targetUserId
-            )
-        ) {
-            throw PageNotFoundException
-                ::forPageNotFound();
+        try {
+            $created = new DateTimeImmutable(
+                $value
+            );
+
+            $now = new DateTimeImmutable(
+                'now'
+            );
+
+            /*
+             * Do not treat a malformed future creation timestamp as new.
+             */
+            if ($created > $now) {
+                return false;
+            }
+
+            $cutOff = $now->modify(
+                '-'
+                    . $this
+                    ->configuration
+                    ->newMatchDays
+                    . ' days'
+            );
+
+            return $created >= $cutOff;
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    private function age(
+        mixed $dateOfBirth
+    ): ?int {
+        $value = trim(
+            (string) $dateOfBirth
+        );
+
+        if ($value === '') {
+            return null;
         }
 
-        return $target;
+        try {
+            $birthDate =
+                DateTimeImmutable
+                ::createFromFormat(
+                    '!Y-m-d',
+                    mb_substr(
+                        $value,
+                        0,
+                        10
+                    )
+                );
+
+            if (
+                !$birthDate
+                    instanceof DateTimeImmutable
+            ) {
+                return null;
+            }
+
+            $today =
+                new DateTimeImmutable(
+                    'today'
+                );
+
+            if ($birthDate > $today) {
+                return null;
+            }
+
+            return $birthDate
+                ->diff(
+                    $today
+                )
+                ->y;
+        } catch (Throwable) {
+            return null;
+        }
     }
 }

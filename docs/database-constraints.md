@@ -372,3 +372,46 @@ These values are used by current business logic and must either have matching Po
 | `reason` | `VARCHAR(64)`, `CHECK`, `NOT NULL` | Database | Trimmed length must be between 1 and 64. |
 | `changed_by_admin_id` | Foreign key, `NOT NULL` | Database | Must reference `admin_users.id`; deletion restricted. |
 | `changed_at` | `NOT NULL`, default | Database | Defaults to `CURRENT_TIMESTAMP`. |
+
+## `member_blocks`
+
+| Column(s) | Constraint | Enforcement | Allowed values / rule |
+|---|---|---|---|
+| `id` | Primary key | Database | Generated `BIGSERIAL`. |
+| `blocker_user_id` | Foreign key, `NOT NULL` | Database | References `users(id)`; `ON DELETE CASCADE`, `ON UPDATE RESTRICT`. |
+| `blocked_user_id` | Foreign key, `NOT NULL` | Database | References `users(id)`; `ON DELETE CASCADE`, `ON UPDATE RESTRICT`. |
+| `(blocker_user_id, blocked_user_id)` | Unique | Database | One directional block record per member pair. |
+| blocker/blocked identity | Check | Database | A member cannot block themself. |
+| `comment` | `NOT NULL`, check | Database | Trimmed content must contain between 1 and 250 characters. |
+| `created_at`, `updated_at` | `NOT NULL`, default | Database | Default `CURRENT_TIMESTAMP`. |
+
+**Application rule:** a block in either direction makes the member pair invisible to one another in member-facing discovery, match, interest, view and direct-profile workflows. This is separate from administrator account blocking/suspension.
+
+## `member_interests`
+
+| Column(s) | Constraint | Enforcement | Allowed values / rule |
+|---|---|---|---|
+| `id` | Primary key | Database | Generated `BIGSERIAL`. |
+| `from_user_id` | Foreign key, `NOT NULL` | Database | References `users(id)`; `ON DELETE CASCADE`, `ON UPDATE RESTRICT`. |
+| `to_user_id` | Foreign key, `NOT NULL` | Database | References `users(id)`; `ON DELETE CASCADE`, `ON UPDATE RESTRICT`. |
+| `(from_user_id, to_user_id)` | Unique | Database | One directional interest per member pair. |
+| from/to identity | Check | Database | A member cannot show interest in themself. |
+| `created_at` | `NOT NULL`, default | Database | Default `CURRENT_TIMESTAMP`. |
+
+**Application rule:** showing interest is idempotent. Existing interest history is retained if a member later blocks the other, but becomes unavailable in member-facing screens while the block exists.
+
+## `member_profile_views`
+
+| Column(s) | Constraint | Enforcement | Allowed values / rule |
+|---|---|---|---|
+| `id` | Primary key | Database | Generated `BIGSERIAL`. |
+| `viewer_user_id` | Foreign key, `NOT NULL` | Database | References `users(id)`; `ON DELETE CASCADE`, `ON UPDATE RESTRICT`. |
+| `viewed_user_id` | Foreign key, `NOT NULL` | Database | References `users(id)`; `ON DELETE CASCADE`, `ON UPDATE RESTRICT`. |
+| `(viewer_user_id, viewed_user_id)` | Unique | Database | One aggregate row per member pair. |
+| viewer/viewed identity | Check | Database | A member cannot create a self-view record. |
+| `view_count` | `NOT NULL`, check | Database | Positive integer; default `1`. |
+| `first_viewed_at` | `NOT NULL`, default | Database | Timestamp of first successful authorized profile view. |
+| `last_viewed_at` | `NOT NULL`, default | Database | Timestamp of most recent successful authorized profile view. |
+| `created_at`, `updated_at` | `NOT NULL`, default | Database | Default `CURRENT_TIMESTAMP`. |
+
+**Application rule:** repeated authorized profile views atomically increment `view_count`. The aggregate supports both unique-viewer statistics and total-view counts for future free/paid entitlement rules.

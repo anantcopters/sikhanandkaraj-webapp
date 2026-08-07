@@ -122,33 +122,4 @@ final class ProfilePhotoController extends BaseController
                 ]);
         }
     }
-
-    /**
-     * Resolve the authenticated member identifier.
-     */
-    private function authenticatedUserId(): int
-    {
-        $memberId = session(
-            'auth_user_id'
-        );
-
-        if (!is_numeric($memberId)) {
-            session()->destroy();
-
-            throw PageNotFoundException
-                ::forPageNotFound();
-        }
-
-        $resolvedMemberId =
-            (int) $memberId;
-
-        if ($resolvedMemberId <= 0) {
-            session()->destroy();
-
-            throw PageNotFoundException
-                ::forPageNotFound();
-        }
-
-        return $resolvedMemberId;
-    }
 }

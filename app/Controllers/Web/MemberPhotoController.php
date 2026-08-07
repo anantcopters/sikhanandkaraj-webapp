@@ -550,33 +550,4 @@ final class MemberPhotoController extends BaseController
             return null;
         }
     }
-
-    /**
-     * Resolve the authenticated member identifier.
-     */
-    private function authenticatedUserId(): int
-    {
-        $userId = session(
-            'auth_user_id'
-        );
-
-        if (!is_numeric($userId)) {
-            session()->destroy();
-
-            throw PageNotFoundException
-                ::forPageNotFound();
-        }
-
-        $resolvedUserId =
-            (int) $userId;
-
-        if ($resolvedUserId <= 0) {
-            session()->destroy();
-
-            throw PageNotFoundException
-                ::forPageNotFound();
-        }
-
-        return $resolvedUserId;
-    }
 }

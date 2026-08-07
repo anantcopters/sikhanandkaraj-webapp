@@ -18,6 +18,9 @@ use Throwable;
  */
 final class MemberProfileController extends BaseController
 {
+    /**
+     * Display one authorized other-member profile.
+     */
     public function view(
         string $profileReference
     ): string {
@@ -59,6 +62,14 @@ final class MemberProfileController extends BaseController
                         . 'choose whether you would like '
                         . 'to show interest.',
 
+                    /*
+                     * Server-side block validation.
+                     */
+                    'validationErrors' =>
+                    session(
+                        'validationErrors'
+                    ) ?? [],
+
                     'memberActionNotice' =>
                     session(
                         'memberActionNotice'
@@ -73,6 +84,9 @@ final class MemberProfileController extends BaseController
         );
     }
 
+    /**
+     * Show interest in another member.
+     */
     public function showInterest(
         string $profileReference
     ): RedirectResponse {
@@ -85,6 +99,11 @@ final class MemberProfileController extends BaseController
                 'memberProfileViewService'
             );
 
+            /*
+             * Resolve again server-side.
+             *
+             * Never trust a member ID supplied by the browser.
+             */
             $target = $profileService
                 ->targetForAction(
                     $viewerUserId,
@@ -106,7 +125,9 @@ final class MemberProfileController extends BaseController
                 ->to(
                     route_to(
                         'web.members.view',
-                        (string) $target['profile_ref_number']
+                        (string) (
+                            $target['profile_ref_number']
+                        )
                     )
                 )
                 ->with(
@@ -120,10 +141,13 @@ final class MemberProfileController extends BaseController
                             . 'shown successfully.',
                     ]
                 );
-        } catch (PageNotFoundException) {
+        } catch (
+            PageNotFoundException) {
             throw PageNotFoundException
                 ::forPageNotFound();
-        } catch (DomainException $exception) {
+        } catch (
+            DomainException $exception
+        ) {
             return redirect()
                 ->to(
                     route_to(
@@ -144,7 +168,9 @@ final class MemberProfileController extends BaseController
                             ->getMessage(),
                     ]
                 );
-        } catch (Throwable $exception) {
+        } catch (
+            Throwable $exception
+        ) {
             log_message(
                 'error',
                 'Member interest failed for '
@@ -182,6 +208,9 @@ final class MemberProfileController extends BaseController
         }
     }
 
+    /**
+     * Block another member.
+     */
     public function block(
         string $profileReference
     ): RedirectResponse {
@@ -189,7 +218,9 @@ final class MemberProfileController extends BaseController
             $this->authenticatedUserId();
 
         /*
-         * Explicit allowlist: comment is the only POST field.
+         * Explicit request allowlist.
+         *
+         * The public profile reference comes from the route, not from POST.
          */
         $input = [
             'comment' =>
@@ -210,7 +241,11 @@ final class MemberProfileController extends BaseController
             MemberBlockValidation::rules()
         );
 
-        if (!$validation->run($input)) {
+        if (
+            !$validation->run(
+                $input
+            )
+        ) {
             return redirect()
                 ->to(
                     route_to(
@@ -218,6 +253,10 @@ final class MemberProfileController extends BaseController
                         $profileReference
                     )
                 )
+                /*
+                 * Restore comment for the reopened modal.
+                 */
+                ->withInput()
                 ->with(
                     'validationErrors',
                     $validation
@@ -228,6 +267,10 @@ final class MemberProfileController extends BaseController
                     true
                 );
         }
+
+        $validatedData =
+            $validation
+            ->getValidated();
 
         try {
             /** @var MemberProfileViewService $profileService */
@@ -251,14 +294,14 @@ final class MemberProfileController extends BaseController
                     $viewerUserId,
                     (int) $target['id'],
                     (string) (
-                        $validation
-                            ->getValidated()['comment']
+                        $validatedData['comment']
+                        ?? ''
                     )
                 );
 
             /*
-             * The newly blocked member must no longer be accessible,
-             * therefore return to Dashboard rather than their profile.
+             * Once blocked, direct access to that profile is no longer
+             * permitted. Return to Dashboard.
              */
             return redirect()
                 ->to(
@@ -285,7 +328,9 @@ final class MemberProfileController extends BaseController
             PageNotFoundException) {
             throw PageNotFoundException
                 ::forPageNotFound();
-        } catch (DomainException $exception) {
+        } catch (
+            DomainException $exception
+        ) {
             return redirect()
                 ->to(
                     route_to(
@@ -306,7 +351,9 @@ final class MemberProfileController extends BaseController
                             ->getMessage(),
                     ]
                 );
-        } catch (Throwable $exception) {
+        } catch (
+            Throwable $exception
+        ) {
             log_message(
                 'error',
                 'Member-to-member block failed. '

@@ -10,8 +10,9 @@ use CodeIgniter\Model;
 /**
  * Read projection for member discovery.
  *
- * Any member-discovery feature should obtain candidate records through
- * this model so member-to-member blocking is consistently enforced.
+ * Any member-facing discovery/listing implementation should obtain member
+ * records through this model so member-to-member blocking is applied
+ * consistently.
  */
 final class MemberMatchCandidateModel extends Model
 {
@@ -28,6 +29,8 @@ final class MemberMatchCandidateModel extends Model
     protected $skipValidation = true;
 
     /**
+     * Return all currently eligible matchmaking candidates.
+     *
      * @return list<array<string, mixed>>
      */
     public function eligibleCandidates(
@@ -38,10 +41,11 @@ final class MemberMatchCandidateModel extends Model
             return [];
         }
 
-        $builder = $this->baseCandidateBuilder(
-            $viewerUserId,
-            $viewerGender
-        );
+        $builder = $this
+            ->baseCandidateBuilder(
+                $viewerUserId,
+                $viewerGender
+            );
 
         $builder
             ->orderBy(
@@ -59,9 +63,16 @@ final class MemberMatchCandidateModel extends Model
     }
 
     /**
-     * Return currently visible member records for ordered IDs.
+     * Return currently visible profiles for ordered IDs.
      *
-     * Used by Interests and Profile Views.
+     * Used by:
+     *
+     * - Interested in You;
+     * - Interests Sent;
+     * - Who Viewed Your Profile;
+     * - Profiles You Viewed.
+     *
+     * The input order is retained after the visibility query.
      *
      * @param list<int> $memberIds
      *
@@ -79,20 +90,24 @@ final class MemberMatchCandidateModel extends Model
                         'intval',
                         $memberIds
                     ),
-                    static fn(int $id): bool =>
-                    $id > 0
+                    static fn(int $memberId): bool =>
+                    $memberId > 0
                 )
             )
         );
 
-        if ($memberIds === []) {
+        if (
+            $viewerUserId <= 0
+            || $memberIds === []
+        ) {
             return [];
         }
 
-        $builder = $this->baseCandidateBuilder(
-            $viewerUserId,
-            $viewerGender
-        );
+        $builder = $this
+            ->baseCandidateBuilder(
+                $viewerUserId,
+                $viewerGender
+            );
 
         $rows = $builder
             ->whereIn(
@@ -102,29 +117,70 @@ final class MemberMatchCandidateModel extends Model
             ->get()
             ->getResultArray();
 
-        $byId = [];
+        /*
+         * Re-index first because WHERE IN does not guarantee the incoming
+         * interaction order.
+         */
+        $byMemberId = [];
 
         foreach ($rows as $row) {
-            $byId[(int) $row['id']] = $row;
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $memberId = max(
+                0,
+                (int) (
+                    $row['id']
+                    ?? 0
+                )
+            );
+
+            if ($memberId <= 0) {
+                continue;
+            }
+
+            $byMemberId[$memberId] =
+                $row;
         }
 
         $ordered = [];
 
         foreach ($memberIds as $memberId) {
-            if (isset($byId[$memberId])) {
-                $ordered[] = $byId[$memberId];
+            if (
+                isset(
+                    $byMemberId[$memberId]
+                )
+            ) {
+                $ordered[] =
+                    $byMemberId[$memberId];
             }
         }
 
         return $ordered;
     }
 
+    /**
+     * Build the common member-discovery query.
+     *
+     * @return BaseBuilder
+     */
     private function baseCandidateBuilder(
         int $viewerUserId,
         string $viewerGender
     ): BaseBuilder {
+        /*
+         * int type declaration ensures this value cannot contain SQL.
+         *
+         * It is used only in internally generated JOIN predicates.
+         */
+        $viewerIdSql =
+            (string) $viewerUserId;
+
         $builder = $this->db
-            ->table('users u');
+            ->table(
+                'users u'
+            );
 
         $builder->select([
             'u.id',
@@ -178,6 +234,36 @@ final class MemberMatchCandidateModel extends Model
             'left'
         );
 
+        /*
+         * Block created by the current viewer:
+         *
+         * viewer -> candidate
+         */
+        $builder->join(
+            'member_blocks blocked_by_viewer',
+            'blocked_by_viewer.blocker_user_id = '
+                . $viewerIdSql
+                . ' AND '
+                . 'blocked_by_viewer.blocked_user_id = u.id',
+            'left',
+            false
+        );
+
+        /*
+         * Block created by the candidate:
+         *
+         * candidate -> viewer
+         */
+        $builder->join(
+            'member_blocks blocking_viewer',
+            'blocking_viewer.blocker_user_id = u.id'
+                . ' AND '
+                . 'blocking_viewer.blocked_user_id = '
+                . $viewerIdSql,
+            'left',
+            false
+        );
+
         $builder
             ->where(
                 'u.id !=',
@@ -190,21 +276,39 @@ final class MemberMatchCandidateModel extends Model
             ->where(
                 'u.deleted_at',
                 null
+            )
+            /*
+             * Any relationship block removes the candidate.
+             */
+            ->where(
+                'blocked_by_viewer.id',
+                null
+            )
+            ->where(
+                'blocking_viewer.id',
+                null
             );
 
         /*
-         * Current application data model uses M/F member gender.
+         * The current application registration model supports M/F.
          *
-         * Gender is basic eligibility rather than a percentage criterion.
+         * Gender is base eligibility rather than one of the preference
+         * percentage criteria.
          */
-        $normalizedGender = strtoupper(
-            trim($viewerGender)
-        );
+        $normalizedGender =
+            mb_strtoupper(
+                trim(
+                    $viewerGender
+                )
+            );
 
         if (
             in_array(
                 $normalizedGender,
-                ['M', 'F'],
+                [
+                    'M',
+                    'F',
+                ],
                 true
             )
         ) {
@@ -213,33 +317,6 @@ final class MemberMatchCandidateModel extends Model
                 $normalizedGender
             );
         }
-
-        /*
-         * A block in either direction makes the pair completely invisible.
-         */
-        $builder->where(
-            <<<'SQL'
-NOT EXISTS (
-    SELECT 1
-    FROM member_blocks mb
-    WHERE
-        (
-            mb.blocker_user_id = u.id
-            AND mb.blocked_user_id = :viewer_user_id:
-        )
-        OR
-        (
-            mb.blocker_user_id = :viewer_user_id:
-            AND mb.blocked_user_id = u.id
-        )
-)
-SQL,
-            [
-                'viewer_user_id' =>
-                $viewerUserId,
-            ],
-            false
-        );
 
         return $builder;
     }

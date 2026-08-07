@@ -50,3 +50,21 @@
 **Decision:** `docs/project-rules.md` is the mandatory coding and architecture checklist for generated and human-written changes.
 
 **Reason:** Consistent implementation requires one reviewable source of non-negotiable rules.
+
+## ADR-030: Matchmaking uses configurable structured-preference scoring
+
+**Decision:** Member matchmaking calculates a percentage using only structured Partner Preferences actually configured by the member. The minimum accepted percentage is environment-configurable. A preference marked compulsory is a hard eligibility condition rather than only a weighted score. Free-text Special Request content is excluded from numerical scoring.
+
+**Reason:** Matching logic is product intellectual property and must remain isolated, configurable, deterministic and independently evolvable without coupling controllers, views or database structure to one scoring formula.
+
+## ADR-031: Member-to-member blocking is separate from administrator suspension
+
+**Decision:** Member-to-member blocking uses `member_blocks` and affects relationship visibility in both directions. Administrator Block Member continues to control the member account status and is not reused for personal member blocks.
+
+**Reason:** One member hiding another is a relationship/privacy decision and must not suspend or otherwise change the other member's account.
+
+## ADR-032: Other-member media requires viewer-aware authorization
+
+**Decision:** Another-member match listings use authorized thumbnail variants and profile-detail pages use authorized medium variants. `INTERESTED_MEMBERS` media requires an interest relationship in either direction. Another-member profile assembly suppresses owner-context signed URL generation until viewer authorization has completed.
+
+**Reason:** Approval, ownership and viewer visibility are separate authorization concerns. Signed CloudFront URLs must be generated only after the applicable viewer context is known.

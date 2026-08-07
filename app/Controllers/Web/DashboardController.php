@@ -19,13 +19,7 @@ final class DashboardController extends BaseController
 {
     public function index(): string
     {
-        $userId = session('auth_user_id');
-
-        if (!is_numeric($userId)) {
-            throw PageNotFoundException::forPageNotFound();
-        }
-
-        $resolvedUserId = (int) $userId;
+        $resolvedUserId = $this->authenticatedUserId();
 
         $user = (new UserModel())->find(
             $resolvedUserId

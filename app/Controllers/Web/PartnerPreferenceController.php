@@ -701,17 +701,4 @@ final class PartnerPreferenceController extends BaseController
                 ]
             );
     }
-
-    private function authenticatedUserId(): int
-    {
-        $userId = session('auth_user_id');
-
-        if (!is_numeric($userId)) {
-            session()->destroy();
-
-            throw PageNotFoundException::forPageNotFound();
-        }
-
-        return (int) $userId;
-    }
 }

@@ -539,22 +539,6 @@ final class ProfileController extends BaseController
     }
 
     /**
-     * Resolve the authenticated user identifier.
-     */
-    private function authenticatedUserId(): int
-    {
-        $userId = session('auth_user_id');
-
-        if (!is_numeric($userId)) {
-            session()->destroy();
-
-            throw PageNotFoundException::forPageNotFound();
-        }
-
-        return (int) $userId;
-    }
-
-    /**
      * Read and normalize only expected Basic Details fields.
      *
      * @return array<string, string>
