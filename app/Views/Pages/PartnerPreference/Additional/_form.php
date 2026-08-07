@@ -75,6 +75,13 @@ $educations = is_array(
     ? $resolvedMasterData['educations']
     : [];
 
+$educationGroups = is_array(
+    $resolvedMasterData['educationGroups']
+        ?? null
+)
+    ? $resolvedMasterData['educationGroups']
+    : [];
+
 $employmentTypes = is_array(
     $resolvedMasterData['employmentTypes'] ?? null
 )
@@ -87,6 +94,12 @@ $occupations = is_array(
     ? $resolvedMasterData['occupations']
     : [];
 
+$occupationGroups = is_array(
+    $resolvedMasterData['occupationGroups']
+        ?? null
+)
+    ? $resolvedMasterData['occupationGroups']
+    : [];
 $annualIncomes = is_array(
     $resolvedMasterData['annualIncomes'] ?? null
 )
@@ -311,19 +324,53 @@ $formAction = url_to(
                 'Pages/PartnerPreference/'
                     . 'Additional/_multi_select',
                 [
-                    'field' => 'education_ids',
-                    'label' => 'Education',
+                    'field' =>
+                    'education_ids',
+
+                    'label' =>
+                    'Education',
+
                     'placeholder' =>
                     'Select education qualifications',
-                    'options' => $educations,
-                    'optionValueKey' => 'id',
-                    'optionLabelKey' => 'name',
+
+                    /*
+             * Grouped data is used for UI rendering.
+             */
+                    'groups' =>
+                    $educationGroups,
+
+                    'groupLabelKey' =>
+                    'name',
+
+                    /*
+             * MasterEducationModel::activeGroupedOptions()
+             * returns items under "educations".
+             */
+                    'groupItemsKey' =>
+                    'educations',
+
+                    'optionValueKey' =>
+                    'id',
+
+                    'optionLabelKey' =>
+                    'name',
+
+                    /*
+             * Important:
+             * use education_ids here, not community_ids.
+             *
+             * The existing code contains a copy/paste bug that
+             * prevents submitted education selections from being
+             * restored correctly after validation failure.
+             */
                     'selectedValues' =>
                     $arrayValue(
-                        'community_ids',
+                        'education_ids',
                         $selectedEducations
                     ),
-                    'errors' => $errors,
+
+                    'errors' =>
+                    $errors,
                 ]
             ) ?>
         <?php endif; ?>
@@ -351,7 +398,7 @@ $formAction = url_to(
                     'label',
                     'selectedValues' =>
                     $arrayValue(
-                        'community_ids',
+                        'employed_in_values',
                         $selectedEmploymentTypes
                     ),
                     'errors' => $errors,
@@ -368,19 +415,49 @@ $formAction = url_to(
                 'Pages/PartnerPreference/'
                     . 'Additional/_multi_select',
                 [
-                    'field' => 'occupation_ids',
-                    'label' => 'Occupation',
+                    'field' =>
+                    'occupation_ids',
+
+                    'label' =>
+                    'Occupation',
+
                     'placeholder' =>
                     'Select occupations',
-                    'options' => $occupations,
-                    'optionValueKey' => 'id',
-                    'optionLabelKey' => 'name',
+
+                    /*
+             * Render occupations by master category.
+             */
+                    'groups' =>
+                    $occupationGroups,
+
+                    'groupLabelKey' =>
+                    'name',
+
+                    /*
+             * MasterOccupationModel::activeGroupedOptions()
+             * returns items under "occupations".
+             */
+                    'groupItemsKey' =>
+                    'occupations',
+
+                    'optionValueKey' =>
+                    'id',
+
+                    'optionLabelKey' =>
+                    'name',
+
+                    /*
+             * Fix existing copy/paste bug:
+             * restore occupation_ids old input, not community_ids.
+             */
                     'selectedValues' =>
                     $arrayValue(
-                        'community_ids',
+                        'occupation_ids',
                         $selectedOccupations
                     ),
-                    'errors' => $errors,
+
+                    'errors' =>
+                    $errors,
                 ]
             ) ?>
         <?php endif; ?>

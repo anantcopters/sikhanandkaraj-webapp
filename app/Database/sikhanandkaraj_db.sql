@@ -813,21 +813,89 @@ DROP column country_code;
 -- Highest Education master
 -- ============================================================
 
-CREATE TABLE IF NOT EXISTS master_educations (
+-- ============================================================
+-- Education Category Master
+-- ============================================================
+
+CREATE TABLE master_education_categories (
     id SMALLSERIAL PRIMARY KEY,
-    code VARCHAR(50) NOT NULL,
-    name VARCHAR(120) NOT NULL,
+    code VARCHAR(80) NOT NULL,
+    name VARCHAR(150) NOT NULL,
     display_order SMALLINT NOT NULL DEFAULT 0,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_master_educations_code UNIQUE (code),
-    CONSTRAINT uq_master_educations_name UNIQUE (name),
-    CONSTRAINT chk_master_educations_code_not_blank CHECK (BTRIM(code) <> ''),
-    CONSTRAINT chk_master_educations_name_not_blank CHECK (BTRIM(name) <> '')
+
+    CONSTRAINT uq_master_education_categories_code
+        UNIQUE (code),
+
+    CONSTRAINT uq_master_education_categories_name
+        UNIQUE (name),
+
+    CONSTRAINT chk_master_education_categories_code_not_blank
+        CHECK (BTRIM(code) <> ''),
+
+    CONSTRAINT chk_master_education_categories_name_not_blank
+        CHECK (BTRIM(name) <> ''),
+
+    CONSTRAINT chk_master_education_categories_display_order
+        CHECK (display_order >= 0)
 );
 
-CREATE INDEX IF NOT EXISTS idx_master_educations_active_order ON master_educations (
+CREATE INDEX idx_master_education_categories_active_order
+ON master_education_categories (
+    is_active,
+    display_order,
+    name
+);
+
+
+-- ============================================================
+-- Education Master
+-- ============================================================
+
+CREATE TABLE master_educations (
+    id SMALLSERIAL PRIMARY KEY,
+    category_id SMALLINT NOT NULL,
+    code VARCHAR(100) NOT NULL,
+    name VARCHAR(180) NOT NULL,
+    display_order SMALLINT NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_master_educations_category
+        FOREIGN KEY (category_id)
+        REFERENCES master_education_categories(id)
+        ON UPDATE RESTRICT
+        ON DELETE RESTRICT,
+
+    CONSTRAINT uq_master_educations_code
+        UNIQUE (code),
+
+    CONSTRAINT uq_master_educations_category_name
+        UNIQUE (category_id, name),
+
+    CONSTRAINT chk_master_educations_code_not_blank
+        CHECK (BTRIM(code) <> ''),
+
+    CONSTRAINT chk_master_educations_name_not_blank
+        CHECK (BTRIM(name) <> ''),
+
+    CONSTRAINT chk_master_educations_display_order
+        CHECK (display_order >= 0)
+);
+
+CREATE INDEX idx_master_educations_category_active_order
+ON master_educations (
+    category_id,
+    is_active,
+    display_order,
+    name
+);
+
+CREATE INDEX idx_master_educations_active_order
+ON master_educations (
     is_active,
     display_order,
     name
@@ -1002,36 +1070,882 @@ CREATE INDEX IF NOT EXISTS idx_member_education_profession_employed ON member_ed
 -- Seed: Education
 -- ============================================================
 
-INSERT INTO
-    master_educations (code, name, display_order)
-VALUES (
-        'HIGH_SCHOOL',
-        'High School',
+-- ============================================================
+-- Seed: Education Categories
+-- ============================================================
+
+INSERT INTO master_education_categories (
+    id,
+    code,
+    name,
+    display_order
+)
+VALUES
+    (
+        1,
+        'BACHELORS_ENGINEERING_COMPUTERS',
+        'Bachelor''s - Engineering / Computers',
         10
     ),
-    ('DIPLOMA', 'Diploma', 20),
     (
-        'BACHELORS',
-        'Bachelor''s Degree',
+        2,
+        'MASTERS_ENGINEERING_COMPUTERS',
+        'Master''s - Engineering / Computers',
+        20
+    ),
+    (
+        3,
+        'BACHELORS_ARTS_SCIENCE_COMMERCE',
+        'Bachelor''s - Arts / Science / Commerce',
         30
     ),
     (
-        'MASTERS',
-        'Master''s Degree',
+        4,
+        'MASTERS_ARTS_SCIENCE_COMMERCE',
+        'Master''s - Arts / Science / Commerce',
         40
     ),
     (
-        'DOCTORATE',
-        'Doctorate / PhD',
+        5,
+        'BACHELORS_MANAGEMENT',
+        'Bachelor''s - Management',
         50
-    )
-ON CONFLICT (code) DO
-UPDATE
-SET
-    name = EXCLUDED.name,
-    display_order = EXCLUDED.display_order,
-    is_active = TRUE,
-    updated_at = CURRENT_TIMESTAMP;
+    ),
+    (
+        6,
+        'MASTERS_MANAGEMENT',
+        'Master''s - Management',
+        60
+    ),
+    (
+        7,
+        'BACHELORS_MEDICINE',
+        'Bachelor''s - Medicine - General / Dental / Surgeon',
+        70
+    ),
+    (
+        8,
+        'MASTERS_MEDICINE',
+        'Master''s - Medicine - General / Dental / Surgeon',
+        80
+    ),
+    (
+        9,
+        'BACHELORS_PHARMACY_HEALTH',
+        'Bachelor''s - Pharmacy / Nursing or Health Sciences',
+        90
+    ),
+    (
+        10,
+        'MASTERS_PHARMACY_HEALTH',
+        'Master''s - Pharmacy / Nursing or Health Sciences',
+        100
+    ),
+    (
+        11,
+        'BACHELORS_LEGAL',
+        'Bachelor''s - Legal',
+        110
+    ),
+    (
+        12,
+        'MASTERS_LEGAL',
+        'Master''s - Legal',
+        120
+    ),
+    (
+        13,
+        'FINANCE_PROFESSIONAL',
+        'Finance - ICWAI / CA / CS / CFA',
+        130
+    ),
+    (
+        14,
+        'CIVIL_SERVICES',
+        'Civil Services',
+        140
+    ),
+    (
+        15,
+        'DOCTORATES',
+        'Doctorates',
+        150
+    ),
+    (
+        16,
+        'DIPLOMA_POLYTECHNIC',
+        'Diploma / Polytechnic',
+        160
+    ),
+    (
+        17,
+        'HIGHER_SECONDARY',
+        'Higher Secondary / Secondary',
+        170
+    );
+
+-- ============================================================
+-- Seed: Educations
+-- ============================================================
+
+INSERT INTO master_educations (
+    id,
+    category_id,
+    code,
+    name,
+    display_order
+)
+VALUES
+
+-- ============================================================
+-- Bachelor's - Engineering / Computers
+-- ============================================================
+
+(
+    6,
+    1,
+    'AERONAUTICAL_ENGINEERING',
+    'Aeronautical Engineering',
+    10
+),
+(
+    8,
+    1,
+    'B_ARCH',
+    'B.Arch. - Bachelor of Architecture',
+    20
+),
+(
+    5,
+    1,
+    'BCA',
+    'BCA - Bachelor of Computer Applications',
+    30
+),
+(
+    49,
+    1,
+    'BE',
+    'B.E. - Bachelor of Engineering',
+    40
+),
+(
+    9,
+    1,
+    'B_PLAN',
+    'B.Plan - Bachelor of Planning',
+    50
+),
+(
+    95,
+    1,
+    'BSC_IT_CS',
+    'B.Sc. IT/CS - Bachelor of Science in IT/Computer Science',
+    60
+),
+(
+    50,
+    1,
+    'BTECH',
+    'B.Tech - Bachelor of Technology',
+    70
+),
+(
+    83,
+    1,
+    'OTHER_BACHELORS_ENGINEERING_COMPUTERS',
+    'Other Bachelor''s Degree in Engineering / Computers',
+    80
+),
+(
+    102,
+    1,
+    'BS_ENGINEERING',
+    'B.S. Eng. - Bachelor of Science in Engineering',
+    90
+),
+
+-- ============================================================
+-- Master's - Engineering / Computers
+-- ============================================================
+
+(
+    7,
+    2,
+    'M_ARCH',
+    'M.Arch. - Master of Architecture',
+    10
+),
+(
+    51,
+    2,
+    'MCA',
+    'MCA - Master of Computer Applications',
+    20
+),
+(
+    53,
+    2,
+    'ME',
+    'M.E. - Master of Engineering',
+    30
+),
+(
+    55,
+    2,
+    'MSC_IT_CS',
+    'M.Sc. IT/CS - Master of Science in IT/Computer Science',
+    40
+),
+(
+    3,
+    2,
+    'MS_ENGINEERING',
+    'M.S. Eng. - Master of Science in Engineering',
+    50
+),
+(
+    54,
+    2,
+    'MTECH',
+    'M.Tech. - Master of Technology',
+    60
+),
+(
+    52,
+    2,
+    'PGDCA',
+    'PGDCA - Post Graduate Diploma in Computer Applications',
+    70
+),
+(
+    84,
+    2,
+    'OTHER_MASTERS_ENGINEERING_COMPUTERS',
+    'Other Master''s Degree in Engineering / Computers',
+    80
+),
+
+-- ============================================================
+-- Bachelor's - Arts / Science / Commerce
+-- ============================================================
+
+(
+    43,
+    3,
+    'AVIATION_DEGREE',
+    'Aviation Degree',
+    10
+),
+(
+    18,
+    3,
+    'BA',
+    'B.A. - Bachelor of Arts',
+    20
+),
+(
+    16,
+    3,
+    'BCOM',
+    'B.Com. - Bachelor of Commerce',
+    30
+),
+(
+    39,
+    3,
+    'BED',
+    'B.Ed. - Bachelor of Education',
+    40
+),
+(
+    56,
+    3,
+    'BFA',
+    'BFA - Bachelor of Fine Arts',
+    50
+),
+(
+    66,
+    3,
+    'BFT',
+    'BFT - Bachelor of Fashion Technology',
+    60
+),
+(
+    57,
+    3,
+    'BLIS',
+    'BLIS - Bachelor of Library and Information Science',
+    70
+),
+(
+    59,
+    3,
+    'BMM',
+    'B.M.M. - Bachelor of Mass Media',
+    80
+),
+(
+    17,
+    3,
+    'BSC',
+    'B.Sc. - Bachelor of Science',
+    90
+),
+(
+    58,
+    3,
+    'BSW',
+    'B.S.W. - Bachelor of Social Work',
+    100
+),
+(
+    15,
+    3,
+    'BPHIL',
+    'B.Phil. - Bachelor of Philosophy',
+    110
+),
+(
+    85,
+    3,
+    'OTHER_BACHELORS_ARTS_SCIENCE_COMMERCE',
+    'Other Bachelor''s Degree in Arts / Science / Commerce',
+    120
+),
+
+-- ============================================================
+-- Master's - Arts / Science / Commerce
+-- ============================================================
+
+(
+    13,
+    4,
+    'MA',
+    'M.A. - Master of Arts',
+    10
+),
+(
+    11,
+    4,
+    'MCOM',
+    'M.Com. - Master of Commerce',
+    20
+),
+(
+    38,
+    4,
+    'MED',
+    'M.Ed. - Master of Education',
+    30
+),
+(
+    98,
+    4,
+    'MFA',
+    'MFA - Master of Fine Arts',
+    40
+),
+(
+    60,
+    4,
+    'MLIS',
+    'MLIS - Master of Library and Information Science',
+    50
+),
+(
+    12,
+    4,
+    'MSC',
+    'M.Sc. - Master of Science',
+    60
+),
+(
+    63,
+    4,
+    'MSW',
+    'M.S.W. - Master of Social Work',
+    70
+),
+(
+    10,
+    4,
+    'MPHIL',
+    'M.Phil. - Master of Philosophy',
+    80
+),
+(
+    86,
+    4,
+    'OTHER_MASTERS_ARTS_SCIENCE_COMMERCE',
+    'Other Master''s Degree in Arts / Science / Commerce',
+    90
+),
+
+-- ============================================================
+-- Bachelor's - Management
+-- ============================================================
+
+(
+    35,
+    5,
+    'BBA',
+    'BBA - Bachelor of Business Administration',
+    10
+),
+(
+    65,
+    5,
+    'BFM',
+    'BFM - Bachelor of Financial Management',
+    20
+),
+(
+    19,
+    5,
+    'BHM',
+    'BHM - Bachelor of Hotel Management',
+    30
+),
+(
+    87,
+    5,
+    'OTHER_BACHELORS_MANAGEMENT',
+    'Other Bachelor''s Degree in Management',
+    40
+),
+(
+    103,
+    5,
+    'BHA',
+    'BHA - Bachelor of Hospital Administration',
+    50
+),
+
+-- ============================================================
+-- Master's - Management
+-- ============================================================
+
+(
+    61,
+    6,
+    'MBA',
+    'MBA - Master of Business Administration',
+    10
+),
+(
+    76,
+    6,
+    'MFM',
+    'MFM - Master of Financial Management',
+    20
+),
+(
+    14,
+    6,
+    'MHM',
+    'MHM - Master of Hotel Management',
+    30
+),
+(
+    64,
+    6,
+    'MHRM',
+    'MHRM - Master of Human Resource Management',
+    40
+),
+(
+    62,
+    6,
+    'PGDM',
+    'PGDM - Post Graduate Diploma in Management',
+    50
+),
+(
+    96,
+    6,
+    'OTHER_MASTERS_MANAGEMENT',
+    'Other Master''s Degree in Management',
+    60
+),
+(
+    104,
+    6,
+    'MHA',
+    'MHA - Master of Hospital Administration',
+    70
+),
+
+-- ============================================================
+-- Bachelor's - Medicine
+-- ============================================================
+
+(
+    29,
+    7,
+    'BAMS',
+    'BAMS - Bachelor of Ayurvedic Medicine and Surgery',
+    10
+),
+(
+    25,
+    7,
+    'BDS',
+    'BDS - Bachelor of Dental Surgery',
+    20
+),
+(
+    28,
+    7,
+    'BHMS',
+    'BHMS - Bachelor of Homeopathic Medicine and Surgery',
+    30
+),
+(
+    68,
+    7,
+    'BSMS',
+    'BSMS - Bachelor of Siddha Medicine and Surgery',
+    40
+),
+(
+    69,
+    7,
+    'BUMS',
+    'BUMS - Bachelor of Unani Medicine and Surgery',
+    50
+),
+(
+    26,
+    7,
+    'BVSC',
+    'BVSc - Bachelor of Veterinary Science',
+    60
+),
+(
+    21,
+    7,
+    'MBBS',
+    'MBBS - Bachelor of Medicine, Bachelor of Surgery',
+    70
+),
+
+-- ============================================================
+-- Master's - Medicine
+-- ============================================================
+
+(
+    22,
+    8,
+    'MDS',
+    'MDS - Master of Dental Surgery',
+    10
+),
+(
+    20,
+    8,
+    'MD_MS',
+    'MD / MS - Doctor of Medicine / Master of Surgery',
+    20
+),
+(
+    23,
+    8,
+    'MVSC',
+    'MVSc - Master of Veterinary Science',
+    30
+),
+(
+    105,
+    8,
+    'MCH',
+    'MCh - Master of Chirurgiae',
+    40
+),
+(
+    106,
+    8,
+    'DNB',
+    'DNB - Diplomate of National Board',
+    50
+),
+
+-- ============================================================
+-- Bachelor's - Pharmacy / Nursing / Health Sciences
+-- ============================================================
+
+(
+    31,
+    9,
+    'BPHARM',
+    'BPharm - Bachelor of Pharmacy',
+    10
+),
+(
+    27,
+    9,
+    'BPT',
+    'BPT - Bachelor of Physiotherapy',
+    20
+),
+(
+    101,
+    9,
+    'BSC_NURSING',
+    'B.Sc. Nursing - Bachelor of Science in Nursing',
+    30
+),
+(
+    88,
+    9,
+    'OTHER_BACHELORS_PHARMACY_HEALTH',
+    'Other Bachelor''s Degree in Pharmacy / Nursing or Health Sciences',
+    40
+),
+
+-- ============================================================
+-- Master's - Pharmacy / Nursing / Health Sciences
+-- ============================================================
+
+(
+    30,
+    10,
+    'MPHARM',
+    'MPharm - Master of Pharmacy',
+    10
+),
+(
+    24,
+    10,
+    'MPT',
+    'MPT - Master of Physiotherapy',
+    20
+),
+(
+    97,
+    10,
+    'OTHER_MASTERS_PHARMACY_HEALTH',
+    'Other Master''s Degree in Pharmacy / Nursing or Health Sciences',
+    30
+),
+
+-- ============================================================
+-- Bachelor's - Legal
+-- ============================================================
+
+(
+    72,
+    11,
+    'BGL',
+    'BGL - Bachelor of General Laws',
+    10
+),
+(
+    73,
+    11,
+    'BL',
+    'BL - Bachelor of Laws',
+    20
+),
+(
+    74,
+    11,
+    'LLB',
+    'LLB - Bachelor of Legislative Law',
+    30
+),
+(
+    90,
+    11,
+    'OTHER_BACHELORS_LEGAL',
+    'Other Bachelor''s Degree in Legal',
+    40
+),
+
+-- ============================================================
+-- Master's - Legal
+-- ============================================================
+
+(
+    71,
+    12,
+    'LLM',
+    'LLM - Master of Laws',
+    10
+),
+(
+    70,
+    12,
+    'ML',
+    'ML - Master of Legal Studies',
+    20
+),
+(
+    89,
+    12,
+    'OTHER_MASTERS_LEGAL',
+    'Other Master''s Degree in Legal',
+    30
+),
+
+-- ============================================================
+-- Finance
+-- ============================================================
+
+(
+    36,
+    13,
+    'CA',
+    'CA - Chartered Accountant',
+    10
+),
+(
+    75,
+    13,
+    'CFA',
+    'CFA - Chartered Financial Analyst',
+    20
+),
+(
+    48,
+    13,
+    'CS',
+    'CS - Company Secretary',
+    30
+),
+(
+    37,
+    13,
+    'ICWA',
+    'ICWA - Cost and Works Accountant',
+    40
+),
+(
+    91,
+    13,
+    'OTHER_FINANCE_QUALIFICATION',
+    'Other Degree / Qualification in Finance',
+    50
+),
+
+-- ============================================================
+-- Civil Services
+-- ============================================================
+
+(
+    77,
+    14,
+    'IAS',
+    'IAS - Indian Administrative Service',
+    10
+),
+(
+    80,
+    14,
+    'IES',
+    'IES - Indian Engineering Services',
+    20
+),
+(
+    81,
+    14,
+    'IFS',
+    'IFS - Indian Foreign Service',
+    30
+),
+(
+    79,
+    14,
+    'IRS',
+    'IRS - Indian Revenue Service',
+    40
+),
+(
+    78,
+    14,
+    'IPS',
+    'IPS - Indian Police Service',
+    50
+),
+(
+    92,
+    14,
+    'OTHER_CIVIL_SERVICES',
+    'Other Civil Services',
+    60
+),
+
+-- ============================================================
+-- Doctorates
+-- ============================================================
+
+(
+    33,
+    15,
+    'PHD',
+    'Ph.D. - Doctor of Philosophy',
+    10
+),
+(
+    107,
+    15,
+    'DM',
+    'DM - Doctor of Medicine',
+    20
+),
+(
+    108,
+    15,
+    'POSTDOCTORAL_FELLOW',
+    'Postdoctoral Fellow',
+    30
+),
+(
+    109,
+    15,
+    'FNB',
+    'FNB - Fellow of National Board',
+    40
+),
+
+-- ============================================================
+-- Diploma / Polytechnic
+-- ============================================================
+
+(
+    46,
+    16,
+    'DIPLOMA',
+    'Diploma',
+    10
+),
+(
+    82,
+    16,
+    'POLYTECHNIC',
+    'Polytechnic',
+    20
+),
+(
+    94,
+    16,
+    'OTHER_DIPLOMAS',
+    'Other Diplomas',
+    30
+),
+
+-- ============================================================
+-- Higher Secondary / Secondary
+-- ============================================================
+
+(
+    47,
+    17,
+    'HIGHER_SECONDARY_HIGH_SCHOOL',
+    'Higher Secondary School / High School',
+    10
+);
 
 -- ============================================================
 -- Seed occupation categories

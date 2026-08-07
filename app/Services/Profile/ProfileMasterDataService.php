@@ -190,6 +190,15 @@ final class ProfileMasterDataService
     /**
      * Return active master values used by partner preferences.
      *
+     * Flat Education and Occupation collections are retained for:
+     *
+     * - server-side submitted-ID validation;
+     * - summary label resolution;
+     * - backward-compatible consumers.
+     *
+     * Grouped collections are supplied separately for searchable
+     * category-based multi-select rendering.
+     *
      * @return array<string, mixed>
      */
     public function additionalPartnerPreferenceOptions(): array
@@ -207,9 +216,22 @@ final class ProfileMasterDataService
             $this->communityModel
                 ->activeOptions(),
 
+            /*
+         * Flat education collection.
+         *
+         * AdditionalPartnerPreferenceService uses this collection
+         * to validate selected IDs and resolve summary labels.
+         */
             'educations' =>
             $this->educationModel
                 ->activeOptions(),
+
+            /*
+         * Grouped collection used only by the Partner Preference UI.
+         */
+            'educationGroups' =>
+            $this->educationModel
+                ->activeGroupedOptions(),
 
             'employmentTypes' => [
                 [
@@ -238,20 +260,34 @@ final class ProfileMasterDataService
                 ],
             ],
 
+            /*
+         * Keep flat occupations because the service validates
+         * submitted occupation IDs against this collection and
+         * uses it for summary labels.
+         */
             'occupations' =>
             $this->occupationModel
                 ->activeOptions(),
+
+            /*
+         * Grouped collection for category-based UI rendering.
+         */
+            'occupationGroups' =>
+            $this->occupationModel
+                ->activeGroupedOptions(),
 
             'annualIncomes' =>
             $this->annualIncomeModel
                 ->activeOptions(),
 
-            'country' => $india,
+            'country' =>
+            $india,
 
             'states' =>
-            $this->stateModel->activeForCountry(
-                (int) $india['id']
-            ),
+            $this->stateModel
+                ->activeForCountry(
+                    (int) $india['id']
+                ),
         ];
     }
 
@@ -437,33 +473,32 @@ final class ProfileMasterDataService
     /**
      * Return master data required by Education & Profession.
      *
-     * Both flat and grouped occupation collections are supplied.
-     *
-     * The flat collection preserves compatibility with existing
-     * application consumers. The grouped collection is intended for
-     * profile forms that render accessible HTML optgroups.
+     * Flat collections remain available for backward compatibility.
+     * Grouped collections are used by member and prelaunch selects.
      *
      * @return array<string, mixed>
      */
     public function educationProfessionOptions(): array
     {
         return [
+            /*
+            * Preserve the existing flat contract.
+            */
             'educations' =>
             $this->educationModel
                 ->activeOptions(),
 
             /*
-         * Preserve the existing flat contract for consumers that
-         * do not render HTML optgroups.
-         */
+            * Member and prelaunch forms use optgroups.
+            */
+            'educationGroups' =>
+            $this->educationModel
+                ->activeGroupedOptions(),
+
             'occupations' =>
             $this->occupationModel
                 ->activeOptions(),
 
-            /*
-         * Member and prelaunch forms render occupations grouped
-         * by their configured active category.
-         */
             'occupationGroups' =>
             $this->occupationModel
                 ->activeGroupedOptions(),
@@ -472,10 +507,6 @@ final class ProfileMasterDataService
             $this->annualIncomeModel
                 ->activeOptions(),
 
-            /*
-         * Keep employment enum values centralized here rather
-         * than duplicating them across profile forms.
-         */
             'employmentTypes' => [
                 [
                     'value' => 'GOVERNMENT_PSU',
@@ -514,12 +545,29 @@ final class ProfileMasterDataService
         ?int $annualIncomeId
     ): void {
         $education = $this->educationModel
-            ->where('id', $educationId)
-            ->where('is_active', true)
+            ->select('master_educations.id')
+            ->join(
+                'master_education_categories',
+                'master_education_categories.id = '
+                    . 'master_educations.category_id',
+                'inner'
+            )
+            ->where(
+                'master_educations.id',
+                $educationId
+            )
+            ->where(
+                'master_educations.is_active',
+                true
+            )
+            ->where(
+                'master_education_categories.is_active',
+                true
+            )
             ->first();
 
         if (!is_array($education)) {
-            throw new \DomainException(
+            throw new DomainException(
                 'Please select a valid highest education.'
             );
         }

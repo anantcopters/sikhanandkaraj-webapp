@@ -22,10 +22,11 @@ $resolvedMasterData = is_array($masterData ?? null)
     ? $masterData
     : [];
 
-$educations = is_array(
-    $resolvedMasterData['educations'] ?? null
+$educationGroups = is_array(
+    $resolvedMasterData['educationGroups']
+        ?? null
 )
-    ? $resolvedMasterData['educations']
+    ? $resolvedMasterData['educationGroups']
     : [];
 
 $occupationGroups = is_array(
@@ -172,31 +173,72 @@ if ($isJourney) {
                     Select highest education
                 </option>
 
-                <?php foreach ($educations as $education): ?>
+                <?php foreach ($educationGroups as $group): ?>
                     <?php
-                    $educationId = (string) (
-                        $education['id'] ?? ''
+                    $groupName = trim(
+                        (string) (
+                            $group['name'] ?? ''
+                        )
                     );
+
+                    $groupEducations = is_array(
+                        $group['educations'] ?? null
+                    )
+                        ? $group['educations']
+                        : [];
+
+                    if (
+                        $groupName === ''
+                        || $groupEducations === []
+                    ) {
+                        continue;
+                    }
                     ?>
 
-                    <option
-                        value="<?= esc(
-                                    $educationId,
+                    <optgroup
+                        label="<?= esc(
+                                    $groupName,
                                     'attr'
-                                ) ?>"
-                        <?= $isSelected(
-                            'highest_education_id',
-                            $educationId,
-                            $details['highest_education_id']
-                                ?? ''
-                        ) ?>>
+                                ) ?>">
 
-                        <?= esc(
-                            (string) (
-                                $education['name'] ?? ''
-                            )
-                        ) ?>
-                    </option>
+                        <?php foreach (
+                            $groupEducations as $education
+                        ): ?>
+                            <?php
+                            $educationId = (string) (
+                                $education['id'] ?? ''
+                            );
+
+                            $educationName = trim(
+                                (string) (
+                                    $education['name'] ?? ''
+                                )
+                            );
+
+                            if (
+                                $educationId === ''
+                                || $educationName === ''
+                            ) {
+                                continue;
+                            }
+                            ?>
+
+                            <option
+                                value="<?= esc(
+                                            $educationId,
+                                            'attr'
+                                        ) ?>"
+                                <?= $isSelected(
+                                    'highest_education_id',
+                                    $educationId,
+                                    $details['highest_education_id']
+                                        ?? ''
+                                ) ?>>
+
+                                <?= esc($educationName) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </optgroup>
                 <?php endforeach; ?>
             </select>
 

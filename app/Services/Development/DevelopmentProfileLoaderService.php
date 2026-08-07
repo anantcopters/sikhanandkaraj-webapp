@@ -623,9 +623,7 @@ final class DevelopmentProfileLoaderService
         $educationMaster = $educationProfile['masterData'];
 
         $education = $this->randomRecord(
-            $educationMaster['highestEducations']
-                ?? $educationMaster['educations']
-                ?? [],
+            $educationMaster['educations'] ?? [],
             'Education master data is unavailable.'
         );
 
@@ -780,26 +778,32 @@ final class DevelopmentProfileLoaderService
             'education_ids'
         );
 
-        $employmentCount = random_int(1, 3);
+        $employmentCount = random_int(
+            1,
+            3
+        );
 
-        $employmentValues = self::EMPLOYMENT_TYPES;
+        $employmentValues =
+            self::EMPLOYMENT_TYPES;
 
         shuffle($employmentValues);
 
-        $this->additionalPreferenceService->saveItem(
-            $userId,
-            AdditionalPreferenceItem::EMPLOYED_IN,
-            [
-                'employed_in_values' =>
-                array_slice(
-                    $employmentValues,
-                    0,
-                    $employmentCount
-                ),
-                'is_compulsory' =>
-                $this->randomBooleanString(),
-            ]
-        );
+        $this->additionalPreferenceService
+            ->saveItem(
+                $userId,
+                AdditionalPreferenceItem::EMPLOYED_IN,
+                [
+                    'employed_in_values' =>
+                    array_slice(
+                        $employmentValues,
+                        0,
+                        $employmentCount
+                    ),
+
+                    'is_compulsory' =>
+                    $this->randomBooleanString(),
+                ]
+            );
 
         $this->saveRandomAdditionalMultiPreference(
             $userId,
@@ -815,63 +819,104 @@ final class DevelopmentProfileLoaderService
             'annual_income_ids'
         );
 
-        $location = $this->additionalPreferenceService
+        $location = $this
+            ->additionalPreferenceService
             ->getItemForUser(
                 $userId,
                 AdditionalPreferenceItem::LOCATION
             );
 
-        $states = $location['states'] ?? [];
+        $locationMasterData = is_array(
+            $location['masterData'] ?? null
+        )
+            ? $location['masterData']
+            : [];
 
-        if (is_array($states) && $states !== []) {
-            $selectedStates = $this->randomSubset(
-                $states,
-                min(2, count($states))
+        $states = is_array(
+            $locationMasterData['states'] ?? null
+        )
+            ? $locationMasterData['states']
+            : [];
+
+        if ($states === []) {
+            throw new RuntimeException(
+                'State master data is unavailable for development '
+                    . 'partner preferences.'
             );
+        }
 
-            $stateIds = array_map(
+        $selectedStates = $this->randomSubset(
+            $states,
+            min(
+                2,
+                count($states)
+            )
+        );
+
+        $stateIds = array_values(
+            array_map(
                 static fn(array $state): string =>
                 (string) $state['id'],
                 $selectedStates
+            )
+        );
+
+        $cities = service(
+            'profileMasterDataService'
+        )->citiesForStates(
+            array_map(
+                'intval',
+                $stateIds
+            )
+        );
+
+        if ($cities === []) {
+            throw new RuntimeException(
+                'No active city master data is available for the '
+                    . 'selected development preference states.'
             );
+        }
 
-            $cities = service('profileMasterDataService')
-                ->citiesForStates(
-                    array_map(
-                        'intval',
-                        $stateIds
-                    )
-                );
+        $selectedCities = $this->randomSubset(
+            $cities,
+            min(
+                3,
+                count($cities)
+            )
+        );
 
-            $selectedCities = $this->randomSubset(
-                $cities,
-                min(3, count($cities))
-            );
-
-            $this->additionalPreferenceService->saveItem(
+        $this->additionalPreferenceService
+            ->saveItem(
                 $userId,
                 AdditionalPreferenceItem::LOCATION,
                 [
-                    'state_ids' => $stateIds,
-                    'city_ids' => array_map(
-                        static fn(array $city): string =>
-                        (string) $city['id'],
-                        $selectedCities
+                    'state_ids' =>
+                    $stateIds,
+
+                    'city_ids' =>
+                    array_values(
+                        array_map(
+                            static fn(array $city): string =>
+                            (string) $city['id'],
+                            $selectedCities
+                        )
                     ),
+
                     'is_compulsory' =>
                     $this->randomBooleanString(),
                 ]
             );
-        }
 
-        $this->additionalPreferenceService->saveItem(
-            $userId,
-            AdditionalPreferenceItem::SPECIAL_REQUEST,
-            [
-                'request_text' =>
-                'Looking for a compatible, respectful and family-oriented partner.',
-            ]
-        );
+        $this->additionalPreferenceService
+            ->saveItem(
+                $userId,
+                AdditionalPreferenceItem::SPECIAL_REQUEST,
+                [
+                    'request_text' =>
+                    'Looking for a compatible, respectful '
+                        . 'and family-oriented partner.',
+                ]
+            );
     }
 
     /**
@@ -954,42 +999,90 @@ final class DevelopmentProfileLoaderService
         );
     }
 
+    /**
+     * Save one randomized multi-value Additional Partner Preference.
+     *
+     * AdditionalPartnerPreferenceService keeps selectable masters under
+     * the masterData key. Always use the flat master collection here;
+     * grouped Education and Occupation collections exist only for UI
+     * rendering and are not required by the development-data generator.
+     */
     private function saveRandomAdditionalMultiPreference(
         int $userId,
         string $item,
         string $optionsKey,
         string $payloadKey
     ): void {
-        $itemData = $this->additionalPreferenceService
+        $itemData = $this
+            ->additionalPreferenceService
             ->getItemForUser(
                 $userId,
                 $item
             );
 
-        $options = $itemData[$optionsKey] ?? [];
+        $masterData = is_array(
+            $itemData['masterData'] ?? null
+        )
+            ? $itemData['masterData']
+            : [];
 
-        if (!is_array($options) || $options === []) {
-            return;
+        $options = is_array(
+            $masterData[$optionsKey] ?? null
+        )
+            ? $masterData[$optionsKey]
+            : [];
+
+        if ($options === []) {
+            throw new RuntimeException(
+                sprintf(
+                    'Master data "%s" is unavailable for development '
+                        . 'partner preference "%s".',
+                    $optionsKey,
+                    $item
+                )
+            );
         }
 
         $selected = $this->randomSubset(
             $options,
-            min(random_int(1, 3), count($options))
+            min(
+                random_int(1, 3),
+                count($options)
+            )
         );
 
-        $this->additionalPreferenceService->saveItem(
-            $userId,
-            $item,
-            [
-                $payloadKey => array_map(
-                    static fn(array $option): string =>
-                    (string) $option['id'],
-                    $selected
-                ),
-                'is_compulsory' =>
-                $this->randomBooleanString(),
-            ]
+        $selectedIds = array_values(
+            array_map(
+                static function (array $option): string {
+                    $optionId = (int) (
+                        $option['id'] ?? 0
+                    );
+
+                    if ($optionId <= 0) {
+                        throw new RuntimeException(
+                            'Development partner preference master '
+                                . 'contains an invalid ID.'
+                        );
+                    }
+
+                    return (string) $optionId;
+                },
+                $selected
+            )
         );
+
+        $this->additionalPreferenceService
+            ->saveItem(
+                $userId,
+                $item,
+                [
+                    $payloadKey =>
+                    $selectedIds,
+
+                    'is_compulsory' =>
+                    $this->randomBooleanString(),
+                ]
+            );
     }
 
     /**

@@ -3,18 +3,42 @@
 declare(strict_types=1);
 
 /**
- * Reusable searchable multi-select with a Select All option.
+ * Reusable searchable multi-select.
  *
- * @var string                     $field
- * @var string                     $label
- * @var string                     $placeholder
- * @var list<array<string, mixed>> $options
- * @var string                     $optionValueKey
- * @var string                     $optionLabelKey
- * @var list<int|string>           $selectedValues
- * @var array<string, string>      $errors
- * @var bool|null                  $showSelectAll
- * @var bool|null                  $disabled
+ * Supports either:
+ *
+ * 1. Flat options:
+ *
+ *    $options = [
+ *        ['id' => 1, 'name' => 'Option'],
+ *    ];
+ *
+ * 2. Grouped options:
+ *
+ *    $groups = [
+ *        [
+ *            'name' => 'Category',
+ *            'items' => [
+ *                ['id' => 1, 'name' => 'Option'],
+ *            ],
+ *        ],
+ *    ];
+ *
+ * Existing flat consumers remain unchanged.
+ *
+ * @var string                          $field
+ * @var string                          $label
+ * @var string                          $placeholder
+ * @var list<array<string, mixed>>|null $options
+ * @var list<array<string, mixed>>|null $groups
+ * @var string|null                     $groupLabelKey
+ * @var string|null                     $groupItemsKey
+ * @var string                          $optionValueKey
+ * @var string                          $optionLabelKey
+ * @var list<int|string>                $selectedValues
+ * @var array<string, string>           $errors
+ * @var bool|null                       $showSelectAll
+ * @var bool|null                       $disabled
  */
 
 $resolvedField = trim(
@@ -35,6 +59,12 @@ $resolvedOptions = is_array(
     ? $options
     : [];
 
+$resolvedGroups = is_array(
+    $groups ?? null
+)
+    ? $groups
+    : [];
+
 $resolvedSelectedValues = is_array(
     $selectedValues ?? null
 )
@@ -48,11 +78,27 @@ $resolvedErrors = is_array(
     : [];
 
 $resolvedValueKey = trim(
-    (string) ($optionValueKey ?? 'id')
+    (string) (
+        $optionValueKey ?? 'id'
+    )
 );
 
 $resolvedLabelKey = trim(
-    (string) ($optionLabelKey ?? 'name')
+    (string) (
+        $optionLabelKey ?? 'name'
+    )
+);
+
+$resolvedGroupLabelKey = trim(
+    (string) (
+        $groupLabelKey ?? 'name'
+    )
+);
+
+$resolvedGroupItemsKey = trim(
+    (string) (
+        $groupItemsKey ?? 'items'
+    )
 );
 
 $resolvedShowSelectAll =
@@ -85,6 +131,57 @@ $selectedStrings = array_values(
         $resolvedSelectedValues
     )
 );
+
+/**
+ * Render one option.
+ */
+$renderOption = static function (
+    array $option
+) use (
+    $resolvedValueKey,
+    $resolvedLabelKey,
+    $selectedStrings
+): void {
+    $value = trim(
+        (string) (
+            $option[$resolvedValueKey]
+            ?? ''
+        )
+    );
+
+    $text = trim(
+        (string) (
+            $option[$resolvedLabelKey]
+            ?? ''
+        )
+    );
+
+    if (
+        $value === ''
+        || $text === ''
+    ) {
+        return;
+    }
+?>
+
+    <option
+        value="<?= esc(
+                    $value,
+                    'attr'
+                ) ?>"
+        <?= in_array(
+            $value,
+            $selectedStrings,
+            true
+        )
+            ? 'selected'
+            : '' ?>>
+
+        <?= esc($text) ?>
+    </option>
+
+<?php
+};
 ?>
 
 <div class="col-12">
@@ -167,44 +264,80 @@ $selectedStrings = array_values(
         multiple
         required>
 
-        <?php foreach (
-            $resolvedOptions as $option
-        ): ?>
-            <?php
-            $value = trim(
-                (string) (
-                    $option[$resolvedValueKey] ?? ''
-                )
-            );
+        <?php if ($resolvedGroups !== []): ?>
 
-            $text = trim(
-                (string) (
-                    $option[$resolvedLabelKey] ?? ''
-                )
-            );
-            ?>
-
-            <?php if (
-                $value !== ''
-                && $text !== ''
+            <?php foreach (
+                $resolvedGroups as $group
             ): ?>
-                <option
-                    value="<?= esc(
-                                $value,
-                                'attr'
-                            ) ?>"
-                    <?= in_array(
-                        $value,
-                        $selectedStrings,
-                        true
-                    )
-                        ? 'selected'
-                        : '' ?>>
+                <?php
+                if (!is_array($group)) {
+                    continue;
+                }
 
-                    <?= esc($text) ?>
-                </option>
-            <?php endif; ?>
-        <?php endforeach; ?>
+                $groupLabel = trim(
+                    (string) (
+                        $group[$resolvedGroupLabelKey]
+                        ?? ''
+                    )
+                );
+
+                $groupItems = is_array(
+                    $group[$resolvedGroupItemsKey]
+                        ?? null
+                )
+                    ? $group[$resolvedGroupItemsKey]
+                    : [];
+
+                if (
+                    $groupLabel === ''
+                    || $groupItems === []
+                ) {
+                    continue;
+                }
+                ?>
+
+                <optgroup
+                    label="<?= esc(
+                                $groupLabel,
+                                'attr'
+                            ) ?>">
+
+                    <?php foreach (
+                        $groupItems as $option
+                    ): ?>
+                        <?php
+                        if (!is_array($option)) {
+                            continue;
+                        }
+
+                        $renderOption(
+                            $option
+                        );
+                        ?>
+                    <?php endforeach; ?>
+
+                </optgroup>
+
+            <?php endforeach; ?>
+
+        <?php else: ?>
+
+            <?php foreach (
+                $resolvedOptions as $option
+            ): ?>
+                <?php
+                if (!is_array($option)) {
+                    continue;
+                }
+
+                $renderOption(
+                    $option
+                );
+                ?>
+            <?php endforeach; ?>
+
+        <?php endif; ?>
+
     </select>
 
     <?= view(

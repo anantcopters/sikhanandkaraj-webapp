@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Prelaunch Education & Profession fields.
  *
  * @var array<string, string>|null            $validationErrors
- * @var array<int, array<string, mixed>>|null $educations
+ * @var array<int, array<string, mixed>>|null $educationGroups
  * @var array<int, array<string, mixed>>|null $occupationGroups
  * @var array<int, array<string, mixed>>|null $employmentTypes
  */
@@ -17,10 +17,10 @@ $errorBag = is_array(
     ? $validationErrors
     : [];
 
-$educationOptions = is_array(
-    $educations ?? null
+$groupedEducationOptions = is_array(
+    $educationGroups ?? null
 )
-    ? $educations
+    ? $educationGroups
     : [];
 
 $groupedOccupationOptions = is_array(
@@ -132,6 +132,7 @@ $occupationClass = $occupationError !== ''
                     aria-describedby="highest_education_idError"
                     data-choice
                     data-choice-position="bottom"
+                    data-choice-search="true"
                     data-choice-search-placeholder="Search education"
                     data-error-required="Please select your highest education."
                     required>
@@ -141,50 +142,88 @@ $occupationClass = $occupationError !== ''
                     </option>
 
                     <?php foreach (
-                        $educationOptions as
-                        $educationOption
+                        $groupedEducationOptions as
+                        $educationGroup
                     ): ?>
                         <?php
-                        if (!is_array($educationOption)) {
+                        if (!is_array($educationGroup)) {
                             continue;
                         }
 
-                        $optionId = (string) (
-                            $educationOption['id']
-                            ?? ''
-                        );
-
-                        $optionName = trim(
+                        $groupName = trim(
                             (string) (
-                                $educationOption['name']
-                                ?? $educationOption['label']
+                                $educationGroup['name']
                                 ?? ''
                             )
                         );
 
+                        $groupEducations = is_array(
+                            $educationGroup['educations']
+                                ?? null
+                        )
+                            ? $educationGroup['educations']
+                            : [];
+
                         if (
-                            $optionId === ''
-                            || $optionName === ''
+                            $groupName === ''
+                            || $groupEducations === []
                         ) {
                             continue;
                         }
-
-                        $optionSelected =
-                            $educationId === $optionId;
                         ?>
 
-                        <option
-                            value="<?= esc(
-                                        $optionId,
+                        <optgroup
+                            label="<?= esc(
+                                        $groupName,
                                         'attr'
-                                    ) ?>"
-                            <?= $optionSelected
-                                ? 'selected'
-                                : '' ?>>
+                                    ) ?>">
 
-                            <?= esc($optionName) ?>
-                        </option>
-                    <?php endforeach ?>
+                            <?php foreach (
+                                $groupEducations as
+                                $educationOption
+                            ): ?>
+                                <?php
+                                if (!is_array($educationOption)) {
+                                    continue;
+                                }
+
+                                $optionId = (string) (
+                                    $educationOption['id']
+                                    ?? ''
+                                );
+
+                                $optionName = trim(
+                                    (string) (
+                                        $educationOption['name']
+                                        ?? ''
+                                    )
+                                );
+
+                                if (
+                                    $optionId === ''
+                                    || $optionName === ''
+                                ) {
+                                    continue;
+                                }
+
+                                $optionSelected =
+                                    $educationId === $optionId;
+                                ?>
+
+                                <option
+                                    value="<?= esc(
+                                                $optionId,
+                                                'attr'
+                                            ) ?>"
+                                    <?= $optionSelected
+                                        ? 'selected'
+                                        : '' ?>>
+
+                                    <?= esc($optionName) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                    <?php endforeach; ?>
                 </select>
 
                 <div
