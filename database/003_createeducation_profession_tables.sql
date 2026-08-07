@@ -404,14 +404,6 @@ VALUES (
     (22, 'OTHERS', 'Others', 220),
     (23, 'DOCTOR', 'Doctor', 230);
 
-SELECT setval(
-        pg_get_serial_sequence(
-            'master_occupation_categories', 'id'
-        ), (
-            SELECT MAX(id)
-            FROM master_occupation_categories
-        ), TRUE
-    );
 
 -- ============================================================
 -- Seed occupations
@@ -1435,12 +1427,7 @@ VALUES
     40
 );
 
-SELECT setval(
-        pg_get_serial_sequence('master_occupations', 'id'), (
-            SELECT MAX(id)
-            FROM master_occupations
-        ), TRUE
-    );
+  
 -- ============================================================
 -- Seed: Annual Income
 -- 1 lakh = 100000 INR
