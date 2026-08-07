@@ -405,4 +405,40 @@ final class UserModel extends Model
             )
             ->groupEnd();
     }
+
+    /**
+     * Find an active, member-facing profile by public reference.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findActiveByProfileReference(
+        string $reference
+    ): ?array {
+        $reference = strtoupper(
+            trim($reference)
+        );
+
+        if ($reference === '') {
+            return null;
+        }
+
+        $record = $this
+            ->where(
+                'profile_ref_number',
+                $reference
+            )
+            ->where(
+                'account_status',
+                self::STATUS_ACTIVE
+            )
+            ->where(
+                'deleted_at',
+                null
+            )
+            ->first();
+
+        return is_array($record)
+            ? $record
+            : null;
+    }
 }

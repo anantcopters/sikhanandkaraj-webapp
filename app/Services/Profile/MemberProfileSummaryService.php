@@ -31,46 +31,72 @@ final class MemberProfileSummaryService
     /**
      * Return the complete profile-summary dataset for a member.
      *
+     * By default the member's approved primary medium image is resolved because
+     * this service is primarily used by owner-facing Profile and Dashboard pages.
+     *
+     * Another-member flows must pass $resolveProfileImage = false. Those flows
+     * have a different authorization context and must resolve the image only after
+     * relationship/block/photo-visibility authorization has succeeded.
+     *
      * @return array<string, mixed>
      */
-    public function getForUser(int $userId): array
-    {
-        $basicProfile = $this->basicDetailsService->getForUser(
-            $userId
-        );
+    public function getForUser(
+        int $userId,
+        bool $resolveProfileImage = true
+    ): array {
+        $basicProfile = $this
+            ->basicDetailsService
+            ->getForUser(
+                $userId
+            );
 
         $educationProfile = $this
             ->educationProfessionService
-            ->getForUser($userId);
+            ->getForUser(
+                $userId
+            );
 
-        $familyProfile = $this->familyDetailsService->getForUser(
-            $userId
-        );
+        $familyProfile = $this
+            ->familyDetailsService
+            ->getForUser(
+                $userId
+            );
 
-        $lifestyleProfile = $this->lifestyleService->getForUser(
-            $userId
-        );
+        $lifestyleProfile = $this
+            ->lifestyleService
+            ->getForUser(
+                $userId
+            );
 
-        $aboutMeProfile = $this->aboutMeService->getForUser(
-            $userId
-        );
+        $aboutMeProfile = $this
+            ->aboutMeService
+            ->getForUser(
+                $userId
+            );
 
-        $photoSummary = $this->memberPhotoService->getPhotoSummary(
-            $userId
-        );
+        $photoSummary = $this
+            ->memberPhotoService
+            ->getPhotoSummary(
+                $userId
+            );
 
         /*
-         * Overall completion is calculated only through the existing
-         * ProfileCompletionService. Do not duplicate percentage rules here.
-         */
+     * Overall completion continues to use the existing central
+     * ProfileCompletionService.
+     */
         $profileCompletion = $this
             ->profileCompletionService
             ->calculate(
                 $basicProfile['completion'],
+
                 $educationProfile['completion'],
+
                 $familyProfile['completion'],
+
                 $lifestyleProfile['completion'],
+
                 $aboutMeProfile['completion'],
+
                 (
                     $photoSummary['hasUploadedPhoto']
                     ?? false
@@ -78,30 +104,45 @@ final class MemberProfileSummaryService
             );
 
         /*
-         * Only an approved primary image may be displayed as the member's
-         * profile image.
-         */
-        $profileImage = $this
-            ->memberPhotoUrlService
-            ->getApprovedPrimaryUrl(
-                $userId,
-                'medium'
+     * Owner-oriented callers resolve the approved primary medium image
+     * exactly as they do today.
+     *
+     * Another-member callers explicitly disable this because they need
+     * viewer-specific visibility authorization before a signed URL can
+     * be generated.
+     */
+        $profileImage = '';
+
+        if ($resolveProfileImage) {
+            $profileImage = $this
+                ->memberPhotoUrlService
+                ->getApprovedPrimaryUrl(
+                    $userId,
+                    'medium'
+                );
+        }
+
+        $profileSections = $this
+            ->buildProfileSections(
+                $basicProfile['completion'],
+
+                $educationProfile['completion'],
+
+                $familyProfile['completion'],
+
+                $lifestyleProfile['completion'],
+
+                $aboutMeProfile['completion'],
+
+                (
+                    $photoSummary['hasUploadedPhoto']
+                    ?? false
+                ) === true
             );
 
-        $profileSections = $this->buildProfileSections(
-            $basicProfile['completion'],
-            $educationProfile['completion'],
-            $familyProfile['completion'],
-            $lifestyleProfile['completion'],
-            $aboutMeProfile['completion'],
-            (
-                $photoSummary['hasUploadedPhoto']
-                ?? false
-            ) === true
-        );
-
         return [
-            'user' => $basicProfile['user'],
+            'user' =>
+            $basicProfile['user'],
 
             'basicDetails' =>
             $basicProfile['basicDetails'],
@@ -143,27 +184,21 @@ final class MemberProfileSummaryService
             $profileCompletion,
 
             'overallProfileSummary' =>
-            $this->buildOverallProfileSummary(
-                $profileCompletion,
-                $profileImage,
-                $photoSummary
-            ),
+            $this
+                ->buildOverallProfileSummary(
+                    $profileCompletion,
+                    $profileImage,
+                    $photoSummary
+                ),
 
-            /*
-             * Presentation-ready section records shared by the profile page
-             * and dashboard.
-             */
             'profileSections' =>
             $profileSections,
 
-            /*
-             * The guided journey deliberately excludes photos, matching the
-             * existing profile/edit behaviour.
-             */
             'nextProfileSection' =>
-            $this->resolveNextProfileSection(
-                $profileSections
-            ),
+            $this
+                ->resolveNextProfileSection(
+                    $profileSections
+                ),
         ];
     }
 

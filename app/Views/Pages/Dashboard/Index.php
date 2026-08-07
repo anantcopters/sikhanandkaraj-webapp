@@ -82,42 +82,99 @@ $totalSteps = max(
  * controls labels, descriptions and display ordering.
  */
 $matchSections = [
-    // [
-    //     'title' => 'Daily Recommendations',
-    //     'description' => 'Profiles selected for you based on your information.',
-    //     'profiles' => $dailyRecommendations ?? [],
-    //     'emptyMessage' => 'No daily recommendations are available yet.',
-    // ],
-    // [
-    //     'title' => 'All Matches',
-    //     'description' => 'Members matching your current partner preferences.',
-    //     'profiles' => $allMatches ?? [],
-    //     'emptyMessage' => 'No matching profiles are available yet.',
-    // ],
-    // [
-    //     'title' => 'New Matches',
-    //     'description' => 'Recently added profiles that may interest you.',
-    //     'profiles' => $newMatches ?? [],
-    //     'emptyMessage' => 'No new matches are available yet.',
-    // ],
-    // [
-    //     'title' => 'Who Viewed Your Profile',
-    //     'description' => 'Members who recently visited your profile.',
-    //     'profiles' => $profileVisitors ?? [],
-    //     'emptyMessage' => 'Your profile has not received any visitors yet.',
-    // ],
-    // [
-    //     'title' => 'Profiles Shortlisted By You',
-    //     'description' => 'Members you have saved for later consideration.',
-    //     'profiles' => $shortlistedProfiles ?? [],
-    //     'emptyMessage' => 'You have not shortlisted any profiles yet.',
-    // ],
-    // [
-    //     'title' => 'Profiles Who Shortlisted You',
-    //     'description' => 'Members who have shown interest in your profile.',
-    //     'profiles' => $shortlistedByProfiles ?? [],
-    //     'emptyMessage' => 'No member has shortlisted your profile yet.',
-    // ],
+    [
+        'key' => 'all-matches',
+
+        'title' => 'All Matches',
+
+        'description' =>
+        'Profiles matching at least '
+            . (int) ($minimumMatchPercentage ?? 30)
+            . '% of the partner preferences you have set.',
+
+        'profiles' =>
+        $allMatches ?? [],
+
+        'emptyMessage' =>
+        'No matching profiles are available yet.',
+    ],
+
+    [
+        'key' => 'new-matches',
+
+        'title' => 'New Matches',
+
+        'description' =>
+        'Preference-matched members who joined within the last '
+            . (int) ($newMatchDays ?? 30)
+            . ' days.',
+
+        'profiles' =>
+        $newMatches ?? [],
+
+        'emptyMessage' =>
+        'No new matches are available yet.',
+    ],
+
+    [
+        'key' => 'interest-received',
+
+        'title' => 'Interested in You',
+
+        'description' =>
+        'Members who have shown interest in your profile.',
+
+        'profiles' =>
+        $interestReceived ?? [],
+
+        'emptyMessage' =>
+        'No member has shown interest in your profile yet.',
+    ],
+
+    [
+        'key' => 'interest-sent',
+
+        'title' => 'Interests Sent',
+
+        'description' =>
+        'Members you have shown interest in.',
+
+        'profiles' =>
+        $interestSent ?? [],
+
+        'emptyMessage' =>
+        'You have not shown interest in any member yet.',
+    ],
+
+    [
+        'key' => 'profile-visitors',
+
+        'title' => 'Who Viewed Your Profile',
+
+        'description' =>
+        'Members who have viewed your profile.',
+
+        'profiles' =>
+        $profileVisitors ?? [],
+
+        'emptyMessage' =>
+        'Your profile has not been viewed yet.',
+    ],
+
+    [
+        'key' => 'profiles-viewed',
+
+        'title' => 'Profiles You Viewed',
+
+        'description' =>
+        'Profiles you have viewed recently.',
+
+        'profiles' =>
+        $profilesViewed ?? [],
+
+        'emptyMessage' =>
+        'You have not viewed another profile yet.',
+    ],
 ];
 ?>
 
@@ -863,34 +920,142 @@ $matchSections = [
 
                 <?php foreach ($matchSections as $section): ?>
                     <?php
-                    $sectionProfiles = is_array($section['profiles'])
+                    $sectionProfiles = isset(
+                        $section['profiles']
+                    )
+                        && is_array(
+                            $section['profiles']
+                        )
                         ? $section['profiles']
                         : [];
+
+                    $sectionKey = preg_replace(
+                        '/[^a-z0-9\-]/',
+                        '',
+                        strtolower(
+                            (string) (
+                                $section['key']
+                                ?? 'profiles'
+                            )
+                        )
+                    ) ?? 'profiles';
                     ?>
 
-                    <section class="card border border-danger border-opacity-25 shadow-sm mb-4">
+                    <section
+                        class="card border border-danger
+            border-opacity-25 shadow-sm mb-4">
+
                         <div class="card-body p-4">
+
                             <div
-                                class="d-flex align-items-start justify-content-between gap-3 mb-3">
+                                class="d-flex
+                    align-items-start
+                    justify-content-between
+                    gap-3 mb-3">
 
                                 <div>
-                                    <h2 class="fs-18 fw-semibold mb-1">
-                                        <?= esc($section['title']) ?>
-                                    </h2>
+                                    <div
+                                        class="d-flex
+                            align-items-center
+                            flex-wrap gap-2 mb-1">
 
-                                    <p class="text-muted fs-13 mb-0">
-                                        <?= esc($section['description']) ?>
+                                        <h2
+                                            class="fs-18
+                                fw-semibold mb-0">
+
+                                            <?= esc(
+                                                $section['title']
+                                            ) ?>
+                                        </h2>
+
+                                        <span
+                                            class="badge
+                                bg-primary-subtle
+                                text-primary">
+
+                                            <?= esc(
+                                                (string)
+                                                count(
+                                                    $sectionProfiles
+                                                )
+                                            ) ?>
+                                        </span>
+                                    </div>
+
+                                    <p
+                                        class="text-muted
+                            fs-13 mb-0">
+
+                                        <?= esc(
+                                            $section['description']
+                                        ) ?>
                                     </p>
                                 </div>
 
+                                <?php if (
+                                    count($sectionProfiles)
+                                    > 1
+                                ): ?>
 
+                                    <div
+                                        class="d-flex
+                            align-items-center
+                            gap-1 flex-shrink-0">
+
+                                        <button
+                                            type="button"
+                                            class="btn btn-light
+                                btn-sm btn-icon"
+                                            aria-label="Previous profiles"
+                                            data-profile-scroll-previous
+                                            data-profile-scroll-target="<?= esc(
+                                                                            $sectionKey,
+                                                                            'attr'
+                                                                        ) ?>">
+
+                                            <i
+                                                class="ri-arrow-left-s-line"
+                                                aria-hidden="true">
+                                            </i>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            class="btn btn-light
+                                btn-sm btn-icon"
+                                            aria-label="Next profiles"
+                                            data-profile-scroll-next
+                                            data-profile-scroll-target="<?= esc(
+                                                                            $sectionKey,
+                                                                            'attr'
+                                                                        ) ?>">
+
+                                            <i
+                                                class="ri-arrow-right-s-line"
+                                                aria-hidden="true">
+                                            </i>
+                                        </button>
+                                    </div>
+
+                                <?php endif; ?>
                             </div>
 
-                            <?php if ($sectionProfiles !== []): ?>
-                                <div class="dashboard-profile-scroll pb-2">
+                            <?php if (
+                                $sectionProfiles !== []
+                            ): ?>
+
+                                <div
+                                    class="dashboard-profile-scroll pb-2"
+                                    data-profile-scroll="<?= esc(
+                                                                $sectionKey,
+                                                                'attr'
+                                                            ) ?>">
+
                                     <?php foreach (
-                                        $sectionProfiles as $profile
+                                        $sectionProfiles
+                                        as $profile
                                     ): ?>
+
                                         <?php
                                         $profileName = trim(
                                             (string) (
@@ -899,24 +1064,18 @@ $matchSections = [
                                             )
                                         );
 
-                                        $profileReferenceId = trim(
-                                            (string) (
-                                                $profile['referenceId']
-                                                ?? ''
-                                            )
-                                        );
-
-                                        $profileAge = max(
-                                            0,
-                                            (int) (
+                                        $profileAge = isset(
+                                            $profile['age']
+                                        )
+                                            && is_numeric(
                                                 $profile['age']
-                                                ?? 0
                                             )
-                                        );
+                                            ? (int) $profile['age']
+                                            : null;
 
-                                        $profileHeight = trim(
+                                        $profileCity = trim(
                                             (string) (
-                                                $profile['height']
+                                                $profile['city']
                                                 ?? ''
                                             )
                                         );
@@ -935,131 +1094,194 @@ $matchSections = [
                                             )
                                         );
 
-                                        if ($profileUrl === '') {
-                                            $profileUrl = '#';
-                                        }
+                                        $matchPercentage =
+                                            isset(
+                                                $profile['matchPercentage']
+                                            )
+                                            && is_numeric(
+                                                $profile['matchPercentage']
+                                            )
+                                            ? (int) $profile['matchPercentage']
+                                            : null;
                                         ?>
 
                                         <article
-                                            class="card dashboard-profile-card border border-danger border-opacity-25">
+                                            class="card
+                                dashboard-profile-card
+                                border
+                                border-danger
+                                border-opacity-25">
 
-                                            <div class="card-body p-3">
-                                                <div
-                                                    class="position-relative mx-auto mb-3">
-
-                                                    <?php if (
-                                                        $profilePhoto !== ''
-                                                    ): ?>
-                                                        <img
-                                                            src="<?= esc(
-                                                                        $profilePhoto,
-                                                                        'attr'
-                                                                    ) ?>"
-                                                            class="dashboard-profile-photo"
-                                                            alt="<?= esc(
-                                                                        $profileName
-                                                                            . ' profile photo',
-                                                                        'attr'
-                                                                    ) ?>">
-                                                    <?php else: ?>
-                                                        <div
-                                                            class="dashboard-profile-photo"
-                                                            aria-hidden="true">
-
-                                                            <i
-                                                                class="ri-user-3-line">
-                                                            </i>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                </div>
-
-                                                <h3
-                                                    class="fs-14 fw-semibold text-center text-truncate mb-1"
-                                                    title="<?= esc(
-                                                                $profileName,
-                                                                'attr'
-                                                            ) ?>">
-
-                                                    <?= esc($profileName) ?>
-                                                </h3>
-
-                                                <?php if (
-                                                    $profileAge > 0
-                                                    || $profileHeight !== ''
-                                                ): ?>
-                                                    <p
-                                                        class="text-muted fs-12 text-center mb-2">
-
-                                                        <?php if (
-                                                            $profileAge > 0
-                                                        ): ?>
-                                                            <?= esc(
-                                                                (string) $profileAge
-                                                            ) ?>
-                                                            years
-                                                        <?php endif; ?>
-
-                                                        <?php if (
-                                                            $profileAge > 0
-                                                            && $profileHeight !== ''
-                                                        ): ?>
-                                                            <span
-                                                                aria-hidden="true">
-                                                                ,
-                                                            </span>
-                                                        <?php endif; ?>
-
-                                                        <?php if (
-                                                            $profileHeight !== ''
-                                                        ): ?>
-                                                            <?= esc(
-                                                                $profileHeight
-                                                            ) ?>
-                                                        <?php endif; ?>
-                                                    </p>
-                                                <?php endif; ?>
-
-                                                <?php if (
-                                                    $profileReferenceId !== ''
-                                                ): ?>
-                                                    <p
-                                                        class="fs-12 text-center mb-3">
-
-                                                        <?= esc(
-                                                            $profileReferenceId
-                                                        ) ?>
-                                                    </p>
-                                                <?php endif; ?>
+                                            <div
+                                                class="card-body p-3">
 
                                                 <a
                                                     href="<?= esc(
                                                                 $profileUrl,
                                                                 'attr'
                                                             ) ?>"
-                                                    class="btn btn-outline-primary btn-sm w-100">
+                                                    class="d-block
+                                        text-decoration-none">
 
-                                                    View Profile
+                                                    <?php if (
+                                                        $profilePhoto !== ''
+                                                    ): ?>
+
+                                                        <div
+                                                            class="admin-member-profile-photo
+                                                mx-auto mb-3">
+
+                                                            <img
+                                                                src="<?= esc(
+                                                                            $profilePhoto,
+                                                                            'attr'
+                                                                        ) ?>"
+                                                                alt="<?= esc(
+                                                                            $profileName
+                                                                                . ' profile photo',
+                                                                            'attr'
+                                                                        ) ?>"
+                                                                loading="lazy">
+                                                        </div>
+
+                                                    <?php else: ?>
+
+                                                        <div
+                                                            class="admin-member-profile-photo
+                                                admin-member-profile-photo--fallback
+                                                mx-auto mb-3"
+                                                            aria-label="<?= esc(
+                                                                            $profileName,
+                                                                            'attr'
+                                                                        ) ?>">
+
+                                                            <span>
+                                                                <?= esc(
+                                                                    mb_strtoupper(
+                                                                        mb_substr(
+                                                                            $profileName,
+                                                                            0,
+                                                                            1
+                                                                        )
+                                                                    )
+                                                                ) ?>
+                                                            </span>
+                                                        </div>
+
+                                                    <?php endif; ?>
+
+                                                    <h3
+                                                        class="fs-14
+                                            fw-semibold
+                                            text-body
+                                            text-center
+                                            text-truncate
+                                            mb-1">
+
+                                                        <?= esc(
+                                                            $profileName
+                                                        ) ?>
+                                                    </h3>
+
+                                                    <p
+                                                        class="text-muted
+                                            fs-12
+                                            text-center
+                                            mb-1">
+
+                                                        <?php if (
+                                                            $profileAge
+                                                            !== null
+                                                        ): ?>
+
+                                                            <?= esc(
+                                                                (string)
+                                                                $profileAge
+                                                            ) ?>
+                                                            years
+
+                                                        <?php endif; ?>
+
+                                                        <?php if (
+                                                            $profileAge
+                                                            !== null
+                                                            && $profileCity
+                                                            !== ''
+                                                        ): ?>
+
+                                                            <span
+                                                                aria-hidden="true">
+                                                                •
+                                                            </span>
+
+                                                        <?php endif; ?>
+
+                                                        <?php if (
+                                                            $profileCity
+                                                            !== ''
+                                                        ): ?>
+
+                                                            <?= esc(
+                                                                $profileCity
+                                                            ) ?>
+
+                                                        <?php endif; ?>
+                                                    </p>
+
+                                                    <?php if (
+                                                        $matchPercentage
+                                                        !== null
+                                                    ): ?>
+
+                                                        <p
+                                                            class="text-success
+                                                fs-12
+                                                fw-medium
+                                                text-center
+                                                mb-0">
+
+                                                            <?= esc(
+                                                                (string)
+                                                                $matchPercentage
+                                                            ) ?>%
+                                                            preference match
+                                                        </p>
+
+                                                    <?php endif; ?>
                                                 </a>
                                             </div>
                                         </article>
+
                                     <?php endforeach; ?>
+
                                 </div>
+
                             <?php else: ?>
-                                <div class="text-center py-4">
+
+                                <div
+                                    class="text-center py-4">
+
                                     <i
-                                        class="ri-user-search-line fs-32 text-muted"
+                                        class="ri-user-search-line
+                            fs-32 text-muted"
                                         aria-hidden="true">
                                     </i>
 
-                                    <p class="text-muted mb-0 mt-2">
+                                    <p
+                                        class="text-muted
+                            mb-0 mt-2">
+
                                         <?= esc(
                                             $section['emptyMessage']
                                         ) ?>
                                     </p>
                                 </div>
+
                             <?php endif; ?>
+
                         </div>
                     </section>
+
                 <?php endforeach; ?>
             </div>
         </div>

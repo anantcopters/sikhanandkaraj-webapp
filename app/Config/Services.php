@@ -96,6 +96,19 @@ use App\Services\PartnerPreference\AdditionalPartnerPreferenceService;
 use App\Models\MemberAccountStatusHistoryModel;
 use App\Services\Admin\MemberManagementService;
 use App\Services\Development\DevelopmentProfileLoaderService;
+use App\Models\MemberBlockModel;
+use App\Models\MemberInterestModel;
+use App\Models\MemberMatchCandidateModel;
+use App\Models\MemberProfileViewModel;
+
+use App\Services\Dashboard\MemberDashboardDataService;
+
+use App\Services\Matchmaking\MemberInteractionService;
+use App\Services\Matchmaking\MemberMatchmakingService;
+use App\Services\Matchmaking\MemberProfileViewService;
+use App\Services\Matchmaking\PartnerPreferenceMatchService;
+
+use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
 use App\Logging\ErrorLogSanitizer;
 use App\Services\Logging\ApplicationErrorLogger;
@@ -1288,6 +1301,10 @@ final class Services extends BaseService
             ),
             static::adminAuditService(
                 false
+            ),
+
+            static::memberInteractionService(
+                false
             )
         );
     }
@@ -1336,6 +1353,185 @@ final class Services extends BaseService
             static::additionalPartnerPreferenceService(),
             static::awsMediaService(),
             $database
+        );
+    }
+
+    public static function memberInteractionService(
+        bool $getShared = true
+    ): MemberInteractionService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberInteractionService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberInteractionService(
+            new UserModel($database),
+            new MemberBlockModel($database),
+            new MemberInterestModel($database),
+            new MemberProfileViewModel(
+                $database
+            ),
+            $database
+        );
+    }
+
+    public static function partnerPreferenceMatchService(
+        bool $getShared = true
+    ): PartnerPreferenceMatchService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'partnerPreferenceMatchService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new PartnerPreferenceMatchService(
+            new MemberPartnerBasicPreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerPreferenceMotherTongueModel(
+                $database
+            ),
+
+            new MemberPartnerPreferenceEatingHabitModel(
+                $database
+            ),
+
+            new MemberPartnerPreferenceDrinkingHabitModel(
+                $database
+            ),
+
+            new MemberPartnerReligiousPreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerProfessionalPreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerLocationPreferenceModel(
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'community',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'education',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'employed_in',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'occupation',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'annual_income',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'state',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'city',
+                $database
+            )
+        );
+    }
+
+    public static function memberMatchmakingService(
+        bool $getShared = true
+    ): MemberMatchmakingService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMatchmakingService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberMatchmakingService(
+            new UserModel($database),
+
+            new MemberMatchCandidateModel(
+                $database
+            ),
+
+            static::partnerPreferenceMatchService(
+                false
+            ),
+
+            static::memberInteractionService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            config(
+                Matchmaking::class
+            )
+        );
+    }
+
+    public static function memberDashboardDataService(
+        bool $getShared = true
+    ): MemberDashboardDataService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberDashboardDataService'
+            );
+        }
+
+        return new MemberDashboardDataService(
+            static::memberMatchmakingService(
+                false
+            )
+        );
+    }
+
+    public static function memberProfileViewService(
+        bool $getShared = true
+    ): MemberProfileViewService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfileViewService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberProfileViewService(
+            new UserModel($database),
+
+            static::memberProfileSummaryService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            static::memberInteractionService(
+                false
+            )
         );
     }
 }

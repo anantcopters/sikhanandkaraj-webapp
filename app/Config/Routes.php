@@ -441,6 +441,33 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                         'web.notifications.open',
                     ]
                 );
+
+                $routes->get(
+                    'members/(:segment)',
+                    'MemberProfileController::view/$1',
+                    [
+                        'as' =>
+                        'web.members.view',
+                    ]
+                );
+
+                $routes->post(
+                    'members/(:segment)/interest',
+                    'MemberProfileController::showInterest/$1',
+                    [
+                        'as' =>
+                        'web.members.interest',
+                    ]
+                );
+
+                $routes->post(
+                    'members/(:segment)/block',
+                    'MemberProfileController::block/$1',
+                    [
+                        'as' =>
+                        'web.members.block',
+                    ]
+                );
             }
         );
 

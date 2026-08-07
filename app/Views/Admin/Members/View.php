@@ -1301,7 +1301,165 @@ $this->section('content');
                 </div>
             </div>
         </div>
+        <?php
+        $interactionStats = isset(
+            $memberInteractionStats
+        )
+            && is_array(
+                $memberInteractionStats
+            )
+            ? $memberInteractionStats
+            : [];
+        ?>
 
+        <div
+            class="card
+        border
+        border-danger
+        border-opacity-25
+        mb-4">
+
+            <div class="card-header">
+                <h5
+                    class="card-title mb-0">
+
+                    <i
+                        class="ri-line-chart-line me-1"
+                        aria-hidden="true">
+                    </i>
+
+                    Member Activity
+                </h5>
+            </div>
+
+            <div class="card-body">
+
+                <div class="row g-3">
+
+                    <div
+                        class="col-6 col-lg-3">
+
+                        <div
+                            class="border rounded
+                        p-3 text-center h-100">
+
+                            <div
+                                class="text-muted
+                            fs-12 mb-1">
+
+                                Members Blocked
+                            </div>
+
+                            <strong
+                                class="fs-22">
+
+                                <?= esc(
+                                    (string) (
+                                        $interactionStats['blocked']
+                                        ?? 0
+                                    )
+                                ) ?>
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div
+                        class="col-6 col-lg-3">
+
+                        <div
+                            class="border rounded
+                        p-3 text-center h-100">
+
+                            <div
+                                class="text-muted
+                            fs-12 mb-1">
+
+                                Interest Received
+                            </div>
+
+                            <strong
+                                class="fs-22">
+
+                                <?= esc(
+                                    (string) (
+                                        $interactionStats['interestReceived']
+                                        ?? 0
+                                    )
+                                ) ?>
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div
+                        class="col-6 col-lg-3">
+
+                        <div
+                            class="border rounded
+                        p-3 text-center h-100">
+
+                            <div
+                                class="text-muted
+                            fs-12 mb-1">
+
+                                Interest Sent
+                            </div>
+
+                            <strong
+                                class="fs-22">
+
+                                <?= esc(
+                                    (string) (
+                                        $interactionStats['interestSent']
+                                        ?? 0
+                                    )
+                                ) ?>
+                            </strong>
+                        </div>
+                    </div>
+
+                    <div
+                        class="col-6 col-lg-3">
+
+                        <div
+                            class="border rounded
+                        p-3 text-center h-100">
+
+                            <div
+                                class="text-muted
+                            fs-12 mb-1">
+
+                                Profile Views
+                            </div>
+
+                            <strong
+                                class="fs-22">
+
+                                <?= esc(
+                                    (string) (
+                                        $interactionStats['totalProfileViews']
+                                        ?? 0
+                                    )
+                                ) ?>
+                            </strong>
+
+                            <div
+                                class="text-muted
+                            fs-12 mt-1">
+
+                                <?= esc(
+                                    (string) (
+                                        $interactionStats['uniqueProfileViewers']
+                                        ?? 0
+                                    )
+                                ) ?>
+                                unique members
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
         <div class="col-12 col-lg-5">
             <div
                 class="card

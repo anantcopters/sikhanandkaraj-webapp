@@ -11,6 +11,7 @@ use App\Services\Admin\Audit\AdminAuditEvent;
 use App\Services\Admin\Audit\AdminAuditService;
 use App\Services\Profile\MemberPhotoUrlService;
 use App\Services\Profile\MemberProfileSummaryService;
+use App\Services\Matchmaking\MemberInteractionService;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use DomainException;
@@ -28,7 +29,8 @@ final class MemberManagementService
         private readonly MemberAccountStatusHistoryModel $historyModel,
         private readonly MemberProfileSummaryService $profileSummaryService,
         private readonly MemberPhotoUrlService $photoUrlService,
-        private readonly AdminAuditService $auditService
+        private readonly AdminAuditService $auditService,
+        private readonly MemberInteractionService $interactionService
     ) {}
 
     /**
@@ -167,6 +169,13 @@ final class MemberManagementService
 
                 'adminPhotos' =>
                 $adminPhotos,
+
+                'memberInteractionStats' =>
+                $this
+                    ->interactionService
+                    ->statsForMember(
+                        $userId
+                    ),
             ]
         );
     }

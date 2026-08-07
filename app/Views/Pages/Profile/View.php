@@ -26,6 +26,9 @@ $profileViewMode = mb_strtolower(
     )
 );
 
+$isOtherMemberProfileView =
+    $profileViewMode === 'other-member';
+
 $isAdminProfileView =
     $profileViewMode === 'admin';
 
@@ -33,7 +36,9 @@ $profileLayout = $isAdminProfileView
     ? 'Admin/Layouts/Main'
     : 'Layouts/Main';
 
-$showMemberActions = !$isAdminProfileView;
+$showMemberActions =
+    !$isAdminProfileView
+    && !$isOtherMemberProfileView;
 
 $adminMemberId = max(
     0,
@@ -599,7 +604,9 @@ foreach ($approvedPhotos as $photo) {
     ];
 }
 
-$this->extend('Layouts/Main');
+$this->extend(
+    $profileLayout
+);
 $this->section('content');
 ?>
 
@@ -608,17 +615,23 @@ $this->section('content');
 
         <div class="mb-2">
             <a
-                href="<?= url_to(
-                            'web.profile.edit'
+                href="<?= esc(
+                            $profileBackUrl,
+                            'attr'
                         ) ?>"
-                class="d-inline-flex align-items-center
-                    gap-1 text-primary fw-medium mb-2">
+                class="d-inline-flex
+            align-items-center
+            gap-1 text-primary
+            fw-medium mb-2">
 
                 <i
                     class="ri-arrow-left-line"
-                    aria-hidden="true"></i>
+                    aria-hidden="true">
+                </i>
 
-                Back to profile
+                <?= esc(
+                    $profileBackLabel
+                ) ?>
             </a>
         </div>
 
@@ -640,18 +653,130 @@ $this->section('content');
                 </span>
 
                 <div>
-                    <h2 class="fs-15 fw-semibold mb-1">
-                        This is your profile preview
+                    <h2
+                        class="fs-15
+        fw-semibold mb-1">
+
+                        <?= esc(
+                            $profileNoticeTitle
+                        ) ?>
                     </h2>
 
-                    <p class="text-muted fs-13 mb-0">
-                        Only approved photos and saved profile
-                        details are displayed below.
+                    <p
+                        class="text-muted
+        fs-13 mb-0">
+
+                        <?= esc(
+                            $profileNoticeMessage
+                        ) ?>
                     </p>
                 </div>
             </div>
         </div>
+        <?php if (
+            $isOtherMemberProfileView
+        ): ?>
 
+            <div
+                class="d-flex
+            flex-column
+            flex-sm-row
+            justify-content-end
+            gap-2 mb-3">
+
+                <button
+                    type="button"
+                    class="btn
+                btn-outline-danger
+                d-inline-flex
+                align-items-center
+                justify-content-center
+                gap-2"
+                    data-member-block-open>
+
+                    <i
+                        class="ri-forbid-line"
+                        aria-hidden="true">
+                    </i>
+
+                    Block the Member
+                </button>
+
+                <?php if (
+                    ($hasShownInterest ?? false)
+                    === true
+                ): ?>
+
+                    <button
+                        type="button"
+                        class="btn btn-success
+                    d-inline-flex
+                    align-items-center
+                    justify-content-center
+                    gap-2"
+                        disabled>
+
+                        <i
+                            class="ri-checkbox-circle-line"
+                            aria-hidden="true">
+                        </i>
+
+                        Interest Shown
+                    </button>
+
+                <?php else: ?>
+
+                    <form
+                        method="post"
+                        action="<?= route_to(
+                                    'web.members.interest',
+                                    $viewedProfileReference
+                                ) ?>"
+                        data-member-interest-form>
+
+                        <?= csrf_field() ?>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary
+                        w-100
+                        d-inline-flex
+                        align-items-center
+                        justify-content-center
+                        gap-2">
+
+                            <span
+                                data-member-interest-label>
+
+                                <i
+                                    class="ri-heart-add-line"
+                                    aria-hidden="true">
+                                </i>
+
+                                Show Interest
+                            </span>
+
+                            <span
+                                class="d-none
+                            align-items-center"
+                                data-member-interest-loading>
+
+                                <span
+                                    class="spinner-border
+                                spinner-border-sm
+                                me-1"
+                                    aria-hidden="true">
+                                </span>
+
+                                Saving...
+                            </span>
+                        </button>
+                    </form>
+
+                <?php endif; ?>
+            </div>
+
+        <?php endif; ?>
         <!-- Main profile summary card. -->
         <article
             class="card border border-danger border-opacity-25 shadow-sm
@@ -660,25 +785,28 @@ $this->section('content');
             <div
                 class="card-body
                     position-relative p-3 p-lg-4">
+                <?php if (
+                    $showMemberActions
+                ): ?>
 
-                <a
-                    href="<?= url_to(
-                                'web.profile.edit'
-                            ) ?>"
-                    class="btn btn-outline-primary
+                    <a
+                        href="<?= url_to(
+                                    'web.profile.edit'
+                                ) ?>"
+                        class="btn btn-outline-primary
         d-inline-flex align-items-center
         justify-content-center gap-1
         position-absolute top-0 end-0
         mt-3 me-3 mt-lg-4 me-lg-4
         profile-preview-edit-button">
 
-                    <i
-                        class="ri-edit-line"
-                        aria-hidden="true"></i>
+                        <i
+                            class="ri-edit-line"
+                            aria-hidden="true"></i>
 
-                    Edit My Profile
-                </a>
-
+                        Edit My Profile
+                    </a>
+                <?php endif; ?>
 
 
                 <div class="row g-4 pt-5 pt-md-0">
@@ -1710,5 +1838,208 @@ $this->section('content');
 
     </div>
 
+<?php endif; ?>
+<?php if (
+    $isOtherMemberProfileView
+): ?>
+
+    <?php
+    $blockErrors = isset(
+        $validationErrors
+    )
+        && is_array(
+            $validationErrors
+        )
+        ? $validationErrors
+        : [];
+
+    $blockCommentError = trim(
+        (string) (
+            $blockErrors['comment']
+            ?? ''
+        )
+    );
+    ?>
+
+    <div
+        class="modal fade"
+        id="memberBlockModal"
+        tabindex="-1"
+        aria-labelledby="memberBlockModalTitle"
+        aria-hidden="true"
+        data-reopen-member-block="<?= (
+                                        session(
+                                            'reopenMemberBlockModal'
+                                        ) === true
+                                    )
+                                        ? '1'
+                                        : '0' ?>">
+
+        <div
+            class="modal-dialog
+                modal-dialog-centered">
+
+            <div class="modal-content">
+
+                <form
+                    method="post"
+                    action="<?= route_to(
+                                'web.members.block',
+                                $viewedProfileReference
+                            ) ?>"
+                    data-member-block-form>
+
+                    <?= csrf_field() ?>
+
+                    <div
+                        class="modal-header">
+
+                        <h2
+                            class="modal-title
+                                fs-18"
+                            id="memberBlockModalTitle">
+
+                            Block the Member
+                        </h2>
+
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                        </button>
+                    </div>
+
+                    <div
+                        class="modal-body">
+
+                        <p
+                            class="text-muted
+                                fs-13">
+
+                            This member will no longer
+                            appear in your matches,
+                            interests, views or searches.
+                        </p>
+
+                        <label
+                            for="member-block-comment"
+                            class="form-label">
+
+                            Comment
+                            <span
+                                class="text-danger">
+                                *
+                            </span>
+                        </label>
+
+                        <textarea
+                            id="member-block-comment"
+                            name="comment"
+                            class="form-control<?= (
+                                                    $blockCommentError !== ''
+                                                )
+                                                    ? ' is-invalid'
+                                                    : '' ?>"
+                            rows="4"
+                            maxlength="250"
+                            required
+                            aria-describedby="member-block-comment-error"><?= esc(
+                                                                                old('comment')
+                                                                            ) ?></textarea>
+
+                        <div
+                            id="member-block-comment-error"
+                            class="invalid-feedback">
+
+                            <?= esc(
+                                $blockCommentError
+                                    !== ''
+                                    ? $blockCommentError
+                                    : 'Please enter a comment.'
+                            ) ?>
+                        </div>
+
+                        <div
+                            class="form-text">
+
+                            Maximum 250 characters.
+                        </div>
+                    </div>
+
+                    <div
+                        class="modal-footer">
+
+                        <button
+                            type="button"
+                            class="btn btn-light"
+                            data-bs-dismiss="modal">
+
+                            Cancel
+                        </button>
+
+                        <button
+                            type="submit"
+                            class="btn btn-danger
+                                d-inline-flex
+                                align-items-center
+                                justify-content-center
+                                gap-2"
+                            data-member-block-submit>
+
+                            <span
+                                data-member-block-label>
+
+                                Block Member
+                            </span>
+
+                            <span
+                                class="d-none
+                                    align-items-center"
+                                data-member-block-loading>
+
+                                <span
+                                    class="spinner-border
+                                        spinner-border-sm
+                                        me-1"
+                                    aria-hidden="true">
+                                </span>
+
+                                Saving...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <?php if (
+        $isOtherMemberProfileView
+        && isset($memberActionNotice)
+        && is_array(
+            $memberActionNotice
+        )
+    ): ?>
+
+        <span
+            class="d-none"
+            data-member-action-notice
+            data-notice-title="<?= esc(
+                                    (string) (
+                                        $memberActionNotice['title']
+                                        ?? ''
+                                    ),
+                                    'attr'
+                                ) ?>"
+            data-notice-message="<?= esc(
+                                        (string) (
+                                            $memberActionNotice['message']
+                                            ?? ''
+                                        ),
+                                        'attr'
+                                    ) ?>">
+        </span>
+
+    <?php endif; ?>
 <?php endif; ?>
 <?php $this->endSection(); ?>

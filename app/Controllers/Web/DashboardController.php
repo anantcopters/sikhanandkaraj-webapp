@@ -81,11 +81,15 @@ final class DashboardController extends BaseController
         /*
          * Dashboard-specific account and match datasets.
          */
-        $dashboardData = (
-            new MemberDashboardDataService()
-        )->getDashboardData(
-            $resolvedUserId
+        /** @var MemberDashboardDataService $dashboardService */
+        $dashboardService = service(
+            'memberDashboardDataService'
         );
+
+        $dashboardData = $dashboardService
+            ->getDashboardData(
+                $resolvedUserId
+            );
 
         /*
          * Reuse exactly the same profile summary used by profile/edit.
@@ -135,6 +139,7 @@ final class DashboardController extends BaseController
 
                     'pageScripts' => [
                         'assets/js/pages/dashboard-security.js',
+                        'assets/js/pages/dashboard-matches.js',
                     ],
                 ],
                 $dashboardData

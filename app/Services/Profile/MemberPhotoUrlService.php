@@ -544,4 +544,141 @@ final class MemberPhotoUrlService
             return '';
         }
     }
+
+    /**
+     * Return an approved primary photo URL for another authenticated member.
+     *
+     * This method is deliberately separate from getApprovedPrimaryUrl().
+     *
+     * getApprovedPrimaryUrl():
+     *     Owner/internal profile-summary context.
+     *
+     * getApprovedPrimaryUrlForViewer():
+     *     Another-member context where photo visibility must be enforced.
+     *
+     * PUBLIC photos may be viewed by any otherwise-authorized member.
+     *
+     * INTERESTED_MEMBERS photos may be viewed only when the calling service
+     * has confirmed that an interest relationship exists in either direction.
+     *
+     * Original images are deliberately unavailable from this method.
+     * Member listings use thumbnail and profile-detail pages use medium.
+     */
+    public function getApprovedPrimaryUrlForViewer(
+        int $memberId,
+        int $viewerUserId,
+        bool $hasInterestRelationship,
+        string $variant = 'medium'
+    ): string {
+        if (
+            $memberId <= 0
+            || $viewerUserId <= 0
+            || $memberId === $viewerUserId
+        ) {
+            return '';
+        }
+
+        $photo = $this->photoModel
+            ->findApprovedPrimaryForMember(
+                $memberId
+            );
+
+        if (!is_array($photo)) {
+            return '';
+        }
+
+        $visibility = mb_strtoupper(
+            trim(
+                (string) (
+                    $photo['visibility']
+                    ?? ''
+                )
+            )
+        );
+
+        /*
+     * Unknown visibility values fail closed.
+     *
+     * Do not assume an invalid/missing value means PUBLIC.
+     */
+        if (
+            !in_array(
+                $visibility,
+                [
+                    'PUBLIC',
+                    'INTERESTED_MEMBERS',
+                ],
+                true
+            )
+        ) {
+            return '';
+        }
+
+        /*
+     * PRIVATE-TO-INTEREST visibility requires a confirmed relationship.
+     *
+     * Interest in either direction is sufficient:
+     *
+     * viewer -> member
+     * OR
+     * member -> viewer
+     */
+        if (
+            $visibility === 'INTERESTED_MEMBERS'
+            && !$hasInterestRelationship
+        ) {
+            return '';
+        }
+
+        /*
+     * Another-member pages are deliberately limited to:
+     *
+     * thumbnail -> dashboard/search/matches
+     * medium    -> member profile page
+     *
+     * Original must go through a separate explicit authorization flow.
+     */
+        $normalizedVariant = mb_strtolower(
+            trim($variant)
+        );
+
+        $column = match ($normalizedVariant) {
+            'thumbnail' =>
+            'thumbnail_object_key',
+
+            'medium' =>
+            'medium_object_key',
+
+            default =>
+            null,
+        };
+
+        if ($column === null) {
+            return '';
+        }
+
+        $objectKey = trim(
+            (string) (
+                $photo[$column]
+                ?? ''
+            )
+        );
+
+        if ($objectKey === '') {
+            return '';
+        }
+
+        return $this->createSignedUrl(
+            objectKey: $objectKey,
+
+            context: 'Viewer-authorized primary profile photo',
+
+            memberId: $memberId,
+
+            photoId: (int) (
+                $photo['id']
+                ?? 0
+            )
+        );
+    }
 }
