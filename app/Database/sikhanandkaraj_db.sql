@@ -103,7 +103,8 @@ CREATE TABLE contact_verifications (
             'PENDING',
             'VERIFIED',
             'EXPIRED',
-            'CANCELLED'
+            'CANCELLED',
+            'DELIVERY_FAILED'
         )
     )
 );
@@ -134,10 +135,6 @@ WHERE
 CREATE UNIQUE INDEX IF NOT EXISTS uq_user_contacts_email_normalized ON user_contacts (normalized_value)
 WHERE
     contact_type = 'EMAIL';
-
-CREATE UNIQUE INDEX IF NOT EXISTS uq_user_contacts_mobile_normalized ON user_contacts (normalized_value)
-WHERE
-    contact_type = 'MOBILE';
 
 CREATE TABLE IF NOT EXISTS http_request_logs (
     id BIGSERIAL PRIMARY KEY,
@@ -500,8 +497,6 @@ CREATE INDEX IF NOT EXISTS idx_master_cities_state_active_order ON master_cities
     display_order
 );
 
-COMMIT;
-
 INSERT INTO
     master_countries (
         iso_code,
@@ -759,7 +754,6 @@ SET
     is_active = TRUE,
     updated_at = CURRENT_TIMESTAMP;
 
-BEGIN;
 
 ALTER TABLE member_basic_details
 ADD COLUMN IF NOT EXISTS marital_status_id SMALLINT NULL,
@@ -1159,14 +1153,6 @@ VALUES (
     (22, 'OTHERS', 'Others', 220),
     (23, 'DOCTOR', 'Doctor', 230);
 
-SELECT setval(
-        pg_get_serial_sequence(
-            'master_occupation_categories', 'id'
-        ), (
-            SELECT MAX(id)
-            FROM master_occupation_categories
-        ), TRUE
-    );
 
 -- ============================================================
 -- Seed occupations
@@ -2189,13 +2175,6 @@ VALUES
     'Veterinary Doctor',
     40
 );
-
-SELECT setval(
-        pg_get_serial_sequence('master_occupations', 'id'), (
-            SELECT MAX(id)
-            FROM master_occupations
-        ), TRUE
-    );
 
 -- ============================================================
 -- Seed: Annual Income
@@ -3285,10 +3264,6 @@ CREATE INDEX IF NOT EXISTS idx_member_lifestyle_options_user ON member_lifestyle
 
 CREATE INDEX IF NOT EXISTS idx_member_lifestyle_options_option ON member_lifestyle_options (lifestyle_option_id);
 
-COMMIT;
-
-BEGIN;
-
 INSERT INTO
     master_lifestyle_categories (
         code,
@@ -3811,10 +3786,6 @@ WHERE
 CREATE INDEX IF NOT EXISTS idx_users_full_name_lower_search ON users (LOWER(full_name))
 WHERE
     deleted_at IS NULL;
-
-COMMIT;
-
-BEGIN;
 
 CREATE INDEX IF NOT EXISTS idx_member_photos_pending_member_created ON member_photos (member_id, created_at ASC)
 WHERE
@@ -4482,7 +4453,7 @@ original_path VARCHAR(500) NOT NULL,
     CONSTRAINT chk_prelaunch_photo_file_size
         CHECK (
             file_size_bytes > 0
-            AND file_size_bytes <= 5242880
+            AND file_size_bytes <= 18874368
         ),
 
     CONSTRAINT chk_prelaunch_photo_dimensions
@@ -4848,10 +4819,6 @@ DROP COLUMN IF EXISTS sikh_subcommunity_id;
 --    CASCADE acts as a final safeguard for any unknown remaining dependency.
 -- -------------------------------------------------------------------------
 DROP TABLE IF EXISTS public.master_sikh_subcommunities CASCADE;
-
-TRUNCATE TABLE master_states RESTART IDENTITY CASCADE;
-
-TRUNCATE TABLE master_cities RESTART IDENTITY CASCADE;
 
 DO $$
 DECLARE
@@ -5697,6 +5664,7 @@ ALTER TABLE public.prelaunch_photos
     CHECK (
         width_px > 0
         AND height_px > 0
+    );
 
 ALTER TABLE public.member_family_details
 ADD COLUMN IF NOT EXISTS nearest_gurudwara VARCHAR(200) NULL,
@@ -5754,11 +5722,7 @@ CHECK (
         'CHANGE_MOBILE',
         'CHANGE_EMAIL',
         'REGISTER',
-        'PASSWORD_RESET',
-        'PENDING',
-        'VERIFIED',
-        'EXPIRED',
-        'CANCELLED'
+        'PASSWORD_RESET'
     )
 );
 
@@ -6096,8 +6060,6 @@ CREATE TABLE IF NOT EXISTS member_partner_preference_drinking_habits (
 CREATE INDEX IF NOT EXISTS idx_partner_preference_drinking_habit_parent ON member_partner_preference_drinking_habits (partner_basic_preference_id);
 
 CREATE INDEX IF NOT EXISTS idx_partner_preference_drinking_habit_master ON member_partner_preference_drinking_habits (drinking_habit_id);
-
-BEGIN;
 
 -- ============================================================
 -- Rename existing boolean columns
@@ -6553,50 +6515,5 @@ CREATE INDEX idx_application_error_logs_admin ON application_error_logs (
 )
 WHERE
     admin_user_id IS NOT NULL;
-
-INSERT INTO admin_users (
-    full_name,
-    mobile_number,
-    email_address,
-    password_hash,
-    role,
-    account_status,
-    is_mobile_verified,
-    mobile_verified_at,
-    is_email_verified,
-    email_verified_at,
-    password_set_at,
-    last_login_at,
-    created_by,
-    created_at,
-    updated_at,
-    deleted_at
-)
-VALUES (
-    'Super Administrator',
-    '+918550915559',
-    'anantsinghkota@gmail.com',
-
-    -- Replace with output from:
-    -- php -r "echo password_hash('Admin@12345', PASSWORD_DEFAULT), PHP_EOL;"
-    '$2y$10$keZezmWEoCALBzZdh.AsV.6/o4szNryUBN6uo/BVPAdh4t.DMMWLW',
-
-    'SUPER_ADMIN',
-    'VERIFIED',
-
-    TRUE,
-    CURRENT_TIMESTAMP,
-
-    TRUE,
-    CURRENT_TIMESTAMP,
-
-    CURRENT_TIMESTAMP,
-    NULL,
-    NULL,
-    CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP,
-    NULL
-);
-
 
 COMMIT;
