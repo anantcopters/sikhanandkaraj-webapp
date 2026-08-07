@@ -304,7 +304,6 @@ $communityClass =
                                             'attr'
                                         ) ?>"
                     data-choice
-                    data-choices
                     data-choice-search="true"
                     data-choice-position="bottom"
                     data-error-required="Please select your community."

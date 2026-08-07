@@ -1,6 +1,62 @@
 'use strict';
 
 document.addEventListener('DOMContentLoaded', () => {
+    /**
+ * Determine whether a field currently contains an error rendered
+ * by the server after a validation redirect.
+ *
+ * Server errors remain authoritative until the user changes the
+ * corresponding field.
+ *
+ * @param {HTMLElement} field
+ * @returns {boolean}
+ */
+    const hasServerValidationError = (
+        field
+    ) => {
+        if (
+            !(
+                field
+                instanceof HTMLInputElement
+                || field
+                instanceof HTMLSelectElement
+                || field
+                instanceof HTMLTextAreaElement
+            )
+        ) {
+            return false;
+        }
+
+        if (
+            !field.classList.contains(
+                'is-invalid'
+            )
+        ) {
+            return false;
+        }
+
+        const fieldName =
+            field.name.trim();
+
+        if (fieldName === '') {
+            return false;
+        }
+
+        const errorElement =
+            form.querySelector(
+                `[data-validation-error="${CSS.escape(
+                    fieldName
+                )}"]`
+            );
+
+        return (
+            errorElement
+            instanceof HTMLElement
+            && errorElement.textContent
+                .trim() !== ''
+        );
+    };
+
     const form = document.getElementById(
         'prelaunch-profile-form'
     );
@@ -735,10 +791,15 @@ document.addEventListener('DOMContentLoaded', () => {
         );
 
         /*
-         * Restore previews after a server-validation redirect.
-         */
+        * Do not overwrite an authoritative server error immediately
+        * after redirect. Client validation resumes when the member
+        * changes or edits the field.
+        */
         if (
             dateOfBirth.value !== ''
+            && !hasServerValidationError(
+                dateOfBirth
+            )
         ) {
             validateAndDisplayAge();
         }
@@ -912,7 +973,7 @@ document.addEventListener('DOMContentLoaded', () => {
              *
              * @returns {void}
              */
-            const updateGenderState = () => {
+            const updateGenderState = (preserveServerError = false) => {
                 const selectedRelationship =
                     profileCreatedFor.value
                         .trim()
@@ -938,7 +999,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 gender.disabled = false;
 
                 if (fixedGender !== '') {
-                    clearGenderValidation();
+                    if (
+                        !preserveServerError
+                        || !hasServerValidationError(
+                            gender
+                        )
+                    ) {
+                        clearGenderValidation();
+                    }
 
                     setGenderValue(
                         fixedGender
@@ -953,7 +1021,14 @@ document.addEventListener('DOMContentLoaded', () => {
                  * Friend. Only clear an automatically assigned value when
                  * the relationship changes interactively.
                  */
-                clearGenderValidation();
+                if (
+                    !preserveServerError
+                    || !hasServerValidationError(
+                        gender
+                    )
+                ) {
+                    clearGenderValidation();
+                }
             };
 
             profileCreatedFor.addEventListener(
@@ -980,7 +1055,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         );
                     }
 
-                    updateGenderState();
+                    updateGenderState(true);
                 }
             );
 
@@ -988,7 +1063,7 @@ document.addEventListener('DOMContentLoaded', () => {
              * Restore the correct state after refresh, old input, or a
              * server-side validation failure.
              */
-            updateGenderState();
+            updateGenderState(false);
         };
 
     /**

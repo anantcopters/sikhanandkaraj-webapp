@@ -180,7 +180,6 @@ $genderOptions = [
                                         ) ?>"
                     aria-describedby="profile_created_forError"
                     data-choice
-                    data-choices
                     data-choice-search="false"
                     data-choice-position="bottom"
                     data-error-required="Please select who this profile is for."
@@ -265,7 +264,6 @@ $genderOptions = [
                     aria-describedby="genderError"
                     data-error-required="Please select gender."
                     data-choice
-                    data-choices
                     data-choice-search="false"
                     data-choice-position="bottom"
                     <?= $genderMustBeSelected
