@@ -1162,21 +1162,23 @@ $this->section('content');
     </div>
 
     <!-- Contact and profile completion -->
+    <!-- Contact and profile completion -->
     <div class="row g-4 mb-4">
 
         <div class="col-12 col-lg-7">
             <div
                 class="card
-                    border
-                    border-danger
-                    border-opacity-25
-                    h-100">
+                border
+                border-danger
+                border-opacity-25
+                h-100">
 
                 <div class="card-header">
                     <h5 class="card-title mb-0">
                         <i
                             class="ri-contacts-line me-1"
-                            aria-hidden="true"></i>
+                            aria-hidden="true">
+                        </i>
 
                         Contact Information
                     </h5>
@@ -1186,16 +1188,22 @@ $this->section('content');
                     <div class="row g-3">
 
                         <div class="col-12 col-md-6">
-                            <div class="border-bottom pb-2 h-100">
-                                <div class="text-muted fs-12 mb-1">
+                            <div
+                                class="border-bottom
+                                pb-2 h-100">
+
+                                <div
+                                    class="text-muted
+                                    fs-12 mb-1">
+
                                     Mobile Number
                                 </div>
 
                                 <div
                                     class="d-flex
-                                        align-items-center
-                                        gap-2
-                                        fw-medium">
+                                    align-items-center
+                                    gap-2
+                                    fw-medium">
 
                                     <span>
                                         <?= esc(
@@ -1218,16 +1226,22 @@ $this->section('content');
                         </div>
 
                         <div class="col-12 col-md-6">
-                            <div class="border-bottom pb-2 h-100">
-                                <div class="text-muted fs-12 mb-1">
+                            <div
+                                class="border-bottom
+                                pb-2 h-100">
+
+                                <div
+                                    class="text-muted
+                                    fs-12 mb-1">
+
                                     Email Address
                                 </div>
 
                                 <div
                                     class="d-flex
-                                        align-items-center
-                                        gap-2
-                                        fw-medium">
+                                    align-items-center
+                                    gap-2
+                                    fw-medium">
 
                                     <span>
                                         <?= esc(
@@ -1240,6 +1254,7 @@ $this->section('content');
                                     <?php if (
                                         $emailAddress !== ''
                                     ): ?>
+
                                         <i
                                             class="<?= $isEmailVerified
                                                         ? 'ri-checkbox-circle-fill text-success'
@@ -1248,14 +1263,22 @@ $this->section('content');
                                                             ? 'Email verified'
                                                             : 'Email not verified' ?>">
                                         </i>
+
                                     <?php endif; ?>
+
                                 </div>
                             </div>
                         </div>
 
                         <div class="col-12 col-md-6">
-                            <div class="border-bottom pb-2 h-100">
-                                <div class="text-muted fs-12 mb-1">
+                            <div
+                                class="border-bottom
+                                pb-2 h-100">
+
+                                <div
+                                    class="text-muted
+                                    fs-12 mb-1">
+
                                     Current Location
                                 </div>
 
@@ -1270,15 +1293,23 @@ $this->section('content');
                         </div>
 
                         <div class="col-12 col-md-6">
-                            <div class="border-bottom pb-2 h-100">
-                                <div class="text-muted fs-12 mb-1">
+                            <div
+                                class="border-bottom
+                                pb-2 h-100">
+
+                                <div
+                                    class="text-muted
+                                    fs-12 mb-1">
+
                                     Account Created
                                 </div>
 
                                 <div class="fw-medium">
+
                                     <?php if (
                                         $accountCreatedIso !== ''
                                     ): ?>
+
                                         <time
                                             datetime="<?= esc(
                                                             $accountCreatedIso,
@@ -1289,196 +1320,45 @@ $this->section('content');
                                                 $displayAccountCreated
                                             ) ?>
                                         </time>
+
                                     <?php else: ?>
+
                                         <?= esc(
                                             $displayAccountCreated
                                         ) ?>
+
                                     <?php endif; ?>
+
                                 </div>
                             </div>
                         </div>
+
                     </div>
                 </div>
             </div>
         </div>
-        <?php
-        $interactionStats = isset(
-            $memberInteractionStats
-        )
-            && is_array(
-                $memberInteractionStats
-            )
-            ? $memberInteractionStats
-            : [];
-        ?>
 
-        <div
-            class="card
-        border
-        border-danger
-        border-opacity-25
-        mb-4">
-
-            <div class="card-header">
-                <h5
-                    class="card-title mb-0">
-
-                    <i
-                        class="ri-line-chart-line me-1"
-                        aria-hidden="true">
-                    </i>
-
-                    Member Activity
-                </h5>
-            </div>
-
-            <div class="card-body">
-
-                <div class="row g-3">
-
-                    <div
-                        class="col-6 col-lg-3">
-
-                        <div
-                            class="border rounded
-                        p-3 text-center h-100">
-
-                            <div
-                                class="text-muted
-                            fs-12 mb-1">
-
-                                Members Blocked
-                            </div>
-
-                            <strong
-                                class="fs-22">
-
-                                <?= esc(
-                                    (string) (
-                                        $interactionStats['blocked']
-                                        ?? 0
-                                    )
-                                ) ?>
-                            </strong>
-                        </div>
-                    </div>
-
-                    <div
-                        class="col-6 col-lg-3">
-
-                        <div
-                            class="border rounded
-                        p-3 text-center h-100">
-
-                            <div
-                                class="text-muted
-                            fs-12 mb-1">
-
-                                Interest Received
-                            </div>
-
-                            <strong
-                                class="fs-22">
-
-                                <?= esc(
-                                    (string) (
-                                        $interactionStats['interestReceived']
-                                        ?? 0
-                                    )
-                                ) ?>
-                            </strong>
-                        </div>
-                    </div>
-
-                    <div
-                        class="col-6 col-lg-3">
-
-                        <div
-                            class="border rounded
-                        p-3 text-center h-100">
-
-                            <div
-                                class="text-muted
-                            fs-12 mb-1">
-
-                                Interest Sent
-                            </div>
-
-                            <strong
-                                class="fs-22">
-
-                                <?= esc(
-                                    (string) (
-                                        $interactionStats['interestSent']
-                                        ?? 0
-                                    )
-                                ) ?>
-                            </strong>
-                        </div>
-                    </div>
-
-                    <div
-                        class="col-6 col-lg-3">
-
-                        <div
-                            class="border rounded
-                        p-3 text-center h-100">
-
-                            <div
-                                class="text-muted
-                            fs-12 mb-1">
-
-                                Profile Views
-                            </div>
-
-                            <strong
-                                class="fs-22">
-
-                                <?= esc(
-                                    (string) (
-                                        $interactionStats['totalProfileViews']
-                                        ?? 0
-                                    )
-                                ) ?>
-                            </strong>
-
-                            <div
-                                class="text-muted
-                            fs-12 mt-1">
-
-                                <?= esc(
-                                    (string) (
-                                        $interactionStats['uniqueProfileViewers']
-                                        ?? 0
-                                    )
-                                ) ?>
-                                unique members
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
         <div class="col-12 col-lg-5">
             <div
                 class="card
-                    border
-                    border-danger
-                    border-opacity-25
-                    h-100">
+                border
+                border-danger
+                border-opacity-25
+                h-100">
 
                 <div class="card-header">
                     <h5 class="card-title mb-0">
                         <i
                             class="ri-pie-chart-line me-1"
-                            aria-hidden="true"></i>
+                            aria-hidden="true">
+                        </i>
 
                         Profile Completion
                     </h5>
                 </div>
 
                 <div class="card-body">
+
                     <?php
                     $completionPercentage = max(
                         0,
@@ -1495,9 +1375,9 @@ $this->section('content');
 
                     <div
                         class="d-flex
-                            align-items-center
-                            justify-content-between
-                            mb-2">
+                        align-items-center
+                        justify-content-between
+                        mb-2">
 
                         <span class="text-muted">
                             Completion
@@ -1505,7 +1385,8 @@ $this->section('content');
 
                         <span class="fw-semibold">
                             <?= esc(
-                                (string) $completionPercentage
+                                (string)
+                                $completionPercentage
                             ) ?>%
                         </span>
                     </div>
@@ -1515,7 +1396,8 @@ $this->section('content');
                         role="progressbar"
                         aria-label="Profile completion"
                         aria-valuenow="<?= esc(
-                                            (string) $completionPercentage,
+                                            (string)
+                                            $completionPercentage,
                                             'attr'
                                         ) ?>"
                         aria-valuemin="0"
@@ -1523,18 +1405,207 @@ $this->section('content');
 
                         <div
                             class="progress-bar"
-                            style="width: <?= esc(
-                                                (string) $completionPercentage,
-                                                'attr'
-                                            ) ?>%">
+                            style="<?= esc(
+                                        'width: '
+                                            . $completionPercentage
+                                            . '%;',
+                                        'attr'
+                                    ) ?>">
                         </div>
                     </div>
 
                     <p class="text-muted mb-0">
-                        Completion is calculated through the existing
-                        member-profile summary service.
+                        Completion is calculated through the
+                        existing member-profile summary service.
                     </p>
+
                 </div>
+            </div>
+        </div>
+
+    </div>
+
+    <?php
+    $interactionStats = isset(
+        $memberInteractionStats
+    )
+        && is_array(
+            $memberInteractionStats
+        )
+        ? $memberInteractionStats
+        : [];
+
+    $membersBlocked = max(
+        0,
+        (int) (
+            $interactionStats['blocked']
+            ?? 0
+        )
+    );
+
+    $interestReceived = max(
+        0,
+        (int) (
+            $interactionStats['interestReceived']
+            ?? 0
+        )
+    );
+
+    $interestSent = max(
+        0,
+        (int) (
+            $interactionStats['interestSent']
+            ?? 0
+        )
+    );
+
+    $totalProfileViews = max(
+        0,
+        (int) (
+            $interactionStats['totalProfileViews']
+            ?? 0
+        )
+    );
+
+    $uniqueProfileViewers = max(
+        0,
+        (int) (
+            $interactionStats['uniqueProfileViewers']
+            ?? 0
+        )
+    );
+    ?>
+
+    <!-- Member interaction activity -->
+    <div
+        class="card
+        border
+        border-danger
+        border-opacity-25
+        mb-4">
+
+        <div class="card-header">
+            <h5 class="card-title mb-0">
+                <i
+                    class="ri-line-chart-line me-1"
+                    aria-hidden="true">
+                </i>
+
+                Member Activity
+            </h5>
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-6 col-lg-3">
+                    <div
+                        class="border
+                        rounded
+                        p-3
+                        text-center
+                        h-100">
+
+                        <div
+                            class="text-muted
+                            fs-12 mb-1">
+
+                            Members Blocked
+                        </div>
+
+                        <strong class="fs-22">
+                            <?= esc(
+                                (string)
+                                $membersBlocked
+                            ) ?>
+                        </strong>
+                    </div>
+                </div>
+
+                <div class="col-6 col-lg-3">
+                    <div
+                        class="border
+                        rounded
+                        p-3
+                        text-center
+                        h-100">
+
+                        <div
+                            class="text-muted
+                            fs-12 mb-1">
+
+                            Interest Received
+                        </div>
+
+                        <strong class="fs-22">
+                            <?= esc(
+                                (string)
+                                $interestReceived
+                            ) ?>
+                        </strong>
+                    </div>
+                </div>
+
+                <div class="col-6 col-lg-3">
+                    <div
+                        class="border
+                        rounded
+                        p-3
+                        text-center
+                        h-100">
+
+                        <div
+                            class="text-muted
+                            fs-12 mb-1">
+
+                            Interest Sent
+                        </div>
+
+                        <strong class="fs-22">
+                            <?= esc(
+                                (string)
+                                $interestSent
+                            ) ?>
+                        </strong>
+                    </div>
+                </div>
+
+                <div class="col-6 col-lg-3">
+                    <div
+                        class="border
+                        rounded
+                        p-3
+                        text-center
+                        h-100">
+
+                        <div
+                            class="text-muted
+                            fs-12 mb-1">
+
+                            Profile Views
+                        </div>
+
+                        <strong class="fs-22">
+                            <?= esc(
+                                (string)
+                                $totalProfileViews
+                            ) ?>
+                        </strong>
+
+                        <div
+                            class="text-muted
+                            fs-12 mt-1">
+
+                            <?= esc(
+                                (string)
+                                $uniqueProfileViewers
+                            ) ?>
+                            unique members
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>

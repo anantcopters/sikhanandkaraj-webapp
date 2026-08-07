@@ -66,9 +66,7 @@ final class MemberProfileController extends BaseController
                      * Server-side block validation.
                      */
                     'validationErrors' =>
-                    session(
-                        'validationErrors'
-                    ) ?? [],
+                    $this->readValidationErrors(),
 
                     'memberActionNotice' =>
                     session(

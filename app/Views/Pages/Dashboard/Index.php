@@ -14,13 +14,15 @@ declare(strict_types=1);
  *
  * Dashboard-specific variables.
  *
- * @var array<string, string>             $accountPlan
- * @var array<int, array<string, mixed>>  $dailyRecommendations
- * @var array<int, array<string, mixed>>  $allMatches
- * @var array<int, array<string, mixed>>  $newMatches
- * @var array<int, array<string, mixed>>  $profileVisitors
- * @var array<int, array<string, mixed>>  $shortlistedProfiles
- * @var array<int, array<string, mixed>>  $shortlistedByProfiles
+ * @var array<string, string>            $accountPlan
+ * @var int                              $minimumMatchPercentage
+ * @var int                              $newMatchDays
+ * @var list<array<string, mixed>>       $allMatches
+ * @var list<array<string, mixed>>       $newMatches
+ * @var list<array<string, mixed>>       $interestReceived
+ * @var list<array<string, mixed>>       $interestSent
+ * @var list<array<string, mixed>>       $profileVisitors
+ * @var list<array<string, mixed>>       $profilesViewed
  *
  * Shared profile-summary variables.
  *

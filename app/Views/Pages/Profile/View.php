@@ -32,6 +32,19 @@ $isOtherMemberProfileView =
 $isAdminProfileView =
     $profileViewMode === 'admin';
 
+/*
+ * Public reference of the member being viewed.
+ *
+ * This exists only in other-member mode.
+ * Own-profile and administrator previews do not supply it.
+ */
+$viewedProfileReference = trim(
+    (string) (
+        $viewedProfileReference
+        ?? ''
+    )
+);
+
 $profileLayout = $isAdminProfileView
     ? 'Admin/Layouts/Main'
     : 'Layouts/Main';
@@ -675,6 +688,7 @@ $this->section('content');
         </div>
         <?php if (
             $isOtherMemberProfileView
+            && $viewedProfileReference !== ''
         ): ?>
 
             <div
@@ -1592,67 +1606,7 @@ $this->section('content');
 
         </div>
     </div>
-</section><?php if ($galleryPhotos !== []): ?>
-
-    <div
-        class="modal fade"
-        id="profilePhotoModal"
-        tabindex="-1"
-        aria-labelledby="profilePhotoModalLabel"
-        aria-hidden="true">
-
-        <div
-            class="modal-dialog
-                modal-dialog-centered
-                modal-xl">
-
-            <div class="modal-content">
-
-                <div class="modal-header bg-info-subtle py-2">
-
-                    <h2
-                        class="modal-title fs-17"
-                        id="profilePhotoModalLabel">
-
-                        Profile Photo
-                    </h2>
-
-                    <button
-                        type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal"
-                        aria-label="Close">
-                    </button>
-
-                </div>
-
-                <div class="modal-body p-2 p-md-3">
-
-                    <div
-                        class="d-flex align-items-center
-                            justify-content-center
-                            bg-light rounded-3"
-                        style="min-height: 320px;">
-
-                        <img
-                            src=""
-                            alt="Enlarged member profile photo"
-                            class="img-fluid rounded-3
-                                object-fit-contain"
-                            style="max-height: 80vh;"
-                            data-profile-modal-image>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </div>
-
-<?php endif; ?>
+</section>
 <?php if ($galleryPhotos !== []): ?>
 
     <div
@@ -1841,6 +1795,7 @@ $this->section('content');
 <?php endif; ?>
 <?php if (
     $isOtherMemberProfileView
+    && $viewedProfileReference !== ''
 ): ?>
 
     <?php
