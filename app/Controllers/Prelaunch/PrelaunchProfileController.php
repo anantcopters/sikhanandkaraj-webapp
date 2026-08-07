@@ -147,6 +147,18 @@ final class PrelaunchProfileController extends BaseController
                     'maximumPhotos' =>
                     $config->maximumPhotos,
 
+                    'minimumPhotoWidth' =>
+                    $config->minimumPhotoWidthPixels,
+
+                    'minimumPhotoHeight' =>
+                    $config->minimumPhotoHeightPixels,
+
+                    'recommendedPhotoWidth' =>
+                    $config->recommendedPhotoWidthPixels,
+
+                    'recommendedPhotoHeight' =>
+                    $config->recommendedPhotoHeightPixels,
+
                     'pageScripts' => [
                         'assets/js/pages/prelaunch-profile-form.js',
                     ],

@@ -79,6 +79,38 @@ $maximumPhotoSizeMb =
     (int) ceil(
         $maximumPhotoSizeKb / 1024
     );
+
+$minimumWidth = max(
+    1,
+    (int) (
+        $minimumPhotoWidth
+        ?? 300
+    )
+);
+
+$minimumHeight = max(
+    1,
+    (int) (
+        $minimumPhotoHeight
+        ?? 300
+    )
+);
+
+$recommendedWidth = max(
+    $minimumWidth,
+    (int) (
+        $recommendedPhotoWidth
+        ?? 600
+    )
+);
+
+$recommendedHeight = max(
+    $minimumHeight,
+    (int) (
+        $recommendedPhotoHeight
+        ?? 600
+    )
+);
 ?>
 
 <div
@@ -264,6 +296,15 @@ $maximumPhotoSizeMb =
                                                             'attr'
                                                         ) ?>"
                                 accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                                data-minimum-width="<?= esc(
+                                                        (string) $minimumWidth,
+                                                        'attr'
+                                                    ) ?>"
+
+                                data-minimum-height="<?= esc(
+                                                            (string) $minimumHeight,
+                                                            'attr'
+                                                        ) ?>"
                                 aria-label="<?= esc(
                                                 'Select '
                                                     . strtolower($photoLabel),
@@ -309,6 +350,35 @@ $maximumPhotoSizeMb =
                 (string) $maximumPhotoSizeMb
             ) ?>
             MB per photograph.
+        </div>
+
+        <div class="form-text mt-2 color-pink">
+            Maximum file size:
+            <?= esc(
+                (string) $maximumPhotoSizeMb
+            ) ?>
+            MB per photograph.
+            Minimum dimensions:
+            <?= esc(
+                (string) $minimumWidth
+            ) ?>
+            ×
+            <?= esc(
+                (string) $minimumHeight
+            ) ?>
+            pixels.
+        </div>
+
+        <div class="form-text small mt-1 color-pink">
+            For best quality, upload photographs at least
+            <?= esc(
+                (string) $recommendedWidth
+            ) ?>
+            ×
+            <?= esc(
+                (string) $recommendedHeight
+            ) ?>
+            pixels.
         </div>
 
         <div class="form-text small mt-1 color-pink">

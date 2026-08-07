@@ -295,6 +295,33 @@ final class PrelaunchPhotoService
                 );
             }
 
+            /** @var Prelaunch $config */
+            $config = config(
+                'Prelaunch'
+            );
+
+            $sourceWidth =
+                (int) $imageInfo[0];
+
+            $sourceHeight =
+                (int) $imageInfo[1];
+
+            if (
+                $sourceWidth
+                < $config->minimumPhotoWidthPixels
+                || $sourceHeight
+                < $config->minimumPhotoHeightPixels
+            ) {
+                throw new InvalidArgumentException(
+                    sprintf(
+                        'Photograph %d must be at least %d × %d pixels.',
+                        $sequence,
+                        $config->minimumPhotoWidthPixels,
+                        $config->minimumPhotoHeightPixels
+                    )
+                );
+            }
+
             $checksum = hash_file(
                 'sha256',
                 $temporaryPath

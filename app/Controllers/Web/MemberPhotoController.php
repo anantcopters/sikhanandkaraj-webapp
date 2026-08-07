@@ -34,6 +34,11 @@ final class MemberPhotoController extends BaseController
             $memberId
         );
 
+        /** @var \Config\MemberMedia $mediaConfig */
+        $mediaConfig = config(
+            'MemberMedia'
+        );
+
         return view(
             'Pages/Profile/Photos/Index',
             [
@@ -57,6 +62,25 @@ final class MemberPhotoController extends BaseController
 
                 'remainingPhotos' =>
                 $data['remaining'],
+
+                /*
+             * Keep upload guidance configuration-driven so the UI
+             * cannot drift from server-side processing rules.
+             */
+                'maximumPhotoSizeKilobytes' =>
+                $mediaConfig->profileMaxSizeKb,
+
+                'minimumPhotoWidth' =>
+                $mediaConfig->minimumWidth,
+
+                'minimumPhotoHeight' =>
+                $mediaConfig->minimumHeight,
+
+                'recommendedPhotoWidth' =>
+                $mediaConfig->recommendedWidth,
+
+                'recommendedPhotoHeight' =>
+                $mediaConfig->recommendedHeight,
 
                 'validationErrors' =>
                 $this->readValidationErrors()
@@ -83,32 +107,16 @@ final class MemberPhotoController extends BaseController
             'validation'
         );
 
-        $validation->setRules([
-            'photo' => [
-                'label' =>
-                'Photo',
+        /** @var \Config\MemberMedia $mediaConfig */
+        $mediaConfig = config(
+            'MemberMedia'
+        );
 
-                'rules' => [
-                    'uploaded[photo]',
-                    'is_image[photo]',
-                    'mime_in[photo,image/jpeg,image/png]',
-                    'ext_in[photo,jpg,jpeg,png]',
-                    'max_size[photo,10240]',
-                    'min_dims[photo,400,400]',
-                    'max_dims[photo,8000,8000]',
-                ],
-            ],
-
-            'visibility' => [
-                'label' =>
-                'Photo visibility',
-
-                'rules' => [
-                    'required',
-                    'in_list[PUBLIC,INTERESTED_MEMBERS]',
-                ],
-            ],
-        ]);
+        $validation->setRules(
+            MemberPhotoValidation::uploadRules(
+                $mediaConfig
+            )
+        );
 
         /*
          * Pass only scalar POST data. CI4 file validation reads the uploaded

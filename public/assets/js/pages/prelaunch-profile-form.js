@@ -1069,6 +1069,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         .maximumFileSizeLabel
                     ?? '18 MB';
 
+                const minimumWidth =
+                    Number.parseInt(
+                        photoInput.dataset
+                            .minimumWidth
+                        ?? '300',
+                        10
+                    );
+
+                const minimumHeight =
+                    Number.parseInt(
+                        photoInput.dataset
+                            .minimumHeight
+                        ?? '300',
+                        10
+                    );
+
                 photoInput.addEventListener(
                     'change',
                     () => {
@@ -1189,6 +1205,117 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             return;
                         }
+
+                        const imageUrl =
+                            URL.createObjectURL(
+                                selectedFile
+                            );
+
+                        const image =
+                            new Image();
+
+                        image.addEventListener(
+                            'load',
+                            () => {
+                                const width =
+                                    image.naturalWidth;
+
+                                const height =
+                                    image.naturalHeight;
+
+                                URL.revokeObjectURL(
+                                    imageUrl
+                                );
+
+                                if (
+                                    width < minimumWidth
+                                    || height < minimumHeight
+                                ) {
+                                    photoInput.setCustomValidity(
+                                        `The photograph must be at least ${minimumWidth} × ${minimumHeight} pixels.`
+                                    );
+
+                                    photoInput.value = '';
+
+                                    previewImage.src = '';
+
+                                    previewImage.classList.add(
+                                        'd-none'
+                                    );
+
+                                    placeholder?.classList.remove(
+                                        'd-none'
+                                    );
+
+                                    refreshPhotoValidation(
+                                        photoInput
+                                    );
+
+                                    return;
+                                }
+
+                                /*
+                                 * Dimension validation succeeded. Continue with preview.
+                                 */
+                                const reader =
+                                    new FileReader();
+
+                                reader.addEventListener(
+                                    'load',
+                                    () => {
+                                        previewImage.src =
+                                            typeof reader.result
+                                                === 'string'
+                                                ? reader.result
+                                                : '';
+
+                                        previewImage.classList.remove(
+                                            'd-none'
+                                        );
+
+                                        placeholder?.classList.add(
+                                            'd-none'
+                                        );
+
+                                        photoInput.setCustomValidity(
+                                            ''
+                                        );
+
+                                        refreshPhotoValidation(
+                                            photoInput
+                                        );
+                                    }
+                                );
+
+                                reader.readAsDataURL(
+                                    selectedFile
+                                );
+                            }
+                        );
+
+                        image.addEventListener(
+                            'error',
+                            () => {
+                                URL.revokeObjectURL(
+                                    imageUrl
+                                );
+
+                                photoInput.setCustomValidity(
+                                    'The selected photograph could not be read.'
+                                );
+
+                                photoInput.value = '';
+
+                                refreshPhotoValidation(
+                                    photoInput
+                                );
+                            }
+                        );
+
+                        image.src =
+                            imageUrl;
+
+                        return;
 
                         const reader =
                             new FileReader();
