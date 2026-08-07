@@ -1232,17 +1232,20 @@ $routes->group(
         // );
 
         /*
-         * Public dependent master-data endpoints.
-         *
-         * These routes must not use webAuth because the prelaunch
-         * collection page is intentionally public.
-         */
+        * Return active cities for the selected state.
+        *
+        * This endpoint is intentionally public because the standalone
+        * prelaunch profile form does not require member authentication.
+        *
+        * Example:
+        * GET /prelaunch/profile/master/cities/29
+        */
         $routes->get(
-            'partner-preference/master/cities',
-            'PartnerPreferenceController::cities',
+            'profile/master/cities/(:num)',
+            'PrelaunchProfileController::cities/$1',
             [
                 'as' =>
-                'web.partner-preference.master.cities',
+                'prelaunch.master.cities',
             ]
         );
 
