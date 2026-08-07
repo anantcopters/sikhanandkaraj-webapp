@@ -2,15 +2,15 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     /**
- * Determine whether a field currently contains an error rendered
- * by the server after a validation redirect.
- *
- * Server errors remain authoritative until the user changes the
- * corresponding field.
- *
- * @param {HTMLElement} field
- * @returns {boolean}
- */
+     * Determine whether a field currently contains an error rendered
+     * by the server after a validation redirect.
+     *
+     * Server errors remain authoritative until the user changes the
+     * corresponding field.
+     *
+     * @param {HTMLElement} field
+     * @returns {boolean}
+     */
     const hasServerValidationError = (
         field
     ) => {
@@ -1049,21 +1049,36 @@ document.addEventListener('DOMContentLoaded', () => {
                         /*
                          * A relationship such as Self, Relative or Friend
                          * needs a fresh explicit Gender selection.
+                         *
+                         * This is an actual user interaction, therefore any
+                         * server-rendered Gender error belongs to the previous
+                         * submitted state and may now be cleared.
                          */
                         setGenderValue(
                             ''
                         );
                     }
 
-                    updateGenderState(true);
+                    /*
+                     * User changed the relationship.
+                     * Do not preserve stale server validation.
+                     */
+                    updateGenderState(
+                        false
+                    );
                 }
             );
 
             /*
-             * Restore the correct state after refresh, old input, or a
-             * server-side validation failure.
+             * Restore the correct initial state after first render, old input
+             * or a server-side validation redirect.
+             *
+             * Server-rendered errors remain authoritative until the user
+             * changes the corresponding field.
              */
-            updateGenderState(false);
+            updateGenderState(
+                true
+            );
         };
 
     /**
