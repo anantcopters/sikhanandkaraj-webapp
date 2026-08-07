@@ -6554,4 +6554,49 @@ CREATE INDEX idx_application_error_logs_admin ON application_error_logs (
 WHERE
     admin_user_id IS NOT NULL;
 
+INSERT INTO admin_users (
+    full_name,
+    mobile_number,
+    email_address,
+    password_hash,
+    role,
+    account_status,
+    is_mobile_verified,
+    mobile_verified_at,
+    is_email_verified,
+    email_verified_at,
+    password_set_at,
+    last_login_at,
+    created_by,
+    created_at,
+    updated_at,
+    deleted_at
+)
+VALUES (
+    'Super Administrator',
+    '+918550915559',
+    'anantsinghkota@gmail.com',
+
+    -- Replace with output from:
+    -- php -r "echo password_hash('Admin@12345', PASSWORD_DEFAULT), PHP_EOL;"
+    '$2y$10$keZezmWEoCALBzZdh.AsV.6/o4szNryUBN6uo/BVPAdh4t.DMMWLW',
+
+    'SUPER_ADMIN',
+    'VERIFIED',
+
+    TRUE,
+    CURRENT_TIMESTAMP,
+
+    TRUE,
+    CURRENT_TIMESTAMP,
+
+    CURRENT_TIMESTAMP,
+    NULL,
+    NULL,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP,
+    NULL
+);
+
+
 COMMIT;
