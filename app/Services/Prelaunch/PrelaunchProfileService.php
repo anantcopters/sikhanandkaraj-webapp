@@ -6,6 +6,7 @@ namespace App\Services\Prelaunch;
 
 use App\Models\Prelaunch\PrelaunchProfileModel;
 use App\Services\Profile\ProfileMasterDataService;
+use App\Models\UserContactModel;
 use App\Support\IndianMobileNormalizer;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\Files\UploadedFile;
@@ -31,6 +32,7 @@ final class PrelaunchProfileService
         private readonly PrelaunchFieldOfficerService $fieldOfficerService,
         private readonly PrelaunchPhotoService $photoService,
         private readonly ProfileMasterDataService $profileMasterDataService,
+        private readonly UserContactModel $userContactModel,
         private readonly BaseConnection $database,
         private readonly Prelaunch $configuration
     ) {}
@@ -142,6 +144,15 @@ final class PrelaunchProfileService
             );
         }
 
+        /*
+        * A member mobile number must be unique across both:
+        *
+        * 1. profiles collected during prelaunch;
+        * 2. existing live member contacts.
+        *
+        * Parent/Guardian contact numbers are deliberately excluded because
+        * one family mobile may legitimately be shared by multiple profiles.
+        */
         if (
             $this->profileModel->mobileExists(
                 $countryCode,
@@ -151,6 +162,32 @@ final class PrelaunchProfileService
             return PrelaunchProfileResult::fieldFailure(
                 'mobile_number',
                 'A profile with this mobile number already exists.'
+            );
+        }
+
+        $normalizedMemberMobile =
+            IndianMobileNormalizer::normalize(
+                $countryCode . $mobileNumber
+            );
+
+        if ($normalizedMemberMobile === null) {
+            return PrelaunchProfileResult::fieldFailure(
+                'mobile_number',
+                'Please enter a valid mobile number.'
+            );
+        }
+
+        $existingMemberContact =
+            $this->userContactModel
+            ->findByNormalizedValue(
+                UserContactModel::TYPE_MOBILE,
+                $normalizedMemberMobile
+            );
+
+        if (is_array($existingMemberContact)) {
+            return PrelaunchProfileResult::fieldFailure(
+                'mobile_number',
+                'This mobile number is already registered with an existing member.'
             );
         }
 

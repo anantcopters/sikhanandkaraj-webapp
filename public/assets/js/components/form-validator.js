@@ -10,14 +10,12 @@
     const FORM_SELECTOR = 'form[data-validate]';
 
     const FIELD_SELECTOR = [
-        'input:not([type="hidden"]):not([disabled])'
+        'input:not([type="hidden"])'
         + ':not([data-validation-ignore])',
 
-        'select:not([disabled])'
-        + ':not([data-validation-ignore])',
+        'select:not([data-validation-ignore])',
 
-        'textarea:not([disabled])'
-        + ':not([data-validation-ignore])'
+        'textarea:not([data-validation-ignore])'
     ].join(',');
 
     /**
@@ -492,6 +490,18 @@
             const processedRadioGroups = new Set();
 
             fields.forEach(function (field) {
+                /*
+                 * Disabled controls do not participate in native form
+                 * submission or validation.
+                 *
+                 * They are still registered during initialization so a
+                 * dependent control such as City starts validating as soon
+                 * as page JavaScript enables it.
+                 */
+                if (field.disabled) {
+                    return;
+                }
+
                 let isFieldValid = true;
 
                 if (

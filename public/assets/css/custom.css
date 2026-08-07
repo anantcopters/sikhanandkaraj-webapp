@@ -11,7 +11,8 @@
     z-index: 1030;
     width: 100%;
     background-color: var(--sak-page-background);
-    border-bottom: 1px solid #EBCFCA;;
+    border-bottom: 1px solid #EBCFCA;
+    ;
 }
 
 /**
@@ -1962,4 +1963,121 @@ form[aria-busy="true"] {
 
 .light-yellowish {
     background-color: #f8fcf8;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Dashboard - completed profile
+|--------------------------------------------------------------------------
+*/
+
+.dashboard-profile-complete {
+    position: relative;
+    width: 100%;
+}
+
+.dashboard-profile-complete__content {
+    min-width: 0;
+}
+
+.dashboard-profile-complete__content .badge {
+    font-weight: 500;
+}
+
+.dashboard-profile-complete__actions .btn {
+    min-width: 138px;
+    white-space: nowrap;
+}
+
+@media (max-width: 991.98px) {
+    .dashboard-profile-complete__actions {
+        width: 100%;
+        padding-top: 1rem;
+        border-top: 1px solid var(--bs-border-color);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .dashboard-profile-complete {
+        text-align: center;
+    }
+
+    .dashboard-profile-complete .profile-completion-circle {
+        margin-inline: auto;
+    }
+
+    .dashboard-profile-complete__content .d-flex {
+        justify-content: center;
+    }
+
+    .dashboard-profile-complete__actions {
+        width: 100%;
+    }
+
+    .dashboard-profile-complete__actions .btn {
+        width: 100%;
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin member profile photograph
+|--------------------------------------------------------------------------
+|
+| Admin review uses a portrait-oriented photograph rather than an avatar.
+| This exposes more of the member's actual photograph while maintaining a
+| compact profile-summary header.
+|
+*/
+
+.admin-member-profile-photo {
+    width: 110px;
+    height: 120px;
+    flex: 0 0 96px;
+
+    overflow: hidden;
+
+    border: 1px solid var(--vz-body-bg-rgb);
+    border-radius: 0.25rem;
+
+    background-color: var(--bs-light);
+
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.admin-member-profile-photo img {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+    object-position: center top;
+}
+
+/*
+ * Keep a restrained fallback for members without an available photograph.
+ */
+.admin-member-profile-photo--fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        var(--vz-primary-bg-subtle);
+
+    color:
+        var(--bs-primary);
+
+    font-size: 1.75rem;
+    font-weight: 600;
+}
+
+@media (max-width: 767.98px) {
+    .admin-member-profile-photo {
+        width: 88px;
+        height: 110px;
+        flex-basis: 88px;
+    }
 }

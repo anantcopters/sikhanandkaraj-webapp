@@ -739,6 +739,7 @@ $messagesActive =
                         btn-icon
                         btn-topbar
                         btn-ghost-secondary
+                        bg-light
                         rounded-circle
                         position-relative"
                         aria-label="View notifications">

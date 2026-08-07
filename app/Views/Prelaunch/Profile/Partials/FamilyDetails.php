@@ -264,6 +264,7 @@ $communityClass =
                         minlength="10"
                         maxlength="10"
                         autocomplete="tel"
+                        required
                         aria-describedby="parent_contact_numberHelp parent_contact_numberError"
                         data-error-required="Please enter a contact number for either parent/guardian."
                         data-error-pattern="Please enter a valid 10-digit Indian parent/guardian contact number."
@@ -430,7 +431,8 @@ $communityClass =
                     aria-describedby="nearest_gurudwaraHelp nearest_gurudwaraError"
                     placeholder="Enter the nearest Gurudwara name or location"
                     maxlength="300"
-                    autocomplete="off" ]
+                    autocomplete="off"
+                    required
                     data-error-required="Please enter the nearest Gurudwara name or location."
                     data-error-maxlength="Nearest Gurudwara cannot exceed 300 characters.">
 

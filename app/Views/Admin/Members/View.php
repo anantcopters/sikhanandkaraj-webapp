@@ -100,6 +100,114 @@ $resolvedProfileImage = trim(
     )
 );
 
+/*
+ * Resolve the photograph shown in the Admin member summary.
+ *
+ * Priority:
+ *
+ * 1. Primary active member photograph.
+ * 2. First approved photograph.
+ * 3. First active photograph available to Admin.
+ * 4. Name initial fallback when no usable photograph exists.
+ *
+ * Admin photographs already contain short-lived signed CloudFront
+ * thumbnail URLs generated through MemberPhotoUrlService.
+ */
+$adminProfileImage = '';
+
+foreach ($resolvedAdminPhotos as $photo) {
+    if (!is_array($photo)) {
+        continue;
+    }
+
+    $thumbnailUrl = trim(
+        (string) (
+            $photo['thumbnailUrl']
+            ?? ''
+        )
+    );
+
+    if ($thumbnailUrl === '') {
+        continue;
+    }
+
+    if (
+        ($photo['isPrimary'] ?? false)
+        === true
+    ) {
+        $adminProfileImage =
+            $thumbnailUrl;
+
+        break;
+    }
+}
+
+/*
+ * A legacy/member record may not have a primary photo.
+ * Prefer an approved photograph next.
+ */
+if ($adminProfileImage === '') {
+    foreach ($resolvedAdminPhotos as $photo) {
+        if (!is_array($photo)) {
+            continue;
+        }
+
+        $thumbnailUrl = trim(
+            (string) (
+                $photo['thumbnailUrl']
+                ?? ''
+            )
+        );
+
+        $status = mb_strtoupper(
+            trim(
+                (string) (
+                    $photo['status']
+                    ?? ''
+                )
+            )
+        );
+
+        if (
+            $thumbnailUrl !== ''
+            && $status
+            === MemberPhotoModel::STATUS_APPROVED
+        ) {
+            $adminProfileImage =
+                $thumbnailUrl;
+
+            break;
+        }
+    }
+}
+
+/*
+ * Admin may review pending/rejected retained photographs as well.
+ * When no primary or approved photograph exists, use the first
+ * administrator-visible active photograph.
+ */
+if ($adminProfileImage === '') {
+    foreach ($resolvedAdminPhotos as $photo) {
+        if (!is_array($photo)) {
+            continue;
+        }
+
+        $thumbnailUrl = trim(
+            (string) (
+                $photo['thumbnailUrl']
+                ?? ''
+            )
+        );
+
+        if ($thumbnailUrl !== '') {
+            $adminProfileImage =
+                $thumbnailUrl;
+
+            break;
+        }
+    }
+}
+
 $resolvedFormAlert = isset($formAlert)
     && is_array($formAlert)
     ? $formAlert
@@ -823,32 +931,48 @@ $this->section('content');
             <div class="row g-4 align-items-center">
 
                 <div class="col-12 col-md-auto">
-                    <div
-                        class="avatar-lg
-                            rounded-circle
-                            bg-primary-subtle
-                            d-flex
-                            align-items-center
-                            justify-content-center">
 
-                        <span
-                            class="avatar-title
-                                rounded-circle
-                                bg-primary-subtle
-                                text-primary
-                                fs-24">
+                    <?php if ($adminProfileImage !== ''): ?>
 
-                            <?= esc(
-                                mb_strtoupper(
-                                    mb_substr(
-                                        $fullName,
-                                        0,
-                                        1
+                        <div class="admin-member-profile-photo">
+                            <img
+                                src="<?= esc(
+                                            $adminProfileImage,
+                                            'attr'
+                                        ) ?>"
+                                alt="<?= esc(
+                                            $fullName
+                                                . ' profile photo',
+                                            'attr'
+                                        ) ?>">
+                        </div>
+
+                    <?php else: ?>
+
+                        <div
+                            class="admin-member-profile-photo
+                admin-member-profile-photo--fallback"
+                            aria-label="<?= esc(
+                                            $fullName,
+                                            'attr'
+                                        ) ?>">
+
+                            <span>
+                                <?= esc(
+                                    mb_strtoupper(
+                                        mb_substr(
+                                            $fullName,
+                                            0,
+                                            1
+                                        )
                                     )
-                                )
-                            ) ?>
-                        </span>
-                    </div>
+                                ) ?>
+                            </span>
+
+                        </div>
+
+                    <?php endif; ?>
+
                 </div>
 
                 <div class="col-12 col-md">
@@ -897,7 +1021,7 @@ $this->section('content');
                                 <span
                                     class="badge
                                         bg-primary-subtle
-                                        text-primary">
+                                        text-primary p-2">
 
                                     <?= esc(
                                         $profileReference !== ''

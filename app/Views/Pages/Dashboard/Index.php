@@ -131,22 +131,38 @@ $matchSections = [
                         <div class="card-body p-4 pb-1 text-center">
 
                             <?php if ($resolvedProfileImage !== ''): ?>
-                                <img
-                                    src="<?= esc(
-                                                $resolvedProfileImage,
-                                                'attr'
-                                            ) ?>"
-                                    class="img-thumbnail mx-auto mb-3 w-75"
-                                    alt="<?= esc(
-                                                $resolvedName . ' profile photo',
-                                                'attr'
-                                            ) ?>">
+                                <div class="admin-member-profile-photo mx-auto mb-3">
+                                    <img
+                                        src="<?= esc(
+                                                    $resolvedProfileImage,
+                                                    'attr'
+                                                ) ?>"
+                                        alt="<?= esc(
+                                                    $resolvedName . ' profile photo',
+                                                    'attr'
+                                                ) ?>">
+                                </div>
                             <?php else: ?>
                                 <div
-                                    class="img-thumbnail mx-auto mb-3 w-75"
-                                    aria-hidden="true">
+                                    class="admin-member-profile-photo
+                admin-member-profile-photo--fallback mx-auto mb-3"
+                                    aria-label="<?= esc(
+                                                    $resolvedName,
+                                                    'attr'
+                                                ) ?>">
 
-                                    <i class="ri-user-3-line"></i>
+                                    <span>
+                                        <?= esc(
+                                            mb_strtoupper(
+                                                mb_substr(
+                                                    $resolvedName,
+                                                    0,
+                                                    1
+                                                )
+                                            )
+                                        ) ?>
+                                    </span>
+
                                 </div>
                             <?php endif; ?>
 
@@ -257,131 +273,355 @@ $matchSections = [
 
             <div class="col-12 col-lg-8 col-xl-9">
 
+                <?php
+                /*
+ * Resolve visibility presentation once for both incomplete and
+ * complete profile states.
+ */
+                $visibilityLabel = '';
+                $visibilityClass = 'danger';
+
+                if (
+                    isset($overallProfileSummary)
+                    && is_array($overallProfileSummary)
+                ) {
+                    $visibilityLabel = trim(
+                        (string) (
+                            $overallProfileSummary['visibilityLabel']
+                            ?? ''
+                        )
+                    );
+
+                    $visibilityClass = trim(
+                        (string) (
+                            $overallProfileSummary['visibilityClass']
+                            ?? 'danger'
+                        )
+                    );
+
+                    $supportedVisibilityClasses = [
+                        'success',
+                        'warning',
+                        'danger',
+                    ];
+
+                    if (
+                        !in_array(
+                            $visibilityClass,
+                            $supportedVisibilityClasses,
+                            true
+                        )
+                    ) {
+                        $visibilityClass = 'danger';
+                    }
+                }
+
+                $isProfileComplete =
+                    $completionPercentage >= 100;
+                ?>
+
                 <section
                     class="card border border-danger border-opacity-25 shadow-sm mb-4">
 
                     <div class="card-body p-4">
-                        <div
-                            class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3">
 
-                            <div>
-                                <h2 class="fs-18 fw-semibold mb-1">
-                                    Complete Your Profile
-                                </h2>
+                        <?php if ($isProfileComplete): ?>
 
-                                <p class="text-muted fs-13 mb-0">
-                                    A complete profile improves your match
-                                    quality and profile visibility.
-                                </p>
+                            <div class="dashboard-profile-complete">
+
+                                <div
+                                    class="d-flex flex-column flex-lg-row
+                align-items-lg-center
+                justify-content-between
+                gap-4">
+
+                                    <div
+                                        class="d-flex flex-column flex-sm-row
+                    align-items-sm-center
+                    gap-4">
+
+                                        <!--
+                 * Reuse the existing Profile Edit completion circle.
+                 * This keeps completion presentation consistent
+                 * throughout the member application.
+                 -->
+                                        <div
+                                            class="profile-completion-circle"
+                                            style="--profile-progress:
+                        <?= esc(
+                                (string) $completionPercentage,
+                                'attr'
+                            ) ?>;"
+                                            role="img"
+                                            aria-label="<?= esc(
+                                                            $completionPercentage
+                                                                . '% profile completed',
+                                                            'attr'
+                                                        ) ?>">
+
+                                            <div
+                                                class="profile-completion-circle__value">
+
+                                                <strong>
+                                                    <?= esc(
+                                                        (string)
+                                                        $completionPercentage
+                                                    ) ?>%
+                                                </strong>
+
+                                                <span>
+                                                    Complete
+                                                </span>
+
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            class="dashboard-profile-complete__content">
+
+                                            <div
+                                                class="d-flex
+                            align-items-center
+                            gap-2 mb-1">
+
+                                                <span
+                                                    class="text-success fs-20
+                                d-inline-flex
+                                align-items-center"
+                                                    aria-hidden="true">
+
+                                                    <i
+                                                        class="ri-checkbox-circle-fill">
+                                                    </i>
+                                                </span>
+
+                                                <h2
+                                                    class="fs-18 fw-semibold mb-0">
+
+                                                    Profile Complete
+                                                </h2>
+                                            </div>
+
+                                            <p
+                                                class="text-muted fs-13 mb-3">
+
+                                                Your profile is ready
+                                                for matchmaking.
+                                            </p>
+
+                                            <?php if (
+                                                $visibilityLabel !== ''
+                                            ): ?>
+
+                                                <span
+                                                    class="badge
+                                bg-<?= esc(
+                                                    $visibilityClass,
+                                                    'attr'
+                                                ) ?>-subtle
+                                text-body
+                                p-2 fw-medium">
+
+                                                    <i
+                                                        class="ri-eye-line me-1"
+                                                        aria-hidden="true">
+                                                    </i>
+
+                                                    <?= esc(
+                                                        $visibilityLabel
+                                                    ) ?>
+                                                    visibility
+                                                </span>
+
+                                            <?php endif; ?>
+
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        class="dashboard-profile-complete__actions
+                    d-flex flex-column flex-sm-row
+                    gap-2 flex-shrink-0">
+
+                                        <a
+                                            href="<?= url_to(
+                                                        'web.profile.view'
+                                                    ) ?>"
+                                            class="btn btn-outline-primary
+                        d-inline-flex
+                        align-items-center
+                        justify-content-center
+                        gap-2">
+
+                                            <i
+                                                class="ri-eye-line"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            View Profile
+                                        </a>
+
+                                        <a
+                                            href="<?= url_to(
+                                                        'web.profile.edit'
+                                                    ) ?>"
+                                            class="btn btn-outline-danger
+                        d-inline-flex
+                        align-items-center
+                        justify-content-center
+                        gap-2">
+
+                                            <i
+                                                class="ri-edit-line"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            Edit Profile
+                                        </a>
+
+                                    </div>
+                                </div>
                             </div>
 
+                        <?php else: ?>
+
+                            <!-- =========================================================
+                 Incomplete profile
+                 ========================================================= -->
+
                             <div
-                                class="d-flex align-items-center gap-2 flex-shrink-0">
+                                class="d-flex flex-column flex-md-row
+                    align-items-md-center
+                    justify-content-between
+                    gap-3 mb-3">
 
-                                <?php if (
-                                    isset($overallProfileSummary)
-                                    && is_array($overallProfileSummary)
-                                ): ?>
-                                    <?php
-                                    $visibilityLabel = trim(
-                                        (string) (
-                                            $overallProfileSummary['visibilityLabel']
-                                            ?? ''
-                                        )
-                                    );
+                                <div>
+                                    <h2
+                                        class="fs-18 fw-semibold mb-1">
 
-                                    $visibilityClass = trim(
-                                        (string) (
-                                            $overallProfileSummary['visibilityClass']
-                                            ?? 'danger'
-                                        )
-                                    );
+                                        Complete Your Profile
+                                    </h2>
 
-                                    $supportedVisibilityClasses = [
-                                        'success',
-                                        'warning',
-                                        'danger',
-                                    ];
+                                    <p
+                                        class="text-muted fs-13 mb-0">
 
-                                    if (!in_array(
-                                        $visibilityClass,
-                                        $supportedVisibilityClasses,
-                                        true
-                                    )) {
-                                        $visibilityClass = 'danger';
-                                    }
-                                    ?>
+                                        A complete profile improves your
+                                        match quality and profile visibility.
+                                    </p>
+                                </div>
 
-                                    <?php if ($visibilityLabel !== ''): ?>
+                                <div
+                                    class="d-flex align-items-center
+                        gap-2 flex-shrink-0">
+
+                                    <?php if (
+                                        $visibilityLabel !== ''
+                                    ): ?>
+
                                         <span
-                                            class="badge bg-<?= esc(
-                                                                $visibilityClass,
-                                                                'attr'
-                                                            ) ?>-subtle text-body p-2">
+                                            class="badge
+                                bg-<?= esc(
+                                            $visibilityClass,
+                                            'attr'
+                                        ) ?>-subtle
+                                text-body
+                                p-2">
 
-                                            <?= esc($visibilityLabel) ?>
+                                            <?= esc(
+                                                $visibilityLabel
+                                            ) ?>
                                             visibility
                                         </span>
+
                                     <?php endif; ?>
-                                <?php endif; ?>
 
-                                <strong class="fs-18 text-nowrap">
-                                    <?= esc(
-                                        (string) $completionPercentage
-                                    ) ?>%
-                                </strong>
+                                    <strong
+                                        class="fs-18 text-nowrap">
+
+                                        <?= esc(
+                                            (string)
+                                            $completionPercentage
+                                        ) ?>%
+                                    </strong>
+
+                                </div>
                             </div>
-                        </div>
 
-                        <div
-                            class="progress mb-2"
-                            role="progressbar"
-                            aria-label="Profile completion"
-                            aria-valuenow="<?= esc(
-                                                (string) $completionPercentage,
-                                                'attr'
-                                            ) ?>"
-                            aria-valuemin="0"
-                            aria-valuemax="100">
-
+                            <!-- Existing linear completion bar remains only
+                 while profile is incomplete. -->
                             <div
-                                class="progress-bar"
-                                style="<?= esc(
-                                            'width: '
-                                                . $completionPercentage
-                                                . '%;',
-                                            'attr'
-                                        ) ?>">
+                                class="progress mb-2"
+                                role="progressbar"
+                                aria-label="Profile completion"
+                                aria-valuenow="<?= esc(
+                                                    (string)
+                                                    $completionPercentage,
+                                                    'attr'
+                                                ) ?>"
+                                aria-valuemin="0"
+                                aria-valuemax="100">
+
+                                <div
+                                    class="progress-bar"
+                                    style="<?= esc(
+                                                'width: '
+                                                    . $completionPercentage
+                                                    . '%;',
+                                                'attr'
+                                            ) ?>">
+                                </div>
                             </div>
-                        </div>
 
-                        <?php if ($totalSteps > 0): ?>
-                            <p class="text-muted fs-12 mb-4">
-                                <?= esc(
-                                    (string) $completedSteps
-                                ) ?>
-                                of
-                                <?= esc(
-                                    (string) $totalSteps
-                                ) ?>
-                                profile steps completed
-                            </p>
-                        <?php else: ?>
-                            <div class="mb-4"></div>
-                        <?php endif; ?>
+                            <?php if ($totalSteps > 0): ?>
 
-                        <?php if (
-                            isset($profileShortcuts)
-                            && is_array($profileShortcuts)
-                            && $profileShortcuts !== []
-                        ): ?>
-                            <div class="row g-3">
-                                <?php foreach (
-                                    $profileShortcuts as $shortcut
-                                ):
-                                    if ($shortcut['isComplete'] == false):
-                                ?>
+                                <p
+                                    class="text-muted fs-12 mb-4">
+
+                                    <?= esc(
+                                        (string)
+                                        $completedSteps
+                                    ) ?>
+                                    of
+                                    <?= esc(
+                                        (string)
+                                        $totalSteps
+                                    ) ?>
+                                    profile steps completed
+                                </p>
+
+                            <?php else: ?>
+
+                                <div class="mb-4"></div>
+
+                            <?php endif; ?>
+
+                            <?php if (
+                                isset($profileShortcuts)
+                                && is_array($profileShortcuts)
+                                && $profileShortcuts !== []
+                            ): ?>
+
+                                <div class="row g-3">
+
+                                    <?php foreach (
+                                        $profileShortcuts
+                                        as $shortcut
+                                    ): ?>
+
                                         <?php
+                                        $shortcutComplete = (
+                                            $shortcut['isComplete']
+                                            ?? false
+                                        ) === true;
+
+                                        /*
+                         * Completed shortcuts do not need to be
+                         * shown in the dashboard completion journey.
+                         */
+                                        if ($shortcutComplete) {
+                                            continue;
+                                        }
+
                                         $shortcutTitle = trim(
                                             (string) (
                                                 $shortcut['title']
@@ -432,40 +672,45 @@ $matchSections = [
                                             )
                                         );
 
-                                        $shortcutComplete = (
-                                            $shortcut['isComplete']
-                                            ?? false
-                                        ) === true;
-
                                         $shortcutStatusLabel = trim(
                                             (string) (
                                                 $shortcut['statusLabel']
-                                                ?? (
-                                                    $shortcutComplete
-                                                    ? 'Completed'
-                                                    : 'Pending'
-                                                )
+                                                ?? 'Pending'
                                             )
                                         );
                                         ?>
 
-                                        <div class="col-12 col-md-6 col-xl-4">
+                                        <div
+                                            class="col-12 col-md-6 col-xl-4">
+
                                             <a
                                                 href="<?= esc(
                                                             $shortcutUrl,
                                                             'attr'
                                                         ) ?>"
-                                                class="card h-90 border border-danger border-opacity-25 text-decoration-none mb-2 <?= esc(
-                                                                                                                                        $shortcutClass,
-                                                                                                                                        'attr'
-                                                                                                                                    ) ?>">
+                                                class="card h-90
+                                    border
+                                    border-danger
+                                    border-opacity-25
+                                    text-decoration-none
+                                    mb-2
+                                    <?= esc(
+                                            $shortcutClass,
+                                            'attr'
+                                        ) ?>">
 
                                                 <div class="card-body p-3">
+
                                                     <div
-                                                        class="d-flex align-items-start gap-3">
+                                                        class="d-flex
+                                            align-items-start
+                                            gap-3">
 
                                                         <span
-                                                            class="dashboard-shortcut-icon bg-light rounded-circle flex-shrink-0">
+                                                            class="dashboard-shortcut-icon
+                                                bg-light
+                                                rounded-circle
+                                                flex-shrink-0">
 
                                                             <i
                                                                 class="<?= esc(
@@ -476,12 +721,19 @@ $matchSections = [
                                                             </i>
                                                         </span>
 
-                                                        <span class="flex-grow-1">
+                                                        <span
+                                                            class="flex-grow-1">
+
                                                             <span
-                                                                class="d-flex align-items-start justify-content-between gap-2 mb-1">
+                                                                class="d-flex
+                                                    align-items-start
+                                                    justify-content-between
+                                                    gap-2 mb-1">
 
                                                                 <span
-                                                                    class="fs-14 fw-semibold text-body">
+                                                                    class="fs-14
+                                                        fw-semibold
+                                                        text-body">
 
                                                                     <?= esc(
                                                                         $shortcutTitle
@@ -489,111 +741,123 @@ $matchSections = [
                                                                 </span>
 
                                                                 <span
-                                                                    class="badge <?= $shortcutComplete
-                                                                                        ? 'bg-success'
-                                                                                        : 'bg-warning'
-                                                                                    ?> text-body flex-shrink-0">
+                                                                    class="badge
+                                                        bg-warning
+                                                        text-body
+                                                        flex-shrink-0">
 
                                                                     <?= esc(
                                                                         $shortcutStatusLabel
                                                                     ) ?>
                                                                 </span>
+
                                                             </span>
 
                                                             <?php if (
                                                                 $shortcutDescription
                                                                 !== ''
                                                             ): ?>
+
                                                                 <span
-                                                                    class="d-block text-muted fs-12 mb-2">
+                                                                    class="d-block
+                                                        text-muted
+                                                        fs-12 mb-2">
 
                                                                     <?= esc(
                                                                         $shortcutDescription
                                                                     ) ?>
                                                                 </span>
+
                                                             <?php endif; ?>
 
                                                             <span
-                                                                class="d-flex align-items-center justify-content-between gap-2">
+                                                                class="text-body
+                                                    fs-13
+                                                    fw-medium">
 
-                                                                <span
-                                                                    class="text-body fs-13 fw-medium">
-
-                                                                    <?= esc(
-                                                                        (string) $shortcutPercentage
-                                                                    ) ?>%
-                                                                </span>
+                                                                <?= esc(
+                                                                    (string)
+                                                                    $shortcutPercentage
+                                                                ) ?>%
                                                             </span>
+
                                                         </span>
                                                     </div>
                                                 </div>
                                             </a>
                                         </div>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
 
-                        <div
-                            class="d-flex flex-column flex-sm-row justify-content-end gap-2 mt-0">
+                                    <?php endforeach; ?>
 
-                            <?php if (
-                                isset($nextProfileSection)
-                                && is_array($nextProfileSection)
-                                && trim(
-                                    (string) (
-                                        $nextProfileSection['route']
-                                        ?? ''
-                                    )
-                                ) !== ''
-                            ): ?>
-                                <a
-                                    href="<?= url_to(
-                                                (string) $nextProfileSection['route']
-                                            ) ?>"
-                                    class="btn btn-primary">
-
-                                    Continue with
-                                    <?= esc(
-                                        (string) (
-                                            $nextProfileSection['title']
-                                            ?? 'Profile'
-                                        )
-                                    ) ?>
-
-                                    <i
-                                        class="ri-arrow-right-line ms-1"
-                                        aria-hidden="true">
-                                    </i>
-                                </a>
-                            <?php else: ?>
-                                <a
-                                    href="<?= url_to(
-                                                'web.profile.edit'
-                                            ) ?>"
-                                    class="btn btn-outline-danger">
-
-                                    Review Complete Profile
-
-                                    <i
-                                        class="ri-edit-line ms-1"
-                                        aria-hidden="true">
-                                    </i>
-                                </a>
+                                </div>
 
                             <?php endif; ?>
-                            <a
-                                href="<?= url_to('web.profile.view') ?>"
-                                class="btn btn-outline-primary waves-effect waves-light shadow-none
-        d-inline-flex align-items-center
-        justify-content-center gap-2">
-                                <i
-                                    class="ri-eye-line"
-                                    aria-hidden="true"></i>
 
-                                View Profile
-                            </a>
-                        </div>
+                            <div
+                                class="d-flex flex-column
+                    flex-sm-row
+                    justify-content-end
+                    gap-2 mt-0">
+
+                                <?php if (
+                                    isset($nextProfileSection)
+                                    && is_array(
+                                        $nextProfileSection
+                                    )
+                                    && trim(
+                                        (string) (
+                                            $nextProfileSection['route']
+                                            ?? ''
+                                        )
+                                    ) !== ''
+                                ): ?>
+
+                                    <a
+                                        href="<?= url_to(
+                                                    (string)
+                                                    $nextProfileSection['route']
+                                                ) ?>"
+                                        class="btn btn-primary">
+
+                                        Continue with
+
+                                        <?= esc(
+                                            (string) (
+                                                $nextProfileSection['title']
+                                                ?? 'Profile'
+                                            )
+                                        ) ?>
+
+                                        <i
+                                            class="ri-arrow-right-line ms-1"
+                                            aria-hidden="true">
+                                        </i>
+                                    </a>
+
+                                <?php endif; ?>
+
+                                <a
+                                    href="<?= url_to(
+                                                'web.profile.view'
+                                            ) ?>"
+                                    class="btn btn-outline-primary
+                        d-inline-flex
+                        align-items-center
+                        justify-content-center
+                        gap-2">
+
+                                    <i
+                                        class="ri-eye-line"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    View Profile
+                                </a>
+
+                            </div>
+
+                        <?php endif; ?>
+
                     </div>
                 </section>
 

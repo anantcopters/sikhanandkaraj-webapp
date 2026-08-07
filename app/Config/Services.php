@@ -962,6 +962,8 @@ final class Services extends BaseService
                 false
             ),
 
+            new UserContactModel(),
+
             $database,
 
             $configuration
