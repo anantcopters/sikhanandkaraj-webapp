@@ -107,7 +107,7 @@ use App\Services\Matchmaking\MemberInteractionService;
 use App\Services\Matchmaking\MemberMatchmakingService;
 use App\Services\Matchmaking\MemberProfileViewService;
 use App\Services\Matchmaking\PartnerPreferenceMatchService;
-
+use App\Models\MemberShortlistModel;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
 use App\Logging\ErrorLogSanitizer;
@@ -1368,12 +1368,26 @@ final class Services extends BaseService
         $database = db_connect();
 
         return new MemberInteractionService(
-            new UserModel($database),
-            new MemberBlockModel($database),
-            new MemberInterestModel($database),
+            new UserModel(
+                $database
+            ),
+
+            new MemberBlockModel(
+                $database
+            ),
+
+            new MemberInterestModel(
+                $database
+            ),
+
+            new MemberShortlistModel(
+                $database
+            ),
+
             new MemberProfileViewModel(
                 $database
             ),
+
             $database
         );
     }
@@ -1519,7 +1533,13 @@ final class Services extends BaseService
         $database = db_connect();
 
         return new MemberProfileViewService(
-            new UserModel($database),
+            new UserModel(
+                $database
+            ),
+
+            new UserContactModel(
+                $database
+            ),
 
             static::memberProfileSummaryService(
                 false

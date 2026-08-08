@@ -1108,11 +1108,9 @@ $matchSections = [
                                         ?>
 
                                         <article
-                                            class="card
+                                            class="
                                 dashboard-profile-card
-                                border
-                                border-danger
-                                border-opacity-25">
+                                ">
 
                                             <div
                                                 class="card-body p-3">

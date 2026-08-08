@@ -458,6 +458,16 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                         'as' =>
                         'web.members.interest',
                     ]
+                );                
+
+                $routes->post(
+                    'members/(:segment)/shortlist',
+                    'MemberProfileController'
+                        . '::toggleShortlist/$1',
+                    [
+                        'as' =>
+                        'web.members.shortlist',
+                    ]
                 );
 
                 $routes->post(

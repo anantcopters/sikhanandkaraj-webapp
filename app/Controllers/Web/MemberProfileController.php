@@ -207,6 +207,137 @@ final class MemberProfileController extends BaseController
     }
 
     /**
+     * Add/remove another member from the current member's shortlist.
+     */
+    public function toggleShortlist(
+        string $profileReference
+    ): RedirectResponse {
+        $viewerUserId =
+            $this->authenticatedUserId();
+
+        try {
+            /** @var MemberProfileViewService $profileService */
+            $profileService = service(
+                'memberProfileViewService'
+            );
+
+            /*
+         * Resolve the target again on the server.
+         *
+         * Never accept another member's database ID
+         * from POST data.
+         */
+            $target = $profileService
+                ->targetForAction(
+                    $viewerUserId,
+                    $profileReference
+                );
+
+            /** @var MemberInteractionService $interactionService */
+            $interactionService = service(
+                'memberInteractionService'
+            );
+
+            $isShortlisted = $interactionService
+                ->toggleShortlist(
+                    $viewerUserId,
+                    (int) $target['id']
+                );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.members.view',
+                        (string) (
+                            $target['profile_ref_number']
+                        )
+                    )
+                )
+                ->with(
+                    'memberActionNotice',
+                    [
+                        'title' =>
+                        $isShortlisted
+                            ? 'Profile Shortlisted'
+                            : 'Removed from Shortlist',
+
+                        'message' =>
+                        $isShortlisted
+                            ? 'This profile has been added '
+                            . 'to your shortlist.'
+                            : 'This profile has been removed '
+                            . 'from your shortlist.',
+                    ]
+                );
+        } catch (
+            PageNotFoundException) {
+            throw PageNotFoundException
+                ::forPageNotFound();
+        } catch (
+            DomainException $exception
+        ) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.dashboard'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Shortlist not updated',
+
+                        'message' =>
+                        $exception
+                            ->getMessage(),
+                    ]
+                );
+        } catch (
+            Throwable $exception
+        ) {
+            log_message(
+                'error',
+                'Member shortlist update failed. '
+                    . 'Member: {memberId}; '
+                    . 'reason: {message}',
+                [
+                    'memberId' =>
+                    $viewerUserId,
+
+                    'message' =>
+                    $exception
+                        ->getMessage(),
+                ]
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.dashboard'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Shortlist not updated',
+
+                        'message' =>
+                        'We could not update your '
+                            . 'shortlist. Please try again.',
+                    ]
+                );
+        }
+    }
+
+    /**
      * Block another member.
      */
     public function block(

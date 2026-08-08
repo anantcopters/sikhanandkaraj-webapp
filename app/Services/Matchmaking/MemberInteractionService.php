@@ -8,6 +8,7 @@ use App\Models\MemberBlockModel;
 use App\Models\MemberInterestModel;
 use App\Models\MemberProfileViewModel;
 use App\Models\UserModel;
+use App\Models\MemberShortlistModel;
 use CodeIgniter\Database\BaseConnection;
 use DomainException;
 use RuntimeException;
@@ -22,6 +23,7 @@ final class MemberInteractionService
         private readonly UserModel $userModel,
         private readonly MemberBlockModel $blockModel,
         private readonly MemberInterestModel $interestModel,
+        private readonly MemberShortlistModel $shortlistModel,
         private readonly MemberProfileViewModel $profileViewModel,
         private readonly BaseConnection $database
     ) {}
@@ -86,6 +88,125 @@ final class MemberInteractionService
         }
 
         return true;
+    }
+
+    /**
+     * Add or remove another member from the authenticated
+     * member's shortlist.
+     *
+     * @return bool TRUE when shortlisted after the operation,
+     *              FALSE when removed.
+     */
+    public function toggleShortlist(
+        int $userId,
+        int $shortlistedUserId
+    ): bool {
+        /*
+     * Reuse exactly the same member-pair authorization used
+     * by Interest and profile views.
+     *
+     * This prevents:
+     *
+     * - self-shortlisting;
+     * - inactive accounts;
+     * - blocked member relationships.
+     */
+        $this->assertVisiblePair(
+            $userId,
+            $shortlistedUserId
+        );
+
+        if (
+            $this->shortlistModel
+            ->hasShortlisted(
+                $userId,
+                $shortlistedUserId
+            )
+        ) {
+            $removed = $this
+                ->shortlistModel
+                ->removeShortlist(
+                    $userId,
+                    $shortlistedUserId
+                );
+
+            if ($removed === false) {
+                throw new RuntimeException(
+                    'The shortlist could not be updated.'
+                );
+            }
+
+            return false;
+        }
+
+        try {
+            $insertId = $this
+                ->shortlistModel
+                ->insert(
+                    [
+                        'user_id' =>
+                        $userId,
+
+                        'shortlisted_user_id' =>
+                        $shortlistedUserId,
+                    ],
+                    true
+                );
+
+            if (!is_numeric($insertId)) {
+                throw new RuntimeException(
+                    'The profile could not be shortlisted.'
+                );
+            }
+        } catch (Throwable $exception) {
+            /*
+         * The PostgreSQL unique constraint remains the final
+         * concurrency guard.
+         */
+            if (
+                $this->shortlistModel
+                ->hasShortlisted(
+                    $userId,
+                    $shortlistedUserId
+                )
+            ) {
+                return true;
+            }
+
+            throw $exception;
+        }
+
+        return true;
+    }
+
+    /**
+     * Determine whether the member has shortlisted the target.
+     */
+    public function hasShortlisted(
+        int $userId,
+        int $shortlistedUserId
+    ): bool {
+        return $this
+            ->shortlistModel
+            ->hasShortlisted(
+                $userId,
+                $shortlistedUserId
+            );
+    }
+
+    /**
+     * Return member IDs shortlisted by this member.
+     *
+     * @return list<int>
+     */
+    public function shortlistedMemberIds(
+        int $userId
+    ): array {
+        return $this
+            ->shortlistModel
+            ->shortlistedMemberIds(
+                $userId
+            );
     }
 
     public function blockMember(
@@ -180,6 +301,25 @@ final class MemberInteractionService
                         'The member could not be blocked.'
                     );
                 }
+            }
+
+            /*
+            * A blocked relationship must not remain actively shortlisted.
+            *
+            * Unlike Interest/View history, shortlist is active member state
+            * rather than historical activity, so remove it in both directions.
+            */
+            $shortlistRemoved = $this
+                ->shortlistModel
+                ->removeBetween(
+                    $blockerUserId,
+                    $blockedUserId
+                );
+
+            if ($shortlistRemoved === false) {
+                throw new RuntimeException(
+                    'The shortlist relationship could not be cleared.'
+                );
             }
 
             if (

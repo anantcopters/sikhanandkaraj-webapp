@@ -6,6 +6,8 @@ namespace App\Services\Matchmaking;
 
 use App\Models\UserModel;
 use App\Services\Profile\MemberPhotoUrlService;
+use App\Models\UserContactModel;
+use App\Support\BooleanValue;
 use App\Services\Profile\MemberProfileSummaryService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
@@ -28,6 +30,9 @@ final class MemberProfileViewService
     public function __construct(
         private readonly UserModel
         $userModel,
+
+        private readonly UserContactModel
+        $userContactModel,
 
         private readonly MemberProfileSummaryService
         $profileSummaryService,
@@ -61,6 +66,49 @@ final class MemberProfileViewService
                 ?? 0
             )
         );
+
+        /*
+        * Contacts are resolved server-side from the member's
+        * primary contact records.
+        */
+        $mobileContact = $this
+            ->userContactModel
+            ->findPrimaryForUser(
+                $targetUserId,
+                UserContactModel::TYPE_MOBILE
+            );
+
+        $emailContact = $this
+            ->userContactModel
+            ->findPrimaryForUser(
+                $targetUserId,
+                UserContactModel::TYPE_EMAIL
+            );
+
+        $mobileNumber = is_array($mobileContact)
+            ? trim(
+                (string) (
+                    $mobileContact['contact_value']
+                    ?? ''
+                )
+            )
+            : '';
+
+        $emailAddress = is_array($emailContact)
+            ? trim(
+                (string) (
+                    $emailContact['contact_value']
+                    ?? ''
+                )
+            )
+            : '';
+
+        $isMobileVerified =
+            is_array($mobileContact)
+            && BooleanValue::fromDatabase(
+                $mobileContact['is_verified']
+                    ?? false
+            );
 
         /*
          * Point 26:
@@ -183,6 +231,23 @@ final class MemberProfileViewService
 
                 'hasInterestRelationship' =>
                 $hasInterestRelationship,
+
+                'viewedMobile' =>
+                $mobileNumber,
+
+                'viewedEmail' =>
+                $emailAddress,
+
+                'isViewedMobileVerified' =>
+                $isMobileVerified,
+
+                'isShortlisted' =>
+                $this
+                    ->interactionService
+                    ->hasShortlisted(
+                        $viewerUserId,
+                        $targetUserId
+                    ),
             ]
         );
     }

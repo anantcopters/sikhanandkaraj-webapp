@@ -415,3 +415,18 @@ These values are used by current business logic and must either have matching Po
 | `created_at`, `updated_at` | `NOT NULL`, default | Database | Default `CURRENT_TIMESTAMP`. |
 
 **Application rule:** repeated authorized profile views atomically increment `view_count`. The aggregate supports both unique-viewer statistics and total-view counts for future free/paid entitlement rules.
+
+## `member_shortlists`
+
+| Column(s) | Constraint | Enforcement | Allowed values / rule |
+|---|---|---|---|
+| `id` | Primary key | Database | Generated `BIGSERIAL`. |
+| `user_id` | Foreign key, `NOT NULL` | Database | References `users(id)`; `ON UPDATE RESTRICT`, `ON DELETE CASCADE`. |
+| `shortlisted_user_id` | Foreign key, `NOT NULL` | Database | References `users(id)`; `ON UPDATE RESTRICT`, `ON DELETE CASCADE`. |
+| `(user_id, shortlisted_user_id)` | Unique | Database | A member may shortlist another member only once. |
+| `user_id`, `shortlisted_user_id` | Check | Database | A member cannot shortlist their own account. |
+| `created_at` | `NOT NULL`, default | Database | Defaults to `CURRENT_TIMESTAMP`. |
+
+**Application authorization:** both members must be active, they must be different users, and no block may exist in either direction before a shortlist can be added.
+
+**Block-state rule:** blocking removes active shortlist relationships between the two members in both directions.
