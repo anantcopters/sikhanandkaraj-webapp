@@ -190,21 +190,27 @@ $matchSections = [
                         <div class="card-body p-4 pb-1 text-center">
 
                             <?php if ($resolvedProfileImage !== ''): ?>
-                                <div class="admin-member-profile-photo mx-auto mb-3">
+
+                                <div class="member-profile-thumbnail mx-auto mb-3">
                                     <img
                                         src="<?= esc(
                                                     $resolvedProfileImage,
                                                     'attr'
                                                 ) ?>"
                                         alt="<?= esc(
-                                                    $resolvedName . ' profile photo',
+                                                    $resolvedName
+                                                        . ' profile photo',
                                                     'attr'
                                                 ) ?>">
                                 </div>
+
                             <?php else: ?>
+
                                 <div
-                                    class="admin-member-profile-photo
-                admin-member-profile-photo--fallback mx-auto mb-3"
+                                    class="member-profile-thumbnail
+            member-profile-thumbnail--fallback
+            mx-auto
+            mb-3"
                                     aria-label="<?= esc(
                                                     $resolvedName,
                                                     'attr'
@@ -223,6 +229,7 @@ $matchSections = [
                                     </span>
 
                                 </div>
+
                             <?php endif; ?>
 
                             <h2 class="fs-18 fw-semibold mb-1">
@@ -1125,52 +1132,53 @@ $matchSections = [
                                                     class="d-block
                                         text-decoration-none">
 
-                                                    <?php if (
-                                                        $profilePhoto !== ''
-                                                    ): ?>
+                                                    <div class="position-relative mx-auto mb-3">
 
-                                                        <div
-                                                            class="admin-member-profile-photo
-                                                mx-auto mb-3">
+                                                        <?php if ($profilePhoto !== ''): ?>
 
-                                                            <img
-                                                                src="<?= esc(
-                                                                            $profilePhoto,
-                                                                            'attr'
-                                                                        ) ?>"
-                                                                alt="<?= esc(
-                                                                            $profileName
-                                                                                . ' profile photo',
-                                                                            'attr'
-                                                                        ) ?>"
-                                                                loading="lazy">
-                                                        </div>
+                                                            <div class="member-profile-thumbnail mx-auto">
 
-                                                    <?php else: ?>
+                                                                <img
+                                                                    src="<?= esc(
+                                                                                $profilePhoto,
+                                                                                'attr'
+                                                                            ) ?>"
+                                                                    alt="<?= esc(
+                                                                                $profileName
+                                                                                    . ' profile photo',
+                                                                                'attr'
+                                                                            ) ?>">
 
-                                                        <div
-                                                            class="admin-member-profile-photo
-                                                admin-member-profile-photo--fallback
-                                                mx-auto mb-3"
-                                                            aria-label="<?= esc(
-                                                                            $profileName,
-                                                                            'attr'
-                                                                        ) ?>">
+                                                            </div>
 
-                                                            <span>
-                                                                <?= esc(
-                                                                    mb_strtoupper(
-                                                                        mb_substr(
-                                                                            $profileName,
-                                                                            0,
-                                                                            1
+                                                        <?php else: ?>
+
+                                                            <div
+                                                                class="member-profile-thumbnail
+                member-profile-thumbnail--fallback
+                mx-auto"
+                                                                aria-label="<?= esc(
+                                                                                $profileName,
+                                                                                'attr'
+                                                                            ) ?>">
+
+                                                                <span>
+                                                                    <?= esc(
+                                                                        mb_strtoupper(
+                                                                            mb_substr(
+                                                                                $profileName,
+                                                                                0,
+                                                                                1
+                                                                            )
                                                                         )
-                                                                    )
-                                                                ) ?>
-                                                            </span>
-                                                        </div>
+                                                                    ) ?>
+                                                                </span>
 
-                                                    <?php endif; ?>
+                                                            </div>
+
+                                                        <?php endif; ?>
+
+                                                    </div>
 
                                                     <h3
                                                         class="fs-14

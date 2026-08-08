@@ -934,7 +934,7 @@ $this->section('content');
 
                     <?php if ($adminProfileImage !== ''): ?>
 
-                        <div class="admin-member-profile-photo">
+                        <div class="member-profile-thumbnail">
                             <img
                                 src="<?= esc(
                                             $adminProfileImage,
@@ -950,8 +950,8 @@ $this->section('content');
                     <?php else: ?>
 
                         <div
-                            class="admin-member-profile-photo
-                admin-member-profile-photo--fallback"
+                            class="member-profile-thumbnail
+                member-profile-thumbnail--fallback"
                             aria-label="<?= esc(
                                             $fullName,
                                             'attr'
