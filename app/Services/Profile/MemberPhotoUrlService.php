@@ -303,11 +303,13 @@ final class MemberPhotoUrlService
     }
 
     /**
-     * Return original and medium URLs for one approved member-owned photo.
+     * Return the medium URL for one approved member-owned photo.
+     *
+     * Original photographs are deliberately not exposed through
+     * the member-facing profile gallery.
      *
      * @return array{
      *     photoId:int,
-     *     originalUrl:string,
      *     mediumUrl:string
      * }
      */
@@ -324,7 +326,8 @@ final class MemberPhotoUrlService
             );
         }
 
-        $photo = $this->photoModel
+        $photo = $this
+            ->photoModel
             ->findOwnedApprovedPhoto(
                 $photoId,
                 $memberId
@@ -336,12 +339,39 @@ final class MemberPhotoUrlService
             );
         }
 
-        return $this->createModalUrls(
-            $photo,
-            $memberId,
-            $photoId,
-            'Approved member photo'
+        $mediumObjectKey = trim(
+            (string) (
+                $photo['medium_object_key']
+                ?? ''
+            )
         );
+
+        if ($mediumObjectKey === '') {
+            throw new DomainException(
+                'The medium photo is unavailable.'
+            );
+        }
+
+        $mediumUrl = $this->createSignedUrl(
+            objectKey: $mediumObjectKey,
+            context: 'Approved member photo medium',
+            memberId: $memberId,
+            photoId: $photoId
+        );
+
+        if ($mediumUrl === '') {
+            throw new DomainException(
+                'The medium photo is unavailable.'
+            );
+        }
+
+        return [
+            'photoId' =>
+            $photoId,
+
+            'mediumUrl' =>
+            $mediumUrl,
+        ];
     }
 
     /**
@@ -680,5 +710,210 @@ final class MemberPhotoUrlService
                 ?? 0
             )
         );
+    }
+
+    /**
+     * Return gallery thumbnails visible to another authenticated member.
+     *
+     * PUBLIC:
+     *     visible to any otherwise-authorized member.
+     *
+     * INTERESTED_MEMBERS:
+     *     visible only when an interest exists in either direction.
+     *
+     * @return list<array{
+     *     id:int,
+     *     thumbnailUrl:string,
+     *     isPrimary:bool
+     * }>
+     */
+    public function getApprovedGalleryForViewer(
+        int $memberId,
+        int $viewerUserId,
+        bool $hasInterestRelationship
+    ): array {
+        if (
+            $memberId <= 0
+            || $viewerUserId <= 0
+            || $memberId === $viewerUserId
+        ) {
+            return [];
+        }
+
+        $photos = $this
+            ->photoModel
+            ->findApprovedForViewerGallery(
+                $memberId
+            );
+
+        $result = [];
+
+        foreach ($photos as $photo) {
+            if (!is_array($photo)) {
+                continue;
+            }
+
+            $photoId = max(
+                0,
+                (int) (
+                    $photo['id']
+                    ?? 0
+                )
+            );
+
+            if ($photoId <= 0) {
+                continue;
+            }
+
+            $visibility = mb_strtoupper(
+                trim(
+                    (string) (
+                        $photo['visibility']
+                        ?? ''
+                    )
+                )
+            );
+
+            /*
+         * Unknown values fail closed.
+         */
+            if (
+                !in_array(
+                    $visibility,
+                    [
+                        'PUBLIC',
+                        'INTERESTED_MEMBERS',
+                    ],
+                    true
+                )
+            ) {
+                continue;
+            }
+
+            if (
+                $visibility === 'INTERESTED_MEMBERS'
+                && !$hasInterestRelationship
+            ) {
+                continue;
+            }
+
+            $objectKey = trim(
+                (string) (
+                    $photo['thumbnail_object_key']
+                    ?? ''
+                )
+            );
+
+            if ($objectKey === '') {
+                continue;
+            }
+
+            $thumbnailUrl = $this
+                ->createSignedUrl(
+                    objectKey: $objectKey,
+                    context: 'Viewer-authorized gallery thumbnail',
+                    memberId: $memberId,
+                    photoId: $photoId
+                );
+
+            if ($thumbnailUrl === '') {
+                continue;
+            }
+
+            $result[] = [
+                'id' =>
+                $photoId,
+
+                'thumbnailUrl' =>
+                $thumbnailUrl,
+
+                'isPrimary' =>
+                BooleanValue::fromDatabase(
+                    $photo['is_primary']
+                        ?? false
+                ),
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Return a viewer-authorized medium URL for one gallery photo.
+     *
+     * Original images are intentionally not exposed to another member.
+     */
+    public function getApprovedGalleryMediumUrlForViewer(
+        int $memberId,
+        int $viewerUserId,
+        int $photoId,
+        bool $hasInterestRelationship
+    ): string {
+        if (
+            $memberId <= 0
+            || $viewerUserId <= 0
+            || $photoId <= 0
+            || $memberId === $viewerUserId
+        ) {
+            return '';
+        }
+
+        $photos = $this
+            ->photoModel
+            ->findApprovedForViewerGallery(
+                $memberId
+            );
+
+        foreach ($photos as $photo) {
+            if (
+                !is_array($photo)
+                || (int) (
+                    $photo['id']
+                    ?? 0
+                ) !== $photoId
+            ) {
+                continue;
+            }
+
+            $visibility = mb_strtoupper(
+                trim(
+                    (string) (
+                        $photo['visibility']
+                        ?? ''
+                    )
+                )
+            );
+
+            if ($visibility === 'PUBLIC') {
+                // allowed
+            } elseif (
+                $visibility === 'INTERESTED_MEMBERS'
+                && $hasInterestRelationship
+            ) {
+                // allowed
+            } else {
+                return '';
+            }
+
+            $objectKey = trim(
+                (string) (
+                    $photo['medium_object_key']
+                    ?? ''
+                )
+            );
+
+            if ($objectKey === '') {
+                return '';
+            }
+
+            return $this->createSignedUrl(
+                objectKey: $objectKey,
+                context: 'Viewer-authorized gallery medium photo',
+                memberId: $memberId,
+                photoId: $photoId
+            );
+        }
+
+        return '';
     }
 }

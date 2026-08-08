@@ -31,7 +31,7 @@ final class MemberPhotoModel extends Model
      * Photograph is logically deleted and must not be displayed.
      */
     public const STATUS_DELETED = 'DELETED';
-    
+
     protected $table = 'member_photos';
 
     protected $primaryKey = 'id';
@@ -274,7 +274,6 @@ final class MemberPhotoModel extends Model
             ->select([
                 'id',
                 'member_id',
-                'original_object_key',
                 'medium_object_key',
                 'is_primary',
                 'status',
@@ -318,5 +317,56 @@ final class MemberPhotoModel extends Model
                 $prelaunchPhotoId
             )
             ->countAllResults() > 0;
+    }
+
+    /**
+     * Return approved active photos for another-member gallery authorization.
+     *
+     * Visibility is returned because the service layer must decide whether the
+     * authenticated viewer may see each photograph.
+     *
+     * Original object keys are deliberately excluded.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findApprovedForViewerGallery(
+        int $memberId
+    ): array {
+        return $this
+            ->select([
+                'id',
+                'member_id',
+                'thumbnail_object_key',
+                'medium_object_key',
+                'is_primary',
+                'status',
+                'visibility',
+                'created_at',
+            ])
+            ->where(
+                'member_id',
+                $memberId
+            )
+            ->where(
+                'status',
+                self::STATUS_APPROVED
+            )
+            ->where(
+                'deleted_at',
+                null
+            )
+            ->orderBy(
+                'is_primary',
+                'DESC'
+            )
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->orderBy(
+                'id',
+                'DESC'
+            )
+            ->findAll();
     }
 }

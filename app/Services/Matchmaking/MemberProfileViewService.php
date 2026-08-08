@@ -203,12 +203,25 @@ final class MemberProfileViewService
         }
 
         /*
-         * Existing gallery endpoints are owner-authorized.
-         *
-         * Do not reuse them for another member. A separate viewer-authorized
-         * gallery workflow may be introduced later.
-         */
-        $summary['approvedPhotos'] = [];
+        * Another-member gallery.
+        *
+        * Only viewer-authorized approved photos are returned:
+        *
+        * PUBLIC
+        *     -> visible to any otherwise-authorized member.
+        *
+        * INTERESTED_MEMBERS
+        *     -> requires an interest relationship in either direction.
+        *
+        * Thumbnail signed URLs only are returned in the initial profile response.
+        */
+        $summary['approvedPhotos'] = $this
+            ->photoUrlService
+            ->getApprovedGalleryForViewer(
+                memberId: $targetUserId,
+                viewerUserId: $viewerUserId,
+                hasInterestRelationship: $hasInterestRelationship
+            );
 
         /*
          * Record a view only after the profile has successfully passed
@@ -266,7 +279,7 @@ final class MemberProfileViewService
                         $viewerUserId,
                         $targetUserId
                     ),
-                    
+
                 'partnerPreferenceMatch' =>
                 $partnerPreferenceMatch,
             ]

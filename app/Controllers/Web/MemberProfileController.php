@@ -74,8 +74,8 @@ final class MemberProfileController extends BaseController
                     ),
 
                     'pageScripts' => [
-                        'assets/js/pages/'
-                            . 'member-profile-actions.js',
+                        'assets/js/pages/profile-view.js',
+                        'assets/js/pages/member-profile-actions.js',
                     ],
                 ]
             )
@@ -518,6 +518,155 @@ final class MemberProfileController extends BaseController
                             . 'member. Please try again.',
                     ]
                 );
+        }
+    }
+
+    /**
+     * Return a viewer-authorized medium photo URL for one
+     * approved gallery image belonging to another member.
+     */
+    public function photoMediumUrl(
+        string $profileReference,
+        int $photoId
+    ): \CodeIgniter\HTTP\ResponseInterface {
+        $viewerUserId =
+            $this->authenticatedUserId();
+
+        if ($photoId <= 0) {
+            return $this->response
+                ->setStatusCode(404)
+                ->setJSON([
+                    'success' => false,
+                    'message' =>
+                    'The requested photo is unavailable.',
+                ]);
+        }
+
+        try {
+            /** @var \App\Services\Matchmaking\MemberProfileViewService $profileService */
+            $profileService = service(
+                'memberProfileViewService'
+            );
+
+            /*
+         * Re-resolve the target server-side.
+         *
+         * This applies the same active-member and block
+         * authorization as the normal profile view.
+         */
+            $target = $profileService
+                ->targetForAction(
+                    $viewerUserId,
+                    $profileReference
+                );
+
+            $targetUserId = max(
+                0,
+                (int) (
+                    $target['id']
+                    ?? 0
+                )
+            );
+
+            if ($targetUserId <= 0) {
+                return $this->response
+                    ->setStatusCode(404)
+                    ->setJSON([
+                        'success' => false,
+                        'message' =>
+                        'The requested photo is unavailable.',
+                    ]);
+            }
+
+            /** @var \App\Services\Matchmaking\MemberInteractionService $interactionService */
+            $interactionService = service(
+                'memberInteractionService'
+            );
+
+            $hasInterestRelationship =
+                $interactionService
+                ->hasInterestBetween(
+                    $viewerUserId,
+                    $targetUserId
+                );
+
+            /** @var \App\Services\Profile\MemberPhotoUrlService $photoUrlService */
+            $photoUrlService = service(
+                'memberPhotoUrlService'
+            );
+
+            $mediumUrl = $photoUrlService
+                ->getApprovedGalleryMediumUrlForViewer(
+                    memberId: $targetUserId,
+                    viewerUserId: $viewerUserId,
+                    photoId: $photoId,
+                    hasInterestRelationship: $hasInterestRelationship
+                );
+
+            if ($mediumUrl === '') {
+                return $this->response
+                    ->setStatusCode(404)
+                    ->setJSON([
+                        'status' =>
+                        'error',
+
+                        'message' =>
+                        'The requested photo is unavailable.',
+                    ]);
+            }
+
+            return $this->response
+                ->setJSON([
+                    'status' =>
+                    'success',
+
+                    'data' => [
+                        /*
+             * Never expose another member's original
+             * media object through this endpoint.
+             */
+                        'originalUrl' =>
+                        '',
+
+                        'mediumUrl' =>
+                        $mediumUrl,
+                    ],
+                ]);
+        } catch (
+            \CodeIgniter\Exceptions\PageNotFoundException) {
+            return $this->response
+                ->setStatusCode(404)
+                ->setJSON([
+                    'success' => false,
+                    'message' =>
+                    'The requested photo is unavailable.',
+                ]);
+        } catch (\Throwable $exception) {
+            log_message(
+                'error',
+                'Viewer gallery medium URL failed. '
+                    . 'Viewer: {viewerUserId}; '
+                    . 'photo: {photoId}; '
+                    . 'reason: {message}',
+                [
+                    'viewerUserId' =>
+                    $viewerUserId,
+
+                    'photoId' =>
+                    $photoId,
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'success' => false,
+                    'message' =>
+                    'The photo could not be loaded.',
+                ]);
         }
     }
 }

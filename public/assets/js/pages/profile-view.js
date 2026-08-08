@@ -148,11 +148,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Display the original URL, falling back to medium if loading fails.
+     * Display the viewer-authorized medium profile photo.
+     *
+     * The profile gallery deliberately never exposes original
+     * uploaded photographs.
      */
     function displayImage(
         slide,
-        originalUrl,
         mediumUrl
     ) {
         const loadingPanel = slide.querySelector(
@@ -199,25 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         image.onload = revealImage;
+        image.onerror = failImage;
 
-        image.onerror = () => {
-            image.onload = null;
-            image.onerror = null;
-
-            if (
-                mediumUrl === ''
-                || image.src === mediumUrl
-            ) {
-                failImage();
-                return;
-            }
-
-            image.onload = revealImage;
-            image.onerror = failImage;
-            image.src = mediumUrl;
-        };
-
-        image.src = originalUrl;
+        image.src = mediumUrl;
     }
 
     /**
@@ -282,18 +268,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const urls = {
-            originalUrl: String(
-                payload.data?.originalUrl
-                || ''
-            ).trim(),
-
             mediumUrl: String(
                 payload.data?.mediumUrl
                 || ''
             ).trim()
         };
 
-        if (urls.originalUrl === '') {
+        if (urls.mediumUrl === '') {
+            throw new Error(
+                'The enlarged photo is unavailable.'
+            );
+        }
+
+        /*
+         * Owner profile:
+         *     originalUrl + mediumUrl
+         *
+         * Other-member profile:
+         *     mediumUrl only
+         *
+         * At least one authorized display URL must exist.
+         */
+        if (
+            urls.originalUrl === ''
+            && urls.mediumUrl === ''
+        ) {
             throw new Error(
                 'The enlarged photo is unavailable.'
             );
@@ -353,7 +352,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             displayImage(
                 slide,
-                urls.originalUrl,
                 urls.mediumUrl
             );
         } catch (error) {

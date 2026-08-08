@@ -675,10 +675,17 @@ foreach ($approvedPhotos as $photo) {
          * This is an authenticated application URL, not a signed S3 or
          * CloudFront original-photo URL.
          */
-        'modalUrlEndpoint' => url_to(
-            'web.profile.photos.original-url',
-            $photoId
-        ),
+        'modalUrlEndpoint' =>
+        $isOtherMemberProfileView
+            ? url_to(
+                'web.members.photos.medium-url',
+                $viewedProfileReference,
+                $photoId
+            )
+            : url_to(
+                'web.profile.photos.original-url',
+                $photoId
+            ),
     ];
 }
 
@@ -1960,9 +1967,9 @@ $this->section('content');
                                                         (string)
                                                         $matchedPreferenceCount
                                                     ) ?>/<?= esc(
-                                    (string)
-                                    $totalPreferenceCount
-                                ) ?>
+                                                                (string)
+                                                                $totalPreferenceCount
+                                                            ) ?>
                                                 </span>
 
                                                 of your partner preferences
@@ -2643,7 +2650,7 @@ $this->section('content');
                     <?= csrf_field() ?>
 
                     <div
-                        class="modal-header">
+                        class="modal-header bg-info-subtle py-2">
 
                         <h2
                             class="modal-title

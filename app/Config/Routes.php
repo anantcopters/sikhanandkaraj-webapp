@@ -458,7 +458,7 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                         'as' =>
                         'web.members.interest',
                     ]
-                );                
+                );
 
                 $routes->post(
                     'members/(:segment)/shortlist',
@@ -476,6 +476,14 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                     [
                         'as' =>
                         'web.members.block',
+                    ]
+                );
+
+                $routes->get(
+                    'members/(:segment)/photos/(:num)/medium-url',
+                    'MemberProfileController::photoMediumUrl/$1/$2',
+                    [
+                        'as' => 'web.members.photos.medium-url',
                     ]
                 );
             }
