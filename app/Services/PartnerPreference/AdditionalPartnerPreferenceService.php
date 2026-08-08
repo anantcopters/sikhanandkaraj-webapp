@@ -157,11 +157,12 @@ final class AdditionalPartnerPreferenceService
             $this->summaryItem(
                 AdditionalPreferenceItem::COMMUNITY,
                 $communityIds !== [],
-                $this->masterLabels(
+                $this->masterLabelsOrAny(
                     $communityIds,
                     $masterData['communities']
                 ),
-                $religious['community_match_mode'] ?? false
+                $religious['community_match_mode']
+                    ?? false
             ),
         ];
 
@@ -169,33 +170,40 @@ final class AdditionalPartnerPreferenceService
             $this->summaryItem(
                 AdditionalPreferenceItem::EDUCATION,
                 $educationIds !== [],
-                $this->masterLabels(
+                $this->masterLabelsOrAny(
                     $educationIds,
                     $masterData['educations']
                 ),
-                $professional['education_match_mode'] ?? false
+                $professional['education_match_mode']
+                    ?? false
             ),
 
             $this->summaryItem(
                 AdditionalPreferenceItem::EMPLOYED_IN,
                 $employmentValues !== [],
-                $this->employmentLabels(
+                $this->employmentLabelsOrAny(
                     $employmentValues,
                     $masterData['employmentTypes']
                 ),
-                $professional['employed_in_match_mode'] ?? false
+                $professional['employed_in_match_mode']
+                    ?? false
             ),
 
             $this->summaryItem(
                 AdditionalPreferenceItem::OCCUPATION,
                 $occupationIds !== [],
-                $this->masterLabels(
+                $this->masterLabelsOrAny(
                     $occupationIds,
                     $masterData['occupations']
                 ),
-                $professional['occupation_match_mode'] ?? false
+                $professional['occupation_match_mode']
+                    ?? false
             ),
 
+            /*
+            * Annual Income intentionally does not support "Any"
+            * in the current UI. Keep its normal label list.
+            */
             $this->summaryItem(
                 AdditionalPreferenceItem::ANNUAL_INCOME,
                 $annualIncomeIds !== [],
@@ -203,16 +211,17 @@ final class AdditionalPartnerPreferenceService
                     $annualIncomeIds,
                     $masterData['annualIncomes']
                 ),
-                $professional['annual_income_match_mode'] ?? false
+                $professional['annual_income_match_mode']
+                    ?? false
             ),
         ];
 
-        $stateLabels = $this->masterLabels(
+        $stateLabels = $this->masterLabelsOrAny(
             $stateIds,
             $masterData['states']
         );
 
-        $cityLabels = $this->masterLabels(
+        $cityLabels = $this->masterLabelsOrAny(
             $cityIds,
             $cities
         );
@@ -975,6 +984,84 @@ final class AdditionalPartnerPreferenceService
     }
 
     /**
+     * Return "Any" when every available master value has been selected.
+     *
+     * Otherwise return the normal comma-separated selected labels.
+     *
+     * @param list<int|string>           $ids
+     * @param list<array<string, mixed>> $rows
+     */
+    private function masterLabelsOrAny(
+        array $ids,
+        array $rows
+    ): ?string {
+        if (
+            $this->containsAllMasterIds(
+                $ids,
+                $rows
+            )
+        ) {
+            return 'Any';
+        }
+
+        return $this->masterLabels(
+            $ids,
+            $rows
+        );
+    }
+
+    /**
+     * Determine whether the selected IDs represent every currently
+     * available master-data option.
+     *
+     * @param list<int|string>           $ids
+     * @param list<array<string, mixed>> $rows
+     */
+    private function containsAllMasterIds(
+        array $ids,
+        array $rows
+    ): bool {
+        $availableIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        static fn(array $row): int =>
+                        (int) (
+                            $row['id']
+                            ?? 0
+                        ),
+                        $rows
+                    ),
+                    static fn(int $id): bool =>
+                    $id > 0
+                )
+            )
+        );
+
+        if ($availableIds === []) {
+            return false;
+        }
+
+        $selectedIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $ids
+                    ),
+                    static fn(int $id): bool =>
+                    $id > 0
+                )
+            )
+        );
+
+        sort($availableIds);
+        sort($selectedIds);
+
+        return $availableIds === $selectedIds;
+    }
+
+    /**
      * @param list<int|string>           $ids
      * @param list<array<string, mixed>> $rows
      */
@@ -1011,6 +1098,67 @@ final class AdditionalPartnerPreferenceService
         return $labels !== []
             ? implode(', ', $labels)
             : null;
+    }
+
+    /**
+     * Return "Any" when every employment option is selected.
+     *
+     * @param list<int|string>             $values
+     * @param list<array<string, string>>  $options
+     */
+    private function employmentLabelsOrAny(
+        array $values,
+        array $options
+    ): ?string {
+        $availableValues = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        static fn(array $option): string =>
+                        trim(
+                            (string) (
+                                $option['value']
+                                ?? ''
+                            )
+                        ),
+                        $options
+                    ),
+                    static fn(string $value): bool =>
+                    $value !== ''
+                )
+            )
+        );
+
+        $selectedValues = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        static fn(mixed $value): string =>
+                        trim(
+                            (string) $value
+                        ),
+                        $values
+                    ),
+                    static fn(string $value): bool =>
+                    $value !== ''
+                )
+            )
+        );
+
+        sort($availableValues);
+        sort($selectedValues);
+
+        if (
+            $availableValues !== []
+            && $availableValues === $selectedValues
+        ) {
+            return 'Any';
+        }
+
+        return $this->employmentLabels(
+            $values,
+            $options
+        );
     }
 
     /**

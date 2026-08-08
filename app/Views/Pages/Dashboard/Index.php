@@ -975,20 +975,13 @@ $matchSections = [
                                             <?= esc(
                                                 $section['title']
                                             ) ?>
-                                        </h2>
-
-                                        <span
-                                            class="badge
-                                bg-primary-subtle
-                                text-primary">
-
-                                            <?= esc(
+                                            (<?= esc(
                                                 (string)
                                                 count(
                                                     $sectionProfiles
                                                 )
-                                            ) ?>
-                                        </span>
+                                            ) ?>)
+                                        </h2>                                        
                                     </div>
 
                                     <p

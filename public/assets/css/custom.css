@@ -2156,3 +2156,45 @@ form[aria-busy="true"] {
         flex-basis: 227px;
     }
 }
+
+/* ==========================================================================
+   Partner Preference - Any selection
+   ========================================================================== */
+
+/**
+ * Compact representation used when every available value is acceptable.
+ *
+ * The underlying select still contains all selected values so the existing
+ * backend persistence and matching behaviour remain unchanged.
+ */
+.partner-preference-any-value {
+    display: none;
+    min-height: 42px;
+    padding: 0.5rem 0.75rem;
+    align-items: center;
+
+    border: 1px solid var(--vz-border-color);
+    border-radius: 0.25rem;
+
+    background-color: var(--vz-input-bg);
+    color: var(--vz-body-color);
+
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/**
+ * Choices.js would normally render every selected value as an individual
+ * removable tag. Hide the Choices presentation when "Any" represents the
+ * complete selection.
+ */
+.partner-preference-multi-select.is-any .partner-preference-multi-select__control>.choices {
+    display: none;
+}
+
+/**
+ * Show one clean value instead of dozens of Choices tags.
+ */
+.partner-preference-multi-select.is-any .partner-preference-any-value {
+    display: flex;
+}

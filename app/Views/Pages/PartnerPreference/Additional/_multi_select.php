@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Reusable searchable multi-select.
+ * Reusable searchable Partner Preference multi-select.
  *
  * Supports either:
  *
@@ -24,7 +24,12 @@ declare(strict_types=1);
  *        ],
  *    ];
  *
- * Existing flat consumers remain unchanged.
+ * When "Any" is enabled and selected, all available options remain
+ * selected internally so the existing persistence and matching logic
+ * continues to work unchanged.
+ *
+ * The presentation layer collapses those selected values into one
+ * compact "Any" value.
  *
  * @var string                          $field
  * @var string                          $label
@@ -101,7 +106,13 @@ $resolvedGroupItemsKey = trim(
     )
 );
 
-$resolvedShowSelectAll =
+/*
+ * Keep the existing configuration name so current consumers do not
+ * require changes.
+ *
+ * UI terminology is now "Any".
+ */
+$resolvedShowAny =
     ($showSelectAll ?? true) === true;
 
 $isDisabled =
@@ -121,8 +132,8 @@ $fieldId = lcfirst(
     )
 );
 
-$selectAllId =
-    $fieldId . 'SelectAll';
+$anyId =
+    $fieldId . 'Any';
 
 $selectedStrings = array_values(
     array_map(
@@ -133,7 +144,7 @@ $selectedStrings = array_values(
 );
 
 /**
- * Render one option.
+ * Render one selectable option.
  */
 $renderOption = static function (
     array $option
@@ -184,7 +195,10 @@ $renderOption = static function (
 };
 ?>
 
-<div class="col-12">
+<div
+    class="col-12 partner-preference-multi-select"
+    data-preference-multi-select>
+
     <label
         for="<?= esc(
                     $fieldId,
@@ -197,17 +211,21 @@ $renderOption = static function (
         <span class="text-danger">*</span>
     </label>
 
-    <?php if ($resolvedShowSelectAll): ?>
+    <?php if ($resolvedShowAny): ?>
+
         <div
-            class="d-flex align-items-center
-                justify-content-end mb-2">
+            class="d-flex
+                align-items-center
+                justify-content-end
+                mb-2">
 
             <div class="form-check">
+
                 <input
                     type="checkbox"
                     class="form-check-input"
                     id="<?= esc(
-                            $selectAllId,
+                            $anyId,
                             'attr'
                         ) ?>"
                     data-select-all-target="<?= esc(
@@ -220,125 +238,149 @@ $renderOption = static function (
 
                 <label
                     class="form-check-label
-                        fs-13 fw-medium"
+                        fs-13
+                        fw-medium"
                     for="<?= esc(
-                                $selectAllId,
+                                $anyId,
                                 'attr'
                             ) ?>">
 
-                    Select All
+                    Any
                 </label>
+
             </div>
         </div>
+
     <?php endif; ?>
 
-    <select
-        id="<?= esc(
-                $fieldId,
-                'attr'
-            ) ?>"
-        name="<?= esc(
-                    $resolvedField,
+    <div
+        class="partner-preference-multi-select__control">
+
+        <select
+            id="<?= esc(
+                    $fieldId,
                     'attr'
-                ) ?>[]"
-        class="form-select <?= isset(
-                                $resolvedErrors[$resolvedField]
-                            )
-                                ? 'is-invalid'
-                                : '' ?>"
-        data-choice
-        data-choice-search="true"
-        data-choice-position="bottom"
-        data-choice-search-placeholder="Search"
-        data-error-required="<?= esc(
-                                    'Please select at least one '
-                                        . strtolower(
-                                            $resolvedLabel
-                                        )
-                                        . '.',
-                                    'attr'
-                                ) ?>"
-        <?= $isDisabled
-            ? 'disabled'
-            : '' ?>
-        multiple
-        required>
+                ) ?>"
+            name="<?= esc(
+                        $resolvedField,
+                        'attr'
+                    ) ?>[]"
+            class="form-select <?= isset(
+                                    $resolvedErrors[$resolvedField]
+                                )
+                                    ? 'is-invalid'
+                                    : '' ?>"
+            data-choice
+            data-choice-search="true"
+            data-choice-position="bottom"
+            data-choice-search-placeholder="Search"
+            data-error-required="<?= esc(
+                                        'Please select at least one '
+                                            . strtolower(
+                                                $resolvedLabel
+                                            )
+                                            . '.',
+                                        'attr'
+                                    ) ?>"
+            <?= $isDisabled
+                ? 'disabled'
+                : '' ?>
+            multiple
+            required>
 
-        <?php if ($resolvedGroups !== []): ?>
+            <?php if ($resolvedGroups !== []): ?>
 
-            <?php foreach (
-                $resolvedGroups as $group
-            ): ?>
-                <?php
-                if (!is_array($group)) {
-                    continue;
-                }
+                <?php foreach (
+                    $resolvedGroups as $group
+                ): ?>
 
-                $groupLabel = trim(
-                    (string) (
-                        $group[$resolvedGroupLabelKey]
-                        ?? ''
+                    <?php
+                    if (!is_array($group)) {
+                        continue;
+                    }
+
+                    $groupLabel = trim(
+                        (string) (
+                            $group[$resolvedGroupLabelKey]
+                            ?? ''
+                        )
+                    );
+
+                    $groupItems = is_array(
+                        $group[$resolvedGroupItemsKey]
+                            ?? null
                     )
-                );
+                        ? $group[$resolvedGroupItemsKey]
+                        : [];
 
-                $groupItems = is_array(
-                    $group[$resolvedGroupItemsKey]
-                        ?? null
-                )
-                    ? $group[$resolvedGroupItemsKey]
-                    : [];
+                    if (
+                        $groupLabel === ''
+                        || $groupItems === []
+                    ) {
+                        continue;
+                    }
+                    ?>
 
-                if (
-                    $groupLabel === ''
-                    || $groupItems === []
-                ) {
-                    continue;
-                }
-                ?>
+                    <optgroup
+                        label="<?= esc(
+                                    $groupLabel,
+                                    'attr'
+                                ) ?>">
 
-                <optgroup
-                    label="<?= esc(
-                                $groupLabel,
-                                'attr'
-                            ) ?>">
+                        <?php foreach (
+                            $groupItems as $option
+                        ): ?>
 
-                    <?php foreach (
-                        $groupItems as $option
-                    ): ?>
-                        <?php
-                        if (!is_array($option)) {
-                            continue;
-                        }
+                            <?php
+                            if (!is_array($option)) {
+                                continue;
+                            }
 
-                        $renderOption(
-                            $option
-                        );
-                        ?>
-                    <?php endforeach; ?>
+                            $renderOption(
+                                $option
+                            );
+                            ?>
 
-                </optgroup>
+                        <?php endforeach; ?>
 
-            <?php endforeach; ?>
+                    </optgroup>
 
-        <?php else: ?>
+                <?php endforeach; ?>
 
-            <?php foreach (
-                $resolvedOptions as $option
-            ): ?>
-                <?php
-                if (!is_array($option)) {
-                    continue;
-                }
+            <?php else: ?>
 
-                $renderOption(
-                    $option
-                );
-                ?>
-            <?php endforeach; ?>
+                <?php foreach (
+                    $resolvedOptions as $option
+                ): ?>
+
+                    <?php
+                    if (!is_array($option)) {
+                        continue;
+                    }
+
+                    $renderOption(
+                        $option
+                    );
+                    ?>
+
+                <?php endforeach; ?>
+
+            <?php endif; ?>
+
+        </select>
+
+        <?php if ($resolvedShowAny): ?>
+
+            <div
+                class="partner-preference-any-value"
+                aria-hidden="true">
+
+                Any
+            </div>
 
         <?php endif; ?>
 
-    </select>
+    </div>
 
     <?= view(
         'Components/Forms/FieldError',
@@ -353,4 +395,5 @@ $renderOption = static function (
             $resolvedErrors,
         ]
     ) ?>
+
 </div>

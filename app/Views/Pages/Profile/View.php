@@ -647,45 +647,46 @@ $this->section('content');
                 ) ?>
             </a>
         </div>
-
-        <div
-            class="profile-preview-notice
+        <?php if (!$isOtherMemberProfileView): ?>
+            <div
+                class="profile-preview-notice
                 border rounded-3 p-3 mb-3">
 
-            <div class="d-flex align-items-start gap-3">
-                <span
-                    class="d-inline-flex align-items-center
+                <div class="d-flex align-items-start gap-3">
+                    <span
+                        class="d-inline-flex align-items-center
                         justify-content-center rounded-circle
                         bg-warning-subtle text-warning
                         flex-shrink-0"
-                    style="width: 40px; height: 40px;">
+                        style="width: 40px; height: 40px;">
 
-                    <i
-                        class="ri-eye-line fs-18"
-                        aria-hidden="true"></i>
-                </span>
+                        <i
+                            class="ri-eye-line fs-18"
+                            aria-hidden="true"></i>
+                    </span>
 
-                <div>
-                    <h2
-                        class="fs-15
+                    <div>
+                        <h2
+                            class="fs-15
         fw-semibold mb-1">
 
-                        <?= esc(
-                            $profileNoticeTitle
-                        ) ?>
-                    </h2>
+                            <?= esc(
+                                $profileNoticeTitle
+                            ) ?>
+                        </h2>
 
-                    <p
-                        class="text-muted
+                        <p
+                            class="text-muted
         fs-13 mb-0">
 
-                        <?= esc(
-                            $profileNoticeMessage
-                        ) ?>
-                    </p>
+                            <?= esc(
+                                $profileNoticeMessage
+                            ) ?>
+                        </p>
+                    </div>
                 </div>
             </div>
-        </div>
+        <?php endif; ?>
         <?php if (
             $isOtherMemberProfileView
             && $viewedProfileReference !== ''
@@ -727,7 +728,7 @@ $this->section('content');
                     d-inline-flex
                     align-items-center
                     justify-content-center
-                    gap-2"
+                    gap-2 fw-medium text-black"
                         disabled>
 
                         <i

@@ -53,6 +53,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
+ * Switch one multi-select between normal presentation
+ * and the compact "Any" presentation.
+ *
+ * All option values remain selected internally. Only their
+ * presentation is collapsed, preserving the existing form payload.
+ *
+ * @param {HTMLInputElement} checkbox
+ * @param {HTMLSelectElement} select
+ *
+ * @returns {void}
+ */
+    function synchronizeAnyPresentation(
+        checkbox,
+        select
+    ) {
+        const container = select.closest(
+            '[data-preference-multi-select]'
+        );
+
+        if (!(container instanceof HTMLElement)) {
+            return;
+        }
+
+        const isAny =
+            checkbox.checked
+            && !checkbox.indeterminate
+            && !checkbox.disabled;
+
+        container.classList.toggle(
+            'is-any',
+            isAny
+        );
+
+        const anyValue = container.querySelector(
+            '.partner-preference-any-value'
+        );
+
+        if (anyValue instanceof HTMLElement) {
+            anyValue.setAttribute(
+                'aria-hidden',
+                isAny
+                    ? 'false'
+                    : 'true'
+            );
+        }
+    }
+
+    /**
      * Update Choices.js or native selection values.
      *
      * @param {HTMLSelectElement} select
@@ -101,7 +149,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Synchronize one Select All checkbox.
+     * Synchronize one "Any" checkbox with its multi-select.
+     *
+     * "Any" is represented internally by every available value
+     * being selected.
      *
      * @param {HTMLInputElement} checkbox
      * @param {HTMLSelectElement} select
@@ -125,6 +176,11 @@ document.addEventListener('DOMContentLoaded', () => {
             selected.length > 0
             && selected.length
             < allValues.length;
+
+        synchronizeAnyPresentation(
+            checkbox,
+            select
+        );
     }
 
     /**
