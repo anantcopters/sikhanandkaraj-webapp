@@ -1048,7 +1048,7 @@ $this->section('content');
                                                     type="button"
                                                     class="btn
                                     btn-success
-                                    w-100
+                                    w-75
                                     d-flex
                                     align-items-center
                                     justify-content-center
@@ -1079,7 +1079,7 @@ $this->section('content');
                                                         type="submit"
                                                         class="btn
                                         btn-primary
-                                        w-100
+                                        w-75
                                         d-flex
                                         align-items-center
                                         justify-content-center
@@ -1117,43 +1117,64 @@ $this->section('content');
                                             <?php endif; ?>
 
                                             <!-- ShortList -->
+                                            <!-- ShortList -->
                                             <form
                                                 method="post"
                                                 action="<?= route_to(
                                                             'web.members.shortlist',
                                                             $viewedProfileReference
                                                         ) ?>"
-                                                data-member-shortlist-form
-                                                data-shortlisted="<?= $isShortlisted
-                                                                        ? '1'
-                                                                        : '0' ?>"
-                                                data-member-name="<?= esc(
-                                                                        $fullName,
-                                                                        'attr'
-                                                                    ) ?>">
+                                                data-member-shortlist-form>
 
                                                 <?= csrf_field() ?>
 
                                                 <button
                                                     type="submit"
                                                     class="btn
-                                    btn-outline-primary
-                                    w-100
-                                    d-flex
-                                    align-items-center
-                                    justify-content-center
-                                    gap-2">
+            <?= $isShortlisted
+                                        ? 'btn-success'
+                                        : 'btn-outline-primary' ?>
+            w-75
+            d-flex
+            align-items-center
+            justify-content-center
+            gap-2">
 
-                                                    <i
-                                                        class="<?= $isShortlisted
-                                                                    ? 'ri-bookmark-fill'
-                                                                    : 'ri-bookmark-line' ?>"
-                                                        aria-hidden="true">
-                                                    </i>
+                                                    <!-- Normal state -->
+                                                    <span
+                                                        data-member-shortlist-label>
 
-                                                    <?= $isShortlisted
-                                                        ? 'Remove Shortlist'
-                                                        : 'ShortList' ?>
+                                                        <i
+                                                            class="<?= $isShortlisted
+                                                                        ? 'ri-bookmark-fill'
+                                                                        : 'ri-bookmark-line' ?>"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                        <?= $isShortlisted
+                                                            ? 'Shortlisted'
+                                                            : 'ShortList' ?>
+
+                                                    </span>
+
+                                                    <!-- Loading state -->
+                                                    <span
+                                                        class="d-none
+                align-items-center"
+                                                        data-member-shortlist-loading>
+
+                                                        <span
+                                                            class="spinner-border
+                    spinner-border-sm
+                    me-1"
+                                                            aria-hidden="true">
+                                                        </span>
+
+                                                        <?= $isShortlisted
+                                                            ? 'Removing...'
+                                                            : 'Shortlisting...' ?>
+
+                                                    </span>
 
                                                 </button>
                                             </form>
@@ -1163,7 +1184,7 @@ $this->section('content');
                                                 type="button"
                                                 class="btn
                                 btn-outline-danger
-                                w-100
+                                w-75
                                 d-flex
                                 align-items-center
                                 justify-content-center

@@ -130,13 +130,34 @@
         );
     }
 
-    function initializeInterestLoader() {
+    /**
+ * Initialize a standard submit-button loading state.
+ *
+ * Any form using this helper must provide:
+ *
+ * - a submit button;
+ * - a normal label element;
+ * - a loading element.
+ *
+ * @param {string} formSelector
+ * @param {string} labelSelector
+ * @param {string} loadingSelector
+ *
+ * @returns {void}
+ */
+    function initializeActionLoader(
+        formSelector,
+        labelSelector,
+        loadingSelector
+    ) {
         document.querySelectorAll(
-            '[data-member-interest-form]'
+            formSelector
         ).forEach(function (form) {
             if (
-                !(form
-                    instanceof HTMLFormElement)
+                !(
+                    form
+                    instanceof HTMLFormElement
+                )
             ) {
                 return;
             }
@@ -151,12 +172,12 @@
 
                     const label =
                         form.querySelector(
-                            '[data-member-interest-label]'
+                            labelSelector
                         );
 
                     const loading =
                         form.querySelector(
-                            '[data-member-interest-loading]'
+                            loadingSelector
                         );
 
                     if (
@@ -182,218 +203,6 @@
                     loading?.classList.add(
                         'd-inline-flex'
                     );
-                }
-            );
-        });
-    }
-
-    /**
- * Confirm ShortList / Remove Shortlist using the application's
- * existing global confirmation modal.
- *
- * @returns {void}
- */
-    function initializeShortlistConfirmation() {
-        document.querySelectorAll(
-            '[data-member-shortlist-form]'
-        ).forEach(function (form) {
-            if (
-                !(
-                    form
-                    instanceof HTMLFormElement
-                )
-            ) {
-                return;
-            }
-
-            form.addEventListener(
-                'submit',
-                function (event) {
-                    if (
-                        form.dataset
-                            .shortlistConfirmed
-                        === '1'
-                    ) {
-                        return;
-                    }
-
-                    event.preventDefault();
-
-                    if (
-                        typeof bootstrap
-                        === 'undefined'
-                    ) {
-                        return;
-                    }
-
-                    const modalElement =
-                        document.getElementById(
-                            'appConfirmationModal'
-                        );
-
-                    const title =
-                        document.getElementById(
-                            'appConfirmationModalTitle'
-                        );
-
-                    const message =
-                        document.getElementById(
-                            'appConfirmationModalMessage'
-                        );
-
-                    const confirm =
-                        document.getElementById(
-                            'appConfirmationModalConfirm'
-                        );
-
-                    const cancel =
-                        document.getElementById(
-                            'appConfirmationModalCancel'
-                        );
-
-                    if (
-                        !modalElement
-                        || !title
-                        || !message
-                        || !(
-                            confirm
-                            instanceof HTMLButtonElement
-                        )
-                    ) {
-                        return;
-                    }
-
-                    const isShortlisted =
-                        form.dataset.shortlisted
-                        === '1';
-
-                    const memberName =
-                        String(
-                            form.dataset
-                                .memberName
-                            || 'this member'
-                        );
-
-                    title.textContent =
-                        isShortlisted
-                            ? 'Remove from Shortlist?'
-                            : 'ShortList this profile?';
-
-                    message.textContent =
-                        isShortlisted
-                            ? (
-                                'Remove '
-                                + memberName
-                                + ' from your shortlist?'
-                            )
-                            : (
-                                'Add '
-                                + memberName
-                                + ' to your shortlist?'
-                            );
-
-                    cancel?.classList.remove(
-                        'd-none'
-                    );
-
-                    confirm.classList.remove(
-                        'btn-danger',
-                        'btn-warning',
-                        'btn-success'
-                    );
-
-                    confirm.classList.add(
-                        isShortlisted
-                            ? 'btn-danger'
-                            : 'btn-primary'
-                    );
-
-                    const confirmLabel =
-                        confirm.querySelector(
-                            '[data-confirm-modal-label]'
-                        );
-
-                    const confirmLoading =
-                        confirm.querySelector(
-                            '[data-confirm-modal-loading]'
-                        );
-
-                    if (confirmLabel) {
-                        confirmLabel.textContent =
-                            isShortlisted
-                                ? 'Remove'
-                                : 'ShortList';
-
-                        confirmLabel.classList
-                            .remove(
-                                'd-none'
-                            );
-                    }
-
-                    confirmLoading?.classList.add(
-                        'd-none'
-                    );
-
-                    const modal =
-                        bootstrap.Modal
-                            .getOrCreateInstance(
-                                modalElement
-                            );
-
-                    const confirmAction =
-                        function () {
-                            confirm.removeEventListener(
-                                'click',
-                                confirmAction
-                            );
-
-                            /*
-                             * Allow the next submit event through.
-                             */
-                            form.dataset
-                                .shortlistConfirmed =
-                                '1';
-
-                            modal.hide();
-
-                            form.requestSubmit();
-                        };
-
-                    confirm.addEventListener(
-                        'click',
-                        confirmAction
-                    );
-
-                    modalElement.addEventListener(
-                        'hidden.bs.modal',
-                        function cleanup() {
-                            confirm.removeEventListener(
-                                'click',
-                                confirmAction
-                            );
-
-                            /*
-                             * Reset only when the form was not
-                             * actually submitted.
-                             */
-                            if (
-                                form.dataset
-                                    .shortlistConfirmed
-                                !== '1'
-                            ) {
-                                delete form.dataset
-                                    .shortlistConfirmed;
-                            }
-
-                            modalElement
-                                .removeEventListener(
-                                    'hidden.bs.modal',
-                                    cleanup
-                                );
-                        }
-                    );
-
-                    modal.show();
                 }
             );
         });
@@ -540,9 +349,17 @@
 
     initializeBlockModal();
 
-    initializeInterestLoader();
+    initializeActionLoader(
+        '[data-member-interest-form]',
+        '[data-member-interest-label]',
+        '[data-member-interest-loading]'
+    );
 
-    initializeShortlistConfirmation();
+    initializeActionLoader(
+        '[data-member-shortlist-form]',
+        '[data-member-shortlist-label]',
+        '[data-member-shortlist-loading]'
+    );
 
     showMemberActionConfirmation();
 })();
