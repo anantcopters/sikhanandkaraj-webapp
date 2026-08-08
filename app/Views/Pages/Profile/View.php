@@ -1895,10 +1895,9 @@ $this->section('content');
                                 fs-13
                                 mb-0">
 
-                                            See how your profile matches
-                                            <?= esc(
-                                                $fullName
-                                            ) ?>'s partner preferences.
+                                            See how
+                                            <?= esc($fullName) ?>
+                                            matches your partner preferences.
                                         </p>
 
                                     </div>
@@ -1953,24 +1952,20 @@ $this->section('content');
                                                 class="fs-16
                                     fw-semibold">
 
-                                                You match
+                                                <?= esc($fullName) ?>
+                                                matches
 
-                                                <span
-                                                    class="text-primary">
-
+                                                <span class="text-primary">
                                                     <?= esc(
                                                         (string)
                                                         $matchedPreferenceCount
                                                     ) ?>/<?= esc(
-                                                                (string)
-                                                                $totalPreferenceCount
-                                                            ) ?>
+                                    (string)
+                                    $totalPreferenceCount
+                                ) ?>
                                                 </span>
 
-                                                of
-                                                <?= esc(
-                                                    $fullName
-                                                ) ?>'s preferences
+                                                of your partner preferences
                                             </div>
 
                                             <p

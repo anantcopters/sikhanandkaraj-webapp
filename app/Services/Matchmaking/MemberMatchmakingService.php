@@ -302,20 +302,21 @@ final class MemberMatchmakingService
     }
 
     /**
-     * Calculate how well the viewing member satisfies the
-     * viewed member's Partner Preferences.
+     * Calculate how well the viewed member satisfies the
+     * logged-in member's Partner Preferences.
      *
-     * Direction matters:
+     * This intentionally uses the exact same direction as
+     * Dashboard All Matches:
      *
-     * viewed member's preferences
-     *              ↓
-     *     viewing member's profile
+     * logged-in member's Partner Preferences
+     *                  ↓
+     *          viewed member profile
      *
-     * Example:
+     * Therefore:
      *
-     * Amrit's Partner Preferences
-     *           vs
-     * logged-in member profile
+     * Dashboard match %
+     *        ===
+     * Profile View match %
      *
      * @return array{
      *     percentage:int,
@@ -346,64 +347,74 @@ final class MemberMatchmakingService
         }
 
         /*
-     * We need the viewed member's gender because the common
-     * candidate projection applies the application's current
-     * opposite-gender eligibility rule.
+     * Load the logged-in member because the common candidate
+     * query uses their gender when determining visible candidates.
      */
-        $viewedMember = $this
+        $viewer = $this
             ->userModel
             ->find(
-                $viewedUserId
+                $viewerUserId
             );
 
-        if (!is_array($viewedMember)) {
+        if (!is_array($viewer)) {
             return $emptyResult;
         }
 
-        $viewedGender = trim(
+        $viewerGender = trim(
             (string) (
-                $viewedMember['gender']
+                $viewer['gender']
                 ?? ''
             )
         );
 
         /*
-     * Project rule:
+     * Retrieve the viewed member through the exact same
+     * candidate projection used by Dashboard matching.
      *
-     * Never construct a matchmaking candidate manually from
-     * different profile models.
+     * This preserves:
      *
-     * Reuse MemberMatchCandidateModel so the exact same
-     * candidate fields used by Dashboard matching are used
-     * by Profile View matching.
+     * - active-account filtering;
+     * - deleted-account filtering;
+     * - gender eligibility;
+     * - block filtering;
+     * - the same candidate columns used by the scoring engine.
      */
-        $viewerRows = $this
+        $candidateRows = $this
             ->candidateModel
             ->visibleCandidatesByIds(
-                $viewedUserId,
-                $viewedGender,
+                $viewerUserId,
+                $viewerGender,
                 [
-                    $viewerUserId,
+                    $viewedUserId,
                 ]
             );
 
-        if ($viewerRows === []) {
+        if ($candidateRows === []) {
             return $emptyResult;
         }
 
-        $viewerCandidate = $viewerRows[0];
+        $viewedCandidate =
+            $candidateRows[0];
 
         /*
-     * Important direction:
+     * IMPORTANT:
      *
-     * $viewedUserId owns the Partner Preferences.
-     * $viewerCandidate is being tested against them.
+     * Use the logged-in member's Partner Preferences.
+     *
+     * This is the same direction used by:
+     *
+     * scoreCandidates(
+     *     $viewerUserId,
+     *     $candidateRows
+     * )
+     *
+     * on Dashboard.
      */
         $score = $this
             ->matchService
             ->scoreProfile(
-                $viewedUserId,
-                $viewerCandidate
+                $viewerUserId,
+                $viewedCandidate
             );
 
         $matched = max(
@@ -447,8 +458,10 @@ final class MemberMatchmakingService
                 $total - $matched
             ),
 
-            'passesCompulsory' => ($score['passesCompulsory'] ?? false)
-                === true,
+            'passesCompulsory' => (
+                $score['passesCompulsory']
+                ?? false
+            ) === true,
         ];
     }
 
