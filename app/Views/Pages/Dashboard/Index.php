@@ -1264,12 +1264,12 @@ $matchSections = [
 
                                     <i
                                         class="ri-user-search-line
-                            fs-32 text-muted"
+                            fs-32 text-danger fs-16"
                                         aria-hidden="true">
                                     </i>
 
                                     <p
-                                        class="text-muted
+                                        class="text-danger
                             mb-0 mt-2">
 
                                         <?= esc(
