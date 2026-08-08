@@ -1356,6 +1356,13 @@ final class Services extends BaseService
         );
     }
 
+    /**
+     * Return the member-to-member interaction service.
+     *
+     * All persistence dependencies use the same database connection so
+     * interaction changes and their related notifications can participate
+     * in one transaction.
+     */
     public static function memberInteractionService(
         bool $getShared = true
     ): MemberInteractionService {
@@ -1386,6 +1393,19 @@ final class Services extends BaseService
 
             new MemberProfileViewModel(
                 $database
+            ),
+
+            /*
+         * Intentionally construct this with the SAME database
+         * connection used by the interaction models.
+         *
+         * Do not call memberNotificationService(false) here if
+         * doing so could establish an independent connection.
+         */
+            new MemberNotificationService(
+                new MemberNotificationModel(
+                    $database
+                )
             ),
 
             $database

@@ -155,7 +155,7 @@ $unreadNotificationCount = isset(
                             'INTEREST_RECEIVED',
                             'INTEREST_ACCEPTED',
                             'INTEREST_REJECTED' =>
-                            'ri-heart-3-line',
+                            'ri-heart-3-line text-danger',
 
                             'PROFILE_VIEW' =>
                             'ri-eye-line',
@@ -164,7 +164,7 @@ $unreadNotificationCount = isset(
                             'ri-bookmark-line',
 
                             'PHOTO_REJECTED' =>
-                            'ri-image-line',
+                            'ri-image-line text-danger',
 
                             default =>
                             'ri-notification-3-line',
@@ -188,7 +188,7 @@ $unreadNotificationCount = isset(
                                 gap-3">
 
                                 <div
-                                    class="avatar-md
+                                    class="avatar-sm
                                     flex-shrink-0">
 
                                     <span
@@ -200,7 +200,7 @@ $unreadNotificationCount = isset(
                                         <i
                                             class="<?= esc(
                                                         $iconClass
-                                                    ) ?>"
+                                                    ) ?> fs-22"
                                             aria-hidden="true">
                                         </i>
                                     </span>
@@ -256,7 +256,7 @@ $unreadNotificationCount = isset(
                                                 class="badge
                                                 
                                                 bg-primary
-                                                flex-shrink-0">
+                                                flex-shrink-0 p-2">
                                                 New
                                             </span>
                                         <?php endif; ?>

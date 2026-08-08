@@ -464,6 +464,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     );
 
+    /**
+ * Show loading state while saving photo visibility.
+ *
+ * Visibility forms submit normally, so the loader must be
+ * applied synchronously before browser navigation begins.
+ */
     document
         .querySelectorAll(
             '[data-photo-visibility-form]'
@@ -481,37 +487,40 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
 
-                    const formId =
-                        form.getAttribute('id');
-
-                    if (!formId) {
-                        return;
-                    }
-
+                    /*
+                     * The visibility button belongs to this form,
+                     * so resolve it locally rather than searching
+                     * the whole document.
+                     */
                     const saveButton =
-                        document.querySelector(
-                            '[data-photo-visibility-button]'
-                            + '[form="' + formId + '"]'
-                        );
+                        event.submitter
+                            instanceof HTMLButtonElement
+                            ? event.submitter
+                            : form.querySelector(
+                                '[data-photo-visibility-button]'
+                            );
 
                     if (
-                        !(saveButton
-                            instanceof HTMLButtonElement)
+                        !(
+                            saveButton
+                            instanceof HTMLButtonElement
+                        )
                     ) {
                         return;
                     }
 
-                    window.setTimeout(() => {
-                        if (event.defaultPrevented) {
-                            return;
-                        }
-
-                        showButtonLoading(
-                            saveButton,
-                            '[data-visibility-label]',
-                            '[data-visibility-loading]'
-                        );
-                    }, 0);
+                    /*
+                     * Do this immediately.
+                     *
+                     * A setTimeout() here is unreliable because
+                     * native form submission begins page navigation
+                     * as soon as this event handler returns.
+                     */
+                    showButtonLoading(
+                        saveButton,
+                        '[data-visibility-label]',
+                        '[data-visibility-loading]'
+                    );
                 }
             );
         });
