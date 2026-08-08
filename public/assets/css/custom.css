@@ -1566,14 +1566,6 @@ form[aria-busy="true"] {
     object-position: center;
 }
 
-.profile-preview-gallery-photo {
-    display: block;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    object-fit: cover;
-    object-position: center;
-}
-
 .profile-preview-notice {
     background: linear-gradient(120deg,
             #fff8e8,
@@ -2183,4 +2175,32 @@ form[aria-busy="true"] {
  */
 .partner-preference-multi-select.is-any .partner-preference-any-value {
     display: flex;
+}
+
+/*
+ * Member profile medium display image.
+ *
+ * Used for the primary member image on profile/detail screens.
+ * The dimensions intentionally match the earlier profile presentation.
+ */
+.member-photo-medium {
+    display: block;
+    width: 320px;
+    max-width: 100%;
+    height: 280px;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 0.5rem;
+}
+
+/*
+ * Gallery thumbnails remain square and independent from the
+ * medium profile-image presentation.
+ */
+.profile-preview-gallery-photo {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    object-position: center;
 }
