@@ -302,6 +302,157 @@ final class MemberMatchmakingService
     }
 
     /**
+     * Calculate how well the viewing member satisfies the
+     * viewed member's Partner Preferences.
+     *
+     * Direction matters:
+     *
+     * viewed member's preferences
+     *              ↓
+     *     viewing member's profile
+     *
+     * Example:
+     *
+     * Amrit's Partner Preferences
+     *           vs
+     * logged-in member profile
+     *
+     * @return array{
+     *     percentage:int,
+     *     matched:int,
+     *     total:int,
+     *     unmatched:int,
+     *     passesCompulsory:bool
+     * }
+     */
+    public function profilePreferenceMatch(
+        int $viewerUserId,
+        int $viewedUserId
+    ): array {
+        $emptyResult = [
+            'percentage' => 0,
+            'matched' => 0,
+            'total' => 0,
+            'unmatched' => 0,
+            'passesCompulsory' => true,
+        ];
+
+        if (
+            $viewerUserId <= 0
+            || $viewedUserId <= 0
+            || $viewerUserId === $viewedUserId
+        ) {
+            return $emptyResult;
+        }
+
+        /*
+     * We need the viewed member's gender because the common
+     * candidate projection applies the application's current
+     * opposite-gender eligibility rule.
+     */
+        $viewedMember = $this
+            ->userModel
+            ->find(
+                $viewedUserId
+            );
+
+        if (!is_array($viewedMember)) {
+            return $emptyResult;
+        }
+
+        $viewedGender = trim(
+            (string) (
+                $viewedMember['gender']
+                ?? ''
+            )
+        );
+
+        /*
+     * Project rule:
+     *
+     * Never construct a matchmaking candidate manually from
+     * different profile models.
+     *
+     * Reuse MemberMatchCandidateModel so the exact same
+     * candidate fields used by Dashboard matching are used
+     * by Profile View matching.
+     */
+        $viewerRows = $this
+            ->candidateModel
+            ->visibleCandidatesByIds(
+                $viewedUserId,
+                $viewedGender,
+                [
+                    $viewerUserId,
+                ]
+            );
+
+        if ($viewerRows === []) {
+            return $emptyResult;
+        }
+
+        $viewerCandidate = $viewerRows[0];
+
+        /*
+     * Important direction:
+     *
+     * $viewedUserId owns the Partner Preferences.
+     * $viewerCandidate is being tested against them.
+     */
+        $score = $this
+            ->matchService
+            ->scoreProfile(
+                $viewedUserId,
+                $viewerCandidate
+            );
+
+        $matched = max(
+            0,
+            (int) (
+                $score['matched']
+                ?? 0
+            )
+        );
+
+        $total = max(
+            0,
+            (int) (
+                $score['total']
+                ?? 0
+            )
+        );
+
+        return [
+            'percentage' =>
+            max(
+                0,
+                min(
+                    100,
+                    (int) (
+                        $score['percentage']
+                        ?? 0
+                    )
+                )
+            ),
+
+            'matched' =>
+            $matched,
+
+            'total' =>
+            $total,
+
+            'unmatched' =>
+            max(
+                0,
+                $total - $matched
+            ),
+
+            'passesCompulsory' => ($score['passesCompulsory'] ?? false)
+                === true,
+        ];
+    }
+
+    /**
      * Return currently visible member rows while preserving the supplied
      * interaction ordering.
      *

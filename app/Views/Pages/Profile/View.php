@@ -67,6 +67,49 @@ $isShortlisted =
     ($isShortlisted ?? false)
     === true;
 
+$partnerPreferenceMatch =
+    isset($partnerPreferenceMatch)
+    && is_array(
+        $partnerPreferenceMatch
+    )
+    ? $partnerPreferenceMatch
+    : [];
+
+$preferenceMatchPercentage = max(
+    0,
+    min(
+        100,
+        (int) (
+            $partnerPreferenceMatch['percentage']
+            ?? 0
+        )
+    )
+);
+
+$matchedPreferenceCount = max(
+    0,
+    (int) (
+        $partnerPreferenceMatch['matched']
+        ?? 0
+    )
+);
+
+$totalPreferenceCount = max(
+    0,
+    (int) (
+        $partnerPreferenceMatch['total']
+        ?? 0
+    )
+);
+
+$unmatchedPreferenceCount = max(
+    0,
+    (int) (
+        $partnerPreferenceMatch['unmatched']
+        ?? 0
+    )
+);
+
 $profileLayout = $isAdminProfileView
     ? 'Admin/Layouts/Main'
     : 'Layouts/Main';
@@ -1783,6 +1826,398 @@ $this->section('content');
 
             <!-- One single card for every section in the right column. -->
             <div class="col-12 col-lg-5">
+                <?php if (
+                    $isOtherMemberProfileView
+                ): ?>
+
+                    <section
+                        class="card
+                        bg-marketplace
+                        bg-primary-subtle
+            border
+            border-danger
+            border-opacity-25
+            shadow-sm
+            rounded-3
+            mb-4">
+
+                        <div
+                            class="card-body 
+                p-3
+                p-lg-4">
+
+                            <!-- Header -->
+                            <div
+                                class="d-flex
+                    flex-column
+                    flex-md-row
+                    align-items-md-center
+                    justify-content-between
+                    gap-3
+                    mb-4">
+
+                                <div
+                                    class="d-flex
+                        align-items-center
+                        gap-3">
+
+                                    <span
+                                        class="avatar-sm
+                            flex-shrink-0">
+
+                                        <span
+                                            class="avatar-title
+                                rounded-circle
+                                bg-light
+                                text-primary">
+
+                                            <i
+                                                class="ri-hearts-line
+                                    fs-20"
+                                                aria-hidden="true">
+                                            </i>
+
+                                        </span>
+                                    </span>
+
+                                    <div>
+
+                                        <h2
+                                            class="fs-16
+                                fw-semibold
+                                mb-1">
+
+                                            Partner Preference Match
+                                        </h2>
+
+                                        <p
+                                            class="text-muted
+                                fs-13
+                                mb-0">
+
+                                            See how your profile matches
+                                            <?= esc(
+                                                $fullName
+                                            ) ?>'s partner preferences.
+                                        </p>
+
+                                    </div>
+                                </div>
+
+                                <?php if (
+                                    $totalPreferenceCount > 0
+                                ): ?>
+
+                                    <span
+                                        class="badge
+                            bg-primary-subtle
+                            text-primary
+                            fs-14
+                            p-2">
+
+                                        <?= esc(
+                                            (string)
+                                            $preferenceMatchPercentage
+                                        ) ?>% Match
+                                    </span>
+
+                                <?php endif; ?>
+
+                            </div>
+
+                            <?php if (
+                                $totalPreferenceCount > 0
+                            ): ?>
+
+                                <!-- Match statement -->
+                                <div
+                                    class="border
+                        rounded-3
+                        bg-light
+                        p-3
+                        p-lg-4
+                        mb-3">
+
+                                    <div
+                                        class="d-flex
+                            flex-column
+                            flex-md-row
+                            align-items-md-center
+                            justify-content-between
+                            gap-3
+                            mb-3">
+
+                                        <div>
+
+                                            <div
+                                                class="fs-16
+                                    fw-semibold">
+
+                                                You match
+
+                                                <span
+                                                    class="text-primary">
+
+                                                    <?= esc(
+                                                        (string)
+                                                        $matchedPreferenceCount
+                                                    ) ?>/<?= esc(
+                                                                (string)
+                                                                $totalPreferenceCount
+                                                            ) ?>
+                                                </span>
+
+                                                of
+                                                <?= esc(
+                                                    $fullName
+                                                ) ?>'s preferences
+                                            </div>
+
+                                            <p
+                                                class="text-muted
+                                    fs-13
+                                    mb-0
+                                    mt-1">
+
+                                                Based on the structured
+                                                Partner Preferences currently set.
+                                            </p>
+
+                                        </div>
+
+                                        <div
+                                            class="text-md-end">
+
+                                            <div
+                                                class="fs-24
+                                    fw-bold
+                                    text-primary">
+
+                                                <?= esc(
+                                                    (string)
+                                                    $preferenceMatchPercentage
+                                                ) ?>%
+                                            </div>
+
+                                            <span
+                                                class="text-muted
+                                    fs-12">
+
+                                                overall match
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
+                                    <!-- Existing Bootstrap progress -->
+                                    <div
+                                        class="progress"
+                                        role="progressbar"
+                                        aria-label="Partner preference match"
+                                        aria-valuenow="<?= esc(
+                                                            (string)
+                                                            $preferenceMatchPercentage,
+                                                            'attr'
+                                                        ) ?>"
+                                        aria-valuemin="0"
+                                        aria-valuemax="100">
+
+                                        <div
+                                            class="progress-bar"
+                                            style="<?= esc(
+                                                        'width: '
+                                                            . $preferenceMatchPercentage
+                                                            . '%;',
+                                                        'attr'
+                                                    ) ?>">
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                                <!-- Summary -->
+                                <div class="row g-3">
+
+                                    <div
+                                        class="col-12
+                            col-sm-6">
+
+                                        <div
+                                            class="border
+                                border border-danger
+        border-opacity-25
+        rounded-3
+                                p-3
+                                h-100 bg-dark-subtle">
+
+                                            <div
+                                                class="d-flex
+                                    align-items-center
+                                    gap-3">
+
+                                                <span
+                                                    class="avatar-sm
+                                        flex-shrink-0">
+
+                                                    <span
+                                                        class="avatar-title
+                                            rounded-circle
+                                            bg-success-subtle
+                                            text-success">
+
+                                                        <i
+                                                            class="ri-checkbox-circle-line
+                                                fs-20"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                    </span>
+                                                </span>
+
+                                                <div>
+
+                                                    <div
+                                                        class="fs-18
+                                            fw-semibold
+                                            text-success">
+
+                                                        <?= esc(
+                                                            (string)
+                                                            $matchedPreferenceCount
+                                                        ) ?>
+                                                    </div>
+
+                                                    <div
+                                                        class="text-muted
+                                            fs-13">
+
+                                                        Preferences matched
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        class="col-12
+                            col-sm-6">
+
+                                        <div
+                                            class="border
+                                border border-danger
+        border-opacity-25
+        rounded-3
+                                p-3
+                                h-100 bg-dark-subtle">
+
+                                            <div
+                                                class="d-flex
+                                    align-items-center
+                                    gap-3">
+
+                                                <span
+                                                    class="avatar-sm
+                                        flex-shrink-0">
+
+                                                    <span
+                                                        class="avatar-title
+                                            rounded-circle
+                                            bg-warning-subtle
+                                            text-warning">
+
+                                                        <i
+                                                            class="ri-information-line
+                                                fs-20"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                    </span>
+                                                </span>
+
+                                                <div>
+
+                                                    <div
+                                                        class="fs-18
+                                            fw-semibold">
+
+                                                        <?= esc(
+                                                            (string)
+                                                            $unmatchedPreferenceCount
+                                                        ) ?>
+                                                    </div>
+
+                                                    <div
+                                                        class="text-muted
+                                            fs-13">
+
+                                                        Preferences differ
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            <?php else: ?>
+
+                                <div
+                                    class="alert
+                        alert-light
+                        border
+                        mb-0"
+                                    role="status">
+
+                                    <div
+                                        class="d-flex
+                            align-items-start
+                            gap-2">
+
+                                        <i
+                                            class="ri-information-line
+                                fs-18
+                                text-muted"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        <div>
+
+                                            <strong>
+                                                Partner Preferences not available
+                                            </strong>
+
+                                            <p
+                                                class="text-muted
+                                    fs-13
+                                    mb-0
+                                    mt-1">
+
+                                                <?= esc(
+                                                    $fullName
+                                                ) ?>
+                                                has not configured enough
+                                                structured Partner Preferences
+                                                to calculate a match yet.
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                            <?php endif; ?>
+
+                        </div>
+                    </section>
+                <?php endif; ?>
                 <div
                     class="card border border-danger border-opacity-25 shadow-sm
                         rounded-3 overflow-hidden">
@@ -1964,6 +2399,9 @@ $this->section('content');
                     </section>
 
                 </div>
+
+
+
             </div>
 
         </div>
@@ -2155,6 +2593,7 @@ $this->section('content');
     </div>
 
 <?php endif; ?>
+
 <?php if (
     $isOtherMemberProfileView
     && $viewedProfileReference !== ''

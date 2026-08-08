@@ -1551,6 +1551,10 @@ final class Services extends BaseService
 
             static::memberInteractionService(
                 false
+            ),
+
+            static::memberMatchmakingService(
+                false
             )
         );
     }

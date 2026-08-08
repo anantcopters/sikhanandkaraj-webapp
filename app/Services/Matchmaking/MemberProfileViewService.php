@@ -41,7 +41,10 @@ final class MemberProfileViewService
         $photoUrlService,
 
         private readonly MemberInteractionService
-        $interactionService
+        $interactionService,
+
+        private readonly MemberMatchmakingService
+        $matchmakingService
     ) {}
 
     /**
@@ -131,6 +134,21 @@ final class MemberProfileViewService
             $this
             ->interactionService
             ->hasInterestBetween(
+                $viewerUserId,
+                $targetUserId
+            );
+
+        /*
+        * Calculate the logged-in member against the viewed
+        * member's Partner Preferences.
+        *
+        * Direction:
+        *
+        * viewed member preferences -> logged-in member profile
+        */
+        $partnerPreferenceMatch = $this
+            ->matchmakingService
+            ->profilePreferenceMatch(
                 $viewerUserId,
                 $targetUserId
             );
@@ -248,6 +266,9 @@ final class MemberProfileViewService
                         $viewerUserId,
                         $targetUserId
                     ),
+                    
+                'partnerPreferenceMatch' =>
+                $partnerPreferenceMatch,
             ]
         );
     }

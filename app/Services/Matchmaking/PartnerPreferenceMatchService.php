@@ -137,6 +137,52 @@ final class PartnerPreferenceMatchService
     }
 
     /**
+     * Score one member profile against another member's
+     * Partner Preference configuration.
+     *
+     * Unlike scoreCandidates(), this method does not remove
+     * a profile when a compulsory preference fails.
+     *
+     * Profile View must be able to explain the actual match
+     * percentage even when one or more compulsory preferences
+     * are different.
+     *
+     * @param array<string, mixed> $candidate
+     *
+     * @return array{
+     *     percentage:int,
+     *     matched:int,
+     *     total:int,
+     *     passesCompulsory:bool
+     * }
+     */
+    public function scoreProfile(
+        int $preferenceOwnerUserId,
+        array $candidate
+    ): array {
+        if (
+            $preferenceOwnerUserId <= 0
+            || $candidate === []
+        ) {
+            return [
+                'percentage' => 0,
+                'matched' => 0,
+                'total' => 0,
+                'passesCompulsory' => true,
+            ];
+        }
+
+        $snapshot = $this->snapshotForUser(
+            $preferenceOwnerUserId
+        );
+
+        return $this->scoreCandidate(
+            $snapshot,
+            $candidate
+        );
+    }
+
+    /**
      * @param array<string, mixed> $snapshot
      * @param array<string, mixed> $candidate
      *
