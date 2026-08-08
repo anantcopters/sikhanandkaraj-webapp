@@ -647,7 +647,9 @@ $this->section('content');
                 ) ?>
             </a>
         </div>
-
+        <?php if (
+            !$isOtherMemberProfileView
+        ): ?>
         <div
             class="profile-preview-notice
                 border rounded-3 p-3 mb-3">
@@ -686,6 +688,7 @@ $this->section('content');
                 </div>
             </div>
         </div>
+        <?php endif; ?>
         <?php if (
             $isOtherMemberProfileView
             && $viewedProfileReference !== ''
