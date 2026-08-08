@@ -18,12 +18,17 @@ use Throwable;
 final class ProfilePhotoController extends BaseController
 {
     /**
-     * Return modal URLs for one approved member-owned photo.
+     * Return the medium URL for one approved photo owned
+     * by the authenticated member.
+     *
+     * Original photographs are never exposed through
+     * member-facing gallery endpoints.
      */
-    public function originalUrl(
+    public function mediumUrl(
         int $photoId
     ): ResponseInterface {
-        $memberId = $this->authenticatedUserId();
+        $memberId =
+            $this->authenticatedUserId();
 
         try {
             /** @var MemberPhotoUrlService $service */
@@ -31,8 +36,8 @@ final class ProfilePhotoController extends BaseController
                 'memberPhotoUrlService'
             );
 
-            $urls = $service
-                ->getOwnedApprovedModalUrls(
+            $mediumUrl = $service
+                ->getOwnedApprovedMediumUrl(
                     $memberId,
                     $photoId
                 );
@@ -51,14 +56,20 @@ final class ProfilePhotoController extends BaseController
                     'status' =>
                     'success',
 
-                    'data' =>
-                    $urls,
+                    'data' => [
+                        'mediumUrl' =>
+                        $mediumUrl,
+                    ],
                 ]);
-        } catch (DomainException $exception) {
+        } catch (
+            DomainException $exception
+        ) {
             /*
-             * An unavailable, unapproved or foreign photo is an expected
-             * authorization outcome. Do not log it as an application error.
-             */
+         * Foreign, deleted or unapproved photographs are
+         * expected authorization outcomes.
+         *
+         * Do not reveal which authorization check failed.
+         */
             return $this->response
                 ->setStatusCode(404)
                 ->setHeader(
@@ -74,13 +85,12 @@ final class ProfilePhotoController extends BaseController
                     'status' =>
                     'error',
 
-                    /*
-                     * Do not expose internal ownership or moderation details.
-                     */
                     'message' =>
                     'The requested photo is unavailable.',
                 ]);
-        } catch (Throwable $exception) {
+        } catch (
+            Throwable $exception
+        ) {
             service(
                 'applicationErrorLogger'
             )->exception(
@@ -89,7 +99,7 @@ final class ProfilePhotoController extends BaseController
                 ProfileErrorContext::forMember(
                     memberId: $memberId,
 
-                    operation: 'member_profile_photo_modal_url',
+                    operation: 'member_profile_photo_medium_url',
 
                     component: self::class,
 

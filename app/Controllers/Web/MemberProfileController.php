@@ -616,18 +616,20 @@ final class MemberProfileController extends BaseController
             }
 
             return $this->response
+                ->setHeader(
+                    'Cache-Control',
+                    'private, no-store, no-cache, '
+                        . 'must-revalidate, max-age=0'
+                )
+                ->setHeader(
+                    'Pragma',
+                    'no-cache'
+                )
                 ->setJSON([
                     'status' =>
                     'success',
 
                     'data' => [
-                        /*
-             * Never expose another member's original
-             * media object through this endpoint.
-             */
-                        'originalUrl' =>
-                        '',
-
                         'mediumUrl' =>
                         $mediumUrl,
                     ],
@@ -636,8 +638,19 @@ final class MemberProfileController extends BaseController
             \CodeIgniter\Exceptions\PageNotFoundException) {
             return $this->response
                 ->setStatusCode(404)
+                ->setHeader(
+                    'Cache-Control',
+                    'private, no-store, no-cache, '
+                        . 'must-revalidate, max-age=0'
+                )
+                ->setHeader(
+                    'Pragma',
+                    'no-cache'
+                )
                 ->setJSON([
-                    'success' => false,
+                    'status' =>
+                    'error',
+
                     'message' =>
                     'The requested photo is unavailable.',
                 ]);

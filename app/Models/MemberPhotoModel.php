@@ -261,10 +261,10 @@ final class MemberPhotoModel extends Model
     /**
      * Find one approved active photo owned by a member.
      *
-     * Ownership, approval and active-state checks must all pass before an
-     * original signed URL can be generated.
+     * Ownership, approval and active-state checks must all pass
+     * before a member-facing medium URL can be generated.
      *
-     * @return array<string, mixed>|null
+     * Original object keys are deliberately excluded.
      */
     public function findOwnedApprovedPhoto(
         int $photoId,

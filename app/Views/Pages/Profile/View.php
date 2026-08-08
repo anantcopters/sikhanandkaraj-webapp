@@ -5,17 +5,23 @@ declare(strict_types=1);
 use App\Support\BooleanValue;
 
 /**
- * The same profile view is used for both member and administrator previews.
+ * The same profile view is used for member, other-member
+ * and administrator profile presentations.
  *
  * Member mode:
  * - uses the normal member layout;
  * - shows profile editing actions;
- * - uses the member-owned original-photo endpoint.
+ * - gallery modal uses approved medium photographs only.
+ *
+ * Other-member mode:
+ * - uses the normal member layout;
+ * - enforces member-to-member authorization;
+ * - gallery modal uses viewer-authorized medium photographs only.
  *
  * Admin mode:
  * - uses the administrator layout;
  * - hides member editing actions;
- * - uses the administrator-authorized original-photo endpoint.
+ * - administrator media authorization remains separate.
  */
 $profileViewMode = mb_strtolower(
     trim(
@@ -631,8 +637,13 @@ $familyDetailList = [
 /*
  * Prepare the thumbnail-only profile gallery.
  *
- * Original and medium modal URLs are intentionally not present in the
- * initial page data. They are fetched after the member opens a slide.
+ * Medium signed URLs are intentionally not included in the
+ * initial page response.
+ *
+ * They are generated lazily after the member opens a slide.
+ *
+ * Original member photographs are never exposed through this
+ * member-facing gallery.
  */
 $galleryPhotos = [];
 
@@ -683,7 +694,7 @@ foreach ($approvedPhotos as $photo) {
                 $photoId
             )
             : url_to(
-                'web.profile.photos.original-url',
+                'web.profile.photos.medium-url',
                 $photoId
             ),
     ];

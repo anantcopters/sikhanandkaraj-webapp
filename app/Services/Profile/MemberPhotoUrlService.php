@@ -305,18 +305,13 @@ final class MemberPhotoUrlService
     /**
      * Return the medium URL for one approved member-owned photo.
      *
-     * Original photographs are deliberately not exposed through
-     * the member-facing profile gallery.
-     *
-     * @return array{
-     *     photoId:int,
-     *     mediumUrl:string
-     * }
+     * Member-facing gallery screens deliberately never expose
+     * original uploaded photographs.
      */
-    public function getOwnedApprovedModalUrls(
+    public function getOwnedApprovedMediumUrl(
         int $memberId,
         int $photoId
-    ): array {
+    ): string {
         if (
             $memberId <= 0
             || $photoId <= 0
@@ -354,7 +349,7 @@ final class MemberPhotoUrlService
 
         $mediumUrl = $this->createSignedUrl(
             objectKey: $mediumObjectKey,
-            context: 'Approved member photo medium',
+            context: 'Approved member gallery medium photo',
             memberId: $memberId,
             photoId: $photoId
         );
@@ -365,13 +360,7 @@ final class MemberPhotoUrlService
             );
         }
 
-        return [
-            'photoId' =>
-            $photoId,
-
-            'mediumUrl' =>
-            $mediumUrl,
-        ];
+        return $mediumUrl;
     }
 
     /**
