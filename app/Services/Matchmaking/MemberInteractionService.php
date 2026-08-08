@@ -209,6 +209,21 @@ final class MemberInteractionService
             );
     }
 
+    /**
+     * Return IDs of members who shortlisted this member.
+     *
+     * @return list<int>
+     */
+    public function shortlistedByMemberIds(
+        int $userId
+    ): array {
+        return $this
+            ->shortlistModel
+            ->shortlistedByMemberIds(
+                $userId
+            );
+    }
+
     public function blockMember(
         int $blockerUserId,
         int $blockedUserId,

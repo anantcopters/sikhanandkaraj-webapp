@@ -19,8 +19,8 @@ declare(strict_types=1);
  * @var int                              $newMatchDays
  * @var list<array<string, mixed>>       $allMatches
  * @var list<array<string, mixed>>       $newMatches
- * @var list<array<string, mixed>>       $interestReceived
- * @var list<array<string, mixed>>       $interestSent
+ * @var list<array<string, mixed>>       $profilesShortlistedByYou
+ * @var list<array<string, mixed>>       $whoShortlistedYou
  * @var list<array<string, mixed>>       $profileVisitors
  * @var list<array<string, mixed>>       $profilesViewed
  *
@@ -118,34 +118,64 @@ $matchSections = [
         'No new matches are available yet.',
     ],
 
-    [
-        'key' => 'interest-received',
+    // [
+    //     'key' => 'interest-received',
 
-        'title' => 'Interested in You',
+    //     'title' => 'Interested in You',
+
+    //     'description' =>
+    //     'Members who have shown interest in your profile.',
+
+    //     'profiles' =>
+    //     $interestReceived ?? [],
+
+    //     'emptyMessage' =>
+    //     'No member has shown interest in your profile yet.',
+    // ],
+
+    // [
+    //     'key' => 'interest-sent',
+
+    //     'title' => 'Interests Sent',
+
+    //     'description' =>
+    //     'Members you have shown interest in.',
+
+    //     'profiles' =>
+    //     $interestSent ?? [],
+
+    //     'emptyMessage' =>
+    //     'You have not shown interest in any member yet.',
+    // ],
+
+    [
+        'key' => 'profiles-shortlisted-by-you',
+
+        'title' => 'Profiles Shortlisted By You',
 
         'description' =>
-        'Members who have shown interest in your profile.',
+        'Profiles you have saved to your shortlist.',
 
         'profiles' =>
-        $interestReceived ?? [],
+        $profilesShortlistedByYou ?? [],
 
         'emptyMessage' =>
-        'No member has shown interest in your profile yet.',
+        'You have not shortlisted any profile yet.',
     ],
 
     [
-        'key' => 'interest-sent',
+        'key' => 'who-shortlisted-you',
 
-        'title' => 'Interests Sent',
+        'title' => 'Who Shortlisted You',
 
         'description' =>
-        'Members you have shown interest in.',
+        'Members who have added your profile to their shortlist.',
 
         'profiles' =>
-        $interestSent ?? [],
+        $whoShortlistedYou ?? [],
 
         'emptyMessage' =>
-        'You have not shown interest in any member yet.',
+        'No member has shortlisted your profile yet.',
     ],
 
     [
@@ -976,12 +1006,12 @@ $matchSections = [
                                                 $section['title']
                                             ) ?>
                                             (<?= esc(
-                                                (string)
-                                                count(
-                                                    $sectionProfiles
-                                                )
-                                            ) ?>)
-                                        </h2>                                        
+                                                    (string)
+                                                    count(
+                                                        $sectionProfiles
+                                                    )
+                                                ) ?>)
+                                        </h2>
                                     </div>
 
                                     <p

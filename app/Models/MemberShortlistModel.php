@@ -148,4 +148,39 @@ final class MemberShortlistModel extends Model
             )
         );
     }
+
+    /**
+     * Return members who shortlisted this member.
+     *
+     * The relationship is directional:
+     *
+     * other member -> current member
+     *
+     * @return list<int>
+     */
+    public function shortlistedByMemberIds(
+        int $userId
+    ): array {
+        $rows = $this
+            ->select(
+                'user_id'
+            )
+            ->where(
+                'shortlisted_user_id',
+                $userId
+            )
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->findAll();
+
+        return array_values(
+            array_map(
+                static fn(array $row): int =>
+                (int) $row['user_id'],
+                $rows
+            )
+        );
+    }
 }

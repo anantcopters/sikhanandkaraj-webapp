@@ -21,7 +21,7 @@ use Throwable;
  * - eligible candidates;
  * - configurable minimum match percentage;
  * - New Match age;
- * - interests;
+ * - shortlists;
  * - profile views;
  * - viewer-authorized thumbnail URLs.
  */
@@ -163,24 +163,60 @@ final class MemberMatchmakingService
          * candidate query. A previously recorded interaction therefore
          * disappears from member-facing UI when either side blocks the other.
          */
-        $interestReceived =
+        // $interestReceived =
+        //     $this->visibleRowsForIds(
+        //         $userId,
+        //         $viewerGender,
+        //         $this
+        //             ->interactionService
+        //             ->interestReceivedIds(
+        //                 $userId
+        //             )
+        //     );
+
+        // $interestSent =
+        //     $this->visibleRowsForIds(
+        //         $userId,
+        //         $viewerGender,
+        //         $this
+        //             ->interactionService
+        //             ->interestSentIds(
+        //                 $userId
+        //             )
+        //     );
+
+        /*
+        * Shortlist collections shown on Dashboard.
+        *
+        * These still pass through the common visible-candidate query,
+        * therefore blocked, inactive, deleted or otherwise unavailable
+        * profiles do not leak into the member-facing dashboard.
+        */
+
+        /*
+        * Profiles that the logged-in member has shortlisted.
+        */
+        $profilesShortlistedByYou =
             $this->visibleRowsForIds(
                 $userId,
                 $viewerGender,
                 $this
                     ->interactionService
-                    ->interestReceivedIds(
+                    ->shortlistedMemberIds(
                         $userId
                     )
             );
 
-        $interestSent =
+        /*
+        * Members who have shortlisted the logged-in member.
+        */
+        $whoShortlistedYou =
             $this->visibleRowsForIds(
                 $userId,
                 $viewerGender,
                 $this
                     ->interactionService
-                    ->interestSentIds(
+                    ->shortlistedByMemberIds(
                         $userId
                     )
             );
@@ -227,17 +263,17 @@ final class MemberMatchmakingService
                 $newMatches
             ),
 
-            'interestReceived' =>
-            $this->presentationProfiles(
-                $userId,
-                $interestReceived
-            ),
+            // 'interestReceived' =>
+            // $this->presentationProfiles(
+            //     $userId,
+            //     $interestReceived
+            // ),
 
-            'interestSent' =>
-            $this->presentationProfiles(
-                $userId,
-                $interestSent
-            ),
+            // 'interestSent' =>
+            // $this->presentationProfiles(
+            //     $userId,
+            //     $interestSent
+            // ),
 
             'profileVisitors' =>
             $this->presentationProfiles(
@@ -249,6 +285,18 @@ final class MemberMatchmakingService
             $this->presentationProfiles(
                 $userId,
                 $profilesViewed
+            ),
+
+            'profilesShortlistedByYou' =>
+            $this->presentationProfiles(
+                $userId,
+                $profilesShortlistedByYou
+            ),
+
+            'whoShortlistedYou' =>
+            $this->presentationProfiles(
+                $userId,
+                $whoShortlistedYou
             ),
         ];
     }
