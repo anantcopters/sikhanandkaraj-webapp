@@ -8,6 +8,7 @@ use App\Controllers\BaseController;
 use App\Services\Matchmaking\MemberInteractionService;
 use App\Services\Matchmaking\MemberProfileViewService;
 use App\Validation\Member\MemberBlockValidation;
+use App\Services\Matchmaking\MemberInterestService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
@@ -219,6 +220,33 @@ final class MemberProfileController extends BaseController
                     ]
                 );
         }
+    }
+
+    /**
+     * Accept a Pending Interest while viewing the
+     * member who sent it.
+     */
+    public function acceptInterest(
+        string $profileReference
+    ): RedirectResponse {
+        return $this->respondToInterest(
+            $profileReference,
+            'accept'
+        );
+    }
+
+
+    /**
+     * Decline a Pending Interest while viewing the
+     * member who sent it.
+     */
+    public function declineInterest(
+        string $profileReference
+    ): RedirectResponse {
+        return $this->respondToInterest(
+            $profileReference,
+            'decline'
+        );
     }
 
     /**
@@ -695,6 +723,209 @@ final class MemberProfileController extends BaseController
                     'message' =>
                     'The photo could not be loaded.',
                 ]);
+        }
+    }
+
+    /**
+     * Respond to an incoming Interest from the profile page.
+     *
+     * The route supplies only the public profile reference.
+     * Internal user IDs are always re-resolved server-side.
+     */
+    private function respondToInterest(
+        string $profileReference,
+        string $action
+    ): RedirectResponse {
+        $viewerUserId =
+            $this->authenticatedUserId();
+
+        try {
+            /** @var MemberProfileViewService $profileService */
+            $profileService = service(
+                'memberProfileViewService'
+            );
+
+            /*
+         * Re-resolve the sender server-side.
+         *
+         * This applies the same:
+         *
+         * - active member check;
+         * - self-access protection;
+         * - block protection
+         *
+         * as the normal profile view.
+         */
+            $sender = $profileService
+                ->targetForAction(
+                    $viewerUserId,
+                    $profileReference
+                );
+
+            $senderUserId = max(
+                0,
+                (int) (
+                    $sender['id']
+                    ?? 0
+                )
+            );
+
+            $resolvedProfileReference =
+                trim(
+                    (string) (
+                        $sender['profile_ref_number']
+                        ?? ''
+                    )
+                );
+
+            if (
+                $senderUserId <= 0
+                || $resolvedProfileReference === ''
+            ) {
+                throw PageNotFoundException
+                    ::forPageNotFound();
+            }
+
+            /** @var MemberInterestService $interestService */
+            $interestService = service(
+                'memberInterestService'
+            );
+
+            if ($action === 'accept') {
+                /*
+             * Sender -> Viewer is the received Interest.
+             */
+                $interestService
+                    ->accept(
+                        $senderUserId,
+                        $viewerUserId
+                    );
+
+                return redirect()
+                    ->to(
+                        route_to(
+                            'web.members.view',
+                            $resolvedProfileReference
+                        )
+                    )
+                    ->with(
+                        'memberActionNotice',
+                        [
+                            'title' =>
+                            'Interest Accepted',
+
+                            'message' =>
+                            'The interest has been '
+                                . 'accepted successfully.',
+                        ]
+                    );
+            }
+
+            if ($action !== 'decline') {
+                throw new DomainException(
+                    'The requested Interest response is invalid.'
+                );
+            }
+
+            $interestService
+                ->decline(
+                    $senderUserId,
+                    $viewerUserId
+                );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.members.view',
+                        $resolvedProfileReference
+                    )
+                )
+                ->with(
+                    'memberActionNotice',
+                    [
+                        'title' =>
+                        'Interest Declined',
+
+                        'message' =>
+                        'The interest has been '
+                            . 'declined successfully.',
+                    ]
+                );
+        } catch (
+            PageNotFoundException) {
+            throw PageNotFoundException
+                ::forPageNotFound();
+        } catch (
+            DomainException $exception
+        ) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.members.view',
+                        $profileReference
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Interest not updated',
+
+                        'message' =>
+                        $exception
+                            ->getMessage(),
+                    ]
+                );
+        } catch (
+            Throwable $exception
+        ) {
+            log_message(
+                'error',
+                'Profile Interest response failed. '
+                    . 'Member: {memberId}; '
+                    . 'profile: {profileReference}; '
+                    . 'action: {action}; '
+                    . 'reason: {message}',
+                [
+                    'memberId' =>
+                    $viewerUserId,
+
+                    'profileReference' =>
+                    $profileReference,
+
+                    'action' =>
+                    $action,
+
+                    'message' =>
+                    $exception
+                        ->getMessage(),
+                ]
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.members.view',
+                        $profileReference
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Interest not updated',
+
+                        'message' =>
+                        'We could not update the '
+                            . 'interest. Please try again.',
+                    ]
+                );
         }
     }
 }

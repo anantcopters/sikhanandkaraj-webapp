@@ -479,6 +479,24 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                 );
 
                 $routes->post(
+                    'members/(:segment)/interest/accept',
+                    'MemberProfileController::acceptInterest/$1',
+                    [
+                        'as' =>
+                        'web.members.interest.accept',
+                    ]
+                );
+
+                $routes->post(
+                    'members/(:segment)/interest/decline',
+                    'MemberProfileController::declineInterest/$1',
+                    [
+                        'as' =>
+                        'web.members.interest.decline',
+                    ]
+                );
+
+                $routes->post(
                     'members/(:segment)/shortlist',
                     'MemberProfileController'
                         . '::toggleShortlist/$1',

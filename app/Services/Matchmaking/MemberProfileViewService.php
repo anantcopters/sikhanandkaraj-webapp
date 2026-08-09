@@ -139,6 +139,20 @@ final class MemberProfileViewService
             );
 
         /*
+        * Resolve the complete Interest relationship once.
+        *
+        * The View should never interpret directional DB rows or
+        * derive business state itself.
+        */
+        $interestRelationship =
+            $this
+            ->interactionService
+            ->interestRelationshipFor(
+                $viewerUserId,
+                $targetUserId
+            );
+
+        /*
         * Calculate the logged-in member against the viewed
         * member's Partner Preferences.
         *
@@ -252,13 +266,23 @@ final class MemberProfileViewService
                     )
                 ),
 
-                'hasShownInterest' =>
-                $this
-                    ->interactionService
-                    ->hasShownInterest(
-                        $viewerUserId,
-                        $targetUserId
-                    ),
+                /*
+                * Complete Interest presentation state.
+                */
+                'interestRelationship' =>
+                $interestRelationship,
+
+                /*
+                * Keep the existing boolean temporarily for backward
+                * compatibility with any code outside this View.
+                *
+                * It can be removed later once repository-wide usage
+                * has been verified.
+                */
+                'hasShownInterest' => (
+                    $interestRelationship['hasOutgoing']
+                    ?? false
+                ) === true,
 
                 'hasInterestRelationship' =>
                 $hasInterestRelationship,

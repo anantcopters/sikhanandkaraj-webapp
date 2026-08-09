@@ -20,6 +20,31 @@ use Throwable;
  */
 final class MemberInteractionService
 {
+
+    public const INTEREST_STATE_NONE =
+    'NONE';
+
+    public const INTEREST_STATE_PENDING_SENT =
+    'PENDING_SENT';
+
+    public const INTEREST_STATE_PENDING_RECEIVED =
+    'PENDING_RECEIVED';
+
+    public const INTEREST_STATE_ACCEPTED_SENT =
+    'ACCEPTED_SENT';
+
+    public const INTEREST_STATE_ACCEPTED_RECEIVED =
+    'ACCEPTED_RECEIVED';
+
+    public const INTEREST_STATE_DECLINED_SENT =
+    'DECLINED_SENT';
+
+    public const INTEREST_STATE_DECLINED_RECEIVED =
+    'DECLINED_RECEIVED';
+
+    public const INTEREST_STATE_MUTUAL =
+    'MUTUAL';
+
     public function __construct(
         private readonly UserModel $userModel,
         private readonly MemberBlockModel $blockModel,
@@ -654,6 +679,245 @@ final class MemberInteractionService
     }
 
     /**
+     * Resolve the complete member-facing Interest relationship
+     * between the authenticated viewer and another member.
+     *
+     * Direction is always from the viewer's perspective:
+     *
+     * PENDING_SENT
+     *     Viewer sent Interest and is waiting.
+     *
+     * PENDING_RECEIVED
+     *     Other member sent Interest and viewer may respond.
+     *
+     * ACCEPTED_SENT
+     *     Viewer's sent Interest was accepted.
+     *
+     * ACCEPTED_RECEIVED
+     *     Viewer accepted the other member's Interest.
+     *
+     * DECLINED_SENT
+     *     Viewer's sent Interest was declined.
+     *
+     * DECLINED_RECEIVED
+     *     Viewer declined the other member's Interest.
+     *
+     * MUTUAL
+     *     Both members have expressed positive Interest.
+     *
+     * @return array{
+     *     state:string,
+     *     hasRelationship:bool,
+     *     hasOutgoing:bool,
+     *     hasIncoming:bool,
+     *     canShowInterest:bool,
+     *     canRespond:bool,
+     *     outgoingStatus:?string,
+     *     incomingStatus:?string
+     * }
+     */
+    public function interestRelationshipFor(
+        int $viewerUserId,
+        int $targetUserId
+    ): array {
+        $this->assertDistinctUsers(
+            $viewerUserId,
+            $targetUserId
+        );
+
+        $outgoingInterest =
+            $this->interestModel
+            ->findBetween(
+                $viewerUserId,
+                $targetUserId
+            );
+
+        $incomingInterest =
+            $this->interestModel
+            ->findBetween(
+                $targetUserId,
+                $viewerUserId
+            );
+
+        $outgoingStatus =
+            is_array(
+                $outgoingInterest
+            )
+            ? $this->normaliseInterestStatus(
+                $outgoingInterest['status']
+                    ?? null
+            )
+            : null;
+
+        $incomingStatus =
+            is_array(
+                $incomingInterest
+            )
+            ? $this->normaliseInterestStatus(
+                $incomingInterest['status']
+                    ?? null
+            )
+            : null;
+
+        /*
+     * MUTUAL always has highest precedence.
+     *
+     * Normal application workflow stores MUTUAL on
+     * both directional rows.
+     */
+        if (
+            $outgoingStatus
+            === MemberInterestModel
+            ::STATUS_MUTUAL
+            || $incomingStatus
+            === MemberInterestModel
+            ::STATUS_MUTUAL
+        ) {
+            return $this
+                ->interestRelationshipResult(
+                    state: self::INTEREST_STATE_MUTUAL,
+
+                    outgoingStatus: $outgoingStatus,
+
+                    incomingStatus: $incomingStatus
+                );
+        }
+
+        /*
+     * Defensive handling for historical/inconsistent data:
+     *
+     * if both directional records currently express positive
+     * intent, the member-facing relationship is effectively
+     * mutual even if an old migration did not promote the rows.
+     *
+     * No database write occurs during a profile GET.
+     */
+        if (
+            $this->isPositiveInterestStatus(
+                $outgoingStatus
+            )
+            && $this->isPositiveInterestStatus(
+                $incomingStatus
+            )
+        ) {
+            return $this
+                ->interestRelationshipResult(
+                    state: self::INTEREST_STATE_MUTUAL,
+
+                    outgoingStatus: $outgoingStatus,
+
+                    incomingStatus: $incomingStatus
+                );
+        }
+
+        /*
+     * An actionable received Pending Interest takes precedence.
+     *
+     * This also handles the valid case where an older outgoing
+     * Interest was previously declined but the other member
+     * later sends a new Interest.
+     */
+        if (
+            $incomingStatus
+            === MemberInterestModel
+            ::STATUS_PENDING
+        ) {
+            return $this
+                ->interestRelationshipResult(
+                    state: self::INTEREST_STATE_PENDING_RECEIVED,
+
+                    outgoingStatus: $outgoingStatus,
+
+                    incomingStatus: $incomingStatus
+                );
+        }
+
+        if (
+            $outgoingStatus
+            === MemberInterestModel
+            ::STATUS_PENDING
+        ) {
+            return $this
+                ->interestRelationshipResult(
+                    state: self::INTEREST_STATE_PENDING_SENT,
+
+                    outgoingStatus: $outgoingStatus,
+
+                    incomingStatus: $incomingStatus
+                );
+        }
+
+        if (
+            $outgoingStatus
+            === MemberInterestModel
+            ::STATUS_ACCEPTED
+        ) {
+            return $this
+                ->interestRelationshipResult(
+                    state: self::INTEREST_STATE_ACCEPTED_SENT,
+
+                    outgoingStatus: $outgoingStatus,
+
+                    incomingStatus: $incomingStatus
+                );
+        }
+
+        if (
+            $incomingStatus
+            === MemberInterestModel
+            ::STATUS_ACCEPTED
+        ) {
+            return $this
+                ->interestRelationshipResult(
+                    state: self::INTEREST_STATE_ACCEPTED_RECEIVED,
+
+                    outgoingStatus: $outgoingStatus,
+
+                    incomingStatus: $incomingStatus
+                );
+        }
+
+        if (
+            $outgoingStatus
+            === MemberInterestModel
+            ::STATUS_DECLINED
+        ) {
+            return $this
+                ->interestRelationshipResult(
+                    state: self::INTEREST_STATE_DECLINED_SENT,
+
+                    outgoingStatus: $outgoingStatus,
+
+                    incomingStatus: $incomingStatus
+                );
+        }
+
+        if (
+            $incomingStatus
+            === MemberInterestModel
+            ::STATUS_DECLINED
+        ) {
+            return $this
+                ->interestRelationshipResult(
+                    state: self::INTEREST_STATE_DECLINED_RECEIVED,
+
+                    outgoingStatus: $outgoingStatus,
+
+                    incomingStatus: $incomingStatus
+                );
+        }
+
+        return $this
+            ->interestRelationshipResult(
+                state: self::INTEREST_STATE_NONE,
+
+                outgoingStatus: null,
+
+                incomingStatus: null
+            );
+    }
+
+    /**
      * @return list<int>
      */
     public function interestReceivedIds(
@@ -752,6 +1016,79 @@ final class MemberInteractionService
                 ->totalReceivedViews(
                     $userId
                 ),
+        ];
+    }
+
+    /**
+     * Determine whether a status represents current
+     * positive member intent.
+     */
+    private function isPositiveInterestStatus(
+        ?string $status
+    ): bool {
+        return in_array(
+            $status,
+            [
+                MemberInterestModel
+                ::STATUS_PENDING,
+
+                MemberInterestModel
+                ::STATUS_ACCEPTED,
+
+                MemberInterestModel
+                ::STATUS_MUTUAL,
+            ],
+            true
+        );
+    }
+
+
+    /**
+     * Build the normalized profile presentation state.
+     *
+     * @return array{
+     *     state:string,
+     *     hasRelationship:bool,
+     *     hasOutgoing:bool,
+     *     hasIncoming:bool,
+     *     canShowInterest:bool,
+     *     canRespond:bool,
+     *     outgoingStatus:?string,
+     *     incomingStatus:?string
+     * }
+     */
+    private function interestRelationshipResult(
+        string $state,
+        ?string $outgoingStatus,
+        ?string $incomingStatus
+    ): array {
+        return [
+            'state' =>
+            $state,
+
+            'hasRelationship' =>
+            $outgoingStatus !== null
+                || $incomingStatus !== null,
+
+            'hasOutgoing' =>
+            $outgoingStatus !== null,
+
+            'hasIncoming' =>
+            $incomingStatus !== null,
+
+            'canShowInterest' =>
+            $state
+                === self::INTEREST_STATE_NONE,
+
+            'canRespond' =>
+            $state
+                === self::INTEREST_STATE_PENDING_RECEIVED,
+
+            'outgoingStatus' =>
+            $outgoingStatus,
+
+            'incomingStatus' =>
+            $incomingStatus,
         ];
     }
 

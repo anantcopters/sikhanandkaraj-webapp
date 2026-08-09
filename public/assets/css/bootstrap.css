@@ -8448,6 +8448,11 @@ textarea.form-control-lg {
   width: 75% !important;
 }
 
+.w-80 {
+  width: 80% !important;
+}
+
+
 .w-100 {
   width: 100% !important;
 }
