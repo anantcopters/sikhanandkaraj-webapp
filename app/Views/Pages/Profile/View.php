@@ -1227,7 +1227,7 @@ $this->section('content');
                                                             data-member-interest-label>
 
                                                             <i
-                                                                class="ri-checkbox-circle-line"
+                                                                class="ri-thumb-up-fill"
                                                                 aria-hidden="true">
                                                             </i>
 
@@ -1369,7 +1369,7 @@ $this->section('content');
                 fw-semibold">
 
                                                         <i
-                                                            class="ri-checkbox-circle-line"
+                                                            class="ri-thumb-up-fill"
                                                             aria-hidden="true">
                                                         </i>
 
@@ -2377,7 +2377,7 @@ $this->section('content');
                                             text-success">
 
                                                         <i
-                                                            class="ri-checkbox-circle-line
+                                                            class="ri-thumb-up-fill
                                                 fs-20"
                                                             aria-hidden="true">
                                                         </i>
