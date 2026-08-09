@@ -1,9 +1,10 @@
 (function (window, document) {
     'use strict';
 
-    const modalElement = document.getElementById(
-        'appConfirmationModal'
-    );
+    const modalElement =
+        document.getElementById(
+            'appConfirmationModal'
+        );
 
     if (
         !modalElement
@@ -12,33 +13,36 @@
         return;
     }
 
-    /*
-     * Create or reuse the Bootstrap modal instance used throughout this
-     * reusable confirmation component.
-     */
-    const modal = bootstrap.Modal.getOrCreateInstance(
-        modalElement
-    );
+    const modal =
+        bootstrap.Modal
+            .getOrCreateInstance(
+                modalElement
+            );
 
-    const titleElement = document.getElementById(
-        'appConfirmationModalTitle'
-    );
+    const titleElement =
+        document.getElementById(
+            'appConfirmationModalTitle'
+        );
 
-    const messageElement = document.getElementById(
-        'appConfirmationModalMessage'
-    );
+    const messageElement =
+        document.getElementById(
+            'appConfirmationModalMessage'
+        );
 
-    const iconElement = document.getElementById(
-        'appConfirmationModalIcon'
-    );
+    const iconElement =
+        document.getElementById(
+            'appConfirmationModalIcon'
+        );
 
-    const cancelButton = document.getElementById(
-        'appConfirmationModalCancel'
-    );
+    const cancelButton =
+        document.getElementById(
+            'appConfirmationModalCancel'
+        );
 
-    const confirmButton = document.getElementById(
-        'appConfirmationModalConfirm'
-    );
+    const confirmButton =
+        document.getElementById(
+            'appConfirmationModalConfirm'
+        );
 
     if (
         !titleElement
@@ -50,44 +54,55 @@
         return;
     }
 
-    const confirmLabel = confirmButton.querySelector(
-        '[data-confirm-modal-label]'
-    );
+    const confirmLabel =
+        confirmButton.querySelector(
+            '[data-confirm-modal-label]'
+        );
 
-    const confirmLoading = confirmButton.querySelector(
-        '[data-confirm-modal-loading]'
-    );
+    const confirmLoading =
+        confirmButton.querySelector(
+            '[data-confirm-modal-loading]'
+        );
 
     /*
-    * Keep the reusable confirmation modal above any already-open
-    * application modal, such as the member photo review modal.
-    *
-    * Bootstrap normally gives all modals the same z-index, so the
-    * confirmation backdrop may otherwise appear behind the first modal.
-    */
-    const confirmationModalZIndex = 1080;
-    const confirmationBackdropZIndex = 1075;
+     * Keep the reusable confirmation modal above another
+     * application modal when one is already open.
+     */
+    const confirmationModalZIndex =
+        1080;
 
-    modalElement.style.zIndex = String(
-        confirmationModalZIndex
-    );
+    const confirmationBackdropZIndex =
+        1075;
+
+    modalElement.style.zIndex =
+        String(
+            confirmationModalZIndex
+        );
 
     modalElement.addEventListener(
         'shown.bs.modal',
         function () {
-            const backdrops = document.querySelectorAll(
-                '.modal-backdrop'
-            );
+            const backdrops =
+                document.querySelectorAll(
+                    '.modal-backdrop'
+                );
 
             const confirmationBackdrop =
                 backdrops.length > 0
-                    ? backdrops[backdrops.length - 1]
+                    ? backdrops[
+                    backdrops.length - 1
+                    ]
                     : null;
 
-            if (confirmationBackdrop instanceof HTMLElement) {
-                confirmationBackdrop.style.zIndex = String(
-                    confirmationBackdropZIndex
-                );
+            if (
+                confirmationBackdrop
+                instanceof HTMLElement
+            ) {
+                confirmationBackdrop
+                    .style.zIndex =
+                    String(
+                        confirmationBackdropZIndex
+                    );
             }
         }
     );
@@ -100,30 +115,43 @@
     ];
 
     let pendingForm = null;
+
     let pendingSubmitButton = null;
-    let confirmationInProgress = false;
+
+    let confirmationInProgress =
+        false;
+
+    let programmaticConfirmHandler =
+        null;
 
     /**
      * Return a safe Bootstrap button class.
      *
      * @param {string} requestedClass
+     *
      * @returns {string}
      */
-    function resolveButtonClass(requestedClass) {
-        return permittedButtonClasses.includes(
-            requestedClass
-        )
+    function resolveButtonClass(
+        requestedClass
+    ) {
+        return permittedButtonClasses
+            .includes(
+                requestedClass
+            )
             ? requestedClass
             : 'btn-danger';
     }
 
     /**
-     * Reset the modal confirmation button.
+     * Reset the confirmation button into its
+     * normal non-loading state.
      */
     function resetConfirmButton() {
-        confirmationInProgress = false;
+        confirmationInProgress =
+            false;
 
-        confirmButton.disabled = false;
+        confirmButton.disabled =
+            false;
 
         confirmButton.removeAttribute(
             'aria-busy'
@@ -143,7 +171,18 @@
     }
 
     /**
-     * Apply the requested Bootstrap button class.
+     * Restore normal reusable modal controls.
+     */
+    function resetModalControls() {
+        cancelButton.classList.remove(
+            'd-none'
+        );
+
+        resetConfirmButton();
+    }
+
+    /**
+     * Apply a permitted Bootstrap button class.
      *
      * @param {string} requestedClass
      */
@@ -152,9 +191,11 @@
     ) {
         permittedButtonClasses.forEach(
             function (buttonClass) {
-                confirmButton.classList.remove(
-                    buttonClass
-                );
+                confirmButton
+                    .classList
+                    .remove(
+                        buttonClass
+                    );
             }
         );
 
@@ -168,29 +209,54 @@
     /**
      * Update the confirmation modal icon.
      *
-     * Only existing project icon classes are accepted.
-     *
      * @param {string} requestedIcon
      */
-    function setIcon(requestedIcon) {
-        const icon = iconElement.querySelector(
-            'i'
-        );
+    function setIcon(
+        requestedIcon
+    ) {
+        const icon =
+            iconElement.querySelector(
+                'i'
+            );
 
         if (!icon) {
             return;
         }
 
-        icon.className = '';
+        icon.className =
+            '';
 
         icon.classList.add(
-            requestedIcon || 'ri-alert-line',
+            requestedIcon
+            || 'ri-alert-line',
+
             'fs-24'
         );
     }
 
     /**
-     * Open confirmation for a form.
+     * Clear a previous programmatic confirmation
+     * listener when the same global modal is reused.
+     */
+    function removeProgrammaticHandler() {
+        if (
+            typeof programmaticConfirmHandler
+            !== 'function'
+        ) {
+            return;
+        }
+
+        confirmButton.removeEventListener(
+            'click',
+            programmaticConfirmHandler
+        );
+
+        programmaticConfirmHandler =
+            null;
+    }
+
+    /**
+     * Open normal form confirmation.
      *
      * @param {HTMLFormElement} form
      * @param {HTMLElement|null} submitButton
@@ -199,8 +265,15 @@
         form,
         submitButton
     ) {
-        pendingForm = form;
-        pendingSubmitButton = submitButton;
+        removeProgrammaticHandler();
+
+        resetModalControls();
+
+        pendingForm =
+            form;
+
+        pendingSubmitButton =
+            submitButton;
 
         titleElement.textContent =
             form.dataset.confirmTitle
@@ -217,8 +290,10 @@
         }
 
         if (confirmLoading) {
-            confirmLoading.lastChild.textContent =
-                form.dataset.confirmLoadingText
+            confirmLoading.lastChild
+                .textContent =
+                form.dataset
+                    .confirmLoadingText
                     ? ' '
                     + form.dataset
                         .confirmLoadingText
@@ -226,7 +301,8 @@
         }
 
         setConfirmButtonClass(
-            form.dataset.confirmButtonClass
+            form.dataset
+                .confirmButtonClass
             || 'btn-danger'
         );
 
@@ -235,24 +311,24 @@
             || 'ri-alert-line'
         );
 
-        resetConfirmButton();
-
         modal.show();
     }
 
     /**
-     * Intercept every reusable confirmation form.
-     *
-     * Capturing mode ensures this executes before page-specific submit
-     * handlers and prevents destructive actions until confirmed.
+     * Intercept all forms configured to use
+     * the reusable confirmation modal.
      */
     document.addEventListener(
         'submit',
         function (event) {
-            const form = event.target;
+            const form =
+                event.target;
 
             if (
-                !(form instanceof HTMLFormElement)
+                !(
+                    form
+                    instanceof HTMLFormElement
+                )
                 || !form.matches(
                     '[data-confirm-form]'
                 )
@@ -261,22 +337,26 @@
             }
 
             /*
-             * The second submission occurs after confirmation.
-             * Allow it to continue to page-specific handlers and server.
+             * This is the submission issued after
+             * the member has confirmed.
              */
             if (
-                form.dataset.confirmed === 'true'
+                form.dataset.confirmed
+                === 'true'
             ) {
-                delete form.dataset.confirmed;
+                delete form.dataset
+                    .confirmed;
 
                 return;
             }
 
             event.preventDefault();
+
             event.stopImmediatePropagation();
 
             const submitButton =
-                event.submitter instanceof HTMLElement
+                event.submitter
+                    instanceof HTMLElement
                     ? event.submitter
                     : form.querySelector(
                         '[type="submit"]'
@@ -290,6 +370,12 @@
         true
     );
 
+    /**
+     * Handle form-confirmation requests.
+     *
+     * Programmatic confirmations are handled by
+     * the temporary listener registered in show().
+     */
     confirmButton.addEventListener(
         'click',
         function () {
@@ -300,9 +386,11 @@
                 return;
             }
 
-            confirmationInProgress = true;
+            confirmationInProgress =
+                true;
 
-            confirmButton.disabled = true;
+            confirmButton.disabled =
+                true;
 
             confirmButton.setAttribute(
                 'aria-busy',
@@ -321,17 +409,17 @@
                 'd-inline-flex'
             );
 
-            /*
-             * Mark the form so the next submit event is allowed.
-             */
             pendingForm.dataset.confirmed =
                 'true';
 
             modal.hide();
 
             /*
-             * requestSubmit preserves native validation, the original
-             * submit button and page-specific submit handlers.
+             * requestSubmit preserves:
+             *
+             * - native validation;
+             * - original submit button;
+             * - page-specific submit handlers.
              */
             if (
                 pendingSubmitButton
@@ -352,16 +440,21 @@
         'hidden.bs.modal',
         function () {
             /*
-             * Do not clear the form while its confirmed submission
-             * is being dispatched.
+             * A confirmed form submission is still
+             * being dispatched.
              */
-            if (confirmationInProgress) {
+            if (
+                confirmationInProgress
+            ) {
                 window.setTimeout(
                     function () {
-                        pendingForm = null;
-                        pendingSubmitButton = null;
+                        pendingForm =
+                            null;
 
-                        resetConfirmButton();
+                        pendingSubmitButton =
+                            null;
+
+                        resetModalControls();
                     },
                     0
                 );
@@ -369,28 +462,63 @@
                 return;
             }
 
-            pendingForm = null;
-            pendingSubmitButton = null;
+            pendingForm =
+                null;
 
-            resetConfirmButton();
+            pendingSubmitButton =
+                null;
+
+            removeProgrammaticHandler();
+
+            resetModalControls();
         }
     );
 
     /**
-     * Optional programmatic API for non-form actions.
+     * Public reusable API.
      *
-     * Usage:
+     * Example confirmation:
      *
      * window.AppConfirmationModal.show({
      *     title: 'Delete record?',
      *     message: 'This cannot be undone.',
      *     confirmText: 'Delete',
+     *     buttonClass: 'btn-danger',
+     *     icon: 'ri-delete-bin-line',
      *     onConfirm: function () {}
+     * });
+     *
+     * Example acknowledgement:
+     *
+     * window.AppConfirmationModal.show({
+     *     title: 'Interest Accepted',
+     *     message: 'Interest accepted successfully.',
+     *     confirmText: 'OK',
+     *     buttonClass: 'btn-primary',
+     *     icon: 'ri-checkbox-circle-line',
+     *     showCancel: false,
+     *     closeOnConfirm: true
      * });
      */
     window.AppConfirmationModal = {
+
         show: function (options) {
-            const settings = options || {};
+            const settings =
+                options || {};
+
+            /*
+             * Programmatic mode must never inherit
+             * a previous form confirmation.
+             */
+            pendingForm =
+                null;
+
+            pendingSubmitButton =
+                null;
+
+            removeProgrammaticHandler();
+
+            resetModalControls();
 
             titleElement.textContent =
                 settings.title
@@ -416,28 +544,53 @@
                 || 'ri-alert-line'
             );
 
-            resetConfirmButton();
+            /*
+             * Confirmation dialogs show Cancel by default.
+             *
+             * Success acknowledgement dialogs can use:
+             *
+             * showCancel: false
+             */
+            if (
+                settings.showCancel
+                === false
+            ) {
+                cancelButton
+                    .classList
+                    .add(
+                        'd-none'
+                    );
+            }
 
-            const handler = function () {
-                confirmButton.removeEventListener(
-                    'click',
-                    handler
-                );
+            programmaticConfirmHandler =
+                function () {
+                    if (
+                        typeof settings
+                            .onConfirm
+                        === 'function'
+                    ) {
+                        settings.onConfirm();
+                    }
 
-                if (
-                    typeof settings.onConfirm
-                    === 'function'
-                ) {
-                    settings.onConfirm();
-                }
-            };
+                    /*
+                     * Normal confirmation API keeps
+                     * previous behaviour unless explicitly
+                     * requested otherwise.
+                     *
+                     * Acknowledgement dialogs generally use
+                     * closeOnConfirm: true.
+                     */
+                    if (
+                        settings.closeOnConfirm
+                        === true
+                    ) {
+                        modal.hide();
+                    }
+                };
 
             confirmButton.addEventListener(
                 'click',
-                handler,
-                {
-                    once: true
-                }
+                programmaticConfirmHandler
             );
 
             modal.show();
@@ -447,4 +600,5 @@
             modal.hide();
         }
     };
+
 })(window, document);

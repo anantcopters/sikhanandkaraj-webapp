@@ -3,6 +3,11 @@
 document.addEventListener(
     'DOMContentLoaded',
     () => {
+
+        /**
+         * Handle loading state while Accept/Decline
+         * is being processed.
+         */
         const forms =
             document.querySelectorAll(
                 '[data-interest-action-form]'
@@ -13,10 +18,14 @@ document.addEventListener(
                 form.addEventListener(
                     'submit',
                     () => {
+
                         /*
-                         * Disable all Interest action buttons
-                         * on this profile while its response
-                         * is being saved.
+                         * Disable both Accept and Decline
+                         * buttons on the current profile.
+                         *
+                         * This prevents the member clicking
+                         * the opposite action while the first
+                         * request is being submitted.
                          */
                         const card =
                             form.closest(
@@ -34,9 +43,18 @@ document.addEventListener(
                             (button) => {
                                 button.disabled =
                                     true;
+
+                                button.setAttribute(
+                                    'aria-disabled',
+                                    'true'
+                                );
                             }
                         );
 
+                        /*
+                         * Only the button actually clicked
+                         * displays the Saving loader.
+                         */
                         const button =
                             form.querySelector(
                                 '[data-interest-submit]'
@@ -45,6 +63,11 @@ document.addEventListener(
                         if (!button) {
                             return;
                         }
+
+                        button.setAttribute(
+                            'aria-busy',
+                            'true'
+                        );
 
                         const idle =
                             button.querySelector(
@@ -56,26 +79,30 @@ document.addEventListener(
                                 '.registration-submit__loading'
                             );
 
-                        if (idle) {
-                            idle.classList.add(
-                                'd-none'
-                            );
-                        }
+                        idle?.classList.add(
+                            'd-none'
+                        );
 
-                        if (loading) {
-                            loading.classList.remove(
-                                'd-none'
-                            );
-                        }
+                        loading?.classList.remove(
+                            'd-none'
+                        );
+
+                        loading?.classList.add(
+                            'd-inline-flex'
+                        );
                     }
                 );
             }
         );
 
         /**
- * Display the existing application confirmation modal
- * after a successful Accept or Decline action.
- */
+         * Display a post-success acknowledgement
+         * after Accept/Decline redirects back to
+         * the Interest page.
+         *
+         * Modal behaviour belongs entirely to the
+         * reusable confirmation-modal.js component.
+         */
         function showInterestActionConfirmation() {
             const source =
                 document.querySelector(
@@ -83,136 +110,52 @@ document.addEventListener(
                 );
 
             if (
-                !(source instanceof HTMLElement)
-                || typeof bootstrap === 'undefined'
+                !(
+                    source
+                    instanceof HTMLElement
+                )
+                || !window
+                    .AppConfirmationModal
             ) {
                 return;
             }
 
-            const modalElement =
-                document.getElementById(
-                    'appConfirmationModal'
+            window.AppConfirmationModal
+                .show(
+                    {
+                        title:
+                            source.dataset
+                                .noticeTitle
+                            || 'Completed',
+
+                        message:
+                            source.dataset
+                                .noticeMessage
+                            || 'The action was completed.',
+
+                        /*
+                         * This modal is an acknowledgement
+                         * after the action has already
+                         * succeeded.
+                         */
+                        confirmText:
+                            'OK',
+
+                        buttonClass:
+                            'btn-primary',
+
+                        icon:
+                            'ri-checkbox-circle-line',
+
+                        showCancel:
+                            false,
+
+                        closeOnConfirm:
+                            true
+                    }
                 );
-
-            if (!modalElement) {
-                return;
-            }
-
-            const title =
-                document.getElementById(
-                    'appConfirmationModalTitle'
-                );
-
-            const message =
-                document.getElementById(
-                    'appConfirmationModalMessage'
-                );
-
-            const cancel =
-                document.getElementById(
-                    'appConfirmationModalCancel'
-                );
-
-            const confirm =
-                document.getElementById(
-                    'appConfirmationModalConfirm'
-                );
-
-            const confirmLabel =
-                confirm?.querySelector(
-                    '[data-confirm-modal-label]'
-                );
-
-            const confirmLoading =
-                confirm?.querySelector(
-                    '[data-confirm-modal-loading]'
-                );
-
-            if (
-                !title
-                || !message
-                || !confirm
-            ) {
-                return;
-            }
-
-            title.textContent =
-                source.dataset.noticeTitle
-                || 'Completed';
-
-            message.textContent =
-                source.dataset.noticeMessage
-                || 'The action was completed.';
-
-            /*
-             * This is acknowledgement only,
-             * so hide Cancel and show one OK button.
-             */
-            cancel?.classList.add(
-                'd-none'
-            );
-
-            confirm.classList.remove(
-                'btn-danger',
-                'btn-warning',
-                'btn-success'
-            );
-
-            confirm.classList.add(
-                'btn-primary'
-            );
-
-            if (confirmLabel) {
-                confirmLabel.textContent =
-                    'OK';
-
-                confirmLabel.classList.remove(
-                    'd-none'
-                );
-            }
-
-            confirmLoading?.classList.add(
-                'd-none'
-            );
-
-            const modal =
-                bootstrap.Modal
-                    .getOrCreateInstance(
-                        modalElement
-                    );
-
-            const closeNotice =
-                function () {
-                    modal.hide();
-
-                    confirm.removeEventListener(
-                        'click',
-                        closeNotice
-                    );
-                };
-
-            confirm.addEventListener(
-                'click',
-                closeNotice
-            );
-
-            modalElement.addEventListener(
-                'hidden.bs.modal',
-                function restoreCancel() {
-                    cancel?.classList.remove(
-                        'd-none'
-                    );
-
-                    modalElement.removeEventListener(
-                        'hidden.bs.modal',
-                        restoreCancel
-                    );
-                }
-            );
-
-            modal.show();
         }
+
         showInterestActionConfirmation();
     }
-    
 );
