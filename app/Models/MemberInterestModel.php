@@ -11,31 +11,56 @@ use CodeIgniter\Model;
  */
 final class MemberInterestModel extends Model
 {
-    protected $table = 'member_interests';
+    public const STATUS_PENDING =
+    'PENDING';
 
-    protected $primaryKey = 'id';
+    public const STATUS_ACCEPTED =
+    'ACCEPTED';
 
-    protected $returnType = 'array';
+    public const STATUS_DECLINED =
+    'DECLINED';
 
-    protected $useAutoIncrement = true;
+    protected $table =
+    'member_interests';
 
-    protected $protectFields = true;
+    protected $primaryKey =
+    'id';
+
+    protected $returnType =
+    'array';
+
+    protected $useAutoIncrement =
+    true;
+
+    protected $protectFields =
+    true;
 
     protected $allowedFields = [
         'from_user_id',
         'to_user_id',
+        'status',
+        'responded_at',
     ];
 
-    protected $useTimestamps = true;
+    protected $useTimestamps =
+    true;
 
-    protected $dateFormat = 'datetime';
+    protected $dateFormat =
+    'datetime';
 
-    protected $createdField = 'created_at';
+    protected $createdField =
+    'created_at';
 
-    protected $updatedField = '';
+    protected $updatedField =
+    '';
 
-    protected $skipValidation = true;
+    protected $skipValidation =
+    true;
 
+    /**
+     * Determine whether one member has shown interest
+     * in another member.
+     */
     public function hasShown(
         int $fromUserId,
         int $toUserId
@@ -52,6 +77,10 @@ final class MemberInterestModel extends Model
             ->countAllResults() > 0;
     }
 
+    /**
+     * Determine whether any interest exists between
+     * the supplied members.
+     */
     public function existsBetween(
         int $firstUserId,
         int $secondUserId
@@ -83,13 +112,80 @@ final class MemberInterestModel extends Model
     }
 
     /**
+     * Return the interest from one member to another.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findBetween(
+        int $fromUserId,
+        int $toUserId
+    ): ?array {
+        $row = $this
+            ->where(
+                'from_user_id',
+                $fromUserId
+            )
+            ->where(
+                'to_user_id',
+                $toUserId
+            )
+            ->first();
+
+        return is_array($row)
+            ? $row
+            : null;
+    }
+
+    /**
+     * Return received interest records newest first.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function receivedFor(
+        int $userId
+    ): array {
+        return $this
+            ->where(
+                'to_user_id',
+                $userId
+            )
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->findAll();
+    }
+
+    /**
+     * Return sent interest records newest first.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function sentFor(
+        int $userId
+    ): array {
+        return $this
+            ->where(
+                'from_user_id',
+                $userId
+            )
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->findAll();
+    }
+
+    /**
      * @return list<int>
      */
     public function receivedMemberIds(
         int $userId
     ): array {
         $rows = $this
-            ->select('from_user_id')
+            ->select(
+                'from_user_id'
+            )
             ->where(
                 'to_user_id',
                 $userId
@@ -116,7 +212,9 @@ final class MemberInterestModel extends Model
         int $userId
     ): array {
         $rows = $this
-            ->select('to_user_id')
+            ->select(
+                'to_user_id'
+            )
             ->where(
                 'from_user_id',
                 $userId

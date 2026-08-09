@@ -402,9 +402,27 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
 
                 $routes->get(
                     'interests',
-                    'MemberNavigationController::interests',
+                    'InterestController::index',
                     [
                         'as' => 'web.interests',
+                    ]
+                );
+
+                $routes->post(
+                    'interests/received/(:segment)/accept',
+                    'InterestController::accept/$1',
+                    [
+                        'as' =>
+                        'web.interests.received.accept',
+                    ]
+                );
+
+                $routes->post(
+                    'interests/received/(:segment)/decline',
+                    'InterestController::decline/$1',
+                    [
+                        'as' =>
+                        'web.interests.received.decline',
                     ]
                 );
 

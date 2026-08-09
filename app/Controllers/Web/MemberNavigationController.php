@@ -23,15 +23,6 @@ final class MemberNavigationController extends BaseController
         );
     }
 
-    public function interests(): string
-    {
-        return $this->renderPage(
-            'Interests',
-            'ri-heart-add-line',
-            'Sent and received interests will appear here.'
-        );
-    }
-
     public function messages(): string
     {
         return $this->renderPage(

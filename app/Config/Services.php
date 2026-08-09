@@ -100,9 +100,8 @@ use App\Models\MemberBlockModel;
 use App\Models\MemberInterestModel;
 use App\Models\MemberMatchCandidateModel;
 use App\Models\MemberProfileViewModel;
-
+use App\Services\Matchmaking\MemberInterestService;
 use App\Services\Dashboard\MemberDashboardDataService;
-
 use App\Services\Matchmaking\MemberInteractionService;
 use App\Services\Matchmaking\MemberMatchmakingService;
 use App\Services\Matchmaking\MemberProfileViewService;
@@ -1576,6 +1575,37 @@ final class Services extends BaseService
             static::memberMatchmakingService(
                 false
             )
+        );
+    }
+
+    /**
+     * Return the member Interest service.
+     */
+    public static function memberInterestService(
+        bool $getShared = true
+    ): MemberInterestService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberInterestService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberInterestService(
+            new UserModel(
+                $database
+            ),
+            new MemberInterestModel(
+                $database
+            ),
+            new MemberMatchCandidateModel(
+                $database
+            ),
+            static::memberPhotoUrlService(
+                false
+            ),
+            $database
         );
     }
 }
