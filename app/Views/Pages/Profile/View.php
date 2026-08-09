@@ -1170,161 +1170,177 @@ $this->section('content');
                                                 && $canRespondToInterest
                                             ): ?>
 
-                                                <!--
-        This member has sent the logged-in member
-        a Pending Interest.
-
-        Respond directly without forcing navigation
-        back to the Interests screen.
-    -->
-
-                                                <button
-                                                    type="button"
-                                                    class="btn
-            btn-warning
-            w-80
-            d-flex
-            align-items-center
-            justify-content-center
-            gap-2"
-                                                    disabled>
-
-                                                    <i
-                                                        class="ri-heart-line"
-                                                        aria-hidden="true">
-                                                    </i>
-
-                                                    Interest Received
-                                                </button>
+                                                <!-- =================================================
+         Incoming Interest
+         ================================================= -->
 
                                                 <div
-                                                    class="d-flex
-            flex-wrap
-            gap-2">
+                                                    class="border
+            rounded-3
+            bg-warning-subtle
+            p-2
+            text-center">
 
-                                                    <!-- Decline received Interest -->
-                                                    <form
-                                                        method="post"
-                                                        action="<?= route_to(
-                                                                    'web.members.interest.decline',
-                                                                    $viewedProfileReference
-                                                                ) ?>"
-                                                        data-member-interest-form>
+                                                    <div
+                                                        class="d-flex
+                align-items-center
+                justify-content-center
+                gap-2
+                fw-semibold
+                text-dark
+                mb-1">
 
-                                                        <?= csrf_field() ?>
+                                                        <i
+                                                            class="ri-heart-fill
+                    text-danger
+                    fs-18"
+                                                            aria-hidden="true">
+                                                        </i>
 
-                                                        <button
-                                                            type="submit"
-                                                            class="btn
-                    btn-outline-danger
-                    d-flex
-                    align-items-center
-                    justify-content-center
-                    gap-2">
-
-                                                            <span
-                                                                data-member-interest-label>
-
-                                                                <i
-                                                                    class="ri-close-line"
-                                                                    aria-hidden="true">
-                                                                </i>
-
-                                                                Decline
-                                                            </span>
-
-                                                            <span
-                                                                class="d-none
-                        align-items-center"
-                                                                data-member-interest-loading>
-
-                                                                <span
-                                                                    class="spinner-border
-                            spinner-border-sm
-                            me-1"
-                                                                    aria-hidden="true">
-                                                                </span>
-
-                                                                Saving...
-                                                            </span>
-
-                                                        </button>
-                                                    </form>
-
-                                                    <!-- Accept received Interest -->
-                                                    <form
-                                                        method="post"
-                                                        action="<?= route_to(
-                                                                    'web.members.interest.accept',
-                                                                    $viewedProfileReference
-                                                                ) ?>"
-                                                        data-member-interest-form>
-
-                                                        <?= csrf_field() ?>
-
-                                                        <button
-                                                            type="submit"
-                                                            class="btn
-                    btn-success
-                    d-flex
-                    align-items-center
-                    justify-content-center
-                    gap-2">
-
-                                                            <span
-                                                                data-member-interest-label>
-
-                                                                <i
-                                                                    class="ri-checkbox-circle-line"
-                                                                    aria-hidden="true">
-                                                                </i>
-
-                                                                Accept Interest
-                                                            </span>
-
-                                                            <span
-                                                                class="d-none
-                        align-items-center"
-                                                                data-member-interest-loading>
-
-                                                                <span
-                                                                    class="spinner-border
-                            spinner-border-sm
-                            me-1"
-                                                                    aria-hidden="true">
-                                                                </span>
-
-                                                                Saving...
-                                                            </span>
-
-                                                        </button>
-                                                    </form>
+                                                        Interest Received
+                                                    </div>
 
                                                 </div>
+
+                                                <!-- Accept Interest -->
+                                                <form
+                                                    method="post"
+                                                    action="<?= route_to(
+                                                                'web.members.interest.accept',
+                                                                $viewedProfileReference
+                                                            ) ?>"
+                                                    data-member-interest-form>
+
+                                                    <?= csrf_field() ?>
+
+                                                    <button
+                                                        type="submit"
+                                                        class="btn
+                btn-success
+                w-100
+                d-flex
+                align-items-center
+                justify-content-center
+                gap-2">
+
+                                                        <span
+                                                            data-member-interest-label>
+
+                                                            <i
+                                                                class="ri-checkbox-circle-line"
+                                                                aria-hidden="true">
+                                                            </i>
+
+                                                            Accept Interest
+                                                        </span>
+
+                                                        <span
+                                                            class="d-none
+                    align-items-center"
+                                                            data-member-interest-loading>
+
+                                                            <span
+                                                                class="spinner-border
+                        spinner-border-sm
+                        me-1"
+                                                                aria-hidden="true">
+                                                            </span>
+
+                                                            Saving...
+                                                        </span>
+
+                                                    </button>
+
+                                                </form>
+
+                                                <!-- Decline Interest -->
+                                                <form
+                                                    method="post"
+                                                    action="<?= route_to(
+                                                                'web.members.interest.decline',
+                                                                $viewedProfileReference
+                                                            ) ?>"
+                                                    data-member-interest-form>
+
+                                                    <?= csrf_field() ?>
+
+                                                    <button
+                                                        type="submit"
+                                                        class="btn
+                btn-outline-danger
+                w-100
+                d-flex
+                align-items-center
+                justify-content-center
+                gap-2">
+
+                                                        <span
+                                                            data-member-interest-label>
+
+                                                            <i
+                                                                class="ri-close-line"
+                                                                aria-hidden="true">
+                                                            </i>
+
+                                                            Decline
+                                                        </span>
+
+                                                        <span
+                                                            class="d-none
+                    align-items-center"
+                                                            data-member-interest-loading>
+
+                                                            <span
+                                                                class="spinner-border
+                        spinner-border-sm
+                        me-1"
+                                                                aria-hidden="true">
+                                                            </span>
+
+                                                            Saving...
+                                                        </span>
+
+                                                    </button>
+
+                                                </form>
 
                                             <?php elseif (
                                                 $interestState
                                                 === 'PENDING_SENT'
                                             ): ?>
 
-                                                <button
-                                                    type="button"
-                                                    class="btn
-            btn-success
-            w-80
-            d-flex
-            align-items-center
-            justify-content-center
-            gap-2"
-                                                    disabled>
+                                                <div
+                                                    class="border
+            rounded-3
+            bg-success-subtle
+            text-success
+            p-2
+            text-center">
 
-                                                    <i
-                                                        class="ri-time-line"
-                                                        aria-hidden="true">
-                                                    </i>
+                                                    <div
+                                                        class="d-flex
+                align-items-center
+                justify-content-center
+                gap-2
+                fw-semibold">
 
-                                                    Interest Sent
-                                                </button>
+                                                        <i
+                                                            class="ri-time-line"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                        Interest Sent
+                                                    </div>
+
+                                                    <div
+                                                        class="fs-12
+                text-muted
+                mt-1">
+
+                                                        Waiting for a response
+                                                    </div>
+
+                                                </div>
 
                                             <?php elseif (
                                                 in_array(
@@ -1337,24 +1353,30 @@ $this->section('content');
                                                 )
                                             ): ?>
 
-                                                <button
-                                                    type="button"
-                                                    class="btn
-            btn-success
-            w-80
-            d-flex
-            align-items-center
-            justify-content-center
-            gap-2"
-                                                    disabled>
+                                                <div
+                                                    class="border
+            rounded-3
+            bg-success-subtle
+            text-success
+            p-2
+            text-center">
 
-                                                    <i
-                                                        class="ri-checkbox-circle-line"
-                                                        aria-hidden="true">
-                                                    </i>
+                                                    <div
+                                                        class="d-flex
+                align-items-center
+                justify-content-center
+                gap-2
+                fw-semibold">
 
-                                                    Interest Accepted
-                                                </button>
+                                                        <i
+                                                            class="ri-checkbox-circle-line"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                        Interest Accepted
+                                                    </div>
+
+                                                </div>
 
                                             <?php elseif (
                                                 in_array(
@@ -1367,54 +1389,75 @@ $this->section('content');
                                                 )
                                             ): ?>
 
-                                                <button
-                                                    type="button"
-                                                    class="btn
-            btn-outline-danger
-            w-80
-            d-flex
-            align-items-center
-            justify-content-center
-            gap-2"
-                                                    disabled>
+                                                <div
+                                                    class="border
+            rounded-3
+            bg-light
+            text-muted
+            p-2
+            text-center">
 
-                                                    <i
-                                                        class="ri-close-circle-line"
-                                                        aria-hidden="true">
-                                                    </i>
+                                                    <div
+                                                        class="d-flex
+                align-items-center
+                justify-content-center
+                gap-2
+                fw-medium">
 
-                                                    Interest Declined
-                                                </button>
+                                                        <i
+                                                            class="ri-close-circle-line"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                        Interest Declined
+                                                    </div>
+
+                                                </div>
 
                                             <?php elseif (
                                                 $interestState
                                                 === 'MUTUAL'
                                             ): ?>
 
-                                                <button
-                                                    type="button"
-                                                    class="btn
-            btn-success
-            w-80
-            d-flex
-            align-items-center
-            justify-content-center
-            gap-2"
-                                                    disabled>
+                                                <div
+                                                    class="border
+            rounded-3
+            bg-success-subtle
+            text-success
+            p-2
+            text-center">
 
-                                                    <i
-                                                        class="ri-heart-fill"
-                                                        aria-hidden="true">
-                                                    </i>
+                                                    <div
+                                                        class="d-flex
+                align-items-center
+                justify-content-center
+                gap-2
+                fw-semibold">
 
-                                                    Mutual Interest
-                                                </button>
+                                                        <i
+                                                            class="ri-heart-fill
+                    text-danger"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                        Mutual Interest
+                                                    </div>
+
+                                                    <div
+                                                        class="fs-12
+                text-muted
+                mt-1">
+
+                                                        You both are interested
+                                                        in each other
+                                                    </div>
+
+                                                </div>
 
                                             <?php elseif (
                                                 $canShowInterest
                                             ): ?>
 
-                                                <!-- No Interest relationship yet. -->
                                                 <form
                                                     method="post"
                                                     action="<?= route_to(
@@ -1429,7 +1472,7 @@ $this->section('content');
                                                         type="submit"
                                                         class="btn
                 btn-primary
-                w-80
+                w-100
                 d-flex
                 align-items-center
                 justify-content-center
@@ -1462,119 +1505,106 @@ $this->section('content');
                                                         </span>
 
                                                     </button>
+
                                                 </form>
-
-                                            <?php else: ?>
-
-                                                <!--
-        Defensive fallback.
-
-        An unexpected relationship should never expose another
-        Show Interest action and accidentally create duplicate state.
-    -->
-                                                <button
-                                                    type="button"
-                                                    class="btn
-            btn-light
-            w-80
-            d-flex
-            align-items-center
-            justify-content-center
-            gap-2"
-                                                    disabled>
-
-                                                    <i
-                                                        class="ri-information-line"
-                                                        aria-hidden="true">
-                                                    </i>
-
-                                                    Interest Updated
-                                                </button>
 
                                             <?php endif; ?>
 
                                             <!-- ShortList -->
                                             <!-- ShortList -->
-                                            <form
-                                                method="post"
-                                                action="<?= route_to(
-                                                            'web.members.shortlist',
-                                                            $viewedProfileReference
-                                                        ) ?>"
-                                                data-member-shortlist-form>
+                                            <!-- =================================================
+     Secondary actions
+     ================================================= -->
 
-                                                <?= csrf_field() ?>
+                                            <div
+                                                class="border-top
+        pt-3
+        mt-1">
 
-                                                <button
-                                                    type="submit"
-                                                    class="btn
-            <?= $isShortlisted
-                                        ? 'btn-success'
-                                        : 'btn-outline-primary' ?>
-            w-80
-            d-flex
-            align-items-center
-            justify-content-center
+                                                <div
+                                                    class="d-flex
             gap-2">
 
-                                                    <!-- Normal state -->
-                                                    <span
-                                                        data-member-shortlist-label>
+                                                    <!-- ShortList -->
+                                                    <form
+                                                        method="post"
+                                                        action="<?= route_to(
+                                                                    'web.members.shortlist',
+                                                                    $viewedProfileReference
+                                                                ) ?>"
+                                                        class="flex-fill"
+                                                        data-member-shortlist-form>
+
+                                                        <?= csrf_field() ?>
+
+                                                        <button
+                                                            type="submit"
+                                                            class="btn
+                    <?= $isShortlisted
+                                        ? 'btn-success'
+                                        : 'btn-outline-primary' ?>
+                    w-100
+                    d-flex
+                    align-items-center
+                    justify-content-center
+                    gap-1">
+
+                                                            <span
+                                                                data-member-shortlist-label>
+
+                                                                <i
+                                                                    class="<?= $isShortlisted
+                                                                                ? 'ri-bookmark-fill'
+                                                                                : 'ri-bookmark-line' ?>"
+                                                                    aria-hidden="true">
+                                                                </i>
+
+                                                                <?= $isShortlisted
+                                                                    ? 'Shortlisted'
+                                                                    : 'ShortList' ?>
+
+                                                            </span>
+
+                                                            <span
+                                                                class="d-none
+                        align-items-center"
+                                                                data-member-shortlist-loading>
+
+                                                                <span
+                                                                    class="spinner-border
+                            spinner-border-sm"
+                                                                    aria-hidden="true">
+                                                                </span>
+
+                                                            </span>
+
+                                                        </button>
+
+                                                    </form>
+
+                                                    <!-- Block -->
+                                                    <button
+                                                        type="button"
+                                                        class="btn
+                btn-outline-danger
+                flex-fill
+                d-flex
+                align-items-center
+                justify-content-center
+                gap-1"
+                                                        data-member-block-open>
 
                                                         <i
-                                                            class="<?= $isShortlisted
-                                                                        ? 'ri-bookmark-fill'
-                                                                        : 'ri-bookmark-line' ?>"
+                                                            class="ri-forbid-line"
                                                             aria-hidden="true">
                                                         </i>
 
-                                                        <?= $isShortlisted
-                                                            ? 'Shortlisted'
-                                                            : 'ShortList' ?>
+                                                        Block
+                                                    </button>
 
-                                                    </span>
+                                                </div>
 
-                                                    <!-- Loading state -->
-                                                    <span
-                                                        class="d-none
-                align-items-center"
-                                                        data-member-shortlist-loading>
-
-                                                        <span
-                                                            class="spinner-border
-                    spinner-border-sm
-                    me-1"
-                                                            aria-hidden="true">
-                                                        </span>
-
-                                                        <?= $isShortlisted
-                                                            ? 'Removing...'
-                                                            : 'Shortlisting...' ?>
-
-                                                    </span>
-
-                                                </button>
-                                            </form>
-
-                                            <!-- Block -->
-                                            <button
-                                                type="button"
-                                                class="btn
-                                btn-outline-danger
-                                w-80
-                                d-flex
-                                align-items-center
-                                justify-content-center
-                                gap-2"
-                                                data-member-block-open>
-
-                                                <i
-                                                    class="ri-forbid-line"
-                                                    aria-hidden="true">
-                                                </i>
-
-                                                Block
-                                            </button>
+                                            </div>
 
                                         </div>
                                     </div>
