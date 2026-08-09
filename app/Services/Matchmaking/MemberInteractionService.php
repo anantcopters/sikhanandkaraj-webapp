@@ -33,15 +33,22 @@ final class MemberInteractionService
     /**
      * Show interest in another active and visible member.
      *
-     * Interest creation and recipient notification are committed as
-     * one transaction.
+     * A reciprocal positive interest automatically promotes
+     * both directional records to MUTUAL.
      *
-     * Repeated submissions remain idempotent:
+     * Examples:
      *
-     * - an existing interest is not inserted again;
-     * - an additional notification is not generated.
+     * A -> B = PENDING
+     * B -> A newly created
      *
-     * @return bool TRUE when a new interest was created,
+     * becomes:
+     *
+     * A -> B = MUTUAL
+     * B -> A = MUTUAL
+     *
+     * A reverse DECLINED interest does not create a mutual match.
+     *
+     * @return bool TRUE when a new directional interest was created,
      *              FALSE when it already existed.
      */
     public function showInterest(
@@ -54,7 +61,7 @@ final class MemberInteractionService
         );
 
         /*
-     * Fast-path for normal repeated requests.
+     * Fast-path for normal duplicate submissions.
      */
         if (
             $this->interestModel
@@ -66,15 +73,16 @@ final class MemberInteractionService
             return false;
         }
 
-        $this->database->transBegin();
+        $this->database
+            ->transBegin();
 
         try {
             /*
-         * Lock both member rows in a deterministic order.
+         * Lock both members in deterministic order.
          *
-         * This serializes concurrent relationship changes involving
-         * this pair and prevents two simultaneous interest requests
-         * from generating duplicate notifications.
+         * Reciprocal interest creation must be serialized
+         * so two simultaneous requests cannot create an
+         * inconsistent relationship state.
          */
             $this->database->query(
                 'SELECT id '
@@ -89,10 +97,7 @@ final class MemberInteractionService
             );
 
             /*
-         * Recheck after acquiring the lock.
-         *
-         * Another request may have created the interest between
-         * our initial check and the transaction lock.
+         * Recheck after obtaining the lock.
          */
             if (
                 $this->interestModel
@@ -101,26 +106,104 @@ final class MemberInteractionService
                     $toUserId
                 )
             ) {
-                $this->database->transCommit();
+                $this->database
+                    ->transCommit();
 
                 return false;
             }
 
-            $insertId = $this
-                ->interestModel
-                ->insert(
-                    [
-                        'from_user_id' =>
-                        $fromUserId,
+            /*
+         * Look for an existing interest in the opposite
+         * direction.
+         */
+            $reverseInterest =
+                $this->interestModel
+                ->findBetween(
+                    $toUserId,
+                    $fromUserId
+                );
 
-                        'to_user_id' =>
-                        $toUserId,
+            $reverseStatus = '';
+
+            if (
+                is_array(
+                    $reverseInterest
+                )
+            ) {
+                $reverseStatus =
+                    $this->normaliseInterestStatus(
+                        $reverseInterest['status']
+                            ?? null
+                    );
+            }
+
+            /*
+         * Reciprocal PENDING or ACCEPTED interest represents
+         * positive intent from both members.
+         *
+         * MUTUAL is included defensively for historical/
+         * repaired data.
+         *
+         * DECLINED deliberately does not qualify.
+         */
+            $becomesMutual =
+                in_array(
+                    $reverseStatus,
+                    [
+                        MemberInterestModel
+                        ::STATUS_PENDING,
+
+                        MemberInterestModel
+                        ::STATUS_ACCEPTED,
+
+                        MemberInterestModel
+                        ::STATUS_MUTUAL,
                     ],
                     true
                 );
 
+            $now =
+                date(
+                    'Y-m-d H:i:s'
+                );
+
+            $newInterestData = [
+                'from_user_id' =>
+                $fromUserId,
+
+                'to_user_id' =>
+                $toUserId,
+
+                /*
+             * Set this explicitly.
+             *
+             * Do not rely solely on the PostgreSQL default
+             * for important relationship state.
+             */
+                'status' =>
+                $becomesMutual
+                    ? MemberInterestModel
+                    ::STATUS_MUTUAL
+                    : MemberInterestModel
+                    ::STATUS_PENDING,
+
+                'responded_at' =>
+                $becomesMutual
+                    ? $now
+                    : null,
+            ];
+
+            $insertId = $this
+                ->interestModel
+                ->insert(
+                    $newInterestData,
+                    true
+                );
+
             if (
-                !is_numeric($insertId)
+                !is_numeric(
+                    $insertId
+                )
                 || (int) $insertId <= 0
             ) {
                 throw new RuntimeException(
@@ -128,21 +211,87 @@ final class MemberInteractionService
                 );
             }
 
-            /*
-         * The notification is part of the same transaction.
-         *
-         * Therefore we never end up with:
-         *
-         * interest saved + notification missing.
-         */
-            $this->createInterestReceivedNotification(
-                fromUserId: $fromUserId,
-                toUserId: $toUserId,
-                interestId: (int) $insertId
-            );
+            if ($becomesMutual) {
+                if (
+                    !is_array(
+                        $reverseInterest
+                    )
+                ) {
+                    throw new RuntimeException(
+                        'The reciprocal interest could not be resolved.'
+                    );
+                }
+
+                $reverseInterestId = max(
+                    0,
+                    (int) (
+                        $reverseInterest['id']
+                        ?? 0
+                    )
+                );
+
+                if (
+                    $reverseInterestId <= 0
+                ) {
+                    throw new RuntimeException(
+                        'The reciprocal interest could not be resolved.'
+                    );
+                }
+
+                /*
+             * Promote the original directional record as part
+             * of the exact same transaction.
+             */
+                $updated = $this
+                    ->interestModel
+                    ->update(
+                        $reverseInterestId,
+                        [
+                            'status' =>
+                            MemberInterestModel
+                            ::STATUS_MUTUAL,
+
+                            'responded_at' =>
+                            $now,
+                        ]
+                    );
+
+                if (
+                    $updated === false
+                ) {
+                    throw new RuntimeException(
+                        'The reciprocal interest could not be updated.'
+                    );
+                }
+
+                /*
+             * Both members receive a Mutual Interest
+             * notification rather than creating an ordinary
+             * "New Interest" notification.
+             */
+                $this->createMutualInterestNotifications(
+                    firstUserId: $fromUserId,
+
+                    secondUserId: $toUserId,
+
+                    interestId: (int) $insertId
+                );
+            } else {
+                /*
+             * Ordinary one-way Interest notification.
+             */
+                $this->createInterestReceivedNotification(
+                    fromUserId: $fromUserId,
+
+                    toUserId: $toUserId,
+
+                    interestId: (int) $insertId
+                );
+            }
 
             if (
-                $this->database->transStatus()
+                $this->database
+                ->transStatus()
                 === false
             ) {
                 throw new RuntimeException(
@@ -150,11 +299,15 @@ final class MemberInteractionService
                 );
             }
 
-            $this->database->transCommit();
+            $this->database
+                ->transCommit();
 
             return true;
-        } catch (Throwable $exception) {
-            $this->database->transRollback();
+        } catch (
+            Throwable $exception
+        ) {
+            $this->database
+                ->transRollback();
 
             throw $exception;
         }
@@ -485,6 +638,22 @@ final class MemberInteractionService
     }
 
     /**
+     * Determine whether two members currently have
+     * reciprocal Mutual Interest.
+     */
+    public function hasMutualInterestBetween(
+        int $firstUserId,
+        int $secondUserId
+    ): bool {
+        return $this
+            ->interestModel
+            ->isMutualBetween(
+                $firstUserId,
+                $secondUserId
+            );
+    }
+
+    /**
      * @return list<int>
      */
     public function interestReceivedIds(
@@ -584,6 +753,207 @@ final class MemberInteractionService
                     $userId
                 ),
         ];
+    }
+
+    /**
+     * Convert historical NULL/blank status values into the
+     * effective state used by the Interest module.
+     */
+    private function normaliseInterestStatus(
+        mixed $status
+    ): string {
+        $resolvedStatus =
+            strtoupper(
+                trim(
+                    (string) $status
+                )
+            );
+
+        if (
+            $resolvedStatus === ''
+        ) {
+            return MemberInterestModel
+            ::STATUS_PENDING;
+        }
+
+        return $resolvedStatus;
+    }
+
+
+    /**
+     * Notify both members that reciprocal interest has been detected.
+     *
+     * Notifications remain in the same DB transaction as the
+     * relationship state change.
+     */
+    private function createMutualInterestNotifications(
+        int $firstUserId,
+        int $secondUserId,
+        int $interestId
+    ): void {
+        $firstUser =
+            $this->userModel
+            ->find(
+                $firstUserId
+            );
+
+        $secondUser =
+            $this->userModel
+            ->find(
+                $secondUserId
+            );
+
+        if (
+            !is_array(
+                $firstUser
+            )
+            || !is_array(
+                $secondUser
+            )
+        ) {
+            throw new RuntimeException(
+                'The matched members could not be resolved.'
+            );
+        }
+
+        $firstName =
+            preg_replace(
+                '/\s+/u',
+                ' ',
+                trim(
+                    (string) (
+                        $firstUser['full_name']
+                        ?? ''
+                    )
+                )
+            )
+            ?? '';
+
+        $secondName =
+            preg_replace(
+                '/\s+/u',
+                ' ',
+                trim(
+                    (string) (
+                        $secondUser['full_name']
+                        ?? ''
+                    )
+                )
+            )
+            ?? '';
+
+        if ($firstName === '') {
+            $firstName =
+                'A member';
+        }
+
+        if ($secondName === '') {
+            $secondName =
+                'A member';
+        }
+
+        $firstProfileReference =
+            trim(
+                (string) (
+                    $firstUser['profile_ref_number']
+                    ?? ''
+                )
+            );
+
+        $secondProfileReference =
+            trim(
+                (string) (
+                    $secondUser['profile_ref_number']
+                    ?? ''
+                )
+            );
+
+        if (
+            $firstProfileReference
+            === ''
+            || $secondProfileReference
+            === ''
+        ) {
+            throw new RuntimeException(
+                'The matched member profiles could not be resolved.'
+            );
+        }
+
+        /*
+     * First member opens the second member.
+     */
+        $this->notificationService
+            ->create(
+                [
+                    'recipientUserId' =>
+                    $firstUserId,
+
+                    'actorUserId' =>
+                    $secondUserId,
+
+                    'type' =>
+                    \App\Models\MemberNotificationModel
+                    ::TYPE_MUTUAL_INTEREST,
+
+                    'title' =>
+                    'It\'s a Match!',
+
+                    'message' =>
+                    $secondName
+                        . ' also showed interest in you. '
+                        . 'You now have a mutual interest.',
+
+                    'entityType' =>
+                    'MEMBER_INTEREST',
+
+                    'entityId' =>
+                    $interestId,
+
+                    'targetUrl' =>
+                    '/members/'
+                        . rawurlencode(
+                            $secondProfileReference
+                        ),
+                ]
+            );
+
+        /*
+     * Second member opens the first member.
+     */
+        $this->notificationService
+            ->create(
+                [
+                    'recipientUserId' =>
+                    $secondUserId,
+
+                    'actorUserId' =>
+                    $firstUserId,
+
+                    'type' =>
+                    \App\Models\MemberNotificationModel
+                    ::TYPE_MUTUAL_INTEREST,
+
+                    'title' =>
+                    'It\'s a Match!',
+
+                    'message' =>
+                    $firstName
+                        . ' also showed interest in you. '
+                        . 'You now have a mutual interest.',
+
+                    'entityType' =>
+                    'MEMBER_INTEREST',
+
+                    'entityId' =>
+                    $interestId,
+
+                    'targetUrl' =>
+                    '/members/'
+                        . rawurlencode(
+                            $firstProfileReference
+                        ),
+                ]
+            );
     }
 
     /**

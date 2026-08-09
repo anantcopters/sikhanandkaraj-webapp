@@ -113,10 +113,20 @@ final class MemberProfileController extends BaseController
                 'memberInteractionService'
             );
 
+            $targetUserId =
+                (int) $target['id'];
+
             $interactionService
                 ->showInterest(
                     $viewerUserId,
-                    (int) $target['id']
+                    $targetUserId
+                );
+
+            $isMutualInterest =
+                $interactionService
+                ->hasMutualInterestBetween(
+                    $viewerUserId,
+                    $targetUserId
                 );
 
             return redirect()
@@ -132,10 +142,15 @@ final class MemberProfileController extends BaseController
                     'memberActionNotice',
                     [
                         'title' =>
-                        'Interest Shown',
+                        $isMutualInterest
+                            ? 'It\'s a Match!'
+                            : 'Interest Shown',
 
                         'message' =>
-                        'Your interest has been '
+                        $isMutualInterest
+                            ? 'You have both shown interest '
+                            . 'in each other.'
+                            : 'Your interest has been '
                             . 'shown successfully.',
                     ]
                 );

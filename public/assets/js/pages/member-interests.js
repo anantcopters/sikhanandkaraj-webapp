@@ -71,5 +71,148 @@ document.addEventListener(
                 );
             }
         );
+
+        /**
+ * Display the existing application confirmation modal
+ * after a successful Accept or Decline action.
+ */
+        function showInterestActionConfirmation() {
+            const source =
+                document.querySelector(
+                    '[data-interest-action-notice]'
+                );
+
+            if (
+                !(source instanceof HTMLElement)
+                || typeof bootstrap === 'undefined'
+            ) {
+                return;
+            }
+
+            const modalElement =
+                document.getElementById(
+                    'appConfirmationModal'
+                );
+
+            if (!modalElement) {
+                return;
+            }
+
+            const title =
+                document.getElementById(
+                    'appConfirmationModalTitle'
+                );
+
+            const message =
+                document.getElementById(
+                    'appConfirmationModalMessage'
+                );
+
+            const cancel =
+                document.getElementById(
+                    'appConfirmationModalCancel'
+                );
+
+            const confirm =
+                document.getElementById(
+                    'appConfirmationModalConfirm'
+                );
+
+            const confirmLabel =
+                confirm?.querySelector(
+                    '[data-confirm-modal-label]'
+                );
+
+            const confirmLoading =
+                confirm?.querySelector(
+                    '[data-confirm-modal-loading]'
+                );
+
+            if (
+                !title
+                || !message
+                || !confirm
+            ) {
+                return;
+            }
+
+            title.textContent =
+                source.dataset.noticeTitle
+                || 'Completed';
+
+            message.textContent =
+                source.dataset.noticeMessage
+                || 'The action was completed.';
+
+            /*
+             * This is acknowledgement only,
+             * so hide Cancel and show one OK button.
+             */
+            cancel?.classList.add(
+                'd-none'
+            );
+
+            confirm.classList.remove(
+                'btn-danger',
+                'btn-warning',
+                'btn-success'
+            );
+
+            confirm.classList.add(
+                'btn-primary'
+            );
+
+            if (confirmLabel) {
+                confirmLabel.textContent =
+                    'OK';
+
+                confirmLabel.classList.remove(
+                    'd-none'
+                );
+            }
+
+            confirmLoading?.classList.add(
+                'd-none'
+            );
+
+            const modal =
+                bootstrap.Modal
+                    .getOrCreateInstance(
+                        modalElement
+                    );
+
+            const closeNotice =
+                function () {
+                    modal.hide();
+
+                    confirm.removeEventListener(
+                        'click',
+                        closeNotice
+                    );
+                };
+
+            confirm.addEventListener(
+                'click',
+                closeNotice
+            );
+
+            modalElement.addEventListener(
+                'hidden.bs.modal',
+                function restoreCancel() {
+                    cancel?.classList.remove(
+                        'd-none'
+                    );
+
+                    modalElement.removeEventListener(
+                        'hidden.bs.modal',
+                        restoreCancel
+                    );
+                }
+            );
+
+            modal.show();
+        }
+        showInterestActionConfirmation();
     }
+    
 );

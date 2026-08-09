@@ -7,7 +7,15 @@ namespace App\Models;
 use CodeIgniter\Model;
 
 /**
- * Stores interest explicitly shown by one member in another.
+ * Stores directional member interest activity.
+ *
+ * Two reciprocal directional rows may exist:
+ *
+ * A -> B
+ * B -> A
+ *
+ * When both members independently express positive interest,
+ * both records are promoted to MUTUAL.
  */
 final class MemberInterestModel extends Model
 {
@@ -19,6 +27,9 @@ final class MemberInterestModel extends Model
 
     public const STATUS_DECLINED =
     'DECLINED';
+
+    public const STATUS_MUTUAL =
+    'MUTUAL';
 
     protected $table =
     'member_interests';
@@ -57,10 +68,6 @@ final class MemberInterestModel extends Model
     protected $skipValidation =
     true;
 
-    /**
-     * Determine whether one member has shown interest
-     * in another member.
-     */
     public function hasShown(
         int $fromUserId,
         int $toUserId
@@ -77,10 +84,6 @@ final class MemberInterestModel extends Model
             ->countAllResults() > 0;
     }
 
-    /**
-     * Determine whether any interest exists between
-     * the supplied members.
-     */
     public function existsBetween(
         int $firstUserId,
         int $secondUserId
@@ -112,7 +115,7 @@ final class MemberInterestModel extends Model
     }
 
     /**
-     * Return the interest from one member to another.
+     * Return one directional interest.
      *
      * @return array<string, mixed>|null
      */
@@ -137,7 +140,47 @@ final class MemberInterestModel extends Model
     }
 
     /**
-     * Return received interest records newest first.
+     * Determine whether two members currently have
+     * reciprocal MUTUAL interest records.
+     */
+    public function isMutualBetween(
+        int $firstUserId,
+        int $secondUserId
+    ): bool {
+        $count = $this
+            ->where(
+                'status',
+                self::STATUS_MUTUAL
+            )
+            ->groupStart()
+            ->groupStart()
+            ->where(
+                'from_user_id',
+                $firstUserId
+            )
+            ->where(
+                'to_user_id',
+                $secondUserId
+            )
+            ->groupEnd()
+            ->orGroupStart()
+            ->where(
+                'from_user_id',
+                $secondUserId
+            )
+            ->where(
+                'to_user_id',
+                $firstUserId
+            )
+            ->groupEnd()
+            ->groupEnd()
+            ->countAllResults();
+
+        return $count >= 2;
+    }
+
+    /**
+     * Received directional records.
      *
      * @return list<array<string, mixed>>
      */
@@ -157,7 +200,7 @@ final class MemberInterestModel extends Model
     }
 
     /**
-     * Return sent interest records newest first.
+     * Sent directional records.
      *
      * @return list<array<string, mixed>>
      */
@@ -198,7 +241,9 @@ final class MemberInterestModel extends Model
 
         return array_values(
             array_map(
-                static fn(array $row): int =>
+                static fn(
+                    array $row
+                ): int =>
                 (int) $row['from_user_id'],
                 $rows
             )
@@ -227,7 +272,9 @@ final class MemberInterestModel extends Model
 
         return array_values(
             array_map(
-                static fn(array $row): int =>
+                static fn(
+                    array $row
+                ): int =>
                 (int) $row['to_user_id'],
                 $rows
             )

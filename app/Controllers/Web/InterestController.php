@@ -67,6 +67,11 @@ final class InterestController extends BaseController
                     'pageTitle' =>
                     'Interests',
 
+                    'interestActionNotice' =>
+                    session(
+                        'interestActionNotice'
+                    ),
+
                     'pageScripts' => [
                         'assets/js/pages/member-interests.js',
                     ],
@@ -158,13 +163,10 @@ final class InterestController extends BaseController
                             . '&status=pending'
                     )
                     ->with(
-                        'formAlert',
+                        'interestActionNotice',
                         [
-                            'type' =>
-                            'success',
-
                             'title' =>
-                            'Interest accepted',
+                            'Interest Accepted',
 
                             'message' =>
                             'The interest has been accepted successfully.',
@@ -187,13 +189,10 @@ final class InterestController extends BaseController
                         . '&status=pending'
                 )
                 ->with(
-                    'formAlert',
+                    'interestActionNotice',
                     [
-                        'type' =>
-                        'success',
-
                         'title' =>
-                        'Interest declined',
+                        'Interest Declined',
 
                         'message' =>
                         'The interest has been declined successfully.',

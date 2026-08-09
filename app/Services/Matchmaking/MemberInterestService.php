@@ -37,6 +37,9 @@ final class MemberInterestService
     public const FILTER_DECLINED =
     'declined';
 
+    public const DIRECTION_MUTUAL =
+    'mutual';
+
     public function __construct(
         private readonly UserModel
         $userModel,
@@ -57,6 +60,12 @@ final class MemberInterestService
     /**
      * Build the complete Interest page dataset.
      *
+     * Mutual records are deliberately removed from the ordinary
+     * Received/Sent collections.
+     *
+     * A successfully matched profile should therefore appear in
+     * exactly one product bucket: Mutual Interests.
+     *
      * @return array<string, mixed>
      */
     public function pageData(
@@ -64,86 +73,136 @@ final class MemberInterestService
         string $direction,
         string $filter
     ): array {
-        $direction = $this
-            ->normaliseDirection(
+        $direction =
+            $this->normaliseDirection(
                 $direction
             );
 
-        $filter = $this
-            ->normaliseFilter(
+        /*
+     * Mutual Interests has no secondary status filter.
+     */
+        $filter =
+            $direction
+            === self::DIRECTION_MUTUAL
+            ? self::FILTER_ALL
+            : $this->normaliseFilter(
                 $filter
             );
 
-        $viewer = $this
-            ->userModel
+        $viewer =
+            $this->userModel
             ->find(
                 $userId
             );
 
-        if (!is_array($viewer)) {
+        if (
+            !is_array(
+                $viewer
+            )
+        ) {
             throw new DomainException(
                 'The member account could not be found.'
             );
         }
 
-        $viewerGender = trim(
-            (string) (
-                $viewer['gender']
-                ?? ''
-            )
-        );
+        $viewerGender =
+            trim(
+                (string) (
+                    $viewer['gender']
+                    ?? ''
+                )
+            );
 
-        /*
-         * Load both directions because the navigation counts
-         * are always displayed irrespective of the active tab.
-         */
-        $receivedRecords = $this
-            ->interestModel
+        $receivedRecords =
+            $this->interestModel
             ->receivedFor(
                 $userId
             );
 
-        $sentRecords = $this
-            ->interestModel
+        $sentRecords =
+            $this->interestModel
             ->sentFor(
                 $userId
             );
 
         /*
-         * Apply the same visibility rules used by matchmaking:
-         *
-         * - inactive accounts excluded;
-         * - deleted accounts excluded;
-         * - blocked relationships excluded;
-         * - current member excluded.
-         *
-         * This prevents historical interaction records from
-         * leaking inaccessible member profiles.
-         */
+     * Apply current member visibility/authorization before
+     * displaying or counting anything.
+     */
         $receivedRecords =
             $this->visibleInterestRecords(
                 viewerUserId: $userId,
+
                 viewerGender: $viewerGender,
+
                 records: $receivedRecords,
+
                 direction: self::DIRECTION_RECEIVED
             );
 
         $sentRecords =
             $this->visibleInterestRecords(
                 viewerUserId: $userId,
+
                 viewerGender: $viewerGender,
+
                 records: $sentRecords,
+
                 direction: self::DIRECTION_SENT
             );
 
+        /*
+     * Every valid mutual relationship has two rows.
+     *
+     * Use the received-side row as the canonical member-facing
+     * representation so the profile appears exactly once.
+     */
+        $mutualRecords =
+            array_values(
+                array_filter(
+                    $receivedRecords,
+                    fn(
+                        array $record
+                    ): bool =>
+                    $this->recordStatus(
+                        $record
+                    )
+                        === MemberInterestModel
+                        ::STATUS_MUTUAL
+                )
+            );
+
+        /*
+     * Mutual profiles are promoted out of normal
+     * Received/Sent activity.
+     */
+        $receivedRecords =
+            $this->excludeMutual(
+                $receivedRecords
+            );
+
+        $sentRecords =
+            $this->excludeMutual(
+                $sentRecords
+            );
+
         $activeRecords =
-            $direction
-            === self::DIRECTION_SENT
-            ? $sentRecords
-            : $receivedRecords;
+            match ($direction) {
+                self::DIRECTION_SENT =>
+                $sentRecords,
+
+                self::DIRECTION_MUTUAL =>
+                $mutualRecords,
+
+                default =>
+                $receivedRecords,
+            };
 
         $filteredRecords =
-            $this->filterRecords(
+            $direction
+            === self::DIRECTION_MUTUAL
+            ? $activeRecords
+            : $this->filterRecords(
                 $activeRecords,
                 $filter
             );
@@ -156,6 +215,13 @@ final class MemberInterestService
             $filter,
 
             'counts' => [
+                'mutual' => [
+                    'all' =>
+                    count(
+                        $mutualRecords
+                    ),
+                ],
+
                 'received' =>
                 $this->counts(
                     $receivedRecords
@@ -170,7 +236,9 @@ final class MemberInterestService
             'profiles' =>
             $this->presentationProfiles(
                 viewerUserId: $userId,
+
                 records: $filteredRecords,
+
                 direction: $direction
             ),
         ];
@@ -208,6 +276,56 @@ final class MemberInterestService
             newStatus: MemberInterestModel
             ::STATUS_DECLINED
         );
+    }
+
+    /**
+     * @param list<array<string, mixed>> $records
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function excludeMutual(
+        array $records
+    ): array {
+        return array_values(
+            array_filter(
+                $records,
+                fn(
+                    array $record
+                ): bool =>
+                $this->recordStatus(
+                    $record
+                )
+                    !== MemberInterestModel
+                    ::STATUS_MUTUAL
+            )
+        );
+    }
+
+
+    /**
+     * Resolve one Interest record's effective status.
+     *
+     * Historical NULL/blank values remain PENDING.
+     *
+     * @param array<string, mixed> $record
+     */
+    private function recordStatus(
+        array $record
+    ): string {
+        $status =
+            strtoupper(
+                trim(
+                    (string) (
+                        $record['status']
+                        ?? ''
+                    )
+                )
+            );
+
+        return $status !== ''
+            ? $status
+            : MemberInterestModel
+            ::STATUS_PENDING;
     }
 
     /**
@@ -696,15 +814,13 @@ final class MemberInterestService
                 $image,
 
                 'status' =>
-                strtoupper(
-                    trim(
-                        (string) (
-                            $record['status']
-                            ?? MemberInterestModel
-                            ::STATUS_PENDING
-                        )
-                    )
+                $this->recordStatus(
+                    $record
                 ),
+
+                'mutualAt' =>
+                $record['responded_at']
+                    ?? null,
 
                 'createdAt' =>
                 $record['created_at']
@@ -743,6 +859,7 @@ final class MemberInterestService
             [
                 self::DIRECTION_RECEIVED,
                 self::DIRECTION_SENT,
+                self::DIRECTION_MUTUAL,
             ],
             true
         )
