@@ -1058,7 +1058,7 @@ $this->section('content');
                                             <p
                                                 class="text-danger
                                 fs-14
-                                mb-0">
+                                mb-2">
 
                                                 <i
                                                     class="ri-heart-line
@@ -1079,6 +1079,31 @@ $this->section('content');
                                             </p>
 
                                         <?php endif; ?>
+
+                                        <p
+                                            class="text-success
+                                fs-14
+                                mb-0">
+
+                                            <i
+                                                class="ri-pie-chart-line
+                                    me-1
+                                    text-muted"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            <span
+                                                class="text-muted">
+
+                                                Profile Completion : 
+                                            </span>
+                                            <span class="fw-medium fs-16">
+                                            <?= esc(
+                                                (string)
+                                                $completionPercentage
+                                            ) ?>%
+                                            </span>
+                                        </p>
 
                                     </div>
                                 </div>
@@ -1282,7 +1307,7 @@ $this->section('content');
                                 <div
                                     class="col-12
                     col-sm-6
-                    col-xl-3">
+                    col-xl-4">
 
                                     <div
                                         class="d-flex
@@ -1332,57 +1357,7 @@ $this->section('content');
                                 </div>
 
                                 <!-- Profile Completion -->
-                                <div
-                                    class="col-12
-                    col-sm-6
-                    col-xl-3">
 
-                                    <div
-                                        class="d-flex
-                        align-items-center
-                        gap-2">
-
-                                        <span
-                                            class="avatar-sm
-                            flex-shrink-0">
-
-                                            <span
-                                                class="avatar-title
-                                rounded-circle
-                                bg-primary-subtle
-                                text-primary">
-
-                                                <i
-                                                    class="ri-pie-chart-line
-                                    fs-18"
-                                                    aria-hidden="true">
-                                                </i>
-
-                                            </span>
-                                        </span>
-
-                                        <div>
-
-                                            <div
-                                                class="text-muted
-                                fs-12">
-
-                                                Profile Completion
-                                            </div>
-
-                                            <strong
-                                                class="fs-14
-                                text-success">
-
-                                                <?= esc(
-                                                    (string)
-                                                    $completionPercentage
-                                                ) ?>%
-                                            </strong>
-
-                                        </div>
-                                    </div>
-                                </div>
 
                                 <?php if (
                                     $isOtherMemberProfileView
@@ -1392,7 +1367,7 @@ $this->section('content');
                                     <div
                                         class="col-12
                         col-sm-6
-                        col-xl-3">
+                        col-xl-4">
 
                                         <div
                                             class="d-flex
@@ -1467,7 +1442,7 @@ $this->section('content');
                                     <div
                                         class="col-12
                         col-sm-6
-                        col-xl-3">
+                        col-xl-4">
 
                                         <div
                                             class="d-flex

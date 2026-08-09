@@ -13,6 +13,30 @@ document.addEventListener(
                 form.addEventListener(
                     'submit',
                     () => {
+                        /*
+                         * Disable all Interest action buttons
+                         * on this profile while its response
+                         * is being saved.
+                         */
+                        const card =
+                            form.closest(
+                                '.card'
+                            );
+
+                        const buttons =
+                            card
+                                ? card.querySelectorAll(
+                                    '[data-interest-submit]'
+                                )
+                                : [];
+
+                        buttons.forEach(
+                            (button) => {
+                                button.disabled =
+                                    true;
+                            }
+                        );
+
                         const button =
                             form.querySelector(
                                 '[data-interest-submit]'
@@ -21,8 +45,6 @@ document.addEventListener(
                         if (!button) {
                             return;
                         }
-
-                        button.disabled = true;
 
                         const idle =
                             button.querySelector(
@@ -35,13 +57,15 @@ document.addEventListener(
                             );
 
                         if (idle) {
-                            idle.style.display =
-                                'none';
+                            idle.classList.add(
+                                'd-none'
+                            );
                         }
 
                         if (loading) {
-                            loading.style.display =
-                                'inline-flex';
+                            loading.classList.remove(
+                                'd-none'
+                            );
                         }
                     }
                 );

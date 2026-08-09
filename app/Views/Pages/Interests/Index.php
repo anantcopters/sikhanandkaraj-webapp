@@ -249,7 +249,7 @@ $interestUrl =
             <div class="col-12 col-lg-8 col-xl-9">
 
                 <div
-                    class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-4">
+                    class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-3">
 
                     <div>
                         <h1
@@ -327,7 +327,7 @@ $interestUrl =
                 <?php else: ?>
 
                     <!-- Exactly two profiles per row on XL desktop. -->
-                    <div class="row g-4">
+                    <div class="row g-0">
 
                         <?php foreach (
                             $profiles
@@ -390,12 +390,35 @@ $interestUrl =
                                 === 'received'
                                 && $status
                                 === 'PENDING';
+
+                            $interestDate = '';
+
+                            $createdAt = trim(
+                                (string) (
+                                    $profile['createdAt']
+                                    ?? ''
+                                )
+                            );
+
+                            if ($createdAt !== '') {
+                                try {
+                                    $interestDate = (
+                                        new DateTimeImmutable(
+                                            $createdAt
+                                        )
+                                    )->format(
+                                        'd M y'
+                                    );
+                                } catch (Throwable) {
+                                    $interestDate = '';
+                                }
+                            }
                             ?>
 
-                            <div class="col-12 col-xl-6">
+                            <div class="col-12">
 
                                 <article
-                                    class="card h-100 border border-danger border-opacity-25 shadow-sm">
+                                    class="card border border-danger border-opacity-25 shadow-sm">
 
                                     <div class="card-body p-4">
 
@@ -563,32 +586,48 @@ $interestUrl =
                                                     === 'received'
                                                 ): ?>
 
-                                                    <p
-                                                        class="fs-13 mb-3">
+                                                    <p class="fs-13 mb-3">
 
                                                         <strong>
-                                                            <?= esc(
-                                                                $name
-                                                            ) ?>
+                                                            <?= esc($name) ?>
                                                         </strong>
 
-                                                        showed interest
-                                                        in your profile.
+                                                        sent you an interest
+
+                                                        <?php if (
+                                                            $interestDate !== ''
+                                                        ): ?>
+                                                            <span class="text-muted">
+                                                                ·
+                                                                <?= esc(
+                                                                    $interestDate
+                                                                ) ?>
+                                                            </span>
+                                                        <?php endif; ?>
+
                                                     </p>
 
                                                 <?php else: ?>
 
-                                                    <p
-                                                        class="fs-13 mb-3">
+                                                    <p class="fs-13 mb-3">
 
-                                                        You showed
-                                                        interest in
+                                                        You sent an interest to
 
                                                         <strong>
-                                                            <?= esc(
-                                                                $name
-                                                            ) ?>
-                                                        </strong>.
+                                                            <?= esc($name) ?>
+                                                        </strong>
+
+                                                        <?php if (
+                                                            $interestDate !== ''
+                                                        ): ?>
+                                                            <span class="text-muted">
+                                                                ·
+                                                                <?= esc(
+                                                                    $interestDate
+                                                                ) ?>
+                                                            </span>
+                                                        <?php endif; ?>
+
                                                     </p>
 
                                                 <?php endif; ?>
@@ -627,7 +666,7 @@ $interestUrl =
                                                                 </span>
 
                                                                 <span
-                                                                    class="registration-submit__loading">
+                                                                    class="registration-submit__loading d-none">
 
                                                                     <span
                                                                         class="spinner-border spinner-border-sm"
@@ -667,7 +706,7 @@ $interestUrl =
                                                                 </span>
 
                                                                 <span
-                                                                    class="registration-submit__loading">
+                                                                    class="registration-submit__loading d-none">
 
                                                                     <span
                                                                         class="spinner-border spinner-border-sm"

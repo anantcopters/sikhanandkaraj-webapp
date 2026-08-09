@@ -433,9 +433,9 @@ final class MemberInterestService
 
         foreach ($visibleRows as $row) {
             $visibleMemberIds[(int) (
-                    $row['id']
-                    ?? 0
-                )] = $row;
+                $row['id']
+                ?? 0
+            )] = $row;
         }
 
         $result = [];
@@ -494,14 +494,34 @@ final class MemberInterestService
         foreach ($records as $record) {
             ++$counts['all'];
 
+            /*
+         * Historical interest rows may not have a status
+         * populated yet.
+         *
+         * The Interest UI already treats such rows as
+         * PENDING, therefore counts must use exactly the
+         * same default so the navigation and profile card
+         * cannot disagree.
+         */
             $status = strtolower(
                 trim(
                     (string) (
                         $record['status']
-                        ?? ''
+                        ?? MemberInterestModel
+                        ::STATUS_PENDING
                     )
                 )
             );
+
+            if (
+                $status === ''
+            ) {
+                $status =
+                    strtolower(
+                        MemberInterestModel
+                        ::STATUS_PENDING
+                    );
+            }
 
             if (
                 array_key_exists(
@@ -540,18 +560,42 @@ final class MemberInterestService
         return array_values(
             array_filter(
                 $records,
-                static fn(
+                static function (
                     array $record
-                ): bool =>
-                strtoupper(
-                    trim(
-                        (string) (
-                            $record['status']
-                            ?? ''
+                ) use (
+                    $requiredStatus
+                ): bool {
+                    /*
+                 * Historical records may not have status populated.
+                 *
+                 * The Interest module treats such records as PENDING,
+                 * therefore filtering must use the same rule as:
+                 *
+                 * - profile presentation;
+                 * - left-side counts.
+                 */
+                    $status = strtoupper(
+                        trim(
+                            (string) (
+                                $record['status']
+                                ?? MemberInterestModel
+                                ::STATUS_PENDING
+                            )
                         )
-                    )
-                )
-                    === $requiredStatus
+                    );
+
+                    /*
+                 * Also handle a physically stored blank value.
+                 */
+                    if ($status === '') {
+                        $status =
+                            MemberInterestModel
+                            ::STATUS_PENDING;
+                    }
+
+                    return $status
+                        === $requiredStatus;
+                }
             )
         );
     }
