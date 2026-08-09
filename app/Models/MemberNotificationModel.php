@@ -26,9 +26,6 @@ final class MemberNotificationModel extends Model
     public const TYPE_INTEREST_REJECTED =
     'INTEREST_REJECTED';
 
-    public const TYPE_MUTUAL_INTEREST =
-    'MUTUAL_INTEREST';
-
     public const TYPE_PROFILE_VIEW =
     'PROFILE_VIEW';
 

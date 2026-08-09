@@ -6,7 +6,9 @@ namespace App\Services\Matchmaking;
 
 use App\Models\MemberInterestModel;
 use App\Models\MemberMatchCandidateModel;
+use App\Models\MemberNotificationModel;
 use App\Models\UserModel;
+use App\Services\Notification\MemberNotificationService;
 use App\Services\Profile\MemberPhotoUrlService;
 use CodeIgniter\Database\BaseConnection;
 use DateTimeImmutable;
@@ -37,9 +39,6 @@ final class MemberInterestService
     public const FILTER_DECLINED =
     'declined';
 
-    public const DIRECTION_MUTUAL =
-    'mutual';
-
     public function __construct(
         private readonly UserModel
         $userModel,
@@ -53,18 +52,15 @@ final class MemberInterestService
         private readonly MemberPhotoUrlService
         $photoUrlService,
 
+        private readonly MemberNotificationService
+        $notificationService,
+
         private readonly BaseConnection
         $database
     ) {}
 
     /**
-     * Build the complete Interest page dataset.
-     *
-     * Mutual records are deliberately removed from the ordinary
-     * Received/Sent collections.
-     *
-     * A successfully matched profile should therefore appear in
-     * exactly one product bucket: Mutual Interests.
+     * Build the Interest screen dataset.
      *
      * @return array<string, mixed>
      */
@@ -78,14 +74,8 @@ final class MemberInterestService
                 $direction
             );
 
-        /*
-     * Mutual Interests has no secondary status filter.
-     */
         $filter =
-            $direction
-            === self::DIRECTION_MUTUAL
-            ? self::FILTER_ALL
-            : $this->normaliseFilter(
+            $this->normaliseFilter(
                 $filter
             );
 
@@ -126,9 +116,9 @@ final class MemberInterestService
             );
 
         /*
-     * Apply current member visibility/authorization before
-     * displaying or counting anything.
-     */
+         * Apply normal member visibility before counts
+         * or presentation.
+         */
         $receivedRecords =
             $this->visibleInterestRecords(
                 viewerUserId: $userId,
@@ -151,58 +141,14 @@ final class MemberInterestService
                 direction: self::DIRECTION_SENT
             );
 
-        /*
-     * Every valid mutual relationship has two rows.
-     *
-     * Use the received-side row as the canonical member-facing
-     * representation so the profile appears exactly once.
-     */
-        $mutualRecords =
-            array_values(
-                array_filter(
-                    $receivedRecords,
-                    fn(
-                        array $record
-                    ): bool =>
-                    $this->recordStatus(
-                        $record
-                    )
-                        === MemberInterestModel
-                        ::STATUS_MUTUAL
-                )
-            );
-
-        /*
-     * Mutual profiles are promoted out of normal
-     * Received/Sent activity.
-     */
-        $receivedRecords =
-            $this->excludeMutual(
-                $receivedRecords
-            );
-
-        $sentRecords =
-            $this->excludeMutual(
-                $sentRecords
-            );
-
         $activeRecords =
-            match ($direction) {
-                self::DIRECTION_SENT =>
-                $sentRecords,
-
-                self::DIRECTION_MUTUAL =>
-                $mutualRecords,
-
-                default =>
-                $receivedRecords,
-            };
+            $direction
+            === self::DIRECTION_SENT
+            ? $sentRecords
+            : $receivedRecords;
 
         $filteredRecords =
-            $direction
-            === self::DIRECTION_MUTUAL
-            ? $activeRecords
-            : $this->filterRecords(
+            $this->filterRecords(
                 $activeRecords,
                 $filter
             );
@@ -215,13 +161,6 @@ final class MemberInterestService
             $filter,
 
             'counts' => [
-                'mutual' => [
-                    'all' =>
-                    count(
-                        $mutualRecords
-                    ),
-                ],
-
                 'received' =>
                 $this->counts(
                     $receivedRecords
@@ -245,9 +184,7 @@ final class MemberInterestService
     }
 
     /**
-     * Accept a pending received interest.
-     *
-     * @return bool TRUE when state changed.
+     * Accept a Pending received Interest.
      */
     public function accept(
         int $fromUserId,
@@ -255,16 +192,16 @@ final class MemberInterestService
     ): bool {
         return $this->respond(
             fromUserId: $fromUserId,
+
             toUserId: $toUserId,
+
             newStatus: MemberInterestModel
             ::STATUS_ACCEPTED
         );
     }
 
     /**
-     * Decline a pending received interest.
-     *
-     * @return bool TRUE when state changed.
+     * Decline a Pending received Interest.
      */
     public function decline(
         int $fromUserId,
@@ -272,67 +209,19 @@ final class MemberInterestService
     ): bool {
         return $this->respond(
             fromUserId: $fromUserId,
+
             toUserId: $toUserId,
+
             newStatus: MemberInterestModel
             ::STATUS_DECLINED
         );
     }
 
     /**
-     * @param list<array<string, mixed>> $records
+     * Change the status of one received Interest.
      *
-     * @return list<array<string, mixed>>
-     */
-    private function excludeMutual(
-        array $records
-    ): array {
-        return array_values(
-            array_filter(
-                $records,
-                fn(
-                    array $record
-                ): bool =>
-                $this->recordStatus(
-                    $record
-                )
-                    !== MemberInterestModel
-                    ::STATUS_MUTUAL
-            )
-        );
-    }
-
-
-    /**
-     * Resolve one Interest record's effective status.
-     *
-     * Historical NULL/blank values remain PENDING.
-     *
-     * @param array<string, mixed> $record
-     */
-    private function recordStatus(
-        array $record
-    ): string {
-        $status =
-            strtoupper(
-                trim(
-                    (string) (
-                        $record['status']
-                        ?? ''
-                    )
-                )
-            );
-
-        return $status !== ''
-            ? $status
-            : MemberInterestModel
-            ::STATUS_PENDING;
-    }
-
-    /**
-     * Change the status of an interest.
-     *
-     * Only the recipient is supplied as $toUserId by the
-     * authenticated controller.
+     * fromUserId = original sender.
+     * toUserId   = authenticated recipient.
      */
     private function respond(
         int $fromUserId,
@@ -372,10 +261,7 @@ final class MemberInterestService
 
         try {
             /*
-             * Lock the relationship before reading its status.
-             *
-             * This prevents simultaneous Accept/Decline
-             * requests from racing each other.
+             * Lock the exact Interest row before reading it.
              */
             $this->database->query(
                 'SELECT id '
@@ -389,31 +275,30 @@ final class MemberInterestService
                 ]
             );
 
-            $interest = $this
-                ->interestModel
+            $interest =
+                $this->interestModel
                 ->findBetween(
                     $fromUserId,
                     $toUserId
                 );
 
-            if (!is_array($interest)) {
+            if (
+                !is_array(
+                    $interest
+                )
+            ) {
                 throw new DomainException(
                     'This interest is no longer available.'
                 );
             }
 
             $currentStatus =
-                strtoupper(
-                    trim(
-                        (string) (
-                            $interest['status']
-                            ?? ''
-                        )
-                    )
+                $this->recordStatus(
+                    $interest
                 );
 
             /*
-             * Repeated browser submission of the same decision
+             * Repeated submission of the same decision
              * remains idempotent.
              */
             if (
@@ -427,8 +312,7 @@ final class MemberInterestService
             }
 
             /*
-             * An already-final response cannot be changed using
-             * the normal member UI.
+             * Accepted/Declined are final member-facing states.
              */
             if (
                 $currentStatus
@@ -448,14 +332,16 @@ final class MemberInterestService
                 )
             );
 
-            if ($interestId <= 0) {
+            if (
+                $interestId <= 0
+            ) {
                 throw new RuntimeException(
                     'The interest could not be resolved.'
                 );
             }
 
-            $updated = $this
-                ->interestModel
+            $updated =
+                $this->interestModel
                 ->update(
                     $interestId,
                     [
@@ -469,11 +355,28 @@ final class MemberInterestService
                     ]
                 );
 
-            if ($updated === false) {
+            if (
+                $updated === false
+            ) {
                 throw new RuntimeException(
                     'The interest response could not be saved.'
                 );
             }
+
+            /*
+             * Notify the original sender of the decision.
+             *
+             * Notification is part of the same DB transaction.
+             */
+            $this->createResponseNotification(
+                senderUserId: $fromUserId,
+
+                responderUserId: $toUserId,
+
+                interestId: $interestId,
+
+                status: $newStatus
+            );
 
             if (
                 $this->database
@@ -489,7 +392,9 @@ final class MemberInterestService
                 ->transCommit();
 
             return true;
-        } catch (Throwable $exception) {
+        } catch (
+            Throwable $exception
+        ) {
             $this->database
                 ->transRollback();
 
@@ -498,9 +403,143 @@ final class MemberInterestService
     }
 
     /**
-     * Remove records whose related member is not currently
-     * visible to the authenticated member.
+     * Notify the original sender when the recipient
+     * accepts or declines.
+     */
+    private function createResponseNotification(
+        int $senderUserId,
+        int $responderUserId,
+        int $interestId,
+        string $status
+    ): void {
+        $responder =
+            $this->userModel
+            ->find(
+                $responderUserId
+            );
+
+        if (
+            !is_array(
+                $responder
+            )
+        ) {
+            throw new RuntimeException(
+                'The responding member could not be resolved.'
+            );
+        }
+
+        $responderName =
+            preg_replace(
+                '/\s+/u',
+                ' ',
+                trim(
+                    (string) (
+                        $responder['full_name']
+                        ?? ''
+                    )
+                )
+            )
+            ?? '';
+
+        if (
+            $responderName === ''
+        ) {
+            $responderName =
+                'A member';
+        }
+
+        $profileReference =
+            trim(
+                (string) (
+                    $responder['profile_ref_number']
+                    ?? ''
+                )
+            );
+
+        if (
+            $profileReference === ''
+        ) {
+            throw new RuntimeException(
+                'The responding member profile could not be resolved.'
+            );
+        }
+
+        $accepted =
+            $status
+            === MemberInterestModel
+            ::STATUS_ACCEPTED;
+
+        $this->notificationService
+            ->create(
+                [
+                    'recipientUserId' =>
+                    $senderUserId,
+
+                    'actorUserId' =>
+                    $responderUserId,
+
+                    'type' =>
+                    $accepted
+                        ? MemberNotificationModel
+                        ::TYPE_INTEREST_ACCEPTED
+                        : MemberNotificationModel
+                        ::TYPE_INTEREST_REJECTED,
+
+                    'title' =>
+                    $accepted
+                        ? 'Interest Accepted'
+                        : 'Interest Declined',
+
+                    'message' =>
+                    $responderName
+                        . (
+                            $accepted
+                            ? ' accepted your interest.'
+                            : ' declined your interest.'
+                        ),
+
+                    'entityType' =>
+                    'MEMBER_INTEREST',
+
+                    'entityId' =>
+                    $interestId,
+
+                    'targetUrl' =>
+                    '/members/'
+                        . rawurlencode(
+                            $profileReference
+                        ),
+                ]
+            );
+    }
+
+    /**
+     * Resolve effective Interest status.
      *
+     * Historical NULL/blank values remain Pending.
+     *
+     * @param array<string, mixed> $record
+     */
+    private function recordStatus(
+        array $record
+    ): string {
+        $status =
+            strtoupper(
+                trim(
+                    (string) (
+                        $record['status']
+                        ?? ''
+                    )
+                )
+            );
+
+        return $status !== ''
+            ? $status
+            : MemberInterestModel
+            ::STATUS_PENDING;
+    }
+
+    /**
      * @param list<array<string, mixed>> $records
      *
      * @return list<array<string, mixed>>
@@ -511,14 +550,20 @@ final class MemberInterestService
         array $records,
         string $direction
     ): array {
-        if ($records === []) {
+        if (
+            $records === []
+        ) {
             return [];
         }
 
         $memberIds = [];
 
-        foreach ($records as $record) {
-            $memberId = $direction
+        foreach (
+            $records
+            as $record
+        ) {
+            $memberId =
+                $direction
                 === self::DIRECTION_SENT
                 ? (int) (
                     $record['to_user_id']
@@ -529,37 +574,48 @@ final class MemberInterestService
                     ?? 0
                 );
 
-            if ($memberId > 0) {
+            if (
+                $memberId > 0
+            ) {
                 $memberIds[] =
                     $memberId;
             }
         }
 
-        if ($memberIds === []) {
+        if (
+            $memberIds === []
+        ) {
             return [];
         }
 
-        $visibleRows = $this
-            ->candidateModel
+        $visibleRows =
+            $this->candidateModel
             ->visibleCandidatesByIds(
                 $viewerUserId,
                 $viewerGender,
                 $memberIds
             );
 
-        $visibleMemberIds = [];
+        $visibleMembers = [];
 
-        foreach ($visibleRows as $row) {
-            $visibleMemberIds[(int) (
-                $row['id']
-                ?? 0
-            )] = $row;
+        foreach (
+            $visibleRows
+            as $row
+        ) {
+            $visibleMembers[(int) (
+                    $row['id']
+                    ?? 0
+                )] = $row;
         }
 
         $result = [];
 
-        foreach ($records as $record) {
-            $memberId = $direction
+        foreach (
+            $records
+            as $record
+        ) {
+            $memberId =
+                $direction
                 === self::DIRECTION_SENT
                 ? (int) (
                     $record['to_user_id']
@@ -573,14 +629,14 @@ final class MemberInterestService
             if (
                 $memberId <= 0
                 || !isset(
-                    $visibleMemberIds[$memberId]
+                    $visibleMembers[$memberId]
                 )
             ) {
                 continue;
             }
 
             $record['member'] =
-                $visibleMemberIds[$memberId];
+                $visibleMembers[$memberId];
 
             $result[] =
                 $record;
@@ -609,37 +665,18 @@ final class MemberInterestService
             'declined' => 0,
         ];
 
-        foreach ($records as $record) {
+        foreach (
+            $records
+            as $record
+        ) {
             ++$counts['all'];
 
-            /*
-         * Historical interest rows may not have a status
-         * populated yet.
-         *
-         * The Interest UI already treats such rows as
-         * PENDING, therefore counts must use exactly the
-         * same default so the navigation and profile card
-         * cannot disagree.
-         */
-            $status = strtolower(
-                trim(
-                    (string) (
-                        $record['status']
-                        ?? MemberInterestModel
-                        ::STATUS_PENDING
+            $status =
+                strtolower(
+                    $this->recordStatus(
+                        $record
                     )
-                )
-            );
-
-            if (
-                $status === ''
-            ) {
-                $status =
-                    strtolower(
-                        MemberInterestModel
-                        ::STATUS_PENDING
-                    );
-            }
+                );
 
             if (
                 array_key_exists(
@@ -678,49 +715,18 @@ final class MemberInterestService
         return array_values(
             array_filter(
                 $records,
-                static function (
+                fn(
                     array $record
-                ) use (
-                    $requiredStatus
-                ): bool {
-                    /*
-                 * Historical records may not have status populated.
-                 *
-                 * The Interest module treats such records as PENDING,
-                 * therefore filtering must use the same rule as:
-                 *
-                 * - profile presentation;
-                 * - left-side counts.
-                 */
-                    $status = strtoupper(
-                        trim(
-                            (string) (
-                                $record['status']
-                                ?? MemberInterestModel
-                                ::STATUS_PENDING
-                            )
-                        )
-                    );
-
-                    /*
-                 * Also handle a physically stored blank value.
-                 */
-                    if ($status === '') {
-                        $status =
-                            MemberInterestModel
-                            ::STATUS_PENDING;
-                    }
-
-                    return $status
-                        === $requiredStatus;
-                }
+                ): bool =>
+                $this->recordStatus(
+                    $record
+                )
+                    === $requiredStatus
             )
         );
     }
 
     /**
-     * Convert database/candidate records into view-safe data.
-     *
      * @param list<array<string, mixed>> $records
      *
      * @return list<array<string, mixed>>
@@ -732,12 +738,19 @@ final class MemberInterestService
     ): array {
         $result = [];
 
-        foreach ($records as $record) {
+        foreach (
+            $records
+            as $record
+        ) {
             $member =
                 $record['member']
                 ?? null;
 
-            if (!is_array($member)) {
+            if (
+                !is_array(
+                    $member
+                )
+            ) {
                 continue;
             }
 
@@ -765,15 +778,14 @@ final class MemberInterestService
             }
 
             /*
-             * Every row on this page already has an interest
-             * relationship, so INTERESTED_MEMBERS photo
-             * visibility is satisfied.
+             * Interest relationship already exists,
+             * therefore interested-member photo visibility
+             * is satisfied.
              *
-             * Multi-profile listing rule:
-             * thumbnail only.
+             * Listing uses thumbnail only.
              */
-            $image = $this
-                ->photoUrlService
+            $image =
+                $this->photoUrlService
                 ->getApprovedPrimaryUrlForViewer(
                     memberId: $memberId,
 
@@ -818,10 +830,6 @@ final class MemberInterestService
                     $record
                 ),
 
-                'mutualAt' =>
-                $record['responded_at']
-                    ?? null,
-
                 'createdAt' =>
                 $record['created_at']
                     ?? null,
@@ -859,7 +867,6 @@ final class MemberInterestService
             [
                 self::DIRECTION_RECEIVED,
                 self::DIRECTION_SENT,
-                self::DIRECTION_MUTUAL,
             ],
             true
         )
@@ -894,11 +901,14 @@ final class MemberInterestService
     private function age(
         mixed $dateOfBirth
     ): ?int {
-        $value = trim(
-            (string) $dateOfBirth
-        );
+        $value =
+            trim(
+                (string) $dateOfBirth
+            );
 
-        if ($value === '') {
+        if (
+            $value === ''
+        ) {
             return null;
         }
 
@@ -926,7 +936,9 @@ final class MemberInterestService
                     'today'
                 );
 
-            if ($birthDate > $today) {
+            if (
+                $birthDate > $today
+            ) {
                 return null;
             }
 
@@ -935,7 +947,8 @@ final class MemberInterestService
                     $today
                 )
                 ->y;
-        } catch (Throwable) {
+        } catch (
+            Throwable) {
             return null;
         }
     }

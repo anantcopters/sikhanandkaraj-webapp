@@ -1596,15 +1596,29 @@ final class Services extends BaseService
             new UserModel(
                 $database
             ),
+
             new MemberInterestModel(
                 $database
             ),
+
             new MemberMatchCandidateModel(
                 $database
             ),
+
             static::memberPhotoUrlService(
                 false
             ),
+
+            /*
+         * Use the same DB connection so Interest response
+         * and notification remain in one transaction.
+         */
+            new MemberNotificationService(
+                new MemberNotificationModel(
+                    $database
+                )
+            ),
+
             $database
         );
     }

@@ -110,7 +110,6 @@ final class MemberNotificationService
             MemberNotificationModel::TYPE_SHORTLISTED,
             MemberNotificationModel::TYPE_PHOTO_REJECTED,
             MemberNotificationModel::TYPE_SYSTEM,
-            MemberNotificationModel::TYPE_MUTUAL_INTEREST,
         ];
 
         if (! in_array($type, $allowedTypes, true)) {

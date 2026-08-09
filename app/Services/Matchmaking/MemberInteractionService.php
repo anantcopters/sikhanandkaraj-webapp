@@ -42,9 +42,6 @@ final class MemberInteractionService
     public const INTEREST_STATE_DECLINED_RECEIVED =
     'DECLINED_RECEIVED';
 
-    public const INTEREST_STATE_MUTUAL =
-    'MUTUAL';
-
     public function __construct(
         private readonly UserModel $userModel,
         private readonly MemberBlockModel $blockModel,
@@ -56,25 +53,21 @@ final class MemberInteractionService
     ) {}
 
     /**
-     * Show interest in another active and visible member.
+     * Show Interest in another active and visible member.
      *
-     * A reciprocal positive interest automatically promotes
-     * both directional records to MUTUAL.
+     * Only one new Interest relationship is allowed between
+     * a member pair.
      *
-     * Examples:
+     * Therefore:
      *
-     * A -> B = PENDING
-     * B -> A newly created
+     * A -> B already exists
+     * OR
+     * B -> A already exists
      *
-     * becomes:
+     * means another Interest cannot be created.
      *
-     * A -> B = MUTUAL
-     * B -> A = MUTUAL
-     *
-     * A reverse DECLINED interest does not create a mutual match.
-     *
-     * @return bool TRUE when a new directional interest was created,
-     *              FALSE when it already existed.
+     * @return bool TRUE when a new Interest was created,
+     *              FALSE when a relationship already exists.
      */
     public function showInterest(
         int $fromUserId,
@@ -86,11 +79,13 @@ final class MemberInteractionService
         );
 
         /*
-     * Fast-path for normal duplicate submissions.
+     * Fast path.
+     *
+     * Check either direction, not only from -> to.
      */
         if (
             $this->interestModel
-            ->hasShown(
+            ->existsBetween(
                 $fromUserId,
                 $toUserId
             )
@@ -103,11 +98,10 @@ final class MemberInteractionService
 
         try {
             /*
-         * Lock both members in deterministic order.
+         * Serialize Interest creation for the member pair.
          *
-         * Reciprocal interest creation must be serialized
-         * so two simultaneous requests cannot create an
-         * inconsistent relationship state.
+         * Ordering IDs ensures A -> B and B -> A requests
+         * acquire locks in the same order.
          */
             $this->database->query(
                 'SELECT id '
@@ -122,11 +116,14 @@ final class MemberInteractionService
             );
 
             /*
-         * Recheck after obtaining the lock.
+         * Recheck after locking.
+         *
+         * This prevents simultaneous reverse Interest
+         * submissions from creating two rows.
          */
             if (
                 $this->interestModel
-                ->hasShown(
+                ->existsBetween(
                     $fromUserId,
                     $toUserId
                 )
@@ -137,91 +134,23 @@ final class MemberInteractionService
                 return false;
             }
 
-            /*
-         * Look for an existing interest in the opposite
-         * direction.
-         */
-            $reverseInterest =
-                $this->interestModel
-                ->findBetween(
-                    $toUserId,
-                    $fromUserId
-                );
-
-            $reverseStatus = '';
-
-            if (
-                is_array(
-                    $reverseInterest
-                )
-            ) {
-                $reverseStatus =
-                    $this->normaliseInterestStatus(
-                        $reverseInterest['status']
-                            ?? null
-                    );
-            }
-
-            /*
-         * Reciprocal PENDING or ACCEPTED interest represents
-         * positive intent from both members.
-         *
-         * MUTUAL is included defensively for historical/
-         * repaired data.
-         *
-         * DECLINED deliberately does not qualify.
-         */
-            $becomesMutual =
-                in_array(
-                    $reverseStatus,
-                    [
-                        MemberInterestModel
-                        ::STATUS_PENDING,
-
-                        MemberInterestModel
-                        ::STATUS_ACCEPTED,
-
-                        MemberInterestModel
-                        ::STATUS_MUTUAL,
-                    ],
-                    true
-                );
-
-            $now =
-                date(
-                    'Y-m-d H:i:s'
-                );
-
-            $newInterestData = [
-                'from_user_id' =>
-                $fromUserId,
-
-                'to_user_id' =>
-                $toUserId,
-
-                /*
-             * Set this explicitly.
-             *
-             * Do not rely solely on the PostgreSQL default
-             * for important relationship state.
-             */
-                'status' =>
-                $becomesMutual
-                    ? MemberInterestModel
-                    ::STATUS_MUTUAL
-                    : MemberInterestModel
-                    ::STATUS_PENDING,
-
-                'responded_at' =>
-                $becomesMutual
-                    ? $now
-                    : null,
-            ];
-
             $insertId = $this
                 ->interestModel
                 ->insert(
-                    $newInterestData,
+                    [
+                        'from_user_id' =>
+                        $fromUserId,
+
+                        'to_user_id' =>
+                        $toUserId,
+
+                        'status' =>
+                        MemberInterestModel
+                        ::STATUS_PENDING,
+
+                        'responded_at' =>
+                        null,
+                    ],
                     true
                 );
 
@@ -236,83 +165,16 @@ final class MemberInteractionService
                 );
             }
 
-            if ($becomesMutual) {
-                if (
-                    !is_array(
-                        $reverseInterest
-                    )
-                ) {
-                    throw new RuntimeException(
-                        'The reciprocal interest could not be resolved.'
-                    );
-                }
+            /*
+         * Existing notification workflow remains intact.
+         */
+            $this->createInterestReceivedNotification(
+                fromUserId: $fromUserId,
 
-                $reverseInterestId = max(
-                    0,
-                    (int) (
-                        $reverseInterest['id']
-                        ?? 0
-                    )
-                );
+                toUserId: $toUserId,
 
-                if (
-                    $reverseInterestId <= 0
-                ) {
-                    throw new RuntimeException(
-                        'The reciprocal interest could not be resolved.'
-                    );
-                }
-
-                /*
-             * Promote the original directional record as part
-             * of the exact same transaction.
-             */
-                $updated = $this
-                    ->interestModel
-                    ->update(
-                        $reverseInterestId,
-                        [
-                            'status' =>
-                            MemberInterestModel
-                            ::STATUS_MUTUAL,
-
-                            'responded_at' =>
-                            $now,
-                        ]
-                    );
-
-                if (
-                    $updated === false
-                ) {
-                    throw new RuntimeException(
-                        'The reciprocal interest could not be updated.'
-                    );
-                }
-
-                /*
-             * Both members receive a Mutual Interest
-             * notification rather than creating an ordinary
-             * "New Interest" notification.
-             */
-                $this->createMutualInterestNotifications(
-                    firstUserId: $fromUserId,
-
-                    secondUserId: $toUserId,
-
-                    interestId: (int) $insertId
-                );
-            } else {
-                /*
-             * Ordinary one-way Interest notification.
-             */
-                $this->createInterestReceivedNotification(
-                    fromUserId: $fromUserId,
-
-                    toUserId: $toUserId,
-
-                    interestId: (int) $insertId
-                );
-            }
+                interestId: (int) $insertId
+            );
 
             if (
                 $this->database
@@ -663,47 +525,10 @@ final class MemberInteractionService
     }
 
     /**
-     * Determine whether two members currently have
-     * reciprocal Mutual Interest.
-     */
-    public function hasMutualInterestBetween(
-        int $firstUserId,
-        int $secondUserId
-    ): bool {
-        return $this
-            ->interestModel
-            ->isMutualBetween(
-                $firstUserId,
-                $secondUserId
-            );
-    }
-
-    /**
      * Resolve the complete member-facing Interest relationship
-     * between the authenticated viewer and another member.
+     * between the viewer and another member.
      *
-     * Direction is always from the viewer's perspective:
-     *
-     * PENDING_SENT
-     *     Viewer sent Interest and is waiting.
-     *
-     * PENDING_RECEIVED
-     *     Other member sent Interest and viewer may respond.
-     *
-     * ACCEPTED_SENT
-     *     Viewer's sent Interest was accepted.
-     *
-     * ACCEPTED_RECEIVED
-     *     Viewer accepted the other member's Interest.
-     *
-     * DECLINED_SENT
-     *     Viewer's sent Interest was declined.
-     *
-     * DECLINED_RECEIVED
-     *     Viewer declined the other member's Interest.
-     *
-     * MUTUAL
-     *     Both members have expressed positive Interest.
+     * Direction is always relative to the viewer.
      *
      * @return array{
      *     state:string,
@@ -760,22 +585,19 @@ final class MemberInteractionService
             : null;
 
         /*
-     * MUTUAL always has highest precedence.
+     * ACCEPTED is the strongest final positive state.
      *
-     * Normal application workflow stores MUTUAL on
-     * both directional rows.
+     * This also safely handles old reciprocal rows that
+     * were migrated from MUTUAL to ACCEPTED.
      */
         if (
             $outgoingStatus
             === MemberInterestModel
-            ::STATUS_MUTUAL
-            || $incomingStatus
-            === MemberInterestModel
-            ::STATUS_MUTUAL
+            ::STATUS_ACCEPTED
         ) {
             return $this
                 ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_MUTUAL,
+                    state: self::INTEREST_STATE_ACCEPTED_SENT,
 
                     outgoingStatus: $outgoingStatus,
 
@@ -783,26 +605,14 @@ final class MemberInteractionService
                 );
         }
 
-        /*
-     * Defensive handling for historical/inconsistent data:
-     *
-     * if both directional records currently express positive
-     * intent, the member-facing relationship is effectively
-     * mutual even if an old migration did not promote the rows.
-     *
-     * No database write occurs during a profile GET.
-     */
         if (
-            $this->isPositiveInterestStatus(
-                $outgoingStatus
-            )
-            && $this->isPositiveInterestStatus(
-                $incomingStatus
-            )
+            $incomingStatus
+            === MemberInterestModel
+            ::STATUS_ACCEPTED
         ) {
             return $this
                 ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_MUTUAL,
+                    state: self::INTEREST_STATE_ACCEPTED_RECEIVED,
 
                     outgoingStatus: $outgoingStatus,
 
@@ -811,11 +621,9 @@ final class MemberInteractionService
         }
 
         /*
-     * An actionable received Pending Interest takes precedence.
-     *
-     * This also handles the valid case where an older outgoing
-     * Interest was previously declined but the other member
-     * later sends a new Interest.
+     * Incoming Pending takes precedence over historical
+     * Declined state because it represents a current
+     * actionable request.
      */
         if (
             $incomingStatus
@@ -840,36 +648,6 @@ final class MemberInteractionService
             return $this
                 ->interestRelationshipResult(
                     state: self::INTEREST_STATE_PENDING_SENT,
-
-                    outgoingStatus: $outgoingStatus,
-
-                    incomingStatus: $incomingStatus
-                );
-        }
-
-        if (
-            $outgoingStatus
-            === MemberInterestModel
-            ::STATUS_ACCEPTED
-        ) {
-            return $this
-                ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_ACCEPTED_SENT,
-
-                    outgoingStatus: $outgoingStatus,
-
-                    incomingStatus: $incomingStatus
-                );
-        }
-
-        if (
-            $incomingStatus
-            === MemberInterestModel
-            ::STATUS_ACCEPTED
-        ) {
-            return $this
-                ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_ACCEPTED_RECEIVED,
 
                     outgoingStatus: $outgoingStatus,
 
@@ -1019,29 +797,6 @@ final class MemberInteractionService
         ];
     }
 
-    /**
-     * Determine whether a status represents current
-     * positive member intent.
-     */
-    private function isPositiveInterestStatus(
-        ?string $status
-    ): bool {
-        return in_array(
-            $status,
-            [
-                MemberInterestModel
-                ::STATUS_PENDING,
-
-                MemberInterestModel
-                ::STATUS_ACCEPTED,
-
-                MemberInterestModel
-                ::STATUS_MUTUAL,
-            ],
-            true
-        );
-    }
-
 
     /**
      * Build the normalized profile presentation state.
@@ -1114,183 +869,6 @@ final class MemberInteractionService
         }
 
         return $resolvedStatus;
-    }
-
-
-    /**
-     * Notify both members that reciprocal interest has been detected.
-     *
-     * Notifications remain in the same DB transaction as the
-     * relationship state change.
-     */
-    private function createMutualInterestNotifications(
-        int $firstUserId,
-        int $secondUserId,
-        int $interestId
-    ): void {
-        $firstUser =
-            $this->userModel
-            ->find(
-                $firstUserId
-            );
-
-        $secondUser =
-            $this->userModel
-            ->find(
-                $secondUserId
-            );
-
-        if (
-            !is_array(
-                $firstUser
-            )
-            || !is_array(
-                $secondUser
-            )
-        ) {
-            throw new RuntimeException(
-                'The matched members could not be resolved.'
-            );
-        }
-
-        $firstName =
-            preg_replace(
-                '/\s+/u',
-                ' ',
-                trim(
-                    (string) (
-                        $firstUser['full_name']
-                        ?? ''
-                    )
-                )
-            )
-            ?? '';
-
-        $secondName =
-            preg_replace(
-                '/\s+/u',
-                ' ',
-                trim(
-                    (string) (
-                        $secondUser['full_name']
-                        ?? ''
-                    )
-                )
-            )
-            ?? '';
-
-        if ($firstName === '') {
-            $firstName =
-                'A member';
-        }
-
-        if ($secondName === '') {
-            $secondName =
-                'A member';
-        }
-
-        $firstProfileReference =
-            trim(
-                (string) (
-                    $firstUser['profile_ref_number']
-                    ?? ''
-                )
-            );
-
-        $secondProfileReference =
-            trim(
-                (string) (
-                    $secondUser['profile_ref_number']
-                    ?? ''
-                )
-            );
-
-        if (
-            $firstProfileReference
-            === ''
-            || $secondProfileReference
-            === ''
-        ) {
-            throw new RuntimeException(
-                'The matched member profiles could not be resolved.'
-            );
-        }
-
-        /*
-     * First member opens the second member.
-     */
-        $this->notificationService
-            ->create(
-                [
-                    'recipientUserId' =>
-                    $firstUserId,
-
-                    'actorUserId' =>
-                    $secondUserId,
-
-                    'type' =>
-                    \App\Models\MemberNotificationModel
-                    ::TYPE_MUTUAL_INTEREST,
-
-                    'title' =>
-                    'It\'s a Match!',
-
-                    'message' =>
-                    $secondName
-                        . ' also showed interest in you. '
-                        . 'You now have a mutual interest.',
-
-                    'entityType' =>
-                    'MEMBER_INTEREST',
-
-                    'entityId' =>
-                    $interestId,
-
-                    'targetUrl' =>
-                    '/members/'
-                        . rawurlencode(
-                            $secondProfileReference
-                        ),
-                ]
-            );
-
-        /*
-     * Second member opens the first member.
-     */
-        $this->notificationService
-            ->create(
-                [
-                    'recipientUserId' =>
-                    $secondUserId,
-
-                    'actorUserId' =>
-                    $firstUserId,
-
-                    'type' =>
-                    \App\Models\MemberNotificationModel
-                    ::TYPE_MUTUAL_INTEREST,
-
-                    'title' =>
-                    'It\'s a Match!',
-
-                    'message' =>
-                    $firstName
-                        . ' also showed interest in you. '
-                        . 'You now have a mutual interest.',
-
-                    'entityType' =>
-                    'MEMBER_INTEREST',
-
-                    'entityId' =>
-                    $interestId,
-
-                    'targetUrl' =>
-                    '/members/'
-                        . rawurlencode(
-                            $firstProfileReference
-                        ),
-                ]
-            );
     }
 
     /**

@@ -1415,46 +1415,6 @@ $this->section('content');
                                                 </div>
 
                                             <?php elseif (
-                                                $interestState
-                                                === 'MUTUAL'
-                                            ): ?>
-
-                                                <div
-                                                    class="border
-            rounded-3
-            bg-success-subtle
-            text-success
-            p-2
-            text-center">
-
-                                                    <div
-                                                        class="d-flex
-                align-items-center
-                justify-content-center
-                gap-2
-                fw-semibold">
-
-                                                        <i
-                                                            class="ri-heart-fill
-                    text-danger"
-                                                            aria-hidden="true">
-                                                        </i>
-
-                                                        Mutual Interest
-                                                    </div>
-
-                                                    <div
-                                                        class="fs-12
-                text-muted
-                mt-1">
-
-                                                        You both are interested
-                                                        in each other
-                                                    </div>
-
-                                                </div>
-
-                                            <?php elseif (
                                                 $canShowInterest
                                             ): ?>
 

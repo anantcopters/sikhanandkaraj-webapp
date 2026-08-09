@@ -35,19 +35,6 @@ $sentCounts =
         'declined' => 0,
     ];
 
-$mutualCount =
-    max(
-        0,
-        (int) (
-            $counts['mutual']['all']
-            ?? 0
-        )
-    );
-
-$isMutual =
-    $activeDirection
-    === 'mutual';
-
 $isReceived =
     $activeDirection
     === 'received';
@@ -56,37 +43,25 @@ $isSent =
     $activeDirection
     === 'sent';
 
-$isMutual =
-    $activeDirection
-    === 'mutual';
+$headingDirection =
+    $isReceived
+    ? 'Interests Received'
+    : 'Interests Sent';
 
-if ($isMutual) {
-    $headingStatus =
-        'Mutual Interests';
+$headingStatus =
+    match ($activeFilter) {
+        'pending' =>
+        'Pending',
 
-    $headingDirection =
-        '';
-} else {
-    $headingDirection =
-        $isReceived
-        ? 'Interests Received'
-        : 'Interests Sent';
+        'accepted' =>
+        'Accepted',
 
-    $headingStatus =
-        match ($activeFilter) {
-            'pending' =>
-            'Pending',
+        'declined' =>
+        'Declined',
 
-            'accepted' =>
-            'Accepted',
-
-            'declined' =>
-            'Declined',
-
-            default =>
-            'All',
-        };
-}
+        default =>
+        'All',
+    };
 
 $emptyMessage =
     $isReceived
@@ -159,47 +134,7 @@ $interestActionNotice =
                     class="card border border-danger border-opacity-25 shadow-sm">
 
                     <div class="card-body p-4">
-                        <h2
-                            class="fs-16 fw-semibold mb-3">
 
-                            Mutual Interests
-                        </h2>
-
-                        <a
-                            href="<?= esc(
-                                        $interestUrl(
-                                            'mutual',
-                                            'all'
-                                        ),
-                                        'attr'
-                                    ) ?>"
-                            class="nav-link px-0 d-flex align-items-center justify-content-between gap-3 <?= $isMutual
-                                                                                                                ? 'text-primary fw-semibold'
-                                                                                                                : 'text-body'
-                                                                                                            ?>">
-
-                            <span
-                                class="d-flex align-items-center gap-2">
-
-                                <i
-                                    class="ri-heart-2-fill text-danger"
-                                    aria-hidden="true">
-                                </i>
-
-                                Matches
-                            </span>
-
-                            <span
-                                class="badge bg-light text-body border">
-
-                                <?= esc(
-                                    (string)
-                                    $mutualCount
-                                ) ?>
-                            </span>
-                        </a>
-
-                        <hr class="my-4">
                         <h2
                             class="fs-16 fw-semibold mb-3">
 
@@ -369,12 +304,7 @@ $interestActionNotice =
                         <p
                             class="text-muted mb-0">
 
-                            <?php if ($isMutual): ?>
-
-                                Members where both of you
-                                have shown interest in each other.
-
-                            <?php elseif ($isReceived): ?>
+                            <?php if ($isReceived): ?>
 
                                 Manage members who have
                                 shown interest in your profile.
@@ -523,31 +453,6 @@ $interestActionNotice =
                                 }
                             }
 
-                            $mutualDate = '';
-
-                            $mutualAt = trim(
-                                (string) (
-                                    $profile['mutualAt']
-                                    ?? ''
-                                )
-                            );
-
-                            if (
-                                $mutualAt !== ''
-                            ) {
-                                try {
-                                    $mutualDate = (
-                                        new DateTimeImmutable(
-                                            $mutualAt
-                                        )
-                                    )->format(
-                                        'd M y'
-                                    );
-                                } catch (
-                                    Throwable) {
-                                    $mutualDate = '';
-                                }
-                            }
                             ?>
 
                             <div class="col-12">
@@ -649,9 +554,6 @@ $interestActionNotice =
                                                     <?php
                                                     $badgeClass =
                                                         match ($status) {
-                                                            'MUTUAL' =>
-                                                            'bg-success-subtle text-success p-2',
-
                                                             'ACCEPTED' =>
                                                             'bg-success-subtle text-success p-2',
 
@@ -670,13 +572,11 @@ $interestActionNotice =
                                                                         ) ?>">
 
                                                         <?= esc(
-                                                            $status === 'MUTUAL'
-                                                                ? 'Mutual'
-                                                                : ucfirst(
-                                                                    strtolower(
-                                                                        $status
-                                                                    )
+                                                            ucfirst(
+                                                                strtolower(
+                                                                    $status
                                                                 )
+                                                            )
                                                         ) ?>
                                                     </span>
 
@@ -721,31 +621,7 @@ $interestActionNotice =
 
                                                 </div>
 
-                                                <?php if ($isMutual): ?>
-
-                                                    <p class="fs-13 mb-3">
-
-                                                        <strong>
-                                                            You both showed interest
-                                                            in each other
-                                                        </strong>
-
-                                                        <?php if (
-                                                            $mutualDate !== ''
-                                                        ): ?>
-
-                                                            <span class="text-muted">
-                                                                ·
-                                                                <?= esc(
-                                                                    $mutualDate
-                                                                ) ?>
-                                                            </span>
-
-                                                        <?php endif; ?>
-
-                                                    </p>
-
-                                                <?php elseif ($isReceived): ?>
+                                                <?php if ($isReceived): ?>
 
                                                     <p class="fs-13 mb-3">
 

@@ -84,7 +84,7 @@ final class MemberProfileController extends BaseController
     }
 
     /**
-     * Show interest in another member.
+     * Show Interest in another member.
      */
     public function showInterest(
         string $profileReference
@@ -98,34 +98,36 @@ final class MemberProfileController extends BaseController
                 'memberProfileViewService'
             );
 
-            /*
-             * Resolve again server-side.
-             *
-             * Never trust a member ID supplied by the browser.
-             */
-            $target = $profileService
+            $target =
+                $profileService
                 ->targetForAction(
                     $viewerUserId,
                     $profileReference
                 );
+
+            $targetUserId = max(
+                0,
+                (int) (
+                    $target['id']
+                    ?? 0
+                )
+            );
+
+            if (
+                $targetUserId <= 0
+            ) {
+                throw PageNotFoundException
+                    ::forPageNotFound();
+            }
 
             /** @var MemberInteractionService $interactionService */
             $interactionService = service(
                 'memberInteractionService'
             );
 
-            $targetUserId =
-                (int) $target['id'];
-
-            $interactionService
-                ->showInterest(
-                    $viewerUserId,
-                    $targetUserId
-                );
-
-            $isMutualInterest =
+            $created =
                 $interactionService
-                ->hasMutualInterestBetween(
+                ->showInterest(
                     $viewerUserId,
                     $targetUserId
                 );
@@ -143,16 +145,17 @@ final class MemberProfileController extends BaseController
                     'memberActionNotice',
                     [
                         'title' =>
-                        $isMutualInterest
-                            ? 'It\'s a Match!'
-                            : 'Interest Shown',
+                        $created
+                            ? 'Interest Sent'
+                            : 'Interest Already Exists',
 
                         'message' =>
-                        $isMutualInterest
-                            ? 'You have both shown interest '
-                            . 'in each other.'
-                            : 'Your interest has been '
-                            . 'shown successfully.',
+                        $created
+                            ? 'Your interest has been '
+                            . 'sent successfully.'
+                            : 'An interest relationship '
+                            . 'already exists between '
+                            . 'you and this member.',
                     ]
                 );
         } catch (
@@ -175,7 +178,7 @@ final class MemberProfileController extends BaseController
                         'danger',
 
                         'title' =>
-                        'Interest not shown',
+                        'Interest not sent',
 
                         'message' =>
                         $exception
@@ -212,7 +215,7 @@ final class MemberProfileController extends BaseController
                         'danger',
 
                         'title' =>
-                        'Interest not shown',
+                        'Interest not sent',
 
                         'message' =>
                         'We could not save your '
