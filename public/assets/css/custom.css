@@ -2147,7 +2147,6 @@ form[aria-busy="true"] {
  */
 .partner-preference-any-value {
     display: none;
-    min-height: 42px;
     padding: 0.5rem 0.75rem;
     align-items: center;
 
@@ -2157,8 +2156,7 @@ form[aria-busy="true"] {
     background-color: var(--vz-input-bg);
     color: var(--vz-body-color);
 
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-size: 0.8125rem;
 }
 
 /**

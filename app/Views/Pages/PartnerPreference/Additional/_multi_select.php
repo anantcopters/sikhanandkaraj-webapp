@@ -32,6 +32,7 @@ declare(strict_types=1);
  * @var bool|null                       $showSelectAll
  * @var bool|null                       $disabled
  * @var bool|null                       $required
+ * @var string|null                     $columnClass
  */
 
 /*
@@ -139,6 +140,23 @@ $isRequired =
     ($required ?? true)
     === true;
 
+/*
+ * --------------------------------------------------------------------------
+ * Resolve responsive grid width
+ * --------------------------------------------------------------------------
+ *
+ * Existing Partner Preference consumers continue using a full-width field.
+ * Search may explicitly request a two-column Bootstrap layout.
+ *
+ * Only trusted server-side view configuration reaches this value.
+ */
+$resolvedColumnClass =
+    isset($columnClass)
+    && is_string($columnClass)
+    && trim($columnClass) !== ''
+    ? trim($columnClass)
+    : 'col-12';
+
 $fieldId =
     lcfirst(
         str_replace(
@@ -228,7 +246,10 @@ $renderOption =
 ?>
 
 <div
-    class="col-12 partner-preference-multi-select"
+    class="<?= esc(
+                $resolvedColumnClass,
+                'attr'
+            ) ?> partner-preference-multi-select"
     data-preference-multi-select>
 
     <!-- =============================================================

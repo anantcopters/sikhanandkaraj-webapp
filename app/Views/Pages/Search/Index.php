@@ -592,7 +592,7 @@ $this->section(
                                      Marital Status
                                      ========================================= -->
 
-                                <div class="col-12">
+                                <div class="col-12 col-md-6">
 
                                     <label
                                         for="searchMaritalStatus"
@@ -672,7 +672,7 @@ $this->section(
                                         'State Living In',
 
                                         'placeholder' =>
-                                        'Select states',
+                                        '',
 
                                         'options' =>
                                         $states,
@@ -693,6 +693,9 @@ $this->section(
 
                                         'required' =>
                                         false,
+
+                                        'columnClass' =>
+                                        'col-12 col-md-6',
 
                                         'errors' =>
                                         [],
@@ -800,7 +803,7 @@ $this->section(
                                             'Community',
 
                                             'placeholder' =>
-                                            'Select communities',
+                                            '',
 
                                             'options' =>
                                             $communities,
@@ -822,6 +825,9 @@ $this->section(
                                             'required' =>
                                             false,
 
+                                            'columnClass' =>
+                                            'col-12 col-md-6',
+
                                             'errors' =>
                                             [],
                                         ]
@@ -839,7 +845,7 @@ $this->section(
                                             'City Living In',
 
                                             'placeholder' =>
-                                            'Select cities',
+                                            '',
 
                                             'options' =>
                                             $cities,
@@ -866,6 +872,9 @@ $this->section(
                                             'required' =>
                                             false,
 
+                                            'columnClass' =>
+                                            'col-12 col-md-6',
+
                                             'errors' =>
                                             [],
                                         ]
@@ -885,10 +894,9 @@ $this->section(
                                                     'attr'
                                                 ) ?>">
 
-                                    <!-- Highest Education
-                                         IMPORTANT:
-                                         real grouped key is "educations".
-                                    -->
+                                    <!-- =========================================================
+     Highest Education
+     ========================================================= -->
 
                                     <?= view(
                                         'Pages/PartnerPreference/Additional/_multi_select',
@@ -900,8 +908,11 @@ $this->section(
                                             'Highest Education',
 
                                             'placeholder' =>
-                                            'Select education qualifications',
+                                            '',
 
+                                            /*
+         * Education masters are grouped by education category.
+         */
                                             'groups' =>
                                             $educationGroups,
 
@@ -922,18 +933,36 @@ $this->section(
                                                 'education_ids'
                                             ),
 
+                                            /*
+         * "Any" follows the existing Partner Preference behaviour.
+         */
                                             'showSelectAll' =>
                                             true,
 
+                                            /*
+         * Search criteria are optional and Education must never depend
+         * on State/City selection.
+         *
+         * Explicit false is important because this shared partial is
+         * rendered immediately after the conditionally disabled City field.
+         */
+                                            'disabled' =>
+                                            false,
+
                                             'required' =>
                                             false,
+
+                                            'columnClass' =>
+                                            'col-12 col-md-6',
 
                                             'errors' =>
                                             [],
                                         ]
                                     ) ?>
 
-                                    <!-- Employed In -->
+                                    <!-- =========================================================
+     Employed In
+     ========================================================= -->
 
                                     <?= view(
                                         'Pages/PartnerPreference/Additional/_multi_select',
@@ -945,7 +974,7 @@ $this->section(
                                             'Employed In',
 
                                             'placeholder' =>
-                                            'Select employment types',
+                                            '',
 
                                             'options' =>
                                             $employmentTypes,
@@ -964,18 +993,26 @@ $this->section(
                                             'showSelectAll' =>
                                             true,
 
+                                            /*
+         * Employment selection is independent of State/City.
+         */
+                                            'disabled' =>
+                                            false,
+
                                             'required' =>
                                             false,
+
+                                            'columnClass' =>
+                                            'col-12 col-md-6',
 
                                             'errors' =>
                                             [],
                                         ]
                                     ) ?>
 
-                                    <!-- Occupation
-                                         IMPORTANT:
-                                         real grouped key is "occupations".
-                                    -->
+                                    <!-- =========================================================
+     Occupation
+     ========================================================= -->
 
                                     <?= view(
                                         'Pages/PartnerPreference/Additional/_multi_select',
@@ -987,8 +1024,11 @@ $this->section(
                                             'Occupation',
 
                                             'placeholder' =>
-                                            'Select occupations',
+                                            '',
 
+                                            /*
+         * Occupations are grouped by occupation category.
+         */
                                             'groups' =>
                                             $occupationGroups,
 
@@ -1012,18 +1052,27 @@ $this->section(
                                             'showSelectAll' =>
                                             true,
 
+                                            /*
+         * Occupation selection is independent of State/City.
+         */
+                                            'disabled' =>
+                                            false,
+
                                             'required' =>
                                             false,
+
+                                            'columnClass' =>
+                                            'col-12 col-md-6',
 
                                             'errors' =>
                                             [],
                                         ]
                                     ) ?>
 
-                                    <!-- Annual Income
-                                         Same multi-bracket UI as Partner
-                                         Preference annual-income.
-                                    -->
+                                    <!-- =========================================================
+     Annual Income
+     Same multi-bracket UI as Partner Preference.
+     ========================================================= -->
 
                                     <?= view(
                                         'Pages/PartnerPreference/Additional/_multi_select',
@@ -1035,7 +1084,7 @@ $this->section(
                                             'Annual Income',
 
                                             'placeholder' =>
-                                            'Select annual income options',
+                                            '',
 
                                             'options' =>
                                             $annualIncomes,
@@ -1054,8 +1103,17 @@ $this->section(
                                             'showSelectAll' =>
                                             true,
 
+                                            /*
+         * Annual Income selection is independent of State/City.
+         */
+                                            'disabled' =>
+                                            false,
+
                                             'required' =>
                                             false,
+
+                                            'columnClass' =>
+                                            'col-12 col-md-6',
 
                                             'errors' =>
                                             [],
@@ -1066,81 +1124,108 @@ $this->section(
                                          Profile Managed By
                                          ===================================== -->
 
+                                    <!-- =====================================
+     Profile Managed By
+     Full-width single-row option group.
+     ===================================== -->
+
                                     <div class="col-12">
 
-                                        <label class="form-labelm">
-                                            Profile Managed By
-                                        </label>
-
                                         <div
-                                            class="d-flex flex-wrap gap-3">
+                                            class="d-flex flex-column
+            flex-md-row
+            align-items-md-center
+            gap-2 gap-md-4">
 
-                                            <?php foreach (
-                                                $profileManagedBy
-                                                as $option
-                                            ): ?>
+                                            <label
+                                                class="form-labelm mb-md-0
+                flex-shrink-0">
 
-                                                <?php
-                                                $value =
-                                                    trim(
-                                                        (string) (
-                                                            $option['value']
-                                                            ?? ''
-                                                        )
-                                                    );
+                                                Profile Managed By
+                                            </label>
 
-                                                if ($value === '') {
-                                                    continue;
-                                                }
-                                                ?>
+                                            <div
+                                                class="d-flex flex-wrap
+                align-items-center gap-3">
 
-                                                <div class="form-check">
+                                                <?php foreach (
+                                                    $profileManagedBy
+                                                    as $option
+                                                ): ?>
 
-                                                    <input
-                                                        type="checkbox"
-                                                        class="form-check-input"
-                                                        name="managed_by[]"
-                                                        value="<?= esc(
-                                                                    $value,
-                                                                    'attr'
-                                                                ) ?>"
-                                                        id="managed<?= esc(
-                                                                        ucfirst(
-                                                                            $value
-                                                                        ),
-                                                                        'attr'
-                                                                    ) ?>"
-                                                        <?= in_array(
-                                                            $value,
-                                                            $selected(
-                                                                'managed_by'
-                                                            ),
-                                                            true
-                                                        )
-                                                            ? 'checked'
-                                                            : '' ?>>
+                                                    <?php
+                                                    $value =
+                                                        trim(
+                                                            (string) (
+                                                                $option['value']
+                                                                ?? ''
+                                                            )
+                                                        );
 
-                                                    <label
-                                                        class="form-check-label"
-                                                        for="managed<?= esc(
-                                                                        ucfirst(
-                                                                            $value
-                                                                        ),
-                                                                        'attr'
-                                                                    ) ?>">
-
-                                                        <?= esc(
+                                                    $label =
+                                                        trim(
                                                             (string) (
                                                                 $option['label']
                                                                 ?? ''
                                                             )
-                                                        ) ?>
+                                                        );
 
-                                                    </label>
+                                                    if (
+                                                        $value === ''
+                                                        || $label === ''
+                                                    ) {
+                                                        continue;
+                                                    }
 
-                                                </div>
+                                                    $controlId =
+                                                        'managed'
+                                                        . ucfirst(
+                                                            $value
+                                                        );
+                                                    ?>
 
-                                            <?php endforeach; ?>
+                                                    <div class="form-check mb-0">
+
+                                                        <input
+                                                            type="checkbox"
+                                                            class="form-check-input"
+                                                            name="managed_by[]"
+                                                            value="<?= esc(
+                                                                        $value,
+                                                                        'attr'
+                                                                    ) ?>"
+                                                            id="<?= esc(
+                                                                    $controlId,
+                                                                    'attr'
+                                                                ) ?>"
+                                                            <?= in_array(
+                                                                $value,
+                                                                $selected(
+                                                                    'managed_by'
+                                                                ),
+                                                                true
+                                                            )
+                                                                ? 'checked'
+                                                                : '' ?>>
+
+                                                        <label
+                                                            class="form-check-label"
+                                                            for="<?= esc(
+                                                                        $controlId,
+                                                                        'attr'
+                                                                    ) ?>">
+
+                                                            <?= esc(
+                                                                $label
+                                                            ) ?>
+
+                                                        </label>
+
+                                                    </div>
+
+                                                <?php endforeach; ?>
+
+                                            </div>
 
                                         </div>
 
