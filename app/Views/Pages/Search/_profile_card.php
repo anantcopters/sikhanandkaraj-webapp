@@ -18,6 +18,20 @@ declare(strict_types=1);
  * Search service.
  */
 
+/**
+ * Search profile-card UI variables.
+ *
+ * @var array<string, mixed> $profile
+ */
+
+$activity =
+    trim(
+        (string) (
+            $profile['activity']
+            ?? ''
+        )
+    );
+
 $profile =
     isset($profile)
     && is_array($profile)
@@ -229,6 +243,32 @@ $initial =
                         <?= esc(
                             $reference
                         ) ?>
+
+                    </div>
+
+                <?php endif; ?>
+
+                <?php if (
+                    $activity !== ''
+                ): ?>
+
+                    <!--
+                        Exact login timestamp is intentionally never exposed.
+                    -->
+                    <div
+                        class="d-flex align-items-center
+            gap-1 fs-12 text-success mb-2">
+
+                        <i
+                            class="ri-checkbox-blank-circle-fill"
+                            aria-hidden="true">
+                        </i>
+
+                        <span>
+                            <?= esc(
+                                $activity
+                            ) ?>
+                        </span>
 
                     </div>
 

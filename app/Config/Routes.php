@@ -523,11 +523,41 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                     ]
                 );
 
+                /*
+                * --------------------------------------------------------------------------
+                * Member Search
+                * --------------------------------------------------------------------------
+                *
+                * Search criteria and Search results deliberately use different routes.
+                *
+                * /search
+                *     Search criteria entry/editing.
+                *
+                * /search/results
+                *     Matching member listing, sorting and pagination.
+                *
+                * /search/profile
+                *     Universal exact Profile-ID lookup.
+                *
+                * /search/cities
+                *     Dependent active-city master endpoint.
+                */
+
                 $routes->get(
                     'search',
                     'SearchController::index',
                     [
-                        'as' => 'web.search',
+                        'as' =>
+                        'web.search',
+                    ]
+                );
+
+                $routes->get(
+                    'search/results',
+                    'SearchController::results',
+                    [
+                        'as' =>
+                        'web.search.results',
                     ]
                 );
 
@@ -535,7 +565,8 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                     'search/profile',
                     'SearchController::profile',
                     [
-                        'as' => 'web.search.profile',
+                        'as' =>
+                        'web.search.profile',
                     ]
                 );
 
@@ -543,7 +574,8 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                     'search/cities',
                     'SearchController::cities',
                     [
-                        'as' => 'web.search.cities',
+                        'as' =>
+                        'web.search.cities',
                     ]
                 );
             }

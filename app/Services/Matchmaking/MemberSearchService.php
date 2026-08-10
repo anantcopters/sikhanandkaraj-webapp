@@ -27,6 +27,78 @@ final class MemberSearchService
     ) {}
 
     /**
+     * Return the Search-form data without executing candidate Search.
+     *
+     * Existing query-string criteria are normalized so "Back to Search" restores
+     * the member's previous selections.
+     *
+     * @param array<string, mixed> $input
+     *
+     * @return array{
+     *     mode:string,
+     *     filters:array<string, mixed>,
+     *     masterData:array<string, mixed>
+     * }
+     */
+    public function formData(
+        int $viewerUserId,
+        array $input = []
+    ): array {
+        $viewer =
+            $this->userModel
+            ->find(
+                $viewerUserId
+            );
+
+        if (!is_array($viewer)) {
+            throw new DomainException(
+                'The member account could not be found.'
+            );
+        }
+
+        $mode =
+            $this->mode(
+                $input['mode']
+                    ?? null
+            );
+
+        /*
+     * State selection must be known before city master data is loaded.
+     */
+        $stateIds =
+            $this->positiveIds(
+                $input['state_ids']
+                    ?? []
+            );
+
+        $masterData =
+            $this->searchMasterData(
+                $stateIds
+            );
+
+        /*
+     * Use the same normalization/active-master validation as Search execution.
+     */
+        $filters =
+            $this->normaliseFilters(
+                $mode,
+                $input,
+                $masterData
+            );
+
+        return [
+            'mode' =>
+            $mode,
+
+            'filters' =>
+            $filters,
+
+            'masterData' =>
+            $masterData,
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $input
      *
      * @return array<string, mixed>
@@ -125,6 +197,12 @@ final class MemberSearchService
                 )
             );
 
+        $chips =
+            $this->searchChips(
+                $filters,
+                $masterData
+            );
+
         return [
             'mode' =>
             $mode,
@@ -158,6 +236,9 @@ final class MemberSearchService
 
             'masterData' =>
             $masterData,
+
+            'searchChips' =>
+            $chips,
         ];
     }
 
@@ -238,6 +319,240 @@ final class MemberSearchService
         }
 
         return $visible[0];
+    }
+
+    /**
+     * Build user-facing Search criteria chips.
+     *
+     * @param array<string, mixed> $filters
+     * @param array<string, mixed> $masterData
+     *
+     * @return list<string>
+     */
+    private function searchChips(
+        array $filters,
+        array $masterData
+    ): array {
+        $chips = [];
+
+        /*
+     * Age.
+     */
+        $ageMin =
+            $filters['age_min']
+            ?? null;
+
+        $ageMax =
+            $filters['age_max']
+            ?? null;
+
+        if (
+            $ageMin !== null
+            || $ageMax !== null
+        ) {
+            $chips[] =
+                'Age '
+                . ($ageMin ?? '18')
+                . '–'
+                . ($ageMax ?? 'Any');
+        }
+
+        /*
+     * Height.
+     */
+        $heightMin =
+            $this->masterLabel(
+                $filters['height_min_id']
+                    ?? null,
+                $masterData['heights']
+                    ?? [],
+                'display_name'
+            );
+
+        $heightMax =
+            $this->masterLabel(
+                $filters['height_max_id']
+                    ?? null,
+                $masterData['heights']
+                    ?? [],
+                'display_name'
+            );
+
+        if (
+            $heightMin !== ''
+            || $heightMax !== ''
+        ) {
+            $chips[] =
+                'Height '
+                . ($heightMin !== ''
+                    ? $heightMin
+                    : 'Any')
+                . ' – '
+                . ($heightMax !== ''
+                    ? $heightMax
+                    : 'Any');
+        }
+
+        $this->appendMultiMasterChips(
+            $chips,
+            'Marital',
+            $filters['marital_status_ids']
+                ?? [],
+            $masterData['maritalStatuses']
+                ?? [],
+            'name'
+        );
+
+        $this->appendMultiMasterChips(
+            $chips,
+            'State',
+            $filters['state_ids']
+                ?? [],
+            $masterData['states']
+                ?? [],
+            'name'
+        );
+
+        if (
+            ($filters['mode'] ?? '')
+            === 'advanced'
+        ) {
+            $this->appendMultiMasterChips(
+                $chips,
+                'City',
+                $filters['city_ids']
+                    ?? [],
+                $masterData['cities']
+                    ?? [],
+                'name'
+            );
+
+            $this->appendMultiMasterChips(
+                $chips,
+                'Community',
+                $filters['community_ids']
+                    ?? [],
+                $masterData['communities']
+                    ?? [],
+                'name'
+            );
+
+            $this->appendMultiMasterChips(
+                $chips,
+                'Education',
+                $filters['education_ids']
+                    ?? [],
+                $masterData['educations']
+                    ?? [],
+                'name'
+            );
+
+            $this->appendMultiMasterChips(
+                $chips,
+                'Occupation',
+                $filters['occupation_ids']
+                    ?? [],
+                $masterData['occupations']
+                    ?? [],
+                'name'
+            );
+        }
+
+        /*
+     * Photo requirements.
+     */
+        foreach (
+            $filters['photo_visibility']
+                ?? []
+            as $visibility
+        ) {
+            if ($visibility === 'PUBLIC') {
+                $chips[] =
+                    'Public Photo';
+            }
+
+            if (
+                $visibility
+                === 'INTERESTED_MEMBERS'
+            ) {
+                $chips[] =
+                    'Interested Members Photo';
+            }
+        }
+
+        return array_values(
+            array_unique(
+                $chips
+            )
+        );
+    }
+
+    /**
+     * Resolve one active master label.
+     *
+     * @param list<array<string, mixed>> $rows
+     */
+    private function masterLabel(
+        mixed $id,
+        array $rows,
+        string $labelColumn = 'name'
+    ): string {
+        if (
+            !is_numeric($id)
+            || (int) $id <= 0
+        ) {
+            return '';
+        }
+
+        foreach ($rows as $row) {
+            if (
+                is_array($row)
+                && (int) (
+                    $row['id']
+                    ?? 0
+                ) === (int) $id
+            ) {
+                return trim(
+                    (string) (
+                        $row[$labelColumn]
+                        ?? ''
+                    )
+                );
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Append one chip for each selected active master value.
+     *
+     * @param list<string> $chips
+     * @param list<int> $selectedIds
+     * @param list<array<string, mixed>> $rows
+     */
+    private function appendMultiMasterChips(
+        array &$chips,
+        string $prefix,
+        array $selectedIds,
+        array $rows,
+        string $labelColumn
+    ): void {
+        foreach ($selectedIds as $id) {
+            $label =
+                $this->masterLabel(
+                    $id,
+                    $rows,
+                    $labelColumn
+                );
+
+            if ($label !== '') {
+                $chips[] =
+                    $prefix
+                    . ': '
+                    . $label;
+            }
+        }
     }
 
     /**
@@ -716,10 +1031,86 @@ final class MemberSearchService
                     'web.members.view',
                     $reference
                 ),
+
+                'activity' =>
+                $this->activityLabel(
+                    $row['last_login_at']
+                        ?? null
+                ),
             ];
         }
 
         return $profiles;
+    }
+
+    /**
+     * Convert a private login timestamp to a coarse member-facing activity label.
+     *
+     * Exact login timestamps are deliberately never exposed.
+     */
+    private function activityLabel(
+        mixed $lastLoginAt
+    ): string {
+        $value =
+            trim(
+                (string)
+                $lastLoginAt
+            );
+
+        if ($value === '') {
+            return '';
+        }
+
+        try {
+            $lastLogin =
+                new \DateTimeImmutable(
+                    $value
+                );
+
+            $now =
+                new \DateTimeImmutable(
+                    'now'
+                );
+
+            /*
+         * Active today gives useful recency without revealing exact presence.
+         */
+            if (
+                $lastLogin->format(
+                    'Y-m-d'
+                )
+                === $now->format(
+                    'Y-m-d'
+                )
+            ) {
+                return 'Active today';
+            }
+
+            $days =
+                (int)
+                $lastLogin
+                    ->diff(
+                        $now
+                    )->format(
+                        '%a'
+                    );
+
+            if ($days <= 7) {
+                return 'Active this week';
+            }
+
+            if ($days <= 30) {
+                return 'Recently active';
+            }
+
+            /*
+         * Old activity is intentionally not displayed.
+         */
+            return '';
+        } catch (
+            \Throwable) {
+            return '';
+        }
     }
 
     private function mode(

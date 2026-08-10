@@ -671,6 +671,14 @@ final class MemberMatchCandidateModel extends Model
             'u.gender',
             'u.created_at',
 
+            /*
+            * Used internally for Last Logged In sorting and converted to a
+            * privacy-friendly activity label by MemberSearchService.
+            *
+            * The raw timestamp must never be rendered to another member.
+            */
+            'u.last_login_at',
+
             'bd.date_of_birth',
             'bd.marital_status_id',
             'bd.height_id',
