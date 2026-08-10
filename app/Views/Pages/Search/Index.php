@@ -742,6 +742,12 @@ $this->section(
                                         <?php endfor; ?>
 
                                     </select>
+                                    <!-- Client-side Age range validation feedback. -->
+                                    <div
+                                        id="ageRangeError"
+                                        class="invalid-feedback d-block"
+                                        hidden>
+                                    </div>
 
                                 </div>
 
@@ -808,8 +814,14 @@ $this->section(
                                                             $heightId,
                                                             'attr'
                                                         ) ?>"
-                                                <?= $heightMinId
-                                                    === $heightId
+                                                data-height-cm="<?= esc(
+                                                                    (string) (
+                                                                        $height['height_cm']
+                                                                        ?? ''
+                                                                    ),
+                                                                    'attr'
+                                                                ) ?>"
+                                                <?= $heightMinId === $heightId
                                                     ? 'selected'
                                                     : '' ?>>
 
@@ -888,8 +900,14 @@ $this->section(
                                                             $heightId,
                                                             'attr'
                                                         ) ?>"
-                                                <?= $heightMaxId
-                                                    === $heightId
+                                                data-height-cm="<?= esc(
+                                                                    (string) (
+                                                                        $height['height_cm']
+                                                                        ?? ''
+                                                                    ),
+                                                                    'attr'
+                                                                ) ?>"
+                                                <?= $heightMaxId === $heightId
                                                     ? 'selected'
                                                     : '' ?>>
 
@@ -902,6 +920,12 @@ $this->section(
                                         <?php endforeach; ?>
 
                                     </select>
+                                    <!-- Client-side Height range validation feedback. -->
+                                    <div
+                                        id="heightRangeError"
+                                        class="invalid-feedback d-block"
+                                        hidden>
+                                    </div>
 
                                 </div>
 
@@ -1320,6 +1344,12 @@ $this->section(
 
                                         <div class="form-text color-pink text-uppercase fw-medium">
                                             Select State Living In first.
+                                        </div>
+                                        <!-- Client-side Height range validation feedback. -->
+                                        <div
+                                            id="heightRangeError"
+                                            class="invalid-feedback d-block"
+                                            hidden>
                                         </div>
 
                                     </div>
