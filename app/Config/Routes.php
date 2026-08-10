@@ -522,6 +522,14 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                         'as' => 'web.members.photos.medium-url',
                     ]
                 );
+
+                $routes->get(
+                    'search',
+                    'SearchController::index',
+                    [
+                        'as' => 'web.search',
+                    ]
+                );
             }
         );
 

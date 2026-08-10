@@ -87,11 +87,11 @@ $interestActive =
         'interests/'
     );
 
-$messagesActive =
-    $currentPath === 'messages'
+$searchActive =
+    $currentPath === 'search'
     || str_starts_with(
         $currentPath,
-        'messages/'
+        'search/'
     );
 ?>
 
@@ -178,6 +178,38 @@ $messagesActive =
                         </a>
                     </li>
 
+                    <!-- Search -->
+                    <li class="nav-item">
+                        <a
+                            href="<?= url_to('web.search') ?>"
+                            class="nav-link
+        d-flex
+        align-items-center
+        gap-2
+        py-1 py-lg-2 fs-14
+        <?= $searchActive
+                    ? 'active text-primary'
+                    : '' ?>"
+                            <?= $searchActive
+                                ? 'aria-current="page"'
+                                : '' ?>>
+
+                            <i
+                                class="ri-search-line
+            fw-normal
+            flex-shrink-0 text-info"
+                                aria-hidden="true">
+                            </i>
+
+                            <span
+                                class="<?= $searchActive
+                                            ? 'fw-semibold'
+                                            : 'text-black' ?>">
+                                Search
+                            </span>
+                        </a>
+                    </li>
+
                     <!-- Matches -->
                     <li class="nav-item">
                         <a
@@ -242,55 +274,7 @@ $messagesActive =
                         </a>
                     </li>
 
-                    <!-- Messages -->
-                    <li class="nav-item">
-                        <a
-                            href="<?= site_url('messages') ?>"
-                            class="nav-link
-                            d-flex
-                            align-items-center
-                            gap-2
-                            py-1 py-lg-2 fs-14
-                            <?= $messagesActive
-                                ? 'active text-primary'
-                                : '' ?>"
-                            <?= $messagesActive
-                                ? 'aria-current="page"'
-                                : '' ?>>
 
-                            <i
-                                class="ri-message-3-line
-                                fw-normal
-                                flex-shrink-0 text-info"
-                                aria-hidden="true">
-                            </i>
-
-                            <span
-                                class="<?= $messagesActive
-                                            ? 'fw-semibold'
-                                            : 'text-black' ?>">
-                                Messages
-                            </span>
-
-                            <?php if ($unreadMessageCount > 0): ?>
-                                <span
-                                    class="badge
-                                    rounded-pill
-                                    bg-danger">
-
-                                    <?= esc(
-                                        $unreadMessageCount > 99
-                                            ? '99+'
-                                            : (string) $unreadMessageCount
-                                    ) ?>
-
-                                    <span class="visually-hidden">
-                                        unread messages
-                                    </span>
-                                </span>
-                            <?php endif; ?>
-                        </a>
-                    </li>
                 </ul>
 
                 <div
@@ -556,7 +540,28 @@ $messagesActive =
                                     Home
                                 </span>
                             </a>
+                            <a
+                                href="<?= url_to('web.search') ?>"
+                                class="dropdown-item
+        <?= $searchActive
+                    ? 'active'
+                    : '' ?>"
+                                <?= $searchActive
+                                    ? 'aria-current="page"'
+                                    : '' ?>>
 
+                                <i
+                                    class="ri-search-line
+            fs-16
+                                    align-middle
+                                    me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                <span class="align-middle">
+                                    Search
+                                </span>
+                            </a>
                             <!-- Matches -->
                             <a
                                 href="<?= site_url('matches') ?>"
@@ -605,53 +610,6 @@ $messagesActive =
                                 </span>
                             </a>
 
-                            <!-- Messages -->
-                            <a
-                                href="<?= site_url('messages') ?>"
-                                class="dropdown-item
-                                d-flex
-                                align-items-center
-                                <?= $messagesActive
-                                    ? 'active'
-                                    : '' ?>"
-                                <?= $messagesActive
-                                    ? 'aria-current="page"'
-                                    : '' ?>>
-
-                                <i
-                                    class="ri-message-3-line
-                                    fs-16
-                                    align-middle
-                                    me-1"
-                                    aria-hidden="true">
-                                </i>
-
-                                <span class="align-middle">
-                                    Messages
-                                </span>
-
-                                <?php if (
-                                    $unreadMessageCount > 0
-                                ): ?>
-                                    <span
-                                        class="badge
-                                        rounded-pill
-                                        bg-danger
-                                        ms-auto">
-
-                                        <?= esc(
-                                            $unreadMessageCount > 99
-                                                ? '99+'
-                                                : (string)
-                                                $unreadMessageCount
-                                        ) ?>
-
-                                        <span class="visually-hidden">
-                                            unread messages
-                                        </span>
-                                    </span>
-                                <?php endif; ?>
-                            </a>
 
                             <div class="dropdown-divider"></div>
 
