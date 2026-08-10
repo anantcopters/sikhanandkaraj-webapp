@@ -530,6 +530,22 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                         'as' => 'web.search',
                     ]
                 );
+
+                $routes->get(
+                    'search/profile',
+                    'SearchController::profile',
+                    [
+                        'as' => 'web.search.profile',
+                    ]
+                );
+
+                $routes->get(
+                    'search/cities',
+                    'SearchController::cities',
+                    [
+                        'as' => 'web.search.cities',
+                    ]
+                );
             }
         );
 

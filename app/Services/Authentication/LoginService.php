@@ -125,18 +125,49 @@ final class LoginService
             );
         }
 
-        /**
-         * Upgrade an old password hash after successful authentication.
-         *
-         * A rehash persistence failure does not block a valid login.
-         */
+        /*
+        * Upgrade an older password hash after successful authentication.
+        *
+        * Rehash persistence failure intentionally does not invalidate otherwise
+        * correct credentials.
+        */
         $this->rehashPasswordIfRequired(
             $userId,
             $password,
             $passwordHash
         );
 
-        return LoginResult::success($user);
+        /*
+        * Record activity only after every authentication condition has passed:
+        *
+        * - credentials are correct;
+        * - account is ACTIVE;
+        * - the login contact is verified.
+        *
+        * Activity tracking is auxiliary metadata. Its failure must therefore not
+        * prevent an otherwise valid member login.
+        */
+        $loginRecorded =
+            $this->userModel
+            ->recordSuccessfulLogin(
+                $userId
+            );
+
+        if (!$loginRecorded) {
+            log_message(
+                'warning',
+                'Successful password login activity could not be recorded. '
+                    . 'Member: {memberId}.',
+                [
+                    'memberId' =>
+                    $userId,
+                ]
+            );
+        }
+
+        return LoginResult::success(
+            $user
+        );
     }
 
     /**

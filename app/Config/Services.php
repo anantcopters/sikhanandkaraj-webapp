@@ -106,6 +106,7 @@ use App\Services\Matchmaking\MemberInteractionService;
 use App\Services\Matchmaking\MemberMatchmakingService;
 use App\Services\Matchmaking\MemberProfileViewService;
 use App\Services\Matchmaking\PartnerPreferenceMatchService;
+use App\Services\Matchmaking\MemberSearchService;
 use App\Models\MemberShortlistModel;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -1620,6 +1621,44 @@ final class Services extends BaseService
             ),
 
             $database
+        );
+    }
+
+    public static function memberSearchService(
+        bool $getShared = true
+    ): MemberSearchService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberSearchService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberSearchService(
+            new UserModel(
+                $database
+            ),
+
+            new MemberMatchCandidateModel(
+                $database
+            ),
+
+            new MemberInterestModel(
+                $database
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            static::profileMasterDataService(
+                false
+            ),
+
+            static::lifestyleService(
+                false
+            )
         );
     }
 }

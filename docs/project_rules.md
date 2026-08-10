@@ -64,6 +64,10 @@ This document is the mandatory engineering rule set for SikhanAndKaraj. All impl
 - Saving/action buttons must prevent accidental duplicate submission where the operation is not safely repeatable.
 - Preserve responsive behavior across desktop, tablet and mobile.
 - Escape user-controlled output in views using the project's existing escaping conventions.
+- Every PHP view must declare all controller/service supplied UI variables   in the opening PHPDoc using appropriate types.
+- Every PHP view must normalize supplied values into local view variables   before rendering HTML. Views must not repeatedly access undefined or unvalidated external variables directly throughout the markup.
+- PHP views must contain meaningful comments for major UI sections and for non-obvious conditional rendering logic.
+- View-local normalization is permitted, but business rules, database access, authorization decisions and reusable business transformations must remain outside views.
 
 ## JavaScript
 

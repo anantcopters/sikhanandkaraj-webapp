@@ -50,6 +50,7 @@ final class UserModel extends Model
         'full_name',
         'password_hash',
         'account_status',
+        'last_login_at'
     ];
 
     protected $useTimestamps = true;
@@ -440,5 +441,23 @@ final class UserModel extends Model
         return is_array($record)
             ? $record
             : null;
+    }
+
+    public function recordLogin(
+        int $userId
+    ): bool {
+        if ($userId <= 0) {
+            return false;
+        }
+
+        return $this->update(
+            $userId,
+            [
+                'last_login_at' =>
+                date(
+                    'Y-m-d H:i:s'
+                ),
+            ]
+        );
     }
 }

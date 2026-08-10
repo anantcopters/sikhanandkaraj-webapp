@@ -427,8 +427,8 @@ final class OtpLoginService
             }
 
             /*
-             * No other pending LOGIN OTP may remain usable for the contact.
-             */
+            * No other pending LOGIN OTP may remain usable for the contact.
+            */
             $this->verificationModel
                 ->cancelPendingForContact(
                     $mobileContactId,
@@ -436,7 +436,37 @@ final class OtpLoginService
                     ::PURPOSE_LOGIN
                 );
 
+            /*
+            * Complete the OTP authentication transaction first.
+            *
+            * last_login_at is operational metadata and must not be allowed to roll back
+            * an otherwise successfully verified OTP.
+            */
             $this->commitOrFail();
+
+            /*
+            * Authentication has now succeeded.
+            *
+            * Record the activity outside the OTP transaction. Failure to update this
+            * auxiliary timestamp must not invalidate the successful OTP authentication.
+            */
+            $loginRecorded =
+                $this->userModel
+                ->recordSuccessfulLogin(
+                    $userId
+                );
+
+            if (!$loginRecorded) {
+                log_message(
+                    'warning',
+                    'Successful OTP login activity could not be recorded. '
+                        . 'Member: {memberId}.',
+                    [
+                        'memberId' =>
+                        $userId,
+                    ]
+                );
+            }
 
             return OtpLoginResult::authenticated(
                 $context['user']

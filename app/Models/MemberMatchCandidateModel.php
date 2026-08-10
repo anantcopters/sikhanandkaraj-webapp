@@ -161,6 +161,454 @@ final class MemberMatchCandidateModel extends Model
     }
 
     /**
+     * Search eligible matchmaking candidates.
+     *
+     * All member eligibility and blocking rules remain centralized through
+     * baseCandidateBuilder().
+     *
+     * @param array<string, mixed> $filters
+     *
+     * @return array{
+     *     rows:list<array<string, mixed>>,
+     *     total:int
+     * }
+     */
+    public function searchCandidates(
+        int $viewerUserId,
+        string $viewerGender,
+        array $filters,
+        int $page,
+        int $perPage,
+        string $sort
+    ): array {
+        if ($viewerUserId <= 0) {
+            return [
+                'rows' => [],
+                'total' => 0,
+            ];
+        }
+
+        $page = max(1, $page);
+        $perPage = max(1, min(50, $perPage));
+
+        $builder = $this->baseCandidateBuilder(
+            $viewerUserId,
+            $viewerGender
+        );
+
+        /*
+     * Search-result presentation fields.
+     */
+        $builder->select([
+            'state.name AS state_name',
+            'height.height_cm',
+            'height.display_name AS height_name',
+            'marital.name AS marital_status_name',
+        ]);
+
+        $builder->join(
+            'master_states state',
+            'state.id = bd.state_id',
+            'left'
+        );
+
+        $builder->join(
+            'master_heights height',
+            'height.id = bd.height_id',
+            'left'
+        );
+
+        $builder->join(
+            'master_marital_statuses marital',
+            'marital.id = bd.marital_status_id',
+            'left'
+        );
+
+        /*
+     * Age.
+     *
+     * age_min means the candidate must be at least that old.
+     */
+        $ageMin = $filters['age_min'] ?? null;
+
+        if (is_int($ageMin) && $ageMin >= 18) {
+            $builder->where(
+                'bd.date_of_birth <=',
+                date(
+                    'Y-m-d',
+                    strtotime(
+                        '-' . $ageMin . ' years'
+                    )
+                )
+            );
+        }
+
+        /*
+     * Maximum age.
+     *
+     * Example: maximum 30 means DOB must be later than the date representing
+     * someone who has already completed 31 years.
+     */
+        $ageMax = $filters['age_max'] ?? null;
+
+        if (is_int($ageMax) && $ageMax >= 18) {
+            $builder->where(
+                'bd.date_of_birth >',
+                date(
+                    'Y-m-d',
+                    strtotime(
+                        '-'
+                            . ($ageMax + 1)
+                            . ' years'
+                    )
+                )
+            );
+        }
+
+        /*
+     * Height range is resolved to centimetres by the service.
+     */
+        if (
+            isset($filters['height_min_cm'])
+            && is_int($filters['height_min_cm'])
+        ) {
+            $builder->where(
+                'height.height_cm >=',
+                $filters['height_min_cm']
+            );
+        }
+
+        if (
+            isset($filters['height_max_cm'])
+            && is_int($filters['height_max_cm'])
+        ) {
+            $builder->where(
+                'height.height_cm <=',
+                $filters['height_max_cm']
+            );
+        }
+
+        $this->applyIntegerArrayFilter(
+            $builder,
+            'bd.marital_status_id',
+            $filters['marital_status_ids'] ?? []
+        );
+
+        $this->applyIntegerArrayFilter(
+            $builder,
+            'bd.state_id',
+            $filters['state_ids'] ?? []
+        );
+
+        /*
+     * Advanced-only filters.
+     */
+        if (
+            ($filters['mode'] ?? 'basic')
+            === 'advanced'
+        ) {
+            $this->applyIntegerArrayFilter(
+                $builder,
+                'bd.city_id',
+                $filters['city_ids'] ?? []
+            );
+
+            $this->applyIntegerArrayFilter(
+                $builder,
+                'fd.community_id',
+                $filters['community_ids'] ?? []
+            );
+
+            $this->applyStringArrayFilter(
+                $builder,
+                'u.profile_created_for',
+                $filters['managed_by'] ?? []
+            );
+
+            $this->applyIntegerArrayFilter(
+                $builder,
+                'ep.highest_education_id',
+                $filters['education_ids'] ?? []
+            );
+
+            $this->applyIntegerArrayFilter(
+                $builder,
+                'ep.occupation_id',
+                $filters['occupation_ids'] ?? []
+            );
+
+            $this->applyStringArrayFilter(
+                $builder,
+                'ep.employed_in',
+                $filters['employed_in'] ?? []
+            );
+
+            /*
+         * Annual income uses the existing master range IDs.
+         *
+         * When both endpoints are selected the service expands them to the
+         * master IDs that fall inside that range.
+         */
+            $this->applyIntegerArrayFilter(
+                $builder,
+                'ep.annual_income_id',
+                $filters['annual_income_ids'] ?? []
+            );
+
+            $lifestyleIds =
+                $filters['lifestyle_option_ids']
+                ?? [];
+
+            if (
+                is_array($lifestyleIds)
+                && $lifestyleIds !== []
+            ) {
+                /*
+             * Match profiles having ALL selected lifestyle options.
+             */
+                $normalizedLifestyleIds =
+                    array_values(
+                        array_unique(
+                            array_map(
+                                'intval',
+                                $lifestyleIds
+                            )
+                        )
+                    );
+
+                $builder->where(
+                    'u.id IN (
+                    SELECT mlo.user_id
+                    FROM member_lifestyle_options mlo
+                    WHERE mlo.lifestyle_option_id IN ('
+                        . implode(
+                            ',',
+                            $normalizedLifestyleIds
+                        )
+                        . ')
+                    GROUP BY mlo.user_id
+                    HAVING COUNT(
+                        DISTINCT mlo.lifestyle_option_id
+                    ) = '
+                        . count(
+                            $normalizedLifestyleIds
+                        )
+                        . '
+                )',
+                    null,
+                    false
+                );
+            }
+        }
+
+        /*
+        * Photo settings.
+        *
+        * Only approved primary photos participate in this filter.
+        */
+        $photoVisibility =
+            $filters['photo_visibility']
+            ?? [];
+
+        if (
+            is_array($photoVisibility)
+            && $photoVisibility !== []
+        ) {
+            $photoBuilder = $this->db
+                ->table('member_photos mp')
+                ->select('1')
+                ->where(
+                    'mp.member_id = u.id',
+                    null,
+                    false
+                )
+                ->where(
+                    'mp.status',
+                    'APPROVED'
+                )
+                ->where(
+                    'mp.is_primary',
+                    true
+                )
+                ->where(
+                    'mp.deleted_at',
+                    null
+                )
+                ->whereIn(
+                    'mp.visibility',
+                    $photoVisibility
+                );
+
+            $builder->where(
+                'EXISTS ('
+                    . $photoBuilder->getCompiledSelect()
+                    . ')',
+                null,
+                false
+            );
+        }
+
+        /*
+        * Count before pagination.
+        */
+        $countBuilder = clone $builder;
+
+        $total = (int) $countBuilder
+            ->countAllResults();
+
+        $this->applySearchSorting(
+            $builder,
+            $sort
+        );
+
+        $offset =
+            ($page - 1)
+            * $perPage;
+
+        $rows = $builder
+            ->limit(
+                $perPage,
+                $offset
+            )
+            ->get()
+            ->getResultArray();
+
+        return [
+            'rows' =>
+            array_values($rows),
+
+            'total' =>
+            $total,
+        ];
+    }
+
+    /**
+     * @param list<int> $values
+     */
+    private function applyIntegerArrayFilter(
+        BaseBuilder $builder,
+        string $column,
+        array $values
+    ): void {
+        $values = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $values
+                    ),
+                    static fn(int $value): bool =>
+                    $value > 0
+                )
+            )
+        );
+
+        if ($values === []) {
+            return;
+        }
+
+        $builder->whereIn(
+            $column,
+            $values
+        );
+    }
+
+    /**
+     * @param list<string> $values
+     */
+    private function applyStringArrayFilter(
+        BaseBuilder $builder,
+        string $column,
+        array $values
+    ): void {
+        $values = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        static fn(mixed $value): string =>
+                        trim(
+                            (string) $value
+                        ),
+                        $values
+                    ),
+                    static fn(string $value): bool =>
+                    $value !== ''
+                )
+            )
+        );
+
+        if ($values === []) {
+            return;
+        }
+
+        $builder->whereIn(
+            $column,
+            $values
+        );
+    }
+
+    private function applySearchSorting(
+        BaseBuilder $builder,
+        string $sort
+    ): void {
+        switch ($sort) {
+            case 'oldest':
+                $builder
+                    ->orderBy(
+                        'u.created_at',
+                        'ASC'
+                    )
+                    ->orderBy(
+                        'u.id',
+                        'ASC'
+                    );
+                break;
+
+            case 'last_login':
+                $builder
+                    ->orderBy(
+                        'u.last_login_at',
+                        'DESC',
+                        false
+                    )
+                    ->orderBy(
+                        'u.id',
+                        'DESC'
+                    );
+                break;
+
+            case 'latest':
+                $builder
+                    ->orderBy(
+                        'u.created_at',
+                        'DESC'
+                    )
+                    ->orderBy(
+                        'u.id',
+                        'DESC'
+                    );
+                break;
+
+            default:
+                /*
+             * Default remains deterministic.
+             *
+             * Later this can become relevance/match scoring.
+             */
+                $builder
+                    ->orderBy(
+                        'u.created_at',
+                        'DESC'
+                    )
+                    ->orderBy(
+                        'u.id',
+                        'DESC'
+                    );
+                break;
+        }
+    }
+
+    /**
      * Build the common member-discovery query.
      *
      * @return BaseBuilder
