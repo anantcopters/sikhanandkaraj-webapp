@@ -1624,6 +1624,9 @@ final class Services extends BaseService
         );
     }
 
+    /**
+     * Return the authenticated member Search service.
+     */
     public static function memberSearchService(
         bool $getShared = true
     ): MemberSearchService {
@@ -1633,7 +1636,8 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new MemberSearchService(
             new UserModel(
@@ -1644,8 +1648,13 @@ final class Services extends BaseService
                 $database
             ),
 
-            new MemberInterestModel(
-                $database
+            /*
+            * Reuse the existing member-interaction authority for Interest state.
+            *
+            * Search must not independently interpret member_interests.
+            */
+            static::memberInteractionService(
+                false
             ),
 
             static::memberPhotoUrlService(

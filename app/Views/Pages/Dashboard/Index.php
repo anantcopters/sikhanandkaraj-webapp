@@ -980,9 +980,17 @@ $matchSections = [
                     ) ?? 'profiles';
                     ?>
 
+                    <!--
+    Stable section ID allows existing Dashboard collections to be opened
+    directly from member Quick Links without creating duplicate routes.
+-->
                     <section
+                        id="<?= esc(
+                                $sectionKey,
+                                'attr'
+                            ) ?>"
                         class="card border border-danger
-            border-opacity-25 shadow-sm mb-4">
+        border-opacity-25 shadow-sm mb-4">
 
                         <div class="card-body p-4">
 

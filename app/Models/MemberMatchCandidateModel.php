@@ -810,4 +810,77 @@ final class MemberMatchCandidateModel extends Model
 
         return $builder;
     }
+
+    /**
+     * Return the authenticated member's saved location identifiers.
+     *
+     * Search Quick Links use these values for "same State" and "same City".
+     *
+     * This method returns identifiers only and does not create another location
+     * source outside member_basic_details.
+     *
+     * @return array{
+     *     state_id:int,
+     *     city_id:int
+     * }
+     */
+    public function memberLocationForUser(
+        int $userId
+    ): array {
+        if ($userId <= 0) {
+            return [
+                'state_id' =>
+                0,
+
+                'city_id' =>
+                0,
+            ];
+        }
+
+        $row =
+            $this->db
+            ->table(
+                'member_basic_details'
+            )
+            ->select([
+                'state_id',
+                'city_id',
+            ])
+            ->where(
+                'user_id',
+                $userId
+            )
+            ->get()
+            ->getRowArray();
+
+        if (!is_array($row)) {
+            return [
+                'state_id' =>
+                0,
+
+                'city_id' =>
+                0,
+            ];
+        }
+
+        return [
+            'state_id' =>
+            max(
+                0,
+                (int) (
+                    $row['state_id']
+                    ?? 0
+                )
+            ),
+
+            'city_id' =>
+            max(
+                0,
+                (int) (
+                    $row['city_id']
+                    ?? 0
+                )
+            ),
+        ];
+    }
 }

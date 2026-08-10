@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use CodeIgniter\Pager\Pager;
+
 /**
  * Search-results UI variables.
  *
@@ -11,23 +13,26 @@ declare(strict_types=1);
  * @var int                        $page
  * @var int                        $perPage
  * @var int                        $total
- * @var int                        $totalPages
  * @var list<array<string, mixed>> $profiles
  * @var list<string>               $searchChips
  * @var array<string, mixed>       $filters
+ * @var list<array<string, mixed>> $quickLinkGroups
  * @var string                     $backToSearchUrl
  * @var array<string, string>|null $formAlert
+ * @var Pager                      $pager
+ * @var string                     $pagerGroup
  */
 
 /*
  * --------------------------------------------------------------------------
- * Normalize view-local values
+ * Normalize view-local variables
  * --------------------------------------------------------------------------
  */
 
 $pageTitle =
     isset($pageTitle)
     && is_string($pageTitle)
+    && trim($pageTitle) !== ''
     ? trim($pageTitle)
     : 'Search Results';
 
@@ -52,6 +57,15 @@ $page =
     )
     : 1;
 
+$perPage =
+    isset($perPage)
+    && is_numeric($perPage)
+    ? max(
+        1,
+        (int) $perPage
+    )
+    : 10;
+
 $total =
     isset($total)
     && is_numeric($total)
@@ -60,15 +74,6 @@ $total =
         (int) $total
     )
     : 0;
-
-$totalPages =
-    isset($totalPages)
-    && is_numeric($totalPages)
-    ? max(
-        1,
-        (int) $totalPages
-    )
-    : 1;
 
 $profiles =
     isset($profiles)
@@ -95,6 +100,14 @@ $filters =
     ? $filters
     : [];
 
+$quickLinkGroups =
+    isset($quickLinkGroups)
+    && is_array($quickLinkGroups)
+    ? array_values(
+        $quickLinkGroups
+    )
+    : [];
+
 $backToSearchUrl =
     isset($backToSearchUrl)
     && is_string($backToSearchUrl)
@@ -110,17 +123,23 @@ $formAlert =
     ? $formAlert
     : null;
 
+$pagerGroup =
+    isset($pagerGroup)
+    && is_string($pagerGroup)
+    && trim($pagerGroup) !== ''
+    ? trim($pagerGroup)
+    : 'default';
+
 /*
- * Build result URL parameters only from normalized Search state.
+ * Sorting preserves the current normalized criteria.
  */
-$resultQuery =
+$sortingFilters =
     $filters;
 
-$resultQuery['mode'] =
-    $mode;
-
-$resultQuery['sort'] =
-    $sort;
+unset(
+    $sortingFilters['sort'],
+    $sortingFilters['page']
+);
 
 $this->extend(
     'Layouts/Main'
@@ -152,18 +171,23 @@ $this->section(
 
         <div
             class="d-flex flex-column
-                flex-md-row align-items-md-center
-                justify-content-between gap-3 mb-3">
+                flex-md-row
+                align-items-md-center
+                justify-content-between
+                gap-3 mb-3">
 
             <div>
+
                 <a
                     href="<?= esc(
                                 $backToSearchUrl,
                                 'attr'
                             ) ?>"
                     class="d-inline-flex
-                        align-items-center gap-1
-                        text-primary fw-medium mb-2">
+                        align-items-center
+                        gap-1
+                        text-primary
+                        fw-medium mb-2">
 
                     <i
                         class="ri-arrow-left-line"
@@ -171,6 +195,7 @@ $this->section(
                     </i>
 
                     Back to Search
+
                 </a>
 
                 <h1
@@ -179,16 +204,21 @@ $this->section(
                     Search Results
                 </h1>
 
-                <p class="text-success fw-medium fs-14 mb-0">
+                <p
+                    class="text-success
+                        fw-medium fs-14 mb-0">
+
                     <?= esc(
                         (string) $total
                     ) ?>
                     matching profiles
+
                 </p>
+
             </div>
 
             <!-- =========================================================
-                 Choices sorting
+                 Sort
                  ========================================================= -->
 
             <form
@@ -196,19 +226,13 @@ $this->section(
                             'web.search.results'
                         ) ?>"
                 method="get"
-                class="d-flex align-items-center gap-2">
+                class="d-flex
+                    align-items-center gap-2">
 
                 <?php foreach (
-                    $filters
+                    $sortingFilters
                     as $key => $value
                 ): ?>
-
-                    <?php if (
-                        $key === 'sort'
-                        || $key === 'page'
-                    ) {
-                        continue;
-                    } ?>
 
                     <?php if (
                         is_array($value)
@@ -226,8 +250,7 @@ $this->section(
                                             'attr'
                                         ) ?>"
                                 value="<?= esc(
-                                            (string)
-                                            $item,
+                                            (string) $item,
                                             'attr'
                                         ) ?>">
 
@@ -246,8 +269,7 @@ $this->section(
                                         'attr'
                                     ) ?>"
                             value="<?= esc(
-                                        (string)
-                                        $value,
+                                        (string) $value,
                                         'attr'
                                     ) ?>">
 
@@ -302,10 +324,11 @@ $this->section(
                 </select>
 
             </form>
+
         </div>
 
         <!-- =============================================================
-             Active Search criteria chips
+             Active Search chips
              ============================================================= -->
 
         <?php if (
@@ -314,10 +337,12 @@ $this->section(
 
             <div
                 class="d-flex flex-wrap
-                    align-items-center gap-2 mb-3">
+                    align-items-center
+                    gap-2 mb-3">
 
                 <span
-                    class="text-muted fs-13 fw-medium">
+                    class="text-muted
+                        fs-13 fw-medium">
 
                     Your search:
                 </span>
@@ -328,7 +353,8 @@ $this->section(
                 ): ?>
 
                     <span
-                        class="badge rounded-pill
+                        class="badge
+                            rounded-pill
                             bg-primary-subtle
                             text-primary p-2">
 
@@ -345,7 +371,8 @@ $this->section(
                                 $backToSearchUrl,
                                 'attr'
                             ) ?>"
-                    class="btn btn-outline-danger
+                    class="btn
+                        btn-outline-danger
                         d-inline-flex
                         align-items-center
                         justify-content-center
@@ -357,22 +384,22 @@ $this->section(
                     </i>
 
                     Modify
+
                 </a>
-
-
-
 
             </div>
 
         <?php endif; ?>
 
         <!-- =============================================================
-             Result / Quick Search layout
+             Quick Links / Search Results
              ============================================================= -->
 
         <div class="row g-4">
 
-            <!-- Future Quick Search panel -->
+            <!-- =========================================================
+                 Quick Links
+                 ========================================================= -->
 
             <aside class="col-12 col-lg-3">
 
@@ -382,40 +409,287 @@ $this->section(
 
                     <div class="card-body p-4">
 
-                        <div class="avatar-sm mb-3">
-                            <span
-                                class="avatar-title
-                                    rounded-circle
-                                    bg-primary-subtle
-                                    text-primary">
+                        <div
+                            class="d-flex
+                                align-items-center
+                                gap-2 mb-4">
 
-                                <i
-                                    class="ri-flashlight-line fs-20"
-                                    aria-hidden="true">
-                                </i>
+                            <span
+                                class="avatar-sm flex-shrink-0">
+
+                                <span
+                                    class="avatar-title
+                                        rounded-circle
+                                        bg-primary-subtle
+                                        text-primary">
+
+                                    <i
+                                        class="ri-flashlight-line
+                                            fs-20"
+                                        aria-hidden="true">
+                                    </i>
+
+                                </span>
 
                             </span>
+
+                            <div>
+
+                                <h2
+                                    class="fs-16
+                                        fw-semibold mb-1">
+
+                                    Quick Links
+                                </h2>
+
+                                <p
+                                    class="text-muted
+                                        fs-12 mb-0">
+
+                                    Explore profiles using
+                                    your activity and profile.
+                                </p>
+
+                            </div>
+
                         </div>
 
-                        <h2
-                            class="fs-16 fw-semibold mb-2">
+                        <?php foreach (
+                            $quickLinkGroups
+                            as $groupIndex => $group
+                        ): ?>
 
-                            Quick Search
-                        </h2>
+                            <?php
+                            if (!is_array($group)) {
+                                continue;
+                            }
 
-                        <p
-                            class="text-muted fs-13 mb-0">
+                            $groupTitle =
+                                trim(
+                                    (string) (
+                                        $group['title']
+                                        ?? ''
+                                    )
+                                );
 
-                            Quick search options
-                            will be available here soon.
-                        </p>
+                            $groupItems =
+                                isset(
+                                    $group['items']
+                                )
+                                && is_array(
+                                    $group['items']
+                                )
+                                ? array_values(
+                                    $group['items']
+                                )
+                                : [];
+
+                            if (
+                                $groupTitle === ''
+                                || $groupItems === []
+                            ) {
+                                continue;
+                            }
+                            ?>
+
+                            <?php if (
+                                $groupIndex > 0
+                            ): ?>
+
+                                <hr class="my-4">
+
+                            <?php endif; ?>
+
+                            <h3
+                                class="fs-13
+                                    fw-semibold mb-3">
+
+                                <?= esc(
+                                    $groupTitle
+                                ) ?>
+
+                            </h3>
+
+                            <div
+                                class="d-flex
+                                    flex-column gap-3">
+
+                                <?php foreach (
+                                    $groupItems
+                                    as $item
+                                ): ?>
+
+                                    <?php
+                                    if (!is_array($item)) {
+                                        continue;
+                                    }
+
+                                    $label =
+                                        trim(
+                                            (string) (
+                                                $item['label']
+                                                ?? ''
+                                            )
+                                        );
+
+                                    $help =
+                                        trim(
+                                            (string) (
+                                                $item['help']
+                                                ?? ''
+                                            )
+                                        );
+
+                                    $icon =
+                                        trim(
+                                            (string) (
+                                                $item['icon']
+                                                ?? 'ri-arrow-right-line'
+                                            )
+                                        );
+
+                                    $url =
+                                        trim(
+                                            (string) (
+                                                $item['url']
+                                                ?? ''
+                                            )
+                                        );
+
+                                    $available =
+                                        (
+                                            $item['available']
+                                            ?? false
+                                        ) === true;
+                                    ?>
+
+                                    <?php if (
+                                        $available
+                                        && $url !== ''
+                                    ): ?>
+
+                                        <a
+                                            href="<?= esc(
+                                                        $url,
+                                                        'attr'
+                                                    ) ?>"
+                                            class="d-flex
+                                                align-items-start
+                                                gap-2
+                                                text-decoration-none">
+
+                                            <i
+                                                class="<?= esc(
+                                                            $icon,
+                                                            'attr'
+                                                        ) ?>
+                                                    fs-18
+                                                    text-primary
+                                                    flex-shrink-0"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            <span>
+
+                                                <span
+                                                    class="d-block
+                                                        text-body
+                                                        fs-13
+                                                        fw-medium">
+
+                                                    <?= esc(
+                                                        $label
+                                                    ) ?>
+
+                                                </span>
+
+                                                <?php if (
+                                                    $help !== ''
+                                                ): ?>
+
+                                                    <span
+                                                        class="d-block
+                                                            text-muted
+                                                            fs-12">
+
+                                                        <?= esc(
+                                                            $help
+                                                        ) ?>
+
+                                                    </span>
+
+                                                <?php endif; ?>
+
+                                            </span>
+
+                                        </a>
+
+                                    <?php else: ?>
+
+                                        <div
+                                            class="d-flex
+                                                align-items-start
+                                                gap-2 text-muted">
+
+                                            <i
+                                                class="<?= esc(
+                                                            $icon,
+                                                            'attr'
+                                                        ) ?>
+                                                    fs-18
+                                                    flex-shrink-0"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            <span>
+
+                                                <span
+                                                    class="d-block
+                                                        fs-13
+                                                        fw-medium">
+
+                                                    <?= esc(
+                                                        $label
+                                                    ) ?>
+
+                                                </span>
+
+                                                <?php if (
+                                                    $help !== ''
+                                                ): ?>
+
+                                                    <span
+                                                        class="d-block
+                                                            fs-12">
+
+                                                        <?= esc(
+                                                            $help
+                                                        ) ?>
+
+                                                    </span>
+
+                                                <?php endif; ?>
+
+                                            </span>
+
+                                        </div>
+
+                                    <?php endif; ?>
+
+                                <?php endforeach; ?>
+
+                            </div>
+
+                        <?php endforeach; ?>
 
                     </div>
                 </div>
 
             </aside>
 
-            <!-- Profile results -->
+            <!-- =========================================================
+                 Profiles
+                 ========================================================= -->
 
             <div class="col-12 col-lg-9">
 
@@ -423,14 +697,13 @@ $this->section(
                     $profiles === []
                 ): ?>
 
-                    <!-- Empty Search result -->
-
                     <div
                         class="card border border-danger
                             border-opacity-25 shadow-sm">
 
                         <div
-                            class="card-body p-5 text-center">
+                            class="card-body
+                                p-5 text-center">
 
                             <i
                                 class="ri-search-eye-line
@@ -439,7 +712,9 @@ $this->section(
                             </i>
 
                             <h2
-                                class="fs-18 fw-semibold mt-3 mb-2">
+                                class="fs-18
+                                    fw-semibold
+                                    mt-3 mb-2">
 
                                 No profiles found
                             </h2>
@@ -456,9 +731,11 @@ $this->section(
                                             $backToSearchUrl,
                                             'attr'
                                         ) ?>"
-                                class="btn btn-outline-primary">
+                                class="btn
+                                    btn-outline-primary">
 
                                 Modify Search
+
                             </a>
 
                         </div>
@@ -466,7 +743,7 @@ $this->section(
 
                 <?php else: ?>
 
-                    <!-- Two profiles per desktop row -->
+                    <!-- Two profile cards per XL desktop row. -->
 
                     <div class="row g-3">
 
@@ -483,6 +760,10 @@ $this->section(
                                     [
                                         'profile' =>
                                         $profile,
+                                    ],
+                                    [
+                                        'saveData' =>
+                                        false,
                                     ]
                                 ) ?>
 
@@ -493,78 +774,41 @@ $this->section(
                     </div>
 
                     <!-- =================================================
-                         Pagination
+                         Shared application pagination
                          ================================================= -->
 
-                    <?php if (
-                        $totalPages > 1
-                    ): ?>
+                    <div class="mt-4">
 
-                        <nav
-                            class="mt-4"
-                            aria-label="Search result pages">
+                        <?= view(
+                            'Components/Pagination',
+                            [
+                                'pager' =>
+                                $pager,
 
-                            <ul
-                                class="pagination
-                                    justify-content-center
-                                    flex-wrap mb-0">
+                                'group' =>
+                                $pagerGroup,
 
-                                <?php for (
-                                    $pageNumber = 1;
-                                    $pageNumber <= $totalPages;
-                                    ++$pageNumber
-                                ): ?>
+                                'perPage' =>
+                                $perPage,
 
-                                    <?php
-                                    $pageQuery =
-                                        $resultQuery;
+                                'itemLabel' =>
+                                'profiles',
 
-                                    $pageQuery['page'] =
-                                        $pageNumber;
+                                'surroundCount' =>
+                                2,
+                            ],
+                            [
+                                'saveData' =>
+                                false,
+                            ]
+                        ) ?>
 
-                                    $pageUrl =
-                                        route_to(
-                                            'web.search.results'
-                                        )
-                                        . '?'
-                                        . http_build_query(
-                                            $pageQuery
-                                        );
-                                    ?>
-
-                                    <li
-                                        class="page-item
-                                            <?= $pageNumber === $page
-                                                ? 'active'
-                                                : '' ?>">
-
-                                        <a
-                                            href="<?= esc(
-                                                        $pageUrl,
-                                                        'attr'
-                                                    ) ?>"
-                                            class="page-link">
-
-                                            <?= esc(
-                                                (string)
-                                                $pageNumber
-                                            ) ?>
-
-                                        </a>
-
-                                    </li>
-
-                                <?php endfor; ?>
-
-                            </ul>
-
-                        </nav>
-
-                    <?php endif; ?>
+                    </div>
 
                 <?php endif; ?>
 
             </div>
+
         </div>
 
     </div>

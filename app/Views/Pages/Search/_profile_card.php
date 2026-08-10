@@ -10,27 +10,12 @@ declare(strict_types=1);
 
 /*
  * --------------------------------------------------------------------------
- * Normalize view-local profile values
+ * Normalize view-local profile variables
  * --------------------------------------------------------------------------
  *
- * Only presentation normalization belongs here. Eligibility, privacy,
- * blocking and photo authorization have already been resolved by the
- * Search service.
+ * Eligibility, blocking, privacy, Interest state and photo authorization are
+ * already resolved before reaching this view.
  */
-
-/**
- * Search profile-card UI variables.
- *
- * @var array<string, mixed> $profile
- */
-
-$activity =
-    trim(
-        (string) (
-            $profile['activity']
-            ?? ''
-        )
-    );
 
 $profile =
     isset($profile)
@@ -47,7 +32,8 @@ $name =
     );
 
 if ($name === '') {
-    $name = 'Member';
+    $name =
+        'Member';
 }
 
 $reference =
@@ -75,8 +61,17 @@ $profileUrl =
     );
 
 if ($profileUrl === '') {
-    $profileUrl = '#';
+    $profileUrl =
+        '#';
 }
+
+$interestUrl =
+    trim(
+        (string) (
+            $profile['interestUrl']
+            ?? ''
+        )
+    );
 
 $age =
     is_numeric(
@@ -121,14 +116,48 @@ $maritalStatus =
         )
     );
 
+$activity =
+    trim(
+        (string) (
+            $profile['activity']
+            ?? ''
+        )
+    );
+
+$interestRelationship =
+    isset(
+        $profile['interestRelationship']
+    )
+    && is_array(
+        $profile['interestRelationship']
+    )
+    ? $profile['interestRelationship']
+    : [];
+
+$interestState =
+    strtoupper(
+        trim(
+            (string) (
+                $interestRelationship['state']
+                ?? 'NONE'
+            )
+        )
+    );
+
+$canShowInterest =
+    (
+        $interestRelationship['canShowInterest']
+        ?? false
+    ) === true;
+
 $location =
     $city !== ''
     ? $city
     : $state;
 
 /*
- * Use the same fallback-initial approach already used by member-facing
- * discovery cards when no viewer-authorized photo URL is available.
+ * The fallback does not reveal whether a photo is absent or simply not
+ * authorized for this viewer.
  */
 $initial =
     mb_strtoupper(
@@ -138,6 +167,25 @@ $initial =
             1
         )
     );
+
+/*
+ * Relationship status is intentionally coarse.
+ */
+$relationshipLabel =
+    match ($interestState) {
+        'PENDING_SENT' =>
+        'Interest Sent',
+
+        'PENDING_RECEIVED' =>
+        'Interest Received',
+
+        'ACCEPTED_SENT',
+        'ACCEPTED_RECEIVED' =>
+        'Interest Accepted',
+
+        default =>
+        '',
+    };
 ?>
 
 <article
@@ -162,9 +210,10 @@ $initial =
                 class="text-decoration-none
                     flex-shrink-0">
 
-                <?php if ($image !== ''): ?>
+                <?php if (
+                    $image !== ''
+                ): ?>
 
-                    <!-- Viewer-authorized approved primary photo. -->
                     <div
                         class="member-profile-thumbnail">
 
@@ -183,10 +232,6 @@ $initial =
 
                 <?php else: ?>
 
-                    <!--
-                        Photo is absent or not authorized for the viewer.
-                        Do not distinguish those privacy states in the UI.
-                    -->
                     <div
                         class="member-profile-thumbnail
                             member-profile-thumbnail--fallback"
@@ -213,51 +258,79 @@ $initial =
 
             <div class="flex-grow-1">
 
-                <h3
-                    class="fs-18 fw-semibold mb-1">
+                <div
+                    class="d-flex align-items-start
+                        justify-content-between gap-2">
 
-                    <a
-                        href="<?= esc(
-                                    $profileUrl,
-                                    'attr'
-                                ) ?>"
-                        class="text-body
-                            text-decoration-none">
+                    <div>
 
-                        <?= esc(
-                            $name
-                        ) ?>
+                        <h3
+                            class="fs-18 fw-semibold mb-1">
 
-                    </a>
+                            <a
+                                href="<?= esc(
+                                            $profileUrl,
+                                            'attr'
+                                        ) ?>"
+                                class="text-body
+                                    text-decoration-none">
 
-                </h3>
+                                <?= esc(
+                                    $name
+                                ) ?>
 
-                <?php if (
-                    $reference !== ''
-                ): ?>
+                            </a>
 
-                    <div
-                        class="text-muted
-                            fs-13 mb-2">
+                        </h3>
 
-                        <?= esc(
-                            $reference
-                        ) ?>
+                        <?php if (
+                            $reference !== ''
+                        ): ?>
+
+                            <div
+                                class="text-muted fs-13 mb-2">
+
+                                <?= esc(
+                                    $reference
+                                ) ?>
+
+                            </div>
+
+                        <?php endif; ?>
 
                     </div>
 
-                <?php endif; ?>
+                    <?php if (
+                        $relationshipLabel !== ''
+                    ): ?>
+
+                        <span
+                            class="badge bg-light
+                                text-body border
+                                flex-shrink-0">
+
+                            <?= esc(
+                                $relationshipLabel
+                            ) ?>
+
+                        </span>
+
+                    <?php endif; ?>
+
+                </div>
+
+                <!-- =====================================================
+                     Privacy-safe activity
+                     ===================================================== -->
 
                 <?php if (
                     $activity !== ''
                 ): ?>
 
-                    <!--
-                        Exact login timestamp is intentionally never exposed.
-                    -->
                     <div
                         class="d-flex align-items-center
-            gap-1 fs-12 text-success mb-2">
+                            gap-1 fs-12
+                            text-success mb-2">
 
                         <i
                             class="ri-checkbox-blank-circle-fill"
@@ -338,8 +411,7 @@ $initial =
                     $maritalStatus !== ''
                 ): ?>
 
-                    <p
-                        class="fs-13 mb-3">
+                    <p class="fs-13 mb-3">
 
                         <?= esc(
                             $maritalStatus
@@ -350,25 +422,100 @@ $initial =
                 <?php endif; ?>
 
                 <!-- =====================================================
-                     Profile action
+                     Profile actions
                      ===================================================== -->
 
-                <a
-                    href="<?= esc(
-                                $profileUrl,
-                                'attr'
-                            ) ?>"
-                    class="btn btn-outline-primary
-                        btn-sm">
+                <div
+                    class="d-flex flex-wrap
+                        align-items-center gap-2">
 
-                    View Profile
+                    <a
+                        href="<?= esc(
+                                    $profileUrl,
+                                    'attr'
+                                ) ?>"
+                        class="btn btn-outline-primary
+                            btn-sm
+                            d-inline-flex
+                            align-items-center
+                            justify-content-center
+                            gap-1">
 
-                    <i
-                        class="ri-arrow-right-line ms-1"
-                        aria-hidden="true">
-                    </i>
+                        <i
+                            class="ri-eye-line"
+                            aria-hidden="true">
+                        </i>
 
-                </a>
+                        View Profile
+
+                    </a>
+
+                    <?php if (
+                        $canShowInterest
+                        && $interestUrl !== ''
+                    ): ?>
+
+                        <!--
+                            Use exactly the Profile View Interest route and
+                            existing loader JavaScript.
+                        -->
+                        <form
+                            method="post"
+                            action="<?= esc(
+                                        $interestUrl,
+                                        'attr'
+                                    ) ?>"
+                            data-member-interest-form>
+
+                            <?= csrf_field() ?>
+
+                            <button
+                                type="submit"
+                                class="btn btn-danger
+                                    btn-sm
+                                    d-inline-flex
+                                    align-items-center
+                                    justify-content-center
+                                    gap-2">
+
+                                <span
+                                    class="d-inline-flex
+                                        align-items-center
+                                        gap-1"
+                                    data-member-interest-label>
+
+                                    <i
+                                        class="ri-heart-add-line"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    Show Interest
+
+                                </span>
+
+                                <span
+                                    class="d-none
+                                        align-items-center
+                                        gap-2"
+                                    data-member-interest-loading>
+
+                                    <span
+                                        class="spinner-border
+                                            spinner-border-sm"
+                                        aria-hidden="true">
+                                    </span>
+
+                                    Sending...
+
+                                </span>
+
+                            </button>
+
+                        </form>
+
+                    <?php endif; ?>
+
+                </div>
 
             </div>
         </div>

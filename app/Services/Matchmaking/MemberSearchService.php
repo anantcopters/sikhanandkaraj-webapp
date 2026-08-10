@@ -203,6 +203,16 @@ final class MemberSearchService
                 $masterData
             );
 
+        /*
+        * Quick Links reuse existing member activity and Search flows.
+        *
+        * No new persistence or matchmaking implementation is introduced.
+        */
+        $quickLinkGroups =
+            $this->quickLinkGroups(
+                $viewerUserId
+            );
+
         return [
             'mode' =>
             $mode,
@@ -239,6 +249,9 @@ final class MemberSearchService
 
             'searchChips' =>
             $chips,
+
+            'quickLinkGroups' =>
+            $quickLinkGroups,
         ];
     }
 
@@ -914,6 +927,12 @@ final class MemberSearchService
     }
 
     /**
+     * Convert eligible Search candidate rows into the presentation contract
+     * consumed by Search result cards.
+     *
+     * Interest state deliberately comes from MemberInteractionService so Search
+     * and Profile View cannot drift into different relationship behaviour.
+     *
      * @param list<array<string, mixed>> $rows
      *
      * @return list<array<string, mixed>>
@@ -929,36 +948,59 @@ final class MemberSearchService
                 continue;
             }
 
-            $memberId = max(
-                0,
-                (int) (
-                    $row['id']
-                    ?? 0
-                )
-            );
+            $memberId =
+                max(
+                    0,
+                    (int) (
+                        $row['id']
+                        ?? 0
+                    )
+                );
 
             if ($memberId <= 0) {
                 continue;
             }
 
-            $reference = trim(
-                (string) (
-                    $row['profile_ref_number']
-                    ?? ''
-                )
-            );
+            $reference =
+                trim(
+                    (string) (
+                        $row['profile_ref_number']
+                        ?? ''
+                    )
+                );
 
             if ($reference === '') {
                 continue;
             }
 
-            $hasInterest =
-                $this->interestModel
-                ->existsBetween(
+            /*
+         * Reuse the exact Interest relationship resolver used by Profile View.
+         *
+         * This covers:
+         *
+         * - no relationship;
+         * - Pending sent;
+         * - Pending received;
+         * - Accepted;
+         * - Declined;
+         * - whether Show Interest is currently allowed.
+         */
+            $interestRelationship =
+                $this->interactionService
+                ->interestRelationshipFor(
                     $viewerUserId,
                     $memberId
                 );
 
+            $hasInterestRelationship =
+                (
+                    $interestRelationship['hasRelationship']
+                    ?? false
+                ) === true;
+
+            /*
+         * Multi-profile listings use only viewer-authorized thumbnails.
+         */
             $image =
                 $this->photoUrlService
                 ->getApprovedPrimaryUrlForViewer(
@@ -966,7 +1008,7 @@ final class MemberSearchService
 
                     viewerUserId: $viewerUserId,
 
-                    hasInterestRelationship: $hasInterest,
+                    hasInterestRelationship: $hasInterestRelationship,
 
                     variant: 'thumbnail'
                 );
@@ -1030,6 +1072,21 @@ final class MemberSearchService
                     $reference
                 ),
 
+                /*
+             * Reuse the existing Profile View Interest endpoint.
+             */
+                'interestUrl' =>
+                route_to(
+                    'web.members.interest',
+                    $reference
+                ),
+
+                'interestRelationship' =>
+                $interestRelationship,
+
+                /*
+             * Never expose the raw last_login_at timestamp.
+             */
                 'activity' =>
                 $this->activityLabel(
                     $row['last_login_at']
@@ -1039,6 +1096,299 @@ final class MemberSearchService
         }
 
         return $profiles;
+    }
+
+    /**
+     * Build Search-result Quick Links.
+     *
+     * Existing Dashboard collections are reused where the product already
+     * implements the required member activity.
+     *
+     * Location/public-photo links reuse the existing Search results route.
+     *
+     * @return list<array{
+     *     title:string,
+     *     items:list<array{
+     *         label:string,
+     *         help:string,
+     *         icon:string,
+     *         url:string,
+     *         available:bool
+     *     }>
+     * }>
+     */
+    private function quickLinkGroups(
+        int $viewerUserId
+    ): array {
+        /*
+     * Reuse the member's saved Basic Details location.
+     */
+        $location =
+            $this->candidateModel
+            ->memberLocationForUser(
+                $viewerUserId
+            );
+
+        $stateId =
+            max(
+                0,
+                (int) (
+                    $location['state_id']
+                    ?? 0
+                )
+            );
+
+        $cityId =
+            max(
+                0,
+                (int) (
+                    $location['city_id']
+                    ?? 0
+                )
+            );
+
+        $dashboardUrl =
+            route_to(
+                'web.dashboard'
+            );
+
+        $searchResultsUrl =
+            route_to(
+                'web.search.results'
+            );
+
+        /*
+     * Same-State preset.
+     */
+        $sameStateUrl =
+            $stateId > 0
+            ? $searchResultsUrl
+            . '?'
+            . http_build_query(
+                [
+                    'mode' =>
+                    'basic',
+
+                    'state_ids' => [
+                        $stateId,
+                    ],
+                ]
+            )
+            : '';
+
+        /*
+     * City validation in Search requires its parent State as well.
+     */
+        $sameCityUrl =
+            $stateId > 0
+            && $cityId > 0
+            ? $searchResultsUrl
+            . '?'
+            . http_build_query(
+                [
+                    'mode' =>
+                    'advanced',
+
+                    'state_ids' => [
+                        $stateId,
+                    ],
+
+                    'city_ids' => [
+                        $cityId,
+                    ],
+                ]
+            )
+            : '';
+
+        /*
+     * Existing photo-visibility Search filter.
+     */
+        $publicPhotoUrl =
+            $searchResultsUrl
+            . '?'
+            . http_build_query(
+                [
+                    'mode' =>
+                    'basic',
+
+                    'photo_visibility' => [
+                        'PUBLIC',
+                    ],
+                ]
+            );
+
+        return [
+            [
+                'title' =>
+                'Based on activity',
+
+                'items' => [
+                    [
+                        'label' =>
+                        'Shortlisted by you',
+
+                        'help' =>
+                        'Profiles you have saved to your shortlist.',
+
+                        'icon' =>
+                        'ri-bookmark-3-line',
+
+                        'url' =>
+                        $dashboardUrl
+                            . '#profiles-shortlisted-by-you',
+
+                        'available' =>
+                        true,
+                    ],
+
+                    [
+                        'label' =>
+                        'Shortlisted you',
+
+                        'help' =>
+                        'Members who have saved your profile.',
+
+                        'icon' =>
+                        'ri-bookmark-fill',
+
+                        'url' =>
+                        $dashboardUrl
+                            . '#who-shortlisted-you',
+
+                        'available' =>
+                        true,
+                    ],
+
+                    [
+                        'label' =>
+                        'Viewed you',
+
+                        'help' =>
+                        'Members who have viewed your profile.',
+
+                        'icon' =>
+                        'ri-eye-line',
+
+                        'url' =>
+                        $dashboardUrl
+                            . '#profile-visitors',
+
+                        'available' =>
+                        true,
+                    ],
+
+                    [
+                        'label' =>
+                        'Viewed by you',
+
+                        'help' =>
+                        'Profiles you have viewed recently.',
+
+                        'icon' =>
+                        'ri-history-line',
+
+                        'url' =>
+                        $dashboardUrl
+                            . '#profiles-viewed',
+
+                        'available' =>
+                        true,
+                    ],
+                ],
+            ],
+
+            [
+                'title' =>
+                'Recently joined & nearby matches',
+
+                'items' => [
+                    [
+                        'label' =>
+                        'New Profile (Last 30 Days)',
+
+                        'help' =>
+                        'Recently joined profiles matching your partner preferences.',
+
+                        'icon' =>
+                        'ri-user-star-line',
+
+                        /*
+                     * Existing Dashboard New Matches already runs through
+                     * PartnerPreferenceMatchService.
+                     */
+                        'url' =>
+                        $dashboardUrl
+                            . '#new-matches',
+
+                        'available' =>
+                        true,
+                    ],
+
+                    [
+                        'label' =>
+                        'Living in same State',
+
+                        'help' =>
+                        $stateId > 0
+                            ? 'Find eligible profiles living in your State.'
+                            : 'Add your State in Basic Details to use this search.',
+
+                        'icon' =>
+                        'ri-map-2-line',
+
+                        'url' =>
+                        $sameStateUrl,
+
+                        'available' =>
+                        $stateId > 0,
+                    ],
+
+                    [
+                        'label' =>
+                        'Living in same City',
+
+                        'help' =>
+                        $cityId > 0
+                            ? 'Find eligible profiles living in your City.'
+                            : 'Add your City in Basic Details to use this search.',
+
+                        'icon' =>
+                        'ri-map-pin-line',
+
+                        'url' =>
+                        $sameCityUrl,
+
+                        'available' =>
+                        $stateId > 0
+                            && $cityId > 0,
+                    ],
+                ],
+            ],
+
+            [
+                'title' =>
+                'Based on profile details',
+
+                'items' => [
+                    [
+                        'label' =>
+                        'Profiles with Public Photos',
+
+                        'help' =>
+                        'Show profiles whose approved primary photo is public.',
+
+                        'icon' =>
+                        'ri-image-2-line',
+
+                        'url' =>
+                        $publicPhotoUrl,
+
+                        'available' =>
+                        true,
+                    ],
+                ],
+            ],
+        ];
     }
 
     /**

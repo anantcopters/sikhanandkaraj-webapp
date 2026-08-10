@@ -132,15 +132,18 @@ final class SearchController extends BaseController
         $userId =
             $this->authenticatedUserId();
 
+        /*
+     * Read only allow-listed Search criteria.
+     */
         $input =
             $this->searchInput();
 
         /*
-         * Server-side scalar validation remains authoritative.
-         *
-         * Master IDs are additionally checked against active master data by
-         * MemberSearchService.
-         */
+     * Server-side scalar validation remains authoritative.
+     *
+     * Active master IDs and Search relationship rules are additionally
+     * validated by MemberSearchService.
+     */
         $validation =
             service(
                 'validation'
@@ -173,7 +176,8 @@ final class SearchController extends BaseController
                         'message' =>
                         implode(
                             ' ',
-                            $validation->getErrors()
+                            $validation
+                                ->getErrors()
                         ),
                     ]
                 );
@@ -181,9 +185,10 @@ final class SearchController extends BaseController
 
         try {
             /** @var MemberSearchService $service */
-            $service = service(
-                'memberSearchService'
-            );
+            $service =
+                service(
+                    'memberSearchService'
+                );
 
             $pageData =
                 $service->search(
@@ -192,9 +197,52 @@ final class SearchController extends BaseController
                 );
 
             /*
-             * Back-to-Search deliberately excludes page and sort because
-             * they are result-view concerns rather than matching criteria.
-             */
+         * Configure the standard CI4 Pager so Search uses the same reusable
+         * application Pagination component as other paginated screens.
+         *
+         * Use the default group because SearchController already consumes the
+         * normal "page" query parameter.
+         */
+            $pager =
+                service(
+                    'pager'
+                );
+
+            $pager->setPath(
+                route_to(
+                    'web.search.results'
+                ),
+                'default'
+            );
+
+            $pager->store(
+                'default',
+                max(
+                    1,
+                    (int) (
+                        $pageData['page']
+                        ?? 1
+                    )
+                ),
+                max(
+                    1,
+                    (int) (
+                        $pageData['perPage']
+                        ?? MemberSearchService::PER_PAGE
+                    )
+                ),
+                max(
+                    0,
+                    (int) (
+                        $pageData['total']
+                        ?? 0
+                    )
+                )
+            );
+
+            /*
+         * Back to Search keeps matching criteria but removes result-only state.
+         */
             $backToSearchUrl =
                 $this->searchUrl(
                     $input
@@ -213,6 +261,20 @@ final class SearchController extends BaseController
 
                         'formAlert' =>
                         $this->readFormAlert(),
+
+                        'pager' =>
+                        $pager,
+
+                        'pagerGroup' =>
+                        'default',
+
+                        /*
+                     * Existing Profile View action JS handles the Interest
+                     * loader on Search result cards as well.
+                     */
+                        'pageScripts' => [
+                            'assets/js/pages/member-profile-actions.js',
+                        ],
                     ]
                 )
             );
@@ -235,7 +297,8 @@ final class SearchController extends BaseController
                         'Search could not be completed',
 
                         'message' =>
-                        $exception->getMessage(),
+                        $exception
+                            ->getMessage(),
                     ]
                 );
         } catch (
