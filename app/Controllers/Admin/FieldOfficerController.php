@@ -630,9 +630,12 @@ final class FieldOfficerController extends BaseController
     private function createInput(): array
     {
         return [
-            'full_name' => trim(
+            'full_name' =>
+            trim(
                 (string) $this->request
-                    ->getPost('full_name')
+                    ->getPost(
+                        'full_name'
+                    )
             ),
 
             'mobile_number' =>
@@ -645,30 +648,65 @@ final class FieldOfficerController extends BaseController
                     )
             ) ?? '',
 
-            'country_id' => trim(
+            'aadhaar_number' =>
+            preg_replace(
+                '/\D+/',
+                '',
                 (string) $this->request
-                    ->getPost('country_id')
-            ),
+                    ->getPost(
+                        'aadhaar_number'
+                    )
+            ) ?? '',
 
-            'state_id' => trim(
-                (string) $this->request
-                    ->getPost('state_id')
-            ),
-
-            'city_id' => trim(
-                (string) $this->request
-                    ->getPost('city_id')
-            ),
-
-            'address' => trim(
-                (string) $this->request
-                    ->getPost('address')
-            ),
-
-            'upi_id' => strtolower(
+            'pan_number' =>
+            strtoupper(
                 trim(
                     (string) $this->request
-                        ->getPost('upi_id')
+                        ->getPost(
+                            'pan_number'
+                        )
+                )
+            ),
+
+            'country_id' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'country_id'
+                    )
+            ),
+
+            'state_id' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'state_id'
+                    )
+            ),
+
+            'city_id' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'city_id'
+                    )
+            ),
+
+            'address' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'address'
+                    )
+            ),
+
+            'upi_id' =>
+            strtolower(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'upi_id'
+                        )
                 )
             ),
         ];

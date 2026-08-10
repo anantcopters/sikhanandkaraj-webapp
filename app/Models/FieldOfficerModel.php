@@ -30,6 +30,8 @@ final class FieldOfficerModel extends Model
         'officer_code',
         'full_name',
         'mobile_number',
+        'aadhaar_number',
+        'pan_number',
         'country_id',
         'state_id',
         'city_id',
@@ -62,6 +64,8 @@ final class FieldOfficerModel extends Model
 
     /**
      * Return Field Officers with resolved location names.
+     *
+     * Identity values are intentionally excluded.
      *
      * @return list<array<string, mixed>>
      */
@@ -127,10 +131,7 @@ final class FieldOfficerModel extends Model
     }
 
     /**
-     * Find one active, non-deleted Field Officer by primary-key ID.
-     *
-     * Location joins are not required for prelaunch profile creation because
-     * only the verified database ID is persisted.
+     * Find one active, non-deleted Field Officer.
      *
      * @return array<string, mixed>|null
      */
@@ -171,11 +172,50 @@ final class FieldOfficerModel extends Model
         string $mobileNumber,
         ?int $exceptId = null
     ): bool {
-        $builder = $this
-            ->where(
-                'mobile_number',
-                $mobileNumber
+        $builder = $this->where(
+            'mobile_number',
+            $mobileNumber
+        );
+
+        if ($exceptId !== null) {
+            $builder->where(
+                'id !=',
+                $exceptId
             );
+        }
+
+        return $builder->first() !== null;
+    }
+
+    public function aadhaarExists(
+        string $aadhaarNumber,
+        ?int $exceptId = null
+    ): bool {
+        $builder = $this->where(
+            'aadhaar_number',
+            trim($aadhaarNumber)
+        );
+
+        if ($exceptId !== null) {
+            $builder->where(
+                'id !=',
+                $exceptId
+            );
+        }
+
+        return $builder->first() !== null;
+    }
+
+    public function panExists(
+        string $panNumber,
+        ?int $exceptId = null
+    ): bool {
+        $builder = $this->where(
+            'pan_number',
+            strtoupper(
+                trim($panNumber)
+            )
+        );
 
         if ($exceptId !== null) {
             $builder->where(
@@ -202,7 +242,7 @@ final class FieldOfficerModel extends Model
     }
 
     /**
-     * Find one active Field Officer by code with location names.
+     * Find one active Field Officer by code.
      *
      * @return array<string, mixed>|null
      */
@@ -230,7 +270,9 @@ final class FieldOfficerModel extends Model
             )
             ->where(
                 'UPPER(field_officers.officer_code)',
-                mb_strtoupper(trim($officerCode))
+                mb_strtoupper(
+                    trim($officerCode)
+                )
             )
             ->where(
                 'field_officers.account_status',

@@ -27,11 +27,15 @@ final class FieldOfficerValidation
                     'regex_match[/^[\pL\pM .\'-]+$/u]',
                 ],
                 'errors' => [
-                    'required' => 'Name is required.',
+                    'required' =>
+                    'Name is required.',
+
                     'min_length' =>
                     'Name must contain at least 2 characters.',
+
                     'max_length' =>
                     'Name must not exceed 150 characters.',
+
                     'regex_match' =>
                     'Name contains unsupported characters.',
                 ],
@@ -46,20 +50,62 @@ final class FieldOfficerValidation
                 'errors' => [
                     'required' =>
                     'Mobile number is required.',
+
                     'regex_match' =>
                     'Enter a valid 10-digit Indian mobile number.',
                 ],
             ],
 
-            'country_id' => self::requiredIdentifierRules(
+            'aadhaar_number' => [
+                'label' => 'Aadhaar Number',
+                'rules' => [
+                    'required',
+                    'exact_length[12]',
+                    'regex_match[/^[0-9]{12}$/]',
+                ],
+                'errors' => [
+                    'required' =>
+                    'Aadhaar number is required.',
+
+                    'exact_length' =>
+                    'Aadhaar number must contain exactly 12 digits.',
+
+                    'regex_match' =>
+                    'Enter a valid 12-digit Aadhaar number.',
+                ],
+            ],
+
+            'pan_number' => [
+                'label' => 'PAN Number',
+                'rules' => [
+                    'required',
+                    'exact_length[10]',
+                    'regex_match[/^[A-Z]{5}[0-9]{4}[A-Z]$/]',
+                ],
+                'errors' => [
+                    'required' =>
+                    'PAN number is required.',
+
+                    'exact_length' =>
+                    'PAN number must contain exactly 10 characters.',
+
+                    'regex_match' =>
+                    'Enter a valid PAN number, for example ABCDE1234F.',
+                ],
+            ],
+
+            'country_id' =>
+            self::requiredIdentifierRules(
                 'Country'
             ),
 
-            'state_id' => self::requiredIdentifierRules(
+            'state_id' =>
+            self::requiredIdentifierRules(
                 'State'
             ),
 
-            'city_id' => self::requiredIdentifierRules(
+            'city_id' =>
+            self::requiredIdentifierRules(
                 'City'
             ),
 
@@ -86,6 +132,7 @@ final class FieldOfficerValidation
                 'errors' => [
                     'max_length' =>
                     'UPI ID must not exceed 150 characters.',
+
                     'regex_match' =>
                     'Enter a valid UPI ID, for example name@bank.',
                 ],
@@ -94,22 +141,25 @@ final class FieldOfficerValidation
     }
 
     /**
-     * Only location, address and UPI may be edited.
+     * Aadhaar, PAN, name and mobile number are immutable.
      *
      * @return array<string, array<string, mixed>>
      */
     public static function updateRules(): array
     {
         return [
-            'country_id' => self::requiredIdentifierRules(
+            'country_id' =>
+            self::requiredIdentifierRules(
                 'Country'
             ),
 
-            'state_id' => self::requiredIdentifierRules(
+            'state_id' =>
+            self::requiredIdentifierRules(
                 'State'
             ),
 
-            'city_id' => self::requiredIdentifierRules(
+            'city_id' =>
+            self::requiredIdentifierRules(
                 'City'
             ),
 
@@ -136,6 +186,7 @@ final class FieldOfficerValidation
                 'errors' => [
                     'max_length' =>
                     'UPI ID must not exceed 150 characters.',
+
                     'regex_match' =>
                     'Enter a valid UPI ID, for example name@bank.',
                 ],
@@ -151,15 +202,20 @@ final class FieldOfficerValidation
     ): array {
         return [
             'label' => $label,
+
             'rules' => [
                 'required',
                 'is_natural_no_zero',
             ],
+
             'errors' => [
                 'required' =>
                 $label . ' is required.',
+
                 'is_natural_no_zero' =>
-                'Select a valid ' . strtolower($label) . '.',
+                'Select a valid '
+                    . strtolower($label)
+                    . '.',
             ],
         ];
     }

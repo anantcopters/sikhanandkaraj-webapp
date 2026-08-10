@@ -101,6 +101,48 @@ final class FieldOfficerService
             );
         }
 
+        $aadhaarNumber =
+            preg_replace(
+                '/\D+/',
+                '',
+                (string) (
+                    $input['aadhaar_number']
+                    ?? ''
+                )
+            ) ?? '';
+
+        $panNumber =
+            strtoupper(
+                trim(
+                    (string) (
+                        $input['pan_number']
+                        ?? ''
+                    )
+                )
+            );
+
+        if (
+            $this->fieldOfficerModel
+            ->aadhaarExists(
+                $aadhaarNumber
+            )
+        ) {
+            throw new RuntimeException(
+                'A Field Officer with this Aadhaar number already exists.'
+            );
+        }
+
+        if (
+            $this->fieldOfficerModel
+            ->panExists(
+                $panNumber
+            )
+        ) {
+            throw new RuntimeException(
+                'A Field Officer with this PAN number already exists.'
+            );
+        }
+
         $countryId = (int) (
             $input['country_id'] ?? 0
         );
@@ -119,14 +161,15 @@ final class FieldOfficerService
             $cityId
         );
 
-        $upiId = $this->nullableText(
-            $input['upi_id'] ?? null
-        );
+        $upiId =
+            $this->nullableText(
+                $input['upi_id']
+                    ?? null
+            );
 
         /*
      * UPI validation has already run through
-     * FieldOfficerValidation. Presence therefore means
-     * the Field Officer meets the activation condition.
+     * FieldOfficerValidation.
      */
         $initialStatus =
             $upiId !== null
@@ -152,7 +195,8 @@ final class FieldOfficerService
                         'officer_code' =>
                         $officerCode,
 
-                        'full_name' => trim(
+                        'full_name' =>
+                        trim(
                             (string) (
                                 $input['full_name']
                                 ?? ''
@@ -161,6 +205,12 @@ final class FieldOfficerService
 
                         'mobile_number' =>
                         $mobileNumber,
+
+                        'aadhaar_number' =>
+                        $aadhaarNumber,
+
+                        'pan_number' =>
+                        $panNumber,
 
                         'country_id' =>
                         $countryId,
@@ -202,7 +252,8 @@ final class FieldOfficerService
             }
 
             if (
-                $this->database->transStatus()
+                $this->database
+                ->transStatus()
                 === false
             ) {
                 throw new RuntimeException(
@@ -236,7 +287,8 @@ final class FieldOfficerService
                         'officer_code' =>
                         $officerCode,
 
-                        'full_name' => trim(
+                        'full_name' =>
+                        trim(
                             (string) (
                                 $input['full_name']
                                 ?? ''
@@ -247,6 +299,16 @@ final class FieldOfficerService
                         $this->maskMobile(
                             $mobileNumber
                         ),
+
+                        /*
+                     * Do not put Aadhaar/PAN values
+                     * into audit logs.
+                     */
+                        'aadhaar_present' =>
+                        true,
+
+                        'pan_present' =>
+                        true,
 
                         'country_id' =>
                         $countryId,
@@ -269,11 +331,6 @@ final class FieldOfficerService
                 )
             );
 
-            /*
-         * Record a separate activation event so audit reports can
-         * consistently count every activation, including activation
-         * performed during initial creation.
-         */
             if (
                 $initialStatus
                 === FieldOfficerModel::STATUS_ACTIVE
@@ -321,7 +378,8 @@ final class FieldOfficerService
 
             return $fieldOfficerId;
         } catch (Throwable $exception) {
-            $this->database->transRollback();
+            $this->database
+                ->transRollback();
 
             if (
                 $this->isUniqueMobileViolation(

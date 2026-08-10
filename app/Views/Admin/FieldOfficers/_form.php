@@ -40,17 +40,23 @@ $resolvedCities =
 $editing =
     ($isEdit ?? false) === true;
 
-$selectedCountry = (string) (
-    $resolvedFormInput['country_id'] ?? ''
-);
+$selectedCountry =
+    (string) (
+        $resolvedFormInput['country_id']
+        ?? ''
+    );
 
-$selectedState = (string) (
-    $resolvedFormInput['state_id'] ?? ''
-);
+$selectedState =
+    (string) (
+        $resolvedFormInput['state_id']
+        ?? ''
+    );
 
-$selectedCity = (string) (
-    $resolvedFormInput['city_id'] ?? ''
-);
+$selectedCity =
+    (string) (
+        $resolvedFormInput['city_id']
+        ?? ''
+    );
 ?>
 
 <form
@@ -73,14 +79,18 @@ $selectedCity = (string) (
     <?= csrf_field() ?>
 
     <div class="row g-3">
+
         <?php if (!$editing): ?>
+
             <div class="col-12 col-md-6">
+
                 <label
                     for="fieldOfficerName"
                     class="form-label">
 
                     Name
                     <span class="text-danger">*</span>
+
                 </label>
 
                 <input
@@ -98,7 +108,7 @@ $selectedCity = (string) (
                             ) ?>"
                     minlength="2"
                     maxlength="150"
-                    pattern="[\p{L}\p{M} .'-]+"
+                    pattern="[\p{L}\p{M} .'\-]+"
                     autocomplete="name"
                     required>
 
@@ -108,18 +118,22 @@ $selectedCity = (string) (
                             ?? 'Enter the Field Officer name.'
                     ) ?>
                 </div>
+
             </div>
 
             <div class="col-12 col-md-6">
+
                 <label
                     for="fieldOfficerMobile"
                     class="form-label">
 
                     Mobile Number
                     <span class="text-danger">*</span>
+
                 </label>
 
                 <div class="input-group">
+
                     <span class="input-group-text">
                         +91
                     </span>
@@ -143,6 +157,7 @@ $selectedCity = (string) (
                         maxlength="10"
                         pattern="[6-9][0-9]{9}"
                         required>
+
                 </div>
 
                 <?php if (
@@ -150,27 +165,134 @@ $selectedCity = (string) (
                         $errors['mobile_number']
                     )
                 ): ?>
-                    <div class="text-danger fs-13 mt-1">
+
+                    <div
+                        class="text-danger
+                            fs-13
+                            mt-1">
+
                         <?= esc(
                             $errors['mobile_number']
                         ) ?>
+
                     </div>
+
                 <?php else: ?>
+
                     <div class="form-text color-pink">
                         Enter a unique 10-digit Indian
                         mobile number.
                     </div>
+
                 <?php endif; ?>
+
             </div>
+
+            <div class="col-12 col-md-6">
+
+                <label
+                    for="fieldOfficerAadhaar"
+                    class="form-label">
+
+                    Aadhaar Number
+                    <span class="text-danger">*</span>
+
+                </label>
+
+                <input
+                    type="text"
+                    id="fieldOfficerAadhaar"
+                    name="aadhaar_number"
+                    class="form-control <?= isset(
+                                            $errors['aadhaar_number']
+                                        )
+                                            ? 'is-invalid'
+                                            : '' ?>"
+                    value="<?= esc(
+                                $resolvedFormInput['aadhaar_number'] ?? '',
+                                'attr'
+                            ) ?>"
+                    inputmode="numeric"
+                    autocomplete="off"
+                    minlength="12"
+                    maxlength="12"
+                    pattern="[0-9]{12}"
+                    placeholder="12-digit Aadhaar number"
+                    required>
+
+                <div class="invalid-feedback">
+                    <?= esc(
+                        $errors['aadhaar_number']
+                            ?? 'Enter a valid 12-digit Aadhaar number.'
+                    ) ?>
+                </div>
+
+                <div class="form-text color-pink">
+                    Enter exactly 12 digits without
+                    spaces or hyphens.
+                </div>
+
+            </div>
+
+            <div class="col-12 col-md-6">
+
+                <label
+                    for="fieldOfficerPan"
+                    class="form-label">
+
+                    PAN Number
+                    <span class="text-danger">*</span>
+
+                </label>
+
+                <input
+                    type="text"
+                    id="fieldOfficerPan"
+                    name="pan_number"
+                    class="form-control <?= isset(
+                                            $errors['pan_number']
+                                        )
+                                            ? 'is-invalid'
+                                            : '' ?>"
+                    value="<?= esc(
+                                strtoupper(
+                                    (string) (
+                                        $resolvedFormInput['pan_number'] ?? ''
+                                    )
+                                ),
+                                'attr'
+                            ) ?>"
+                    autocomplete="off"
+                    minlength="10"
+                    maxlength="10"
+                    pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]"
+                    placeholder="ABCDE1234F"
+                    required>
+
+                <div class="invalid-feedback">
+                    <?= esc(
+                        $errors['pan_number']
+                            ?? 'Enter a valid PAN number.'
+                    ) ?>
+                </div>
+
+                <div class="form-text color-pink">
+                    Example: ABCDE1234F
+                </div>
+
+            </div>
+
         <?php endif; ?>
 
         <div class="col-12 col-md-4">
+
             <label
                 for="fieldOfficerCountry"
                 class="form-label">
 
                 Country
                 <span class="text-danger">*</span>
+
             </label>
 
             <select
@@ -193,10 +315,12 @@ $selectedCity = (string) (
                     $resolvedCountries
                     as $country
                 ): ?>
+
                     <?php
                     $countryId =
                         (string) (
-                            $country['id'] ?? ''
+                            $country['id']
+                            ?? ''
                         );
                     ?>
 
@@ -216,8 +340,11 @@ $selectedCity = (string) (
                                 ?? ''
                             )
                         ) ?>
+
                     </option>
+
                 <?php endforeach; ?>
+
             </select>
 
             <div class="invalid-feedback">
@@ -226,15 +353,18 @@ $selectedCity = (string) (
                         ?? 'Select a country.'
                 ) ?>
             </div>
+
         </div>
 
         <div class="col-12 col-md-4">
+
             <label
                 for="fieldOfficerState"
                 class="form-label">
 
                 State
                 <span class="text-danger">*</span>
+
             </label>
 
             <select
@@ -258,10 +388,12 @@ $selectedCity = (string) (
                     $resolvedStates
                     as $state
                 ): ?>
+
                     <?php
                     $stateId =
                         (string) (
-                            $state['id'] ?? ''
+                            $state['id']
+                            ?? ''
                         );
                     ?>
 
@@ -281,8 +413,11 @@ $selectedCity = (string) (
                                 ?? ''
                             )
                         ) ?>
+
                     </option>
+
                 <?php endforeach; ?>
+
             </select>
 
             <div class="invalid-feedback">
@@ -291,15 +426,18 @@ $selectedCity = (string) (
                         ?? 'Select a state.'
                 ) ?>
             </div>
+
         </div>
 
         <div class="col-12 col-md-4">
+
             <label
                 for="fieldOfficerCity"
                 class="form-label">
 
                 City
                 <span class="text-danger">*</span>
+
             </label>
 
             <select
@@ -323,10 +461,12 @@ $selectedCity = (string) (
                     $resolvedCities
                     as $city
                 ): ?>
+
                     <?php
                     $cityId =
                         (string) (
-                            $city['id'] ?? ''
+                            $city['id']
+                            ?? ''
                         );
                     ?>
 
@@ -346,8 +486,11 @@ $selectedCity = (string) (
                                 ?? ''
                             )
                         ) ?>
+
                     </option>
+
                 <?php endforeach; ?>
+
             </select>
 
             <div class="invalid-feedback">
@@ -356,17 +499,21 @@ $selectedCity = (string) (
                         ?? 'Select a city.'
                 ) ?>
             </div>
+
         </div>
 
         <div class="col-12 col-md-6">
+
             <label
                 for="fieldOfficerAddress"
                 class="form-label">
 
                 Address
+
                 <span class="text-muted">
                     (Optional)
                 </span>
+
             </label>
 
             <textarea
@@ -392,17 +539,21 @@ $selectedCity = (string) (
             <div class="form-text color-pink">
                 Maximum 500 characters.
             </div>
+
         </div>
 
         <div class="col-12 col-md-6">
+
             <label
                 for="fieldOfficerUpi"
                 class="form-label">
 
                 UPI ID
+
                 <span class="text-muted">
                     (Optional)
                 </span>
+
             </label>
 
             <input
@@ -419,7 +570,7 @@ $selectedCity = (string) (
                             'attr'
                         ) ?>"
                 maxlength="150"
-                pattern="[A-Za-z0-9._-]{2,256}@[A-Za-z][A-Za-z0-9.-]{1,63}"
+                pattern="[A-Za-z0-9._\-]{2,256}@[A-Za-z][A-Za-z0-9.\-]{1,63}"
                 autocomplete="off"
                 placeholder="name@bank">
 
@@ -431,16 +582,24 @@ $selectedCity = (string) (
             </div>
 
             <div class="form-text color-pink">
+
                 <?php if ($editing): ?>
+
                     A valid UPI ID keeps the Field Officer
-                    active. Removing it will make the account
-                    inactive.
+                    active. Removing it will make the
+                    account inactive.
+
                 <?php else: ?>
+
                     Providing a valid UPI ID will create
                     this Field Officer in active status.
+
                 <?php endif; ?>
+
             </div>
+
         </div>
+
     </div>
 
     <div
@@ -460,9 +619,11 @@ $selectedCity = (string) (
             data-submit-button>
 
             <span data-submit-idle>
+
                 <?= $editing
                     ? 'Save Changes'
                     : 'Add Field Officer' ?>
+
             </span>
 
             <span
@@ -477,11 +638,17 @@ $selectedCity = (string) (
                 </span>
 
                 <span class="ms-1">
+
                     <?= $editing
                         ? 'Saving changes...'
                         : 'Creating Field Officer...' ?>
+
                 </span>
+
             </span>
+
         </button>
+
     </div>
+
 </form>
