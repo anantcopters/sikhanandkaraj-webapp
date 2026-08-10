@@ -21,6 +21,9 @@ use CodeIgniter\Pager\Pager;
  * @var array<string, string>|null $formAlert
  * @var Pager                      $pager
  * @var string                     $pagerGroup
+ * @var string                     $resultTitle
+ * @var bool                       $showBackToSearch
+ * @var bool                       $showSearchCriteria
  */
 
 /*
@@ -35,6 +38,31 @@ $pageTitle =
     && trim($pageTitle) !== ''
     ? trim($pageTitle)
     : 'Search Results';
+
+/*
+ * --------------------------------------------------------------------------
+ * Result presentation context
+ * --------------------------------------------------------------------------
+ */
+
+$resultTitle =
+    isset($resultTitle)
+    && is_string($resultTitle)
+    && trim($resultTitle) !== ''
+    ? trim(
+        $resultTitle
+    )
+    : 'Search Results';
+
+$showBackToSearch =
+    isset($showBackToSearch)
+    ? (bool) $showBackToSearch
+    : true;
+
+$showSearchCriteria =
+    isset($showSearchCriteria)
+    ? (bool) $showSearchCriteria
+    : true;
 
 $mode =
     isset($mode)
@@ -178,30 +206,42 @@ $this->section(
 
             <div>
 
-                <a
-                    href="<?= esc(
-                                $backToSearchUrl,
-                                'attr'
-                            ) ?>"
-                    class="d-inline-flex
-                        align-items-center
-                        gap-1
-                        text-primary
-                        fw-medium mb-2">
+                <?php if (
+                    $showBackToSearch
+                ): ?>
 
-                    <i
-                        class="ri-arrow-left-line"
-                        aria-hidden="true">
-                    </i>
+                    <!--
+        Search-only navigation.
+        Matches originates from the main member menu and does not need this.
+    -->
+                    <a
+                        href="<?= esc(
+                                    $backToSearchUrl,
+                                    'attr'
+                                ) ?>"
+                        class="d-inline-flex
+            align-items-center
+            gap-1
+            text-primary
+            fw-medium mb-2">
 
-                    Back to Search
+                        <i
+                            class="ri-arrow-left-line"
+                            aria-hidden="true">
+                        </i>
 
-                </a>
+                        Back to Search
+
+                    </a>
+
+                <?php endif; ?>
 
                 <h1
                     class="fs-24 fw-semibold mb-1">
 
-                    Search Results
+                    <?= esc(
+                        $resultTitle
+                    ) ?>
                 </h1>
 
                 <p
@@ -332,7 +372,8 @@ $this->section(
              ============================================================= -->
 
         <?php if (
-            $searchChips !== []
+            $showSearchCriteria
+            && $searchChips !== []
         ): ?>
 
             <div
@@ -713,30 +754,47 @@ $this->section(
 
                             <h2
                                 class="fs-18
-                                    fw-semibold
-                                    mt-3 mb-2">
+        fw-semibold
+        mt-3 mb-2">
 
                                 No profiles found
+
                             </h2>
 
-                            <p
-                                class="text-muted mb-3">
+                            <p class="text-muted mb-3">
 
-                                Try widening one or more
-                                search preferences.
+                                <?php if (
+                                    $showSearchCriteria
+                                ): ?>
+
+                                    Try widening one or more
+                                    search preferences.
+
+                                <?php else: ?>
+
+                                    No profiles currently meet
+                                    your Partner Preferences.
+
+                                <?php endif; ?>
+
                             </p>
 
-                            <a
-                                href="<?= esc(
-                                            $backToSearchUrl,
-                                            'attr'
-                                        ) ?>"
-                                class="btn
-                                    btn-outline-primary">
+                            <?php if (
+                                $showBackToSearch
+                            ): ?>
 
-                                Modify Search
+                                <a
+                                    href="<?= esc(
+                                                $backToSearchUrl,
+                                                'attr'
+                                            ) ?>"
+                                    class="btn btn-outline-primary">
 
-                            </a>
+                                    Modify Search
+
+                                </a>
+
+                            <?php endif; ?>
 
                         </div>
                     </div>

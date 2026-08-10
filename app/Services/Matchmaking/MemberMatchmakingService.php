@@ -104,45 +104,23 @@ final class MemberMatchmakingService
             ->minimumMatchPercentage;
 
         /*
-         * A candidate is a match only when:
-         *
-         * 1. at least one structured preference is configured;
-         * 2. compulsory preferences passed;
-         * 3. score meets configured threshold.
-         *
-         * Compulsory failures have already been removed by
-         * PartnerPreferenceMatchService.
-         */
-        $matchedCandidates = array_values(
-            array_filter(
-                $scoredCandidates,
-                static function (
-                    array $candidate
-                ) use (
-                    $minimumPercentage
-                ): bool {
-                    $totalPreferences = max(
-                        0,
-                        (int) (
-                            $candidate['total_preferences']
-                            ?? 0
-                        )
-                    );
-
-                    $percentage = max(
-                        0,
-                        (int) (
-                            $candidate['match_percentage']
-                            ?? 0
-                        )
-                    );
-
-                    return $totalPreferences > 0
-                        && $percentage
-                        >= $minimumPercentage;
-                }
-            )
-        );
+        * A candidate becomes an All Match only through the common Match rule.
+        *
+        * The same helper is used by the Search Matches menu implementation.
+        */
+        $matchedCandidates =
+            array_values(
+                array_filter(
+                    $scoredCandidates,
+                    fn(
+                        array $candidate
+                    ): bool =>
+                    $this->qualifiesAsMatch(
+                        $candidate,
+                        $minimumPercentage
+                    )
+                )
+            );
 
         /*
          * New Match is a subset of All Matches.
@@ -299,6 +277,134 @@ final class MemberMatchmakingService
                 $whoShortlistedYou
             ),
         ];
+    }
+
+    /**
+     * Return eligible member IDs that qualify as All Matches.
+     *
+     * This uses exactly the same Partner Preference matching definition as the
+     * Dashboard All Matches collection:
+     *
+     * - normal candidate eligibility;
+     * - logged-in member's Partner Preferences;
+     * - compulsory preferences must pass;
+     * - at least one structured preference must exist;
+     * - configured minimum match percentage must be met.
+     *
+     * Only IDs are returned because Search Results performs its own paginated
+     * candidate projection and presentation.
+     *
+     * @return list<int>
+     */
+    public function allMatchCandidateIds(
+        int $userId
+    ): array {
+        if ($userId <= 0) {
+            return [];
+        }
+
+        /*
+     * ----------------------------------------------------------------------
+     * Resolve authenticated member
+     * ----------------------------------------------------------------------
+     */
+
+        $viewer =
+            $this->userModel
+            ->find(
+                $userId
+            );
+
+        if (!is_array($viewer)) {
+            throw new DomainException(
+                'The member account could not be found.'
+            );
+        }
+
+        $viewerGender =
+            trim(
+                (string) (
+                    $viewer['gender']
+                    ?? ''
+                )
+            );
+
+        /*
+     * ----------------------------------------------------------------------
+     * Resolve common eligible candidates
+     * ----------------------------------------------------------------------
+     *
+     * Candidate eligibility already handles ACTIVE/deleted/self/gender/block
+     * restrictions centrally.
+     */
+
+        $candidateRows =
+            $this->candidateModel
+            ->eligibleCandidates(
+                $userId,
+                $viewerGender
+            );
+
+        if ($candidateRows === []) {
+            return [];
+        }
+
+        /*
+     * ----------------------------------------------------------------------
+     * Score against existing Partner Preferences
+     * ----------------------------------------------------------------------
+     */
+
+        $scoredCandidates =
+            $this->matchService
+            ->scoreCandidates(
+                $userId,
+                $candidateRows
+            );
+
+        $minimumPercentage =
+            $this->configuration
+            ->minimumMatchPercentage;
+
+        $memberIds = [];
+
+        foreach (
+            $scoredCandidates
+            as $candidate
+        ) {
+            if (!is_array($candidate)) {
+                continue;
+            }
+
+            if (
+                !$this->qualifiesAsMatch(
+                    $candidate,
+                    $minimumPercentage
+                )
+            ) {
+                continue;
+            }
+
+            $memberId =
+                max(
+                    0,
+                    (int) (
+                        $candidate['id']
+                        ?? 0
+                    )
+                );
+
+            if ($memberId > 0) {
+                $memberIds[] =
+                    $memberId;
+            }
+        }
+
+        return array_values(
+            array_unique(
+                $memberIds
+            )
+        );
     }
 
     /**
@@ -463,6 +569,44 @@ final class MemberMatchmakingService
                 ?? false
             ) === true,
         ];
+    }
+
+    /**
+     * Determine whether one scored candidate qualifies as a Match.
+     *
+     * Dashboard All Matches and Search All Matches must use this same rule so
+     * their definitions cannot drift.
+     *
+     * @param array<string, mixed> $candidate
+     */
+    private function qualifiesAsMatch(
+        array $candidate,
+        int $minimumPercentage
+    ): bool {
+        $totalPreferences =
+            max(
+                0,
+                (int) (
+                    $candidate['total_preferences']
+                    ?? 0
+                )
+            );
+
+        $percentage =
+            max(
+                0,
+                (int) (
+                    $candidate['match_percentage']
+                    ?? 0
+                )
+            );
+
+        /*
+     * PartnerPreferenceMatchService has already removed compulsory failures.
+     */
+        return $totalPreferences > 0
+            && $percentage
+            >= $minimumPercentage;
     }
 
     /**

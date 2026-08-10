@@ -191,8 +191,18 @@ final class MemberSearchService
         * [1, 2, 3]&#58;  *      Restrict normal Search to those existing interaction members.
         */
         if ($activity !== '') {
+            /*
+     * candidate_ids restricts the database query.
+     */
             $filters['candidate_ids'] =
                 $activityMemberIds;
+
+            /*
+     * Keep the logical preset in the normalized result state so sorting and
+     * pagination retain the same collection.
+     */
+            $filters['activity'] =
+                $activity;
         }
 
         $results =
@@ -394,16 +404,17 @@ final class MemberSearchService
     }
 
     /**
-     * Normalize an activity Quick Link.
+     * Normalize a predefined profile-listing preset.
      *
-     * Only known activity collections may enter the Search query.
+     * Existing activity Quick Links and the Matches menu deliberately share the
+     * normal Search Results pipeline.
      */
     private function activity(
         mixed $value
     ): string {
         /*
      * ----------------------------------------------------------------------
-     * Local activity declarations
+     * Local activity variables
      * ----------------------------------------------------------------------
      */
 
@@ -415,6 +426,7 @@ final class MemberSearchService
             );
 
         $allowed = [
+            'all-matches',
             'shortlisted-by-you',
             'shortlisted-you',
             'viewed-you',
@@ -432,10 +444,10 @@ final class MemberSearchService
     }
 
     /**
-     * Resolve existing interaction IDs for an activity Quick Link.
+     * Resolve candidate IDs for an existing listing preset.
      *
-     * This method deliberately delegates to MemberInteractionService.
-     * Search does not query shortlist/profile-view tables independently.
+     * Search never reads activity/match tables independently. Existing domain
+     * services remain authoritative for each collection.
      *
      * @return list<int>
      */
@@ -453,7 +465,15 @@ final class MemberSearchService
         $memberIds =
             match ($activity) {
                 /*
-             * Profiles the logged-in member shortlisted.
+             * All Partner Preference Matches.
+             */
+                'all-matches' =>
+                $this->allMatchIds(
+                    $viewerUserId
+                ),
+
+                /*
+             * Profiles shortlisted by the logged-in member.
              */
                 'shortlisted-by-you' =>
                 $this->interactionService
@@ -488,6 +508,9 @@ final class MemberSearchService
                         $viewerUserId
                     ),
 
+                /*
+             * Existing Partner Preference New Match collection.
+             */
                 'new-profiles' =>
                 $this->newProfileIds(
                     $viewerUserId
@@ -513,6 +536,33 @@ final class MemberSearchService
                 )
             )
         );
+    }
+
+    /**
+     * Return the IDs belonging to the existing All Matches collection.
+     *
+     * MemberMatchmakingService remains the authority for Partner Preference
+     * matching. Search is responsible only for paginated listing/presentation.
+     *
+     * @return list<int>
+     */
+    private function allMatchIds(
+        int $viewerUserId
+    ): array {
+        if ($viewerUserId <= 0) {
+            return [];
+        }
+
+        /** @var MemberMatchmakingService $matchmakingService */
+        $matchmakingService =
+            service(
+                'memberMatchmakingService'
+            );
+
+        return $matchmakingService
+            ->allMatchCandidateIds(
+                $viewerUserId
+            );
     }
 
     /**
@@ -621,12 +671,15 @@ final class MemberSearchService
     }
 
     /**
-     * Return the user-facing Search chip for an activity Quick Link.
+     * Return the member-facing label for a predefined result collection.
      */
     private function activityLabelLinks(
         string $activity
     ): string {
         return match ($activity) {
+            'all-matches' =>
+            'All Matches',
+
             'shortlisted-by-you' =>
             'Shortlisted by you',
 

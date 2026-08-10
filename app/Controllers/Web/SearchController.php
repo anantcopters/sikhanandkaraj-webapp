@@ -197,6 +197,38 @@ final class SearchController extends BaseController
                 );
 
             /*
+ * --------------------------------------------------------------------------
+ * Resolve result-page context
+ * --------------------------------------------------------------------------
+ *
+ * Search and Matches reuse Results.php, but Matches has a different heading
+ * and deliberately does not display Search-specific navigation.
+ */
+
+            $resultActivity =
+                trim(
+                    (string) (
+                        $pageData['activity']
+                        ?? ''
+                    )
+                );
+
+            $isAllMatches =
+                $resultActivity
+                === 'all-matches';
+
+            $resultTitle =
+                $isAllMatches
+                ? 'All Matches'
+                : 'Search Results';
+
+            $showBackToSearch =
+                !$isAllMatches;
+
+            $showSearchCriteria =
+                !$isAllMatches;
+
+            /*
          * Configure the standard CI4 Pager so Search uses the same reusable
          * application Pagination component as other paginated screens.
          *
@@ -254,7 +286,20 @@ final class SearchController extends BaseController
                     $pageData,
                     [
                         'pageTitle' =>
-                        'Search Results',
+                        $resultTitle,
+
+                        'resultTitle' =>
+                        $resultTitle,
+
+                        /*
+ * Matches originates from the primary member menu and therefore does not
+ * display Search-specific Back/Modify controls.
+ */
+                        'showBackToSearch' =>
+                        $showBackToSearch,
+
+                        'showSearchCriteria' =>
+                        $showSearchCriteria,
 
                         'backToSearchUrl' =>
                         $backToSearchUrl,
