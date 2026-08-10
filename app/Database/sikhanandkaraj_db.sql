@@ -1,3 +1,18 @@
+-- ============================================================
+-- Sikh Anand Karaj - Database Baseline
+-- ============================================================
+-- BASELINE_VERSION: 000
+--
+-- IMPORTANT:
+-- This file is immutable.
+-- Never modify this file after baseline creation.
+--
+-- All subsequent database changes must be added as:
+-- database/001_description.sql
+-- database/002_description.sql
+-- ...
+-- ============================================================
+
 BEGIN;
 
 CREATE TABLE "ci_sessions" (
