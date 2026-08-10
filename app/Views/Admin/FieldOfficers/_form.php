@@ -611,23 +611,20 @@ $selectedCity =
         <button
             type="submit"
             class="btn
-            registration-form__submit
+            btn-primary
             fs-16
             fw-semibold
             px-4"
-            data-submit-button>
+            data-submit-button style="background-color: var(--sak-primary); border-color: var(--sak-primary)">
 
             <span data-submit-idle>
-
                 <?= $editing
                     ? 'Save Changes'
                     : 'Add Field Officer' ?>
-
             </span>
 
             <span
-                class="registration-submit__loading
-                d-none"
+                class="d-none"
                 data-submit-loading>
 
                 <span
@@ -637,11 +634,9 @@ $selectedCity =
                 </span>
 
                 <span class="ms-1">
-
                     <?= $editing
                         ? 'Saving changes...'
                         : 'Creating Field Officer...' ?>
-
                 </span>
 
             </span>
