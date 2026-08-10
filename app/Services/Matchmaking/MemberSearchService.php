@@ -419,6 +419,7 @@ final class MemberSearchService
             'shortlisted-you',
             'viewed-you',
             'viewed-by-you',
+            'new-profiles',
         ];
 
         return in_array(
@@ -487,6 +488,11 @@ final class MemberSearchService
                         $viewerUserId
                     ),
 
+                'new-profiles' =>
+                $this->newProfileIds(
+                    $viewerUserId
+                ),
+
                 default =>
                 [],
             };
@@ -510,6 +516,111 @@ final class MemberSearchService
     }
 
     /**
+     * Return member IDs for recently joined Partner Preference matches.
+     *
+     * Existing MemberMatchmakingService remains the authority for:
+     *
+     * - Partner Preference scoring;
+     * - compulsory preference handling;
+     * - minimum match percentage;
+     * - configured New Match age;
+     * - candidate eligibility.
+     *
+     * @return list<int>
+     */
+    private function newProfileIds(
+        int $viewerUserId
+    ): array {
+        if ($viewerUserId <= 0) {
+            return [];
+        }
+
+        /** @var MemberMatchmakingService $matchmakingService */
+        $matchmakingService =
+            service(
+                'memberMatchmakingService'
+            );
+
+        $collections =
+            $matchmakingService
+            ->dashboardCollections(
+                $viewerUserId
+            );
+
+        $newProfiles =
+            isset(
+                $collections['newMatches']
+            )
+            && is_array(
+                $collections['newMatches']
+            )
+            ? $collections['newMatches']
+            : [];
+
+        $memberIds = [];
+
+        foreach (
+            $newProfiles
+            as $profile
+        ) {
+            if (!is_array($profile)) {
+                continue;
+            }
+
+            /*
+         * Existing presentation data intentionally does not expose numeric
+         * member IDs, so resolve the profile reference through UserModel.
+         */
+            $reference =
+                trim(
+                    (string) (
+                        $profile['referenceId']
+                        ?? ''
+                    )
+                );
+
+            if ($reference === '') {
+                continue;
+            }
+
+            $user =
+                $this->userModel
+                ->select(
+                    'id'
+                )
+                ->where(
+                    'profile_ref_number',
+                    $reference
+                )
+                ->first();
+
+            if (!is_array($user)) {
+                continue;
+            }
+
+            $memberId =
+                max(
+                    0,
+                    (int) (
+                        $user['id']
+                        ?? 0
+                    )
+                );
+
+            if ($memberId > 0) {
+                $memberIds[] =
+                    $memberId;
+            }
+        }
+
+        return array_values(
+            array_unique(
+                $memberIds
+            )
+        );
+    }
+
+    /**
      * Return the user-facing Search chip for an activity Quick Link.
      */
     private function activityLabelLinks(
@@ -527,6 +638,9 @@ final class MemberSearchService
 
             'viewed-by-you' =>
             'Viewed by you',
+
+            'new-profiles' =>
+            'New Profiles · Last 30 Days',
 
             default =>
             '',
@@ -1538,11 +1652,21 @@ final class MemberSearchService
                         'icon' =>
                         'ri-user-star-line',
 
+                        /*
+     * Use the normal Search results flow.
+     *
+     * The preset is resolved server-side using the existing Partner
+     * Preference matching logic and configured New Match window.
+     */
                         'url' =>
-                        route_to(
-                            'web.search.quick',
-                            'new-profiles'
-                        ),
+                        $searchResultsUrl
+                            . '?'
+                            . http_build_query(
+                                [
+                                    'activity' =>
+                                    'new-profiles',
+                                ]
+                            ),
 
                         'available' =>
                         true,
