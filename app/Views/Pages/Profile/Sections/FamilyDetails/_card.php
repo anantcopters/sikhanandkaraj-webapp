@@ -289,6 +289,32 @@ $formatEnum = static function (
                         ) ?: 'Not added',
                         'icon' => 'ri-map-pin-line',
                     ],
+
+                    [
+                        'label' => 'Field Officer',
+                        'value' => (
+                            !empty($details['field_officer_id']
+                                ?? null)
+                        )
+                            ? implode(
+                                ' - ',
+                                array_filter([
+                                    trim(
+                                        (string) (
+                                            $details['field_officer_code'] ?? ''
+                                        )
+                                    ),
+
+                                    trim(
+                                        (string) (
+                                            $details['field_officer_name'] ?? ''
+                                        )
+                                    ),
+                                ])
+                            )
+                            : 'Not added',
+                        'icon' => 'ri-user-star-line',
+                    ],
                 ];
                 ?>
 

@@ -397,8 +397,55 @@ document.addEventListener(
         }
 
         /**
-         * Reset Field Officer verification whenever the
-         * member changes the entered code.
+ * Update the Family Details form CSRF token after
+ * an AJAX POST.
+ *
+ * CSRF regeneration is enabled in this application,
+ * therefore Verify receives a new token which must
+ * replace the old form token before Save.
+ *
+ * @param {object} csrf
+ */
+        const updateCsrfToken = (csrf) => {
+            if (
+                !form
+                || !csrf
+                || typeof csrf !== 'object'
+            ) {
+                return;
+            }
+
+            const tokenName = String(
+                csrf.name ?? ''
+            ).trim();
+
+            const tokenHash = String(
+                csrf.hash ?? ''
+            ).trim();
+
+            if (
+                tokenName === ''
+                || tokenHash === ''
+            ) {
+                return;
+            }
+
+            const csrfInput =
+                form.querySelector(
+                    `input[name="${CSS.escape(
+                        tokenName
+                    )}"]`
+                );
+
+            if (csrfInput) {
+                csrfInput.value =
+                    tokenHash;
+            }
+        };
+
+        /**
+         * Clear the local verification state whenever the
+         * entered Field Officer code changes.
          */
         fieldOfficerCodeInput
             ?.addEventListener(
@@ -423,34 +470,25 @@ document.addEventListener(
                                 ''
                             );
 
-                    fieldOfficerCodeInput
-                        .value =
+                    fieldOfficerCodeInput.value =
                         normalizedCode;
 
-                    verifiedFieldOfficerCode =
-                        '';
+                    verifiedFieldOfficerCode = '';
 
                     fieldOfficerCodeInput
-                        .setCustomValidity(
-                            ''
-                        );
+                        .setCustomValidity('');
 
-                    if (
-                        fieldOfficerNameInput
-                    ) {
-                        fieldOfficerNameInput
-                            .value = '';
+                    if (fieldOfficerNameInput) {
+                        fieldOfficerNameInput.value =
+                            '';
                     }
 
-                    if (
-                        fieldOfficerMessage
-                    ) {
+                    if (fieldOfficerMessage) {
                         fieldOfficerMessage
                             .textContent = '';
 
                         fieldOfficerMessage
-                            .classList
-                            .remove(
+                            .classList.remove(
                                 'text-success',
                                 'text-danger'
                             );
@@ -459,7 +497,7 @@ document.addEventListener(
             );
 
         /**
-         * Verify Field Officer code and fetch the officer name.
+         * Verify Field Officer code.
          */
         verifyFieldOfficerButton
             ?.addEventListener(
@@ -467,6 +505,7 @@ document.addEventListener(
                 async () => {
                     if (
                         !fieldOfficerCodeInput
+                        || !form
                     ) {
                         return;
                     }
@@ -480,28 +519,28 @@ document.addEventListener(
                             .trim()
                             .toUpperCase();
 
-                    verifiedFieldOfficerCode =
-                        '';
+                    verifiedFieldOfficerCode = '';
 
                     fieldOfficerCodeInput
-                        .setCustomValidity(
-                            ''
-                        );
+                        .setCustomValidity('');
 
-                    if (
-                        fieldOfficerNameInput
-                    ) {
-                        fieldOfficerNameInput
-                            .value = '';
+                    if (fieldOfficerNameInput) {
+                        fieldOfficerNameInput.value =
+                            '';
                     }
 
-                    if (
-                        code === ''
-                    ) {
+                    if (fieldOfficerMessage) {
+                        fieldOfficerMessage
+                            .classList.remove(
+                                'text-success',
+                                'text-danger'
+                            );
+                    }
+
+                    if (code === '') {
                         fieldOfficerCodeInput
                             .setCustomValidity(
-                                'Please enter a '
-                                + 'Field Officer ID.'
+                                'Please enter a Field Officer ID.'
                             );
 
                         fieldOfficerCodeInput
@@ -511,8 +550,9 @@ document.addEventListener(
                     }
 
                     if (
-                        !/^FOSAK[0-9]{6}$/
-                            .test(code)
+                        !/^FOSAK[0-9]{6}$/.test(
+                            code
+                        )
                     ) {
                         fieldOfficerCodeInput
                             .setCustomValidity(
@@ -534,14 +574,45 @@ document.addEventListener(
                             ?? ''
                         ).trim();
 
-                    if (
-                        verificationUrl === ''
-                    ) {
+                    if (verificationUrl === '') {
+                        if (fieldOfficerMessage) {
+                            fieldOfficerMessage
+                                .textContent =
+                                'Field Officer verification '
+                                + 'is currently unavailable.';
+
+                            fieldOfficerMessage
+                                .classList.add(
+                                    'text-danger'
+                                );
+                        }
+
                         return;
                     }
 
-                    verifyFieldOfficerButton
-                        .disabled = true;
+                    const csrfInput =
+                        form.querySelector(
+                            'input[name="sak_csrf_token"]'
+                        );
+
+                    if (!csrfInput) {
+                        if (fieldOfficerMessage) {
+                            fieldOfficerMessage
+                                .textContent =
+                                'Unable to verify Field Officer. '
+                                + 'Please reload the page.';
+
+                            fieldOfficerMessage
+                                .classList.add(
+                                    'text-danger'
+                                );
+                        }
+
+                        return;
+                    }
+
+                    verifyFieldOfficerButton.disabled =
+                        true;
 
                     verifyFieldOfficerButton
                         .setAttribute(
@@ -553,29 +624,34 @@ document.addEventListener(
                         verifyFieldOfficerButton
                             .textContent;
 
-                    verifyFieldOfficerButton
-                        .textContent =
+                    verifyFieldOfficerButton.textContent =
                         'Verifying...';
 
-                    try {
-                        const url =
-                            new URL(
-                                verificationUrl,
-                                window.location
-                                    .origin
-                            );
+                    if (fieldOfficerMessage) {
+                        fieldOfficerMessage
+                            .textContent =
+                            'Verifying Field Officer...';
+                    }
 
-                        url.searchParams.set(
+                    try {
+                        const requestData =
+                            new FormData();
+
+                        requestData.append(
                             'code',
                             code
                         );
 
+                        requestData.append(
+                            csrfInput.name,
+                            csrfInput.value
+                        );
+
                         const response =
                             await fetch(
-                                url.toString(),
+                                verificationUrl,
                                 {
-                                    method:
-                                        'GET',
+                                    method: 'POST',
 
                                     headers: {
                                         Accept:
@@ -587,12 +663,38 @@ document.addEventListener(
 
                                     credentials:
                                         'same-origin',
+
+                                    body:
+                                        requestData,
                                 }
                             );
 
+                        const contentType =
+                            response.headers.get(
+                                'content-type'
+                            ) ?? '';
+
+                        if (
+                            !contentType.includes(
+                                'application/json'
+                            )
+                        ) {
+                            throw new Error(
+                                'Field Officer verification '
+                                + 'request failed.'
+                            );
+                        }
+
                         const payload =
-                            await response
-                                .json();
+                            await response.json();
+
+                        /*
+                         * Update CSRF even when verification fails,
+                         * because CI4 regenerated the token for the POST.
+                         */
+                        updateCsrfToken(
+                            payload.csrf
+                        );
 
                         if (
                             !response.ok
@@ -602,10 +704,8 @@ document.addEventListener(
                             throw new Error(
                                 String(
                                     payload.message
-                                    ?? 'The Field '
-                                    + 'Officer ID '
-                                    + 'could not be '
-                                    + 'verified.'
+                                    ?? 'The Field Officer ID '
+                                    + 'could not be verified.'
                                 )
                             );
                         }
@@ -615,7 +715,9 @@ document.addEventListener(
                                 payload.data
                                     ?.officer_code
                                 ?? ''
-                            ).trim();
+                            )
+                                .trim()
+                                .toUpperCase();
 
                         const officerName =
                             String(
@@ -629,86 +731,68 @@ document.addEventListener(
                             || officerName === ''
                         ) {
                             throw new Error(
-                                'The Field Officer '
-                                + 'could not be '
-                                + 'verified.'
+                                'The Field Officer could '
+                                + 'not be verified.'
                             );
                         }
 
-                        fieldOfficerCodeInput
-                            .value =
+                        fieldOfficerCodeInput.value =
                             verifiedCode;
 
                         verifiedFieldOfficerCode =
                             verifiedCode;
 
                         fieldOfficerCodeInput
-                            .setCustomValidity(
-                                ''
-                            );
+                            .setCustomValidity('');
 
-                        if (
-                            fieldOfficerNameInput
-                        ) {
-                            fieldOfficerNameInput
-                                .value =
+                        if (fieldOfficerNameInput) {
+                            fieldOfficerNameInput.value =
                                 officerName;
                         }
 
-                        if (
-                            fieldOfficerMessage
-                        ) {
+                        if (fieldOfficerMessage) {
                             fieldOfficerMessage
                                 .textContent =
-                                'Field Officer '
-                                + 'verified successfully.';
+                                'Field Officer verified successfully.';
 
                             fieldOfficerMessage
-                                .classList
-                                .remove(
+                                .classList.remove(
                                     'text-danger'
                                 );
 
                             fieldOfficerMessage
-                                .classList
-                                .add(
+                                .classList.add(
                                     'text-success'
                                 );
                         }
                     } catch (error) {
                         fieldOfficerCodeInput
                             .setCustomValidity(
-                                'Please verify a '
-                                + 'valid Field Officer ID.'
+                                'Please verify a valid '
+                                + 'Field Officer ID.'
                             );
 
-                        if (
-                            fieldOfficerMessage
-                        ) {
+                        if (fieldOfficerMessage) {
                             fieldOfficerMessage
                                 .textContent =
                                 error instanceof Error
                                     ? error.message
-                                    : 'The Field '
-                                    + 'Officer ID '
-                                    + 'could not '
-                                    + 'be verified.';
+                                    : 'The Field Officer ID '
+                                    + 'could not be verified.';
 
                             fieldOfficerMessage
-                                .classList
-                                .remove(
+                                .classList.remove(
                                     'text-success'
                                 );
 
                             fieldOfficerMessage
-                                .classList
-                                .add(
+                                .classList.add(
                                     'text-danger'
                                 );
                         }
                     } finally {
-                        verifyFieldOfficerButton
-                            .disabled = false;
+                        verifyFieldOfficerButton.disabled =
+                            false;
 
                         verifyFieldOfficerButton
                             .removeAttribute(

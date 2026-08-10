@@ -159,7 +159,8 @@ final class FamilyDetailsService
      */
     public function save(
         int $userId,
-        array $data
+        array $data,
+        ?array $fieldOfficerVerification = null
     ): void {
         $user = $this->userModel->find($userId);
 
@@ -339,21 +340,129 @@ final class FamilyDetailsService
 
             if ($submittedFieldOfficerCode !== null) {
                 /*
-         * Critical server-side verification.
+         * --------------------------------------------------
+         * SERVER-SIDE VERIFICATION REQUIREMENT
+         * --------------------------------------------------
          *
-         * The AJAX verification is only UI convenience.
-         * The code is always verified again before persistence.
+         * A valid Field Officer code alone is NOT enough.
+         *
+         * The member must first use the Verify action.
+         * That action creates this server-side verification
+         * record in their authenticated session.
+         */
+                if (
+                    !is_array(
+                        $fieldOfficerVerification
+                    )
+                ) {
+                    throw new DomainException(
+                        'Please verify the Field Officer ID '
+                            . 'before saving Family Details.'
+                    );
+                }
+
+                $verifiedUserId =
+                    (int) (
+                        $fieldOfficerVerification['user_id'] ?? 0
+                    );
+
+                $verifiedFieldOfficerId =
+                    (int) (
+                        $fieldOfficerVerification['field_officer_id'] ?? 0
+                    );
+
+                $verifiedCode =
+                    strtoupper(
+                        trim(
+                            (string) (
+                                $fieldOfficerVerification['officer_code'] ?? ''
+                            )
+                        )
+                    );
+
+                $verifiedAt =
+                    (int) (
+                        $fieldOfficerVerification['verified_at'] ?? 0
+                    );
+
+                /*
+         * Verification belongs only to the currently
+         * authenticated member.
+         */
+                if ($verifiedUserId !== $userId) {
+                    throw new DomainException(
+                        'Please verify the Field Officer ID '
+                            . 'before saving Family Details.'
+                    );
+                }
+
+                /*
+         * The submitted value must be exactly the value that
+         * was verified.
+         */
+                if (
+                    $verifiedCode
+                    !== $submittedFieldOfficerCode
+                ) {
+                    throw new DomainException(
+                        'The Field Officer ID has changed. '
+                            . 'Please verify it again before saving.'
+                    );
+                }
+
+                if ($verifiedFieldOfficerId <= 0) {
+                    throw new DomainException(
+                        'Please verify the Field Officer ID '
+                            . 'before saving Family Details.'
+                    );
+                }
+
+                /*
+         * Temporary verification expires after 15 minutes.
+         *
+         * This also prevents an old verification session from
+         * being reused much later.
+         */
+                if (
+                    $verifiedAt <= 0
+                    || (time() - $verifiedAt) > 900
+                ) {
+                    throw new DomainException(
+                        'Field Officer verification has expired. '
+                            . 'Please verify the ID again.'
+                    );
+                }
+
+                /*
+         * Re-resolve the officer at save time.
+         *
+         * Verification can be several minutes old. The officer
+         * may have been deactivated between Verify and Save.
          */
                 $fieldOfficer =
                     $this->verifyFieldOfficerCode(
                         $submittedFieldOfficerCode
                     );
 
+                /*
+         * The officer resolved now must be the same officer
+         * that was verified earlier.
+         */
+                if (
+                    (int) $fieldOfficer['id']
+                    !== $verifiedFieldOfficerId
+                ) {
+                    throw new DomainException(
+                        'Field Officer verification is no longer valid. '
+                            . 'Please verify the ID again.'
+                    );
+                }
+
                 $fieldOfficerId =
-                    $fieldOfficer['id'];
+                    (int) $fieldOfficer['id'];
 
                 $fieldOfficerCode =
-                    $fieldOfficer['officer_code'];
+                    (string) $fieldOfficer['officer_code'];
             }
         }
 
@@ -389,7 +498,7 @@ final class FamilyDetailsService
         $this->database->transStart();
 
         try {
-            
+
             $saved = is_array($existing)
                 ? $this->detailModel->update(
                     (int) $existing['id'],

@@ -761,7 +761,7 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
             ]
         );
 
-        $routes->get(
+        $routes->post(
             'profile/family-details/field-officer/verify',
             'ProfileController::verifyFamilyFieldOfficer',
             [

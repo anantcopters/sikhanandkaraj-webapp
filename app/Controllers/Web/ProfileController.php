@@ -931,20 +931,20 @@ final class ProfileController extends BaseController
 
     /**
      * Verify an optional Field Officer ID for Family Details.
+     *
+     * Successful verification is stored server-side in the
+     * authenticated member session. The Family Details save
+     * operation requires this verification state when assigning
+     * a Field Officer for the first time.
      */
     public function verifyFamilyFieldOfficer(): ResponseInterface
     {
-        /*
-     * Authentication is also protected by the webAuth route
-     * filter. Resolving the current member here keeps direct
-     * controller access consistent with profile endpoints.
-     */
-        $this->authenticatedUserId();
+        $userId = $this->authenticatedUserId();
 
         $officerCode = strtoupper(
             trim(
                 (string) $this->request
-                    ->getGet('code')
+                    ->getPost('code')
             )
         );
 
@@ -961,15 +961,31 @@ final class ProfileController extends BaseController
                 );
 
             /*
-         * Do not expose the internal database ID.
+         * Store verification only on the server.
          *
-         * The browser only needs the canonical officer code
-         * and officer name. The DB ID is resolved again by
-         * the server during save.
+         * Never accept field_officer_id from the browser.
          */
+            session()->set(
+                'familyFieldOfficerVerification',
+                [
+                    'user_id' =>
+                    $userId,
+
+                    'field_officer_id' =>
+                    (int) $fieldOfficer['id'],
+
+                    'officer_code' =>
+                    (string) $fieldOfficer['officer_code'],
+
+                    'verified_at' =>
+                    time(),
+                ]
+            );
+
             return $this->response
                 ->setJSON([
-                    'success' => true,
+                    'success' =>
+                    true,
 
                     'data' => [
                         'officer_code' =>
@@ -978,15 +994,89 @@ final class ProfileController extends BaseController
                         'full_name' =>
                         $fieldOfficer['full_name'],
                     ],
+
+                    /*
+                 * CSRF regenerates after POST in this project.
+                 * Return the new token so the Family Details
+                 * form can submit successfully afterwards.
+                 */
+                    'csrf' => [
+                        'name' =>
+                        csrf_token(),
+
+                        'hash' =>
+                        csrf_hash(),
+                    ],
                 ]);
         } catch (DomainException $exception) {
+            /*
+         * Failed verification must invalidate any previous
+         * temporary Field Officer verification.
+         */
+            session()->remove(
+                'familyFieldOfficerVerification'
+            );
+
             return $this->response
                 ->setStatusCode(422)
                 ->setJSON([
-                    'success' => false,
+                    'success' =>
+                    false,
 
                     'message' =>
                     $exception->getMessage(),
+
+                    'csrf' => [
+                        'name' =>
+                        csrf_token(),
+
+                        'hash' =>
+                        csrf_hash(),
+                    ],
+                ]);
+        } catch (Throwable $exception) {
+            session()->remove(
+                'familyFieldOfficerVerification'
+            );
+
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                ProfileErrorContext::forMember(
+                    memberId: $userId,
+
+                    operation: 'profile_field_officer_verify',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'profile_section' =>
+                        'FAMILY_DETAILS',
+                    ]
+                )
+            );
+
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'success' =>
+                    false,
+
+                    'message' =>
+                    'The Field Officer ID could '
+                        . 'not be verified. Please try again.',
+
+                    'csrf' => [
+                        'name' =>
+                        csrf_token(),
+
+                        'hash' =>
+                        csrf_hash(),
+                    ],
                 ]);
         }
     }
@@ -1026,9 +1116,27 @@ final class ProfileController extends BaseController
             /** @var FamilyDetailsService $service */
             $service = service('familyDetailsService');
 
+            $fieldOfficerVerification =
+                session()->get(
+                    'familyFieldOfficerVerification'
+                );
+
             $service->save(
                 $userId,
-                $validatedData
+                $validatedData,
+                is_array($fieldOfficerVerification)
+                    ? $fieldOfficerVerification
+                    : null
+            );
+
+            /*
+ * A verification can only be consumed once.
+ *
+ * The actual Field Officer assignment is now permanently
+ * stored in member_family_details.
+ */
+            session()->remove(
+                'familyFieldOfficerVerification'
             );
 
             $redirectUrl = $this->isProfileJourney()
