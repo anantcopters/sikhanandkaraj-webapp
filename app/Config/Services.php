@@ -46,6 +46,7 @@ use App\Models\UserModel;
 use App\Services\Admin\AdminInvitationService;
 use App\Services\Admin\AdminManagementService;
 use App\Services\Admin\Audit\AdminAuditService;
+use App\Services\Admin\Authentication\AdminCaptchaService;
 use App\Services\Admin\Authentication\AdminLoginService;
 use App\Services\Admin\FieldOfficerService;
 use App\Services\Admin\MemberPhotoApprovalService;
@@ -277,6 +278,21 @@ final class Services extends BaseService
     }
 
     /**
+     * Return the administrator login CAPTCHA service.
+     */
+    public static function adminCaptchaService(
+        bool $getShared = true
+    ): AdminCaptchaService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'adminCaptchaService'
+            );
+        }
+
+        return new AdminCaptchaService();
+    }
+
+    /**
      * Return the administrator login service.
      */
     public static function adminLoginService(
@@ -294,7 +310,6 @@ final class Services extends BaseService
             new AdminUserModel($database)
         );
     }
-
     /**
      * Return the administrator invitation service.
      */
