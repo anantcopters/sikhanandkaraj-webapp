@@ -24,22 +24,81 @@ declare(strict_types=1);
  * --------------------------------------------------------------------------
  *
  * Controller/service supplied values are normalized once before rendering.
- * Business rules remain in the service layer.
+ * No Search business rules or database decisions belong in this view.
  */
 
-$this->extend(
-    'Layouts/Main'
-);
-
-$this->section(
-    'content'
-);
+$pageTitle =
+    isset($pageTitle)
+    && is_string($pageTitle)
+    && trim($pageTitle) !== ''
+    ? trim($pageTitle)
+    : 'Search Profiles';
 
 $mode =
-    ($mode ?? 'basic')
-    === 'advanced'
+    isset($mode)
+    && $mode === 'advanced'
     ? 'advanced'
     : 'basic';
+
+$sort =
+    isset($sort)
+    && is_string($sort)
+    && in_array(
+        $sort,
+        [
+            'default',
+            'latest',
+            'oldest',
+            'last_login',
+        ],
+        true
+    )
+    ? $sort
+    : 'default';
+
+$page =
+    isset($page)
+    && is_numeric($page)
+    ? max(
+        1,
+        (int) $page
+    )
+    : 1;
+
+$perPage =
+    isset($perPage)
+    && is_numeric($perPage)
+    ? max(
+        1,
+        (int) $perPage
+    )
+    : 10;
+
+$total =
+    isset($total)
+    && is_numeric($total)
+    ? max(
+        0,
+        (int) $total
+    )
+    : 0;
+
+$totalPages =
+    isset($totalPages)
+    && is_numeric($totalPages)
+    ? max(
+        1,
+        (int) $totalPages
+    )
+    : 1;
+
+$profiles =
+    isset($profiles)
+    && is_array($profiles)
+    ? array_values(
+        $profiles
+    )
+    : [];
 
 $filters =
     isset($filters)
@@ -53,60 +112,108 @@ $masterData =
     ? $masterData
     : [];
 
-$profiles =
-    isset($profiles)
-    && is_array($profiles)
-    ? $profiles
-    : [];
+$formAlert =
+    isset($formAlert)
+    && is_array($formAlert)
+    ? $formAlert
+    : null;
 
-$total =
-    max(
-        0,
-        (int) (
-            $total
-            ?? 0
-        )
-    );
-
-$page =
-    max(
-        1,
-        (int) (
-            $page
-            ?? 1
-        )
-    );
-
-$totalPages =
-    max(
-        1,
-        (int) (
-            $totalPages
-            ?? 1
-        )
-    );
-
-$sort =
-    (string) (
-        $sort
-        ?? 'default'
-    );
-
+/*
+ * Return one normalized multi-value Search filter.
+ */
 $selected =
     static function (
         string $key
     ) use (
         $filters
     ): array {
-        return isset(
+        $value =
             $filters[$key]
-        )
-            && is_array(
-                $filters[$key]
+            ?? [];
+
+        return is_array($value)
+            ? array_values(
+                $value
             )
-            ? $filters[$key]
             : [];
     };
+
+/*
+ * Build a query-string collection exclusively from already normalized
+ * Search-filter data.
+ *
+ * The view deliberately does not read raw $_GET.
+ */
+$searchQuery = [
+    'mode' =>
+    $mode,
+
+    'sort' =>
+    $sort,
+];
+
+$scalarFilterKeys = [
+    'age_min',
+    'age_max',
+    'height_min_id',
+    'height_max_id',
+    'annual_income_from_id',
+    'annual_income_to_id',
+];
+
+foreach (
+    $scalarFilterKeys
+    as $key
+) {
+    $value =
+        trim(
+            (string) (
+                $filters[$key]
+                ?? ''
+            )
+        );
+
+    if ($value !== '') {
+        $searchQuery[$key] =
+            $value;
+    }
+}
+
+$arrayFilterKeys = [
+    'marital_status_ids',
+    'state_ids',
+    'city_ids',
+    'photo_visibility',
+    'community_ids',
+    'managed_by',
+    'education_ids',
+    'occupation_ids',
+    'employed_in',
+    'lifestyle_option_ids',
+];
+
+foreach (
+    $arrayFilterKeys
+    as $key
+) {
+    $values =
+        $selected(
+            $key
+        );
+
+    if ($values !== []) {
+        $searchQuery[$key] =
+            $values;
+    }
+}
+
+$this->extend(
+    'Layouts/Main'
+);
+
+$this->section(
+    'content'
+);
 ?>
 
 <section class="py-3 py-lg-4">

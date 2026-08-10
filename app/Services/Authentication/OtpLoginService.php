@@ -445,28 +445,48 @@ final class OtpLoginService
             $this->commitOrFail();
 
             /*
-            * Authentication has now succeeded.
+            * Authentication has now successfully completed and the OTP transaction
+            * has already been committed.
             *
-            * Record the activity outside the OTP transaction. Failure to update this
-            * auxiliary timestamp must not invalidate the successful OTP authentication.
+            * last_login_at is auxiliary operational metadata. Failure to record this
+            * timestamp must not invalidate the completed OTP authentication.
             */
-            $loginRecorded =
-                $this->userModel
-                ->recordSuccessfulLogin(
-                    $userId
-                );
+            try {
+                $loginRecorded =
+                    $this->userModel
+                    ->recordSuccessfulLogin(
+                        $userId
+                    );
 
-            if (!$loginRecorded) {
+                if (!$loginRecorded) {
+                    log_message(
+                        'warning',
+                        'Successful OTP login activity could not be recorded. '
+                            . 'Member: {memberId}.',
+                        [
+                            'memberId' =>
+                            $userId,
+                        ]
+                    );
+                }
+            } catch (\Throwable $exception) {
                 log_message(
                     'warning',
-                    'Successful OTP login activity could not be recorded. '
-                        . 'Member: {memberId}.',
+                    'Successful OTP login activity update failed. '
+                        . 'Member: {memberId}; reason: {message}',
                     [
                         'memberId' =>
                         $userId,
+
+                        'message' =>
+                        $exception->getMessage(),
                     ]
                 );
             }
+
+            return OtpLoginResult::authenticated(
+                $context['user']
+            );
 
             return OtpLoginResult::authenticated(
                 $context['user']

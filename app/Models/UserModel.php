@@ -443,20 +443,39 @@ final class UserModel extends Model
             : null;
     }
 
-    public function recordLogin(
+    /**
+     * Record the latest successful member authentication time.
+     *
+     * This timestamp is operational activity metadata used by member-facing
+     * sorting such as "Last Logged In".
+     *
+     * Authentication services call this method only after all authentication
+     * checks have succeeded.
+     */
+    public function recordSuccessfulLogin(
         int $userId
     ): bool {
         if ($userId <= 0) {
             return false;
         }
 
+        /*
+     * Application/database timestamps are stored in UTC.
+     */
+        $lastLoginAt = (
+            new \DateTimeImmutable(
+                'now',
+                new \DateTimeZone('UTC')
+            )
+        )->format(
+            'Y-m-d H:i:s'
+        );
+
         return $this->update(
             $userId,
             [
                 'last_login_at' =>
-                date(
-                    'Y-m-d H:i:s'
-                ),
+                $lastLoginAt,
             ]
         );
     }

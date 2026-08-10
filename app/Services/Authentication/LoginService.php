@@ -138,32 +138,47 @@ final class LoginService
         );
 
         /*
-        * Record activity only after every authentication condition has passed:
+        * Record successful authentication activity.
         *
-        * - credentials are correct;
-        * - account is ACTIVE;
-        * - the login contact is verified.
-        *
-        * Activity tracking is auxiliary metadata. Its failure must therefore not
-        * prevent an otherwise valid member login.
+        * last_login_at is auxiliary operational metadata. Failure to update this
+        * timestamp must never invalidate otherwise successful authentication.
         */
-        $loginRecorded =
-            $this->userModel
-            ->recordSuccessfulLogin(
-                $userId
-            );
+        try {
+            $loginRecorded =
+                $this->userModel
+                ->recordSuccessfulLogin(
+                    $userId
+                );
 
-        if (!$loginRecorded) {
+            if (!$loginRecorded) {
+                log_message(
+                    'warning',
+                    'Successful password login activity could not be recorded. '
+                        . 'Member: {memberId}.',
+                    [
+                        'memberId' =>
+                        $userId,
+                    ]
+                );
+            }
+        } catch (\Throwable $exception) {
             log_message(
                 'warning',
-                'Successful password login activity could not be recorded. '
-                    . 'Member: {memberId}.',
+                'Successful password login activity update failed. '
+                    . 'Member: {memberId}; reason: {message}',
                 [
                     'memberId' =>
                     $userId,
+
+                    'message' =>
+                    $exception->getMessage(),
                 ]
             );
         }
+
+        return LoginResult::success(
+            $user
+        );
 
         return LoginResult::success(
             $user

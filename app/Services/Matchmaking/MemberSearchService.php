@@ -60,8 +60,20 @@ final class MemberSearchService
             )
         );
 
+        /*
+        * Resolve selected states first because Advanced Search City master data
+        * depends on them.
+        */
+        $requestedStateIds =
+            $this->positiveIds(
+                $input['state_ids']
+                    ?? []
+            );
+
         $masterData =
-            $this->searchMasterData();
+            $this->searchMasterData(
+                $requestedStateIds
+            );
 
         $filters =
             $this->normaliseFilters(
@@ -121,9 +133,12 @@ final class MemberSearchService
             $sort,
 
             'page' =>
-            min(
-                $page,
-                $totalPages
+            max(
+                1,
+                (int) (
+                    $results['page']
+                    ?? $page
+                )
             ),
 
             'perPage' =>
@@ -226,10 +241,15 @@ final class MemberSearchService
     }
 
     /**
+     * Return active master data required by member Search.
+     *
+     * @param list<int> $selectedStateIds
+     *
      * @return array<string, mixed>
      */
-    private function searchMasterData(): array
-    {
+    private function searchMasterData(
+        array $selectedStateIds = []
+    ): array {
         $basic =
             $this->masterDataService
             ->basicDetailsOptions();
@@ -243,16 +263,25 @@ final class MemberSearchService
             ->activeOptions();
 
         /*
-         * Existing LifestyleService remains the source of active lifestyle
-         * categories/options.
-         *
-         * We only need an existing user to obtain the master collections;
-         * the calling user is supplied separately when pageData is built.
-         */
+     * Advanced Search may select multiple states, unlike Profile Edit.
+     * Load active cities across all selected states so submitted city values
+     * remain visible after Search, sorting and pagination.
+     */
+        $cities =
+            $selectedStateIds !== []
+            ? $this->masterDataService
+            ->citiesForStates(
+                $selectedStateIds
+            )
+            : [];
+
         return array_merge(
             $basic,
             $additional,
             [
+                'cities' =>
+                $cities,
+
                 'lifestyleCategories' =>
                 $lifestyle['categories']
                     ?? [],
@@ -260,34 +289,44 @@ final class MemberSearchService
                 'lifestyleOptionsByCategory' =>
                 $lifestyle['optionsByCategory']
                     ?? [],
+
+                /*
+             * Existing registration profile ownership values are reused.
+             * No duplicate Search master is introduced.
+             */
                 'profileManagedBy' => [
                     [
                         'value' =>
                         'self',
+
                         'label' =>
                         'Self',
                     ],
                     [
                         'value' =>
                         'son',
+
                         'label' =>
                         'Son',
                     ],
                     [
                         'value' =>
                         'daughter',
+
                         'label' =>
                         'Daughter',
                     ],
                     [
                         'value' =>
                         'brother',
+
                         'label' =>
                         'Brother',
                     ],
                     [
                         'value' =>
                         'sister',
+
                         'label' =>
                         'Sister',
                     ],
@@ -422,10 +461,26 @@ final class MemberSearchService
                     ?? []
             );
 
+        /*
+        * Validate cities against active city master data belonging to the selected
+        * states. A browser-supplied positive numeric ID is not trusted by itself.
+        */
+        $selectedStateIds =
+            $filters['state_ids'];
+
+        $availableCities =
+            $selectedStateIds !== []
+            ? $this->masterDataService
+            ->citiesForStates(
+                $selectedStateIds
+            )
+            : [];
+
         $filters['city_ids'] =
-            $this->positiveIds(
+            $this->validatedMasterIds(
                 $input['city_ids']
-                    ?? []
+                    ?? [],
+                $availableCities
             );
 
         $filters['managed_by'] =
@@ -509,10 +564,37 @@ final class MemberSearchService
                     ?? []
             );
 
+        /*
+        * Flatten currently active Lifestyle options before validating submitted
+        * option IDs.
+        */
+        $activeLifestyleOptions = [];
+
+        foreach (
+            $masterData['lifestyleOptionsByCategory']
+                ?? []
+            as $categoryOptions
+        ) {
+            if (!is_array($categoryOptions)) {
+                continue;
+            }
+
+            foreach (
+                $categoryOptions
+                as $option
+            ) {
+                if (is_array($option)) {
+                    $activeLifestyleOptions[] =
+                        $option;
+                }
+            }
+        }
+
         $filters['lifestyle_option_ids'] =
-            $this->positiveIds(
+            $this->validatedMasterIds(
                 $input['lifestyle_option_ids']
-                    ?? []
+                    ?? [],
+                $activeLifestyleOptions
             );
 
         return $filters;

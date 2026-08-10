@@ -2,6 +2,22 @@
 
 declare(strict_types=1);
 
+/**
+ * Search profile-card UI variables.
+ *
+ * @var array<string, mixed> $profile
+ */
+
+/*
+ * --------------------------------------------------------------------------
+ * Normalize view-local profile values
+ * --------------------------------------------------------------------------
+ *
+ * Only presentation normalization belongs here. Eligibility, privacy,
+ * blocking and photo authorization have already been resolved by the
+ * Search service.
+ */
+
 $profile =
     isset($profile)
     && is_array($profile)
@@ -15,6 +31,10 @@ $name =
             ?? 'Member'
         )
     );
+
+if ($name === '') {
+    $name = 'Member';
+}
 
 $reference =
     trim(
@@ -36,7 +56,72 @@ $profileUrl =
     trim(
         (string) (
             $profile['profileUrl']
-            ?? '#'
+            ?? ''
+        )
+    );
+
+if ($profileUrl === '') {
+    $profileUrl = '#';
+}
+
+$age =
+    is_numeric(
+        $profile['age']
+            ?? null
+    )
+    ? max(
+        0,
+        (int) $profile['age']
+    )
+    : null;
+
+$height =
+    trim(
+        (string) (
+            $profile['height']
+            ?? ''
+        )
+    );
+
+$city =
+    trim(
+        (string) (
+            $profile['city']
+            ?? ''
+        )
+    );
+
+$state =
+    trim(
+        (string) (
+            $profile['state']
+            ?? ''
+        )
+    );
+
+$maritalStatus =
+    trim(
+        (string) (
+            $profile['maritalStatus']
+            ?? ''
+        )
+    );
+
+$location =
+    $city !== ''
+    ? $city
+    : $state;
+
+/*
+ * Use the same fallback-initial approach already used by member-facing
+ * discovery cards when no viewer-authorized photo URL is available.
+ */
+$initial =
+    mb_strtoupper(
+        mb_substr(
+            $name,
+            0,
+            1
         )
     );
 ?>
@@ -51,6 +136,10 @@ $profileUrl =
             class="d-flex flex-column
                 flex-sm-row gap-3">
 
+            <!-- =========================================================
+                 Profile photo
+                 ========================================================= -->
+
             <a
                 href="<?= esc(
                             $profileUrl,
@@ -61,7 +150,9 @@ $profileUrl =
 
                 <?php if ($image !== ''): ?>
 
-                    <div class="member-profile-thumbnail">
+                    <!-- Viewer-authorized approved primary photo. -->
+                    <div
+                        class="member-profile-thumbnail">
 
                         <img
                             src="<?= esc(
@@ -78,19 +169,21 @@ $profileUrl =
 
                 <?php else: ?>
 
+                    <!--
+                        Photo is absent or not authorized for the viewer.
+                        Do not distinguish those privacy states in the UI.
+                    -->
                     <div
                         class="member-profile-thumbnail
-                            member-profile-thumbnail--fallback">
+                            member-profile-thumbnail--fallback"
+                        aria-label="<?= esc(
+                                        $name,
+                                        'attr'
+                                    ) ?>">
 
                         <span>
                             <?= esc(
-                                mb_strtoupper(
-                                    mb_substr(
-                                        $name,
-                                        0,
-                                        1
-                                    )
-                                )
+                                $initial
                             ) ?>
                         </span>
 
@@ -99,6 +192,10 @@ $profileUrl =
                 <?php endif; ?>
 
             </a>
+
+            <!-- =========================================================
+                 Profile summary
+                 ========================================================= -->
 
             <div class="flex-grow-1">
 
@@ -113,21 +210,33 @@ $profileUrl =
                         class="text-body
                             text-decoration-none">
 
-                        <?= esc($name) ?>
+                        <?= esc(
+                            $name
+                        ) ?>
 
                     </a>
 
                 </h3>
 
-                <div
-                    class="text-muted
-                        fs-13 mb-2">
+                <?php if (
+                    $reference !== ''
+                ): ?>
 
-                    <?= esc(
-                        $reference
-                    ) ?>
+                    <div
+                        class="text-muted
+                            fs-13 mb-2">
 
-                </div>
+                        <?= esc(
+                            $reference
+                        ) ?>
+
+                    </div>
+
+                <?php endif; ?>
+
+                <!-- =====================================================
+                     Basic profile summary
+                     ===================================================== -->
 
                 <div
                     class="d-flex flex-wrap
@@ -135,16 +244,13 @@ $profileUrl =
                         text-muted mb-3">
 
                     <?php if (
-                        is_numeric(
-                            $profile['age']
-                                ?? null
-                        )
+                        $age !== null
+                        && $age > 0
                     ): ?>
 
                         <span>
                             <?= esc(
-                                (string)
-                                $profile['age']
+                                (string) $age
                             ) ?>
                             yrs
                         </span>
@@ -152,43 +258,35 @@ $profileUrl =
                     <?php endif; ?>
 
                     <?php if (
-                        trim(
-                            (string) (
-                                $profile['height']
-                                ?? ''
-                            )
-                        ) !== ''
+                        $height !== ''
                     ): ?>
 
                         <span>
-                            ·
+                            <?= $age !== null
+                                ? '· '
+                                : '' ?>
+
                             <?= esc(
-                                (string)
-                                $profile['height']
+                                $height
                             ) ?>
                         </span>
 
                     <?php endif; ?>
 
                     <?php if (
-                        trim(
-                            (string) (
-                                $profile['city']
-                                ?? ''
-                            )
-                        ) !== ''
+                        $location !== ''
                     ): ?>
 
                         <span>
                             ·
+
                             <i
                                 class="ri-map-pin-line"
                                 aria-hidden="true">
                             </i>
 
                             <?= esc(
-                                (string)
-                                $profile['city']
+                                $location
                             ) ?>
                         </span>
 
@@ -197,22 +295,23 @@ $profileUrl =
                 </div>
 
                 <?php if (
-                    trim(
-                        (string) (
-                            $profile['maritalStatus']
-                            ?? ''
-                        )
-                    ) !== ''
+                    $maritalStatus !== ''
                 ): ?>
 
-                    <p class="fs-13 mb-3">
+                    <p
+                        class="fs-13 mb-3">
+
                         <?= esc(
-                            (string)
-                            $profile['maritalStatus']
+                            $maritalStatus
                         ) ?>
+
                     </p>
 
                 <?php endif; ?>
+
+                <!-- =====================================================
+                     Profile action
+                     ===================================================== -->
 
                 <a
                     href="<?= esc(

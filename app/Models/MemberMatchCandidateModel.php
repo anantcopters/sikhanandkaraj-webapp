@@ -170,7 +170,8 @@ final class MemberMatchCandidateModel extends Model
      *
      * @return array{
      *     rows:list<array<string, mixed>>,
-     *     total:int
+     *     total:int,
+     *     page:int
      * }
      */
     public function searchCandidates(
@@ -449,13 +450,40 @@ final class MemberMatchCandidateModel extends Model
         }
 
         /*
-        * Count before pagination.
+        * Count matching profiles before applying pagination.
         */
-        $countBuilder = clone $builder;
+        $countBuilder =
+            clone $builder;
 
-        $total = (int) $countBuilder
-            ->countAllResults();
+        $total =
+            (int)
+            $countBuilder
+                ->countAllResults();
 
+        /*
+        * Clamp manually supplied/outdated page numbers before querying records.
+        *
+        * This prevents URLs such as ?page=999 from showing an empty page when
+        * matching profiles still exist on an earlier valid page.
+        */
+        $totalPages =
+            max(
+                1,
+                (int) ceil(
+                    $total
+                        / $perPage
+                )
+            );
+
+        $page =
+            min(
+                $page,
+                $totalPages
+            );
+
+        /*
+        * Apply deterministic Search ordering after counting.
+        */
         $this->applySearchSorting(
             $builder,
             $sort
@@ -465,7 +493,8 @@ final class MemberMatchCandidateModel extends Model
             ($page - 1)
             * $perPage;
 
-        $rows = $builder
+        $rows =
+            $builder
             ->limit(
                 $perPage,
                 $offset
@@ -475,10 +504,15 @@ final class MemberMatchCandidateModel extends Model
 
         return [
             'rows' =>
-            array_values($rows),
+            array_values(
+                $rows
+            ),
 
             'total' =>
             $total,
+
+            'page' =>
+            $page,
         ];
     }
 

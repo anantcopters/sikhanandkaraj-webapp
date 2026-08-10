@@ -6,7 +6,7 @@ namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
 use App\Services\Matchmaking\MemberSearchService;
-use CodeIgniter\Exceptions\PageNotFoundException;
+use App\Validation\Search\MemberSearchValidation;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
 use DomainException;
@@ -14,13 +14,57 @@ use Throwable;
 
 final class SearchController extends BaseController
 {
+    /**
+     * Display Basic or Advanced member Search.
+     */
     public function index(): string
     {
         $userId =
             $this->authenticatedUserId();
 
+        /*
+     * Read only explicitly supported Search parameters.
+     */
         $input =
             $this->searchInput();
+
+        /*
+     * Server-side validation is authoritative.
+     *
+     * Master-data arrays are subsequently validated by MemberSearchService.
+     */
+        $validation =
+            service(
+                'validation'
+            );
+
+        $validation->setRules(
+            MemberSearchValidation::rules()
+        );
+
+        if (
+            !$validation->run(
+                $input
+            )
+        ) {
+            return $this->searchView(
+                $userId,
+                $input,
+                [
+                    'type' =>
+                    'danger',
+
+                    'title' =>
+                    'Search values need attention',
+
+                    'message' =>
+                    implode(
+                        ' ',
+                        $validation->getErrors()
+                    ),
+                ]
+            );
+        }
 
         try {
             /** @var MemberSearchService $service */
@@ -54,61 +98,23 @@ final class SearchController extends BaseController
         } catch (
             DomainException $exception
         ) {
-            return view(
-                'Pages/Search/Index',
+            return $this->searchView(
+                $userId,
+                $input,
                 [
-                    'pageTitle' =>
-                    'Search',
+                    'type' =>
+                    'danger',
 
-                    'mode' =>
-                    $input['mode']
-                        ?? 'basic',
+                    'title' =>
+                    'Search could not be completed',
 
-                    'sort' =>
-                    $input['sort']
-                        ?? 'default',
-
-                    'profiles' =>
-                    [],
-
-                    'total' =>
-                    0,
-
-                    'page' =>
-                    1,
-
-                    'totalPages' =>
-                    1,
-
-                    'filters' =>
-                    $input,
-
-                    'masterData' =>
-                    service(
-                        'memberSearchService'
-                    )->search(
-                        $userId,
-                        []
-                    )['masterData'],
-
-                    'formAlert' => [
-                        'type' =>
-                        'danger',
-
-                        'title' =>
-                        'Search could not be completed',
-
-                        'message' =>
-                        $exception
-                            ->getMessage(),
-                    ],
-
-                    'pageScripts' => [
-                        'assets/js/pages/member-search.js',
-                    ],
+                    'message' =>
+                    $exception->getMessage(),
                 ]
             );
-        } catch (Throwable $exception) {
+        } catch (
+            Throwable $exception
+        ) {
             service(
                 'applicationErrorLogger'
             )->exception(
@@ -129,47 +135,19 @@ final class SearchController extends BaseController
                 ]
             );
 
-            return view(
-                'Pages/Search/Index',
+            return $this->searchView(
+                $userId,
+                [],
                 [
-                    'pageTitle' =>
-                    'Search',
+                    'type' =>
+                    'danger',
 
-                    'mode' =>
-                    'basic',
+                    'title' =>
+                    'Search unavailable',
 
-                    'profiles' =>
-                    [],
-
-                    'total' =>
-                    0,
-
-                    'page' =>
-                    1,
-
-                    'totalPages' =>
-                    1,
-
-                    'masterData' =>
-                    [],
-
-                    'filters' =>
-                    [],
-
-                    'formAlert' => [
-                        'type' =>
-                        'danger',
-
-                        'title' =>
-                        'Search unavailable',
-
-                        'message' =>
-                        'We could not complete the search. Please try again.',
-                    ],
-
-                    'pageScripts' => [
-                        'assets/js/pages/member-search.js',
-                    ],
+                    'message' =>
+                    'We could not complete the search. '
+                        . 'Please try again.',
                 ]
             );
         }
@@ -300,6 +278,73 @@ final class SearchController extends BaseController
                     $cities,
                 ]
             );
+    }
+
+    /**
+     * Render Search while retaining master data after a validation/business error.
+     *
+     * @param array<string, mixed>      $input
+     * @param array<string, string>|null $formAlert
+     */
+    private function searchView(
+        int $userId,
+        array $input,
+        ?array $formAlert = null
+    ): string {
+        /** @var MemberSearchService $service */
+        $service = service(
+            'memberSearchService'
+        );
+
+        /*
+     * An empty Search is safe and also provides all currently active
+     * master-data collections required by the form.
+     */
+        $pageData =
+            $service->search(
+                $userId,
+                []
+            );
+
+        $requestedMode =
+            mb_strtolower(
+                trim(
+                    (string) (
+                        $input['mode']
+                        ?? ''
+                    )
+                )
+            );
+
+        $pageData['mode'] =
+            $requestedMode === 'advanced'
+            ? 'advanced'
+            : 'basic';
+
+        /*
+     * Preserve submitted filters so the user can correct only the invalid
+     * value instead of rebuilding the complete search.
+     */
+        $pageData['filters'] =
+            $input;
+
+        return view(
+            'Pages/Search/Index',
+            array_merge(
+                $pageData,
+                [
+                    'pageTitle' =>
+                    'Search',
+
+                    'formAlert' =>
+                    $formAlert,
+
+                    'pageScripts' => [
+                        'assets/js/pages/member-search.js',
+                    ],
+                ]
+            )
+        );
     }
 
     /**
