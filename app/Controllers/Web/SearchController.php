@@ -7,7 +7,6 @@ namespace App\Controllers\Web;
 use App\Controllers\BaseController;
 use App\Services\Matchmaking\MemberSearchService;
 use App\Validation\Search\MemberSearchValidation;
-use App\Services\Matchmaking\MemberMatchmakingService;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
 use DomainException;
@@ -532,324 +531,29 @@ final class SearchController extends BaseController
     }
 
     /**
-     * Display one existing member-activity / matchmaking collection using the
-     * normal Search profile-listing UI.
-     *
-     * No interaction or matchmaking logic is recreated here. All source
-     * collections come from MemberMatchmakingService.
-     */
-    public function quick(
-        string $type
-    ): string|RedirectResponse {
-        $userId =
-            $this->authenticatedUserId();
-
-        /*
-     * Only known Quick Link collections may be requested.
-     *
-     * URL-controlled values never become arbitrary array keys or service
-     * operations without first passing this allow-list.
-     */
-        $supportedTypes = [
-            'shortlisted-by-you' => [
-                'collection' =>
-                'profilesShortlistedByYou',
-
-                'title' =>
-                'Shortlisted by You',
-
-                'help' =>
-                'Profiles you have added to your shortlist.',
-            ],
-
-            'shortlisted-you' => [
-                'collection' =>
-                'whoShortlistedYou',
-
-                'title' =>
-                'Shortlisted You',
-
-                'help' =>
-                'Members who have added your profile to their shortlist.',
-            ],
-
-            'viewed-you' => [
-                'collection' =>
-                'profileVisitors',
-
-                'title' =>
-                'Viewed You',
-
-                'help' =>
-                'Members who have viewed your profile.',
-            ],
-
-            'viewed-by-you' => [
-                'collection' =>
-                'profilesViewed',
-
-                'title' =>
-                'Viewed by You',
-
-                'help' =>
-                'Profiles you have viewed recently.',
-            ],
-
-            'new-profiles' => [
-                'collection' =>
-                'newMatches',
-
-                'title' =>
-                'New Profiles',
-
-                'help' =>
-                'Recently joined profiles matching your partner preferences.',
-            ],
-        ];
-
-        $type =
-            mb_strtolower(
-                trim(
-                    $type
-                )
-            );
-
-        if (
-            !isset(
-                $supportedTypes[$type]
-            )
-        ) {
-            return redirect()
-                ->to(
-                    route_to(
-                        'web.search'
-                    )
-                )
-                ->with(
-                    'formAlert',
-                    [
-                        'type' =>
-                        'warning',
-
-                        'title' =>
-                        'Quick Search unavailable',
-
-                        'message' =>
-                        'The requested Quick Search could not be found.',
-                    ]
-                );
-        }
-
-        try {
-            /** @var MemberMatchmakingService $matchmakingService */
-            $matchmakingService =
-                service(
-                    'memberMatchmakingService'
-                );
-
-            /*
-         * Reuse the existing matchmaking/activity collections.
-         */
-            $collections =
-                $matchmakingService
-                ->dashboardCollections(
-                    $userId
-                );
-
-            $configuration =
-                $supportedTypes[$type];
-
-            $collectionKey =
-                (string)
-                $configuration['collection'];
-
-            $profiles =
-                isset(
-                    $collections[$collectionKey]
-                )
-                && is_array(
-                    $collections[$collectionKey]
-                )
-                ? array_values(
-                    $collections[$collectionKey]
-                )
-                : [];
-
-            /*
-         * Convert the existing matchmaking card contract into the Search card
-         * contract without changing the underlying matchmaking logic.
-         */
-            $profiles =
-                $this->quickProfiles(
-                    $profiles
-                );
-
-            return view(
-                'Pages/Search/Results',
-                [
-                    'pageTitle' =>
-                    (string)
-                    $configuration['title'],
-
-                    'resultTitle' =>
-                    (string)
-                    $configuration['title'],
-
-                    'resultHelp' =>
-                    (string)
-                    $configuration['help'],
-
-                    'profiles' =>
-                    $profiles,
-
-                    'total' =>
-                    count(
-                        $profiles
-                    ),
-
-                    'backToSearchUrl' =>
-                    route_to(
-                        'web.search'
-                    ),
-
-                    /*
-                 * Reuse Profile View Interest loader/functionality.
-                 */
-                    'pageScripts' => [
-                        'assets/js/pages/member-profile-actions.js',
-                    ],
-                ]
-            );
-        } catch (
-            Throwable $exception
-        ) {
-            service(
-                'applicationErrorLogger'
-            )->exception(
-                $exception,
-                'error',
-                [
-                    'operation' =>
-                    'member_search_quick_results',
-
-                    'controller' =>
-                    self::class,
-
-                    'method' =>
-                    __FUNCTION__,
-
-                    'member_id' =>
-                    $userId,
-
-                    'quick_type' =>
-                    $type,
-                ]
-            );
-
-            return redirect()
-                ->to(
-                    route_to(
-                        'web.search'
-                    )
-                )
-                ->with(
-                    'formAlert',
-                    [
-                        'type' =>
-                        'danger',
-
-                        'title' =>
-                        'Quick Search unavailable',
-
-                        'message' =>
-                        'The requested profiles could not be loaded. '
-                            . 'Please try again.',
-                    ]
-                );
-        }
-    }
-
-    /**
-     * Normalize existing Matchmaking profile cards for the Search result-card
-     * partial.
-     *
-     * The underlying candidates remain those produced by
-     * MemberMatchmakingService.
-     *
-     * @param list<array<string, mixed>> $profiles
-     *
-     * @return list<array<string, mixed>>
-     */
-    private function quickProfiles(
-        array $profiles
-    ): array {
-        $result = [];
-
-        foreach (
-            $profiles
-            as $profile
-        ) {
-            if (!is_array($profile)) {
-                continue;
-            }
-
-            /*
-         * MemberMatchmakingService already builds member-facing presentation
-         * rows. Resolve only the field-name differences required by Search.
-         */
-            $reference =
-                trim(
-                    (string) (
-                        $profile['referenceId']
-                        ?? $profile['profile_ref_number']
-                        ?? ''
-                    )
-                );
-
-            if ($reference === '') {
-                continue;
-            }
-
-            $result[] =
-                array_merge(
-                    $profile,
-                    [
-                        'referenceId' =>
-                        $reference,
-
-                        'profileUrl' =>
-                        route_to(
-                            'web.members.view',
-                            $reference
-                        ),
-
-                        'interestUrl' =>
-                        route_to(
-                            'web.members.interest',
-                            $reference
-                        ),
-                    ]
-                );
-        }
-
-        return $result;
-    }
-
-    /**
      * Read supported Search query parameters.
      *
      * Search criteria are explicitly allow-listed so arbitrary browser query
      * parameters never enter the Search service.
+     *
+     * The "activity" value is an internal Quick Link Search preset. It still
+     * executes through the normal Search results pipeline.
      *
      * @return array<string, mixed>
      */
     private function searchInput(): array
     {
         /*
+     * ----------------------------------------------------------------------
+     * Local Search input declarations
+     * ----------------------------------------------------------------------
+     */
+
+        /*
      * Multi-value filters.
      *
-     * Annual Income now follows the same multi-bracket approach already used
-     * by Partner Preference.
+     * Annual Income follows the same multi-bracket approach already used by
+     * Partner Preference.
      */
         $arrayFields = [
             'marital_status_ids',
@@ -866,7 +570,7 @@ final class SearchController extends BaseController
         ];
 
         /*
-     * Scalar filters.
+     * Scalar Search filters.
      */
         $input = [
             'mode' =>
@@ -875,6 +579,25 @@ final class SearchController extends BaseController
                 $this->request
                     ->getGet(
                         'mode'
+                    )
+            ),
+
+            /*
+         * Activity is an allow-listed Search preset.
+         *
+         * Examples:
+         *
+         * shortlisted-by-you
+         * shortlisted-you
+         * viewed-you
+         * viewed-by-you
+         */
+            'activity' =>
+            trim(
+                (string)
+                $this->request
+                    ->getGet(
+                        'activity'
                     )
             ),
 
@@ -947,7 +670,9 @@ final class SearchController extends BaseController
                 );
 
             $input[$field] =
-                is_array($submitted)
+                is_array(
+                    $submitted
+                )
                 ? array_values(
                     $submitted
                 )
@@ -967,9 +692,14 @@ final class SearchController extends BaseController
     private function searchUrl(
         array $input
     ): string {
+        /*
+        * Result-only and Quick-Link-only state must never become editable Search
+        * form criteria.
+        */
         unset(
             $input['page'],
-            $input['sort']
+            $input['sort'],
+            $input['activity']
         );
 
         $query =

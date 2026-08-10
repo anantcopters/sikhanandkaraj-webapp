@@ -198,6 +198,71 @@ final class MemberMatchCandidateModel extends Model
         );
 
         /*
+ * --------------------------------------------------------------------------
+ * Existing-interaction candidate restriction
+ * --------------------------------------------------------------------------
+ *
+ * Used by Search Quick Links such as shortlist/profile-view activity.
+ *
+ * Eligibility remains controlled by baseCandidateBuilder(), therefore an
+ * inactive, deleted or blocked profile cannot reappear merely because an old
+ * interaction record exists.
+ */
+        if (
+            array_key_exists(
+                'candidate_ids',
+                $filters
+            )
+        ) {
+            $candidateIds =
+                is_array(
+                    $filters['candidate_ids']
+                )
+                ? array_values(
+                    array_unique(
+                        array_filter(
+                            array_map(
+                                'intval',
+                                $filters['candidate_ids']
+                            ),
+                            static fn(
+                                int $memberId
+                            ): bool =>
+                            $memberId > 0
+                        )
+                    )
+                )
+                : [];
+
+            /*
+     * A valid activity collection with no members must return zero rows.
+     *
+     * We cannot simply skip whereIn() because that would accidentally turn an
+     * empty activity collection into an unrestricted Search.
+     */
+            if ($candidateIds === []) {
+                return [
+                    'rows' =>
+                    [],
+
+                    'total' =>
+                    0,
+
+                    'page' =>
+                    max(
+                        1,
+                        $page
+                    ),
+                ];
+            }
+
+            $builder->whereIn(
+                'u.id',
+                $candidateIds
+            );
+        }
+
+        /*
      * Search-result presentation fields.
      */
         $builder->select([

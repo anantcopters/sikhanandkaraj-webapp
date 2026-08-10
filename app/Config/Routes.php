@@ -578,24 +578,6 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                         'web.search.cities',
                     ]
                 );
-
-                /*
-                * --------------------------------------------------------------------------
-                * Search Quick Links
-                * --------------------------------------------------------------------------
-                *
-                * These links reuse existing matchmaking/activity collections and display
-                * them using the normal Search profile-listing UI.
-                */
-
-                $routes->get(
-                    'search/quick/(:segment)',
-                    'SearchController::quick/$1',
-                    [
-                        'as' =>
-                        'web.search.quick',
-                    ]
-                );
             }
         );
 

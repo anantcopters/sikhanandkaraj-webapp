@@ -159,6 +159,42 @@ final class MemberSearchService
                 $masterData
             );
 
+        /*
+        * --------------------------------------------------------------------------
+        * Quick Link activity preset
+        * --------------------------------------------------------------------------
+        *
+        * Activity Quick Links are not a separate Search implementation.
+        *
+        * They simply restrict the existing Search candidate query to the member IDs
+        * returned by the existing interaction service.
+        */
+        $activity =
+            $this->activity(
+                $input['activity']
+                    ?? null
+            );
+
+        $activityMemberIds =
+            $this->activityMemberIds(
+                $viewerUserId,
+                $activity
+            );
+
+        /*
+        * null:
+        *      Normal Search. Do not apply an activity restriction.
+        *
+        * []:
+        *      Valid activity Search with no matching interaction records.
+        *
+        * [1, 2, 3]&#58;  *      Restrict normal Search to those existing interaction members.
+        */
+        if ($activity !== '') {
+            $filters['candidate_ids'] =
+                $activityMemberIds;
+        }
+
         $results =
             $this->candidateModel
             ->searchCandidates(
@@ -209,6 +245,21 @@ final class MemberSearchService
             );
 
         /*
+        * Activity is presented exactly like another active Search criterion.
+        */
+        $activityChip =
+            $this->activityLabelLinks(
+                $activity
+            );
+
+        if ($activityChip !== '') {
+            array_unshift(
+                $chips,
+                $activityChip
+            );
+        }
+
+        /*
         * Quick Links reuse existing member activity and Search flows.
         *
         * No new persistence or matchmaking implementation is introduced.
@@ -221,6 +272,9 @@ final class MemberSearchService
         return [
             'mode' =>
             $mode,
+
+            'activity' =>
+            $activity,
 
             'sort' =>
             $sort,
@@ -337,6 +391,146 @@ final class MemberSearchService
         }
 
         return $visible[0];
+    }
+
+    /**
+     * Normalize an activity Quick Link.
+     *
+     * Only known activity collections may enter the Search query.
+     */
+    private function activity(
+        mixed $value
+    ): string {
+        /*
+     * ----------------------------------------------------------------------
+     * Local activity declarations
+     * ----------------------------------------------------------------------
+     */
+
+        $activity =
+            mb_strtolower(
+                trim(
+                    (string) $value
+                )
+            );
+
+        $allowed = [
+            'shortlisted-by-you',
+            'shortlisted-you',
+            'viewed-you',
+            'viewed-by-you',
+        ];
+
+        return in_array(
+            $activity,
+            $allowed,
+            true
+        )
+            ? $activity
+            : '';
+    }
+
+    /**
+     * Resolve existing interaction IDs for an activity Quick Link.
+     *
+     * This method deliberately delegates to MemberInteractionService.
+     * Search does not query shortlist/profile-view tables independently.
+     *
+     * @return list<int>
+     */
+    private function activityMemberIds(
+        int $viewerUserId,
+        string $activity
+    ): array {
+        if (
+            $viewerUserId <= 0
+            || $activity === ''
+        ) {
+            return [];
+        }
+
+        $memberIds =
+            match ($activity) {
+                /*
+             * Profiles the logged-in member shortlisted.
+             */
+                'shortlisted-by-you' =>
+                $this->interactionService
+                    ->shortlistedMemberIds(
+                        $viewerUserId
+                    ),
+
+                /*
+             * Members who shortlisted the logged-in member.
+             */
+                'shortlisted-you' =>
+                $this->interactionService
+                    ->shortlistedByMemberIds(
+                        $viewerUserId
+                    ),
+
+                /*
+             * Members who viewed the logged-in member.
+             */
+                'viewed-you' =>
+                $this->interactionService
+                    ->profileVisitorIds(
+                        $viewerUserId
+                    ),
+
+                /*
+             * Profiles viewed by the logged-in member.
+             */
+                'viewed-by-you' =>
+                $this->interactionService
+                    ->profilesViewedIds(
+                        $viewerUserId
+                    ),
+
+                default =>
+                [],
+            };
+
+        return array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        is_array($memberIds)
+                            ? $memberIds
+                            : []
+                    ),
+                    static fn(
+                        int $memberId
+                    ): bool =>
+                    $memberId > 0
+                )
+            )
+        );
+    }
+
+    /**
+     * Return the user-facing Search chip for an activity Quick Link.
+     */
+    private function activityLabelLinks(
+        string $activity
+    ): string {
+        return match ($activity) {
+            'shortlisted-by-you' =>
+            'Shortlisted by you',
+
+            'shortlisted-you' =>
+            'Shortlisted you',
+
+            'viewed-you' =>
+            'Viewed you',
+
+            'viewed-by-you' =>
+            'Viewed by you',
+
+            default =>
+            '',
+        };
     }
 
     /**
@@ -1238,11 +1432,18 @@ final class MemberSearchService
                         'icon' =>
                         'ri-bookmark-3-line',
 
+                        /*
+             * Same Search results route used by every other Quick Link.
+             */
                         'url' =>
-                        route_to(
-                            'web.search.quick',
-                            'shortlisted-by-you'
-                        ),
+                        $searchResultsUrl
+                            . '?'
+                            . http_build_query(
+                                [
+                                    'activity' =>
+                                    'shortlisted-by-you',
+                                ]
+                            ),
 
                         'available' =>
                         true,
@@ -1259,10 +1460,14 @@ final class MemberSearchService
                         'ri-bookmark-fill',
 
                         'url' =>
-                        route_to(
-                            'web.search.quick',
-                            'shortlisted-you'
-                        ),
+                        $searchResultsUrl
+                            . '?'
+                            . http_build_query(
+                                [
+                                    'activity' =>
+                                    'shortlisted-you',
+                                ]
+                            ),
 
                         'available' =>
                         true,
@@ -1279,10 +1484,14 @@ final class MemberSearchService
                         'ri-eye-line',
 
                         'url' =>
-                        route_to(
-                            'web.search.quick',
-                            'viewed-you'
-                        ),
+                        $searchResultsUrl
+                            . '?'
+                            . http_build_query(
+                                [
+                                    'activity' =>
+                                    'viewed-you',
+                                ]
+                            ),
 
                         'available' =>
                         true,
@@ -1299,10 +1508,14 @@ final class MemberSearchService
                         'ri-history-line',
 
                         'url' =>
-                        route_to(
-                            'web.search.quick',
-                            'viewed-by-you'
-                        ),
+                        $searchResultsUrl
+                            . '?'
+                            . http_build_query(
+                                [
+                                    'activity' =>
+                                    'viewed-by-you',
+                                ]
+                            ),
 
                         'available' =>
                         true,
