@@ -1,12 +1,14 @@
 /**
- * Member Search page behaviour.
+ * Member Search page.
  *
- * Responsibilities:
+ * Reuses the Partner Preference multi-select UX:
  *
- * - retain the existing globally managed Choices.js selects;
- * - dynamically reload active City options after State changes;
- * - refresh the existing Choices City instance after option replacement;
- * - never perform Search business validation in JavaScript.
+ * - Choices.js;
+ * - "Any" selection;
+ * - dependent State → City loading;
+ * - preserved valid City selections.
+ *
+ * Search business rules remain server-side.
  */
 (function (window, document) {
     'use strict';
@@ -14,36 +16,53 @@
     document.addEventListener(
         'DOMContentLoaded',
         function () {
-            const states =
+            const form =
                 document.getElementById(
-                    'searchStates'
+                    'memberSearchForm'
                 );
 
-            const cities =
-                document.getElementById(
-                    'searchCities'
-                );
-
-            /*
-             * Basic Search does not render City.
-             */
             if (
-                !states
-                || !cities
+                !(form instanceof HTMLFormElement)
             ) {
                 return;
             }
 
             /**
-             * Return selected State IDs from the original select.
+             * Return selectable option values.
              *
-             * Choices keeps the underlying select values synchronized.
+             * @param {HTMLSelectElement} select
              *
              * @returns {string[]}
              */
-            function selectedStateIds() {
+            function optionValues(select) {
                 return Array.from(
-                    states.selectedOptions
+                    select.options
+                )
+                    .filter(
+                        function (option) {
+                            return (
+                                option.value !== ''
+                                && !option.disabled
+                            );
+                        }
+                    )
+                    .map(
+                        function (option) {
+                            return option.value;
+                        }
+                    );
+            }
+
+            /**
+             * Return selected values.
+             *
+             * @param {HTMLSelectElement} select
+             *
+             * @returns {string[]}
+             */
+            function selectedValues(select) {
+                return Array.from(
+                    select.selectedOptions
                 )
                     .map(
                         function (option) {
@@ -54,53 +73,310 @@
             }
 
             /**
-             * Return currently selected City IDs.
+             * Synchronize compact Any presentation.
              *
-             * Existing values are preserved when they remain valid after
-             * refreshing the City master.
+             * @param {HTMLInputElement} checkbox
+             * @param {HTMLSelectElement} select
              *
-             * @returns {string[]}
+             * @returns {void}
              */
-            function selectedCityIds() {
-                return Array.from(
-                    cities.selectedOptions
-                )
-                    .map(
-                        function (option) {
-                            return option.value;
-                        }
-                    )
-                    .filter(Boolean);
+            function synchronizeAnyPresentation(
+                checkbox,
+                select
+            ) {
+                const container =
+                    select.closest(
+                        '[data-preference-multi-select]'
+                    );
+
+                if (
+                    !(container instanceof HTMLElement)
+                ) {
+                    return;
+                }
+
+                const isAny =
+                    checkbox.checked
+                    && !checkbox.indeterminate
+                    && !checkbox.disabled;
+
+                container.classList.toggle(
+                    'is-any',
+                    isAny
+                );
+
+                const anyValue =
+                    container.querySelector(
+                        '.partner-preference-any-value'
+                    );
+
+                if (
+                    anyValue instanceof HTMLElement
+                ) {
+                    anyValue.setAttribute(
+                        'aria-hidden',
+                        isAny
+                            ? 'false'
+                            : 'true'
+                    );
+                }
             }
 
             /**
-             * Replace City options and rebuild its Choices instance.
+             * Rebuild selection and its existing Choices instance.
              *
-             * @param {Array<Object>} rows
-             * @param {string[]} previousSelection
+             * @param {HTMLSelectElement} select
+             * @param {string[]} values
+             *
+             * @returns {void}
+             */
+            function setSelectedValues(
+                select,
+                values
+            ) {
+                const selected =
+                    new Set(
+                        values.map(String)
+                    );
+
+                Array.from(
+                    select.options
+                ).forEach(
+                    function (option) {
+                        option.selected =
+                            selected.has(
+                                option.value
+                            );
+                    }
+                );
+
+                if (
+                    window.SelectChoice
+                    && typeof window.SelectChoice.destroy
+                    === 'function'
+                    && typeof window.SelectChoice.create
+                    === 'function'
+                ) {
+                    window.SelectChoice.destroy(
+                        select
+                    );
+
+                    window.SelectChoice.create(
+                        select
+                    );
+                }
+
+                select.dispatchEvent(
+                    new Event(
+                        'change',
+                        {
+                            bubbles: true
+                        }
+                    )
+                );
+            }
+
+            /**
+             * Synchronize Any checkbox state.
+             *
+             * @param {HTMLInputElement} checkbox
+             * @param {HTMLSelectElement} select
+             *
+             * @returns {void}
+             */
+            function synchronizeAny(
+                checkbox,
+                select
+            ) {
+                const all =
+                    optionValues(
+                        select
+                    );
+
+                const selected =
+                    selectedValues(
+                        select
+                    );
+
+                checkbox.checked =
+                    all.length > 0
+                    && selected.length
+                    === all.length;
+
+                checkbox.indeterminate =
+                    selected.length > 0
+                    && selected.length
+                    < all.length;
+
+                synchronizeAnyPresentation(
+                    checkbox,
+                    select
+                );
+            }
+
+            /**
+             * Enable/disable one Any checkbox.
+             *
+             * @param {HTMLSelectElement} select
+             * @param {boolean} disabled
+             *
+             * @returns {void}
+             */
+            function setAnyDisabled(
+                select,
+                disabled
+            ) {
+                const checkbox =
+                    form.querySelector(
+                        `[data-select-all-target="${select.id}"]`
+                    );
+
+                if (
+                    !(checkbox instanceof HTMLInputElement)
+                ) {
+                    return;
+                }
+
+                checkbox.disabled =
+                    disabled;
+
+                if (disabled) {
+                    checkbox.checked =
+                        false;
+
+                    checkbox.indeterminate =
+                        false;
+
+                    synchronizeAnyPresentation(
+                        checkbox,
+                        select
+                    );
+
+                    return;
+                }
+
+                synchronizeAny(
+                    checkbox,
+                    select
+                );
+            }
+
+            /**
+             * Initialize all Search "Any" controls.
+             *
+             * @returns {void}
+             */
+            function initializeAnyControls() {
+                form.querySelectorAll(
+                    '[data-select-all-target]'
+                ).forEach(
+                    function (element) {
+                        if (
+                            !(element
+                                instanceof HTMLInputElement)
+                        ) {
+                            return;
+                        }
+
+                        const targetId =
+                            String(
+                                element.dataset
+                                    .selectAllTarget
+                                || ''
+                            );
+
+                        const select =
+                            document.getElementById(
+                                targetId
+                            );
+
+                        if (
+                            !(select
+                                instanceof HTMLSelectElement)
+                        ) {
+                            return;
+                        }
+
+                        synchronizeAny(
+                            element,
+                            select
+                        );
+
+                        element.addEventListener(
+                            'change',
+                            function () {
+                                setSelectedValues(
+                                    select,
+                                    element.checked
+                                        ? optionValues(
+                                            select
+                                        )
+                                        : []
+                                );
+                            }
+                        );
+
+                        select.addEventListener(
+                            'change',
+                            function () {
+                                synchronizeAny(
+                                    element,
+                                    select
+                                );
+                            }
+                        );
+                    }
+                );
+            }
+
+            /**
+             * Replace City master options.
+             *
+             * @param {HTMLSelectElement} citySelect
+             * @param {Array<Object>} cities
+             * @param {string[]} previousSelections
              *
              * @returns {void}
              */
             function replaceCities(
-                rows,
-                previousSelection
+                citySelect,
+                cities,
+                previousSelections
             ) {
-                /*
-                 * Destroy before mutating the underlying select.
-                 */
                 if (
                     window.SelectChoice
                     && typeof window.SelectChoice.destroy
                     === 'function'
                 ) {
                     window.SelectChoice.destroy(
-                        cities
+                        citySelect
                     );
                 }
 
-                cities.innerHTML = '';
+                citySelect.replaceChildren();
 
-                rows.forEach(
+                const validValues =
+                    new Set(
+                        cities.map(
+                            function (city) {
+                                return String(
+                                    city.id
+                                    ?? ''
+                                );
+                            }
+                        )
+                    );
+
+                const preservedSelections =
+                    previousSelections.filter(
+                        function (value) {
+                            return validValues.has(
+                                String(value)
+                            );
+                        }
+                    );
+
+                cities.forEach(
                     function (city) {
                         const id =
                             String(
@@ -133,118 +409,207 @@
                             name;
 
                         option.selected =
-                            previousSelection.includes(
+                            preservedSelections.includes(
                                 id
                             );
 
-                        cities.appendChild(
+                        citySelect.appendChild(
                             option
                         );
                     }
                 );
 
-                /*
-                 * Reinitialize using the existing global project wrapper.
-                 */
+                const hasCities =
+                    cities.length > 0;
+
+                citySelect.disabled =
+                    !hasCities;
+
+                setAnyDisabled(
+                    citySelect,
+                    !hasCities
+                );
+
                 if (
                     window.SelectChoice
                     && typeof window.SelectChoice.create
                     === 'function'
                 ) {
                     window.SelectChoice.create(
-                        cities
+                        citySelect
                     );
                 }
+
+                citySelect.dispatchEvent(
+                    new Event(
+                        'change',
+                        {
+                            bubbles: true
+                        }
+                    )
+                );
             }
 
             /**
-             * Load active City masters for selected States.
+             * Initialize dependent State → City selection.
              *
-             * @returns {Promise<void>}
+             * @returns {void}
              */
-            async function loadCities() {
-                const stateIds =
-                    selectedStateIds();
-
-                const previousCities =
-                    selectedCityIds();
-
-                if (
-                    stateIds.length === 0
-                ) {
-                    replaceCities(
-                        [],
-                        []
+            function initializeStateCity() {
+                const stateSelect =
+                    document.getElementById(
+                        'stateIds'
                     );
 
+                const citySelect =
+                    document.getElementById(
+                        'cityIds'
+                    );
+
+                const cityUrl =
+                    document.getElementById(
+                        'searchCitiesUrl'
+                    );
+
+                if (
+                    !(stateSelect
+                        instanceof HTMLSelectElement)
+                    || !(citySelect
+                        instanceof HTMLSelectElement)
+                    || !(cityUrl
+                        instanceof HTMLInputElement)
+                ) {
                     return;
                 }
 
-                const params =
-                    new URLSearchParams();
+                let requestController =
+                    null;
 
-                stateIds.forEach(
-                    function (stateId) {
-                        params.append(
-                            'state_ids[]',
-                            stateId
+                /**
+                 * Reload Cities for selected States.
+                 *
+                 * @returns {Promise<void>}
+                 */
+                async function loadCities() {
+                    const states =
+                        selectedValues(
+                            stateSelect
                         );
+
+                    const previousCities =
+                        selectedValues(
+                            citySelect
+                        );
+
+                    if (
+                        states.length === 0
+                    ) {
+                        replaceCities(
+                            citySelect,
+                            [],
+                            []
+                        );
+
+                        return;
+                    }
+
+                    if (
+                        requestController
+                        instanceof AbortController
+                    ) {
+                        requestController.abort();
+                    }
+
+                    requestController =
+                        new AbortController();
+
+                    const query =
+                        new URLSearchParams();
+
+                    states.forEach(
+                        function (stateId) {
+                            query.append(
+                                'state_ids[]',
+                                stateId
+                            );
+                        }
+                    );
+
+                    try {
+                        const response =
+                            await window.fetch(
+                                cityUrl.value
+                                + '?'
+                                + query.toString(),
+                                {
+                                    headers: {
+                                        Accept:
+                                            'application/json',
+
+                                        'X-Requested-With':
+                                            'XMLHttpRequest'
+                                    },
+
+                                    credentials:
+                                        'same-origin',
+
+                                    signal:
+                                        requestController.signal
+                                }
+                            );
+
+                        if (!response.ok) {
+                            throw new Error(
+                                'Unable to load cities.'
+                            );
+                        }
+
+                        const payload =
+                            await response.json();
+
+                        replaceCities(
+                            citySelect,
+
+                            Array.isArray(
+                                payload.cities
+                            )
+                                ? payload.cities
+                                : [],
+
+                            previousCities
+                        );
+                    } catch (error) {
+                        if (
+                            error instanceof DOMException
+                            && error.name
+                            === 'AbortError'
+                        ) {
+                            return;
+                        }
+
+                        console.error(
+                            'Unable to load Search cities.'
+                        );
+                    }
+                }
+
+                stateSelect.addEventListener(
+                    'change',
+                    function () {
+                        void loadCities();
                     }
                 );
-
-                try {
-                    const response =
-                        await window.fetch(
-                            '/search/cities?'
-                            + params.toString(),
-                            {
-                                headers: {
-                                    Accept:
-                                        'application/json'
-                                }
-                            }
-                        );
-
-                    if (!response.ok) {
-                        throw new Error(
-                            'City request failed.'
-                        );
-                    }
-
-                    const payload =
-                        await response.json();
-
-                    const rows =
-                        Array.isArray(
-                            payload.cities
-                        )
-                            ? payload.cities
-                            : [];
-
-                    replaceCities(
-                        rows,
-                        previousCities
-                    );
-                } catch (error) {
-                    /*
-                     * Do not expose transport or internal error details to
-                     * the member. Existing selections remain available.
-                     */
-                    console.error(
-                        'Unable to load Search cities.'
-                    );
-                }
             }
 
             /*
-             * Choices updates the original select and dispatches change.
+             * Initialize generic Search multi-select behaviour first.
              */
-            states.addEventListener(
-                'change',
-                function () {
-                    void loadCities();
-                }
-            );
+            initializeAnyControls();
+
+            /*
+             * Then initialize the State → City dependency.
+             */
+            initializeStateCity();
         }
     );
 })(window, document);

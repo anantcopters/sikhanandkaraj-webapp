@@ -3,33 +3,20 @@
 declare(strict_types=1);
 
 /**
- * Reusable searchable Partner Preference multi-select.
+ * Reusable searchable multi-select.
  *
- * Supports either:
+ * Used by:
  *
- * 1. Flat options:
+ * - Partner Preference;
+ * - Member Search.
  *
- *    $options = [
- *        ['id' => 1, 'name' => 'Option'],
- *    ];
+ * Supports flat and grouped master data.
  *
- * 2. Grouped options:
+ * "Any" keeps every available option selected internally while presenting
+ * one compact value to the member.
  *
- *    $groups = [
- *        [
- *            'name' => 'Category',
- *            'items' => [
- *                ['id' => 1, 'name' => 'Option'],
- *            ],
- *        ],
- *    ];
- *
- * When "Any" is enabled and selected, all available options remain
- * selected internally so the existing persistence and matching logic
- * continues to work unchanged.
- *
- * The presentation layer collapses those selected values into one
- * compact "Any" value.
+ * Partner Preference remains required by default.
+ * Search explicitly passes required=false.
  *
  * @var string                          $field
  * @var string                          $label
@@ -44,135 +31,177 @@ declare(strict_types=1);
  * @var array<string, string>           $errors
  * @var bool|null                       $showSelectAll
  * @var bool|null                       $disabled
+ * @var bool|null                       $required
  */
 
-$resolvedField = trim(
-    (string) ($field ?? '')
-);
+/*
+ * --------------------------------------------------------------------------
+ * Normalize view-local variables
+ * --------------------------------------------------------------------------
+ */
 
-$resolvedLabel = trim(
-    (string) ($label ?? '')
-);
+$resolvedField =
+    trim(
+        (string) (
+            $field
+            ?? ''
+        )
+    );
 
-$resolvedPlaceholder = trim(
-    (string) ($placeholder ?? '')
-);
+$resolvedLabel =
+    trim(
+        (string) (
+            $label
+            ?? ''
+        )
+    );
 
-$resolvedOptions = is_array(
-    $options ?? null
-)
+$resolvedPlaceholder =
+    trim(
+        (string) (
+            $placeholder
+            ?? ''
+        )
+    );
+
+$resolvedOptions =
+    isset($options)
+    && is_array($options)
     ? $options
     : [];
 
-$resolvedGroups = is_array(
-    $groups ?? null
-)
+$resolvedGroups =
+    isset($groups)
+    && is_array($groups)
     ? $groups
     : [];
 
-$resolvedSelectedValues = is_array(
-    $selectedValues ?? null
-)
-    ? $selectedValues
+$resolvedSelectedValues =
+    isset($selectedValues)
+    && is_array($selectedValues)
+    ? array_values(
+        $selectedValues
+    )
     : [];
 
-$resolvedErrors = is_array(
-    $errors ?? null
-)
+$resolvedErrors =
+    isset($errors)
+    && is_array($errors)
     ? $errors
     : [];
 
-$resolvedValueKey = trim(
-    (string) (
-        $optionValueKey ?? 'id'
-    )
-);
+$resolvedValueKey =
+    trim(
+        (string) (
+            $optionValueKey
+            ?? 'id'
+        )
+    );
 
-$resolvedLabelKey = trim(
-    (string) (
-        $optionLabelKey ?? 'name'
-    )
-);
+$resolvedLabelKey =
+    trim(
+        (string) (
+            $optionLabelKey
+            ?? 'name'
+        )
+    );
 
-$resolvedGroupLabelKey = trim(
-    (string) (
-        $groupLabelKey ?? 'name'
-    )
-);
+$resolvedGroupLabelKey =
+    trim(
+        (string) (
+            $groupLabelKey
+            ?? 'name'
+        )
+    );
 
-$resolvedGroupItemsKey = trim(
-    (string) (
-        $groupItemsKey ?? 'items'
-    )
-);
+$resolvedGroupItemsKey =
+    trim(
+        (string) (
+            $groupItemsKey
+            ?? 'items'
+        )
+    );
 
-/*
- * Keep the existing configuration name so current consumers do not
- * require changes.
- *
- * UI terminology is now "Any".
- */
 $resolvedShowAny =
-    ($showSelectAll ?? true) === true;
+    ($showSelectAll ?? true)
+    === true;
 
 $isDisabled =
-    ($disabled ?? false) === true;
+    ($disabled ?? false)
+    === true;
 
-$fieldId = lcfirst(
-    str_replace(
-        ' ',
-        '',
-        ucwords(
-            str_replace(
-                '_',
-                ' ',
-                $resolvedField
+/*
+ * Partner Preference historically requires a selection.
+ *
+ * Search passes false because every Search criterion is optional.
+ */
+$isRequired =
+    ($required ?? true)
+    === true;
+
+$fieldId =
+    lcfirst(
+        str_replace(
+            ' ',
+            '',
+            ucwords(
+                str_replace(
+                    '_',
+                    ' ',
+                    $resolvedField
+                )
             )
         )
-    )
-);
+    );
 
 $anyId =
-    $fieldId . 'Any';
+    $fieldId
+    . 'Any';
 
-$selectedStrings = array_values(
-    array_map(
-        static fn(mixed $value): string =>
-        (string) $value,
-        $resolvedSelectedValues
-    )
-);
+$selectedStrings =
+    array_values(
+        array_map(
+            static fn(
+                mixed $value
+            ): string =>
+            (string) $value,
+            $resolvedSelectedValues
+        )
+    );
 
 /**
- * Render one selectable option.
+ * Render one flat/grouped master option.
  */
-$renderOption = static function (
-    array $option
-) use (
-    $resolvedValueKey,
-    $resolvedLabelKey,
-    $selectedStrings
-): void {
-    $value = trim(
-        (string) (
-            $option[$resolvedValueKey]
-            ?? ''
-        )
-    );
+$renderOption =
+    static function (
+        array $option
+    ) use (
+        $resolvedValueKey,
+        $resolvedLabelKey,
+        $selectedStrings
+    ): void {
+        $value =
+            trim(
+                (string) (
+                    $option[$resolvedValueKey]
+                    ?? ''
+                )
+            );
 
-    $text = trim(
-        (string) (
-            $option[$resolvedLabelKey]
-            ?? ''
-        )
-    );
+        $text =
+            trim(
+                (string) (
+                    $option[$resolvedLabelKey]
+                    ?? ''
+                )
+            );
 
-    if (
-        $value === ''
-        || $text === ''
-    ) {
-        return;
-    }
+        if (
+            $value === ''
+            || $text === ''
+        ) {
+            return;
+        }
 ?>
 
     <option
@@ -188,38 +217,56 @@ $renderOption = static function (
             ? 'selected'
             : '' ?>>
 
-        <?= esc($text) ?>
+        <?= esc(
+            $text
+        ) ?>
+
     </option>
 
 <?php
-};
+    };
 ?>
 
 <div
     class="col-12 partner-preference-multi-select"
     data-preference-multi-select>
 
-    <label
-        for="<?= esc(
-                    $fieldId,
-                    'attr'
-                ) ?>"
-        class="form-labelm">
+    <!-- =============================================================
+         Label / Any control
+         ============================================================= -->
 
-        <?= esc($resolvedLabel) ?>
+    <div
+        class="d-flex align-items-center
+            justify-content-between gap-2">
 
-        <span class="text-danger">*</span>
-    </label>
+        <label
+            for="<?= esc(
+                        $fieldId,
+                        'attr'
+                    ) ?>"
+            class="form-labelm mb-2">
 
-    <?php if ($resolvedShowAny): ?>
+            <?= esc(
+                $resolvedLabel
+            ) ?>
 
-        <div
-            class="d-flex
-                align-items-center
-                justify-content-end
-                mb-2">
+            <?php if (
+                $isRequired
+            ): ?>
 
-            <div class="form-check">
+                <span class="text-danger">
+                    *
+                </span>
+
+            <?php endif; ?>
+
+        </label>
+
+        <?php if (
+            $resolvedShowAny
+        ): ?>
+
+            <div class="form-check mb-2">
 
                 <input
                     type="checkbox"
@@ -238,8 +285,7 @@ $renderOption = static function (
 
                 <label
                     class="form-check-label
-                        fs-13
-                        fw-medium"
+                        fs-13 fw-medium"
                     for="<?= esc(
                                 $anyId,
                                 'attr'
@@ -249,9 +295,14 @@ $renderOption = static function (
                 </label>
 
             </div>
-        </div>
 
-    <?php endif; ?>
+        <?php endif; ?>
+
+    </div>
+
+    <!-- =============================================================
+         Choices multi-select
+         ============================================================= -->
 
     <div
         class="partner-preference-multi-select__control">
@@ -265,33 +316,35 @@ $renderOption = static function (
                         $resolvedField,
                         'attr'
                     ) ?>[]"
-            class="form-select <?= isset(
-                                    $resolvedErrors[$resolvedField]
-                                )
-                                    ? 'is-invalid'
-                                    : '' ?>"
+            class="form-select
+                <?= isset(
+                    $resolvedErrors[$resolvedField]
+                )
+                    ? 'is-invalid'
+                    : '' ?>"
             data-choice
             data-choice-search="true"
             data-choice-position="bottom"
             data-choice-search-placeholder="Search"
-            data-error-required="<?= esc(
-                                        'Please select at least one '
-                                            . strtolower(
-                                                $resolvedLabel
-                                            )
-                                            . '.',
-                                        'attr'
-                                    ) ?>"
+            data-choice-placeholder="<?= esc(
+                                            $resolvedPlaceholder,
+                                            'attr'
+                                        ) ?>"
             <?= $isDisabled
                 ? 'disabled'
                 : '' ?>
-            multiple
-            required>
+            <?= $isRequired
+                ? 'required'
+                : '' ?>
+            multiple>
 
-            <?php if ($resolvedGroups !== []): ?>
+            <?php if (
+                $resolvedGroups !== []
+            ): ?>
 
                 <?php foreach (
-                    $resolvedGroups as $group
+                    $resolvedGroups
+                    as $group
                 ): ?>
 
                     <?php
@@ -299,17 +352,21 @@ $renderOption = static function (
                         continue;
                     }
 
-                    $groupLabel = trim(
-                        (string) (
-                            $group[$resolvedGroupLabelKey]
-                            ?? ''
-                        )
-                    );
+                    $groupLabel =
+                        trim(
+                            (string) (
+                                $group[$resolvedGroupLabelKey]
+                                ?? ''
+                            )
+                        );
 
-                    $groupItems = is_array(
-                        $group[$resolvedGroupItemsKey]
-                            ?? null
-                    )
+                    $groupItems =
+                        isset(
+                            $group[$resolvedGroupItemsKey]
+                        )
+                        && is_array(
+                            $group[$resolvedGroupItemsKey]
+                        )
                         ? $group[$resolvedGroupItemsKey]
                         : [];
 
@@ -328,7 +385,8 @@ $renderOption = static function (
                                 ) ?>">
 
                         <?php foreach (
-                            $groupItems as $option
+                            $groupItems
+                            as $option
                         ): ?>
 
                             <?php
@@ -350,7 +408,8 @@ $renderOption = static function (
             <?php else: ?>
 
                 <?php foreach (
-                    $resolvedOptions as $option
+                    $resolvedOptions
+                    as $option
                 ): ?>
 
                     <?php
@@ -369,18 +428,25 @@ $renderOption = static function (
 
         </select>
 
-        <?php if ($resolvedShowAny): ?>
+        <?php if (
+            $resolvedShowAny
+        ): ?>
 
             <div
                 class="partner-preference-any-value"
                 aria-hidden="true">
 
                 Any
+
             </div>
 
         <?php endif; ?>
 
     </div>
+
+    <!-- =============================================================
+         Validation feedback
+         ============================================================= -->
 
     <?= view(
         'Components/Forms/FieldError',
@@ -389,7 +455,8 @@ $renderOption = static function (
             $resolvedField,
 
             'errorId' =>
-            $fieldId . 'Error',
+            $fieldId
+                . 'Error',
 
             'errors' =>
             $resolvedErrors,

@@ -470,10 +470,19 @@ final class SearchController extends BaseController
     /**
      * Read supported Search query parameters.
      *
+     * Search criteria are explicitly allow-listed so arbitrary browser query
+     * parameters never enter the Search service.
+     *
      * @return array<string, mixed>
      */
     private function searchInput(): array
     {
+        /*
+     * Multi-value filters.
+     *
+     * Annual Income now follows the same multi-bracket approach already used
+     * by Partner Preference.
+     */
         $arrayFields = [
             'marital_status_ids',
             'state_ids',
@@ -484,9 +493,13 @@ final class SearchController extends BaseController
             'education_ids',
             'occupation_ids',
             'employed_in',
+            'annual_income_ids',
             'lifestyle_option_ids',
         ];
 
+        /*
+     * Scalar filters.
+     */
         $input = [
             'mode' =>
             trim(
@@ -533,24 +546,6 @@ final class SearchController extends BaseController
                     )
             ),
 
-            'annual_income_from_id' =>
-            trim(
-                (string)
-                $this->request
-                    ->getGet(
-                        'annual_income_from_id'
-                    )
-            ),
-
-            'annual_income_to_id' =>
-            trim(
-                (string)
-                $this->request
-                    ->getGet(
-                        'annual_income_to_id'
-                    )
-            ),
-
             'sort' =>
             trim(
                 (string)
@@ -570,6 +565,9 @@ final class SearchController extends BaseController
             ),
         ];
 
+        /*
+     * Normalize every multi-value field.
+     */
         foreach (
             $arrayFields
             as $field

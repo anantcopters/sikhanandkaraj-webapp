@@ -413,6 +413,8 @@ final class MemberSearchService
             'name'
         );
 
+
+
         if (
             ($filters['mode'] ?? '')
             === 'advanced'
@@ -455,6 +457,16 @@ final class MemberSearchService
                 $masterData['occupations']
                     ?? [],
                 'name'
+            );
+
+            $this->appendMultiMasterChips(
+                $chips,
+                'Annual Income',
+                $filters['annual_income_ids']
+                    ?? [],
+                $masterData['annualIncomes']
+                    ?? [],
+                'display_name'
             );
         }
 
@@ -853,28 +865,14 @@ final class MemberSearchService
                 $employmentValues
             );
 
-        $incomeFrom =
-            $this->nullablePositiveInt(
-                $input['annual_income_from_id']
-                    ?? null
-            );
-
-        $incomeTo =
-            $this->nullablePositiveInt(
-                $input['annual_income_to_id']
-                    ?? null
-            );
-
-        $filters['annual_income_from_id'] =
-            $incomeFrom;
-
-        $filters['annual_income_to_id'] =
-            $incomeTo;
-
+        /*
+        * Annual Income uses the same selectable master brackets as Partner
+        * Preference instead of an artificial From/To range.
+        */
         $filters['annual_income_ids'] =
-            $this->incomeRangeIds(
-                $incomeFrom,
-                $incomeTo,
+            $this->validatedMasterIds(
+                $input['annual_income_ids']
+                    ?? [],
                 $masterData['annualIncomes']
                     ?? []
             );
@@ -1329,85 +1327,6 @@ final class MemberSearchService
 
         throw new DomainException(
             'Please select a valid height.'
-        );
-    }
-
-    /**
-     * @param list<array<string, mixed>> $incomes
-     *
-     * @return list<int>
-     */
-    private function incomeRangeIds(
-        ?int $fromId,
-        ?int $toId,
-        array $incomes
-    ): array {
-        if (
-            $fromId === null
-            && $toId === null
-        ) {
-            return [];
-        }
-
-        $ordered = [];
-
-        foreach ($incomes as $income) {
-            if (!is_array($income)) {
-                continue;
-            }
-
-            $id = max(
-                0,
-                (int) (
-                    $income['id']
-                    ?? 0
-                )
-            );
-
-            if ($id > 0) {
-                $ordered[] = $id;
-            }
-        }
-
-        $fromIndex =
-            $fromId !== null
-            ? array_search(
-                $fromId,
-                $ordered,
-                true
-            )
-            : 0;
-
-        $toIndex =
-            $toId !== null
-            ? array_search(
-                $toId,
-                $ordered,
-                true
-            )
-            : count($ordered) - 1;
-
-        if (
-            $fromIndex === false
-            || $toIndex === false
-        ) {
-            throw new DomainException(
-                'Please select a valid annual income range.'
-            );
-        }
-
-        if ($fromIndex > $toIndex) {
-            throw new DomainException(
-                'Minimum annual income cannot exceed maximum annual income.'
-            );
-        }
-
-        return array_slice(
-            $ordered,
-            $fromIndex,
-            $toIndex
-                - $fromIndex
-                + 1
         );
     }
 

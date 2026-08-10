@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Validation\Search;
 
 /**
- * Provides authoritative scalar validation for member Search requests.
+ * Provides authoritative scalar validation for member Search.
  *
- * Master-data IDs and array relationships are additionally validated by
- * MemberSearchService against currently active master data.
+ * Multi-value master IDs are validated by MemberSearchService against active
+ * master values.
  */
 final class MemberSearchValidation
 {
@@ -23,7 +23,7 @@ final class MemberSearchValidation
     ];
 
     /**
-     * Supported Search result sorting.
+     * Supported result sorting.
      *
      * @var list<string>
      */
@@ -35,7 +35,7 @@ final class MemberSearchValidation
     ];
 
     /**
-     * Return server-side Search validation rules.
+     * Return scalar Search validation rules.
      *
      * @return array<string, array<string, mixed>>
      */
@@ -70,18 +70,7 @@ final class MemberSearchValidation
                     'permit_empty',
                     'integer',
                     'greater_than_equal_to[18]',
-                    'less_than_equal_to[100]',
-                ],
-
-                'errors' => [
-                    'integer' =>
-                    'Please enter a valid minimum age.',
-
-                    'greater_than_equal_to' =>
-                    'Minimum age cannot be below 18.',
-
-                    'less_than_equal_to' =>
-                    'Minimum age cannot exceed 100.',
+                    'less_than_equal_to[80]',
                 ],
             ],
 
@@ -93,18 +82,7 @@ final class MemberSearchValidation
                     'permit_empty',
                     'integer',
                     'greater_than_equal_to[18]',
-                    'less_than_equal_to[100]',
-                ],
-
-                'errors' => [
-                    'integer' =>
-                    'Please enter a valid maximum age.',
-
-                    'greater_than_equal_to' =>
-                    'Maximum age cannot be below 18.',
-
-                    'less_than_equal_to' =>
-                    'Maximum age cannot exceed 100.',
+                    'less_than_equal_to[80]',
                 ],
             ],
 
@@ -130,28 +108,6 @@ final class MemberSearchValidation
                 ],
             ],
 
-            'annual_income_from_id' => [
-                'label' =>
-                'Minimum annual income',
-
-                'rules' => [
-                    'permit_empty',
-                    'integer',
-                    'greater_than[0]',
-                ],
-            ],
-
-            'annual_income_to_id' => [
-                'label' =>
-                'Maximum annual income',
-
-                'rules' => [
-                    'permit_empty',
-                    'integer',
-                    'greater_than[0]',
-                ],
-            ],
-
             'sort' => [
                 'label' =>
                 'Sort order',
@@ -164,11 +120,6 @@ final class MemberSearchValidation
                             self::SORTS
                         )
                         . ']',
-                ],
-
-                'errors' => [
-                    'in_list' =>
-                    'Please select a valid sort order.',
                 ],
             ],
 
