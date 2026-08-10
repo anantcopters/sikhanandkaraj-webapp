@@ -3,7 +3,17 @@
 declare(strict_types=1);
 
 /**
- * Member Search-form UI variables.
+ * Member Search form UI variables.
+ *
+ * Search intentionally owns its multi-select UI instead of reusing the
+ * Partner Preference multi-select partial because Search and Partner
+ * Preference have different "Any" semantics.
+ *
+ * Search:
+ *     Empty selection = Any / no restriction.
+ *
+ * Partner Preference:
+ *     Any has persistence-specific behaviour.
  *
  * @var string                     $pageTitle
  * @var string                     $mode
@@ -14,8 +24,11 @@ declare(strict_types=1);
 
 /*
  * --------------------------------------------------------------------------
- * Normalize view-local variables
+ * Normalize top-level view variables
  * --------------------------------------------------------------------------
+ *
+ * Controller/service supplied values are normalized once before rendering.
+ * Search business rules remain in MemberSearchService.
  */
 
 $pageTitle =
@@ -50,7 +63,15 @@ $formAlert =
     : null;
 
 /*
- * Normalize one multi-value Search filter.
+ * --------------------------------------------------------------------------
+ * Normalize Search filter selections
+ * --------------------------------------------------------------------------
+ */
+
+/**
+ * Return one normalized multi-value Search filter.
+ *
+ * @return array<int, mixed>
  */
 $selected =
     static function (
@@ -69,9 +90,81 @@ $selected =
             : [];
     };
 
-/*
- * Resolve master collections once before HTML rendering.
+/**
+ * Return one multi-value Search filter normalized as integer IDs.
+ *
+ * @return list<int>
  */
+$selectedIds =
+    static function (
+        string $key
+    ) use (
+        $selected
+    ): array {
+        return array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $selected(
+                            $key
+                        )
+                    ),
+                    static fn(
+                        int $value
+                    ): bool =>
+                    $value > 0
+                )
+            )
+        );
+    };
+
+/*
+ * --------------------------------------------------------------------------
+ * Normalize scalar Search values
+ * --------------------------------------------------------------------------
+ */
+
+$ageMin =
+    trim(
+        (string) (
+            $filters['age_min']
+            ?? ''
+        )
+    );
+
+$ageMax =
+    trim(
+        (string) (
+            $filters['age_max']
+            ?? ''
+        )
+    );
+
+$heightMinId =
+    max(
+        0,
+        (int) (
+            $filters['height_min_id']
+            ?? 0
+        )
+    );
+
+$heightMaxId =
+    max(
+        0,
+        (int) (
+            $filters['height_max_id']
+            ?? 0
+        )
+    );
+
+/*
+ * --------------------------------------------------------------------------
+ * Normalize Basic Search masters
+ * --------------------------------------------------------------------------
+ */
+
 $heights =
     isset(
         $masterData['heights']
@@ -79,7 +172,9 @@ $heights =
     && is_array(
         $masterData['heights']
     )
-    ? $masterData['heights']
+    ? array_values(
+        $masterData['heights']
+    )
     : [];
 
 $maritalStatuses =
@@ -89,7 +184,9 @@ $maritalStatuses =
     && is_array(
         $masterData['maritalStatuses']
     )
-    ? $masterData['maritalStatuses']
+    ? array_values(
+        $masterData['maritalStatuses']
+    )
     : [];
 
 $states =
@@ -99,8 +196,16 @@ $states =
     && is_array(
         $masterData['states']
     )
-    ? $masterData['states']
+    ? array_values(
+        $masterData['states']
+    )
     : [];
+
+/*
+ * --------------------------------------------------------------------------
+ * Normalize Advanced Search masters
+ * --------------------------------------------------------------------------
+ */
 
 $cities =
     isset(
@@ -109,7 +214,9 @@ $cities =
     && is_array(
         $masterData['cities']
     )
-    ? $masterData['cities']
+    ? array_values(
+        $masterData['cities']
+    )
     : [];
 
 $communities =
@@ -119,7 +226,9 @@ $communities =
     && is_array(
         $masterData['communities']
     )
-    ? $masterData['communities']
+    ? array_values(
+        $masterData['communities']
+    )
     : [];
 
 $educationGroups =
@@ -129,7 +238,9 @@ $educationGroups =
     && is_array(
         $masterData['educationGroups']
     )
-    ? $masterData['educationGroups']
+    ? array_values(
+        $masterData['educationGroups']
+    )
     : [];
 
 $employmentTypes =
@@ -139,7 +250,9 @@ $employmentTypes =
     && is_array(
         $masterData['employmentTypes']
     )
-    ? $masterData['employmentTypes']
+    ? array_values(
+        $masterData['employmentTypes']
+    )
     : [];
 
 $occupationGroups =
@@ -149,7 +262,9 @@ $occupationGroups =
     && is_array(
         $masterData['occupationGroups']
     )
-    ? $masterData['occupationGroups']
+    ? array_values(
+        $masterData['occupationGroups']
+    )
     : [];
 
 $annualIncomes =
@@ -159,7 +274,9 @@ $annualIncomes =
     && is_array(
         $masterData['annualIncomes']
     )
-    ? $masterData['annualIncomes']
+    ? array_values(
+        $masterData['annualIncomes']
+    )
     : [];
 
 $profileManagedBy =
@@ -169,7 +286,9 @@ $profileManagedBy =
     && is_array(
         $masterData['profileManagedBy']
     )
-    ? $masterData['profileManagedBy']
+    ? array_values(
+        $masterData['profileManagedBy']
+    )
     : [];
 
 $lifestyleCategories =
@@ -179,7 +298,9 @@ $lifestyleCategories =
     && is_array(
         $masterData['lifestyleCategories']
     )
-    ? $masterData['lifestyleCategories']
+    ? array_values(
+        $masterData['lifestyleCategories']
+    )
     : [];
 
 $lifestyleOptionsByCategory =
@@ -191,6 +312,127 @@ $lifestyleOptionsByCategory =
     )
     ? $masterData['lifestyleOptionsByCategory']
     : [];
+
+/*
+ * --------------------------------------------------------------------------
+ * Normalize multi-select Search selections
+ * --------------------------------------------------------------------------
+ */
+
+$selectedMaritalStatusIds =
+    $selectedIds(
+        'marital_status_ids'
+    );
+
+$selectedStateIds =
+    $selectedIds(
+        'state_ids'
+    );
+
+$selectedCommunityIds =
+    $selectedIds(
+        'community_ids'
+    );
+
+$selectedCityIds =
+    $selectedIds(
+        'city_ids'
+    );
+
+$selectedEducationIds =
+    $selectedIds(
+        'education_ids'
+    );
+
+$selectedOccupationIds =
+    $selectedIds(
+        'occupation_ids'
+    );
+
+$selectedAnnualIncomeIds =
+    $selectedIds(
+        'annual_income_ids'
+    );
+
+$selectedLifestyleOptionIds =
+    $selectedIds(
+        'lifestyle_option_ids'
+    );
+
+$selectedEmploymentTypes =
+    array_values(
+        array_unique(
+            array_filter(
+                array_map(
+                    static fn(
+                        mixed $value
+                    ): string =>
+                    trim(
+                        (string) $value
+                    ),
+                    $selected(
+                        'employed_in'
+                    )
+                ),
+                static fn(
+                    string $value
+                ): bool =>
+                $value !== ''
+            )
+        )
+    );
+
+$selectedManagedBy =
+    array_values(
+        array_unique(
+            array_filter(
+                array_map(
+                    static fn(
+                        mixed $value
+                    ): string =>
+                    trim(
+                        (string) $value
+                    ),
+                    $selected(
+                        'managed_by'
+                    )
+                ),
+                static fn(
+                    string $value
+                ): bool =>
+                $value !== ''
+            )
+        )
+    );
+
+$selectedPhotoVisibility =
+    array_values(
+        array_unique(
+            array_filter(
+                array_map(
+                    static fn(
+                        mixed $value
+                    ): string =>
+                    trim(
+                        (string) $value
+                    ),
+                    $selected(
+                        'photo_visibility'
+                    )
+                ),
+                static fn(
+                    string $value
+                ): bool =>
+                $value !== ''
+            )
+        )
+    );
+
+/*
+ * City remains dependent on at least one State selection.
+ */
+$cityDisabled =
+    $selectedStateIds === [];
 
 $this->extend(
     'Layouts/Main'
@@ -205,6 +447,7 @@ $this->section(
     <div class="container">
 
         <div class="row justify-content-center">
+
             <div class="col-12 col-xl-9">
 
                 <!-- =====================================================
@@ -218,6 +461,26 @@ $this->section(
                         $formAlert,
                     ]
                 ) ?>
+
+                <!-- =====================================================
+                     Page heading
+                     ===================================================== -->
+
+                <div class="mb-4">
+
+                    <h1
+                        class="fs-24 fw-semibold mb-1">
+
+                        Search Profiles
+                    </h1>
+
+                    <p class="text-muted mb-0">
+
+                        Find profiles using the preferences
+                        that matter most to you.
+                    </p>
+
+                </div>
 
                 <!-- =====================================================
                      Universal Profile-ID Search
@@ -261,6 +524,7 @@ $this->section(
                                 </div>
 
                                 <div>
+
                                     <button
                                         type="submit"
                                         class="btn btn-primary">
@@ -272,6 +536,7 @@ $this->section(
 
                                         Search
                                     </button>
+
                                 </div>
 
                             </div>
@@ -282,7 +547,7 @@ $this->section(
                 </div>
 
                 <!-- =====================================================
-                     Search card
+                     Main Search card
                      ===================================================== -->
 
                 <div
@@ -292,7 +557,7 @@ $this->section(
                     <div class="card-body p-3 p-md-4">
 
                         <!-- =================================================
-                             Search mode
+                             Basic / Advanced Search navigation
                              ================================================= -->
 
                         <ul
@@ -300,6 +565,7 @@ $this->section(
                             role="tablist">
 
                             <li class="nav-item">
+
                                 <a
                                     href="<?= esc(
                                                 route_to(
@@ -315,9 +581,11 @@ $this->section(
 
                                     Basic Search
                                 </a>
+
                             </li>
 
                             <li class="nav-item">
+
                                 <a
                                     href="<?= esc(
                                                 route_to(
@@ -333,9 +601,14 @@ $this->section(
 
                                     Advanced Search
                                 </a>
+
                             </li>
 
                         </ul>
+
+                        <!-- =================================================
+                             Search form
+                             ================================================= -->
 
                         <form
                             method="get"
@@ -353,13 +626,24 @@ $this->section(
                                         ) ?>">
 
                             <!-- =============================================
-                                 Age
-                                 Exact Partner Preference pattern.
+                                 Basic Search
                                  ============================================= -->
 
                             <div class="row g-3">
 
-                                <div class="col-12 col-sm-6">
+                                <div class="col-12 mt-2">
+                                    <span class="form-text color-pink fw-medium fs-12 text-uppercase mt-0">
+                                        <span class="text-danger me-1">*</span>
+                                        Leave Blank for ANY
+                                    </span>
+                                </div>
+
+                                <!-- =========================================
+                                     Age From
+                                     Same UI direction as Partner Preference.
+                                     ========================================= -->
+
+                                <div class="col-12 col-md-6">
 
                                     <label
                                         for="ageFrom"
@@ -373,7 +657,8 @@ $this->section(
                                         name="age_min"
                                         class="form-select"
                                         data-choice
-                                        data-choice-search="false">
+                                        data-choice-search="false"
+                                        data-choice-position="bottom">
 
                                         <option value="">
                                             Any
@@ -390,11 +675,8 @@ $this->section(
                                                             (string) $age,
                                                             'attr'
                                                         ) ?>"
-                                                <?= (string) (
-                                                    $filters['age_min']
-                                                    ?? ''
-                                                )
-                                                    === (string) $age
+                                                <?= $ageMin ===
+                                                    (string) $age
                                                     ? 'selected'
                                                     : '' ?>>
 
@@ -410,7 +692,11 @@ $this->section(
 
                                 </div>
 
-                                <div class="col-12 col-sm-6">
+                                <!-- =========================================
+                                     Age To
+                                     ========================================= -->
+
+                                <div class="col-12 col-md-6">
 
                                     <label
                                         for="ageTo"
@@ -424,7 +710,8 @@ $this->section(
                                         name="age_max"
                                         class="form-select"
                                         data-choice
-                                        data-choice-search="false">
+                                        data-choice-search="false"
+                                        data-choice-position="bottom">
 
                                         <option value="">
                                             Any
@@ -441,11 +728,8 @@ $this->section(
                                                             (string) $age,
                                                             'attr'
                                                         ) ?>"
-                                                <?= (string) (
-                                                    $filters['age_max']
-                                                    ?? ''
-                                                )
-                                                    === (string) $age
+                                                <?= $ageMax ===
+                                                    (string) $age
                                                     ? 'selected'
                                                     : '' ?>>
 
@@ -462,134 +746,168 @@ $this->section(
                                 </div>
 
                                 <!-- =========================================
-                                     Height
-                                     Exact Partner Preference pattern.
+                                     Height From
                                      ========================================= -->
 
-                                <?php
-                                $heightFields = [
-                                    'height_min_id' => [
-                                        'id' =>
-                                        'heightFrom',
+                                <div class="col-12 col-md-6">
 
-                                        'label' =>
-                                        'Height From',
+                                    <label
+                                        for="heightFrom"
+                                        class="form-labelm">
 
-                                        'placeholder' =>
-                                        'Any height',
-                                    ],
+                                        Height From
+                                    </label>
 
-                                    'height_max_id' => [
-                                        'id' =>
-                                        'heightTo',
+                                    <select
+                                        id="heightFrom"
+                                        name="height_min_id"
+                                        class="form-select"
+                                        data-choice
+                                        data-choice-search="true"
+                                        data-choice-position="bottom"
+                                        data-choice-search-placeholder="Search height">
 
-                                        'label' =>
-                                        'Height To',
+                                        <option value="">
+                                            Any
+                                        </option>
 
-                                        'placeholder' =>
-                                        'Any height',
-                                    ],
-                                ];
-                                ?>
+                                        <?php foreach (
+                                            $heights
+                                            as $height
+                                        ): ?>
 
-                                <?php foreach (
-                                    $heightFields
-                                    as $field => $configuration
-                                ): ?>
-
-                                    <div class="col-12 col-sm-6">
-
-                                        <label
-                                            for="<?= esc(
-                                                        $configuration['id'],
-                                                        'attr'
-                                                    ) ?>"
-                                            class="form-labelm">
-
-                                            <?= esc(
-                                                $configuration['label']
-                                            ) ?>
-
-                                        </label>
-
-                                        <select
-                                            id="<?= esc(
-                                                    $configuration['id'],
-                                                    'attr'
-                                                ) ?>"
-                                            name="<?= esc(
-                                                        $field,
-                                                        'attr'
-                                                    ) ?>"
-                                            class="form-select"
-                                            data-choice
-                                            data-choice-search="true"
-                                            data-choice-search-placeholder="Search height"
-                                            data-choice-position="bottom">
-
-                                            <option value="">
-                                                <?= esc(
-                                                    $configuration['placeholder']
-                                                ) ?>
-                                            </option>
-
-                                            <?php foreach (
-                                                $heights
-                                                as $height
-                                            ): ?>
-
-                                                <?php
-                                                $heightId =
+                                            <?php
+                                            $heightId =
+                                                max(
+                                                    0,
                                                     (int) (
                                                         $height['id']
                                                         ?? 0
-                                                    );
+                                                    )
+                                                );
 
-                                                $heightName =
-                                                    trim(
-                                                        (string) (
-                                                            $height['display_name']
-                                                            ?? ''
-                                                        )
-                                                    );
+                                            $heightName =
+                                                trim(
+                                                    (string) (
+                                                        $height['display_name']
+                                                        ?? ''
+                                                    )
+                                                );
 
-                                                if (
-                                                    $heightId <= 0
-                                                    || $heightName === ''
-                                                ) {
-                                                    continue;
-                                                }
-                                                ?>
+                                            if (
+                                                $heightId <= 0
+                                                || $heightName === ''
+                                            ) {
+                                                continue;
+                                            }
+                                            ?>
 
-                                                <option
-                                                    value="<?= esc(
-                                                                (string)
-                                                                $heightId,
-                                                                'attr'
-                                                            ) ?>"
-                                                    <?= (int) (
-                                                        $filters[$field]
+                                            <option
+                                                value="<?= esc(
+                                                            (string)
+                                                            $heightId,
+                                                            'attr'
+                                                        ) ?>"
+                                                <?= $heightMinId
+                                                    === $heightId
+                                                    ? 'selected'
+                                                    : '' ?>>
+
+                                                <?= esc(
+                                                    $heightName
+                                                ) ?>
+
+                                            </option>
+
+                                        <?php endforeach; ?>
+
+                                    </select>
+
+                                </div>
+
+                                <!-- =========================================
+                                     Height To
+                                     ========================================= -->
+
+                                <div class="col-12 col-md-6">
+
+                                    <label
+                                        for="heightTo"
+                                        class="form-labelm">
+
+                                        Height To
+                                    </label>
+
+                                    <select
+                                        id="heightTo"
+                                        name="height_max_id"
+                                        class="form-select"
+                                        data-choice
+                                        data-choice-search="true"
+                                        data-choice-position="bottom"
+                                        data-choice-search-placeholder="Search height">
+
+                                        <option value="">
+                                            Any
+                                        </option>
+
+                                        <?php foreach (
+                                            $heights
+                                            as $height
+                                        ): ?>
+
+                                            <?php
+                                            $heightId =
+                                                max(
+                                                    0,
+                                                    (int) (
+                                                        $height['id']
                                                         ?? 0
-                                                    ) === $heightId
-                                                        ? 'selected'
-                                                        : '' ?>>
+                                                    )
+                                                );
 
-                                                    <?= esc(
-                                                        $heightName
-                                                    ) ?>
+                                            $heightName =
+                                                trim(
+                                                    (string) (
+                                                        $height['display_name']
+                                                        ?? ''
+                                                    )
+                                                );
 
-                                                </option>
+                                            if (
+                                                $heightId <= 0
+                                                || $heightName === ''
+                                            ) {
+                                                continue;
+                                            }
+                                            ?>
 
-                                            <?php endforeach; ?>
+                                            <option
+                                                value="<?= esc(
+                                                            (string)
+                                                            $heightId,
+                                                            'attr'
+                                                        ) ?>"
+                                                <?= $heightMaxId
+                                                    === $heightId
+                                                    ? 'selected'
+                                                    : '' ?>>
 
-                                        </select>
+                                                <?= esc(
+                                                    $heightName
+                                                ) ?>
 
-                                    </div>
+                                            </option>
 
-                                <?php endforeach; ?>
+                                        <?php endforeach; ?>
+
+                                    </select>
+
+                                </div>
 
                                 <!-- =========================================
                                      Marital Status
+                                     Empty selection = Any.
                                      ========================================= -->
 
                                 <div class="col-12 col-md-6">
@@ -607,7 +925,9 @@ $this->section(
                                         class="form-select"
                                         data-choice
                                         data-choice-search="true"
+                                        data-choice-remove="true"
                                         data-choice-position="bottom"
+                                        data-choice-search-placeholder="Search marital status"
                                         multiple>
 
                                         <?php foreach (
@@ -617,10 +937,28 @@ $this->section(
 
                                             <?php
                                             $statusId =
-                                                (int) (
-                                                    $status['id']
-                                                    ?? 0
+                                                max(
+                                                    0,
+                                                    (int) (
+                                                        $status['id']
+                                                        ?? 0
+                                                    )
                                                 );
+
+                                            $statusName =
+                                                trim(
+                                                    (string) (
+                                                        $status['name']
+                                                        ?? ''
+                                                    )
+                                                );
+
+                                            if (
+                                                $statusId <= 0
+                                                || $statusName === ''
+                                            ) {
+                                                continue;
+                                            }
                                             ?>
 
                                             <option
@@ -631,22 +969,14 @@ $this->section(
                                                         ) ?>"
                                                 <?= in_array(
                                                     $statusId,
-                                                    array_map(
-                                                        'intval',
-                                                        $selected(
-                                                            'marital_status_ids'
-                                                        )
-                                                    ),
+                                                    $selectedMaritalStatusIds,
                                                     true
                                                 )
                                                     ? 'selected'
                                                     : '' ?>>
 
                                                 <?= esc(
-                                                    (string) (
-                                                        $status['name']
-                                                        ?? ''
-                                                    )
+                                                    $statusName
                                                 ) ?>
 
                                             </option>
@@ -659,48 +989,85 @@ $this->section(
 
                                 <!-- =========================================
                                      State Living In
-                                     Reuse Partner Preference "Any".
+                                     Empty selection = Any.
                                      ========================================= -->
 
-                                <?= view(
-                                    'Pages/PartnerPreference/Additional/_multi_select',
-                                    [
-                                        'field' =>
-                                        'state_ids',
+                                <div class="col-12 col-md-6">
 
-                                        'label' =>
-                                        'State Living In',
+                                    <label
+                                        for="stateIds"
+                                        class="form-labelm">
 
-                                        'placeholder' =>
-                                        '',
+                                        State Living In
+                                    </label>
 
-                                        'options' =>
-                                        $states,
+                                    <select
+                                        id="stateIds"
+                                        name="state_ids[]"
+                                        class="form-select"
+                                        data-choice
+                                        data-choice-search="true"
+                                        data-choice-remove="true"
+                                        data-choice-position="bottom"
+                                        data-choice-search-placeholder="Search state"
+                                        multiple>
 
-                                        'optionValueKey' =>
-                                        'id',
+                                        <?php foreach (
+                                            $states
+                                            as $state
+                                        ): ?>
 
-                                        'optionLabelKey' =>
-                                        'name',
+                                            <?php
+                                            $stateId =
+                                                max(
+                                                    0,
+                                                    (int) (
+                                                        $state['id']
+                                                        ?? 0
+                                                    )
+                                                );
 
-                                        'selectedValues' =>
-                                        $selected(
-                                            'state_ids'
-                                        ),
+                                            $stateName =
+                                                trim(
+                                                    (string) (
+                                                        $state['name']
+                                                        ?? ''
+                                                    )
+                                                );
 
-                                        'showSelectAll' =>
-                                        true,
+                                            if (
+                                                $stateId <= 0
+                                                || $stateName === ''
+                                            ) {
+                                                continue;
+                                            }
+                                            ?>
 
-                                        'required' =>
-                                        false,
+                                            <option
+                                                value="<?= esc(
+                                                            (string)
+                                                            $stateId,
+                                                            'attr'
+                                                        ) ?>"
+                                                <?= in_array(
+                                                    $stateId,
+                                                    $selectedStateIds,
+                                                    true
+                                                )
+                                                    ? 'selected'
+                                                    : '' ?>>
 
-                                        'columnClass' =>
-                                        'col-12 col-md-6',
+                                                <?= esc(
+                                                    $stateName
+                                                ) ?>
 
-                                        'errors' =>
-                                        [],
-                                    ]
-                                ) ?>
+                                            </option>
+
+                                        <?php endforeach; ?>
+
+                                    </select>
+
+                                </div>
 
                                 <!-- =========================================
                                      Photo Settings
@@ -713,25 +1080,23 @@ $this->section(
                                         class="d-flex flex-wrap
                                             align-items-center gap-3">
 
-                                        <label
+                                        <span
                                             class="form-labelm mb-0">
 
                                             Photo Settings
-                                        </label>
+                                        </span>
 
                                         <div class="form-check mb-0">
 
                                             <input
-                                                class="form-check-input"
                                                 type="checkbox"
+                                                class="form-check-input"
                                                 id="photoPublic"
                                                 name="photo_visibility[]"
                                                 value="PUBLIC"
                                                 <?= in_array(
                                                     'PUBLIC',
-                                                    $selected(
-                                                        'photo_visibility'
-                                                    ),
+                                                    $selectedPhotoVisibility,
                                                     true
                                                 )
                                                     ? 'checked'
@@ -749,16 +1114,14 @@ $this->section(
                                         <div class="form-check mb-0">
 
                                             <input
-                                                class="form-check-input"
                                                 type="checkbox"
+                                                class="form-check-input"
                                                 id="photoInterested"
                                                 name="photo_visibility[]"
                                                 value="INTERESTED_MEMBERS"
                                                 <?= in_array(
                                                     'INTERESTED_MEMBERS',
-                                                    $selected(
-                                                        'photo_visibility'
-                                                    ),
+                                                    $selectedPhotoVisibility,
                                                     true
                                                 )
                                                     ? 'checked'
@@ -784,105 +1147,186 @@ $this->section(
                             ): ?>
 
                                 <!-- =========================================
-                                     Advanced Search
+                                     Advanced Search separator
                                      ========================================= -->
 
                                 <hr class="my-4">
 
                                 <div class="row g-3">
 
-                                    <!-- Community -->
+                                    <!-- =====================================
+                                         Community
+                                         ===================================== -->
 
-                                    <?= view(
-                                        'Pages/PartnerPreference/Additional/_multi_select',
-                                        [
-                                            'field' =>
-                                            'community_ids',
+                                    <div class="col-12 col-md-6">
 
-                                            'label' =>
-                                            'Community',
+                                        <label
+                                            for="searchCommunity"
+                                            class="form-labelm">
 
-                                            'placeholder' =>
-                                            '',
+                                            Community
+                                        </label>
 
-                                            'options' =>
-                                            $communities,
+                                        <select
+                                            id="searchCommunity"
+                                            name="community_ids[]"
+                                            class="form-select"
+                                            data-choice
+                                            data-choice-search="true"
+                                            data-choice-remove="true"
+                                            data-choice-position="bottom"
+                                            data-choice-search-placeholder="Search community"
+                                            multiple>
 
-                                            'optionValueKey' =>
-                                            'id',
+                                            <?php foreach (
+                                                $communities
+                                                as $community
+                                            ): ?>
 
-                                            'optionLabelKey' =>
-                                            'name',
+                                                <?php
+                                                $communityId =
+                                                    max(
+                                                        0,
+                                                        (int) (
+                                                            $community['id']
+                                                            ?? 0
+                                                        )
+                                                    );
 
-                                            'selectedValues' =>
-                                            $selected(
-                                                'community_ids'
-                                            ),
+                                                $communityName =
+                                                    trim(
+                                                        (string) (
+                                                            $community['name']
+                                                            ?? ''
+                                                        )
+                                                    );
 
-                                            'showSelectAll' =>
-                                            true,
+                                                if (
+                                                    $communityId <= 0
+                                                    || $communityName === ''
+                                                ) {
+                                                    continue;
+                                                }
+                                                ?>
 
-                                            'required' =>
-                                            false,
+                                                <option
+                                                    value="<?= esc(
+                                                                (string)
+                                                                $communityId,
+                                                                'attr'
+                                                            ) ?>"
+                                                    <?= in_array(
+                                                        $communityId,
+                                                        $selectedCommunityIds,
+                                                        true
+                                                    )
+                                                        ? 'selected'
+                                                        : '' ?>>
 
-                                            'columnClass' =>
-                                            'col-12 col-md-6',
+                                                    <?= esc(
+                                                        $communityName
+                                                    ) ?>
 
-                                            'errors' =>
-                                            [],
-                                        ]
-                                    ) ?>
+                                                </option>
 
-                                    <!-- City -->
+                                            <?php endforeach; ?>
 
-                                    <?= view(
-                                        'Pages/PartnerPreference/Additional/_multi_select',
-                                        [
-                                            'field' =>
-                                            'city_ids',
+                                        </select>
 
-                                            'label' =>
-                                            'City Living In',
+                                    </div>
 
-                                            'placeholder' =>
-                                            '',
+                                    <!-- =====================================
+                                         City Living In
+                                         Dependent on selected State(s).
+                                         ===================================== -->
 
-                                            'options' =>
-                                            $cities,
+                                    <div class="col-12 col-md-6">
 
-                                            'optionValueKey' =>
-                                            'id',
+                                        <label
+                                            for="cityIds"
+                                            class="form-labelm">
 
-                                            'optionLabelKey' =>
-                                            'name',
+                                            City Living In
+                                        </label>
 
-                                            'selectedValues' =>
-                                            $selected(
-                                                'city_ids'
-                                            ),
+                                        <select
+                                            id="cityIds"
+                                            name="city_ids[]"
+                                            class="form-select"
+                                            data-choice
+                                            data-choice-search="true"
+                                            data-choice-remove="true"
+                                            data-choice-position="bottom"
+                                            data-choice-search-placeholder="Search city"
+                                            <?= $cityDisabled
+                                                ? 'disabled'
+                                                : '' ?>
+                                            multiple>
 
-                                            'showSelectAll' =>
-                                            true,
+                                            <?php foreach (
+                                                $cities
+                                                as $city
+                                            ): ?>
 
-                                            'disabled' =>
-                                            $selected(
-                                                'state_ids'
-                                            ) === [],
+                                                <?php
+                                                $cityId =
+                                                    max(
+                                                        0,
+                                                        (int) (
+                                                            $city['id']
+                                                            ?? 0
+                                                        )
+                                                    );
 
-                                            'required' =>
-                                            false,
+                                                $cityName =
+                                                    trim(
+                                                        (string) (
+                                                            $city['name']
+                                                            ?? ''
+                                                        )
+                                                    );
 
-                                            'columnClass' =>
-                                            'col-12 col-md-6',
+                                                if (
+                                                    $cityId <= 0
+                                                    || $cityName === ''
+                                                ) {
+                                                    continue;
+                                                }
+                                                ?>
 
-                                            'errors' =>
-                                            [],
-                                        ]
-                                    ) ?>
+                                                <option
+                                                    value="<?= esc(
+                                                                (string)
+                                                                $cityId,
+                                                                'attr'
+                                                            ) ?>"
+                                                    <?= in_array(
+                                                        $cityId,
+                                                        $selectedCityIds,
+                                                        true
+                                                    )
+                                                        ? 'selected'
+                                                        : '' ?>>
+
+                                                    <?= esc(
+                                                        $cityName
+                                                    ) ?>
+
+                                                </option>
+
+                                            <?php endforeach; ?>
+
+                                        </select>
+
+                                        <div class="form-text color-pink text-uppercase fw-medium">
+                                            Select State Living In first.
+                                        </div>
+
+                                    </div>
 
                                     <!--
-                                        Search JS uses this route for dependent
-                                        State → City master loading.
+                                        Search JavaScript uses this named route
+                                        for dependent State → City loading.
                                     -->
                                     <input
                                         type="hidden"
@@ -894,259 +1338,476 @@ $this->section(
                                                     'attr'
                                                 ) ?>">
 
-                                    <!-- =========================================================
-     Highest Education
-     ========================================================= -->
+                                    <!-- =====================================
+                                         Highest Education
+                                         Group structure:
+                                         name → educations.
+                                         ===================================== -->
 
-                                    <?= view(
-                                        'Pages/PartnerPreference/Additional/_multi_select',
-                                        [
-                                            'field' =>
-                                            'education_ids',
+                                    <div class="col-12 col-md-6">
 
-                                            'label' =>
-                                            'Highest Education',
+                                        <label
+                                            for="searchEducation"
+                                            class="form-labelm">
 
-                                            'placeholder' =>
-                                            '',
+                                            Highest Education
+                                        </label>
 
-                                            /*
-         * Education masters are grouped by education category.
-         */
-                                            'groups' =>
-                                            $educationGroups,
+                                        <select
+                                            id="searchEducation"
+                                            name="education_ids[]"
+                                            class="form-select"
+                                            data-choice
+                                            data-choice-search="true"
+                                            data-choice-remove="true"
+                                            data-choice-position="bottom"
+                                            data-choice-search-placeholder="Search education"
+                                            multiple>
 
-                                            'groupLabelKey' =>
-                                            'name',
+                                            <?php foreach (
+                                                $educationGroups
+                                                as $group
+                                            ): ?>
 
-                                            'groupItemsKey' =>
-                                            'educations',
+                                                <?php
+                                                if (
+                                                    !is_array(
+                                                        $group
+                                                    )
+                                                ) {
+                                                    continue;
+                                                }
 
-                                            'optionValueKey' =>
-                                            'id',
+                                                $groupName =
+                                                    trim(
+                                                        (string) (
+                                                            $group['name']
+                                                            ?? ''
+                                                        )
+                                                    );
 
-                                            'optionLabelKey' =>
-                                            'name',
+                                                $groupEducations =
+                                                    isset(
+                                                        $group['educations']
+                                                    )
+                                                    && is_array(
+                                                        $group['educations']
+                                                    )
+                                                    ? array_values(
+                                                        $group['educations']
+                                                    )
+                                                    : [];
 
-                                            'selectedValues' =>
-                                            $selected(
-                                                'education_ids'
-                                            ),
+                                                if (
+                                                    $groupName === ''
+                                                    || $groupEducations === []
+                                                ) {
+                                                    continue;
+                                                }
+                                                ?>
 
-                                            /*
-         * "Any" follows the existing Partner Preference behaviour.
-         */
-                                            'showSelectAll' =>
-                                            true,
+                                                <optgroup
+                                                    label="<?= esc(
+                                                                $groupName,
+                                                                'attr'
+                                                            ) ?>">
 
-                                            /*
-         * Search criteria are optional and Education must never depend
-         * on State/City selection.
-         *
-         * Explicit false is important because this shared partial is
-         * rendered immediately after the conditionally disabled City field.
-         */
-                                            'disabled' =>
-                                            false,
+                                                    <?php foreach (
+                                                        $groupEducations
+                                                        as $education
+                                                    ): ?>
 
-                                            'required' =>
-                                            false,
+                                                        <?php
+                                                        $educationId =
+                                                            max(
+                                                                0,
+                                                                (int) (
+                                                                    $education['id']
+                                                                    ?? 0
+                                                                )
+                                                            );
 
-                                            'columnClass' =>
-                                            'col-12 col-md-6',
+                                                        $educationName =
+                                                            trim(
+                                                                (string) (
+                                                                    $education['name']
+                                                                    ?? ''
+                                                                )
+                                                            );
 
-                                            'errors' =>
-                                            [],
-                                        ]
-                                    ) ?>
+                                                        if (
+                                                            $educationId <= 0
+                                                            || $educationName === ''
+                                                        ) {
+                                                            continue;
+                                                        }
+                                                        ?>
 
-                                    <!-- =========================================================
-     Employed In
-     ========================================================= -->
+                                                        <option
+                                                            value="<?= esc(
+                                                                        (string)
+                                                                        $educationId,
+                                                                        'attr'
+                                                                    ) ?>"
+                                                            <?= in_array(
+                                                                $educationId,
+                                                                $selectedEducationIds,
+                                                                true
+                                                            )
+                                                                ? 'selected'
+                                                                : '' ?>>
 
-                                    <?= view(
-                                        'Pages/PartnerPreference/Additional/_multi_select',
-                                        [
-                                            'field' =>
-                                            'employed_in',
+                                                            <?= esc(
+                                                                $educationName
+                                                            ) ?>
 
-                                            'label' =>
-                                            'Employed In',
+                                                        </option>
 
-                                            'placeholder' =>
-                                            '',
+                                                    <?php endforeach; ?>
 
-                                            'options' =>
-                                            $employmentTypes,
+                                                </optgroup>
 
-                                            'optionValueKey' =>
-                                            'value',
+                                            <?php endforeach; ?>
 
-                                            'optionLabelKey' =>
-                                            'label',
+                                        </select>
 
-                                            'selectedValues' =>
-                                            $selected(
-                                                'employed_in'
-                                            ),
+                                    </div>
 
-                                            'showSelectAll' =>
-                                            true,
+                                    <!-- =====================================
+                                         Employed In
+                                         ===================================== -->
 
-                                            /*
-         * Employment selection is independent of State/City.
-         */
-                                            'disabled' =>
-                                            false,
+                                    <div class="col-12 col-md-6">
 
-                                            'required' =>
-                                            false,
+                                        <label
+                                            for="searchEmployedIn"
+                                            class="form-labelm">
 
-                                            'columnClass' =>
-                                            'col-12 col-md-6',
+                                            Employed In
+                                        </label>
 
-                                            'errors' =>
-                                            [],
-                                        ]
-                                    ) ?>
+                                        <select
+                                            id="searchEmployedIn"
+                                            name="employed_in[]"
+                                            class="form-select"
+                                            data-choice
+                                            data-choice-search="true"
+                                            data-choice-remove="true"
+                                            data-choice-position="bottom"
+                                            data-choice-search-placeholder="Search employment"
+                                            multiple>
 
-                                    <!-- =========================================================
-     Occupation
-     ========================================================= -->
+                                            <?php foreach (
+                                                $employmentTypes
+                                                as $employment
+                                            ): ?>
 
-                                    <?= view(
-                                        'Pages/PartnerPreference/Additional/_multi_select',
-                                        [
-                                            'field' =>
-                                            'occupation_ids',
+                                                <?php
+                                                if (
+                                                    !is_array(
+                                                        $employment
+                                                    )
+                                                ) {
+                                                    continue;
+                                                }
 
-                                            'label' =>
-                                            'Occupation',
+                                                $employmentValue =
+                                                    trim(
+                                                        (string) (
+                                                            $employment['value']
+                                                            ?? ''
+                                                        )
+                                                    );
 
-                                            'placeholder' =>
-                                            '',
+                                                $employmentLabel =
+                                                    trim(
+                                                        (string) (
+                                                            $employment['label']
+                                                            ?? ''
+                                                        )
+                                                    );
 
-                                            /*
-         * Occupations are grouped by occupation category.
-         */
-                                            'groups' =>
-                                            $occupationGroups,
+                                                if (
+                                                    $employmentValue === ''
+                                                    || $employmentLabel === ''
+                                                ) {
+                                                    continue;
+                                                }
+                                                ?>
 
-                                            'groupLabelKey' =>
-                                            'name',
+                                                <option
+                                                    value="<?= esc(
+                                                                $employmentValue,
+                                                                'attr'
+                                                            ) ?>"
+                                                    <?= in_array(
+                                                        $employmentValue,
+                                                        $selectedEmploymentTypes,
+                                                        true
+                                                    )
+                                                        ? 'selected'
+                                                        : '' ?>>
 
-                                            'groupItemsKey' =>
-                                            'occupations',
+                                                    <?= esc(
+                                                        $employmentLabel
+                                                    ) ?>
 
-                                            'optionValueKey' =>
-                                            'id',
+                                                </option>
 
-                                            'optionLabelKey' =>
-                                            'name',
+                                            <?php endforeach; ?>
 
-                                            'selectedValues' =>
-                                            $selected(
-                                                'occupation_ids'
-                                            ),
+                                        </select>
 
-                                            'showSelectAll' =>
-                                            true,
+                                    </div>
 
-                                            /*
-         * Occupation selection is independent of State/City.
-         */
-                                            'disabled' =>
-                                            false,
+                                    <!-- =====================================
+                                         Occupation
+                                         Group structure:
+                                         name → occupations.
+                                         ===================================== -->
 
-                                            'required' =>
-                                            false,
+                                    <div class="col-12 col-md-6">
 
-                                            'columnClass' =>
-                                            'col-12 col-md-6',
+                                        <label
+                                            for="searchOccupation"
+                                            class="form-labelm">
 
-                                            'errors' =>
-                                            [],
-                                        ]
-                                    ) ?>
+                                            Occupation
+                                        </label>
 
-                                    <!-- =========================================================
-     Annual Income
-     Same multi-bracket UI as Partner Preference.
-     ========================================================= -->
+                                        <select
+                                            id="searchOccupation"
+                                            name="occupation_ids[]"
+                                            class="form-select"
+                                            data-choice
+                                            data-choice-search="true"
+                                            data-choice-remove="true"
+                                            data-choice-position="bottom"
+                                            data-choice-search-placeholder="Search occupation"
+                                            multiple>
 
-                                    <?= view(
-                                        'Pages/PartnerPreference/Additional/_multi_select',
-                                        [
-                                            'field' =>
-                                            'annual_income_ids',
+                                            <?php foreach (
+                                                $occupationGroups
+                                                as $group
+                                            ): ?>
 
-                                            'label' =>
-                                            'Annual Income',
+                                                <?php
+                                                if (
+                                                    !is_array(
+                                                        $group
+                                                    )
+                                                ) {
+                                                    continue;
+                                                }
 
-                                            'placeholder' =>
-                                            '',
+                                                $groupName =
+                                                    trim(
+                                                        (string) (
+                                                            $group['name']
+                                                            ?? ''
+                                                        )
+                                                    );
 
-                                            'options' =>
-                                            $annualIncomes,
+                                                $groupOccupations =
+                                                    isset(
+                                                        $group['occupations']
+                                                    )
+                                                    && is_array(
+                                                        $group['occupations']
+                                                    )
+                                                    ? array_values(
+                                                        $group['occupations']
+                                                    )
+                                                    : [];
 
-                                            'optionValueKey' =>
-                                            'id',
+                                                if (
+                                                    $groupName === ''
+                                                    || $groupOccupations === []
+                                                ) {
+                                                    continue;
+                                                }
+                                                ?>
 
-                                            'optionLabelKey' =>
-                                            'display_name',
+                                                <optgroup
+                                                    label="<?= esc(
+                                                                $groupName,
+                                                                'attr'
+                                                            ) ?>">
 
-                                            'selectedValues' =>
-                                            $selected(
-                                                'annual_income_ids'
-                                            ),
+                                                    <?php foreach (
+                                                        $groupOccupations
+                                                        as $occupation
+                                                    ): ?>
 
-                                            'showSelectAll' =>
-                                            true,
+                                                        <?php
+                                                        $occupationId =
+                                                            max(
+                                                                0,
+                                                                (int) (
+                                                                    $occupation['id']
+                                                                    ?? 0
+                                                                )
+                                                            );
 
-                                            /*
-         * Annual Income selection is independent of State/City.
-         */
-                                            'disabled' =>
-                                            false,
+                                                        $occupationName =
+                                                            trim(
+                                                                (string) (
+                                                                    $occupation['name']
+                                                                    ?? ''
+                                                                )
+                                                            );
 
-                                            'required' =>
-                                            false,
+                                                        if (
+                                                            $occupationId <= 0
+                                                            || $occupationName === ''
+                                                        ) {
+                                                            continue;
+                                                        }
+                                                        ?>
 
-                                            'columnClass' =>
-                                            'col-12 col-md-6',
+                                                        <option
+                                                            value="<?= esc(
+                                                                        (string)
+                                                                        $occupationId,
+                                                                        'attr'
+                                                                    ) ?>"
+                                                            <?= in_array(
+                                                                $occupationId,
+                                                                $selectedOccupationIds,
+                                                                true
+                                                            )
+                                                                ? 'selected'
+                                                                : '' ?>>
 
-                                            'errors' =>
-                                            [],
-                                        ]
-                                    ) ?>
+                                                            <?= esc(
+                                                                $occupationName
+                                                            ) ?>
+
+                                                        </option>
+
+                                                    <?php endforeach; ?>
+
+                                                </optgroup>
+
+                                            <?php endforeach; ?>
+
+                                        </select>
+
+                                    </div>
+
+                                    <!-- =====================================
+                                         Annual Income
+                                         Multi-select master brackets.
+                                         ===================================== -->
+
+                                    <div class="col-12 col-md-6">
+
+                                        <label
+                                            for="searchAnnualIncome"
+                                            class="form-labelm">
+
+                                            Annual Income
+                                        </label>
+
+                                        <select
+                                            id="searchAnnualIncome"
+                                            name="annual_income_ids[]"
+                                            class="form-select"
+                                            data-choice
+                                            data-choice-search="true"
+                                            data-choice-remove="true"
+                                            data-choice-position="bottom"
+                                            data-choice-search-placeholder="Search annual income"
+                                            multiple>
+
+                                            <?php foreach (
+                                                $annualIncomes
+                                                as $income
+                                            ): ?>
+
+                                                <?php
+                                                if (
+                                                    !is_array(
+                                                        $income
+                                                    )
+                                                ) {
+                                                    continue;
+                                                }
+
+                                                $incomeId =
+                                                    max(
+                                                        0,
+                                                        (int) (
+                                                            $income['id']
+                                                            ?? 0
+                                                        )
+                                                    );
+
+                                                $incomeName =
+                                                    trim(
+                                                        (string) (
+                                                            $income['display_name']
+                                                            ?? ''
+                                                        )
+                                                    );
+
+                                                if (
+                                                    $incomeId <= 0
+                                                    || $incomeName === ''
+                                                ) {
+                                                    continue;
+                                                }
+                                                ?>
+
+                                                <option
+                                                    value="<?= esc(
+                                                                (string)
+                                                                $incomeId,
+                                                                'attr'
+                                                            ) ?>"
+                                                    <?= in_array(
+                                                        $incomeId,
+                                                        $selectedAnnualIncomeIds,
+                                                        true
+                                                    )
+                                                        ? 'selected'
+                                                        : '' ?>>
+
+                                                    <?= esc(
+                                                        $incomeName
+                                                    ) ?>
+
+                                                </option>
+
+                                            <?php endforeach; ?>
+
+                                        </select>
+
+                                    </div>
 
                                     <!-- =====================================
                                          Profile Managed By
+                                         Full-width single-row group.
                                          ===================================== -->
 
-                                    <!-- =====================================
-     Profile Managed By
-     Full-width single-row option group.
-     ===================================== -->
-
-                                    <div class="col-12">
+                                    <div class="col-12 mt-4">
 
                                         <div
                                             class="d-flex flex-column
-            flex-md-row
-            align-items-md-center
-            gap-2 gap-md-4">
+                                                flex-md-row
+                                                align-items-md-center
+                                                gap-2 gap-md-4">
 
                                             <label
-                                                class="form-labelm mb-md-0
-                flex-shrink-0">
+                                                class="form-labelm
+                                                    mb-md-0 flex-shrink-0">
 
                                                 Profile Managed By
                                             </label>
 
                                             <div
                                                 class="d-flex flex-wrap
-                align-items-center gap-3">
+                                                    align-items-center gap-3">
 
                                                 <?php foreach (
                                                     $profileManagedBy
@@ -1154,7 +1815,15 @@ $this->section(
                                                 ): ?>
 
                                                     <?php
-                                                    $value =
+                                                    if (
+                                                        !is_array(
+                                                            $option
+                                                        )
+                                                    ) {
+                                                        continue;
+                                                    }
+
+                                                    $managedValue =
                                                         trim(
                                                             (string) (
                                                                 $option['value']
@@ -1162,7 +1831,7 @@ $this->section(
                                                             )
                                                         );
 
-                                                    $label =
+                                                    $managedLabel =
                                                         trim(
                                                             (string) (
                                                                 $option['label']
@@ -1171,38 +1840,41 @@ $this->section(
                                                         );
 
                                                     if (
-                                                        $value === ''
-                                                        || $label === ''
+                                                        $managedValue === ''
+                                                        || $managedLabel === ''
                                                     ) {
                                                         continue;
                                                     }
 
-                                                    $controlId =
+                                                    $managedControlId =
                                                         'managed'
-                                                        . ucfirst(
-                                                            $value
+                                                        . preg_replace(
+                                                            '/[^a-zA-Z0-9]/',
+                                                            '',
+                                                            ucfirst(
+                                                                $managedValue
+                                                            )
                                                         );
                                                     ?>
 
-                                                    <div class="form-check mb-0">
+                                                    <div
+                                                        class="form-check mb-0">
 
                                                         <input
                                                             type="checkbox"
                                                             class="form-check-input"
-                                                            name="managed_by[]"
-                                                            value="<?= esc(
-                                                                        $value,
-                                                                        'attr'
-                                                                    ) ?>"
                                                             id="<?= esc(
-                                                                    $controlId,
+                                                                    $managedControlId,
                                                                     'attr'
                                                                 ) ?>"
+                                                            name="managed_by[]"
+                                                            value="<?= esc(
+                                                                        $managedValue,
+                                                                        'attr'
+                                                                    ) ?>"
                                                             <?= in_array(
-                                                                $value,
-                                                                $selected(
-                                                                    'managed_by'
-                                                                ),
+                                                                $managedValue,
+                                                                $selectedManagedBy,
                                                                 true
                                                             )
                                                                 ? 'checked'
@@ -1211,12 +1883,12 @@ $this->section(
                                                         <label
                                                             class="form-check-label"
                                                             for="<?= esc(
-                                                                        $controlId,
+                                                                        $managedControlId,
                                                                         'attr'
                                                                     ) ?>">
 
                                                             <?= esc(
-                                                                $label
+                                                                $managedLabel
                                                             ) ?>
 
                                                         </label>
@@ -1233,180 +1905,278 @@ $this->section(
 
                                     <!-- =====================================
                                          Lifestyle
-                                         Keep same UI as Profile Edit.
+                                         Same button/tag direction as Profile
+                                         Edit; no Search-specific CSS.
                                          ===================================== -->
 
-                                    <div class="col-12">
+                                    <?php if (
+                                        $lifestyleCategories !== []
+                                    ): ?>
 
-                                        <label class="form-labelm">
-                                            Lifestyle
-                                        </label>
+                                        <div class="col-12 mt-4">
 
-                                        <ul
-                                            class="nav nav-tabs
-                                                flex-nowrap overflow-auto mb-3"
-                                            role="tablist">
+                                            <label class="form-labelm">
 
-                                            <?php foreach (
-                                                $lifestyleCategories
-                                                as $index => $category
-                                            ): ?>
+                                                Lifestyle
+                                            </label>
 
-                                                <?php
-                                                $categoryId =
-                                                    (int) (
-                                                        $category['id']
-                                                        ?? 0
-                                                    );
-                                                ?>
+                                            <!-- Lifestyle categories -->
 
-                                                <li
-                                                    class="nav-item
-                                                        flex-shrink-0">
+                                            <ul
+                                                class="nav nav-tabs
+                                                    flex-nowrap
+                                                    overflow-auto mb-3"
+                                                role="tablist">
 
-                                                    <button
-                                                        type="button"
-                                                        class="nav-link
-                                                            <?= $index === 0
-                                                                ? 'active'
-                                                                : '' ?>"
-                                                        data-bs-toggle="tab"
-                                                        data-bs-target="#searchLifestyle<?= esc(
-                                                                                            (string)
-                                                                                            $categoryId,
-                                                                                            'attr'
-                                                                                        ) ?>">
+                                                <?php foreach (
+                                                    $lifestyleCategories
+                                                    as $index => $category
+                                                ): ?>
 
-                                                        <?= esc(
+                                                    <?php
+                                                    if (
+                                                        !is_array(
+                                                            $category
+                                                        )
+                                                    ) {
+                                                        continue;
+                                                    }
+
+                                                    $categoryId =
+                                                        max(
+                                                            0,
+                                                            (int) (
+                                                                $category['id']
+                                                                ?? 0
+                                                            )
+                                                        );
+
+                                                    $categoryName =
+                                                        trim(
                                                             (string) (
                                                                 $category['name']
                                                                 ?? ''
                                                             )
-                                                        ) ?>
+                                                        );
 
-                                                    </button>
+                                                    if (
+                                                        $categoryId <= 0
+                                                        || $categoryName === ''
+                                                    ) {
+                                                        continue;
+                                                    }
 
-                                                </li>
+                                                    $tabId =
+                                                        'searchLifestyle'
+                                                        . $categoryId;
+                                                    ?>
 
-                                            <?php endforeach; ?>
+                                                    <li
+                                                        class="nav-item
+                                                            flex-shrink-0"
+                                                        role="presentation">
 
-                                        </ul>
+                                                        <button
+                                                            type="button"
+                                                            class="nav-link
+                                                                <?= $index === 0
+                                                                    ? 'active'
+                                                                    : '' ?>"
+                                                            data-bs-toggle="tab"
+                                                            data-bs-target="#<?= esc(
+                                                                                    $tabId,
+                                                                                    'attr'
+                                                                                ) ?>"
+                                                            aria-controls="<?= esc(
+                                                                                $tabId,
+                                                                                'attr'
+                                                                            ) ?>"
+                                                            aria-selected="<?= $index === 0
+                                                                                ? 'true'
+                                                                                : 'false' ?>">
 
-                                        <div class="tab-content">
+                                                            <?= esc(
+                                                                $categoryName
+                                                            ) ?>
 
-                                            <?php foreach (
-                                                $lifestyleCategories
-                                                as $index => $category
-                                            ): ?>
+                                                        </button>
 
-                                                <?php
-                                                $categoryId =
-                                                    (int) (
-                                                        $category['id']
-                                                        ?? 0
-                                                    );
+                                                    </li>
 
-                                                $categoryOptions =
-                                                    $lifestyleOptionsByCategory[$categoryId]
-                                                    ?? [];
-                                                ?>
+                                                <?php endforeach; ?>
 
-                                                <div
-                                                    class="tab-pane fade
-                                                        <?= $index === 0
-                                                            ? 'show active'
-                                                            : '' ?>"
-                                                    id="searchLifestyle<?= esc(
-                                                                            (string)
-                                                                            $categoryId,
-                                                                            'attr'
-                                                                        ) ?>">
+                                            </ul>
+
+                                            <!-- Lifestyle options -->
+
+                                            <div class="tab-content">
+
+                                                <?php foreach (
+                                                    $lifestyleCategories
+                                                    as $index => $category
+                                                ): ?>
+
+                                                    <?php
+                                                    if (
+                                                        !is_array(
+                                                            $category
+                                                        )
+                                                    ) {
+                                                        continue;
+                                                    }
+
+                                                    $categoryId =
+                                                        max(
+                                                            0,
+                                                            (int) (
+                                                                $category['id']
+                                                                ?? 0
+                                                            )
+                                                        );
+
+                                                    if (
+                                                        $categoryId <= 0
+                                                    ) {
+                                                        continue;
+                                                    }
+
+                                                    $tabId =
+                                                        'searchLifestyle'
+                                                        . $categoryId;
+
+                                                    $categoryOptions =
+                                                        isset(
+                                                            $lifestyleOptionsByCategory[$categoryId]
+                                                        )
+                                                        && is_array(
+                                                            $lifestyleOptionsByCategory[$categoryId]
+                                                        )
+                                                        ? array_values(
+                                                            $lifestyleOptionsByCategory[$categoryId]
+                                                        )
+                                                        : [];
+                                                    ?>
 
                                                     <div
-                                                        class="d-flex flex-wrap
-                                                            gap-2 py-2">
+                                                        class="tab-pane fade
+                                                            <?= $index === 0
+                                                                ? 'show active'
+                                                                : '' ?>"
+                                                        id="<?= esc(
+                                                                $tabId,
+                                                                'attr'
+                                                            ) ?>"
+                                                        role="tabpanel">
 
-                                                        <?php foreach (
-                                                            $categoryOptions
-                                                            as $option
-                                                        ): ?>
+                                                        <div
+                                                            class="d-flex
+                                                                flex-wrap
+                                                                gap-2 py-2">
 
-                                                            <?php
-                                                            $optionId =
-                                                                (int) (
-                                                                    $option['id']
-                                                                    ?? 0
-                                                                );
-                                                            ?>
+                                                            <?php foreach (
+                                                                $categoryOptions
+                                                                as $option
+                                                            ): ?>
 
-                                                            <input
-                                                                type="checkbox"
-                                                                class="btn-check"
-                                                                name="lifestyle_option_ids[]"
-                                                                value="<?= esc(
-                                                                            (string)
-                                                                            $optionId,
+                                                                <?php
+                                                                if (
+                                                                    !is_array(
+                                                                        $option
+                                                                    )
+                                                                ) {
+                                                                    continue;
+                                                                }
+
+                                                                $optionId =
+                                                                    max(
+                                                                        0,
+                                                                        (int) (
+                                                                            $option['id']
+                                                                            ?? 0
+                                                                        )
+                                                                    );
+
+                                                                $optionName =
+                                                                    trim(
+                                                                        (string) (
+                                                                            $option['name']
+                                                                            ?? ''
+                                                                        )
+                                                                    );
+
+                                                                if (
+                                                                    $optionId <= 0
+                                                                    || $optionName === ''
+                                                                ) {
+                                                                    continue;
+                                                                }
+
+                                                                $optionControlId =
+                                                                    'searchLifestyleOption'
+                                                                    . $optionId;
+                                                                ?>
+
+                                                                <input
+                                                                    type="checkbox"
+                                                                    class="btn-check"
+                                                                    id="<?= esc(
+                                                                            $optionControlId,
                                                                             'attr'
                                                                         ) ?>"
-                                                                id="searchLifestyleOption<?= esc(
-                                                                                                (string)
-                                                                                                $optionId,
-                                                                                                'attr'
-                                                                                            ) ?>"
-                                                                <?= in_array(
-                                                                    $optionId,
-                                                                    array_map(
-                                                                        'intval',
-                                                                        $selected(
-                                                                            'lifestyle_option_ids'
-                                                                        )
-                                                                    ),
-                                                                    true
-                                                                )
-                                                                    ? 'checked'
-                                                                    : '' ?>>
-
-                                                            <label
-                                                                class="btn
-                                                                    btn-outline-primary"
-                                                                for="searchLifestyleOption<?= esc(
-                                                                                                (string)
-                                                                                                $optionId,
-                                                                                                'attr'
-                                                                                            ) ?>">
-
-                                                                <?= esc(
-                                                                    (string) (
-                                                                        $option['name']
-                                                                        ?? ''
+                                                                    name="lifestyle_option_ids[]"
+                                                                    value="<?= esc(
+                                                                                (string)
+                                                                                $optionId,
+                                                                                'attr'
+                                                                            ) ?>"
+                                                                    <?= in_array(
+                                                                        $optionId,
+                                                                        $selectedLifestyleOptionIds,
+                                                                        true
                                                                     )
-                                                                ) ?>
+                                                                        ? 'checked'
+                                                                        : '' ?>>
 
-                                                            </label>
+                                                                <label
+                                                                    class="btn
+                                                                        btn-outline-primary"
+                                                                    for="<?= esc(
+                                                                                $optionControlId,
+                                                                                'attr'
+                                                                            ) ?>">
 
-                                                        <?php endforeach; ?>
+                                                                    <?= esc(
+                                                                        $optionName
+                                                                    ) ?>
+
+                                                                </label>
+
+                                                            <?php endforeach; ?>
+
+                                                        </div>
 
                                                     </div>
 
-                                                </div>
+                                                <?php endforeach; ?>
 
-                                            <?php endforeach; ?>
+                                            </div>
 
                                         </div>
 
-                                    </div>
+                                    <?php endif; ?>
 
                                 </div>
 
                             <?php endif; ?>
 
                             <!-- =============================================
-                                 Actions
+                                 Search actions
                                  ============================================= -->
 
                             <div
                                 class="d-flex flex-column
-                                    flex-sm-row justify-content-end
+                                    flex-sm-row
+                                    justify-content-end
                                     gap-2 mt-4">
 
                                 <a

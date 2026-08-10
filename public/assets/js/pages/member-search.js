@@ -1,14 +1,17 @@
 /**
- * Member Search page.
+ * Member Search page behaviour.
  *
- * Reuses the Partner Preference multi-select UX:
+ * Search intentionally reuses the Partner Preference visual multi-select,
+ * but Search has different "Any" semantics:
  *
- * - Choices.js;
- * - "Any" selection;
- * - dependent State → City loading;
- * - preserved valid City selections.
+ * Partner Preference:
+ *     Any = every value selected.
  *
- * Search business rules remain server-side.
+ * Search:
+ *     Any = no restriction = zero submitted values.
+ *
+ * This keeps Search URLs compact and correctly includes profiles whose
+ * optional master-backed fields may be NULL.
  */
 (function (window, document) {
     'use strict';
@@ -28,33 +31,9 @@
             }
 
             /**
-             * Return selectable option values.
+             * Return currently selected values.
              *
-             * @param {HTMLSelectElement} select
-             *
-             * @returns {string[]}
-             */
-            function optionValues(select) {
-                return Array.from(
-                    select.options
-                )
-                    .filter(
-                        function (option) {
-                            return (
-                                option.value !== ''
-                                && !option.disabled
-                            );
-                        }
-                    )
-                    .map(
-                        function (option) {
-                            return option.value;
-                        }
-                    );
-            }
-
-            /**
-             * Return selected values.
+             * Choices keeps the original select synchronized.
              *
              * @param {HTMLSelectElement} select
              *
@@ -73,13 +52,83 @@
             }
 
             /**
-             * Synchronize compact Any presentation.
+             * Recreate the existing project Choices instance.
              *
-             * @param {HTMLInputElement} checkbox
              * @param {HTMLSelectElement} select
              *
              * @returns {void}
              */
+            function refreshChoice(select) {
+                if (
+                    !window.SelectChoice
+                    || typeof window.SelectChoice.refresh
+                    !== 'function'
+                ) {
+                    return;
+                }
+
+                window.SelectChoice.refresh(
+                    select
+                );
+            }
+
+            /**
+ * Clear concrete Search selections.
+ *
+ * An empty selection represents "Any / no restriction".
+ *
+ * @param {HTMLSelectElement} select
+ *
+ * @returns {void}
+ */
+            function clearSelection(
+                select
+            ) {
+                Array.from(
+                    select.options
+                ).forEach(
+                    function (option) {
+                        option.selected =
+                            false;
+                    }
+                );
+
+                /*
+                 * Rebuild the existing Choices instance so its visible items match the
+                 * underlying select.
+                 */
+                if (
+                    window.SelectChoice
+                    && typeof window.SelectChoice.refresh
+                    === 'function'
+                ) {
+                    window.SelectChoice.refresh(
+                        select
+                    );
+                }
+
+                /*
+                 * Do not disable the select.
+                 *
+                 * Members must immediately be able to reopen it after choosing Any.
+                 */
+            }
+
+            /**
+ * Synchronize Search "Any" presentation.
+ *
+ * Search differs from Partner Preference:
+ *
+ * - Any means no filtering;
+ * - the Choices control must always remain visible;
+ * - selecting a concrete value automatically clears Any;
+ * - clicking Any clears concrete selections.
+ *
+ * @param {HTMLInputElement} checkbox
+ * @param {HTMLSelectElement} select
+ *
+ * @returns {void}
+ */
             function synchronizeAnyPresentation(
                 checkbox,
                 select
@@ -95,14 +144,14 @@
                     return;
                 }
 
-                const isAny =
-                    checkbox.checked
-                    && !checkbox.indeterminate
-                    && !checkbox.disabled;
-
-                container.classList.toggle(
-                    'is-any',
-                    isAny
+                /*
+                 * Search must never enter the Partner Preference compact Any state.
+                 *
+                 * That state visually hides/covers the Choices control and therefore
+                 * prevents members from opening the Search dropdown.
+                 */
+                container.classList.remove(
+                    'is-any'
                 );
 
                 const anyValue =
@@ -115,98 +164,41 @@
                 ) {
                     anyValue.setAttribute(
                         'aria-hidden',
-                        isAny
-                            ? 'false'
-                            : 'true'
+                        'true'
                     );
                 }
             }
 
             /**
-             * Rebuild selection and its existing Choices instance.
-             *
-             * @param {HTMLSelectElement} select
-             * @param {string[]} values
-             *
-             * @returns {void}
-             */
-            function setSelectedValues(
-                select,
-                values
-            ) {
-                const selected =
-                    new Set(
-                        values.map(String)
-                    );
-
-                Array.from(
-                    select.options
-                ).forEach(
-                    function (option) {
-                        option.selected =
-                            selected.has(
-                                option.value
-                            );
-                    }
-                );
-
-                if (
-                    window.SelectChoice
-                    && typeof window.SelectChoice.destroy
-                    === 'function'
-                    && typeof window.SelectChoice.create
-                    === 'function'
-                ) {
-                    window.SelectChoice.destroy(
-                        select
-                    );
-
-                    window.SelectChoice.create(
-                        select
-                    );
-                }
-
-                select.dispatchEvent(
-                    new Event(
-                        'change',
-                        {
-                            bubbles: true
-                        }
-                    )
-                );
-            }
-
-            /**
-             * Synchronize Any checkbox state.
-             *
-             * @param {HTMLInputElement} checkbox
-             * @param {HTMLSelectElement} select
-             *
-             * @returns {void}
-             */
+ * Synchronize one Search Any checkbox.
+ *
+ * No selected values means no filtering, therefore Any is checked.
+ *
+ * Any remains clickable and never disables the associated select.
+ *
+ * @param {HTMLInputElement} checkbox
+ * @param {HTMLSelectElement} select
+ *
+ * @returns {void}
+ */
             function synchronizeAny(
                 checkbox,
                 select
             ) {
-                const all =
-                    optionValues(
-                        select
-                    );
-
                 const selected =
                     selectedValues(
                         select
                     );
 
-                checkbox.checked =
-                    all.length > 0
-                    && selected.length
-                    === all.length;
-
                 checkbox.indeterminate =
-                    selected.length > 0
-                    && selected.length
-                    < all.length;
+                    false;
+
+                /*
+                 * Empty selection = no Search restriction.
+                 */
+                checkbox.checked =
+                    !checkbox.disabled
+                    && selected.length === 0;
 
                 synchronizeAnyPresentation(
                     checkbox,
@@ -215,7 +207,7 @@
             }
 
             /**
-             * Enable/disable one Any checkbox.
+             * Enable/disable an Any control.
              *
              * @param {HTMLSelectElement} select
              * @param {boolean} disabled
@@ -240,21 +232,6 @@
                 checkbox.disabled =
                     disabled;
 
-                if (disabled) {
-                    checkbox.checked =
-                        false;
-
-                    checkbox.indeterminate =
-                        false;
-
-                    synchronizeAnyPresentation(
-                        checkbox,
-                        select
-                    );
-
-                    return;
-                }
-
                 synchronizeAny(
                     checkbox,
                     select
@@ -262,7 +239,7 @@
             }
 
             /**
-             * Initialize all Search "Any" controls.
+             * Initialize Search Any controls.
              *
              * @returns {void}
              */
@@ -297,25 +274,38 @@
                             return;
                         }
 
+                        /*
+                         * Empty Search criteria should initially appear as Any.
+                         */
                         synchronizeAny(
                             element,
                             select
                         );
 
+                        /*
+                         * Checking Any clears that Search criterion.
+                         */
                         element.addEventListener(
                             'change',
                             function () {
-                                setSelectedValues(
-                                    select,
+                                if (
                                     element.checked
-                                        ? optionValues(
-                                            select
-                                        )
-                                        : []
+                                ) {
+                                    clearSelection(
+                                        select
+                                    );
+                                }
+
+                                synchronizeAny(
+                                    element,
+                                    select
                                 );
                             }
                         );
 
+                        /*
+                         * Selecting any concrete value automatically clears Any.
+                         */
                         select.addEventListener(
                             'change',
                             function () {
@@ -330,17 +320,18 @@
             }
 
             /**
-             * Replace City master options.
+             * Replace active City options while retaining selections that are
+             * still valid for the newly selected States.
              *
              * @param {HTMLSelectElement} citySelect
-             * @param {Array<Object>} cities
+             * @param {Array<Object>} rows
              * @param {string[]} previousSelections
              *
              * @returns {void}
              */
             function replaceCities(
                 citySelect,
-                cities,
+                rows,
                 previousSelections
             ) {
                 if (
@@ -357,14 +348,16 @@
 
                 const validValues =
                     new Set(
-                        cities.map(
-                            function (city) {
-                                return String(
-                                    city.id
-                                    ?? ''
-                                );
-                            }
-                        )
+                        rows
+                            .map(
+                                function (city) {
+                                    return String(
+                                        city.id
+                                        ?? ''
+                                    );
+                                }
+                            )
+                            .filter(Boolean)
                     );
 
                 const preservedSelections =
@@ -376,7 +369,7 @@
                         }
                     );
 
-                cities.forEach(
+                rows.forEach(
                     function (city) {
                         const id =
                             String(
@@ -420,16 +413,14 @@
                 );
 
                 const hasCities =
-                    cities.length > 0;
+                    rows.length > 0;
 
                 citySelect.disabled =
                     !hasCities;
 
-                setAnyDisabled(
-                    citySelect,
-                    !hasCities
-                );
-
+                /*
+                 * Recreate Choices only after new options have been installed.
+                 */
                 if (
                     window.SelectChoice
                     && typeof window.SelectChoice.create
@@ -439,6 +430,11 @@
                         citySelect
                     );
                 }
+
+                setAnyDisabled(
+                    citySelect,
+                    !hasCities
+                );
 
                 citySelect.dispatchEvent(
                     new Event(
@@ -451,7 +447,7 @@
             }
 
             /**
-             * Initialize dependent State → City selection.
+             * Initialize multi-state dependent City selection.
              *
              * @returns {void}
              */
@@ -466,7 +462,7 @@
                         'cityIds'
                     );
 
-                const cityUrl =
+                const cityUrlInput =
                     document.getElementById(
                         'searchCitiesUrl'
                     );
@@ -476,9 +472,16 @@
                         instanceof HTMLSelectElement)
                     || !(citySelect
                         instanceof HTMLSelectElement)
-                    || !(cityUrl
+                    || !(cityUrlInput
                         instanceof HTMLInputElement)
                 ) {
+                    return;
+                }
+
+                const baseUrl =
+                    cityUrlInput.value.trim();
+
+                if (baseUrl === '') {
                     return;
                 }
 
@@ -486,12 +489,12 @@
                     null;
 
                 /**
-                 * Reload Cities for selected States.
+                 * Load active Cities for selected States.
                  *
                  * @returns {Promise<void>}
                  */
                 async function loadCities() {
-                    const states =
+                    const stateIds =
                         selectedValues(
                             stateSelect
                         );
@@ -501,8 +504,12 @@
                             citySelect
                         );
 
+                    /*
+                     * No State restriction means City cannot be meaningfully
+                     * restricted either.
+                     */
                     if (
-                        states.length === 0
+                        stateIds.length === 0
                     ) {
                         replaceCities(
                             citySelect,
@@ -526,7 +533,7 @@
                     const query =
                         new URLSearchParams();
 
-                    states.forEach(
+                    stateIds.forEach(
                         function (stateId) {
                             query.append(
                                 'state_ids[]',
@@ -538,10 +545,13 @@
                     try {
                         const response =
                             await window.fetch(
-                                cityUrl.value
+                                baseUrl
                                 + '?'
                                 + query.toString(),
                                 {
+                                    method:
+                                        'GET',
+
                                     headers: {
                                         Accept:
                                             'application/json',
@@ -581,12 +591,15 @@
                     } catch (error) {
                         if (
                             error instanceof DOMException
-                            && error.name
-                            === 'AbortError'
+                            && error.name === 'AbortError'
                         ) {
                             return;
                         }
 
+                        /*
+                         * Keep browser diagnostics generic and do not expose
+                         * application/database details to the member.
+                         */
                         console.error(
                             'Unable to load Search cities.'
                         );
@@ -602,12 +615,12 @@
             }
 
             /*
-             * Initialize generic Search multi-select behaviour first.
+             * Initialize reusable Search controls.
              */
             initializeAnyControls();
 
             /*
-             * Then initialize the State → City dependency.
+             * Initialize State → City dependency separately.
              */
             initializeStateCity();
         }

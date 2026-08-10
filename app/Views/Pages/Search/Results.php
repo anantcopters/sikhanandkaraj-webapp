@@ -345,10 +345,22 @@ $this->section(
                                 $backToSearchUrl,
                                 'attr'
                             ) ?>"
-                    class="fs-13 fw-medium">
+                    class="btn btn-outline-danger
+                        d-inline-flex
+                        align-items-center
+                        justify-content-center
+                        gap-1 py-1 px-3">
+
+                    <i
+                        class="ri-edit-line"
+                        aria-hidden="true">
+                    </i>
 
                     Modify
                 </a>
+
+
+
 
             </div>
 
