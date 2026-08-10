@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Matchmaking;
 
-use App\Models\MemberInterestModel;
 use App\Models\MemberMatchCandidateModel;
 use App\Models\UserModel;
 use App\Services\Profile\LifestyleService;
@@ -17,10 +16,16 @@ final class MemberSearchService
 {
     public const PER_PAGE = 10;
 
+    /**
+     * Create the member Search service.
+     *
+     * MemberInteractionService remains the single authority for member-to-member
+     * Interest state. Search must not independently interpret interest records.
+     */
     public function __construct(
         private readonly UserModel $userModel,
         private readonly MemberMatchCandidateModel $candidateModel,
-        private readonly MemberInterestModel $interestModel,
+        private readonly MemberInteractionService $interactionService,
         private readonly MemberPhotoUrlService $photoUrlService,
         private readonly ProfileMasterDataService $masterDataService,
         private readonly LifestyleService $lifestyleService
@@ -1234,8 +1239,10 @@ final class MemberSearchService
                         'ri-bookmark-3-line',
 
                         'url' =>
-                        $dashboardUrl
-                            . '#profiles-shortlisted-by-you',
+                        route_to(
+                            'web.search.quick',
+                            'shortlisted-by-you'
+                        ),
 
                         'available' =>
                         true,
@@ -1252,8 +1259,10 @@ final class MemberSearchService
                         'ri-bookmark-fill',
 
                         'url' =>
-                        $dashboardUrl
-                            . '#who-shortlisted-you',
+                        route_to(
+                            'web.search.quick',
+                            'shortlisted-you'
+                        ),
 
                         'available' =>
                         true,
@@ -1270,8 +1279,10 @@ final class MemberSearchService
                         'ri-eye-line',
 
                         'url' =>
-                        $dashboardUrl
-                            . '#profile-visitors',
+                        route_to(
+                            'web.search.quick',
+                            'viewed-you'
+                        ),
 
                         'available' =>
                         true,
@@ -1288,8 +1299,10 @@ final class MemberSearchService
                         'ri-history-line',
 
                         'url' =>
-                        $dashboardUrl
-                            . '#profiles-viewed',
+                        route_to(
+                            'web.search.quick',
+                            'viewed-by-you'
+                        ),
 
                         'available' =>
                         true,
@@ -1312,13 +1325,11 @@ final class MemberSearchService
                         'icon' =>
                         'ri-user-star-line',
 
-                        /*
-                     * Existing Dashboard New Matches already runs through
-                     * PartnerPreferenceMatchService.
-                     */
                         'url' =>
-                        $dashboardUrl
-                            . '#new-matches',
+                        route_to(
+                            'web.search.quick',
+                            'new-profiles'
+                        ),
 
                         'available' =>
                         true,

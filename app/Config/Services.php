@@ -1626,6 +1626,9 @@ final class Services extends BaseService
 
     /**
      * Return the authenticated member Search service.
+     *
+     * Search reuses the central member interaction service for Interest state so
+     * Search cards and Profile View always follow identical relationship rules.
      */
     public static function memberSearchService(
         bool $getShared = true
@@ -1636,6 +1639,10 @@ final class Services extends BaseService
             );
         }
 
+        /*
+        * All models/services created here use the normal application database
+        * connection managed by CI4.
+        */
         $database =
             db_connect();
 
@@ -1649,9 +1656,7 @@ final class Services extends BaseService
             ),
 
             /*
-            * Reuse the existing member-interaction authority for Interest state.
-            *
-            * Search must not independently interpret member_interests.
+            * Same Interest authority used by Member Profile View.
             */
             static::memberInteractionService(
                 false
