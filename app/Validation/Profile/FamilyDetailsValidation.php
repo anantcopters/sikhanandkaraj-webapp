@@ -168,6 +168,22 @@ final class FamilyDetailsValidation
                 'Second reference person',
                 self::REFERENCE_PERSON_MAX_LENGTH
             ),
+
+            'field_officer_code' => [
+                'label' => 'Field Officer ID',
+                'rules' => [
+                    'permit_empty',
+                    'max_length[11]',
+                    'regex_match[/^FOSAK[0-9]{6}$/]',
+                ],
+                'errors' => [
+                    'max_length' =>
+                    'Please enter a valid Field Officer ID.',
+
+                    'regex_match' =>
+                    'Please enter a valid Field Officer ID.',
+                ],
+            ],
         ];
     }
 

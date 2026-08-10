@@ -487,8 +487,19 @@ final class Services extends BaseService
 
         return new FamilyDetailsService(
             new UserModel($database),
-            new MemberFamilyDetailModel($database),
-            static::profileMasterDataService(false),
+
+            new MemberFamilyDetailModel(
+                $database
+            ),
+
+            static::profileMasterDataService(
+                false
+            ),
+
+            new FieldOfficerModel(
+                $database
+            ),
+
             $database
         );
     }

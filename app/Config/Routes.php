@@ -761,6 +761,18 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
             ]
         );
 
+        $routes->get(
+            'profile/family-details/field-officer/verify',
+            'ProfileController::verifyFamilyFieldOfficer',
+            [
+                'as' =>
+                'web.profile.family-details.field-officer.verify',
+
+                'filter' =>
+                'webAuth',
+            ]
+        );
+
         $routes->post(
             'profile/family-details',
             'ProfileController::updateFamilyDetails',

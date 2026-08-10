@@ -20,6 +20,7 @@ use App\Services\Profile\MemberProfileSummaryService;
 use App\Support\ProfileErrorContext;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
+use CodeIgniter\HTTP\ResponseInterface;
 use App\Support\BooleanValue;
 use DomainException;
 use Throwable;
@@ -929,6 +930,68 @@ final class ProfileController extends BaseController
     }
 
     /**
+     * Verify an optional Field Officer ID for Family Details.
+     */
+    public function verifyFamilyFieldOfficer(): ResponseInterface
+    {
+        /*
+     * Authentication is also protected by the webAuth route
+     * filter. Resolving the current member here keeps direct
+     * controller access consistent with profile endpoints.
+     */
+        $this->authenticatedUserId();
+
+        $officerCode = strtoupper(
+            trim(
+                (string) $this->request
+                    ->getGet('code')
+            )
+        );
+
+        try {
+            /** @var FamilyDetailsService $service */
+            $service = service(
+                'familyDetailsService'
+            );
+
+            $fieldOfficer =
+                $service
+                ->verifyFieldOfficerCode(
+                    $officerCode
+                );
+
+            /*
+         * Do not expose the internal database ID.
+         *
+         * The browser only needs the canonical officer code
+         * and officer name. The DB ID is resolved again by
+         * the server during save.
+         */
+            return $this->response
+                ->setJSON([
+                    'success' => true,
+
+                    'data' => [
+                        'officer_code' =>
+                        $fieldOfficer['officer_code'],
+
+                        'full_name' =>
+                        $fieldOfficer['full_name'],
+                    ],
+                ]);
+        } catch (DomainException $exception) {
+            return $this->response
+                ->setStatusCode(422)
+                ->setJSON([
+                    'success' => false,
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]);
+        }
+    }
+
+    /**
      * Save the Family Details profile section.
      */
     public function updateFamilyDetails(): RedirectResponse
@@ -1470,6 +1533,15 @@ final class ProfileController extends BaseController
             $this->normalizeProfileText(
                 $this->request->getPost(
                     'reference_person_2'
+                )
+            ),
+
+            'field_officer_code' => strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'field_officer_code'
+                        )
                 )
             ),
         ];

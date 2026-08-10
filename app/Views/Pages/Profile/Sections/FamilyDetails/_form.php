@@ -902,6 +902,164 @@ if ($isJourney) {
                 ]
             ) ?>
         </div>
+
+        <?php
+        $fieldOfficerAssigned =
+            !empty($details['field_officer_id']
+                ?? null);
+
+        $fieldOfficerCode =
+            $fieldOfficerAssigned
+            ? (string) (
+                $details['field_officer_code'] ?? ''
+            )
+            : $fieldValue(
+                'field_officer_code',
+                ''
+            );
+
+        $fieldOfficerName =
+            $fieldOfficerAssigned
+            ? (string) (
+                $details['field_officer_name'] ?? ''
+            )
+            : '';
+        ?>
+
+        <div class="col-12">
+            <hr class="my-2 mb-3">
+
+            <h2 class="fs-16 fw-semibold mb-1 mt-2">
+                Field Officer
+            </h2>
+
+            <p class="text-muted fs-13 mb-0">
+                Optional. If you enter a Field Officer ID,
+                it must be verified before saving.
+            </p>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <label
+                for="fieldOfficerCode"
+                class="form-label">
+
+                Field Officer ID
+
+                <span class="text-muted fw-normal">
+                    (Optional)
+                </span>
+            </label>
+
+            <?php if ($fieldOfficerAssigned): ?>
+
+                <input
+                    type="text"
+                    id="fieldOfficerCode"
+                    name="field_officer_code"
+                    class="form-control"
+                    value="<?= esc(
+                                $fieldOfficerCode,
+                                'attr'
+                            ) ?>"
+                    readonly
+                    aria-readonly="true">
+
+                <div class="form-text color-pink">
+                    Field Officer ID cannot be changed
+                    after it has been saved.
+                </div>
+
+            <?php else: ?>
+
+                <div class="input-group has-validation">
+
+                    <input
+                        type="text"
+                        id="fieldOfficerCode"
+                        name="field_officer_code"
+                        class="form-control"
+                        value="<?= esc(
+                                    $fieldOfficerCode,
+                                    'attr'
+                                ) ?>"
+                        placeholder="Example: FOSAK000123"
+                        maxlength="11"
+                        pattern="FOSAK[0-9]{6}"
+                        autocomplete="off"
+                        data-error-pattern="Please enter a valid Field Officer ID."
+                        data-verify-url="<?= esc(
+                                                url_to(
+                                                    'web.profile.family-details.field-officer.verify'
+                                                ),
+                                                'attr'
+                                            ) ?>"
+                        aria-describedby="fieldOfficerHelp fieldOfficerVerificationMessage field_officer_codeError">
+
+                    <button
+                        type="button"
+                        id="verifyFieldOfficerButton"
+                        class="btn btn-primary">
+                        Verify
+                    </button>
+
+                </div>
+
+                <?= view(
+                    'Components/Forms/FieldError',
+                    [
+                        'field' =>
+                        'field_officer_code',
+
+                        'errorId' =>
+                        'field_officer_codeError',
+
+                        'errors' =>
+                        $errors,
+                    ]
+                ) ?>
+
+                <div
+                    id="fieldOfficerHelp"
+                    class="form-text color-pink">
+                    Enter the Code provided by your Field Officer.
+                </div>
+
+                <div
+                    id="fieldOfficerVerificationMessage"
+                    class="form-text"
+                    aria-live="polite">
+                </div>
+
+            <?php endif; ?>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <label
+                for="fieldOfficerName"
+                class="form-label">
+
+                Field Officer Name
+            </label>
+
+            <input
+                type="text"
+                id="fieldOfficerName"
+                class="form-control"
+                value="<?= esc(
+                            $fieldOfficerName,
+                            'attr'
+                        ) ?>"
+                placeholder="Name appears after verification"
+                readonly
+                aria-readonly="true">
+
+            <?php if ($fieldOfficerAssigned): ?>
+                <div class="form-text text-success">
+                    Field Officer verified and saved.
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
     <div class="row g-2 mt-4">
         <div

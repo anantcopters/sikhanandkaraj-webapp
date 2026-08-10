@@ -8,6 +8,7 @@ use App\Models\MemberFamilyDetailModel;
 use App\Models\UserModel;
 use App\Support\IndianMobileNormalizer;
 use CodeIgniter\Database\BaseConnection;
+use App\Models\FieldOfficerModel;
 use DomainException;
 use RuntimeException;
 use Throwable;
@@ -29,6 +30,7 @@ final class FamilyDetailsService
         private readonly UserModel $userModel,
         private readonly MemberFamilyDetailModel $detailModel,
         private readonly ProfileMasterDataService $masterDataService,
+        private readonly FieldOfficerModel $fieldOfficerModel,
         private readonly BaseConnection $database
     ) {}
 
@@ -72,6 +74,85 @@ final class FamilyDetailsService
     }
 
     /**
+     * Verify one Field Officer code.
+     *
+     * Only an ACTIVE and non-deleted Field Officer is valid for
+     * a new member assignment.
+     *
+     * @return array{
+     *     id:int,
+     *     officer_code:string,
+     *     full_name:string
+     * }
+     */
+    public function verifyFieldOfficerCode(
+        string $officerCode
+    ): array {
+        $normalizedCode =
+            $this->normalizeFieldOfficerCode(
+                $officerCode
+            );
+
+        if ($normalizedCode === null) {
+            throw new DomainException(
+                'Please enter a Field Officer ID.'
+            );
+        }
+
+        $fieldOfficer =
+            $this->fieldOfficerModel
+            ->findActiveByCode(
+                $normalizedCode
+            );
+
+        if (!is_array($fieldOfficer)) {
+            throw new DomainException(
+                'The Field Officer ID is invalid or the '
+                    . 'Field Officer is not active.'
+            );
+        }
+
+        return [
+            'id' =>
+            (int) $fieldOfficer['id'],
+
+            'officer_code' =>
+            (string) $fieldOfficer['officer_code'],
+
+            'full_name' =>
+            (string) $fieldOfficer['full_name'],
+        ];
+    }
+
+    /**
+     * Normalize an optional Field Officer code.
+     */
+    private function normalizeFieldOfficerCode(
+        mixed $value
+    ): ?string {
+        $normalized = strtoupper(
+            trim((string) $value)
+        );
+
+        if ($normalized === '') {
+            return null;
+        }
+
+        if (
+            preg_match(
+                '/^FOSAK[0-9]{6}$/',
+                $normalized
+            ) !== 1
+        ) {
+            throw new DomainException(
+                'Please enter a valid Field Officer ID.'
+            );
+        }
+
+        return $normalized;
+    }
+
+    /**
      * Create or update Family Details.
      *
      * @param array<string, mixed> $data
@@ -87,6 +168,9 @@ final class FamilyDetailsService
                 'The member account could not be found.'
             );
         }
+
+        $existing = $this->detailModel
+            ->findForUser($userId);
 
         /*
         * These fields are optional, but when selected they must contain valid
@@ -203,6 +287,76 @@ final class FamilyDetailsService
                 $cityId
             );
 
+        /*
+ * ----------------------------------------------------------
+ * FIELD OFFICER ASSIGNMENT
+ * ----------------------------------------------------------
+ *
+ * Optional initially.
+ *
+ * Once assigned, the existing assignment is authoritative.
+ * Browser-submitted replacement values are deliberately ignored.
+ */
+        $fieldOfficerId = null;
+        $fieldOfficerCode = null;
+
+        $existingFieldOfficerId =
+            $this->existingInteger(
+                $existing['field_officer_id']
+                    ?? null
+            );
+
+        if ($existingFieldOfficerId !== null) {
+            /*
+     * Immutable assignment.
+     *
+     * Do not re-resolve against ACTIVE status here because a
+     * legitimately assigned Field Officer may later be deactivated.
+     */
+            $fieldOfficerId =
+                $existingFieldOfficerId;
+
+            $fieldOfficerCode =
+                trim(
+                    (string) (
+                        $existing['field_officer_code']
+                        ?? ''
+                    )
+                );
+
+            if ($fieldOfficerCode === '') {
+                throw new RuntimeException(
+                    'The existing Field Officer assignment '
+                        . 'is incomplete.'
+                );
+            }
+        } else {
+            $submittedFieldOfficerCode =
+                $this->normalizeFieldOfficerCode(
+                    $data['field_officer_code']
+                        ?? null
+                );
+
+            if ($submittedFieldOfficerCode !== null) {
+                /*
+         * Critical server-side verification.
+         *
+         * The AJAX verification is only UI convenience.
+         * The code is always verified again before persistence.
+         */
+                $fieldOfficer =
+                    $this->verifyFieldOfficerCode(
+                        $submittedFieldOfficerCode
+                    );
+
+                $fieldOfficerId =
+                    $fieldOfficer['id'];
+
+                $fieldOfficerCode =
+                    $fieldOfficer['officer_code'];
+            }
+        }
+
         $profileData = [
             'user_id' => $userId,
             'family_value_id' => $familyValueId,
@@ -224,15 +378,18 @@ final class FamilyDetailsService
             'nearest_gurudwara' => $nearestGurudwara,
             'reference_person_1' => $referencePerson1,
             'reference_person_2' => $referencePerson2,
+            'field_officer_id' =>
+            $fieldOfficerId,
+
+            'field_officer_code' =>
+            $fieldOfficerCode,
         ];
 
         $this->database->transException(true);
         $this->database->transStart();
 
         try {
-            $existing = $this->detailModel
-                ->findForUser($userId);
-
+            
             $saved = is_array($existing)
                 ? $this->detailModel->update(
                     (int) $existing['id'],
