@@ -239,7 +239,7 @@ $this->section(
                                         <div
                                             class="border
                                                 rounded
-                                                p-3
+                                                p-2
                                                 mb-2
                                                 bg-light border-primary-subtle">
 
