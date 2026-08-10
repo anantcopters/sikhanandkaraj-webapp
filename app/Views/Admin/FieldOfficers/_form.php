@@ -187,102 +187,102 @@ $selectedCity =
                 <?php endif; ?>
 
             </div>
-
-            <div class="col-12 col-md-6">
-
-                <label
-                    for="fieldOfficerAadhaar"
-                    class="form-label">
-
-                    Aadhaar Number
-                    <span class="text-danger">*</span>
-
-                </label>
-
-                <input
-                    type="text"
-                    id="fieldOfficerAadhaar"
-                    name="aadhaar_number"
-                    class="form-control <?= isset(
-                                            $errors['aadhaar_number']
-                                        )
-                                            ? 'is-invalid'
-                                            : '' ?>"
-                    value="<?= esc(
-                                $resolvedFormInput['aadhaar_number'] ?? '',
-                                'attr'
-                            ) ?>"
-                    inputmode="numeric"
-                    autocomplete="off"
-                    minlength="12"
-                    maxlength="12"
-                    pattern="[0-9]{12}"
-                    placeholder="12-digit Aadhaar number"
-                    required>
-
-                <div class="invalid-feedback">
-                    <?= esc(
-                        $errors['aadhaar_number']
-                            ?? 'Enter a valid 12-digit Aadhaar number.'
-                    ) ?>
-                </div>
-
-                <div class="form-text color-pink">
-                    Enter exactly 12 digits without
-                    spaces or hyphens.
-                </div>
-
-            </div>
-
-            <div class="col-12 col-md-6">
-
-                <label
-                    for="fieldOfficerPan"
-                    class="form-label">
-
-                    PAN Number
-                    <span class="text-danger">*</span>
-
-                </label>
-
-                <input
-                    type="text"
-                    id="fieldOfficerPan"
-                    name="pan_number"
-                    class="form-control <?= isset(
-                                            $errors['pan_number']
-                                        )
-                                            ? 'is-invalid'
-                                            : '' ?>"
-                    value="<?= esc(
-                                strtoupper(
-                                    (string) (
-                                        $resolvedFormInput['pan_number'] ?? ''
-                                    )
-                                ),
-                                'attr'
-                            ) ?>"
-                    autocomplete="off"
-                    minlength="10"
-                    maxlength="10"
-                    pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]"
-                    placeholder="ABCDE1234F"
-                    required>
-
-                <div class="invalid-feedback">
-                    <?= esc(
-                        $errors['pan_number']
-                            ?? 'Enter a valid PAN number.'
-                    ) ?>
-                </div>
-
-                <div class="form-text color-pink">
-                    Example: ABCDE1234F
-                </div>
-
-            </div>
-
         <?php endif; ?>
+        <div class="col-12 col-md-6">
+
+            <label
+                for="fieldOfficerAadhaar"
+                class="form-label">
+
+                Aadhaar Number
+                <span class="text-danger">*</span>
+
+            </label>
+
+            <input
+                type="text"
+                id="fieldOfficerAadhaar"
+                name="aadhaar_number"
+                class="form-control <?= isset(
+                                        $errors['aadhaar_number']
+                                    )
+                                        ? 'is-invalid'
+                                        : '' ?>"
+                value="<?= esc(
+                            $resolvedFormInput['aadhaar_number'] ?? '',
+                            'attr'
+                        ) ?>"
+                inputmode="numeric"
+                autocomplete="off"
+                minlength="12"
+                maxlength="12"
+                pattern="[0-9]{12}"
+                placeholder="12-digit Aadhaar number"
+                required>
+
+            <div class="invalid-feedback">
+                <?= esc(
+                    $errors['aadhaar_number']
+                        ?? 'Enter a valid 12-digit Aadhaar number.'
+                ) ?>
+            </div>
+
+            <div class="form-text color-pink">
+                Enter exactly 12 digits without
+                spaces or hyphens.
+            </div>
+
+        </div>
+
+        <div class="col-12 col-md-6">
+
+            <label
+                for="fieldOfficerPan"
+                class="form-label">
+
+                PAN Number
+                <span class="text-danger">*</span>
+
+            </label>
+
+            <input
+                type="text"
+                id="fieldOfficerPan"
+                name="pan_number"
+                class="form-control <?= isset(
+                                        $errors['pan_number']
+                                    )
+                                        ? 'is-invalid'
+                                        : '' ?>"
+                value="<?= esc(
+                            strtoupper(
+                                (string) (
+                                    $resolvedFormInput['pan_number'] ?? ''
+                                )
+                            ),
+                            'attr'
+                        ) ?>"
+                autocomplete="off"
+                minlength="10"
+                maxlength="10"
+                pattern="[A-Za-z]{5}[0-9]{4}[A-Za-z]"
+                placeholder="ABCDE1234F"
+                required>
+
+            <div class="invalid-feedback">
+                <?= esc(
+                    $errors['pan_number']
+                        ?? 'Enter a valid PAN number.'
+                ) ?>
+            </div>
+
+            <div class="form-text color-pink">
+                Example: ABCDE1234F
+            </div>
+
+        </div>
+
+
 
         <div class="col-12 col-md-4">
 
@@ -585,14 +585,15 @@ $selectedCity =
 
                 <?php if ($editing): ?>
 
-                    A valid UPI ID keeps the Field Officer
-                    active. Removing it will make the
-                    account inactive.
+                    UPI ID must be unique. A valid UPI ID keeps
+                    the Field Officer active. Removing it will
+                    make the account inactive.
 
                 <?php else: ?>
 
-                    Providing a valid UPI ID will create
-                    this Field Officer in active status.
+                    UPI ID must be unique. Providing a valid
+                    UPI ID will create this Field Officer in
+                    active status.
 
                 <?php endif; ?>
 
@@ -604,18 +605,16 @@ $selectedCity =
 
     <div
         class="mt-4
-            d-grid
-            d-sm-flex
-            justify-content-sm-end">
+        d-flex
+        justify-content-end">
 
         <button
             type="submit"
             class="btn
-                registration-form__submit
-                fs-16
-                fw-semibold
-                w-100
-                w-sm-auto"
+            registration-form__submit
+            fs-16
+            fw-semibold
+            px-4"
             data-submit-button>
 
             <span data-submit-idle>
@@ -628,12 +627,12 @@ $selectedCity =
 
             <span
                 class="registration-submit__loading
-                    d-none"
+                d-none"
                 data-submit-loading>
 
                 <span
                     class="spinner-border
-                        spinner-border-sm"
+                    spinner-border-sm"
                     aria-hidden="true">
                 </span>
 

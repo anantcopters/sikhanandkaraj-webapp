@@ -53,18 +53,45 @@ final class FieldOfficerController extends BaseController
             'profileMasterDataService'
         );
 
-        $masterData = $masterService->basicDetailsOptions();
+        /*
+     * Restore previously submitted values after a validation
+     * or business-rule failure.
+     */
+        $formInput =
+            $this->readArrayFlashData(
+                'fieldOfficerFormInput'
+            );
 
-        $formInput = $this->readArrayFlashData(
-            'fieldOfficerFormInput'
+        /*
+     * When the form is being redisplayed after a failed
+     * submission, state_id may already be available.
+     *
+     * Pass that state to the existing master-data service so
+     * the corresponding cities are loaded again. Without this,
+     * the city select is empty on retry and a corrected form
+     * cannot be submitted successfully.
+     */
+        $selectedStateId = (int) (
+            $formInput['state_id']
+            ?? 0
         );
+
+        $masterData =
+            $masterService
+            ->basicDetailsOptions(
+                $selectedStateId > 0
+                    ? $selectedStateId
+                    : null
+            );
 
         return view(
             'Admin/FieldOfficers/Create',
             [
-                'pageTitle' => 'Add Field Officer',
+                'pageTitle' =>
+                'Add Field Officer',
 
-                'formInput' => $formInput,
+                'formInput' =>
+                $formInput,
 
                 'validationErrors' =>
                 $this->readValidationErrors(),
@@ -73,17 +100,36 @@ final class FieldOfficerController extends BaseController
                 $this->readFormAlert(),
 
                 'countries' =>
-                isset($masterData['country'])
-                    && is_array($masterData['country'])
-                    ? [$masterData['country']]
+                isset(
+                    $masterData['country']
+                )
+                    && is_array(
+                        $masterData['country']
+                    )
+                    ? [
+                        $masterData['country'],
+                    ]
                     : [],
 
                 'states' =>
-                is_array($masterData['states'] ?? null)
+                is_array(
+                    $masterData['states']
+                        ?? null
+                )
                     ? $masterData['states']
                     : [],
 
-                'cities' => [],
+                /*
+             * Critical for retry flow:
+             * reload cities for the previously selected state.
+             */
+                'cities' =>
+                is_array(
+                    $masterData['cities']
+                        ?? null
+                )
+                    ? $masterData['cities']
+                    : [],
 
                 'pageScripts' => [
                     'assets/js/pages/admin-field-officer-form.js',
@@ -314,9 +360,10 @@ final class FieldOfficerController extends BaseController
         }
     }
 
-    /**
-     * Update editable Field Officer details.
-     */
+    /*
+    * Name, mobile number and officer code are intentionally
+    * excluded because those fields are immutable after creation.
+    */
     public function update(
         int $fieldOfficerId
     ): RedirectResponse {
@@ -718,30 +765,65 @@ final class FieldOfficerController extends BaseController
     private function updateInput(): array
     {
         return [
-            'country_id' => trim(
+            'aadhaar_number' =>
+            preg_replace(
+                '/\D+/',
+                '',
                 (string) $this->request
-                    ->getPost('country_id')
-            ),
+                    ->getPost(
+                        'aadhaar_number'
+                    )
+            ) ?? '',
 
-            'state_id' => trim(
-                (string) $this->request
-                    ->getPost('state_id')
-            ),
-
-            'city_id' => trim(
-                (string) $this->request
-                    ->getPost('city_id')
-            ),
-
-            'address' => trim(
-                (string) $this->request
-                    ->getPost('address')
-            ),
-
-            'upi_id' => strtolower(
+            'pan_number' =>
+            strtoupper(
                 trim(
                     (string) $this->request
-                        ->getPost('upi_id')
+                        ->getPost(
+                            'pan_number'
+                        )
+                )
+            ),
+
+            'country_id' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'country_id'
+                    )
+            ),
+
+            'state_id' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'state_id'
+                    )
+            ),
+
+            'city_id' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'city_id'
+                    )
+            ),
+
+            'address' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'address'
+                    )
+            ),
+
+            'upi_id' =>
+            strtolower(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'upi_id'
+                        )
                 )
             ),
         ];

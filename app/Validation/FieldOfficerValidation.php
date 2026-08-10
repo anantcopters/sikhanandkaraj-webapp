@@ -10,8 +10,6 @@ namespace App\Validation;
 final class FieldOfficerValidation
 {
     /**
-     * Rules for creating an officer.
-     *
      * @return array<string, array<string, mixed>>
      */
     public static function createRules(): array
@@ -19,6 +17,7 @@ final class FieldOfficerValidation
         return [
             'full_name' => [
                 'label' => 'Name',
+
                 'rules' => [
                     'required',
                     'string',
@@ -26,6 +25,7 @@ final class FieldOfficerValidation
                     'max_length[150]',
                     'regex_match[/^[\pL\pM .\'-]+$/u]',
                 ],
+
                 'errors' => [
                     'required' =>
                     'Name is required.',
@@ -43,10 +43,12 @@ final class FieldOfficerValidation
 
             'mobile_number' => [
                 'label' => 'Mobile Number',
+
                 'rules' => [
                     'required',
                     'regex_match[/^[6-9][0-9]{9}$/]',
                 ],
+
                 'errors' => [
                     'required' =>
                     'Mobile number is required.',
@@ -56,43 +58,11 @@ final class FieldOfficerValidation
                 ],
             ],
 
-            'aadhaar_number' => [
-                'label' => 'Aadhaar Number',
-                'rules' => [
-                    'required',
-                    'exact_length[12]',
-                    'regex_match[/^[0-9]{12}$/]',
-                ],
-                'errors' => [
-                    'required' =>
-                    'Aadhaar number is required.',
+            'aadhaar_number' =>
+            self::aadhaarRules(),
 
-                    'exact_length' =>
-                    'Aadhaar number must contain exactly 12 digits.',
-
-                    'regex_match' =>
-                    'Enter a valid 12-digit Aadhaar number.',
-                ],
-            ],
-
-            'pan_number' => [
-                'label' => 'PAN Number',
-                'rules' => [
-                    'required',
-                    'exact_length[10]',
-                    'regex_match[/^[A-Z]{5}[0-9]{4}[A-Z]$/]',
-                ],
-                'errors' => [
-                    'required' =>
-                    'PAN number is required.',
-
-                    'exact_length' =>
-                    'PAN number must contain exactly 10 characters.',
-
-                    'regex_match' =>
-                    'Enter a valid PAN number, for example ABCDE1234F.',
-                ],
-            ],
+            'pan_number' =>
+            self::panRules(),
 
             'country_id' =>
             self::requiredIdentifierRules(
@@ -109,45 +79,30 @@ final class FieldOfficerValidation
                 'City'
             ),
 
-            'address' => [
-                'label' => 'Address',
-                'rules' => [
-                    'permit_empty',
-                    'string',
-                    'max_length[500]',
-                ],
-                'errors' => [
-                    'max_length' =>
-                    'Address must not exceed 500 characters.',
-                ],
-            ],
+            'address' =>
+            self::addressRules(),
 
-            'upi_id' => [
-                'label' => 'UPI ID',
-                'rules' => [
-                    'permit_empty',
-                    'max_length[150]',
-                    'regex_match[/^[A-Za-z0-9._-]{2,256}@[A-Za-z][A-Za-z0-9.-]{1,63}$/]',
-                ],
-                'errors' => [
-                    'max_length' =>
-                    'UPI ID must not exceed 150 characters.',
-
-                    'regex_match' =>
-                    'Enter a valid UPI ID, for example name@bank.',
-                ],
-            ],
+            'upi_id' =>
+            self::upiRules(),
         ];
     }
 
     /**
-     * Aadhaar, PAN, name and mobile number are immutable.
+     * Name, mobile number and officer code remain immutable.
+     *
+     * Aadhaar and PAN remain required but may be changed.
      *
      * @return array<string, array<string, mixed>>
      */
     public static function updateRules(): array
     {
         return [
+            'aadhaar_number' =>
+            self::aadhaarRules(),
+
+            'pan_number' =>
+            self::panRules(),
+
             'country_id' =>
             self::requiredIdentifierRules(
                 'Country'
@@ -163,33 +118,113 @@ final class FieldOfficerValidation
                 'City'
             ),
 
-            'address' => [
-                'label' => 'Address',
-                'rules' => [
-                    'permit_empty',
-                    'string',
-                    'max_length[500]',
-                ],
-                'errors' => [
-                    'max_length' =>
-                    'Address must not exceed 500 characters.',
-                ],
+            'address' =>
+            self::addressRules(),
+
+            'upi_id' =>
+            self::upiRules(),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function aadhaarRules(): array
+    {
+        return [
+            'label' =>
+            'Aadhaar Number',
+
+            'rules' => [
+                'required',
+                'exact_length[12]',
+                'regex_match[/^[0-9]{12}$/]',
             ],
 
-            'upi_id' => [
-                'label' => 'UPI ID',
-                'rules' => [
-                    'permit_empty',
-                    'max_length[150]',
-                    'regex_match[/^[A-Za-z0-9._-]{2,256}@[A-Za-z][A-Za-z0-9.-]{1,63}$/]',
-                ],
-                'errors' => [
-                    'max_length' =>
-                    'UPI ID must not exceed 150 characters.',
+            'errors' => [
+                'required' =>
+                'Aadhaar number is required.',
 
-                    'regex_match' =>
-                    'Enter a valid UPI ID, for example name@bank.',
-                ],
+                'exact_length' =>
+                'Aadhaar number must contain exactly 12 digits.',
+
+                'regex_match' =>
+                'Enter a valid 12-digit Aadhaar number.',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function panRules(): array
+    {
+        return [
+            'label' =>
+            'PAN Number',
+
+            'rules' => [
+                'required',
+                'exact_length[10]',
+                'regex_match[/^[A-Z]{5}[0-9]{4}[A-Z]$/]',
+            ],
+
+            'errors' => [
+                'required' =>
+                'PAN number is required.',
+
+                'exact_length' =>
+                'PAN number must contain exactly 10 characters.',
+
+                'regex_match' =>
+                'Enter a valid PAN number, for example ABCDE1234F.',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function upiRules(): array
+    {
+        return [
+            'label' =>
+            'UPI ID',
+
+            'rules' => [
+                'permit_empty',
+                'max_length[150]',
+                'regex_match[/^[A-Za-z0-9._-]{2,256}@[A-Za-z][A-Za-z0-9.-]{1,63}$/]',
+            ],
+
+            'errors' => [
+                'max_length' =>
+                'UPI ID must not exceed 150 characters.',
+
+                'regex_match' =>
+                'Enter a valid UPI ID, for example name@bank.',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function addressRules(): array
+    {
+        return [
+            'label' =>
+            'Address',
+
+            'rules' => [
+                'permit_empty',
+                'string',
+                'max_length[500]',
+            ],
+
+            'errors' => [
+                'max_length' =>
+                'Address must not exceed 500 characters.',
             ],
         ];
     }
@@ -201,7 +236,8 @@ final class FieldOfficerValidation
         string $label
     ): array {
         return [
-            'label' => $label,
+            'label' =>
+            $label,
 
             'rules' => [
                 'required',

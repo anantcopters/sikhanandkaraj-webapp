@@ -70,6 +70,11 @@ final class FieldOfficerService
      * A valid UPI ID makes the Field Officer active immediately.
      * Without a UPI ID, the Field Officer starts inactive.
      *
+     * Business persistence and audit persistence are deliberately
+     * separated. Once the Field Officer transaction commits,
+     * an audit failure must never make the caller believe that
+     * Field Officer creation failed.
+     *
      * @param array<string, mixed> $input
      */
     public function create(
@@ -144,15 +149,18 @@ final class FieldOfficerService
         }
 
         $countryId = (int) (
-            $input['country_id'] ?? 0
+            $input['country_id']
+            ?? 0
         );
 
         $stateId = (int) (
-            $input['state_id'] ?? 0
+            $input['state_id']
+            ?? 0
         );
 
         $cityId = (int) (
-            $input['city_id'] ?? 0
+            $input['city_id']
+            ?? 0
         );
 
         $this->assertValidLocation(
@@ -166,6 +174,18 @@ final class FieldOfficerService
                 $input['upi_id']
                     ?? null
             );
+
+        if (
+            $upiId !== null
+            && $this->fieldOfficerModel
+            ->upiExists(
+                $upiId
+            )
+        ) {
+            throw new RuntimeException(
+                'A Field Officer with this UPI ID already exists.'
+            );
+        }
 
         /*
      * UPI validation has already run through
@@ -182,12 +202,26 @@ final class FieldOfficerService
             ? date('Y-m-d H:i:s')
             : null;
 
+        /*
+     * Generate the code before beginning the transaction.
+     *
+     * Code generation performs existence checks and does
+     * not itself need to be part of this transaction.
+     */
+        $officerCode =
+            $this->generateOfficerCode();
+
+        /*
+     * ------------------------------------------------------
+     * BUSINESS TRANSACTION
+     * ------------------------------------------------------
+     *
+     * Only Field Officer persistence belongs inside this
+     * transaction.
+     */
         $this->database->transBegin();
 
         try {
-            $officerCode =
-                $this->generateOfficerCode();
-
             $inserted =
                 $this->fieldOfficerModel
                 ->insert(
@@ -262,124 +296,27 @@ final class FieldOfficerService
             }
 
             $this->database->transCommit();
-
-            $fieldOfficerId =
-                (int) $inserted;
-
-            $this->auditService->record(
-                new AdminAuditEvent(
-                    action: AdminAuditAction
-                    ::FIELD_OFFICER_CREATED,
-
-                    targetType: 'FIELD_OFFICER',
-
-                    targetId: $fieldOfficerId,
-
-                    targetLabel: $officerCode,
-
-                    description: $initialStatus
-                        === FieldOfficerModel
-                        ::STATUS_ACTIVE
-                        ? 'Field Officer was created in active status because a UPI ID was provided.'
-                        : 'Field Officer was created in inactive status because no UPI ID was provided.',
-
-                    afterData: [
-                        'officer_code' =>
-                        $officerCode,
-
-                        'full_name' =>
-                        trim(
-                            (string) (
-                                $input['full_name']
-                                ?? ''
-                            )
-                        ),
-
-                        'mobile_number' =>
-                        $this->maskMobile(
-                            $mobileNumber
-                        ),
-
-                        /*
-                     * Do not put Aadhaar/PAN values
-                     * into audit logs.
-                     */
-                        'aadhaar_present' =>
-                        true,
-
-                        'pan_present' =>
-                        true,
-
-                        'country_id' =>
-                        $countryId,
-
-                        'state_id' =>
-                        $stateId,
-
-                        'city_id' =>
-                        $cityId,
-
-                        'upi_id_present' =>
-                        $upiId !== null,
-
-                        'account_status' =>
-                        $initialStatus,
-
-                        'activated_at' =>
-                        $activatedAt,
-                    ]
-                )
-            );
-
-            if (
-                $initialStatus
-                === FieldOfficerModel::STATUS_ACTIVE
-            ) {
-                $this->auditService->record(
-                    new AdminAuditEvent(
-                        action: AdminAuditAction
-                        ::FIELD_OFFICER_ACTIVATED,
-
-                        targetType: 'FIELD_OFFICER',
-
-                        targetId: $fieldOfficerId,
-
-                        targetLabel: $officerCode,
-
-                        description: 'Field Officer was activated during creation because a valid UPI ID was supplied.',
-
-                        beforeData: [
-                            'account_status' =>
-                            null,
-
-                            'upi_id_present' =>
-                            true,
-                        ],
-
-                        afterData: [
-                            'account_status' =>
-                            FieldOfficerModel
-                            ::STATUS_ACTIVE,
-
-                            'activated_at' =>
-                            $activatedAt,
-
-                            'upi_id_present' =>
-                            true,
-                        ],
-
-                        metadata: [
-                            'activation_source' =>
-                            'FIELD_OFFICER_CREATION',
-                        ]
-                    )
-                );
-            }
-
-            return $fieldOfficerId;
         } catch (Throwable $exception) {
-            $this->database
-                ->transRollback();
+            /*
+         * Rollback belongs only to the database persistence
+         * scope. Nothing after this block is allowed to cause
+         * a rollback attempt.
+         */
+            if (
+                $this->database
+                ->transStatus()
+                !== false
+            ) {
+                $this->database
+                    ->transRollback();
+            } else {
+                /*
+             * Even when transStatus() is false, explicitly
+             * close the failed transaction.
+             */
+                $this->database
+                    ->transRollback();
+            }
 
             if (
                 $this->isUniqueMobileViolation(
@@ -394,6 +331,167 @@ final class FieldOfficerService
             }
 
             throw $exception;
+        }
+
+        /*
+     * At this point the Field Officer exists permanently.
+     *
+     * From here onward, nothing should cause create() to
+     * report that Field Officer creation failed.
+     */
+        $fieldOfficerId =
+            (int) $inserted;
+
+        /*
+     * ------------------------------------------------------
+     * AUDIT — NON-BLOCKING AFTER COMMIT
+     * ------------------------------------------------------
+     */
+        $this->recordAuditSafely(
+            new AdminAuditEvent(
+                action: AdminAuditAction
+                ::FIELD_OFFICER_CREATED,
+
+                targetType: 'FIELD_OFFICER',
+
+                targetId: $fieldOfficerId,
+
+                targetLabel: $officerCode,
+
+                description: $initialStatus
+                    === FieldOfficerModel::STATUS_ACTIVE
+                    ? 'Field Officer was created in active status because a UPI ID was provided.'
+                    : 'Field Officer was created in inactive status because no UPI ID was provided.',
+
+                afterData: [
+                    'officer_code' =>
+                    $officerCode,
+
+                    'full_name' =>
+                    trim(
+                        (string) (
+                            $input['full_name']
+                            ?? ''
+                        )
+                    ),
+
+                    'mobile_number' =>
+                    $this->maskMobile(
+                        $mobileNumber
+                    ),
+
+                    /*
+                 * Aadhaar and PAN are sensitive identity
+                 * information and must not be written to
+                 * audit logs.
+                 */
+                    'aadhaar_present' =>
+                    true,
+
+                    'pan_present' =>
+                    true,
+
+                    'country_id' =>
+                    $countryId,
+
+                    'state_id' =>
+                    $stateId,
+
+                    'city_id' =>
+                    $cityId,
+
+                    'upi_id_present' =>
+                    $upiId !== null,
+
+                    'account_status' =>
+                    $initialStatus,
+
+                    'activated_at' =>
+                    $activatedAt,
+                ]
+            )
+        );
+
+        /*
+     * Record a separate activation event when creation
+     * itself activates the Field Officer.
+     *
+     * This audit is also intentionally non-blocking.
+     */
+        if (
+            $initialStatus
+            === FieldOfficerModel::STATUS_ACTIVE
+        ) {
+            $this->recordAuditSafely(
+                new AdminAuditEvent(
+                    action: AdminAuditAction
+                    ::FIELD_OFFICER_ACTIVATED,
+
+                    targetType: 'FIELD_OFFICER',
+
+                    targetId: $fieldOfficerId,
+
+                    targetLabel: $officerCode,
+
+                    description: 'Field Officer was activated during creation because a valid UPI ID was supplied.',
+
+                    beforeData: [
+                        'account_status' =>
+                        null,
+
+                        'upi_id_present' =>
+                        true,
+                    ],
+
+                    afterData: [
+                        'account_status' =>
+                        FieldOfficerModel
+                        ::STATUS_ACTIVE,
+
+                        'activated_at' =>
+                        $activatedAt,
+
+                        'upi_id_present' =>
+                        true,
+                    ],
+
+                    metadata: [
+                        'activation_source' =>
+                        'FIELD_OFFICER_CREATION',
+                    ]
+                )
+            );
+        }
+
+        return $fieldOfficerId;
+    }
+
+    /**
+     * Record an administrator audit event without allowing an
+     * audit persistence failure to invalidate an already completed
+     * business operation.
+     */
+    private function recordAuditSafely(
+        AdminAuditEvent $event
+    ): void {
+        try {
+            $this->auditService->record(
+                $event
+            );
+        } catch (Throwable $exception) {
+            /*
+         * Audit failure must be visible operationally,
+         * but must not change the result of an already
+         * committed Field Officer operation.
+         */
+            log_message(
+                'error',
+                'Field Officer audit event could not be recorded: {message}',
+                [
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
         }
     }
 
@@ -422,6 +520,50 @@ final class FieldOfficerService
             );
         }
 
+        $aadhaarNumber =
+            preg_replace(
+                '/\D+/',
+                '',
+                (string) (
+                    $input['aadhaar_number']
+                    ?? ''
+                )
+            ) ?? '';
+
+        $panNumber =
+            strtoupper(
+                trim(
+                    (string) (
+                        $input['pan_number']
+                        ?? ''
+                    )
+                )
+            );
+
+        if (
+            $this->fieldOfficerModel
+            ->aadhaarExists(
+                $aadhaarNumber,
+                $fieldOfficerId
+            )
+        ) {
+            throw new RuntimeException(
+                'Another Field Officer already uses this Aadhaar number.'
+            );
+        }
+
+        if (
+            $this->fieldOfficerModel
+            ->panExists(
+                $panNumber,
+                $fieldOfficerId
+            )
+        ) {
+            throw new RuntimeException(
+                'Another Field Officer already uses this PAN number.'
+            );
+        }
+
         $countryId = (int) (
             $input['country_id'] ?? 0
         );
@@ -447,6 +589,19 @@ final class FieldOfficerService
         $upiId = $this->nullableText(
             $input['upi_id'] ?? null
         );
+
+        if (
+            $upiId !== null
+            && $this->fieldOfficerModel
+            ->upiExists(
+                $upiId,
+                $fieldOfficerId
+            )
+        ) {
+            throw new RuntimeException(
+                'Another Field Officer already uses this UPI ID.'
+            );
+        }
 
         $existingStatus = (string) (
             $existing['account_status']
@@ -516,6 +671,12 @@ final class FieldOfficerService
         ];
 
         $afterData = [
+            'aadhaar_number' =>
+            $aadhaarNumber,
+
+            'pan_number' =>
+            $panNumber,
+
             'country_id' =>
             $countryId,
 
@@ -528,8 +689,8 @@ final class FieldOfficerService
             'address' =>
             $address,
 
-            'upi_id_present' =>
-            $upiId !== null,
+            'upi_id' =>
+            $upiId,
 
             'account_status' =>
             $newStatus,
@@ -539,6 +700,9 @@ final class FieldOfficerService
 
             'deactivated_at' =>
             $deactivatedAt,
+
+            'updated_by' =>
+            $updatedBy,
         ];
 
         $this->database->transBegin();

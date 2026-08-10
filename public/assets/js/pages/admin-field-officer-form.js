@@ -196,6 +196,44 @@ document.addEventListener(
             );
         }
 
+        const aadhaarInput =
+            form.querySelector(
+                'input[name="aadhaar_number"]'
+            );
+
+        if (aadhaarInput) {
+            aadhaarInput.addEventListener(
+                'input',
+                function () {
+                    aadhaarInput.value =
+                        aadhaarInput.value
+                            .replace(/\D/g, '')
+                            .slice(0, 12);
+                }
+            );
+        }
+
+        const panInput =
+            form.querySelector(
+                'input[name="pan_number"]'
+            );
+
+        if (panInput) {
+            panInput.addEventListener(
+                'input',
+                function () {
+                    panInput.value =
+                        panInput.value
+                            .toUpperCase()
+                            .replace(
+                                /[^A-Z0-9]/g,
+                                ''
+                            )
+                            .slice(0, 10);
+                }
+            );
+        }
+
         const upiInput =
             form.querySelector(
                 'input[name="upi_id"]'

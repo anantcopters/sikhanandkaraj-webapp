@@ -24,4 +24,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_field_officers_pan_number ON field_officers
 WHERE
     pan_number IS NOT NULL;
 
+CREATE UNIQUE INDEX IF NOT EXISTS
+    uq_field_officers_upi_id
+ON field_officers (
+    LOWER(upi_id)
+)
+WHERE
+    upi_id IS NOT NULL
+    AND BTRIM(upi_id) <> '';
+
 COMMIT;

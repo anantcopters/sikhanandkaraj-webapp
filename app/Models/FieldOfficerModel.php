@@ -227,6 +227,34 @@ final class FieldOfficerModel extends Model
         return $builder->first() !== null;
     }
 
+    public function upiExists(
+        string $upiId,
+        ?int $exceptId = null
+    ): bool {
+        $upiId = strtolower(
+            trim($upiId)
+        );
+
+        if ($upiId === '') {
+            return false;
+        }
+
+        $builder = $this
+            ->where(
+                'LOWER(upi_id)',
+                $upiId
+            );
+
+        if ($exceptId !== null) {
+            $builder->where(
+                'id !=',
+                $exceptId
+            );
+        }
+
+        return $builder->first() !== null;
+    }
+
     /**
      * Check whether a Field Officer code already exists.
      */
