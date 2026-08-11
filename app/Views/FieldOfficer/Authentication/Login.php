@@ -5,8 +5,14 @@ declare(strict_types=1);
 /**
  * SAK Volunteer login.
  *
- * All controller-supplied values are normalized before
- * presentation markup begins.
+ * Controller supplied variables.
+ *
+ * @var string|null $pageTitle
+ * @var array<string, string>|null $validationErrors
+ * @var array<string, mixed>|null $formAlert
+ * @var string|null $mobileNumber
+ * @var string|null $captchaChallenge
+ * @var list<string>|null $pageScripts
  */
 
 $registrationUrl =

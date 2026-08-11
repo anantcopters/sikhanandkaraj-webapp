@@ -496,12 +496,11 @@ final class FieldOfficerService
     }
 
     /**
-     * Update the editable SAK Volunteer details.
+     * Update editable SAK Volunteer details.
      *
-     * Account status is automatically synchronized with UPI availability:
-     *
-     * - UPI present: ACTIVE
-     * - UPI absent: INACTIVE
+     * Pending or rejected self-registrations must remain
+     * INACTIVE. Only an approved record may participate in
+     * the normal UPI-driven activation workflow.
      *
      * @param array<string, mixed> $input
      */
@@ -510,13 +509,15 @@ final class FieldOfficerService
         array $input,
         int $updatedBy
     ): void {
-        $existing = $this->findForEdit(
-            $fieldOfficerId
-        );
+        $existing =
+            $this->findForEdit(
+                $fieldOfficerId
+            );
 
         if ($updatedBy <= 0) {
             throw new RuntimeException(
-                'The logged-in administrator could not be identified.'
+                'The logged-in administrator '
+                    . 'could not be identified.'
             );
         }
 
@@ -530,15 +531,14 @@ final class FieldOfficerService
                 )
             ) ?? '';
 
-        $panNumber =
-            strtoupper(
-                trim(
-                    (string) (
-                        $input['pan_number']
-                        ?? ''
-                    )
+        $panNumber = strtoupper(
+            trim(
+                (string) (
+                    $input['pan_number']
+                    ?? ''
                 )
-            );
+            )
+        );
 
         if (
             $this->fieldOfficerModel
@@ -548,7 +548,8 @@ final class FieldOfficerService
             )
         ) {
             throw new RuntimeException(
-                'Another SAK Volunteer already uses this Aadhaar number.'
+                'Another SAK Volunteer already '
+                    . 'uses this Aadhaar number.'
             );
         }
 
@@ -560,20 +561,33 @@ final class FieldOfficerService
             )
         ) {
             throw new RuntimeException(
-                'Another SAK Volunteer already uses this PAN number.'
+                'Another SAK Volunteer already '
+                    . 'uses this PAN number.'
             );
         }
 
-        $countryId = (int) (
-            $input['country_id'] ?? 0
+        $countryId = max(
+            0,
+            (int) (
+                $input['country_id']
+                ?? 0
+            )
         );
 
-        $stateId = (int) (
-            $input['state_id'] ?? 0
+        $stateId = max(
+            0,
+            (int) (
+                $input['state_id']
+                ?? 0
+            )
         );
 
-        $cityId = (int) (
-            $input['city_id'] ?? 0
+        $cityId = max(
+            0,
+            (int) (
+                $input['city_id']
+                ?? 0
+            )
         );
 
         $this->assertValidLocation(
@@ -582,13 +596,17 @@ final class FieldOfficerService
             $cityId
         );
 
-        $address = $this->nullableText(
-            $input['address'] ?? null
-        );
+        $address =
+            $this->nullableText(
+                $input['address']
+                    ?? null
+            );
 
-        $upiId = $this->nullableText(
-            $input['upi_id'] ?? null
-        );
+        $upiId =
+            $this->nullableText(
+                $input['upi_id']
+                    ?? null
+            );
 
         if (
             $upiId !== null
@@ -599,84 +617,147 @@ final class FieldOfficerService
             )
         ) {
             throw new RuntimeException(
-                'Another SAK Volunteer already uses this UPI ID.'
+                'Another SAK Volunteer already '
+                    . 'uses this UPI ID.'
             );
         }
 
-        $existingStatus = (string) (
-            $existing['account_status']
-            ?? FieldOfficerModel::STATUS_INACTIVE
+        $existingStatus = strtoupper(
+            trim(
+                (string) (
+                    $existing['account_status']
+                    ?? FieldOfficerModel
+                    ::STATUS_INACTIVE
+                )
+            )
         );
 
+        $registrationSource = strtoupper(
+            trim(
+                (string) (
+                    $existing['registration_source']
+                    ?? FieldOfficerModel
+                    ::REGISTRATION_SOURCE_ADMIN
+                )
+            )
+        );
+
+        $reviewStatus = strtoupper(
+            trim(
+                (string) (
+                    $existing['review_status']
+                    ?? FieldOfficerModel
+                    ::REVIEW_STATUS_APPROVED
+                )
+            )
+        );
+
+        $isSelfRegistration =
+            $registrationSource
+            === FieldOfficerModel
+            ::REGISTRATION_SOURCE_SELF;
+
+        $reviewAllowsActivation =
+            !$isSelfRegistration
+            || $reviewStatus
+            === FieldOfficerModel
+            ::REVIEW_STATUS_APPROVED;
+
         /*
-     * SAK Volunteer status is derived from UPI availability.
-     * This keeps activation rules consistent in create and edit flows.
+     * Pending/rejected self-registration remains inactive.
+     *
+     * Approved/Admin records use normal UPI-driven status.
      */
-        $newStatus = $upiId !== null
-            ? FieldOfficerModel::STATUS_ACTIVE
-            : FieldOfficerModel::STATUS_INACTIVE;
+        $newStatus =
+            $reviewAllowsActivation
+            && $upiId !== null
+            ? FieldOfficerModel
+            ::STATUS_ACTIVE
+            : FieldOfficerModel
+            ::STATUS_INACTIVE;
 
         $statusChanged =
-            $existingStatus !== $newStatus;
+            $existingStatus
+            !== $newStatus;
 
         $activatedAt =
-            $existing['activated_at'] ?? null;
+            $existing['activated_at']
+            ?? null;
 
         $deactivatedAt =
-            $existing['deactivated_at'] ?? null;
+            $existing['deactivated_at']
+            ?? null;
 
         if (
             $statusChanged
             && $newStatus
-            === FieldOfficerModel::STATUS_ACTIVE
+            === FieldOfficerModel
+            ::STATUS_ACTIVE
         ) {
-            $activatedAt = date('Y-m-d H:i:s');
-            $deactivatedAt = null;
+            $activatedAt =
+                date(
+                    'Y-m-d H:i:s'
+                );
+
+            $deactivatedAt =
+                null;
         }
 
         if (
             $statusChanged
             && $newStatus
-            === FieldOfficerModel::STATUS_INACTIVE
+            === FieldOfficerModel
+            ::STATUS_INACTIVE
         ) {
-            $deactivatedAt = date('Y-m-d H:i:s');
+            $deactivatedAt =
+                date(
+                    'Y-m-d H:i:s'
+                );
         }
 
         $beforeData = [
             'country_id' =>
-            (int) $existing['country_id'],
+            (int) (
+                $existing['country_id']
+                ?? 0
+            ),
 
             'state_id' =>
-            (int) $existing['state_id'],
+            (int) (
+                $existing['state_id']
+                ?? 0
+            ),
 
             'city_id' =>
-            (int) $existing['city_id'],
+            (int) (
+                $existing['city_id']
+                ?? 0
+            ),
 
             'address' =>
             $this->nullableText(
-                $existing['address'] ?? null
+                $existing['address']
+                    ?? null
             ),
 
             'upi_id_present' =>
-            $this->hasUpiId($existing),
+            $this->hasUpiId(
+                $existing
+            ),
 
             'account_status' =>
             $existingStatus,
 
             'activated_at' =>
-            $existing['activated_at'] ?? null,
+            $existing['activated_at']
+                ?? null,
 
             'deactivated_at' =>
-            $existing['deactivated_at'] ?? null,
+            $existing['deactivated_at']
+                ?? null,
         ];
 
         $afterData = [
-            'aadhaar_number' =>
-            $aadhaarNumber,
-
-            'pan_number' =>
-            $panNumber,
-
             'country_id' =>
             $countryId,
 
@@ -689,8 +770,8 @@ final class FieldOfficerService
             'address' =>
             $address,
 
-            'upi_id' =>
-            $upiId,
+            'upi_id_present' =>
+            $upiId !== null,
 
             'account_status' =>
             $newStatus,
@@ -700,19 +781,23 @@ final class FieldOfficerService
 
             'deactivated_at' =>
             $deactivatedAt,
-
-            'updated_by' =>
-            $updatedBy,
         ];
 
-        $this->database->transBegin();
+        $this->database
+            ->transBegin();
 
         try {
-            $updated = $this
-                ->fieldOfficerModel
+            $updated =
+                $this->fieldOfficerModel
                 ->update(
-                    (int) $existing['id'],
+                    $fieldOfficerId,
                     [
+                        'aadhaar_number' =>
+                        $aadhaarNumber,
+
+                        'pan_number' =>
+                        $panNumber,
+
                         'country_id' =>
                         $countryId,
 
@@ -744,27 +829,32 @@ final class FieldOfficerService
 
             if ($updated === false) {
                 throw new RuntimeException(
-                    'The SAK Volunteer could not be updated.'
+                    'The SAK Volunteer could '
+                        . 'not be updated.'
                 );
             }
 
             if (
-                $this->database->transStatus()
+                $this->database
+                ->transStatus()
                 === false
             ) {
                 throw new RuntimeException(
-                    'The SAK Volunteer update transaction failed.'
+                    'The SAK Volunteer update '
+                        . 'transaction failed.'
                 );
             }
 
-            $this->database->transCommit();
+            $this->database
+                ->transCommit();
         } catch (Throwable $exception) {
-            $this->database->transRollback();
+            $this->database
+                ->transRollback();
 
             throw $exception;
         }
 
-        $this->auditService->record(
+        $this->recordAuditSafely(
             new AdminAuditEvent(
                 action: AdminAuditAction
                 ::FIELD_OFFICER_UPDATED,
@@ -773,7 +863,10 @@ final class FieldOfficerService
 
                 targetId: $fieldOfficerId,
 
-                targetLabel: (string) $existing['officer_code'],
+                targetLabel: (string) (
+                    $existing['officer_code']
+                    ?? ''
+                ),
 
                 description: 'SAK Volunteer details were updated.',
 
@@ -784,15 +877,18 @@ final class FieldOfficerService
         );
 
         /*
-     * Record the status transition separately so activation and
-     * deactivation reports remain complete.
+     * Pending/rejected registrations are deliberately
+     * excluded from status transition auditing because
+     * editing them cannot activate them.
      */
         if (
-            $statusChanged
+            $reviewAllowsActivation
+            && $statusChanged
             && $newStatus
-            === FieldOfficerModel::STATUS_ACTIVE
+            === FieldOfficerModel
+            ::STATUS_ACTIVE
         ) {
-            $this->auditService->record(
+            $this->recordAuditSafely(
                 new AdminAuditEvent(
                     action: AdminAuditAction
                     ::FIELD_OFFICER_ACTIVATED,
@@ -801,36 +897,14 @@ final class FieldOfficerService
 
                     targetId: $fieldOfficerId,
 
-                    targetLabel: (string) $existing['officer_code'],
+                    targetLabel: (string) (
+                        $existing['officer_code']
+                        ?? ''
+                    ),
 
-                    description: 'SAK Volunteer was automatically activated after a valid UPI ID was added.',
-
-                    beforeData: [
-                        'account_status' =>
-                        $existingStatus,
-
-                        'upi_id_present' =>
-                        false,
-
-                        'activated_at' =>
-                        $existing['activated_at']
-                            ?? null,
-                    ],
-
-                    afterData: [
-                        'account_status' =>
-                        FieldOfficerModel
-                        ::STATUS_ACTIVE,
-
-                        'upi_id_present' =>
-                        true,
-
-                        'activated_at' =>
-                        $activatedAt,
-
-                        'deactivated_at' =>
-                        null,
-                    ],
+                    description: 'SAK Volunteer was automatically '
+                        . 'activated after a valid UPI ID '
+                        . 'was added.',
 
                     metadata: [
                         'activation_source' =>
@@ -843,9 +917,10 @@ final class FieldOfficerService
         if (
             $statusChanged
             && $newStatus
-            === FieldOfficerModel::STATUS_INACTIVE
+            === FieldOfficerModel
+            ::STATUS_INACTIVE
         ) {
-            $this->auditService->record(
+            $this->recordAuditSafely(
                 new AdminAuditEvent(
                     action: AdminAuditAction
                     ::FIELD_OFFICER_DEACTIVATED,
@@ -854,120 +929,117 @@ final class FieldOfficerService
 
                     targetId: $fieldOfficerId,
 
-                    targetLabel: (string) $existing['officer_code'],
+                    targetLabel: (string) (
+                        $existing['officer_code']
+                        ?? ''
+                    ),
 
-                    description: 'SAK Volunteer was automatically deactivated because the UPI ID was removed.',
-
-                    beforeData: [
-                        'account_status' =>
-                        $existingStatus,
-
-                        'upi_id_present' =>
-                        true,
-
-                        'activated_at' =>
-                        $existing['activated_at']
-                            ?? null,
-
-                        'deactivated_at' =>
-                        $existing['deactivated_at']
-                            ?? null,
-                    ],
-
-                    afterData: [
-                        'account_status' =>
-                        FieldOfficerModel
-                        ::STATUS_INACTIVE,
-
-                        'upi_id_present' =>
-                        false,
-
-                        'activated_at' =>
-                        $activatedAt,
-
-                        'deactivated_at' =>
-                        $deactivatedAt,
-                    ],
-
-                    metadata: [
-                        'deactivation_source' =>
-                        'UPI_REMOVED_DURING_UPDATE',
-                    ]
+                    description: 'SAK Volunteer became inactive '
+                        . 'because the UPI ID was removed.',
                 )
             );
         }
     }
 
     /**
-     * Activate a SAK Volunteer.
-     *
-     * An officer may be activated only when a UPI ID exists.
+     * Activate an approved SAK Volunteer.
      */
     public function activate(
         int $fieldOfficerId,
         int $updatedBy
     ): void {
-        $existing = $this->findForEdit(
-            $fieldOfficerId
-        );
+        $existing =
+            $this->findForEdit(
+                $fieldOfficerId
+            );
 
         if ($updatedBy <= 0) {
             throw new RuntimeException(
-                'The logged-in administrator could not be identified.'
+                'The logged-in administrator '
+                    . 'could not be identified.'
+            );
+        }
+
+        $registrationSource = strtoupper(
+            trim(
+                (string) (
+                    $existing['registration_source']
+                    ?? FieldOfficerModel
+                    ::REGISTRATION_SOURCE_ADMIN
+                )
+            )
+        );
+
+        $reviewStatus = strtoupper(
+            trim(
+                (string) (
+                    $existing['review_status']
+                    ?? FieldOfficerModel
+                    ::REVIEW_STATUS_APPROVED
+                )
+            )
+        );
+
+        if (
+            $registrationSource
+            === FieldOfficerModel
+            ::REGISTRATION_SOURCE_SELF
+            && $reviewStatus
+            !== FieldOfficerModel
+            ::REVIEW_STATUS_APPROVED
+        ) {
+            throw new RuntimeException(
+                'This SAK Volunteer registration '
+                    . 'must be approved before activation.'
             );
         }
 
         if (
-            (string) $existing['account_status']
-            === FieldOfficerModel::STATUS_ACTIVE
+            (string) (
+                $existing['account_status']
+                ?? ''
+            )
+            === FieldOfficerModel
+            ::STATUS_ACTIVE
         ) {
             throw new RuntimeException(
                 'The SAK Volunteer is already active.'
             );
         }
 
-        if (!$this->hasUpiId($existing)) {
-            $this->auditService->record(
-                new AdminAuditEvent(
-                    action: AdminAuditAction
-                    ::FIELD_OFFICER_ACTIVATION_DENIED,
-                    outcome: 'DENIED',
-                    targetType: 'FIELD_OFFICER',
-                    targetId: $fieldOfficerId,
-                    targetLabel: (string) $existing['officer_code'],
-                    description: 'SAK Volunteer activation was denied because UPI ID was not present.',
-                    beforeData: [
-                        'account_status' =>
-                        (string) $existing['account_status'],
-                        'upi_id_present' =>
-                        false,
-                    ],
-                    metadata: [
-                        'reason' =>
-                        'UPI_ID_REQUIRED',
-                    ]
-                )
-            );
-
+        if (
+            !$this->hasUpiId(
+                $existing
+            )
+        ) {
             throw new RuntimeException(
-                'The SAK Volunteer cannot be activated because a UPI ID is not present. Edit the SAK Volunteer, add a valid UPI ID and try again.'
+                'The SAK Volunteer cannot be activated '
+                    . 'because a UPI ID is not present. '
+                    . 'Edit the SAK Volunteer, add a valid '
+                    . 'UPI ID and try again.'
             );
         }
 
         $activatedAt =
-            date('Y-m-d H:i:s');
+            date(
+                'Y-m-d H:i:s'
+            );
 
-        $updated = $this
-            ->fieldOfficerModel
+        $updated =
+            $this->fieldOfficerModel
             ->update(
                 $fieldOfficerId,
                 [
                     'account_status' =>
-                    FieldOfficerModel::STATUS_ACTIVE,
+                    FieldOfficerModel
+                    ::STATUS_ACTIVE,
+
                     'activated_at' =>
                     $activatedAt,
+
                     'deactivated_at' =>
                     null,
+
                     'updated_by' =>
                     $updatedBy,
                 ]
@@ -975,37 +1047,26 @@ final class FieldOfficerService
 
         if ($updated === false) {
             throw new RuntimeException(
-                'The SAK Volunteer could not be activated.'
+                'The SAK Volunteer could '
+                    . 'not be activated.'
             );
         }
 
-        $this->auditService->record(
+        $this->recordAuditSafely(
             new AdminAuditEvent(
-                action: AdminAuditAction::FIELD_OFFICER_ACTIVATED,
+                action: AdminAuditAction
+                ::FIELD_OFFICER_ACTIVATED,
+
                 targetType: 'FIELD_OFFICER',
+
                 targetId: $fieldOfficerId,
-                targetLabel: (string) $existing['officer_code'],
-                description: 'SAK Volunteer was activated.',
-                beforeData: [
-                    'account_status' =>
-                    FieldOfficerModel::STATUS_INACTIVE,
-                    'activated_at' =>
-                    $existing['activated_at'] ?? null,
-                    'deactivated_at' =>
-                    $existing['deactivated_at'] ?? null,
-                    'upi_id_present' =>
-                    true,
-                ],
-                afterData: [
-                    'account_status' =>
-                    FieldOfficerModel::STATUS_ACTIVE,
-                    'activated_at' =>
-                    $activatedAt,
-                    'deactivated_at' =>
-                    null,
-                    'upi_id_present' =>
-                    true,
-                ]
+
+                targetLabel: (string) (
+                    $existing['officer_code']
+                    ?? ''
+                ),
+
+                description: 'SAK Volunteer was activated.'
             )
         );
     }
@@ -1399,7 +1460,12 @@ final class FieldOfficerService
     }
 
     /**
-     * Approve one pending self-registration.
+     * Approve one pending SAK Volunteer self-registration.
+     *
+     * Approval and activation are related but separate:
+     *
+     * - UPI present  -> APPROVED + ACTIVE
+     * - UPI absent   -> APPROVED + INACTIVE
      */
     public function approveRegistration(
         int $fieldOfficerId,
@@ -1410,7 +1476,8 @@ final class FieldOfficerService
             || $reviewedBy <= 0
         ) {
             throw new RuntimeException(
-                'Invalid SAK Volunteer approval request.'
+                'Invalid SAK Volunteer '
+                    . 'approval request.'
             );
         }
 
@@ -1420,16 +1487,24 @@ final class FieldOfficerService
             );
 
         if (
-            (string) (
-                $existing['registration_source']
-                ?? ''
+            strtoupper(
+                trim(
+                    (string) (
+                        $existing['registration_source']
+                        ?? ''
+                    )
+                )
             )
             !== FieldOfficerModel
             ::REGISTRATION_SOURCE_SELF
             ||
-            (string) (
-                $existing['review_status']
-                ?? ''
+            strtoupper(
+                trim(
+                    (string) (
+                        $existing['review_status']
+                        ?? ''
+                    )
+                )
             )
             !== FieldOfficerModel
             ::REVIEW_STATUS_PENDING
@@ -1440,26 +1515,27 @@ final class FieldOfficerService
             );
         }
 
-        /*
-     * Existing business rule:
-     * an ACTIVE SAK Volunteer requires UPI.
-     */
-        $upiId = trim(
-            (string) (
-                $existing['upi_id']
-                ?? ''
-            )
-        );
-
-        if ($upiId === '') {
-            throw new RuntimeException(
-                'Add a valid UPI ID before approving '
-                    . 'this SAK Volunteer.'
+        $hasUpiId =
+            $this->hasUpiId(
+                $existing
             );
-        }
 
         $now =
-            date('Y-m-d H:i:s');
+            date(
+                'Y-m-d H:i:s'
+            );
+
+        $accountStatus =
+            $hasUpiId
+            ? FieldOfficerModel
+            ::STATUS_ACTIVE
+            : FieldOfficerModel
+            ::STATUS_INACTIVE;
+
+        $activatedAt =
+            $hasUpiId
+            ? $now
+            : null;
 
         $updated =
             $this->fieldOfficerModel
@@ -1480,11 +1556,10 @@ final class FieldOfficerService
                     null,
 
                     'account_status' =>
-                    FieldOfficerModel
-                    ::STATUS_ACTIVE,
+                    $accountStatus,
 
                     'activated_at' =>
-                    $now,
+                    $activatedAt,
 
                     'deactivated_at' =>
                     null,
@@ -1496,7 +1571,73 @@ final class FieldOfficerService
 
         if ($updated === false) {
             throw new RuntimeException(
-                'The SAK Volunteer could not be approved.'
+                'The SAK Volunteer could '
+                    . 'not be approved.'
+            );
+        }
+
+        $this->recordAuditSafely(
+            new AdminAuditEvent(
+                action: AdminAuditAction
+                ::FIELD_OFFICER_UPDATED,
+
+                targetType: 'FIELD_OFFICER',
+
+                targetId: $fieldOfficerId,
+
+                targetLabel: (string) (
+                    $existing['officer_code']
+                    ?? ''
+                ),
+
+                description: $hasUpiId
+                    ? 'SAK Volunteer registration was '
+                    . 'approved and activated.'
+                    : 'SAK Volunteer registration was '
+                    . 'approved in inactive status '
+                    . 'because no UPI ID is present.',
+
+                afterData: [
+                    'registration_source' =>
+                    FieldOfficerModel
+                    ::REGISTRATION_SOURCE_SELF,
+
+                    'review_status' =>
+                    FieldOfficerModel
+                    ::REVIEW_STATUS_APPROVED,
+
+                    'account_status' =>
+                    $accountStatus,
+
+                    'upi_id_present' =>
+                    $hasUpiId,
+                ]
+            )
+        );
+
+        if ($hasUpiId) {
+            $this->recordAuditSafely(
+                new AdminAuditEvent(
+                    action: AdminAuditAction
+                    ::FIELD_OFFICER_ACTIVATED,
+
+                    targetType: 'FIELD_OFFICER',
+
+                    targetId: $fieldOfficerId,
+
+                    targetLabel: (string) (
+                        $existing['officer_code']
+                        ?? ''
+                    ),
+
+                    description: 'SAK Volunteer was activated '
+                        . 'during registration approval.',
+
+                    metadata: [
+                        'activation_source' =>
+                        'SELF_REGISTRATION_APPROVAL',
+                    ]
+                )
             );
         }
     }

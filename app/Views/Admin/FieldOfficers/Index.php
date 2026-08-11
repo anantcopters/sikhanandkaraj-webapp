@@ -2,107 +2,375 @@
 
 declare(strict_types=1);
 
+use App\Models\FieldOfficerModel;
+
 /**
- * @var list<array<string, mixed>> $fieldOfficers
- * @var array<string, string>|null $formAlert
+ * Admin SAK Volunteer listing.
+ *
+ * Controller supplied variables.
+ *
+ * @var list<array<string, mixed>>|null $fieldOfficers
+ * @var array<string, mixed>|null $formAlert
  */
 
-$resolvedFieldOfficers = is_array(
-    $fieldOfficers ?? null
-)
+$resolvedFieldOfficers =
+    is_array(
+        $fieldOfficers
+            ?? null
+    )
     ? $fieldOfficers
     : [];
 
-$resolvedFormAlert = is_array(
-    $formAlert ?? null
-)
+$resolvedFormAlert =
+    is_array(
+        $formAlert
+            ?? null
+    )
     ? $formAlert
     : null;
 
-$reviewStatus = strtoupper(
-    trim(
+$createUrl =
+    route_to(
+        'admin.field-officers.create'
+    );
+
+$rows = [];
+
+foreach (
+    $resolvedFieldOfficers
+    as $fieldOfficer
+) {
+    if (!is_array($fieldOfficer)) {
+        continue;
+    }
+
+    $fieldOfficerId = max(
+        0,
+        (int) (
+            $fieldOfficer['id']
+            ?? 0
+        )
+    );
+
+    if ($fieldOfficerId <= 0) {
+        continue;
+    }
+
+    $fullName = trim(
         (string) (
-            $fieldOfficer['review_status']
+            $fieldOfficer['full_name']
             ?? ''
         )
-    )
-);
+    );
 
-$isSelfRegistration =
-    strtoupper(
+    $officerCode = trim(
+        (string) (
+            $fieldOfficer['officer_code']
+            ?? ''
+        )
+    );
+
+    $mobileNumber = trim(
+        (string) (
+            $fieldOfficer['mobile_number']
+            ?? ''
+        )
+    );
+
+    $location = implode(
+        ', ',
+        array_filter(
+            [
+                trim(
+                    (string) (
+                        $fieldOfficer['city_name']
+                        ?? ''
+                    )
+                ),
+                trim(
+                    (string) (
+                        $fieldOfficer['state_name']
+                        ?? ''
+                    )
+                ),
+                trim(
+                    (string) (
+                        $fieldOfficer['country_name']
+                        ?? ''
+                    )
+                ),
+            ],
+            static fn(
+                string $value
+            ): bool => $value !== ''
+        )
+    );
+
+    if ($location === '') {
+        $location = '—';
+    }
+
+    $accountStatus = strtoupper(
+        trim(
+            (string) (
+                $fieldOfficer['account_status']
+                ?? ''
+            )
+        )
+    );
+
+    $registrationSource = strtoupper(
         trim(
             (string) (
                 $fieldOfficer['registration_source']
                 ?? ''
             )
         )
-    )
-    === 'SELF';
+    );
 
-$isPendingRegistration =
-    $isSelfRegistration
-    && $reviewStatus === 'PENDING';
+    $reviewStatus = strtoupper(
+        trim(
+            (string) (
+                $fieldOfficer['review_status']
+                ?? ''
+            )
+        )
+    );
 
-$this->extend('Admin/Layouts/Main');
+    $isActive =
+        $accountStatus
+        === FieldOfficerModel
+        ::STATUS_ACTIVE;
+
+    $hasUpiId =
+        trim(
+            (string) (
+                $fieldOfficer['upi_id']
+                ?? ''
+            )
+        ) !== '';
+
+    $isSelfRegistration =
+        $registrationSource
+        === FieldOfficerModel
+        ::REGISTRATION_SOURCE_SELF;
+
+    $isPendingRegistration =
+        $isSelfRegistration
+        && $reviewStatus
+        === FieldOfficerModel
+        ::REVIEW_STATUS_PENDING;
+
+    $isRejectedRegistration =
+        $isSelfRegistration
+        && $reviewStatus
+        === FieldOfficerModel
+        ::REVIEW_STATUS_REJECTED;
+
+    $canUseNormalStatusActions =
+        !$isPendingRegistration
+        && !$isRejectedRegistration;
+
+    if ($isPendingRegistration) {
+        $statusLabel =
+            'Pending Review';
+
+        $statusClass =
+            'badge bg-warning-subtle text-dark p-2';
+    } elseif ($isRejectedRegistration) {
+        $statusLabel =
+            'Rejected';
+
+        $statusClass =
+            'badge bg-danger-subtle text-danger p-2';
+    } elseif ($isActive) {
+        $statusLabel =
+            'Active';
+
+        $statusClass =
+            'badge bg-success-subtle text-black p-2';
+    } else {
+        $statusLabel =
+            'Inactive';
+
+        $statusClass =
+            'badge bg-secondary-subtle text-black p-2';
+    }
+
+    $rows[] = [
+        'id' =>
+        $fieldOfficerId,
+
+        'fullName' =>
+        $fullName,
+
+        'officerCode' =>
+        $officerCode,
+
+        'mobileNumber' =>
+        $mobileNumber,
+
+        'location' =>
+        $location,
+
+        'statusLabel' =>
+        $statusLabel,
+
+        'statusClass' =>
+        $statusClass,
+
+        'isActive' =>
+        $isActive,
+
+        'hasUpiId' =>
+        $hasUpiId,
+
+        'isPendingRegistration' =>
+        $isPendingRegistration,
+
+        'isRejectedRegistration' =>
+        $isRejectedRegistration,
+
+        'canUseNormalStatusActions' =>
+        $canUseNormalStatusActions,
+
+        'editUrl' =>
+        route_to(
+            'admin.field-officers.edit',
+            $fieldOfficerId
+        ),
+
+        'approveUrl' =>
+        route_to(
+            'admin.field-officers.approve-registration',
+            $fieldOfficerId
+        ),
+
+        'rejectUrl' =>
+        route_to(
+            'admin.field-officers.reject-registration',
+            $fieldOfficerId
+        ),
+
+        'activateUrl' =>
+        route_to(
+            'admin.field-officers.activate',
+            $fieldOfficerId
+        ),
+
+        'deactivateUrl' =>
+        route_to(
+            'admin.field-officers.deactivate',
+            $fieldOfficerId
+        ),
+
+        'activateMessage' =>
+        'Do you want to make '
+            . $fullName
+            . ' active?',
+
+        'deactivateMessage' =>
+        'Do you want to make '
+            . $fullName
+            . ' inactive?',
+    ];
+}
+
+$this->extend(
+    'Admin/Layouts/Main'
+);
+
 $this->section('content');
 ?>
 
 <div class="container-fluid">
+
     <div class="row">
+
         <div class="col-12">
+
             <div
                 class="page-title-box
-                    d-sm-flex align-items-center
-                    justify-content-between">
+                d-sm-flex
+                align-items-center
+                justify-content-between">
 
                 <div>
+
                     <h4 class="mb-sm-0">
                         SAK Volunteers
                     </h4>
 
-                    <p class="text-muted mb-0 mt-1">
+                    <p
+                        class="text-muted
+                        mb-0
+                        mt-1">
+
                         Manage SAK Volunteers and their
                         assigned locations.
+
                     </p>
+
                 </div>
 
                 <div class="page-title-right">
+
                     <a
-                        href="<?= route_to(
-                                    'admin.field-officers.create'
+                        href="<?= esc(
+                                    $createUrl,
+                                    'attr'
                                 ) ?>"
-                        class="btn btn-primary">
+                        class="btn
+                        btn-primary">
 
                         <i
                             class="ri-user-add-line
-                                align-middle me-1">
+                            align-middle
+                            me-1"
+                            aria-hidden="true">
                         </i>
 
                         Add SAK Volunteer
+
                     </a>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
     <?= view(
         'Components/Alerts/FormAlert',
         [
-            'alert' => $resolvedFormAlert,
+            'alert' =>
+            $resolvedFormAlert,
         ]
     ) ?>
 
+    <div
+        class="card
+        border
+        border-danger
+        border-opacity-25">
 
-    <div class="card border border-danger border-opacity-25">
         <div class="card-body p-0">
 
             <div class="table-responsive">
+
                 <table
-                    class="table table-hover
-                    table-nowrap align-middle mb-0">
+                    class="table
+                    table-hover
+                    table-nowrap
+                    align-middle
+                    mb-0">
 
                     <thead class="bg-info-subtle">
+
                         <tr>
+
                             <th scope="col">
                                 Name
                             </th>
@@ -126,166 +394,118 @@ $this->section('content');
                             <th
                                 scope="col"
                                 class="text-end">
+
                                 Action
+
                             </th>
+
                         </tr>
+
                     </thead>
 
                     <tbody>
-                        <?php if (
-                            $resolvedFieldOfficers === []
-                        ): ?>
+
+                        <?php if ($rows === []): ?>
+
                             <tr>
+
                                 <td
                                     colspan="6"
                                     class="text-center
-                            text-muted py-4">
+                                    text-muted
+                                    py-4">
 
                                     No SAK Volunteers
                                     have been added.
+
                                 </td>
+
                             </tr>
+
                         <?php endif; ?>
 
                         <?php foreach (
-                            $resolvedFieldOfficers
-                            as $fieldOfficer
+                            $rows
+                            as $row
                         ): ?>
-                            <?php
-                            $locationParts = array_filter([
-                                trim(
-                                    (string) (
-                                        $fieldOfficer['city_name'] ?? ''
-                                    )
-                                ),
-                                trim(
-                                    (string) (
-                                        $fieldOfficer['state_name'] ?? ''
-                                    )
-                                ),
-                                trim(
-                                    (string) (
-                                        $fieldOfficer['country_name'] ?? ''
-                                    )
-                                ),
-                            ]);
-
-                            $location = implode(
-                                ', ',
-                                $locationParts
-                            );
-
-                            $isActive =
-                                (string) (
-                                    $fieldOfficer['account_status'] ?? ''
-                                )
-                                === \App\Models\FieldOfficerModel
-                                ::STATUS_ACTIVE;
-
-                            $hasUpiId =
-                                trim(
-                                    (string) (
-                                        $fieldOfficer['upi_id'] ?? ''
-                                    )
-                                ) !== '';
-                            ?>
 
                             <tr>
+
                                 <td>
+
                                     <span class="fw-semibold">
+
                                         <?= esc(
-                                            (string) $fieldOfficer['full_name']
+                                            $row['fullName']
                                         ) ?>
+
                                     </span>
+
                                 </td>
 
                                 <td>
+
                                     <span
                                         class="badge
-                                bg-primary-subtle
-                                text-primary p-2">
+                                        bg-primary-subtle
+                                        text-primary
+                                        p-2">
 
                                         <?= esc(
-                                            (string) $fieldOfficer['officer_code']
+                                            $row['officerCode']
                                         ) ?>
+
                                     </span>
+
                                 </td>
 
                                 <td>
+
                                     <?= esc(
-                                        (string) $fieldOfficer['mobile_number']
+                                        $row['mobileNumber']
                                     ) ?>
+
                                 </td>
 
                                 <td>
+
                                     <?= esc(
-                                        $location !== ''
-                                            ? $location
-                                            : '—'
+                                        $row['location']
                                     ) ?>
+
                                 </td>
 
                                 <td>
-                                    <?php if ($isPendingRegistration): ?>
 
-                                        <span
-                                            class="badge
-        bg-warning-subtle
-        text-dark
-        p-2">
+                                    <span
+                                        class="<?= esc(
+                                                    $row['statusClass'],
+                                                    'attr'
+                                                ) ?>">
 
-                                            Pending Review
-                                        </span>
+                                        <?= esc(
+                                            $row['statusLabel']
+                                        ) ?>
 
-                                    <?php elseif (
-                                        $reviewStatus === 'REJECTED'
-                                    ): ?>
+                                    </span>
 
-                                        <span
-                                            class="badge
-        bg-danger-subtle
-        text-danger
-        p-2">
-
-                                            Rejected
-                                        </span>
-
-                                    <?php elseif ($isActive): ?>
-
-                                        <span
-                                            class="badge
-        bg-success-subtle
-        text-black
-        p-2">
-
-                                            Active
-                                        </span>
-
-                                    <?php else: ?>
-
-                                        <span
-                                            class="badge
-        bg-secondary-subtle
-        text-black
-        p-2">
-
-                                            Inactive
-                                        </span>
-
-                                    <?php endif; ?>
                                 </td>
 
                                 <td class="text-end">
+
                                     <div
                                         class="d-inline-flex
-                                align-items-center
-                                gap-1">
-                                        <?php if ($isPendingRegistration): ?>
+                                        align-items-center
+                                        gap-1">
+
+                                        <?php if (
+                                            $row['isPendingRegistration']
+                                        ): ?>
 
                                             <form
-                                                action="<?= route_to(
-                                                            'admin.field-officers.approve-registration',
-                                                            (int) $fieldOfficer['id']
+                                                action="<?= esc(
+                                                            $row['approveUrl'],
+                                                            'attr'
                                                         ) ?>"
                                                 method="post"
                                                 class="d-inline"
@@ -302,8 +522,8 @@ $this->section('content');
                                                 <button
                                                     type="submit"
                                                     class="btn
-            btn-soft-success
-            btn-sm"
+                                                    btn-soft-success
+                                                    btn-sm"
                                                     title="Approve SAK Volunteer"
                                                     aria-label="Approve SAK Volunteer">
 
@@ -317,9 +537,9 @@ $this->section('content');
                                             </form>
 
                                             <form
-                                                action="<?= route_to(
-                                                            'admin.field-officers.reject-registration',
-                                                            (int) $fieldOfficer['id']
+                                                action="<?= esc(
+                                                            $row['rejectUrl'],
+                                                            'attr'
                                                         ) ?>"
                                                 method="post"
                                                 class="d-inline"
@@ -336,8 +556,8 @@ $this->section('content');
                                                 <button
                                                     type="submit"
                                                     class="btn
-            btn-soft-danger
-            btn-sm"
+                                                    btn-soft-danger
+                                                    btn-sm"
                                                     title="Reject SAK Volunteer"
                                                     aria-label="Reject SAK Volunteer">
 
@@ -351,14 +571,15 @@ $this->section('content');
                                             </form>
 
                                         <?php endif; ?>
+
                                         <a
-                                            href="<?= route_to(
-                                                        'admin.field-officers.edit',
-                                                        (int) $fieldOfficer['id']
+                                            href="<?= esc(
+                                                        $row['editUrl'],
+                                                        'attr'
                                                     ) ?>"
                                             class="btn
-                                    btn-soft-primary
-                                    btn-sm"
+                                            btn-soft-primary
+                                            btn-sm"
                                             title="Edit SAK Volunteer"
                                             aria-label="Edit SAK Volunteer">
 
@@ -366,60 +587,69 @@ $this->section('content');
                                                 class="ri-edit-line"
                                                 aria-hidden="true">
                                             </i>
+
                                         </a>
 
-                                        <?php if ($isActive): ?>
-                                            <form
-                                                action="<?= route_to(
-                                                            'admin.field-officers.deactivate',
-                                                            (int) $fieldOfficer['id']
-                                                        ) ?>"
-                                                method="post"
-                                                class="d-inline"
-                                                data-confirm-form
-                                                data-confirm-title="Deactivate SAK Volunteer?"
-                                                data-confirm-message="<?= esc(
-                                                                            'Do you want to make '
-                                                                                . (string) $fieldOfficer['full_name']
-                                                                                . ' inactive?',
-                                                                            'attr'
-                                                                        ) ?>"
-                                                data-confirm-button-text="Make Inactive"
-                                                data-confirm-loading-text="Deactivating..."
-                                                data-confirm-button-class="btn-warning"
-                                                data-confirm-icon="ri-user-unfollow-line">
+                                        <?php if (
+                                            $row['canUseNormalStatusActions']
+                                        ): ?>
 
-                                                <?= csrf_field() ?>
+                                            <?php if (
+                                                $row['isActive']
+                                            ): ?>
 
-                                                <button
-                                                    type="submit"
-                                                    class="btn
-                                            btn-soft-warning
-                                            btn-sm"
-                                                    title="Make inactive"
-                                                    aria-label="Make SAK Volunteer inactive">
-
-                                                    <i
-                                                        class="ri-user-unfollow-line"
-                                                        aria-hidden="true">
-                                                    </i>
-                                                </button>
-                                            </form>
-                                        <?php else: ?>
-                                            <?php if ($hasUpiId): ?>
                                                 <form
-                                                    action="<?= route_to(
-                                                                'admin.field-officers.activate',
-                                                                (int) $fieldOfficer['id']
+                                                    action="<?= esc(
+                                                                $row['deactivateUrl'],
+                                                                'attr'
+                                                            ) ?>"
+                                                    method="post"
+                                                    class="d-inline"
+                                                    data-confirm-form
+                                                    data-confirm-title="Deactivate SAK Volunteer?"
+                                                    data-confirm-message="<?= esc(
+                                                                                $row['deactivateMessage'],
+                                                                                'attr'
+                                                                            ) ?>"
+                                                    data-confirm-button-text="Make Inactive"
+                                                    data-confirm-loading-text="Deactivating..."
+                                                    data-confirm-button-class="btn-warning"
+                                                    data-confirm-icon="ri-user-unfollow-line">
+
+                                                    <?= csrf_field() ?>
+
+                                                    <button
+                                                        type="submit"
+                                                        class="btn
+                                                        btn-soft-warning
+                                                        btn-sm"
+                                                        title="Make inactive"
+                                                        aria-label="Make SAK Volunteer inactive">
+
+                                                        <i
+                                                            class="ri-user-unfollow-line"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                    </button>
+
+                                                </form>
+
+                                            <?php elseif (
+                                                $row['hasUpiId']
+                                            ): ?>
+
+                                                <form
+                                                    action="<?= esc(
+                                                                $row['activateUrl'],
+                                                                'attr'
                                                             ) ?>"
                                                     method="post"
                                                     class="d-inline"
                                                     data-confirm-form
                                                     data-confirm-title="Activate SAK Volunteer?"
                                                     data-confirm-message="<?= esc(
-                                                                                'Do you want to make '
-                                                                                    . (string) $fieldOfficer['full_name']
-                                                                                    . ' active?',
+                                                                                $row['activateMessage'],
                                                                                 'attr'
                                                                             ) ?>"
                                                     data-confirm-button-text="Make Active"
@@ -431,7 +661,9 @@ $this->section('content');
 
                                                     <button
                                                         type="submit"
-                                                        class="btn btn-soft-success btn-sm"
+                                                        class="btn
+                                                        btn-soft-success
+                                                        btn-sm"
                                                         title="Make active"
                                                         aria-label="Make SAK Volunteer active">
 
@@ -439,12 +671,18 @@ $this->section('content');
                                                             class="ri-user-follow-line"
                                                             aria-hidden="true">
                                                         </i>
+
                                                     </button>
+
                                                 </form>
+
                                             <?php else: ?>
+
                                                 <button
                                                     type="button"
-                                                    class="btn btn-soft-secondary btn-sm"
+                                                    class="btn
+                                                    btn-soft-secondary
+                                                    btn-sm"
                                                     title="UPI ID required"
                                                     aria-label="UPI ID required before activation"
                                                     data-bs-toggle="modal"
@@ -454,17 +692,29 @@ $this->section('content');
                                                         class="ri-information-line"
                                                         aria-hidden="true">
                                                     </i>
+
                                                 </button>
+
                                             <?php endif; ?>
+
                                         <?php endif; ?>
+
                                     </div>
+
                                 </td>
+
                             </tr>
+
                         <?php endforeach; ?>
+
                     </tbody>
+
                 </table>
+
             </div>
+
         </div>
+
     </div>
 
 </div>

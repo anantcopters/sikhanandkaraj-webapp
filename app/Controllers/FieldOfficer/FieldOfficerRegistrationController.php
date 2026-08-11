@@ -17,7 +17,7 @@ final class FieldOfficerRegistrationController
 extends BaseController
 {
     /**
-     * Show public SAK Volunteer registration.
+     * Display public SAK Volunteer registration.
      */
     public function index(): string|RedirectResponse
     {
@@ -129,23 +129,24 @@ extends BaseController
 
 
     /**
-     * Save public SAK Volunteer registration.
+     * Persist public SAK Volunteer registration.
      */
     public function store(): RedirectResponse
     {
         $input =
             $this->registrationInput();
 
-        $captchaAnswer =
-            trim(
-                (string) $this->request
-                    ->getPost(
-                        'captcha_answer'
-                    )
-            );
+        $captchaAnswer = trim(
+            (string) $this->request
+                ->getPost(
+                    'captcha_answer'
+                )
+        );
 
         $validation =
-            service('validation');
+            service(
+                'validation'
+            );
 
         $validation->setRules(
             FieldOfficerValidation
@@ -170,13 +171,19 @@ extends BaseController
                 'fieldOfficerRegistrationCaptchaService'
             )->clear();
 
+            /*
+             * Do not call withInput().
+             *
+             * Only the explicit allowlisted and normalized
+             * registration fields are stored in flash data.
+             * CAPTCHA must never be flashed.
+             */
             return redirect()
                 ->to(
                     route_to(
                         'field-officer.register'
                     )
                 )
-                ->withInput()
                 ->with(
                     'fieldOfficerRegistrationInput',
                     $input
@@ -221,10 +228,10 @@ extends BaseController
         }
 
         /*
-         * Never accept created_by from the browser.
+         * created_by never comes from the browser.
          *
-         * Public requests have no authenticated administrator,
-         * therefore use the explicitly configured Super Admin ID.
+         * Public registrations are assigned to the explicitly
+         * configured Super Admin account.
          */
         $createdBy =
             (int) env(
@@ -364,8 +371,7 @@ extends BaseController
 
 
     /**
-     * Public city master endpoint used only by
-     * the SAK Volunteer registration form.
+     * Return cities for the selected State.
      */
     public function cities(
         int $stateId
@@ -373,16 +379,18 @@ extends BaseController
         if ($stateId <= 0) {
             return $this->response
                 ->setStatusCode(422)
-                ->setJSON([
-                    'status' =>
-                    'error',
+                ->setJSON(
+                    [
+                        'status' =>
+                        'error',
 
-                    'message' =>
-                    'Invalid state.',
+                        'message' =>
+                        'Invalid state.',
 
-                    'data' =>
-                    [],
-                ]);
+                        'data' =>
+                        [],
+                    ]
+                );
         }
 
         /** @var ProfileMasterDataService $service */
@@ -415,18 +423,20 @@ extends BaseController
             );
 
         return $this->response
-            ->setJSON([
-                'status' =>
-                'success',
+            ->setJSON(
+                [
+                    'status' =>
+                    'success',
 
-                'data' =>
-                $cities,
-            ]);
+                    'data' =>
+                    $cities,
+                ]
+            );
     }
 
 
     /**
-     * Read only explicitly expected public fields.
+     * Read only explicitly allowed public fields.
      *
      * @return array<string, string>
      */

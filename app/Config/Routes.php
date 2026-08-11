@@ -25,13 +25,13 @@ $routes->group(
     'field-officer',
     [
         'namespace' =>
-        'App\\Controllers\\FieldOfficer',
+        'App\Controllers\FieldOfficer',
     ],
     static function (
         RouteCollection $routes
     ): void {
         /*
-         * Public FO authentication.
+         * Public SAK Volunteer authentication.
          */
         $routes->get(
             'login',
@@ -88,7 +88,40 @@ $routes->group(
         );
 
         /*
-         * Protected FO portal.
+         * Public SAK Volunteer self-registration.
+         *
+         * These routes intentionally remain outside
+         * fieldOfficerAuth.
+         */
+        $routes->get(
+            'register',
+            'FieldOfficerRegistrationController::index',
+            [
+                'as' =>
+                'field-officer.register',
+            ]
+        );
+
+        $routes->post(
+            'register',
+            'FieldOfficerRegistrationController::store',
+            [
+                'as' =>
+                'field-officer.register.store',
+            ]
+        );
+
+        $routes->get(
+            'register/master/cities/(:num)',
+            'FieldOfficerRegistrationController::cities/$1',
+            [
+                'as' =>
+                'field-officer.register.cities',
+            ]
+        );
+
+        /*
+         * Protected SAK Volunteer portal.
          */
         $routes->group(
             '',
@@ -1058,36 +1091,6 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
     });
 }
 
-/*
- * Public SAK Volunteer registration.
- */
-$routes->get(
-    'register',
-    'FieldOfficerRegistrationController::index',
-    [
-        'as' =>
-        'field-officer.register',
-    ]
-);
-
-$routes->post(
-    'register',
-    'FieldOfficerRegistrationController::store',
-    [
-        'as' =>
-        'field-officer.register.store',
-    ]
-);
-
-$routes->get(
-    'register/master/cities/(:num)',
-    'FieldOfficerRegistrationController::cities/$1',
-    [
-        'as' =>
-        'field-officer.register.cities',
-    ]
-);
-
 // -----------------------------------------------------------------------------
 // Administrator routes
 // -----------------------------------------------------------------------------
@@ -1292,7 +1295,7 @@ $routes->group('admin', [
                 );
 
                 $routes->post(
-                    'field-officers/(:num)/approve-registration',
+                    '(:num)/approve-registration',
                     'FieldOfficerController::approveRegistration/$1',
                     [
                         'as' =>
@@ -1301,7 +1304,7 @@ $routes->group('admin', [
                 );
 
                 $routes->post(
-                    'field-officers/(:num)/reject-registration',
+                    '(:num)/reject-registration',
                     'FieldOfficerController::rejectRegistration/$1',
                     [
                         'as' =>

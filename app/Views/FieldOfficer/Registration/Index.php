@@ -4,6 +4,18 @@ declare(strict_types=1);
 
 /**
  * Public SAK Volunteer registration.
+ *
+ * Controller supplied variables.
+ *
+ * @var string|null $pageTitle
+ * @var array<string, mixed>|null $formInput
+ * @var array<string, string>|null $validationErrors
+ * @var array<string, mixed>|null $formAlert
+ * @var list<array<string, mixed>>|null $countries
+ * @var list<array<string, mixed>>|null $states
+ * @var list<array<string, mixed>>|null $cities
+ * @var string|null $captchaChallenge
+ * @var list<string>|null $pageScripts
  */
 
 $pageTitle = trim(
@@ -14,38 +26,50 @@ $pageTitle = trim(
 );
 
 $formInput =
-    isset($formInput)
-    && is_array($formInput)
+    is_array(
+        $formInput
+            ?? null
+    )
     ? $formInput
     : [];
 
 $validationErrors =
-    isset($validationErrors)
-    && is_array($validationErrors)
+    is_array(
+        $validationErrors
+            ?? null
+    )
     ? $validationErrors
     : [];
 
 $formAlert =
-    isset($formAlert)
-    && is_array($formAlert)
+    is_array(
+        $formAlert
+            ?? null
+    )
     ? $formAlert
     : null;
 
 $countries =
-    isset($countries)
-    && is_array($countries)
+    is_array(
+        $countries
+            ?? null
+    )
     ? $countries
     : [];
 
 $states =
-    isset($states)
-    && is_array($states)
+    is_array(
+        $states
+            ?? null
+    )
     ? $states
     : [];
 
 $cities =
-    isset($cities)
-    && is_array($cities)
+    is_array(
+        $cities
+            ?? null
+    )
     ? $cities
     : [];
 
@@ -62,11 +86,6 @@ $captchaError = trim(
         ?? ''
     )
 );
-
-$captchaErrorClass =
-    $captchaError !== ''
-    ? 'is-invalid'
-    : '';
 
 $formAction =
     route_to(
@@ -117,7 +136,10 @@ $this->section('content');
                     border-danger
                     border-opacity-25">
 
-                    <div class="card-body p-3 p-md-4">
+                    <div
+                        class="card-body
+                        p-3
+                        p-md-4">
 
                         <div
                             class="d-flex
@@ -134,6 +156,7 @@ $this->section('content');
                                     mb-1">
 
                                     Register as SAK Volunteer
+
                                 </h1>
 
                                 <p
@@ -142,6 +165,7 @@ $this->section('content');
 
                                     Submit your details for
                                     verification and approval.
+
                                 </p>
 
                             </div>
@@ -161,6 +185,7 @@ $this->section('content');
                                 </i>
 
                                 Back to Login
+
                             </a>
 
                         </div>
@@ -186,6 +211,9 @@ $this->section('content');
                                 'isEdit' =>
                                 false,
 
+                                'isPublicRegistration' =>
+                                true,
+
                                 'formAction' =>
                                 $formAction,
 
@@ -210,12 +238,15 @@ $this->section('content');
                         ) ?>
 
                     </div>
+
                 </div>
 
             </div>
+
         </div>
 
     </div>
+
 </div>
 
 <?php $this->endSection(); ?>
