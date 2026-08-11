@@ -9,6 +9,11 @@ declare(strict_types=1);
  * @var string $aboutMe
  * @var array<string, int> $aboutMeCompletion
  */
+$user =
+    isset($user)
+    && is_array($user)
+    ? $user
+    : [];
 
 $aboutMe = isset($aboutMe)
     ? trim((string) $aboutMe)
@@ -40,6 +45,24 @@ $hasProfilePhoto = (bool) (
 $profilePhotoUrl = trim(
     (string) ($summary['profilePhotoUrl'] ?? '')
 );
+
+helper(
+    'member_profile'
+);
+
+$profilePhotoDisplayUrl =
+    $profilePhotoUrl;
+
+if (
+    !$hasProfilePhoto
+    || $profilePhotoDisplayUrl === ''
+) {
+    $profilePhotoDisplayUrl =
+        member_profile_placeholder(
+            $user['gender']
+                ?? null
+        );
+}
 
 $kundaliCompleted = (bool) (
     $summary['kundaliCompleted'] ?? false
@@ -204,28 +227,18 @@ $approvedPhotoCount = max(
             <div class="d-flex align-items-start gap-3">
 
                 <div class="avatar-lg flex-shrink-0">
-                    <?php if (
-                        $hasProfilePhoto
-                        && $profilePhotoUrl !== ''
-                    ): ?>
-                        <img
-                            src="<?= esc(
-                                        $profilePhotoUrl,
-                                        'attr'
-                                    ) ?>"
-                            alt="Approved main profile photo"
-                            class="img-thumbnail
-                            object-fit-cover w-100 h-100"
-                            loading="lazy">
-                    <?php else: ?>
-                        <span
-                            class="avatar-title rounded-circle
-                            bg-light text-primary fs-28"
-                            aria-hidden="true">
 
-                            <i class="ri-user-3-line"></i>
-                        </span>
-                    <?php endif; ?>
+                    <img
+                        src="<?= esc(
+                                    $profilePhotoDisplayUrl,
+                                    'attr'
+                                ) ?>"
+                        alt="Profile photo"
+                        class="img-thumbnail
+            object-fit-cover
+            w-100 h-100"
+                        loading="lazy">
+
                 </div>
 
                 <div class="flex-grow-1">

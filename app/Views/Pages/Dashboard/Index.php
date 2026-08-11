@@ -36,6 +36,10 @@ declare(strict_types=1);
 $this->extend('Layouts/Main');
 $this->section('content');
 
+helper(
+    'member_profile'
+);
+
 /*
  * Normalise primitive values before using them in the view.
  */
@@ -54,6 +58,26 @@ $resolvedReference = trim(
 $resolvedProfileImage = trim(
     (string) ($profileImage ?? '')
 );
+
+$resolvedGender =
+    trim(
+        (string) (
+            $profileSummary['user']['gender']
+            ?? ''
+        )
+    );
+
+$resolvedProfileImage =
+    trim(
+        (string) $resolvedProfileImage
+    );
+
+if ($resolvedProfileImage === '') {
+    $resolvedProfileImage =
+        member_profile_placeholder(
+            $resolvedGender
+        );
+}
 
 $resolvedPlanName = trim(
     (string) ($accountPlan['name'] ?? 'Free account')
@@ -219,48 +243,20 @@ $matchSections = [
                     <div class="card border border-danger border-opacity-25 shadow-sm">
                         <div class="card-body p-4 pb-1 text-center">
 
-                            <?php if ($resolvedProfileImage !== ''): ?>
+                            <div class="member-profile-thumbnail mx-auto mb-2">
 
-                                <div class="member-profile-thumbnail mx-auto mb-3">
-                                    <img
-                                        src="<?= esc(
-                                                    $resolvedProfileImage,
-                                                    'attr'
-                                                ) ?>"
-                                        alt="<?= esc(
-                                                    $resolvedName
-                                                        . ' profile photo',
-                                                    'attr'
-                                                ) ?>">
-                                </div>
+                                <img
+                                    src="<?= esc(
+                                                $resolvedProfileImage,
+                                                'attr'
+                                            ) ?>"
+                                    alt="<?= esc(
+                                                $resolvedName
+                                                    . ' profile photo',
+                                                'attr'
+                                            ) ?>">
 
-                            <?php else: ?>
-
-                                <div
-                                    class="member-profile-thumbnail
-            member-profile-thumbnail--fallback
-            mx-auto
-            mb-3"
-                                    aria-label="<?= esc(
-                                                    $resolvedName,
-                                                    'attr'
-                                                ) ?>">
-
-                                    <span>
-                                        <?= esc(
-                                            mb_strtoupper(
-                                                mb_substr(
-                                                    $resolvedName,
-                                                    0,
-                                                    1
-                                                )
-                                            )
-                                        ) ?>
-                                    </span>
-
-                                </div>
-
-                            <?php endif; ?>
+                            </div>
 
                             <h2 class="fs-18 fw-semibold mb-1">
                                 <?= esc($resolvedName) ?>
@@ -1163,49 +1159,22 @@ $matchSections = [
 
                                                     <div class="position-relative mx-auto mb-3">
 
-                                                        <?php if ($profilePhoto !== ''): ?>
+                                                        <div
+                                                            class="member-profile-thumbnail mx-auto">
 
-                                                            <div class="member-profile-thumbnail mx-auto">
+                                                            <img
+                                                                src="<?= esc(
+                                                                            $profilePhoto,
+                                                                            'attr'
+                                                                        ) ?>"
+                                                                alt="<?= esc(
+                                                                            $profileName
+                                                                                . ' profile photo',
+                                                                            'attr'
+                                                                        ) ?>"
+                                                                loading="lazy">
 
-                                                                <img
-                                                                    src="<?= esc(
-                                                                                $profilePhoto,
-                                                                                'attr'
-                                                                            ) ?>"
-                                                                    alt="<?= esc(
-                                                                                $profileName
-                                                                                    . ' profile photo',
-                                                                                'attr'
-                                                                            ) ?>">
-
-                                                            </div>
-
-                                                        <?php else: ?>
-
-                                                            <div
-                                                                class="member-profile-thumbnail
-                member-profile-thumbnail--fallback
-                mx-auto"
-                                                                aria-label="<?= esc(
-                                                                                $profileName,
-                                                                                'attr'
-                                                                            ) ?>">
-
-                                                                <span>
-                                                                    <?= esc(
-                                                                        mb_strtoupper(
-                                                                            mb_substr(
-                                                                                $profileName,
-                                                                                0,
-                                                                                1
-                                                                            )
-                                                                        )
-                                                                    ) ?>
-                                                                </span>
-
-                                                            </div>
-
-                                                        <?php endif; ?>
+                                                        </div>
 
                                                     </div>
 

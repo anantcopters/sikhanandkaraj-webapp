@@ -1307,6 +1307,9 @@ final class MemberSearchService
         int $viewerUserId,
         array $rows
     ): array {
+        helper(
+            'member_profile'
+        );
         $profiles = [];
 
         foreach ($rows as $row) {
@@ -1365,8 +1368,12 @@ final class MemberSearchService
                 ) === true;
 
             /*
-         * Multi-profile listings use only viewer-authorized thumbnails.
-         */
+            * Multi-profile listings use only viewer-authorized thumbnails.
+            *
+            * IMPORTANT:
+            * The real photo is resolved first so existing photo-visibility
+            * and Interest rules remain authoritative.
+            */
             $image =
                 $this->photoUrlService
                 ->getApprovedPrimaryUrlForViewer(
@@ -1378,6 +1385,25 @@ final class MemberSearchService
 
                     variant: 'thumbnail'
                 );
+
+            /*
+            * No authorized thumbnail is available.
+            *
+            * Do not expose whether this means:
+            *
+            * - the member has no photo;
+            * - the photo is pending/rejected;
+            * - the photo exists but this viewer cannot access it.
+            *
+            * The UI receives only the standard gender placeholder.
+            */
+            if ($image === '') {
+                $image =
+                    member_profile_placeholder(
+                        $row['gender']
+                            ?? null
+                    );
+            }
 
             $profiles[] = [
                 'referenceId' =>

@@ -472,49 +472,21 @@ $interestActionNotice =
                                                         ) ?>"
                                                 class="text-decoration-none flex-shrink-0">
 
-                                                <?php if (
-                                                    $image !== ''
-                                                ): ?>
+                                                <div class="member-profile-thumbnail">
 
-                                                    <div
-                                                        class="member-profile-thumbnail">
+                                                    <img
+                                                        src="<?= esc(
+                                                                    $image,
+                                                                    'attr'
+                                                                ) ?>"
+                                                        alt="<?= esc(
+                                                                    $name
+                                                                        . ' profile photo',
+                                                                    'attr'
+                                                                ) ?>"
+                                                        loading="lazy">
 
-                                                        <img
-                                                            src="<?= esc(
-                                                                        $image,
-                                                                        'attr'
-                                                                    ) ?>"
-                                                            alt="<?= esc(
-                                                                        $name
-                                                                            . ' profile photo',
-                                                                        'attr'
-                                                                    ) ?>">
-                                                    </div>
-
-                                                <?php else: ?>
-
-                                                    <div
-                                                        class="member-profile-thumbnail member-profile-thumbnail--fallback"
-                                                        aria-label="<?= esc(
-                                                                        $name,
-                                                                        'attr'
-                                                                    ) ?>">
-
-                                                        <span>
-                                                            <?= esc(
-                                                                mb_strtoupper(
-                                                                    mb_substr(
-                                                                        $name,
-                                                                        0,
-                                                                        1
-                                                                    )
-                                                                )
-                                                            ) ?>
-                                                        </span>
-
-                                                    </div>
-
-                                                <?php endif; ?>
+                                                </div>
 
                                             </a>
 

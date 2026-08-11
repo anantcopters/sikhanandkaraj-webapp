@@ -38,6 +38,10 @@ use App\Support\DateDisplay;
  * @var array<string, string>|null $formAlert
  */
 
+helper(
+    'member_profile'
+);
+
 $resolvedMemberId = max(
     0,
     (int) (
@@ -206,6 +210,21 @@ if ($adminProfileImage === '') {
             break;
         }
     }
+}
+
+$memberGender =
+    trim(
+        (string) (
+            $resolvedAdminMember['gender']
+            ?? ''
+        )
+    );
+
+if ($adminProfileImage === '') {
+    $adminProfileImage =
+        member_profile_placeholder(
+            $memberGender
+        );
 }
 
 $resolvedFormAlert = isset($formAlert)
@@ -932,46 +951,20 @@ $this->section('content');
 
                 <div class="col-12 col-md-auto">
 
-                    <?php if ($adminProfileImage !== ''): ?>
+                    <div class="member-profile-thumbnail">
 
-                        <div class="member-profile-thumbnail">
-                            <img
-                                src="<?= esc(
-                                            $adminProfileImage,
-                                            'attr'
-                                        ) ?>"
-                                alt="<?= esc(
-                                            $fullName
-                                                . ' profile photo',
-                                            'attr'
-                                        ) ?>">
-                        </div>
+                        <img
+                            src="<?= esc(
+                                        $adminProfileImage,
+                                        'attr'
+                                    ) ?>"
+                            alt="<?= esc(
+                                        $fullName
+                                            . ' profile photo',
+                                        'attr'
+                                    ) ?>">
 
-                    <?php else: ?>
-
-                        <div
-                            class="member-profile-thumbnail
-                member-profile-thumbnail--fallback"
-                            aria-label="<?= esc(
-                                            $fullName,
-                                            'attr'
-                                        ) ?>">
-
-                            <span>
-                                <?= esc(
-                                    mb_strtoupper(
-                                        mb_substr(
-                                            $fullName,
-                                            0,
-                                            1
-                                        )
-                                    )
-                                ) ?>
-                            </span>
-
-                        </div>
-
-                    <?php endif; ?>
+                    </div>
 
                 </div>
 

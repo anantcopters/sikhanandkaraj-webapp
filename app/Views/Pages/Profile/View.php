@@ -298,6 +298,24 @@ $profileImage = trim(
     (string) ($profileImage ?? '')
 );
 
+/*
+ * The controller/service has already resolved whether an
+ * actual profile image can be displayed for this viewing mode.
+ *
+ * If not, apply the common gender-based presentation fallback.
+ */
+if ($profileImage === '') {
+    helper(
+        'member_profile'
+    );
+
+    $profileImage =
+        member_profile_placeholder(
+            $user['gender']
+                ?? null
+        );
+}
+
 $fullName = trim(
     (string) ($user['full_name'] ?? '')
 );
@@ -867,55 +885,18 @@ $this->section('content');
                         rounded-3
                         bg-light">
 
-                            <?php if (
-                                $profileImage !== ''
-                            ): ?>
-
-                                <img
-                                    src="<?= esc(
-                                                $profileImage,
-                                                'attr'
-                                            ) ?>"
-                                    alt="<?= esc(
-                                                $fullName
-                                                    . ' profile photo',
-                                                'attr'
-                                            ) ?>"
-                                    class="member-photo-medium"
-                                    loading="eager">
-
-                            <?php else: ?>
-
-                                <div
-                                    class="d-flex
-                                align-items-center
-                                justify-content-center
-                                text-muted
-                                member-photo-medium"
-                                    aria-label="Profile photo unavailable">
-
-                                    <div
-                                        class="d-flex
-                                    flex-column
-                                    align-items-center
-                                    justify-content-center">
-
-                                        <i
-                                            class="ri-user-3-line
-                                        fs-32"
-                                            aria-hidden="true">
-                                        </i>
-
-                                        <span
-                                            class="fs-13 mt-2">
-
-                                            No approved profile photo
-                                        </span>
-
-                                    </div>
-                                </div>
-
-                            <?php endif; ?>
+                            <img
+                                src="<?= esc(
+                                            $profileImage,
+                                            'attr'
+                                        ) ?>"
+                                alt="<?= esc(
+                                            $fullName
+                                                . ' profile photo',
+                                            'attr'
+                                        ) ?>"
+                                class="member-photo-medium"
+                                loading="eager">
 
                         </div>
                     </div>

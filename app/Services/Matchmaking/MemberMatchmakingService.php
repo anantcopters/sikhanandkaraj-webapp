@@ -642,6 +642,9 @@ final class MemberMatchmakingService
         int $viewerUserId,
         array $rows
     ): array {
+        helper(
+            'member_profile'
+        );
         $result = [];
 
         foreach ($rows as $row) {
@@ -684,10 +687,14 @@ final class MemberMatchmakingService
                 );
 
             /*
-             * Project rule:
-             * match/search/multi-profile listings use THUMBNAIL only.
-             */
-            $profileImage = $this
+            * Project rule:
+            * match/search/multi-profile listings use THUMBNAIL only.
+            *
+            * Resolve the actual authorized member photo before applying
+            * the presentation fallback.
+            */
+            $profileImage =
+                $this
                 ->photoUrlService
                 ->getApprovedPrimaryUrlForViewer(
                     memberId: $memberId,
@@ -698,6 +705,21 @@ final class MemberMatchmakingService
 
                     variant: 'thumbnail'
                 );
+
+            /*
+            * When no authorized thumbnail can be displayed, use the
+            * standard gender placeholder.
+            *
+            * Photo authorization remains entirely inside
+            * MemberPhotoUrlService.
+            */
+            if ($profileImage === '') {
+                $profileImage =
+                    member_profile_placeholder(
+                        $row['gender']
+                            ?? null
+                    );
+            }
 
             $result[] = [
                 'referenceId' =>

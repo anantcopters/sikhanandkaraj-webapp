@@ -603,9 +603,9 @@ final class MemberInterestService
             as $row
         ) {
             $visibleMembers[(int) (
-                    $row['id']
-                    ?? 0
-                )] = $row;
+                $row['id']
+                ?? 0
+            )] = $row;
         }
 
         $result = [];
@@ -736,6 +736,9 @@ final class MemberInterestService
         array $records,
         string $direction
     ): array {
+        helper(
+            'member_profile'
+        );
         $result = [];
 
         foreach (
@@ -778,12 +781,12 @@ final class MemberInterestService
             }
 
             /*
-             * Interest relationship already exists,
-             * therefore interested-member photo visibility
-             * is satisfied.
-             *
-             * Listing uses thumbnail only.
-             */
+            * Interest already establishes a relationship between the
+            * two members, therefore INTERESTED_MEMBERS photo visibility
+            * is satisfied.
+            *
+            * The listing continues to request only the thumbnail variant.
+            */
             $image =
                 $this->photoUrlService
                 ->getApprovedPrimaryUrlForViewer(
@@ -795,6 +798,21 @@ final class MemberInterestService
 
                     variant: 'thumbnail'
                 );
+
+            /*
+            * Use the common gender placeholder only after the normal
+            * photo-authorization flow has completed.
+            *
+            * This deliberately does not reveal whether the member has
+            * no photo or whether a real photo cannot currently be shown.
+            */
+            if ($image === '') {
+                $image =
+                    member_profile_placeholder(
+                        $member['gender']
+                            ?? null
+                    );
+            }
 
             $result[] = [
                 'referenceId' =>

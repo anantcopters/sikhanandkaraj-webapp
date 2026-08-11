@@ -156,19 +156,6 @@ $location =
     : $state;
 
 /*
- * The fallback does not reveal whether a photo is absent or simply not
- * authorized for this viewer.
- */
-$initial =
-    mb_strtoupper(
-        mb_substr(
-            $name,
-            0,
-            1
-        )
-    );
-
-/*
  * Relationship status is intentionally coarse.
  */
 $relationshipLabel =
@@ -208,47 +195,24 @@ $relationshipLabel =
                             'attr'
                         ) ?>"
                 class="text-decoration-none
-                    flex-shrink-0">
+        flex-shrink-0">
 
-                <?php if (
-                    $image !== ''
-                ): ?>
+                <div
+                    class="member-profile-thumbnail">
 
-                    <div
-                        class="member-profile-thumbnail">
+                    <img
+                        src="<?= esc(
+                                    $image,
+                                    'attr'
+                                ) ?>"
+                        alt="<?= esc(
+                                    $name
+                                        . ' profile photo',
+                                    'attr'
+                                ) ?>"
+                        loading="lazy">
 
-                        <img
-                            src="<?= esc(
-                                        $image,
-                                        'attr'
-                                    ) ?>"
-                            alt="<?= esc(
-                                        $name
-                                            . ' profile photo',
-                                        'attr'
-                                    ) ?>">
-
-                    </div>
-
-                <?php else: ?>
-
-                    <div
-                        class="member-profile-thumbnail
-                            member-profile-thumbnail--fallback"
-                        aria-label="<?= esc(
-                                        $name,
-                                        'attr'
-                                    ) ?>">
-
-                        <span>
-                            <?= esc(
-                                $initial
-                            ) ?>
-                        </span>
-
-                    </div>
-
-                <?php endif; ?>
+                </div>
 
             </a>
 
