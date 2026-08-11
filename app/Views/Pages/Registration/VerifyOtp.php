@@ -22,6 +22,7 @@ declare(strict_types=1);
  * @var string|null                $sendLimitMessage
  * @var array<string, string>|null $validationErrors
  * @var array<string, string>|null $formAlert
+ * @var bool|null                  $hidePublicLoginAction
  */
 
 $pageTitle = isset($pageTitle)
@@ -74,6 +75,10 @@ $formAlert = isset($formAlert)
     && is_array($formAlert)
     ? $formAlert
     : null;
+
+$hidePublicLoginAction =
+    ($hidePublicLoginAction ?? false)
+    === true;
 
 $otpError = isset($validationErrors['otp'])
     ? trim((string) $validationErrors['otp'])

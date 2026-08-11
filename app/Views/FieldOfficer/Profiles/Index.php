@@ -74,31 +74,6 @@ foreach ($profiles as $profile) {
         continue;
     }
 
-    $sourceType = strtoupper(
-        trim(
-            (string) (
-                $profile['source_type']
-                ?? ''
-            )
-        )
-    );
-
-    $sourceId = max(
-        0,
-        (int) (
-            $profile['source_id']
-            ?? 0
-        )
-    );
-
-    $memberId = max(
-        0,
-        (int) (
-            $profile['member_user_id']
-            ?? 0
-        )
-    );
-
     $status = strtoupper(
         trim(
             (string) (
@@ -107,30 +82,6 @@ foreach ($profiles as $profile) {
             )
         )
     );
-
-    $viewUrl = '';
-
-    if (
-        $sourceType === 'PRELAUNCH'
-        && $sourceId > 0
-    ) {
-        $viewUrl = route_to(
-            'field-officer.profiles.prelaunch.view',
-            $sourceId
-        );
-    } elseif (
-        $sourceType === 'MEMBER'
-        && $memberId > 0
-    ) {
-        $viewUrl = route_to(
-            'field-officer.profiles.member.view',
-            $memberId
-        );
-    }
-
-    if ($viewUrl === '') {
-        continue;
-    }
 
     $cityName = trim(
         (string) (
@@ -163,14 +114,30 @@ foreach ($profiles as $profile) {
         $location = '—';
     }
 
+    $reference = trim(
+        (string) (
+            $profile['profile_reference']
+            ?? ''
+        )
+    );
+
+    $profileId = trim(
+        (string) (
+            $profile['profile_id']
+            ?? ''
+        )
+    );
+
     $resolvedProfiles[] = [
         'reference' =>
-        trim(
-            (string) (
-                $profile['profile_reference']
-                ?? ''
-            )
-        ),
+        $reference !== ''
+            ? $reference
+            : '—',
+
+        'profileId' =>
+        $profileId !== ''
+            ? $profileId
+            : '—',
 
         'fullName' =>
         trim(
@@ -195,9 +162,6 @@ foreach ($profiles as $profile) {
         $status === 'APPROVED'
             ? 'APPROVED'
             : 'DRAFT',
-
-        'viewUrl' =>
-        $viewUrl,
     ];
 }
 
@@ -415,6 +379,10 @@ $this->section('content');
                             </th>
 
                             <th>
+                                Profile ID
+                            </th>
+
+                            <th>
                                 Member
                             </th>
 
@@ -428,10 +396,6 @@ $this->section('content');
 
                             <th>
                                 Status
-                            </th>
-
-                            <th class="text-end">
-                                Action
                             </th>
 
                         </tr>
@@ -477,14 +441,40 @@ $this->section('content');
 
                                 <td>
 
-                                    <span
-                                        class="fw-semibold">
+                                    <span class="fw-semibold">
 
                                         <?= esc(
                                             $profile['reference']
                                         ) ?>
 
                                     </span>
+
+                                </td>
+
+                                <td>
+
+                                    <?php if (
+                                        $profile['profileId']
+                                        !== '—'
+                                    ): ?>
+
+                                        <span
+                                            class="fw-semibold
+                text-primary">
+
+                                            <?= esc(
+                                                $profile['profileId']
+                                            ) ?>
+
+                                        </span>
+
+                                    <?php else: ?>
+
+                                        <span class="text-muted">
+                                            —
+                                        </span>
+
+                                    <?php endif; ?>
 
                                 </td>
 
@@ -521,8 +511,8 @@ $this->section('content');
 
                                         <span
                                             class="badge
-                                            bg-success-subtle
-                                            text-success">
+                bg-success-subtle
+                text-success p-2">
 
                                             Approved
                                         </span>
@@ -531,35 +521,13 @@ $this->section('content');
 
                                         <span
                                             class="badge
-                                            bg-warning-subtle
-                                            text-dark">
+                bg-warning-subtle
+                text-dark p-2">
 
                                             Draft
                                         </span>
 
                                     <?php endif; ?>
-
-                                </td>
-
-                                <td class="text-end">
-
-                                    <a
-                                        href="<?= esc(
-                                                    $profile['viewUrl'],
-                                                    'attr'
-                                                ) ?>"
-                                        class="btn
-                                        btn-soft-primary
-                                        btn-sm"
-                                        title="View profile"
-                                        aria-label="View profile">
-
-                                        <i
-                                            class="ri-eye-line"
-                                            aria-hidden="true">
-                                        </i>
-
-                                    </a>
 
                                 </td>
 

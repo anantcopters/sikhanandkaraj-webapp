@@ -93,6 +93,17 @@ $searchActive =
         $currentPath,
         'search/'
     );
+
+/**
+ * Some reusable unauthenticated screens are used outside
+ * normal member authentication.
+ *
+ * Field Officer OTP verification uses the public layout,
+ * but must not advertise member Login from its header.
+ */
+$hidePublicLoginAction =
+    ($hidePublicLoginAction ?? false)
+    === true;
 ?>
 
 <header class="public-header">
@@ -737,25 +748,27 @@ $searchActive =
 
                 <!-- Existing public header actions -->
                 <div class="public-navbar__actions">
-
-                    <span
-                        class="fs-16
+                    <?php if (
+                        !$hidePublicLoginAction
+                    ): ?>
+                        <span
+                            class="fs-16
                         fw-semibold
                         lh-base
                         text-dark
                         text-nowrap
                         hide-on-mobile-tablet">
-                        Already a member?
-                    </span>
+                            Already a member?
+                        </span>
 
-                    <a
-                        href="<?= site_url('login') ?>"
-                        class="btn
+                        <a
+                            href="<?= site_url('login') ?>"
+                            class="btn
                         public-navbar__login
                         fs-14">
-                        Login
-                    </a>
-
+                            Login
+                        </a>
+                    <?php endif; ?>
                     <a
                         href="tel:+919887005392"
                         class="public-navbar__phone

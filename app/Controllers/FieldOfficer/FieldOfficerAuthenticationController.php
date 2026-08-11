@@ -6,7 +6,6 @@ namespace App\Controllers\FieldOfficer;
 
 use App\Controllers\BaseController;
 use App\Services\FieldOfficer\FieldOfficerLoginService;
-use App\Support\OtpInputNormalizer;
 use App\Validation\FieldOfficerValidation;
 use CodeIgniter\HTTP\RedirectResponse;
 use RuntimeException;
@@ -254,6 +253,15 @@ extends BaseController
 
                 'profileReference' =>
                 '',
+
+                /*
+                * The reusable OTP screen uses the public/member layout.
+                *
+                * Field Officer authentication must not show the
+                * member Login call-to-action in that header.
+                */
+                'hidePublicLoginAction' =>
+                true,
 
                 'expiresAtTimestamp' =>
                 $service

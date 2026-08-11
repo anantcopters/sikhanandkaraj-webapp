@@ -104,6 +104,13 @@ extends Model
                     false
                 )
                 ->orWhere(
+                    'COALESCE(profile_id, \'\') '
+                        . 'ILIKE '
+                        . $pattern,
+                    null,
+                    false
+                )
+                ->orWhere(
                     'full_name ILIKE '
                         . $pattern,
                     null,
