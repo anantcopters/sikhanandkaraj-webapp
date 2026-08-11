@@ -59,7 +59,7 @@ final class PrelaunchProfileValidation
                     'label' => 'Profile created for',
                     'rules' => [
                         'required',
-                        'in_list[SELF,SON,DAUGHTER,BROTHER,SISTER,RELATIVE,FRIEND]',
+                        'in_list[SELF,SON,DAUGHTER,BROTHER,SISTER]',
                     ],
                     'errors' => [
                         'required' =>

@@ -36,6 +36,12 @@ final class PrelaunchProfileController extends BaseController
             throw PageNotFoundException::forPageNotFound();
         }
 
+        /*
+        * Initialize before the try block because the catch block
+        * includes this value in operational error context.
+        */
+        $selectedStateId = 0;
+
         try {
             /** @var ProfileMasterDataService $masterService */
             $masterService = service(

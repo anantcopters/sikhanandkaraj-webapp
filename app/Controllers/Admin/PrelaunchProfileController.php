@@ -165,10 +165,6 @@ final class PrelaunchProfileController extends BaseController
             PageNotFoundException $exception
         ) {
             throw $exception;
-        } catch (
-            PageNotFoundException $exception
-        ) {
-            throw $exception;
         } catch (Throwable $exception) {
             service(
                 'applicationErrorLogger'
