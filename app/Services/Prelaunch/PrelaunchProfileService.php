@@ -192,17 +192,58 @@ final class PrelaunchProfileService
         }
 
         /*
-         * The Field Officer ID comes only from server configuration.
-         *
-         * Re-resolve the active database row for every profile so a
-         * disabled or deleted officer cannot receive new profiles.
-         */
-        $fieldOfficer = $this
-            ->fieldOfficerService
-            ->resolveConfiguredOfficer(
-                $this->configuration
-                    ->profileFieldOfficerId
-            );
+ * ----------------------------------------------------------
+ * FIELD OFFICER RESOLUTION
+ * ----------------------------------------------------------
+ *
+ * Production:
+ *     Explicit Field Officer verification is compulsory.
+ *
+ * QA / Development:
+ *     Preserve the existing automatic configured Field
+ *     Officer behavior exactly as it works today.
+ */
+        if (
+            $this->configuration
+            ->requiresFieldOfficerVerification
+        ) {
+            $submittedFieldOfficerId =
+                (int) (
+                    $input['verified_field_officer_id'] ?? 0
+                );
+
+            $submittedFieldOfficerCode =
+                mb_strtoupper(
+                    trim(
+                        (string) (
+                            $input['field_officer_code'] ?? ''
+                        )
+                    )
+                );
+
+            /*
+     * Revalidate server-side.
+     *
+     * The hidden ID returned by AJAX is browser-controlled
+     * and cannot be trusted by itself.
+     */
+            $fieldOfficer =
+                $this->fieldOfficerService
+                ->assertVerifiedOfficer(
+                    $submittedFieldOfficerId,
+                    $submittedFieldOfficerCode
+                );
+        } else {
+            /*
+     * Existing QA/development behavior.
+     */
+            $fieldOfficer =
+                $this->fieldOfficerService
+                ->resolveConfiguredOfficer(
+                    $this->configuration
+                        ->profileFieldOfficerId
+                );
+        }
 
         $fieldOfficerId = (int) (
             $fieldOfficer['id']
@@ -211,7 +252,7 @@ final class PrelaunchProfileService
 
         if ($fieldOfficerId <= 0) {
             throw new RuntimeException(
-                'The configured Field Officer is invalid.'
+                'The Field Officer is invalid.'
             );
         }
 

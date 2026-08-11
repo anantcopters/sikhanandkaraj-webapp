@@ -21,18 +21,6 @@ final class Prelaunch extends BaseConfig
      */
     public string $migratedMemberDefaultPassword;
 
-    public function __construct()
-    {
-        parent::__construct();
-
-        $this->migratedMemberDefaultPassword = trim(
-            (string) env(
-                'PRELAUNCH_MEMBER_DEFAULT_PASSWORD',
-                ''
-            )
-        );
-    }
-
     /**
      * Field Officer assigned to every prelaunch profile.
      *
@@ -110,4 +98,45 @@ final class Prelaunch extends BaseConfig
     public int $recommendedPhotoWidthPixels = 600;
 
     public int $recommendedPhotoHeightPixels = 600;
+
+    /**
+     * Require explicit Field Officer verification on the
+     * public prelaunch form.
+     *
+     * Production:
+     * Member/user must enter and verify an active Field Officer.
+     *
+     * QA/Development:
+     * Continue using profileFieldOfficerId from configuration.
+     */
+    public bool $requiresFieldOfficerVerification = false;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->migratedMemberDefaultPassword = trim(
+            (string) env(
+                'PRELAUNCH_MEMBER_DEFAULT_PASSWORD',
+                ''
+            )
+        );
+
+        $deployment = trim(
+            (string) env(
+                'APP_DEPLOYMENT',
+                'development'
+            )
+        );
+
+        $this->requiresFieldOfficerVerification =
+            in_array(
+                $deployment,
+                [
+                    'development',
+                    'production',
+                ],
+                true
+            );
+    }
 }

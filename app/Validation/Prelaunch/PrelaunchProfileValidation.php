@@ -20,8 +20,9 @@ final class PrelaunchProfileValidation
      *
      * @return array<string, array<string, mixed>>
      */
-    public static function createRules(): array
-    {
+    public static function createRules(
+        bool $requireFieldOfficerVerification = false
+    ): array {
         /*
          * Reuse shared basic-profile validation and remove only fields
          * which are intentionally not part of the prelaunch workflow.
@@ -51,7 +52,7 @@ final class PrelaunchProfileValidation
             ],
         ];
 
-        return array_merge(
+        $rules = array_merge(
             $rules,
             [
                 'profile_created_for' => [
@@ -299,6 +300,53 @@ final class PrelaunchProfileValidation
                 ],
             ]
         );
+
+        /*
+        * Field Officer verification belongs only to the
+        * production prelaunch workflow.
+        */
+        if ($requireFieldOfficerVerification) {
+            $rules['field_officer_code'] = [
+                'label' => 'Field Officer code',
+
+                'rules' => [
+                    'required',
+                    'exact_length[11]',
+                    'regex_match[/^FOSAK[0-9]{6}$/]',
+                ],
+
+                'errors' => [
+                    'required' =>
+                    'Please enter the Field Officer code.',
+
+                    'exact_length' =>
+                    'Please enter a valid Field Officer code.',
+
+                    'regex_match' =>
+                    'Please enter a valid Field Officer code.',
+                ],
+            ];
+
+            $rules['verified_field_officer_id'] = [
+                'label' => 'Verified Field Officer',
+
+                'rules' => [
+                    'required',
+                    'is_natural_no_zero',
+                ],
+
+                'errors' => [
+                    'required' =>
+                    'Please verify the Field Officer '
+                        . 'before saving the profile.',
+
+                    'is_natural_no_zero' =>
+                    'Please verify a valid Field Officer.',
+                ],
+            ];
+        }
+
+        return $rules;
     }
 
     /**

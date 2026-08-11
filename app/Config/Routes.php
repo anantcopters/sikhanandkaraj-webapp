@@ -1376,13 +1376,13 @@ $routes->group(
             ]
         );
 
-        // $routes->post(
-        //     'field-officer/verify',
-        //     'PrelaunchProfileController::verifyFieldOfficer',
-        //     [
-        //         'as' => 'prelaunch.field-officer.verify',
-        //     ]
-        // );
+        $routes->post(
+            'field-officer/verify',
+            'PrelaunchProfileController::verifyFieldOfficer',
+            [
+                'as' => 'prelaunch.field-officer.verify',
+            ]
+        );
 
         /*
         * Return active cities for the selected state.

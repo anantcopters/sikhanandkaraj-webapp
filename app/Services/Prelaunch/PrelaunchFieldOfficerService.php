@@ -19,18 +19,15 @@ final class PrelaunchFieldOfficerService
     /**
      * Resolve the configured Field Officer.
      *
-     * The configured ID is trusted only as configuration input. The
-     * corresponding database record must still exist, remain ACTIVE and
-     * not be soft-deleted at the moment the profile is saved.
+     * Used by QA/development where prelaunch entry continues
+     * assigning the configured Field Officer automatically.
      *
      * @return array{
-     *     id: int,
-     *     officer_code: string,
-     *     full_name: string,
-     *     account_status: string
+     *     id:int,
+     *     officer_code:string,
+     *     full_name:string,
+     *     account_status:string
      * }
-     *
-     * @throws RuntimeException
      */
     public function resolveConfiguredOfficer(
         int $fieldOfficerId
@@ -49,7 +46,8 @@ final class PrelaunchFieldOfficerService
 
         if ($fieldOfficer === null) {
             throw new RuntimeException(
-                'The configured prelaunch Field Officer is invalid or inactive.'
+                'The configured prelaunch Field Officer '
+                    . 'is invalid or inactive.'
             );
         }
 
@@ -78,159 +76,168 @@ final class PrelaunchFieldOfficerService
     }
 
     /**
-     * Verify an active Field Officer by code.
+     * Verify an ACTIVE and non-deleted Field Officer by code.
+     *
+     * Used by the production prelaunch flow.
      *
      * @return array{
-     *     id: int,
-     *     officer_code: string,
-     *     full_name: string,
-     *     country_name: string,
-     *     state_name: string,
-     *     city_name: string,
-     *     location: string
+     *     id:int,
+     *     officer_code:string,
+     *     full_name:string,
+     *     state_name:string,
+     *     city_name:string,
+     *     location:string
      * }
      */
-    // public function verifyCode(
-    //     string $officerCode
-    // ): array {
-    //     $normalizedCode = $this->normalizeCode(
-    //         $officerCode
-    //     );
+    public function verifyCode(
+        string $officerCode
+    ): array {
+        $normalizedCode =
+            $this->normalizeCode(
+                $officerCode
+            );
 
-    //     if ($normalizedCode === '') {
-    //         throw new RuntimeException(
-    //             'Please enter a Field Officer code.'
-    //         );
-    //     }
+        if ($normalizedCode === '') {
+            throw new RuntimeException(
+                'Please enter a Field Officer code.'
+            );
+        }
 
-    //     if (
-    //         preg_match(
-    //             '/^[A-Z0-9-]{4,20}$/',
-    //             $normalizedCode
-    //         ) !== 1
-    //     ) {
-    //         throw new RuntimeException(
-    //             'Please enter a valid Field Officer code.'
-    //         );
-    //     }
+        /*
+         * Current generated Field Officer format:
+         *
+         * FOSAK + six digits
+         *
+         * Keep this aligned with FieldOfficerService.
+         */
+        if (
+            preg_match(
+                '/^FOSAK[0-9]{6}$/',
+                $normalizedCode
+            ) !== 1
+        ) {
+            throw new RuntimeException(
+                'Please enter a valid Field Officer code.'
+            );
+        }
 
-    //     $fieldOfficer = $this->fieldOfficerModel
-    //         ->findActiveByCode(
-    //             $normalizedCode
-    //         );
+        $fieldOfficer =
+            $this->fieldOfficerModel
+            ->findActiveByCode(
+                $normalizedCode
+            );
 
-    //     if ($fieldOfficer === null) {
-    //         throw new RuntimeException(
-    //             'The Field Officer code is invalid or inactive.'
-    //         );
-    //     }
+        if ($fieldOfficer === null) {
+            throw new RuntimeException(
+                'The Field Officer code is invalid or inactive.'
+            );
+        }
 
-    //     $countryName = trim(
-    //         (string) (
-    //             $fieldOfficer['country_name']
-    //             ?? ''
-    //         )
-    //     );
+        $stateName = trim(
+            (string) (
+                $fieldOfficer['state_name']
+                ?? ''
+            )
+        );
 
-    //     $stateName = trim(
-    //         (string) (
-    //             $fieldOfficer['state_name']
-    //             ?? ''
-    //         )
-    //     );
+        $cityName = trim(
+            (string) (
+                $fieldOfficer['city_name']
+                ?? ''
+            )
+        );
 
-    //     $cityName = trim(
-    //         (string) (
-    //             $fieldOfficer['city_name']
-    //             ?? ''
-    //         )
-    //     );
+        $location = implode(
+            ', ',
+            array_filter(
+                [
+                    $cityName,
+                    $stateName,
+                ],
+                static fn(
+                    string $value
+                ): bool => $value !== ''
+            )
+        );
 
-    //     $location = implode(
-    //         ', ',
-    //         array_filter(
-    //             [
-    //                 $cityName,
-    //                 $stateName,
-    //                 $countryName,
-    //             ],
-    //             static fn(
-    //                 string $value
-    //             ): bool => $value !== ''
-    //         )
-    //     );
+        return [
+            'id' =>
+            (int) $fieldOfficer['id'],
 
-    //     return [
-    //         'id' =>
-    //         (int) $fieldOfficer['id'],
+            'officer_code' =>
+            (string) $fieldOfficer['officer_code'],
 
-    //         'officer_code' =>
-    //         (string) $fieldOfficer['officer_code'],
+            'full_name' =>
+            (string) $fieldOfficer['full_name'],
 
-    //         'full_name' =>
-    //         (string) $fieldOfficer['full_name'],
+            'state_name' =>
+            $stateName,
 
-    //         'country_name' =>
-    //         $countryName,
+            'city_name' =>
+            $cityName,
 
-    //         'state_name' =>
-    //         $stateName,
-
-    //         'city_name' =>
-    //         $cityName,
-
-    //         'location' =>
-    //         $location,
-    //     ];
-    // }
+            'location' =>
+            $location,
+        ];
+    }
 
     /**
-     * Revalidate the submitted hidden ID against the submitted code.
+     * Revalidate the submitted verification before save.
      *
-     * Hidden form fields are user-controlled and must never be trusted
-     * without this server-side verification.
+     * The hidden Field Officer ID is browser-controlled and
+     * therefore never trusted directly.
+     *
+     * The officer:
+     *
+     * - must still exist;
+     * - must still be ACTIVE;
+     * - must still match the entered code;
+     * - must match the ID returned during verification.
      *
      * @return array{
-     *     id: int,
-     *     officer_code: string,
-     *     full_name: string,
-     *     country_name: string,
-     *     state_name: string,
-     *     city_name: string,
-     *     location: string
+     *     id:int,
+     *     officer_code:string,
+     *     full_name:string,
+     *     state_name:string,
+     *     city_name:string,
+     *     location:string
      * }
      */
-    // public function assertVerifiedOfficer(
-    //     int $fieldOfficerId,
-    //     string $officerCode
-    // ): array {
-    //     if ($fieldOfficerId <= 0) {
-    //         throw new RuntimeException(
-    //             'Please verify the Field Officer before saving the profile.'
-    //         );
-    //     }
+    public function assertVerifiedOfficer(
+        int $fieldOfficerId,
+        string $officerCode
+    ): array {
+        if ($fieldOfficerId <= 0) {
+            throw new RuntimeException(
+                'Please verify the Field Officer '
+                    . 'before saving the profile.'
+            );
+        }
 
-    //     $fieldOfficer = $this->verifyCode(
-    //         $officerCode
-    //     );
+        $fieldOfficer =
+            $this->verifyCode(
+                $officerCode
+            );
 
-    //     if (
-    //         $fieldOfficer['id']
-    //         !== $fieldOfficerId
-    //     ) {
-    //         throw new RuntimeException(
-    //             'The verified Field Officer no longer matches the entered code. Please verify it again.'
-    //         );
-    //     }
+        if (
+            (int) $fieldOfficer['id']
+            !== $fieldOfficerId
+        ) {
+            throw new RuntimeException(
+                'The verified Field Officer no longer '
+                    . 'matches the entered code. '
+                    . 'Please verify it again.'
+            );
+        }
 
-    //     return $fieldOfficer;
-    // }
+        return $fieldOfficer;
+    }
 
-    // private function normalizeCode(
-    //     string $officerCode
-    // ): string {
-    //     return mb_strtoupper(
-    //         trim($officerCode)
-    //     );
-    // }
+    private function normalizeCode(
+        string $officerCode
+    ): string {
+        return mb_strtoupper(
+            trim($officerCode)
+        );
+    }
 }

@@ -141,6 +141,17 @@ $this->section('content');
                     'Prelaunch/Profile/Partials/FamilyDetails'
                 ) ?>
 
+                <?php if (
+                    ($requiresFieldOfficerVerification ?? false)
+                    === true
+                ): ?>
+
+                    <?= $this->include(
+                        'Prelaunch/Profile/Partials/FieldOfficer'
+                    ) ?>
+
+                <?php endif; ?>
+
                 <?= $this->include(
                     'Prelaunch/Profile/Partials/Photos'
                 ) ?>
