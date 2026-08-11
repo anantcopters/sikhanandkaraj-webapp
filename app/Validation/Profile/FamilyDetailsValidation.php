@@ -170,7 +170,7 @@ final class FamilyDetailsValidation
             ),
 
             'field_officer_code' => [
-                'label' => 'Field Officer ID',
+                'label' => 'SAK Volunteer ID',
                 'rules' => [
                     'permit_empty',
                     'max_length[11]',
@@ -178,10 +178,10 @@ final class FamilyDetailsValidation
                 ],
                 'errors' => [
                     'max_length' =>
-                    'Please enter a valid Field Officer ID.',
+                    'Please enter a valid SAK Volunteer ID.',
 
                     'regex_match' =>
-                    'Please enter a valid Field Officer ID.',
+                    'Please enter a valid SAK Volunteer ID.',
                 ],
             ],
         ];

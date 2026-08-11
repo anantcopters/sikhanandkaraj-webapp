@@ -18,7 +18,7 @@ use CodeIgniter\Router\RouteCollection;
 //
 
 // -----------------------------------------------------------------------------
-// Field Officer portal
+// SAK Volunteer portal
 // -----------------------------------------------------------------------------
 
 $routes->group(
@@ -1179,7 +1179,7 @@ $routes->group('admin', [
         });
 
         /*
-        * Only SUPER_ADMIN may manage Field Officers.
+        * Only SUPER_ADMIN may manage SAK Volunteers.
         */
         $routes->group(
             'field-officers',

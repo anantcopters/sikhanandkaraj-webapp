@@ -34,7 +34,7 @@ implements FilterInterface
                 ->deny(
                     'Login required',
                     'Please log in to access '
-                        . 'the Field Officer portal.'
+                        . 'the SAK Volunteer portal.'
                 );
         }
 
@@ -48,7 +48,7 @@ implements FilterInterface
         } catch (Throwable $exception) {
             log_message(
                 'error',
-                'Unable to validate Field Officer session: {message}',
+                'Unable to validate SAK Volunteer session: {message}',
                 [
                     'message' =>
                     $exception
@@ -58,7 +58,7 @@ implements FilterInterface
 
             return $this->deny(
                 'Session unavailable',
-                'Your Field Officer session '
+                'Your SAK Volunteer session '
                     . 'could not be validated.'
             );
         }
@@ -66,7 +66,7 @@ implements FilterInterface
         if (!is_array($fieldOfficer)) {
             return $this->deny(
                 'Account unavailable',
-                'Your Field Officer account '
+                'Your SAK Volunteer account '
                     . 'is no longer active.'
             );
         }

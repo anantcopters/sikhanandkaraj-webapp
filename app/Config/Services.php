@@ -297,7 +297,7 @@ final class Services extends BaseService
     }
 
     /**
-     * Return the Field Officer login CAPTCHA service.
+     * Return the SAK Volunteer login CAPTCHA service.
      *
      * The same proven CAPTCHA implementation used by Admin
      * is reused with isolated session state.
@@ -926,7 +926,7 @@ final class Services extends BaseService
     }
 
     /**
-     * Return the administrator Field Officer management service.
+     * Return the administrator SAK Volunteer management service.
      */
     public static function fieldOfficerService(
         bool $getShared = true
@@ -948,7 +948,7 @@ final class Services extends BaseService
     }
 
     /**
-     * Return the prelaunch Field Officer lookup service.
+     * Return the prelaunch SAK Volunteer lookup service.
      */
     public static function prelaunchFieldOfficerService(
         bool $getShared = true
@@ -1101,8 +1101,8 @@ final class Services extends BaseService
             ),
 
             /*
-            * Resolve the canonical Field Officer code from the
-            * Field Officer master during migration.
+            * Resolve the canonical SAK Volunteer code from the
+            * SAK Volunteer master during migration.
             */
             new FieldOfficerModel(
                 $database
@@ -1743,7 +1743,7 @@ final class Services extends BaseService
     }
 
     /**
-     * Field Officer OTP authentication.
+     * SAK Volunteer OTP authentication.
      */
     public static function fieldOfficerLoginService(
         bool $getShared = true
@@ -1774,7 +1774,7 @@ final class Services extends BaseService
     }
 
     /**
-     * Field Officer submitted-profile service.
+     * SAK Volunteer submitted-profile service.
      */
     public static function fieldOfficerProfileService(
         bool $getShared = true

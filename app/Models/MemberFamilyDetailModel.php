@@ -41,7 +41,7 @@ final class MemberFamilyDetailModel extends Model
         'reference_person_2',
 
         /*
-         * Field Officer assignment.
+         * SAK Volunteer assignment.
          *
          * Service + database rules ensure these values are immutable
          * once assigned.
@@ -95,7 +95,7 @@ final class MemberFamilyDetailModel extends Model
                 'master_cities.name AS city_name',
 
                 /*
-                 * Do not require the Field Officer to still be ACTIVE
+                 * Do not require the SAK Volunteer to still be ACTIVE
                  * when reading historical Family Details.
                  *
                  * The officer is required to be ACTIVE only when the

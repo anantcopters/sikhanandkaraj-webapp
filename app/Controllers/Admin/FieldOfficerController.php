@@ -14,12 +14,12 @@ use CodeIgniter\HTTP\ResponseInterface;
 use Throwable;
 
 /**
- * Super Admin Field Officer management controller.
+ * Super Admin SAK Volunteer management controller.
  */
 final class FieldOfficerController extends BaseController
 {
     /**
-     * Display all Field Officers.
+     * Display all SAK Volunteers.
      */
     public function index(): string
     {
@@ -32,7 +32,7 @@ final class FieldOfficerController extends BaseController
             'Admin/FieldOfficers/Index',
             [
                 'pageTitle' =>
-                'Field Officers',
+                'SAK Volunteers',
 
                 'fieldOfficers' =>
                 $service->listFieldOfficers(),
@@ -44,7 +44,7 @@ final class FieldOfficerController extends BaseController
     }
 
     /**
-     * Display the Field Officer creation form.
+     * Display the SAK Volunteer creation form.
      */
     public function create(): string
     {
@@ -88,7 +88,7 @@ final class FieldOfficerController extends BaseController
             'Admin/FieldOfficers/Create',
             [
                 'pageTitle' =>
-                'Add Field Officer',
+                'Add SAK Volunteer',
 
                 'formInput' =>
                 $formInput,
@@ -140,7 +140,7 @@ final class FieldOfficerController extends BaseController
     }
 
     /**
-     * Persist a new Field Officer.
+     * Persist a new SAK Volunteer.
      */
     public function store(): RedirectResponse
     {
@@ -209,12 +209,12 @@ final class FieldOfficerController extends BaseController
                     'success',
 
                     'title' =>
-                    'Field Officer added',
+                    'SAK Volunteer added',
 
                     'message' =>
                     $isActive
-                        ? 'The Field Officer was created and activated because a valid UPI ID was provided.'
-                        : 'The Field Officer was created in inactive status. Add a valid UPI ID before activating the Field Officer.',
+                        ? 'The SAK Volunteer was created and activated because a valid UPI ID was provided.'
+                        : 'The SAK Volunteer was created in inactive status. Add a valid UPI ID before activating the SAK Volunteer.',
                 ]);
         } catch (Throwable $exception) {
 
@@ -247,7 +247,7 @@ final class FieldOfficerController extends BaseController
                     'danger',
 
                     'title' =>
-                    'Field Officer not created',
+                    'SAK Volunteer not created',
 
                     'message' =>
                     $exception->getMessage(),
@@ -287,7 +287,7 @@ final class FieldOfficerController extends BaseController
 
             /*
              * Use the existing master-data bundle and supply the
-             * Field Officer's state so its cities are returned.
+             * SAK Volunteer's state so its cities are returned.
              */
             $masterData =
                 $masterService
@@ -304,7 +304,7 @@ final class FieldOfficerController extends BaseController
             return view(
                 'Admin/FieldOfficers/Edit',
                 [
-                    'pageTitle' => 'Edit Field Officer',
+                    'pageTitle' => 'Edit SAK Volunteer',
 
                     'fieldOfficer' =>
                     $fieldOfficer,
@@ -352,7 +352,7 @@ final class FieldOfficerController extends BaseController
                     'danger',
 
                     'title' =>
-                    'Field Officer not found',
+                    'SAK Volunteer not found',
 
                     'message' =>
                     $exception->getMessage(),
@@ -425,10 +425,10 @@ final class FieldOfficerController extends BaseController
                     'success',
 
                     'title' =>
-                    'Field Officer updated',
+                    'SAK Volunteer updated',
 
                     'message' =>
-                    'The Field Officer details were updated.',
+                    'The SAK Volunteer details were updated.',
                 ]);
         } catch (Throwable $exception) {
             service(
@@ -466,7 +466,7 @@ final class FieldOfficerController extends BaseController
                     'danger',
 
                     'title' =>
-                    'Field Officer not updated',
+                    'SAK Volunteer not updated',
 
                     'message' =>
                     $exception->getMessage(),
@@ -526,7 +526,7 @@ final class FieldOfficerController extends BaseController
     }
 
     /**
-     * Activate an inactive Field Officer.
+     * Activate an inactive SAK Volunteer.
      */
     public function activate(
         int $fieldOfficerId
@@ -555,10 +555,10 @@ final class FieldOfficerController extends BaseController
                     'success',
 
                     'title' =>
-                    'Field Officer activated',
+                    'SAK Volunteer activated',
 
                     'message' =>
-                    'The Field Officer is now active.',
+                    'The SAK Volunteer is now active.',
                 ]);
         } catch (Throwable $exception) {
             service(
@@ -590,7 +590,7 @@ final class FieldOfficerController extends BaseController
                     'danger',
 
                     'title' =>
-                    'Field Officer not activated',
+                    'SAK Volunteer not activated',
 
                     'message' =>
                     $exception->getMessage(),
@@ -599,7 +599,7 @@ final class FieldOfficerController extends BaseController
     }
 
     /**
-     * Deactivate an active Field Officer.
+     * Deactivate an active SAK Volunteer.
      */
     public function deactivate(
         int $fieldOfficerId
@@ -628,10 +628,10 @@ final class FieldOfficerController extends BaseController
                     'success',
 
                     'title' =>
-                    'Field Officer deactivated',
+                    'SAK Volunteer deactivated',
 
                     'message' =>
-                    'The Field Officer is now inactive.',
+                    'The SAK Volunteer is now inactive.',
                 ]);
         } catch (Throwable $exception) {
             service(
@@ -663,7 +663,7 @@ final class FieldOfficerController extends BaseController
                     'danger',
 
                     'title' =>
-                    'Field Officer not deactivated',
+                    'SAK Volunteer not deactivated',
 
                     'message' =>
                     $exception->getMessage(),

@@ -74,9 +74,9 @@ final class FamilyDetailsService
     }
 
     /**
-     * Verify one Field Officer code.
+     * Verify one SAK Volunteer code.
      *
-     * Only an ACTIVE and non-deleted Field Officer is valid for
+     * Only an ACTIVE and non-deleted SAK Volunteer is valid for
      * a new member assignment.
      *
      * @return array{
@@ -95,7 +95,7 @@ final class FamilyDetailsService
 
         if ($normalizedCode === null) {
             throw new DomainException(
-                'Please enter a Field Officer ID.'
+                'Please enter a SAK Volunteer ID.'
             );
         }
 
@@ -107,8 +107,8 @@ final class FamilyDetailsService
 
         if (!is_array($fieldOfficer)) {
             throw new DomainException(
-                'The Field Officer ID is invalid or the '
-                    . 'Field Officer is not active.'
+                'The SAK Volunteer ID is invalid or the '
+                    . 'SAK Volunteer is not active.'
             );
         }
 
@@ -125,7 +125,7 @@ final class FamilyDetailsService
     }
 
     /**
-     * Normalize an optional Field Officer code.
+     * Normalize an optional SAK Volunteer code.
      */
     private function normalizeFieldOfficerCode(
         mixed $value
@@ -145,7 +145,7 @@ final class FamilyDetailsService
             ) !== 1
         ) {
             throw new DomainException(
-                'Please enter a valid Field Officer ID.'
+                'Please enter a valid SAK Volunteer ID.'
             );
         }
 
@@ -290,7 +290,7 @@ final class FamilyDetailsService
 
         /*
  * ----------------------------------------------------------
- * FIELD OFFICER ASSIGNMENT
+ * SAK Volunteer ASSIGNMENT
  * ----------------------------------------------------------
  *
  * Optional initially.
@@ -312,7 +312,7 @@ final class FamilyDetailsService
      * Immutable assignment.
      *
      * Do not re-resolve against ACTIVE status here because a
-     * legitimately assigned Field Officer may later be deactivated.
+     * legitimately assigned SAK Volunteer may later be deactivated.
      */
             $fieldOfficerId =
                 $existingFieldOfficerId;
@@ -327,7 +327,7 @@ final class FamilyDetailsService
 
             if ($fieldOfficerCode === '') {
                 throw new RuntimeException(
-                    'The existing Field Officer assignment '
+                    'The existing SAK Volunteer assignment '
                         . 'is incomplete.'
                 );
             }
@@ -344,7 +344,7 @@ final class FamilyDetailsService
          * SERVER-SIDE VERIFICATION REQUIREMENT
          * --------------------------------------------------
          *
-         * A valid Field Officer code alone is NOT enough.
+         * A valid SAK Volunteer code alone is NOT enough.
          *
          * The member must first use the Verify action.
          * That action creates this server-side verification
@@ -356,7 +356,7 @@ final class FamilyDetailsService
                     )
                 ) {
                     throw new DomainException(
-                        'Please verify the Field Officer ID '
+                        'Please verify the SAK Volunteer ID '
                             . 'before saving Family Details.'
                     );
                 }
@@ -391,7 +391,7 @@ final class FamilyDetailsService
          */
                 if ($verifiedUserId !== $userId) {
                     throw new DomainException(
-                        'Please verify the Field Officer ID '
+                        'Please verify the SAK Volunteer ID '
                             . 'before saving Family Details.'
                     );
                 }
@@ -405,14 +405,14 @@ final class FamilyDetailsService
                     !== $submittedFieldOfficerCode
                 ) {
                     throw new DomainException(
-                        'The Field Officer ID has changed. '
+                        'The SAK Volunteer ID has changed. '
                             . 'Please verify it again before saving.'
                     );
                 }
 
                 if ($verifiedFieldOfficerId <= 0) {
                     throw new DomainException(
-                        'Please verify the Field Officer ID '
+                        'Please verify the SAK Volunteer ID '
                             . 'before saving Family Details.'
                     );
                 }
@@ -428,7 +428,7 @@ final class FamilyDetailsService
                     || (time() - $verifiedAt) > 900
                 ) {
                     throw new DomainException(
-                        'Field Officer verification has expired. '
+                        'SAK Volunteer verification has expired. '
                             . 'Please verify the ID again.'
                     );
                 }
@@ -453,7 +453,7 @@ final class FamilyDetailsService
                     !== $verifiedFieldOfficerId
                 ) {
                     throw new DomainException(
-                        'Field Officer verification is no longer valid. '
+                        'SAK Volunteer verification is no longer valid. '
                             . 'Please verify the ID again.'
                     );
                 }

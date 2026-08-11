@@ -147,7 +147,7 @@ For every database change:
 | `is_email_verified` | `NOT NULL`, default | Database | Default `FALSE`. |
 | `email_verified_at`, `password_set_at` | Nullable | Database | Application state controls when populated. |
 
-**Application authorization:** only `SUPER_ADMIN` may manage administrators/field officers and privileged KPIs. Database constraints do not enforce route/action authorization.
+**Application authorization:** only `SUPER_ADMIN` may manage administrators/SAK Volunteers and privileged KPIs. Database constraints do not enforce route/action authorization.
 
 **Consistency gap:** the baseline does not check that verification booleans agree with verification timestamps or that `VERIFIED` accounts have a password and verified email.
 
@@ -282,8 +282,8 @@ The current media flow stores original, medium, and thumbnail object keys/metada
 
 | Column(s) | Constraint | Enforcement | Allowed values / rule |
 |---|---|---|---|
-| identity/contact fields | Required/unique as defined in update SQL | Database/update SQL | Current prelaunch verification resolves an active field officer. |
-| status/active flag | Application/master constrained | Database/update SQL | Only active field officers may be used by the prelaunch flow. |
+| identity/contact fields | Required/unique as defined in update SQL | Database/update SQL | Current prelaunch verification resolves an active SAK Volunteer. |
+| status/active flag | Application/master constrained | Database/update SQL | Only active SAK Volunteers may be used by the prelaunch flow. |
 | role access | Service/filter rule | Application-enforced | Management is restricted to `SUPER_ADMIN`. |
 
 ## `prelaunch_profiles`
@@ -294,7 +294,7 @@ The current media flow stores original, medium, and thumbnail object keys/metada
 | email | Nullable | Database/business rule | Email is optional. No new `NOT NULL` or required validation may be introduced. |
 | gender/profile-created-for | Application enum and/or SQL check | Verify deployed SQL | Must match the current prelaunch validation values. |
 | master-data IDs | Foreign keys | Master-data constrained | Country/state/city, education/profession, family, community, and related selections must reference valid master rows. |
-| field officer | Foreign key/business rule | Database plus service | Must resolve to an active verified field officer. |
+| SAK Volunteer | Foreign key/business rule | Database plus service | Must resolve to an active verified SAK Volunteer. |
 | review/approval status | Application enum and/or SQL check | Verify deployed SQL | Exact values must match the current admin review service/model. |
 | `sikh_subcommunity_id` | Removed | Schema/application evolution | No longer part of the current form/model. |
 

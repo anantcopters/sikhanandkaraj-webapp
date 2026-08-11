@@ -14,7 +14,7 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Handles Field Officer business rules and persistence.
+ * Handles SAK Volunteer business rules and persistence.
  */
 final class FieldOfficerService
 {
@@ -48,7 +48,7 @@ final class FieldOfficerService
     ): array {
         if ($fieldOfficerId <= 0) {
             throw new RuntimeException(
-                'Invalid Field Officer.'
+                'Invalid SAK Volunteer.'
             );
         }
 
@@ -57,7 +57,7 @@ final class FieldOfficerService
 
         if ($record === null) {
             throw new RuntimeException(
-                'Field Officer was not found.'
+                'SAK Volunteer was not found.'
             );
         }
 
@@ -65,15 +65,15 @@ final class FieldOfficerService
     }
 
     /**
-     * Create a Field Officer.
+     * Create a SAK Volunteer.
      *
-     * A valid UPI ID makes the Field Officer active immediately.
-     * Without a UPI ID, the Field Officer starts inactive.
+     * A valid UPI ID makes the SAK Volunteer active immediately.
+     * Without a UPI ID, the SAK Volunteer starts inactive.
      *
      * Business persistence and audit persistence are deliberately
-     * separated. Once the Field Officer transaction commits,
+     * separated. Once the SAK Volunteer transaction commits,
      * an audit failure must never make the caller believe that
-     * Field Officer creation failed.
+     * SAK Volunteer creation failed.
      *
      * @param array<string, mixed> $input
      */
@@ -102,7 +102,7 @@ final class FieldOfficerService
             )
         ) {
             throw new RuntimeException(
-                'A Field Officer with this mobile number already exists.'
+                'A SAK Volunteer with this mobile number already exists.'
             );
         }
 
@@ -133,7 +133,7 @@ final class FieldOfficerService
             )
         ) {
             throw new RuntimeException(
-                'A Field Officer with this Aadhaar number already exists.'
+                'A SAK Volunteer with this Aadhaar number already exists.'
             );
         }
 
@@ -144,7 +144,7 @@ final class FieldOfficerService
             )
         ) {
             throw new RuntimeException(
-                'A Field Officer with this PAN number already exists.'
+                'A SAK Volunteer with this PAN number already exists.'
             );
         }
 
@@ -183,7 +183,7 @@ final class FieldOfficerService
             )
         ) {
             throw new RuntimeException(
-                'A Field Officer with this UPI ID already exists.'
+                'A SAK Volunteer with this UPI ID already exists.'
             );
         }
 
@@ -216,7 +216,7 @@ final class FieldOfficerService
      * BUSINESS TRANSACTION
      * ------------------------------------------------------
      *
-     * Only Field Officer persistence belongs inside this
+     * Only SAK Volunteer persistence belongs inside this
      * transaction.
      */
         $this->database->transBegin();
@@ -281,7 +281,7 @@ final class FieldOfficerService
 
             if ($inserted === false) {
                 throw new RuntimeException(
-                    'The Field Officer could not be created.'
+                    'The SAK Volunteer could not be created.'
                 );
             }
 
@@ -291,7 +291,7 @@ final class FieldOfficerService
                 === false
             ) {
                 throw new RuntimeException(
-                    'The Field Officer transaction failed.'
+                    'The SAK Volunteer transaction failed.'
                 );
             }
 
@@ -324,7 +324,7 @@ final class FieldOfficerService
                 )
             ) {
                 throw new RuntimeException(
-                    'A Field Officer with this mobile number already exists.',
+                    'A SAK Volunteer with this mobile number already exists.',
                     0,
                     $exception
                 );
@@ -334,10 +334,10 @@ final class FieldOfficerService
         }
 
         /*
-     * At this point the Field Officer exists permanently.
+     * At this point the SAK Volunteer exists permanently.
      *
      * From here onward, nothing should cause create() to
-     * report that Field Officer creation failed.
+     * report that SAK Volunteer creation failed.
      */
         $fieldOfficerId =
             (int) $inserted;
@@ -360,8 +360,8 @@ final class FieldOfficerService
 
                 description: $initialStatus
                     === FieldOfficerModel::STATUS_ACTIVE
-                    ? 'Field Officer was created in active status because a UPI ID was provided.'
-                    : 'Field Officer was created in inactive status because no UPI ID was provided.',
+                    ? 'SAK Volunteer was created in active status because a UPI ID was provided.'
+                    : 'SAK Volunteer was created in inactive status because no UPI ID was provided.',
 
                 afterData: [
                     'officer_code' =>
@@ -414,7 +414,7 @@ final class FieldOfficerService
 
         /*
      * Record a separate activation event when creation
-     * itself activates the Field Officer.
+     * itself activates the SAK Volunteer.
      *
      * This audit is also intentionally non-blocking.
      */
@@ -433,7 +433,7 @@ final class FieldOfficerService
 
                     targetLabel: $officerCode,
 
-                    description: 'Field Officer was activated during creation because a valid UPI ID was supplied.',
+                    description: 'SAK Volunteer was activated during creation because a valid UPI ID was supplied.',
 
                     beforeData: [
                         'account_status' =>
@@ -482,11 +482,11 @@ final class FieldOfficerService
             /*
          * Audit failure must be visible operationally,
          * but must not change the result of an already
-         * committed Field Officer operation.
+         * committed SAK Volunteer operation.
          */
             log_message(
                 'error',
-                'Field Officer audit event could not be recorded: {message}',
+                'SAK Volunteer audit event could not be recorded: {message}',
                 [
                     'message' =>
                     $exception->getMessage(),
@@ -496,7 +496,7 @@ final class FieldOfficerService
     }
 
     /**
-     * Update the editable Field Officer details.
+     * Update the editable SAK Volunteer details.
      *
      * Account status is automatically synchronized with UPI availability:
      *
@@ -548,7 +548,7 @@ final class FieldOfficerService
             )
         ) {
             throw new RuntimeException(
-                'Another Field Officer already uses this Aadhaar number.'
+                'Another SAK Volunteer already uses this Aadhaar number.'
             );
         }
 
@@ -560,7 +560,7 @@ final class FieldOfficerService
             )
         ) {
             throw new RuntimeException(
-                'Another Field Officer already uses this PAN number.'
+                'Another SAK Volunteer already uses this PAN number.'
             );
         }
 
@@ -599,7 +599,7 @@ final class FieldOfficerService
             )
         ) {
             throw new RuntimeException(
-                'Another Field Officer already uses this UPI ID.'
+                'Another SAK Volunteer already uses this UPI ID.'
             );
         }
 
@@ -609,7 +609,7 @@ final class FieldOfficerService
         );
 
         /*
-     * Field Officer status is derived from UPI availability.
+     * SAK Volunteer status is derived from UPI availability.
      * This keeps activation rules consistent in create and edit flows.
      */
         $newStatus = $upiId !== null
@@ -744,7 +744,7 @@ final class FieldOfficerService
 
             if ($updated === false) {
                 throw new RuntimeException(
-                    'The Field Officer could not be updated.'
+                    'The SAK Volunteer could not be updated.'
                 );
             }
 
@@ -753,7 +753,7 @@ final class FieldOfficerService
                 === false
             ) {
                 throw new RuntimeException(
-                    'The Field Officer update transaction failed.'
+                    'The SAK Volunteer update transaction failed.'
                 );
             }
 
@@ -775,7 +775,7 @@ final class FieldOfficerService
 
                 targetLabel: (string) $existing['officer_code'],
 
-                description: 'Field Officer details were updated.',
+                description: 'SAK Volunteer details were updated.',
 
                 beforeData: $beforeData,
 
@@ -803,7 +803,7 @@ final class FieldOfficerService
 
                     targetLabel: (string) $existing['officer_code'],
 
-                    description: 'Field Officer was automatically activated after a valid UPI ID was added.',
+                    description: 'SAK Volunteer was automatically activated after a valid UPI ID was added.',
 
                     beforeData: [
                         'account_status' =>
@@ -856,7 +856,7 @@ final class FieldOfficerService
 
                     targetLabel: (string) $existing['officer_code'],
 
-                    description: 'Field Officer was automatically deactivated because the UPI ID was removed.',
+                    description: 'SAK Volunteer was automatically deactivated because the UPI ID was removed.',
 
                     beforeData: [
                         'account_status' =>
@@ -899,7 +899,7 @@ final class FieldOfficerService
     }
 
     /**
-     * Activate a Field Officer.
+     * Activate a SAK Volunteer.
      *
      * An officer may be activated only when a UPI ID exists.
      */
@@ -922,7 +922,7 @@ final class FieldOfficerService
             === FieldOfficerModel::STATUS_ACTIVE
         ) {
             throw new RuntimeException(
-                'The Field Officer is already active.'
+                'The SAK Volunteer is already active.'
             );
         }
 
@@ -935,7 +935,7 @@ final class FieldOfficerService
                     targetType: 'FIELD_OFFICER',
                     targetId: $fieldOfficerId,
                     targetLabel: (string) $existing['officer_code'],
-                    description: 'Field Officer activation was denied because UPI ID was not present.',
+                    description: 'SAK Volunteer activation was denied because UPI ID was not present.',
                     beforeData: [
                         'account_status' =>
                         (string) $existing['account_status'],
@@ -950,7 +950,7 @@ final class FieldOfficerService
             );
 
             throw new RuntimeException(
-                'The Field Officer cannot be activated because a UPI ID is not present. Edit the Field Officer, add a valid UPI ID and try again.'
+                'The SAK Volunteer cannot be activated because a UPI ID is not present. Edit the SAK Volunteer, add a valid UPI ID and try again.'
             );
         }
 
@@ -975,7 +975,7 @@ final class FieldOfficerService
 
         if ($updated === false) {
             throw new RuntimeException(
-                'The Field Officer could not be activated.'
+                'The SAK Volunteer could not be activated.'
             );
         }
 
@@ -985,7 +985,7 @@ final class FieldOfficerService
                 targetType: 'FIELD_OFFICER',
                 targetId: $fieldOfficerId,
                 targetLabel: (string) $existing['officer_code'],
-                description: 'Field Officer was activated.',
+                description: 'SAK Volunteer was activated.',
                 beforeData: [
                     'account_status' =>
                     FieldOfficerModel::STATUS_INACTIVE,
@@ -1011,7 +1011,7 @@ final class FieldOfficerService
     }
 
     /**
-     * Deactivate a Field Officer.
+     * Deactivate a SAK Volunteer.
      */
     public function deactivate(
         int $fieldOfficerId,
@@ -1032,7 +1032,7 @@ final class FieldOfficerService
             === FieldOfficerModel::STATUS_INACTIVE
         ) {
             throw new RuntimeException(
-                'The Field Officer is already inactive.'
+                'The SAK Volunteer is already inactive.'
             );
         }
 
@@ -1055,7 +1055,7 @@ final class FieldOfficerService
 
         if ($updated === false) {
             throw new RuntimeException(
-                'The Field Officer could not be deactivated.'
+                'The SAK Volunteer could not be deactivated.'
             );
         }
 
@@ -1066,7 +1066,7 @@ final class FieldOfficerService
                 targetType: 'FIELD_OFFICER',
                 targetId: $fieldOfficerId,
                 targetLabel: (string) $existing['officer_code'],
-                description: 'Field Officer was deactivated.',
+                description: 'SAK Volunteer was deactivated.',
                 beforeData: [
                     'account_status' =>
                     FieldOfficerModel::STATUS_ACTIVE,
@@ -1088,7 +1088,7 @@ final class FieldOfficerService
     }
 
     /**
-     * Generate a cryptographically secure random Field Officer code.
+     * Generate a cryptographically secure random SAK Volunteer code.
      *
      * The database unique constraint remains the final safeguard against
      * an unlikely collision.
@@ -1126,7 +1126,7 @@ final class FieldOfficerService
         }
 
         throw new RuntimeException(
-            'A unique Field Officer code could not be generated. Please try again.'
+            'A unique SAK Volunteer code could not be generated. Please try again.'
         );
     }
 

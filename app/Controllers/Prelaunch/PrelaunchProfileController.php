@@ -299,7 +299,7 @@ final class PrelaunchProfileController extends BaseController
     }
 
     /**
-     * Verify an active Field Officer.
+     * Verify an active SAK Volunteer.
      *
      * This endpoint belongs only to the actual production
      * prelaunch workflow.
@@ -323,7 +323,7 @@ final class PrelaunchProfileController extends BaseController
                     false,
 
                     'message' =>
-                    'Invalid Field Officer verification request.',
+                    'Invalid SAK Volunteer verification request.',
 
                     'csrfName' =>
                     csrf_token(),
@@ -348,7 +348,7 @@ final class PrelaunchProfileController extends BaseController
         $validation->setRules([
             'field_officer_code' => [
                 'label' =>
-                'Field Officer code',
+                'SAK Volunteer code',
 
                 'rules' => [
                     'required',
@@ -358,13 +358,13 @@ final class PrelaunchProfileController extends BaseController
 
                 'errors' => [
                     'required' =>
-                    'Please enter the Field Officer code.',
+                    'Please enter the SAK Volunteer code.',
 
                     'exact_length' =>
-                    'Please enter a valid Field Officer code.',
+                    'Please enter a valid SAK Volunteer code.',
 
                     'regex_match' =>
-                    'Please enter a valid Field Officer code.',
+                    'Please enter a valid SAK Volunteer code.',
                 ],
             ],
         ]);
@@ -411,7 +411,7 @@ final class PrelaunchProfileController extends BaseController
                     true,
 
                     'message' =>
-                    'Field Officer verified successfully.',
+                    'SAK Volunteer verified successfully.',
 
                     'fieldOfficer' => [
                         /*
@@ -494,7 +494,7 @@ final class PrelaunchProfileController extends BaseController
                     false,
 
                     'message' =>
-                    'The Field Officer could not be '
+                    'The SAK Volunteer could not be '
                         . 'verified. Please try again.',
 
                     'csrfName' =>
@@ -518,7 +518,7 @@ final class PrelaunchProfileController extends BaseController
         }
 
         /*
- * QA/development continue to use the configured Field Officer.
+ * QA/development continue to use the configured SAK Volunteer.
  *
  * Production gets the officer from explicit verified user input,
  * so profileFieldOfficerId is not required there.

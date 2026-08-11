@@ -1446,7 +1446,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
- * Initialize explicit Field Officer verification.
+ * Initialize explicit SAK Volunteer verification.
  *
  * Verification errors are displayed through the standard inline
  * validation container. The larger result panel is reserved only
@@ -1506,7 +1506,7 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
         /*
-         * QA/development do not render the Field Officer
+         * QA/development do not render the SAK Volunteer
          * component, therefore this function safely becomes
          * a no-op there.
          */
@@ -1754,7 +1754,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (verificationUrl === '') {
                     showVerificationError(
-                        'Field Officer verification '
+                        'SAK Volunteer verification '
                         + 'is currently unavailable.'
                     );
 
@@ -1828,7 +1828,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             await response.json();
                     } catch (error) {
                         throw new Error(
-                            'The Field Officer verification '
+                            'The SAK Volunteer verification '
                             + 'service returned an invalid response.'
                         );
                     }
@@ -1860,7 +1860,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ) {
                         throw new Error(
                             payload.message
-                            || 'The Field Officer code '
+                            || 'The SAK Volunteer code '
                             + 'is invalid or inactive.'
                         );
                     }
@@ -1879,7 +1879,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         verifiedId === ''
                     ) {
                         throw new Error(
-                            'Field Officer verification '
+                            'SAK Volunteer verification '
                             + 'returned an invalid response.'
                         );
                     }
@@ -1894,7 +1894,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     showVerificationError(
                         error instanceof Error
                             ? error.message
-                            : 'Field Officer verification failed.'
+                            : 'SAK Volunteer verification failed.'
                     );
                 } finally {
                     hideLoader();
@@ -1929,7 +1929,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 event.preventDefault();
 
                 showVerificationError(
-                    'Please verify the Field Officer '
+                    'Please verify the SAK Volunteer '
                     + 'before saving the profile.'
                 );
             },

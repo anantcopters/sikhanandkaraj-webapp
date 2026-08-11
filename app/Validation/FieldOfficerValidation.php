@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Validation;
 
 /**
- * Field Officer validation rules used by administrative screens.
+ * SAK Volunteer validation rules used by administrative screens.
  */
 final class FieldOfficerValidation
 {
@@ -127,7 +127,7 @@ final class FieldOfficerValidation
     }
 
     /**
-     * Field Officer portal mobile-login validation.
+     * SAK Volunteer portal mobile-login validation.
      *
      * @return array<string, array<string, mixed>>
      */

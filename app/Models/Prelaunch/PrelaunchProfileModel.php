@@ -386,7 +386,7 @@ final class PrelaunchProfileModel extends Model
                 'prelaunch_profiles.*',
 
                 /*
-             * Field Officer information.
+             * SAK Volunteer information.
              */
                 'field_officers.officer_code',
                 'field_officers.full_name AS field_officer_name',

@@ -930,12 +930,12 @@ final class ProfileController extends BaseController
     }
 
     /**
-     * Verify an optional Field Officer ID for Family Details.
+     * Verify an optional SAK Volunteer ID for Family Details.
      *
      * Successful verification is stored server-side in the
      * authenticated member session. The Family Details save
      * operation requires this verification state when assigning
-     * a Field Officer for the first time.
+     * a SAK Volunteer for the first time.
      */
     public function verifyFamilyFieldOfficer(): ResponseInterface
     {
@@ -1011,7 +1011,7 @@ final class ProfileController extends BaseController
         } catch (DomainException $exception) {
             /*
          * Failed verification must invalidate any previous
-         * temporary Field Officer verification.
+         * temporary SAK Volunteer verification.
          */
             session()->remove(
                 'familyFieldOfficerVerification'
@@ -1067,7 +1067,7 @@ final class ProfileController extends BaseController
                     false,
 
                     'message' =>
-                    'The Field Officer ID could '
+                    'The SAK Volunteer ID could '
                         . 'not be verified. Please try again.',
 
                     'csrf' => [
@@ -1132,7 +1132,7 @@ final class ProfileController extends BaseController
             /*
  * A verification can only be consumed once.
  *
- * The actual Field Officer assignment is now permanently
+ * The actual SAK Volunteer assignment is now permanently
  * stored in member_family_details.
  */
             session()->remove(

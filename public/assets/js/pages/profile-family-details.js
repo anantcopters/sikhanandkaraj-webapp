@@ -5,8 +5,8 @@
  *
  * Handles:
  * - State to City dependency.
- * - Optional Field Officer verification.
- * - Field Officer verification enforcement before submit.
+ * - Optional SAK Volunteer verification.
+ * - SAK Volunteer verification enforcement before submit.
  * - Submit-button loading state.
  */
 document.addEventListener(
@@ -53,7 +53,7 @@ document.addEventListener(
             );
 
         /*
-         * A readonly Field Officer code means that assignment was
+         * A readonly SAK Volunteer code means that assignment was
          * already persisted and therefore cannot be changed.
          */
         let verifiedFieldOfficerCode =
@@ -445,7 +445,7 @@ document.addEventListener(
 
         /**
          * Clear the local verification state whenever the
-         * entered Field Officer code changes.
+         * entered SAK Volunteer code changes.
          */
         fieldOfficerCodeInput
             ?.addEventListener(
@@ -497,7 +497,7 @@ document.addEventListener(
             );
 
         /**
-         * Verify Field Officer code.
+         * Verify SAK Volunteer code.
          */
         verifyFieldOfficerButton
             ?.addEventListener(
@@ -540,7 +540,7 @@ document.addEventListener(
                     if (code === '') {
                         fieldOfficerCodeInput
                             .setCustomValidity(
-                                'Please enter a Field Officer ID.'
+                                'Please enter a SAK Volunteer ID.'
                             );
 
                         fieldOfficerCodeInput
@@ -557,7 +557,7 @@ document.addEventListener(
                         fieldOfficerCodeInput
                             .setCustomValidity(
                                 'Please enter a valid '
-                                + 'Field Officer ID.'
+                                + 'SAK Volunteer ID.'
                             );
 
                         fieldOfficerCodeInput
@@ -578,7 +578,7 @@ document.addEventListener(
                         if (fieldOfficerMessage) {
                             fieldOfficerMessage
                                 .textContent =
-                                'Field Officer verification '
+                                'SAK Volunteer verification '
                                 + 'is currently unavailable.';
 
                             fieldOfficerMessage
@@ -599,7 +599,7 @@ document.addEventListener(
                         if (fieldOfficerMessage) {
                             fieldOfficerMessage
                                 .textContent =
-                                'Unable to verify Field Officer. '
+                                'Unable to verify SAK Volunteer. '
                                 + 'Please reload the page.';
 
                             fieldOfficerMessage
@@ -630,7 +630,7 @@ document.addEventListener(
                     if (fieldOfficerMessage) {
                         fieldOfficerMessage
                             .textContent =
-                            'Verifying Field Officer...';
+                            'Verifying SAK Volunteer...';
                     }
 
                     try {
@@ -680,7 +680,7 @@ document.addEventListener(
                             )
                         ) {
                             throw new Error(
-                                'Field Officer verification '
+                                'SAK Volunteer verification '
                                 + 'request failed.'
                             );
                         }
@@ -704,7 +704,7 @@ document.addEventListener(
                             throw new Error(
                                 String(
                                     payload.message
-                                    ?? 'The Field Officer ID '
+                                    ?? 'The SAK Volunteer ID '
                                     + 'could not be verified.'
                                 )
                             );
@@ -731,7 +731,7 @@ document.addEventListener(
                             || officerName === ''
                         ) {
                             throw new Error(
-                                'The Field Officer could '
+                                'The SAK Volunteer could '
                                 + 'not be verified.'
                             );
                         }
@@ -753,7 +753,7 @@ document.addEventListener(
                         if (fieldOfficerMessage) {
                             fieldOfficerMessage
                                 .textContent =
-                                'Field Officer verified successfully.';
+                                'SAK Volunteer verified successfully.';
 
                             fieldOfficerMessage
                                 .classList.remove(
@@ -769,7 +769,7 @@ document.addEventListener(
                         fieldOfficerCodeInput
                             .setCustomValidity(
                                 'Please verify a valid '
-                                + 'Field Officer ID.'
+                                + 'SAK Volunteer ID.'
                             );
 
                         if (fieldOfficerMessage) {
@@ -777,7 +777,7 @@ document.addEventListener(
                                 .textContent =
                                 error instanceof Error
                                     ? error.message
-                                    : 'The Field Officer ID '
+                                    : 'The SAK Volunteer ID '
                                     + 'could not be verified.';
 
                             fieldOfficerMessage
@@ -808,7 +808,7 @@ document.addEventListener(
             );
 
         /**
-         * Prevent an entered but unverified Field Officer ID
+         * Prevent an entered but unverified SAK Volunteer ID
          * from being submitted.
          *
          * Empty remains valid because the field is optional.
@@ -840,7 +840,7 @@ document.addEventListener(
                         fieldOfficerCodeInput
                             .setCustomValidity(
                                 'Please verify the '
-                                + 'Field Officer ID '
+                                + 'SAK Volunteer ID '
                                 + 'before saving.'
                             );
 

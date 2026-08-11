@@ -652,7 +652,7 @@ final class PrelaunchMemberMigrationService
     /**
      * Migrate normal member profile-section records.
      *
-     * The Field Officer associated with the source prelaunch
+     * The SAK Volunteer associated with the source prelaunch
      * profile is preserved in member_family_details.
      *
      * member_family_details requires field_officer_id and
@@ -671,14 +671,14 @@ final class PrelaunchMemberMigrationService
 
         /*
      * ------------------------------------------------------
-     * FIELD OFFICER
+     * SAK Volunteer
      * ------------------------------------------------------
      *
      * prelaunch_profiles stores field_officer_id.
      *
      * The live member Family Details table additionally stores
      * the immutable officer code. Resolve that code from the
-     * Field Officer master rather than trusting duplicated
+     * SAK Volunteer master rather than trusting duplicated
      * source data.
      */
         $fieldOfficerId = max(
@@ -707,7 +707,7 @@ final class PrelaunchMemberMigrationService
 
             if (!is_array($fieldOfficer)) {
                 throw new RuntimeException(
-                    'The Field Officer associated with '
+                    'The SAK Volunteer associated with '
                         . 'the prelaunch profile was not found.'
                 );
             }
@@ -723,7 +723,7 @@ final class PrelaunchMemberMigrationService
 
             if ($fieldOfficerCode === '') {
                 throw new RuntimeException(
-                    'The Field Officer associated with '
+                    'The SAK Volunteer associated with '
                         . 'the prelaunch profile has no valid code.'
                 );
             }
@@ -841,7 +841,7 @@ final class PrelaunchMemberMigrationService
                     $memberId,
 
                     /*
-                     * Preserve the Field Officer relationship.
+                     * Preserve the SAK Volunteer relationship.
                      *
                      * These two values must always be written
                      * together because the DB constraint rejects

@@ -8,7 +8,7 @@ use App\Models\FieldOfficerModel;
 use RuntimeException;
 
 /**
- * Resolves and validates Field Officers used during pre-launch entry.
+ * Resolves and validates SAK Volunteers used during pre-launch entry.
  */
 final class PrelaunchFieldOfficerService
 {
@@ -17,10 +17,10 @@ final class PrelaunchFieldOfficerService
     ) {}
 
     /**
-     * Resolve the configured Field Officer.
+     * Resolve the configured SAK Volunteer.
      *
      * Used by QA/development where prelaunch entry continues
-     * assigning the configured Field Officer automatically.
+     * assigning the configured SAK Volunteer automatically.
      *
      * @return array{
      *     id:int,
@@ -34,7 +34,7 @@ final class PrelaunchFieldOfficerService
     ): array {
         if ($fieldOfficerId <= 0) {
             throw new RuntimeException(
-                'The prelaunch Field Officer is not configured.'
+                'The prelaunch SAK Volunteer is not configured.'
             );
         }
 
@@ -46,7 +46,7 @@ final class PrelaunchFieldOfficerService
 
         if ($fieldOfficer === null) {
             throw new RuntimeException(
-                'The configured prelaunch Field Officer '
+                'The configured prelaunch SAK Volunteer '
                     . 'is invalid or inactive.'
             );
         }
@@ -76,7 +76,7 @@ final class PrelaunchFieldOfficerService
     }
 
     /**
-     * Verify an ACTIVE and non-deleted Field Officer by code.
+     * Verify an ACTIVE and non-deleted SAK Volunteer by code.
      *
      * Used by the production prelaunch flow.
      *
@@ -99,12 +99,12 @@ final class PrelaunchFieldOfficerService
 
         if ($normalizedCode === '') {
             throw new RuntimeException(
-                'Please enter a Field Officer code.'
+                'Please enter a SAK Volunteer code.'
             );
         }
 
         /*
-         * Current generated Field Officer format:
+         * Current generated SAK Volunteer format:
          *
          * FOSAK + six digits
          *
@@ -117,7 +117,7 @@ final class PrelaunchFieldOfficerService
             ) !== 1
         ) {
             throw new RuntimeException(
-                'Please enter a valid Field Officer code.'
+                'Please enter a valid SAK Volunteer code.'
             );
         }
 
@@ -129,7 +129,7 @@ final class PrelaunchFieldOfficerService
 
         if ($fieldOfficer === null) {
             throw new RuntimeException(
-                'The Field Officer code is invalid or inactive.'
+                'The SAK Volunteer code is invalid or inactive.'
             );
         }
 
@@ -184,7 +184,7 @@ final class PrelaunchFieldOfficerService
     /**
      * Revalidate the submitted verification before save.
      *
-     * The hidden Field Officer ID is browser-controlled and
+     * The hidden SAK Volunteer ID is browser-controlled and
      * therefore never trusted directly.
      *
      * The officer:
@@ -209,7 +209,7 @@ final class PrelaunchFieldOfficerService
     ): array {
         if ($fieldOfficerId <= 0) {
             throw new RuntimeException(
-                'Please verify the Field Officer '
+                'Please verify the SAK Volunteer '
                     . 'before saving the profile.'
             );
         }
@@ -224,7 +224,7 @@ final class PrelaunchFieldOfficerService
             !== $fieldOfficerId
         ) {
             throw new RuntimeException(
-                'The verified Field Officer no longer '
+                'The verified SAK Volunteer no longer '
                     . 'matches the entered code. '
                     . 'Please verify it again.'
             );

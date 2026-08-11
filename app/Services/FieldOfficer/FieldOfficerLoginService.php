@@ -98,7 +98,7 @@ final class FieldOfficerLoginService
         if (!is_array($fieldOfficer)) {
             return FieldOfficerLoginResult
                 ::failure(
-                    'The Field Officer login request is no longer valid.'
+                    'The SAK Volunteer login request is no longer valid.'
                 );
         }
 
@@ -112,7 +112,7 @@ final class FieldOfficerLoginService
         if ($normalizedMobile === null) {
             return FieldOfficerLoginResult
                 ::failure(
-                    'The Field Officer login request is no longer valid.'
+                    'The SAK Volunteer login request is no longer valid.'
                 );
         }
 
@@ -173,7 +173,7 @@ final class FieldOfficerLoginService
         if (!is_array($fieldOfficer)) {
             return FieldOfficerLoginResult
                 ::failure(
-                    'The Field Officer login request is no longer valid.'
+                    'The SAK Volunteer login request is no longer valid.'
                 );
         }
 
@@ -203,7 +203,7 @@ final class FieldOfficerLoginService
 
             if ($otpId <= 0) {
                 throw new RuntimeException(
-                    'The Field Officer OTP record '
+                    'The SAK Volunteer OTP record '
                         . 'contains an invalid identifier.'
                 );
             }
@@ -333,7 +333,7 @@ final class FieldOfficerLoginService
 
                 return FieldOfficerLoginResult
                     ::failure(
-                        'The Field Officer account is not active.'
+                        'The SAK Volunteer account is not active.'
                     );
             }
 
@@ -384,7 +384,7 @@ final class FieldOfficerLoginService
             } catch (Throwable $exception) {
                 log_message(
                     'warning',
-                    'Unable to record Field Officer '
+                    'Unable to record SAK Volunteer '
                         . 'last login: {message}',
                     [
                         'message' =>
@@ -507,7 +507,7 @@ final class FieldOfficerLoginService
 
         if (!is_string($otpHash)) {
             throw new RuntimeException(
-                'The Field Officer OTP could not be secured.'
+                'The SAK Volunteer OTP could not be secured.'
             );
         }
 
@@ -561,7 +561,7 @@ final class FieldOfficerLoginService
 
             if (!is_numeric($otpId)) {
                 throw new RuntimeException(
-                    'The Field Officer OTP record '
+                    'The SAK Volunteer OTP record '
                         . 'could not be created.'
                 );
             }
@@ -581,7 +581,7 @@ final class FieldOfficerLoginService
                     new SmsMessage(
                         mobileNumber: $normalizedMobile,
 
-                        message: 'Your Sikhanandkaraj Field Officer '
+                        message: 'Your Sikhanandkaraj SAK Volunteer '
                             . 'login OTP is '
                             . $otp
                             . '. It is valid for '
@@ -611,7 +611,7 @@ final class FieldOfficerLoginService
 
             log_message(
                 'error',
-                'Field Officer OTP SMS failed: {message}',
+                'SAK Volunteer OTP SMS failed: {message}',
                 [
                     'message' =>
                     $exception->getMessage(),
@@ -649,7 +649,7 @@ final class FieldOfficerLoginService
         return FieldOfficerLoginResult
             ::failure(
                 'This mobile number is not eligible '
-                    . 'for Field Officer login.'
+                    . 'for SAK Volunteer login.'
             );
     }
 
@@ -672,7 +672,7 @@ final class FieldOfficerLoginService
         } catch (Throwable $exception) {
             log_message(
                 'critical',
-                'Unable to mark Field Officer OTP '
+                'Unable to mark SAK Volunteer OTP '
                     . 'delivery failure: {message}',
                 [
                     'message' =>
@@ -689,7 +689,7 @@ final class FieldOfficerLoginService
             ->transStatus() === false
         ) {
             throw new RuntimeException(
-                'The Field Officer authentication '
+                'The SAK Volunteer authentication '
                     . 'transaction failed.'
             );
         }

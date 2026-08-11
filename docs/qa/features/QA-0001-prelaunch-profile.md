@@ -15,7 +15,7 @@
 
 ## Requirement summary
 
-Prelaunch Profile is a public standalone profile-entry flow that remains separate from live member data until administrator approval/migration. It collects required profile/master data, optional email, two photographs, and Field Officer attribution. The current production-style flow requires Field Officer code verification and revalidates the code/hidden ID server-side before save. Administrator review supports photo moderation, contact correction, profile approval/rejection and migration into member/profile/media storage.
+Prelaunch Profile is a public standalone profile-entry flow that remains separate from live member data until administrator approval/migration. It collects required profile/master data, optional email, two photographs, and SAK Volunteer attribution. The current production-style flow requires SAK Volunteer code verification and revalidates the code/hidden ID server-side before save. Administrator review supports photo moderation, contact correction, profile approval/rejection and migration into member/profile/media storage.
 
 ## Re-QA findings
 
@@ -114,7 +114,7 @@ Prelaunch Profile is a public standalone profile-entry flow that remains separat
 
 ---
 
-### QA-PRE-007 — Field Officer environment/configuration contract is contradictory
+### QA-PRE-007 — SAK Volunteer environment/configuration contract is contradictory
 
 **QA area:** Requirement QA / Validation QA / Code QA  
 **Severity:** MEDIUM  
@@ -122,9 +122,9 @@ Prelaunch Profile is a public standalone profile-entry flow that remains separat
 
 **Location:** `app/Config/Prelaunch.php`; `app/Controllers/Prelaunch/PrelaunchProfileController.php`; `app/Services/Prelaunch/PrelaunchProfileService.php`
 
-**Evidence:** Comments state that production requires explicit Field Officer verification while QA/development should continue automatic configured-officer behavior. However `requiresFieldOfficerVerification` is set TRUE when `APP_DEPLOYMENT` is either `development` or `production`. The automatic configured-officer path is therefore not used for `development` as documented. Depending on the actual QA deployment value, QA behavior may also differ from the stated contract.
+**Evidence:** Comments state that production requires explicit SAK Volunteer verification while QA/development should continue automatic configured-officer behavior. However `requiresFieldOfficerVerification` is set TRUE when `APP_DEPLOYMENT` is either `development` or `production`. The automatic configured-officer path is therefore not used for `development` as documented. Depending on the actual QA deployment value, QA behavior may also differ from the stated contract.
 
-**Risk:** Environment-specific behavior can be the opposite of the documented release intent, causing QA to test a different Field Officer workflow than expected.
+**Risk:** Environment-specific behavior can be the opposite of the documented release intent, causing QA to test a different SAK Volunteer workflow than expected.
 
 **Expected:** Define the intended values explicitly (for example production=true, QA/development=false if that is the requirement) and make config, comments, UI and service behavior agree.
 
@@ -135,14 +135,14 @@ Prelaunch Profile is a public standalone profile-entry flow that remains separat
 **Result: FAIL**
 
 Positive re-QA evidence:
-- Field Officer verification is now implemented as an explicit public POST endpoint.
+- SAK Volunteer verification is now implemented as an explicit public POST endpoint.
 - The hidden verified officer ID is not trusted alone; save revalidates active officer code and ID server-side.
 - Relationship/gender values are aligned.
 - Email remains optional.
 
 Failure reasons:
 - `QA-PRE-001`: initial migrated-member credential model remains unsafe/unresolved.
-- `QA-PRE-007`: environment behavior contradicts the documented production versus QA/development Field Officer requirement.
+- `QA-PRE-007`: environment behavior contradicts the documented production versus QA/development SAK Volunteer requirement.
 
 ## 2. Code QA
 
@@ -152,7 +152,7 @@ Positive re-QA evidence:
 - `QA-PRE-003` is fixed.
 - `QA-PRE-002` is fixed.
 - Public controller continues to build allowlisted input, runs authoritative validation and delegates creation to services.
-- Field Officer browser-controlled ID is revalidated in the service.
+- SAK Volunteer browser-controlled ID is revalidated in the service.
 
 Failure reasons:
 - `QA-PRE-005`: S3/provider work is performed while a DB transaction is open, directly violating coding rules.
@@ -165,7 +165,7 @@ Non-blocking cleanup: `QA-PRE-004`.
 
 **Result: NOT VERIFIED**
 
-Static review confirms the public form receives `requiresFieldOfficerVerification`, uses the Field Officer verification workflow, and has page JavaScript for dependent/verification behavior. Actual desktop/tablet/mobile rendering, keyboard/focus behavior, verification reset after code edits, loading/error states, two-photo UX and duplicate-submit behavior were not executed in a browser.
+Static review confirms the public form receives `requiresFieldOfficerVerification`, uses the SAK Volunteer verification workflow, and has page JavaScript for dependent/verification behavior. Actual desktop/tablet/mobile rendering, keyboard/focus behavior, verification reset after code edits, loading/error states, two-photo UX and duplicate-submit behavior were not executed in a browser.
 
 ## 4. Validation QA
 
@@ -173,11 +173,11 @@ Static review confirms the public form receives `requiresFieldOfficerVerificatio
 
 Positive re-QA evidence:
 - `profile_created_for` validation now matches service-supported values.
-- Production-style Field Officer validation requires `FOSAK` plus six digits and a verified positive officer ID.
+- Production-style SAK Volunteer validation requires `FOSAK` plus six digits and a verified positive officer ID.
 - Save revalidates officer code/ID against an ACTIVE officer.
 
 Failure reason:
-- `QA-PRE-007`: whether Field Officer verification is required is controlled inconsistently with the documented environment contract.
+- `QA-PRE-007`: whether SAK Volunteer verification is required is controlled inconsistently with the documented environment contract.
 
 ## 5. Database QA
 
@@ -198,7 +198,7 @@ Live PostgreSQL verification of current constraints/indexes and migration rollba
 **Result: FAIL**
 
 Positive re-QA evidence:
-- Field Officer code has strict server validation.
+- SAK Volunteer code has strict server validation.
 - Verification resolves only an ACTIVE/non-deleted officer.
 - Save revalidates the officer ID/code pair, preventing simple hidden-ID tampering.
 - Admin routes remain protected by admin authentication.
@@ -212,7 +212,7 @@ Runtime CSRF, abuse/rate-limit, direct endpoint, upload and session checks remai
 
 **Result: NOT VERIFIED**
 
-Static regression review confirms `REG-PRE-009`'s relationship contract is corrected in code. No browser/integration/live-DB suite was executed, so permanent cases remain `NOT RUN` rather than PASS. Re-QA additionally requires Field Officer verification/environment behavior, migration transaction/provider behavior and deployment-baseline integrity to be covered permanently.
+Static regression review confirms `REG-PRE-009`'s relationship contract is corrected in code. No browser/integration/live-DB suite was executed, so permanent cases remain `NOT RUN` rather than PASS. Re-QA additionally requires SAK Volunteer verification/environment behavior, migration transaction/provider behavior and deployment-baseline integrity to be covered permanently.
 
 ## QA Gate
 
@@ -236,7 +236,7 @@ Re-QA closes `QA-PRE-002` and `QA-PRE-003`, but the feature remains release-bloc
 1. Replace or explicitly redesign the shared migrated-member password/bootstrap flow.
 2. Move S3/provider activity outside open DB transactions while preserving safe migration recovery/idempotency.
 3. Restore immutable baseline 000 discipline and put post-baseline changes in numbered incremental SQL.
-4. Align Field Officer verification configuration with the intended production/QA/development behavior.
+4. Align SAK Volunteer verification configuration with the intended production/QA/development behavior.
 5. Decide/remove or implement the unused photo rejection-reason argument.
-6. Execute browser checks for public form, Field Officer verify/edit/reverify, two-photo validation, responsive behavior and duplicate-submit prevention.
+6. Execute browser checks for public form, SAK Volunteer verify/edit/reverify, two-photo validation, responsive behavior and duplicate-submit prevention.
 7. Execute integration/live-DB checks for duplicate contacts, one-time migration, DB/provider failure recovery and schema constraints.

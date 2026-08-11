@@ -247,7 +247,7 @@ final class PrelaunchProfileValidation
                 ],
 
                 // 'field_officer_code' => [
-                //     'label' => 'Field Officer code',
+                //     'label' => 'SAK Volunteer code',
                 //     'rules' => [
                 //         'required',
                 //         'min_length[4]',
@@ -256,31 +256,31 @@ final class PrelaunchProfileValidation
                 //     ],
                 //     'errors' => [
                 //         'required' =>
-                //         'Please enter the Field Officer code.',
+                //         'Please enter the SAK Volunteer code.',
 
                 //         'min_length' =>
-                //         'The Field Officer code is too short.',
+                //         'The SAK Volunteer code is too short.',
 
                 //         'max_length' =>
-                //         'The Field Officer code cannot exceed 20 characters.',
+                //         'The SAK Volunteer code cannot exceed 20 characters.',
 
                 //         'regex_match' =>
-                //         'The Field Officer code may contain only letters, numbers and hyphens.',
+                //         'The SAK Volunteer code may contain only letters, numbers and hyphens.',
                 //     ],
                 // ],
 
                 // 'verified_field_officer_id' => [
-                //     'label' => 'Verified Field Officer',
+                //     'label' => 'Verified SAK Volunteer',
                 //     'rules' => [
                 //         'required',
                 //         'is_natural_no_zero',
                 //     ],
                 //     'errors' => [
                 //         'required' =>
-                //         'Please verify the Field Officer before saving the profile.',
+                //         'Please verify the SAK Volunteer before saving the profile.',
 
                 //         'is_natural_no_zero' =>
-                //         'Please verify a valid Field Officer.',
+                //         'Please verify a valid SAK Volunteer.',
                 //     ],
                 // ],
 
@@ -302,12 +302,12 @@ final class PrelaunchProfileValidation
         );
 
         /*
-        * Field Officer verification belongs only to the
+        * SAK Volunteer verification belongs only to the
         * production prelaunch workflow.
         */
         if ($requireFieldOfficerVerification) {
             $rules['field_officer_code'] = [
-                'label' => 'Field Officer code',
+                'label' => 'SAK Volunteer code',
 
                 'rules' => [
                     'required',
@@ -317,18 +317,18 @@ final class PrelaunchProfileValidation
 
                 'errors' => [
                     'required' =>
-                    'Please enter the Field Officer code.',
+                    'Please enter the SAK Volunteer code.',
 
                     'exact_length' =>
-                    'Please enter a valid Field Officer code.',
+                    'Please enter a valid SAK Volunteer code.',
 
                     'regex_match' =>
-                    'Please enter a valid Field Officer code.',
+                    'Please enter a valid SAK Volunteer code.',
                 ],
             ];
 
             $rules['verified_field_officer_id'] = [
-                'label' => 'Verified Field Officer',
+                'label' => 'Verified SAK Volunteer',
 
                 'rules' => [
                     'required',
@@ -337,11 +337,11 @@ final class PrelaunchProfileValidation
 
                 'errors' => [
                     'required' =>
-                    'Please verify the Field Officer '
+                    'Please verify the SAK Volunteer '
                         . 'before saving the profile.',
 
                     'is_natural_no_zero' =>
-                    'Please verify a valid Field Officer.',
+                    'Please verify a valid SAK Volunteer.',
                 ],
             ];
         }

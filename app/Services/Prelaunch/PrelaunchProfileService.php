@@ -193,11 +193,11 @@ final class PrelaunchProfileService
 
         /*
  * ----------------------------------------------------------
- * FIELD OFFICER RESOLUTION
+ * SAK Volunteer RESOLUTION
  * ----------------------------------------------------------
  *
  * Production:
- *     Explicit Field Officer verification is compulsory.
+ *     Explicit SAK Volunteer verification is compulsory.
  *
  * QA / Development:
  *     Preserve the existing automatic configured Field
@@ -252,7 +252,7 @@ final class PrelaunchProfileService
 
         if ($fieldOfficerId <= 0) {
             throw new RuntimeException(
-                'The Field Officer is invalid.'
+                'The SAK Volunteer is invalid.'
             );
         }
 
@@ -407,7 +407,7 @@ final class PrelaunchProfileService
                     $fieldOfficerId,
 
                     /*
-                     * The creator is the configured Field Officer
+                     * The creator is the configured SAK Volunteer
                      * for this standalone data-entry workflow.
                      */
                     'created_by' =>

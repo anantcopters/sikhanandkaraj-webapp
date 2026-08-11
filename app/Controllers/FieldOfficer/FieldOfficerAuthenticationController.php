@@ -56,7 +56,7 @@ extends BaseController
             'FieldOfficer/Authentication/Login',
             [
                 'pageTitle' =>
-                'Field Officer Login',
+                'SAK Volunteer Login',
 
                 'validationErrors' =>
                 $this
@@ -150,7 +150,7 @@ extends BaseController
         try {
             /*
          * CAPTCHA verification happens before the
-         * Field Officer mobile is looked up or an OTP
+         * SAK Volunteer mobile is looked up or an OTP
          * is generated.
          */
             $captchaService =
@@ -280,7 +280,7 @@ extends BaseController
 
             log_message(
                 'error',
-                'Field Officer OTP request failed: {message}',
+                'SAK Volunteer OTP request failed: {message}',
                 [
                     'message' =>
                     $exception
@@ -340,7 +340,7 @@ extends BaseController
             'Pages/Registration/VerifyOtp',
             [
                 'pageTitle' =>
-                'Verify Field Officer OTP',
+                'Verify SAK Volunteer OTP',
 
                 'heading' =>
                 'Verify your mobile',
@@ -355,7 +355,7 @@ extends BaseController
                 /*
                 * The reusable OTP screen uses the public/member layout.
                 *
-                * Field Officer authentication must not show the
+                * SAK Volunteer authentication must not show the
                 * member Login call-to-action in that header.
                 */
                 'hidePublicLoginAction' =>
@@ -536,13 +536,13 @@ extends BaseController
                         'Welcome',
 
                         'message' =>
-                        'Field Officer login successful.',
+                        'SAK Volunteer login successful.',
                     ]
                 );
         } catch (Throwable $exception) {
             log_message(
                 'error',
-                'Field Officer OTP verification '
+                'SAK Volunteer OTP verification '
                     . 'failed: {message}',
                 [
                     'message' =>

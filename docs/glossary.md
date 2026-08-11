@@ -37,7 +37,7 @@ A short-lived CloudFront URL generated after authorization. It is not stored as 
 
 A temporary launch-preparation record collected separately from live member accounts and migrated only through an explicit approved process.
 
-## Field officer
+## SAK Volunteer
 
 An operational person associated with prelaunch profile collection and verified through the prelaunch workflow.
 

@@ -8,7 +8,7 @@ use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\Model;
 
 /**
- * Persistence model for Field Officer records.
+ * Persistence model for SAK Volunteer records.
  */
 final class FieldOfficerModel extends Model
 {
@@ -64,7 +64,7 @@ final class FieldOfficerModel extends Model
     }
 
     /**
-     * Return Field Officers with resolved location names.
+     * Return SAK Volunteers with resolved location names.
      *
      * Identity values are intentionally excluded.
      *
@@ -132,7 +132,7 @@ final class FieldOfficerModel extends Model
     }
 
     /**
-     * Find one active, non-deleted Field Officer.
+     * Find one active, non-deleted SAK Volunteer.
      *
      * @return array<string, mixed>|null
      */
@@ -259,7 +259,7 @@ final class FieldOfficerModel extends Model
     }
 
     /**
-     * Check whether a Field Officer code already exists.
+     * Check whether a SAK Volunteer code already exists.
      */
     public function officerCodeExists(
         string $officerCode
@@ -273,7 +273,7 @@ final class FieldOfficerModel extends Model
     }
 
     /**
-     * Find one active Field Officer by code.
+     * Find one active SAK Volunteer by code.
      *
      * @return array<string, mixed>|null
      */
@@ -321,7 +321,7 @@ final class FieldOfficerModel extends Model
     }
 
     /**
-     * Find an ACTIVE, non-deleted Field Officer by mobile number.
+     * Find an ACTIVE, non-deleted SAK Volunteer by mobile number.
      *
      * FieldOfficerValidation stores FO mobile numbers as
      * ten-digit Indian mobile numbers.

@@ -88,7 +88,7 @@ Use the following structure when a module is baselined.
 
 ### Current behavior
 - Public standalone prelaunch profile form is available while `Prelaunch::profileEntryEnabled` is true.
-- Field Officer assignment comes from server configuration (`profileFieldOfficerId`); the former public Field Officer verification flow is commented out.
+- SAK Volunteer assignment comes from server configuration (`profileFieldOfficerId`); the former public SAK Volunteer verification flow is commented out.
 - The form currently offers profile-created-for values Self, Son, Daughter, Brother and Sister.
 - Gender is inferred server-side for Son/Brother/Daughter/Sister and selected for Self.
 - Email is optional; mobile is required.
@@ -117,7 +117,7 @@ Use the following structure when a module is baselined.
 - `user_contacts`
 - normal member profile detail tables
 - normal member photo/media tables
-- field officer and master reference tables
+- SAK Volunteer and master reference tables
 
 Current DDL constraints were not fully verified during QA-0001; Database QA remains NOT VERIFIED.
 
@@ -151,7 +151,7 @@ Current DDL constraints were not fully verified during QA-0001; Database QA rema
 - `REG-SEC-001`.
 
 ### Items needing confirmation/manual verification
-- Current feature requirements around configured versus entered Field Officer.
+- Current feature requirements around configured versus entered SAK Volunteer.
 - Browser/responsive behavior and duplicate-submit handling.
 - CSRF runtime enforcement.
 - Current PostgreSQL DDL constraints and indexes.

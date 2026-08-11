@@ -22,7 +22,7 @@ final class Prelaunch extends BaseConfig
     public string $migratedMemberDefaultPassword;
 
     /**
-     * Field Officer assigned to every prelaunch profile.
+     * SAK Volunteer assigned to every prelaunch profile.
      *
      * This value must contain the primary-key ID of an ACTIVE,
      * non-deleted record from field_officers.
@@ -100,11 +100,11 @@ final class Prelaunch extends BaseConfig
     public int $recommendedPhotoHeightPixels = 600;
 
     /**
-     * Require explicit Field Officer verification on the
+     * Require explicit SAK Volunteer verification on the
      * public prelaunch form.
      *
      * Production:
-     * Member/user must enter and verify an active Field Officer.
+     * Member/user must enter and verify an active SAK Volunteer.
      *
      * QA/Development:
      * Continue using profileFieldOfficerId from configuration.
