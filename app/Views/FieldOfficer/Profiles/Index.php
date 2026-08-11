@@ -2,27 +2,44 @@
 
 declare(strict_types=1);
 
-$profiles =
-    is_array(
-        $profiles
-            ?? null
+$pageTitle = trim(
+    (string) (
+        $pageTitle
+        ?? 'Profiles Submitted'
     )
+);
+
+$profiles =
+    isset($profiles)
+    && is_array($profiles)
     ? $profiles
     : [];
 
-$selectedStatus =
-    in_array(
-        $selectedStatus
-            ?? '',
-        [
-            'ALL',
-            'DRAFT',
-            'APPROVED',
-        ],
+$allowedStatuses = [
+    'ALL',
+    'DRAFT',
+    'APPROVED',
+];
+
+$selectedStatus = strtoupper(
+    trim(
+        (string) (
+            $selectedStatus
+            ?? 'ALL'
+        )
+    )
+);
+
+if (
+    !in_array(
+        $selectedStatus,
+        $allowedStatuses,
         true
     )
-    ? $selectedStatus
-    : 'ALL';
+) {
+    $selectedStatus =
+        'ALL';
+}
 
 $searchTerm = trim(
     (string) (
@@ -30,6 +47,159 @@ $searchTerm = trim(
         ?? ''
     )
 );
+
+$formAlert =
+    isset($formAlert)
+    && is_array($formAlert)
+    ? $formAlert
+    : null;
+
+$resolvedPager =
+    $pager
+    ?? null;
+
+$profilesUrl =
+    route_to(
+        'field-officer.profiles.index'
+    );
+
+$hasFilters =
+    $searchTerm !== ''
+    || $selectedStatus !== 'ALL';
+
+$resolvedProfiles = [];
+
+foreach ($profiles as $profile) {
+    if (!is_array($profile)) {
+        continue;
+    }
+
+    $sourceType = strtoupper(
+        trim(
+            (string) (
+                $profile['source_type']
+                ?? ''
+            )
+        )
+    );
+
+    $sourceId = max(
+        0,
+        (int) (
+            $profile['source_id']
+            ?? 0
+        )
+    );
+
+    $memberId = max(
+        0,
+        (int) (
+            $profile['member_user_id']
+            ?? 0
+        )
+    );
+
+    $status = strtoupper(
+        trim(
+            (string) (
+                $profile['display_status']
+                ?? ''
+            )
+        )
+    );
+
+    $viewUrl = '';
+
+    if (
+        $sourceType === 'PRELAUNCH'
+        && $sourceId > 0
+    ) {
+        $viewUrl = route_to(
+            'field-officer.profiles.prelaunch.view',
+            $sourceId
+        );
+    } elseif (
+        $sourceType === 'MEMBER'
+        && $memberId > 0
+    ) {
+        $viewUrl = route_to(
+            'field-officer.profiles.member.view',
+            $memberId
+        );
+    }
+
+    if ($viewUrl === '') {
+        continue;
+    }
+
+    $cityName = trim(
+        (string) (
+            $profile['city_name']
+            ?? ''
+        )
+    );
+
+    $stateName = trim(
+        (string) (
+            $profile['state_name']
+            ?? ''
+        )
+    );
+
+    $location = implode(
+        ', ',
+        array_filter(
+            [
+                $cityName,
+                $stateName,
+            ],
+            static fn(
+                string $value
+            ): bool => $value !== ''
+        )
+    );
+
+    if ($location === '') {
+        $location = '—';
+    }
+
+    $resolvedProfiles[] = [
+        'reference' =>
+        trim(
+            (string) (
+                $profile['profile_reference']
+                ?? ''
+            )
+        ),
+
+        'fullName' =>
+        trim(
+            (string) (
+                $profile['full_name']
+                ?? ''
+            )
+        ),
+
+        'mobileNumber' =>
+        trim(
+            (string) (
+                $profile['mobile_number']
+                ?? ''
+            )
+        ),
+
+        'location' =>
+        $location,
+
+        'status' =>
+        $status === 'APPROVED'
+            ? 'APPROVED'
+            : 'DRAFT',
+
+        'viewUrl' =>
+        $viewUrl,
+    ];
+}
 
 $this->extend(
     'FieldOfficer/Layouts/Main'
@@ -58,16 +228,27 @@ $this->section('content');
                     </h4>
 
                     <p
-                        class="text-muted mb-0">
+                        class="text-muted
+                        mb-0">
 
                         Profiles associated with your
                         Field Officer ID.
                     </p>
 
                 </div>
+
             </div>
+
         </div>
     </div>
+
+    <?= view(
+        'Components/Alerts/FormAlert',
+        [
+            'alert' =>
+            $formAlert,
+        ]
+    ) ?>
 
     <div
         class="card
@@ -79,8 +260,9 @@ $this->section('content');
 
             <form
                 method="get"
-                action="<?= route_to(
-                            'field-officer.profiles.index'
+                action="<?= esc(
+                            $profilesUrl,
+                            'attr'
                         ) ?>"
                 class="row
                 g-2
@@ -103,8 +285,10 @@ $this->section('content');
                             class="input-group-text">
 
                             <i
-                                class="ri-search-line">
+                                class="ri-search-line"
+                                aria-hidden="true">
                             </i>
+
                         </span>
 
                         <input
@@ -166,32 +350,39 @@ $this->section('content');
 
                             Approved
                         </option>
+
                     </select>
+
                 </div>
 
-                <div class="col-12 col-md-auto">
+                <div
+                    class="col-12
+                    col-md-auto">
 
                     <button
                         type="submit"
-                        class="btn btn-primary">
+                        class="btn
+                        btn-primary">
 
                         <i
-                            class="ri-search-line me-1">
+                            class="ri-search-line
+                            me-1"
+                            aria-hidden="true">
                         </i>
 
                         Search
+
                     </button>
 
-                    <?php if (
-                        $searchTerm !== ''
-                        || $selectedStatus !== 'ALL'
-                    ): ?>
+                    <?php if ($hasFilters): ?>
 
                         <a
-                            href="<?= route_to(
-                                        'field-officer.profiles.index'
+                            href="<?= esc(
+                                        $profilesUrl,
+                                        'attr'
                                     ) ?>"
-                            class="btn btn-light">
+                            class="btn
+                            btn-light">
 
                             Reset
                         </a>
@@ -239,119 +430,68 @@ $this->section('content');
                                 Status
                             </th>
 
-                            <th
-                                class="text-end">
-
+                            <th class="text-end">
                                 Action
                             </th>
+
                         </tr>
 
                     </thead>
 
                     <tbody>
 
-                        <?php if ($profiles === []): ?>
+                        <?php if (
+                            $resolvedProfiles === []
+                        ): ?>
 
                             <tr>
+
                                 <td
                                     colspan="6"
                                     class="text-center
-                                text-muted
-                                py-4">
+                                    text-muted
+                                    py-4">
 
                                     <i
                                         class="ri-profile-line
-                                    fs-24
-                                    d-block
-                                    mb-2">
+                                        fs-24
+                                        d-block
+                                        mb-2"
+                                        aria-hidden="true">
                                     </i>
 
                                     No profiles were found.
+
                                 </td>
+
                             </tr>
 
                         <?php endif; ?>
 
                         <?php foreach (
-                            $profiles
+                            $resolvedProfiles
                             as $profile
                         ): ?>
-
-                            <?php
-                            $sourceType = strtoupper(
-                                trim(
-                                    (string) (
-                                        $profile['source_type'] ?? ''
-                                    )
-                                )
-                            );
-
-                            $sourceId = (int) (
-                                $profile['source_id'] ?? 0
-                            );
-
-                            $memberId = (int) (
-                                $profile['member_user_id'] ?? 0
-                            );
-
-                            $status = strtoupper(
-                                trim(
-                                    (string) (
-                                        $profile['display_status'] ?? ''
-                                    )
-                                )
-                            );
-
-                            $viewUrl =
-                                $sourceType
-                                === 'PRELAUNCH'
-                                ? route_to(
-                                    'field-officer.profiles.prelaunch.view',
-                                    $sourceId
-                                )
-                                : route_to(
-                                    'field-officer.profiles.member.view',
-                                    $memberId
-                                );
-
-                            $location = implode(
-                                ', ',
-                                array_filter([
-                                    trim(
-                                        (string) (
-                                            $profile['city_name'] ?? ''
-                                        )
-                                    ),
-
-                                    trim(
-                                        (string) (
-                                            $profile['state_name'] ?? ''
-                                        )
-                                    ),
-                                ])
-                            );
-                            ?>
 
                             <tr>
 
                                 <td>
+
                                     <span
                                         class="fw-semibold">
 
                                         <?= esc(
-                                            (string) (
-                                                $profile['profile_reference'] ?? ''
-                                            )
+                                            $profile['reference']
                                         ) ?>
+
                                     </span>
+
                                 </td>
 
                                 <td>
 
                                     <?= esc(
-                                        (string) (
-                                            $profile['full_name'] ?? ''
-                                        )
+                                        $profile['fullName']
                                     ) ?>
 
                                 </td>
@@ -359,9 +499,7 @@ $this->section('content');
                                 <td>
 
                                     <?= esc(
-                                        (string) (
-                                            $profile['mobile_number'] ?? ''
-                                        )
+                                        $profile['mobileNumber']
                                     ) ?>
 
                                 </td>
@@ -369,9 +507,7 @@ $this->section('content');
                                 <td>
 
                                     <?= esc(
-                                        $location !== ''
-                                            ? $location
-                                            : '—'
+                                        $profile['location']
                                     ) ?>
 
                                 </td>
@@ -379,14 +515,14 @@ $this->section('content');
                                 <td>
 
                                     <?php if (
-                                        $status
+                                        $profile['status']
                                         === 'APPROVED'
                                     ): ?>
 
                                         <span
                                             class="badge
-                                        bg-success-subtle
-                                        text-success">
+                                            bg-success-subtle
+                                            text-success">
 
                                             Approved
                                         </span>
@@ -395,8 +531,8 @@ $this->section('content');
 
                                         <span
                                             class="badge
-                                        bg-warning-subtle
-                                        text-dark">
+                                            bg-warning-subtle
+                                            text-dark">
 
                                             Draft
                                         </span>
@@ -409,38 +545,43 @@ $this->section('content');
 
                                     <a
                                         href="<?= esc(
-                                                    $viewUrl,
+                                                    $profile['viewUrl'],
                                                     'attr'
                                                 ) ?>"
                                         class="btn
-                                    btn-soft-primary
-                                    btn-sm"
+                                        btn-soft-primary
+                                        btn-sm"
                                         title="View profile"
                                         aria-label="View profile">
 
                                         <i
-                                            class="ri-eye-line">
+                                            class="ri-eye-line"
+                                            aria-hidden="true">
                                         </i>
+
                                     </a>
 
                                 </td>
+
                             </tr>
 
                         <?php endforeach; ?>
 
                     </tbody>
+
                 </table>
 
             </div>
         </div>
 
         <?php if (
-            isset($pager)
+            $resolvedPager
+            instanceof \CodeIgniter\Pager\Pager
         ): ?>
 
             <div class="card-footer">
 
-                <?= $pager->links(
+                <?= $resolvedPager->links(
                     'fieldOfficerProfiles'
                 ) ?>
 

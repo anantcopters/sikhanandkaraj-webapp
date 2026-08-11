@@ -2,21 +2,42 @@
 
 declare(strict_types=1);
 
-$formAlert =
-    is_array(
-        $formAlert
-            ?? null
+$pageTitle = trim(
+    (string) (
+        $pageTitle
+        ?? 'Field Officer Dashboard'
     )
+);
+
+$fieldOfficerName = trim(
+    (string) (
+        $fieldOfficerName
+        ?? ''
+    )
+);
+
+if ($fieldOfficerName === '') {
+    $fieldOfficerName =
+        'Field Officer';
+}
+
+$submittedProfileCount = max(
+    0,
+    (int) (
+        $submittedProfileCount
+        ?? 0
+    )
+);
+
+$formAlert =
+    isset($formAlert)
+    && is_array($formAlert)
     ? $formAlert
     : null;
 
-$submittedProfileCount =
-    max(
-        0,
-        (int) (
-            $submittedProfileCount
-            ?? 0
-        )
+$profilesUrl =
+    route_to(
+        'field-officer.profiles.index'
     );
 
 $this->extend(
@@ -39,21 +60,24 @@ $this->section('content');
                 justify-content-between">
 
                 <div>
+
                     <h4 class="mb-sm-0">
                         Field Officer Dashboard
                     </h4>
 
                     <p
-                        class="text-muted mb-0">
+                        class="text-muted
+                        mb-0">
 
                         Welcome,
                         <?= esc(
-                            (string) session(
-                                'fo_field_officer_name'
-                            )
+                            $fieldOfficerName
                         ) ?>
+
                     </p>
+
                 </div>
+
             </div>
 
         </div>
@@ -75,8 +99,9 @@ $this->section('content');
             col-xl-4">
 
             <a
-                href="<?= route_to(
-                            'field-officer.profiles.index'
+                href="<?= esc(
+                            $profilesUrl,
+                            'attr'
                         ) ?>"
                 class="text-decoration-none">
 
@@ -108,12 +133,12 @@ $this->section('content');
                                         (string)
                                         $submittedProfileCount
                                     ) ?>
+
                                 </h3>
 
                             </div>
 
-                            <div
-                                class="avatar-sm">
+                            <div class="avatar-sm">
 
                                 <div
                                     class="avatar-title
@@ -123,16 +148,18 @@ $this->section('content');
                                     fs-22">
 
                                     <i
-                                        class="ri-profile-line">
+                                        class="ri-profile-line"
+                                        aria-hidden="true">
                                     </i>
 
                                 </div>
+
                             </div>
 
                         </div>
-
                     </div>
                 </div>
+
             </a>
 
         </div>

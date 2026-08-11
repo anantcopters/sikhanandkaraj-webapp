@@ -12,8 +12,17 @@ extends BaseController
 {
     public function index(): string
     {
-        $fieldOfficerId = (int) session(
-            'fo_field_officer_id'
+        $fieldOfficerId = max(
+            0,
+            (int) session(
+                'fo_field_officer_id'
+            )
+        );
+
+        $fieldOfficerName = trim(
+            (string) session(
+                'fo_field_officer_name'
+            )
         );
 
         /** @var FieldOfficerProfileService $service */
@@ -26,6 +35,9 @@ extends BaseController
             [
                 'pageTitle' =>
                 'Field Officer Dashboard',
+
+                'fieldOfficerName' =>
+                $fieldOfficerName,
 
                 'submittedProfileCount' =>
                 $service

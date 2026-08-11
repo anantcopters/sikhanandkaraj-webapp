@@ -2,19 +2,34 @@
 
 declare(strict_types=1);
 
-$validationErrors =
-    is_array(
-        $validationErrors
-            ?? null
+/**
+ * Field Officer login.
+ *
+ * All controller-supplied values are normalized before
+ * presentation markup begins.
+ */
+
+$pageTitle = trim(
+    (string) (
+        $pageTitle
+        ?? 'Field Officer Login'
     )
+);
+
+if ($pageTitle === '') {
+    $pageTitle =
+        'Field Officer Login';
+}
+
+$validationErrors =
+    isset($validationErrors)
+    && is_array($validationErrors)
     ? $validationErrors
     : [];
 
 $formAlert =
-    is_array(
-        $formAlert
-            ?? null
-    )
+    isset($formAlert)
+    && is_array($formAlert)
     ? $formAlert
     : null;
 
@@ -25,6 +40,26 @@ $mobileNumber = trim(
     )
 );
 
+$mobileNumberError = trim(
+    (string) (
+        $validationErrors['mobile_number']
+        ?? ''
+    )
+);
+
+$mobileHasError =
+    $mobileNumberError !== '';
+
+$mobileErrorClass =
+    $mobileHasError
+    ? 'is-invalid'
+    : '';
+
+$sendOtpUrl =
+    route_to(
+        'field-officer.login.send-otp'
+    );
+
 $this->extend(
     'FieldOfficer/Layouts/Main'
 );
@@ -33,6 +68,7 @@ $this->section('content');
 ?>
 
 <div class="auth-page-wrapper min-vh-100">
+
     <div
         class="auth-page-content
         d-flex
@@ -50,6 +86,14 @@ $this->section('content');
                     col-lg-6
                     col-xl-5">
 
+                    <?= view(
+                        'Components/Alerts/FormAlert',
+                        [
+                            'alert' =>
+                            $formAlert,
+                        ]
+                    ) ?>
+
                     <div
                         class="card
                         border
@@ -60,7 +104,8 @@ $this->section('content');
                         <div class="card-body p-4">
 
                             <div
-                                class="text-center mt-2">
+                                class="text-center
+                                mt-2">
 
                                 <div
                                     class="avatar-md
@@ -78,6 +123,7 @@ $this->section('content');
                                             class="ri-user-location-line"
                                             aria-hidden="true">
                                         </i>
+
                                     </div>
                                 </div>
 
@@ -86,26 +132,21 @@ $this->section('content');
                                 </h1>
 
                                 <p
-                                    class="text-muted mb-0">
+                                    class="text-muted
+                                    mb-0">
 
-                                    Sign in using your registered
-                                    mobile number.
+                                    Sign in using your
+                                    registered mobile number.
                                 </p>
+
                             </div>
 
                             <div class="p-2 mt-4">
 
-                                <?= view(
-                                    'Components/Alerts/FormAlert',
-                                    [
-                                        'alert' =>
-                                        $formAlert,
-                                    ]
-                                ) ?>
-
                                 <form
-                                    action="<?= route_to(
-                                                'field-officer.login.send-otp'
+                                    action="<?= esc(
+                                                $sendOtpUrl,
+                                                'attr'
                                             ) ?>"
                                     method="post"
                                     data-validate
@@ -129,6 +170,7 @@ $this->section('content');
 
                                             <span
                                                 class="input-group-text">
+
                                                 +91
                                             </span>
 
@@ -137,11 +179,10 @@ $this->section('content');
                                                 id="foMobileNumber"
                                                 name="mobile_number"
                                                 class="form-control
-                                                <?= isset(
-                                                    $validationErrors['mobile_number']
-                                                )
-                                                    ? 'is-invalid'
-                                                    : '' ?>"
+                                                <?= esc(
+                                                    $mobileErrorClass,
+                                                    'attr'
+                                                ) ?>"
                                                 value="<?= esc(
                                                             $mobileNumber,
                                                             'attr'
@@ -151,16 +192,20 @@ $this->section('content');
                                                 pattern="[6-9][0-9]{9}"
                                                 autocomplete="tel"
                                                 placeholder="Enter mobile number"
+                                                aria-invalid="<?= $mobileHasError
+                                                                    ? 'true'
+                                                                    : 'false' ?>"
                                                 required>
 
                                             <div
                                                 class="invalid-feedback">
 
                                                 <?= esc(
-                                                    $validationErrors['mobile_number']
-                                                        ?? ''
+                                                    $mobileNumberError
                                                 ) ?>
+
                                             </div>
+
                                         </div>
                                     </div>
 
@@ -185,14 +230,19 @@ $this->section('content');
 
                                             <span
                                                 class="spinner-border
-                                                spinner-border-sm">
+                                                spinner-border-sm"
+                                                role="status"
+                                                aria-hidden="true">
                                             </span>
 
                                             Sending OTP...
+
                                         </span>
+
                                     </button>
 
                                 </form>
+
                             </div>
                         </div>
                     </div>
@@ -206,10 +256,12 @@ $this->section('content');
                         <i
                             class="ri-lock-2-line
                             text-danger
-                            me-1">
+                            me-1"
+                            aria-hidden="true">
                         </i>
 
                         Restricted Field Officer access
+
                     </p>
 
                 </div>

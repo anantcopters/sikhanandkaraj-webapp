@@ -232,16 +232,28 @@ extends BaseController
                 );
         }
 
+        $this->preventPageCaching();
+
         /** @var FieldOfficerLoginService $service */
         $service = service(
             'fieldOfficerLoginService'
         );
 
         return view(
-            'FieldOfficer/Authentication/VerifyOtp',
+            'Pages/Registration/VerifyOtp',
             [
                 'pageTitle' =>
                 'Verify Field Officer OTP',
+
+                'heading' =>
+                'Verify your mobile',
+
+                'description' =>
+                'Enter the four-digit OTP sent '
+                    . 'to your registered mobile number.',
+
+                'profileReference' =>
+                '',
 
                 'expiresAtTimestamp' =>
                 $service
@@ -249,14 +261,37 @@ extends BaseController
                         $fieldOfficerId
                     ),
 
+                'verifyAction' =>
+                route_to(
+                    'field-officer.login.verify.submit'
+                ),
+
+                'resendAction' =>
+                route_to(
+                    'field-officer.login.resend'
+                ),
+
+                'cancelAction' =>
+                route_to(
+                    'field-officer.login.cancel'
+                ),
+
+                'cancelLabel' =>
+                'Cancel',
+
+                'sendLimitMessage' =>
+                '',
+
                 'validationErrors' =>
                 $this
                     ->readValidationErrors(),
 
                 'formAlert' =>
-                $this->readFormAlert(),
+                $this
+                    ->readFormAlert(),
 
                 'pageScripts' => [
+                    'assets/js/pages/registration-otp.js',
                     'assets/js/components/submit-loader.js',
                 ],
             ]
@@ -277,17 +312,31 @@ extends BaseController
                 );
         }
 
-        $otp =
-            OtpInputNormalizer::normalize(
-                $this->request
-                    ->getPost('otp')
-            );
+        $otp = implode(
+            '',
+            [
+                trim(
+                    (string) $this->request
+                        ->getPost('otp_1')
+                ),
+                trim(
+                    (string) $this->request
+                        ->getPost('otp_2')
+                ),
+                trim(
+                    (string) $this->request
+                        ->getPost('otp_3')
+                ),
+                trim(
+                    (string) $this->request
+                        ->getPost('otp_4')
+                ),
+            ]
+        );
 
         if (
-            !OtpInputNormalizer
-                ::isValid(
-                    $otp
-                )
+            preg_match('/^\d{4}$/', $otp)
+            !== 1
         ) {
             return redirect()
                 ->back()

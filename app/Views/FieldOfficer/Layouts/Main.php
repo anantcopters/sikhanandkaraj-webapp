@@ -2,15 +2,21 @@
 
 declare(strict_types=1);
 
-$pageTitle =
-    $pageTitle
-    ?? 'Field Officer';
+$pageTitle = trim(
+    (string) (
+        $pageTitle
+        ?? 'Field Officer'
+    )
+);
+
+if ($pageTitle === '') {
+    $pageTitle =
+        'Field Officer';
+}
 
 $pageScripts =
-    is_array(
-        $pageScripts
-            ?? null
-    )
+    isset($pageScripts)
+    && is_array($pageScripts)
     ? $pageScripts
     : [];
 
@@ -18,6 +24,17 @@ $isAuthenticated =
     session(
         'fo_is_authenticated'
     ) === true;
+
+$fieldOfficerName = trim(
+    (string) session(
+        'fo_field_officer_name'
+    )
+);
+
+if ($fieldOfficerName === '') {
+    $fieldOfficerName =
+        'Field Officer';
+}
 
 $currentPath = trim(
     service('uri')->getPath(),
@@ -29,11 +46,69 @@ $profilesActive =
         $currentPath,
         'field-officer/profiles'
     );
+
+$dashboardUrl =
+    route_to(
+        'field-officer.dashboard'
+    );
+
+$profilesUrl =
+    route_to(
+        'field-officer.profiles.index'
+    );
+
+$logoutUrl =
+    route_to(
+        'field-officer.logout'
+    );
+
+$logoUrl =
+    base_url(
+        'assets/images/'
+            . 'logo_sak_bgremove_final.png'
+    );
+
+$bootstrapCssUrl =
+    base_url(
+        'assets/css/bootstrap.css'
+    );
+
+$iconsCssUrl =
+    base_url(
+        'assets/css/icons.css'
+    );
+
+$appCssUrl =
+    base_url(
+        'assets/css/app.css'
+    );
+
+$customCssUrl =
+    base_url(
+        'assets/css/custom.css'
+    );
+
+$bootstrapJsUrl =
+    base_url(
+        'assets/js/bootstrap.bundle.min.js'
+    );
+
+$choicesJsUrl =
+    base_url(
+        'assets/js/choices.min.js'
+    );
+
+$selectChoiceJsUrl =
+    base_url(
+        'assets/js/components/select-choice.js'
+    );
 ?>
 <!doctype html>
+
 <html lang="en">
 
 <head>
+
     <meta charset="utf-8">
 
     <meta
@@ -47,27 +122,32 @@ $profilesActive =
 
     <link
         rel="stylesheet"
-        href="<?= base_url(
-                    'assets/css/bootstrap.css'
+        href="<?= esc(
+                    $bootstrapCssUrl,
+                    'attr'
                 ) ?>">
 
     <link
         rel="stylesheet"
-        href="<?= base_url(
-                    'assets/css/icons.css'
+        href="<?= esc(
+                    $iconsCssUrl,
+                    'attr'
                 ) ?>">
 
     <link
         rel="stylesheet"
-        href="<?= base_url(
-                    'assets/css/app.css'
+        href="<?= esc(
+                    $appCssUrl,
+                    'attr'
                 ) ?>">
 
     <link
         rel="stylesheet"
-        href="<?= base_url(
-                    'assets/css/custom.css'
+        href="<?= esc(
+                    $customCssUrl,
+                    'attr'
                 ) ?>">
+
 </head>
 
 <body>
@@ -76,34 +156,43 @@ $profilesActive =
 
         <header
             id="page-topbar"
-            class="position-static border-bottom">
+            class="position-static
+            border-bottom">
 
             <nav
-                class="navbar navbar-expand-lg bg-white py-2"
+                class="navbar
+                navbar-expand-lg
+                bg-white
+                py-2"
                 aria-label="Field Officer navigation">
 
                 <div
-                    class="container-fluid px-3 px-lg-4">
+                    class="container-fluid
+                    px-3
+                    px-lg-4">
 
                     <a
-                        href="<?= route_to(
-                                    'field-officer.dashboard'
+                        href="<?= esc(
+                                    $dashboardUrl,
+                                    'attr'
                                 ) ?>"
                         class="navbar-brand
-                d-inline-flex
-                align-items-center
-                flex-shrink-0
-                me-lg-3
-                m-0
-                p-0
-                text-decoration-none">
+                        d-inline-flex
+                        align-items-center
+                        flex-shrink-0
+                        me-lg-3
+                        m-0
+                        p-0
+                        text-decoration-none">
 
                         <img
-                            src="<?= base_url(
-                                        'assets/images/logo_sak_bgremove_final.png'
+                            src="<?= esc(
+                                        $logoUrl,
+                                        'attr'
                                     ) ?>"
                             alt="Sikhanandkaraj"
                             class="public-navbar__logo">
+
                     </a>
 
                     <button
@@ -118,36 +207,38 @@ $profilesActive =
                         <span
                             class="navbar-toggler-icon">
                         </span>
+
                     </button>
 
                     <div
-                        class="collapse navbar-collapse"
+                        class="collapse
+                        navbar-collapse"
                         id="fieldOfficerNavbar">
 
                         <ul
                             class="navbar-nav
-                    nav-underline
-                    mx-lg-auto
-                    gap-2
-                    mt-2 mt-lg-0">
+                            nav-underline
+                            mx-lg-auto
+                            gap-2
+                            mt-2
+                            mt-lg-0">
 
-                            <!--
-                        The only Field Officer business menu item.
-                    -->
                             <li class="nav-item">
 
                                 <a
-                                    href="<?= route_to(
-                                                'field-officer.profiles.index'
+                                    href="<?= esc(
+                                                $profilesUrl,
+                                                'attr'
                                             ) ?>"
                                     class="nav-link
-                            d-flex
-                            align-items-center
-                            gap-2
-                            py-1 py-lg-2
-                            <?= $profilesActive
-                                ? 'active text-primary'
-                                : '' ?>">
+                                    d-flex
+                                    align-items-center
+                                    gap-2
+                                    py-1
+                                    py-lg-2
+                                    <?= $profilesActive
+                                        ? 'active text-primary'
+                                        : '' ?>">
 
                                     <i
                                         class="ri-profile-line"
@@ -160,40 +251,45 @@ $profilesActive =
                                                     : '' ?>">
 
                                         Profiles Submitted
+
                                     </span>
+
                                 </a>
+
                             </li>
+
                         </ul>
 
                         <div
                             class="d-flex
-                    flex-column
-                    flex-lg-row
-                    align-items-lg-center
-                    gap-2
-                    mt-2 mt-lg-0">
+                            flex-column
+                            flex-lg-row
+                            align-items-lg-center
+                            gap-2
+                            mt-2
+                            mt-lg-0">
 
                             <span
                                 class="text-muted
-                        text-truncate
-                        mw-100">
+                                text-truncate
+                                mw-100">
 
                                 <i
                                     class="ri-user-location-line
-                            me-1"
+                                    me-1"
                                     aria-hidden="true">
                                 </i>
 
                                 <?= esc(
-                                    (string) session(
-                                        'fo_field_officer_name'
-                                    )
+                                    $fieldOfficerName
                                 ) ?>
+
                             </span>
 
                             <form
-                                action="<?= route_to(
-                                            'field-officer.logout'
+                                action="<?= esc(
+                                            $logoutUrl,
+                                            'attr'
                                         ) ?>"
                                 method="post"
                                 class="mb-0">
@@ -203,24 +299,28 @@ $profilesActive =
                                 <button
                                     type="submit"
                                     class="btn
-                            btn-soft-secondary
-                            btn-sm
-                            w-100">
+                                    btn-soft-secondary
+                                    btn-sm
+                                    w-100">
 
                                     <i
                                         class="ri-logout-box-r-line
-                                me-1"
+                                        me-1"
                                         aria-hidden="true">
                                     </i>
 
                                     Logout
+
                                 </button>
+
                             </form>
+
                         </div>
 
                     </div>
                 </div>
             </nav>
+
         </header>
 
     <?php endif; ?>
@@ -233,43 +333,56 @@ $profilesActive =
         <?= $this->renderSection(
             'content'
         ) ?>
+
     </main>
 
     <script
-        src="<?= base_url(
-                    'assets/js/bootstrap.bundle.min.js'
+        src="<?= esc(
+                    $bootstrapJsUrl,
+                    'attr'
                 ) ?>">
     </script>
 
     <script
-        src="<?= base_url(
-                    'assets/js/choices.min.js'
+        src="<?= esc(
+                    $choicesJsUrl,
+                    'attr'
                 ) ?>">
     </script>
 
     <script
-        src="<?= base_url(
-                    'assets/js/components/select-choice.js'
+        src="<?= esc(
+                    $selectChoiceJsUrl,
+                    'attr'
                 ) ?>">
     </script>
 
     <?php foreach (
-        $pageScripts as $script
+        $pageScripts
+        as $script
     ): ?>
 
-        <?php if (
-            is_string($script)
-            && $script !== ''
-        ): ?>
+        <?php
+        $scriptPath = is_string($script)
+            ? trim($script)
+            : '';
 
-            <script
-                src="<?= esc(
-                            base_url($script),
-                            'attr'
-                        ) ?>">
-            </script>
+        if ($scriptPath === '') {
+            continue;
+        }
 
-        <?php endif; ?>
+        $scriptUrl =
+            base_url(
+                $scriptPath
+            );
+        ?>
+
+        <script
+            src="<?= esc(
+                        $scriptUrl,
+                        'attr'
+                    ) ?>">
+        </script>
 
     <?php endforeach; ?>
 

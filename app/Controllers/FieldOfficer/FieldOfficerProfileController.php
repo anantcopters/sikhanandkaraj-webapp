@@ -60,6 +60,13 @@ extends BaseController
                 'searchTerm' =>
                 $result['search'],
 
+                'fieldOfficerName' =>
+                trim(
+                    (string) session(
+                        'fo_field_officer_name'
+                    )
+                ),
+
                 'formAlert' =>
                 $this->readFormAlert(),
             ]

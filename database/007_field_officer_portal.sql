@@ -67,14 +67,12 @@ ON field_officer_login_otps (
     created_at DESC
 );
 
-CREATE INDEX IF NOT EXISTS
-    idx_field_officer_login_otps_pending
+CREATE UNIQUE INDEX IF NOT EXISTS
+    uq_field_officer_login_otps_pending
 ON field_officer_login_otps (
-    field_officer_id,
-    expires_at
+    field_officer_id
 )
 WHERE status = 'PENDING';
-
 
 -- -------------------------------------------------------------------------
 -- FIELD OFFICER SUBMITTED PROFILE READ VIEW
