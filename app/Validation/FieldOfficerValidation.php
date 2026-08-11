@@ -173,6 +173,40 @@ final class FieldOfficerValidation
     }
 
     /**
+     * Public SAK Volunteer registration.
+     *
+     * Reuses exactly the same volunteer-field rules used by
+     * Super Admin creation and adds only CAPTCHA validation.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public static function registrationRules(): array
+    {
+        $rules =
+            self::createRules();
+
+        $rules['captcha_answer'] = [
+            'label' =>
+            'Security verification',
+
+            'rules' => [
+                'required',
+                'regex_match[/^[0-9]{1,2}$/]',
+            ],
+
+            'errors' => [
+                'required' =>
+                'Please enter the security verification answer.',
+
+                'regex_match' =>
+                'Please enter a valid security verification answer.',
+            ],
+        ];
+
+        return $rules;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private static function aadhaarRules(): array

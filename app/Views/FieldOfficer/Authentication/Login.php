@@ -9,6 +9,11 @@ declare(strict_types=1);
  * presentation markup begins.
  */
 
+$registrationUrl =
+    route_to(
+        'field-officer.register'
+    );
+
 $pageTitle = trim(
     (string) (
         $pageTitle
@@ -347,7 +352,29 @@ $this->section('content');
                                     </button>
 
                                 </form>
+                                <div
+                                    class="d-flex
+    align-items-center
+    gap-2
+    mt-3">
 
+                                    <span class="text-muted">
+                                        Want to become a SAK Volunteer?
+                                    </span>
+
+                                    <a
+                                        href="<?= esc(
+                                                    $registrationUrl,
+                                                    'attr'
+                                                ) ?>"
+                                        class="btn
+        btn-soft-primary
+        btn-sm">
+
+                                        Register
+                                    </a>
+
+                                </div>
                             </div>
                         </div>
                     </div>

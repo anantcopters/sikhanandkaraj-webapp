@@ -19,6 +19,30 @@ $resolvedFormAlert = is_array(
     ? $formAlert
     : null;
 
+$reviewStatus = strtoupper(
+    trim(
+        (string) (
+            $fieldOfficer['review_status']
+            ?? ''
+        )
+    )
+);
+
+$isSelfRegistration =
+    strtoupper(
+        trim(
+            (string) (
+                $fieldOfficer['registration_source']
+                ?? ''
+            )
+        )
+    )
+    === 'SELF';
+
+$isPendingRegistration =
+    $isSelfRegistration
+    && $reviewStatus === 'PENDING';
+
 $this->extend('Admin/Layouts/Main');
 $this->section('content');
 ?>
@@ -202,22 +226,52 @@ $this->section('content');
                                 </td>
 
                                 <td>
-                                    <?php if ($isActive): ?>
+                                    <?php if ($isPendingRegistration): ?>
+
                                         <span
                                             class="badge
-                                    bg-success-subtle
-                                    text-black p-2">
+        bg-warning-subtle
+        text-dark
+        p-2">
+
+                                            Pending Review
+                                        </span>
+
+                                    <?php elseif (
+                                        $reviewStatus === 'REJECTED'
+                                    ): ?>
+
+                                        <span
+                                            class="badge
+        bg-danger-subtle
+        text-danger
+        p-2">
+
+                                            Rejected
+                                        </span>
+
+                                    <?php elseif ($isActive): ?>
+
+                                        <span
+                                            class="badge
+        bg-success-subtle
+        text-black
+        p-2">
 
                                             Active
                                         </span>
+
                                     <?php else: ?>
+
                                         <span
                                             class="badge
-                                    bg-secondary-subtle
-                                    text-black p-2">
+        bg-secondary-subtle
+        text-black
+        p-2">
 
                                             Inactive
                                         </span>
+
                                     <?php endif; ?>
                                 </td>
 
@@ -226,7 +280,77 @@ $this->section('content');
                                         class="d-inline-flex
                                 align-items-center
                                 gap-1">
+                                        <?php if ($isPendingRegistration): ?>
 
+                                            <form
+                                                action="<?= route_to(
+                                                            'admin.field-officers.approve-registration',
+                                                            (int) $fieldOfficer['id']
+                                                        ) ?>"
+                                                method="post"
+                                                class="d-inline"
+                                                data-confirm-form
+                                                data-confirm-title="Approve SAK Volunteer?"
+                                                data-confirm-message="Approve this SAK Volunteer registration?"
+                                                data-confirm-button-text="Approve"
+                                                data-confirm-loading-text="Approving..."
+                                                data-confirm-button-class="btn-success"
+                                                data-confirm-icon="ri-checkbox-circle-line">
+
+                                                <?= csrf_field() ?>
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn
+            btn-soft-success
+            btn-sm"
+                                                    title="Approve SAK Volunteer"
+                                                    aria-label="Approve SAK Volunteer">
+
+                                                    <i
+                                                        class="ri-checkbox-circle-line"
+                                                        aria-hidden="true">
+                                                    </i>
+
+                                                </button>
+
+                                            </form>
+
+                                            <form
+                                                action="<?= route_to(
+                                                            'admin.field-officers.reject-registration',
+                                                            (int) $fieldOfficer['id']
+                                                        ) ?>"
+                                                method="post"
+                                                class="d-inline"
+                                                data-confirm-form
+                                                data-confirm-title="Reject SAK Volunteer?"
+                                                data-confirm-message="Reject this SAK Volunteer registration?"
+                                                data-confirm-button-text="Reject"
+                                                data-confirm-loading-text="Rejecting..."
+                                                data-confirm-button-class="btn-danger"
+                                                data-confirm-icon="ri-close-circle-line">
+
+                                                <?= csrf_field() ?>
+
+                                                <button
+                                                    type="submit"
+                                                    class="btn
+            btn-soft-danger
+            btn-sm"
+                                                    title="Reject SAK Volunteer"
+                                                    aria-label="Reject SAK Volunteer">
+
+                                                    <i
+                                                        class="ri-close-circle-line"
+                                                        aria-hidden="true">
+                                                    </i>
+
+                                                </button>
+
+                                            </form>
+
+                                        <?php endif; ?>
                                         <a
                                             href="<?= route_to(
                                                         'admin.field-officers.edit',

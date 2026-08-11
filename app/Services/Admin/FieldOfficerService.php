@@ -1088,6 +1088,499 @@ final class FieldOfficerService
     }
 
     /**
+     * Register a SAK Volunteer from the public self-registration form.
+     *
+     * Self-registration differs from administrator creation:
+     *
+     * - account always begins INACTIVE;
+     * - review status always begins PENDING;
+     * - UPI does NOT activate the account;
+     * - login becomes available only after administrator approval.
+     *
+     * @param array<string, mixed> $input
+     */
+    public function register(
+        array $input,
+        int $createdBy
+    ): int {
+        if ($createdBy <= 0) {
+            throw new RuntimeException(
+                'The registration owner could not be identified.'
+            );
+        }
+
+        $mobileNumber =
+            $this->normalizeMobileNumber(
+                (string) (
+                    $input['mobile_number']
+                    ?? ''
+                )
+            );
+
+        if (
+            $this->fieldOfficerModel
+            ->mobileExists(
+                $mobileNumber
+            )
+        ) {
+            throw new RuntimeException(
+                'A SAK Volunteer with this mobile number already exists.'
+            );
+        }
+
+        $aadhaarNumber =
+            preg_replace(
+                '/\D+/',
+                '',
+                (string) (
+                    $input['aadhaar_number']
+                    ?? ''
+                )
+            ) ?? '';
+
+        if (
+            $this->fieldOfficerModel
+            ->aadhaarExists(
+                $aadhaarNumber
+            )
+        ) {
+            throw new RuntimeException(
+                'A SAK Volunteer with this Aadhaar number already exists.'
+            );
+        }
+
+        $panNumber =
+            strtoupper(
+                trim(
+                    (string) (
+                        $input['pan_number']
+                        ?? ''
+                    )
+                )
+            );
+
+        if (
+            $this->fieldOfficerModel
+            ->panExists(
+                $panNumber
+            )
+        ) {
+            throw new RuntimeException(
+                'A SAK Volunteer with this PAN number already exists.'
+            );
+        }
+
+        $countryId = max(
+            0,
+            (int) (
+                $input['country_id']
+                ?? 0
+            )
+        );
+
+        $stateId = max(
+            0,
+            (int) (
+                $input['state_id']
+                ?? 0
+            )
+        );
+
+        $cityId = max(
+            0,
+            (int) (
+                $input['city_id']
+                ?? 0
+            )
+        );
+
+        $this->assertValidLocation(
+            $countryId,
+            $stateId,
+            $cityId
+        );
+
+        $upiId =
+            $this->nullableText(
+                $input['upi_id']
+                    ?? null
+            );
+
+        if (
+            $upiId !== null
+            && $this->fieldOfficerModel
+            ->upiExists(
+                $upiId
+            )
+        ) {
+            throw new RuntimeException(
+                'A SAK Volunteer with this UPI ID already exists.'
+            );
+        }
+
+        /*
+     * Generate exactly the same immutable volunteer code
+     * used by administrator creation.
+     */
+        $officerCode =
+            $this->generateOfficerCode();
+
+        $this->database->transBegin();
+
+        try {
+            $inserted =
+                $this->fieldOfficerModel
+                ->insert(
+                    [
+                        'officer_code' =>
+                        $officerCode,
+
+                        'full_name' =>
+                        trim(
+                            (string) (
+                                $input['full_name']
+                                ?? ''
+                            )
+                        ),
+
+                        'mobile_number' =>
+                        $mobileNumber,
+
+                        'aadhaar_number' =>
+                        $aadhaarNumber,
+
+                        'pan_number' =>
+                        $panNumber,
+
+                        'country_id' =>
+                        $countryId,
+
+                        'state_id' =>
+                        $stateId,
+
+                        'city_id' =>
+                        $cityId,
+
+                        'address' =>
+                        $this->nullableText(
+                            $input['address']
+                                ?? null
+                        ),
+
+                        'upi_id' =>
+                        $upiId,
+
+                        /*
+                         * Public registration never activates
+                         * the applicant directly.
+                         */
+                        'account_status' =>
+                        FieldOfficerModel
+                        ::STATUS_INACTIVE,
+
+                        'activated_at' =>
+                        null,
+
+                        'deactivated_at' =>
+                        null,
+
+                        /*
+                         * This value is the configured
+                         * Super Admin system owner.
+                         */
+                        'created_by' =>
+                        $createdBy,
+
+                        'registration_source' =>
+                        FieldOfficerModel
+                        ::REGISTRATION_SOURCE_SELF,
+
+                        'review_status' =>
+                        FieldOfficerModel
+                        ::REVIEW_STATUS_PENDING,
+
+                        'reviewed_by' =>
+                        null,
+
+                        'reviewed_at' =>
+                        null,
+
+                        'rejection_reason' =>
+                        null,
+                    ],
+                    true
+                );
+
+            if (!is_numeric($inserted)) {
+                throw new RuntimeException(
+                    'The SAK Volunteer registration '
+                        . 'could not be saved.'
+                );
+            }
+
+            if (
+                $this->database
+                ->transStatus() === false
+            ) {
+                throw new RuntimeException(
+                    'The SAK Volunteer registration '
+                        . 'transaction failed.'
+                );
+            }
+
+            $this->database
+                ->transCommit();
+        } catch (Throwable $exception) {
+            $this->database
+                ->transRollback();
+
+            if (
+                $this->isUniqueMobileViolation(
+                    $exception
+                )
+            ) {
+                throw new RuntimeException(
+                    'A SAK Volunteer with this '
+                        . 'mobile number already exists.',
+                    0,
+                    $exception
+                );
+            }
+
+            throw $exception;
+        }
+
+        /*
+     * Audit stays outside the business transaction,
+     * following the existing service rule.
+     */
+        $this->recordAuditSafely(
+            new AdminAuditEvent(
+                action: AdminAuditAction
+                ::FIELD_OFFICER_CREATED,
+
+                targetType: 'FIELD_OFFICER',
+
+                targetId: (int) $inserted,
+
+                targetLabel: $officerCode,
+
+                description: 'SAK Volunteer submitted '
+                    . 'a self-registration application.',
+
+                afterData: [
+                    'officer_code' =>
+                    $officerCode,
+
+                    'mobile_number' =>
+                    $this->maskMobile(
+                        $mobileNumber
+                    ),
+
+                    'registration_source' =>
+                    FieldOfficerModel
+                    ::REGISTRATION_SOURCE_SELF,
+
+                    'review_status' =>
+                    FieldOfficerModel
+                    ::REVIEW_STATUS_PENDING,
+
+                    'account_status' =>
+                    FieldOfficerModel
+                    ::STATUS_INACTIVE,
+
+                    'upi_id_present' =>
+                    $upiId !== null,
+                ]
+            )
+        );
+
+        return (int) $inserted;
+    }
+
+    /**
+     * Approve one pending self-registration.
+     */
+    public function approveRegistration(
+        int $fieldOfficerId,
+        int $reviewedBy
+    ): void {
+        if (
+            $fieldOfficerId <= 0
+            || $reviewedBy <= 0
+        ) {
+            throw new RuntimeException(
+                'Invalid SAK Volunteer approval request.'
+            );
+        }
+
+        $existing =
+            $this->findForEdit(
+                $fieldOfficerId
+            );
+
+        if (
+            (string) (
+                $existing['registration_source']
+                ?? ''
+            )
+            !== FieldOfficerModel
+            ::REGISTRATION_SOURCE_SELF
+            ||
+            (string) (
+                $existing['review_status']
+                ?? ''
+            )
+            !== FieldOfficerModel
+            ::REVIEW_STATUS_PENDING
+        ) {
+            throw new RuntimeException(
+                'Only a pending SAK Volunteer '
+                    . 'registration may be approved.'
+            );
+        }
+
+        /*
+     * Existing business rule:
+     * an ACTIVE SAK Volunteer requires UPI.
+     */
+        $upiId = trim(
+            (string) (
+                $existing['upi_id']
+                ?? ''
+            )
+        );
+
+        if ($upiId === '') {
+            throw new RuntimeException(
+                'Add a valid UPI ID before approving '
+                    . 'this SAK Volunteer.'
+            );
+        }
+
+        $now =
+            date('Y-m-d H:i:s');
+
+        $updated =
+            $this->fieldOfficerModel
+            ->update(
+                $fieldOfficerId,
+                [
+                    'review_status' =>
+                    FieldOfficerModel
+                    ::REVIEW_STATUS_APPROVED,
+
+                    'reviewed_by' =>
+                    $reviewedBy,
+
+                    'reviewed_at' =>
+                    $now,
+
+                    'rejection_reason' =>
+                    null,
+
+                    'account_status' =>
+                    FieldOfficerModel
+                    ::STATUS_ACTIVE,
+
+                    'activated_at' =>
+                    $now,
+
+                    'deactivated_at' =>
+                    null,
+
+                    'updated_by' =>
+                    $reviewedBy,
+                ]
+            );
+
+        if ($updated === false) {
+            throw new RuntimeException(
+                'The SAK Volunteer could not be approved.'
+            );
+        }
+    }
+
+
+    /**
+     * Reject one pending self-registration.
+     */
+    public function rejectRegistration(
+        int $fieldOfficerId,
+        int $reviewedBy
+    ): void {
+        if (
+            $fieldOfficerId <= 0
+            || $reviewedBy <= 0
+        ) {
+            throw new RuntimeException(
+                'Invalid SAK Volunteer rejection request.'
+            );
+        }
+
+        $existing =
+            $this->findForEdit(
+                $fieldOfficerId
+            );
+
+        if (
+            (string) (
+                $existing['registration_source']
+                ?? ''
+            )
+            !== FieldOfficerModel
+            ::REGISTRATION_SOURCE_SELF
+            ||
+            (string) (
+                $existing['review_status']
+                ?? ''
+            )
+            !== FieldOfficerModel
+            ::REVIEW_STATUS_PENDING
+        ) {
+            throw new RuntimeException(
+                'Only a pending SAK Volunteer '
+                    . 'registration may be rejected.'
+            );
+        }
+
+        $updated =
+            $this->fieldOfficerModel
+            ->update(
+                $fieldOfficerId,
+                [
+                    'review_status' =>
+                    FieldOfficerModel
+                    ::REVIEW_STATUS_REJECTED,
+
+                    'reviewed_by' =>
+                    $reviewedBy,
+
+                    'reviewed_at' =>
+                    date(
+                        'Y-m-d H:i:s'
+                    ),
+
+                    'account_status' =>
+                    FieldOfficerModel
+                    ::STATUS_INACTIVE,
+
+                    'activated_at' =>
+                    null,
+
+                    'updated_by' =>
+                    $reviewedBy,
+                ]
+            );
+
+        if ($updated === false) {
+            throw new RuntimeException(
+                'The SAK Volunteer could not be rejected.'
+            );
+        }
+    }
+
+    /**
      * Generate a cryptographically secure random SAK Volunteer code.
      *
      * The database unique constraint remains the final safeguard against

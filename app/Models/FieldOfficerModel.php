@@ -16,6 +16,21 @@ final class FieldOfficerModel extends Model
 
     public const STATUS_INACTIVE = 'INACTIVE';
 
+    public const REGISTRATION_SOURCE_ADMIN =
+    'ADMIN';
+
+    public const REGISTRATION_SOURCE_SELF =
+    'SELF';
+
+    public const REVIEW_STATUS_PENDING =
+    'PENDING';
+
+    public const REVIEW_STATUS_APPROVED =
+    'APPROVED';
+
+    public const REVIEW_STATUS_REJECTED =
+    'REJECTED';
+
     protected $table = 'field_officers';
 
     protected $primaryKey = 'id';
@@ -43,6 +58,12 @@ final class FieldOfficerModel extends Model
         'created_by',
         'updated_by',
         'last_login_at',
+
+        'registration_source',
+        'review_status',
+        'reviewed_by',
+        'reviewed_at',
+        'rejection_reason',
     ];
 
     protected $useTimestamps = true;
@@ -87,6 +108,11 @@ final class FieldOfficerModel extends Model
                 'field_officers.activated_at',
                 'field_officers.deactivated_at',
                 'field_officers.created_at',
+                'field_officers.registration_source',
+                'field_officers.review_status',
+                'field_officers.reviewed_by',
+                'field_officers.reviewed_at',
+                'field_officers.rejection_reason',
                 'master_countries.name AS country_name',
                 'master_states.name AS state_name',
                 'master_cities.name AS city_name',

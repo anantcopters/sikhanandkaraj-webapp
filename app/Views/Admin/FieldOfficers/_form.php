@@ -12,6 +12,67 @@ declare(strict_types=1);
  * @var string $formAction
  */
 
+$resolvedFormAction = trim(
+    (string) (
+        $formAction
+        ?? ''
+    )
+);
+
+$citiesBaseUrl = trim(
+    (string) (
+        $citiesBaseUrl
+        ?? site_url(
+            'admin/field-officers/master/cities'
+        )
+    )
+);
+
+$submitLabel = trim(
+    (string) (
+        $submitLabel
+        ?? (
+            $editing
+            ? 'Save Changes'
+            : 'Add SAK Volunteer'
+        )
+    )
+);
+
+$submitLoadingLabel = trim(
+    (string) (
+        $submitLoadingLabel
+        ?? (
+            $editing
+            ? 'Saving changes...'
+            : 'Creating SAK Volunteer...'
+        )
+    )
+);
+
+$showCaptcha =
+    ($showCaptcha ?? false)
+    === true;
+
+$captchaChallenge = trim(
+    (string) (
+        $captchaChallenge
+        ?? ''
+    )
+);
+
+$captchaError = trim(
+    (string) (
+        $captchaError
+        ?? ''
+    )
+);
+
+$captchaClass =
+    $captchaError !== ''
+    ? 'is-invalid'
+    : '';
+
 $resolvedFormInput =
     is_array($formInput ?? null)
     ? $formInput
@@ -61,7 +122,7 @@ $selectedCity =
 
 <form
     action="<?= esc(
-                $formAction,
+                $resolvedFormAction,
                 'attr'
             ) ?>"
     method="post"
@@ -69,9 +130,7 @@ $selectedCity =
     data-submit-loader
     data-field-officer-form
     data-cities-url="<?= esc(
-                            site_url(
-                                'admin/field-officers/master/cities'
-                            ),
+                            $citiesBaseUrl,
                             'attr'
                         ) ?>"
     novalidate>
@@ -602,7 +661,88 @@ $selectedCity =
         </div>
 
     </div>
+    <?php if ($showCaptcha): ?>
 
+        <div class="mt-4">
+
+            <label
+                for="fieldOfficerRegistrationCaptcha"
+                class="form-label">
+
+                Security Verification
+                <span class="text-danger">*</span>
+            </label>
+
+            <div
+                class="border
+            rounded
+            p-2
+            mb-2
+            bg-light
+            border-primary-subtle">
+
+                <div
+                    class="d-flex
+                align-items-center
+                justify-content-between
+                gap-2">
+
+                    <span class="text-muted">
+                        Solve this question
+                    </span>
+
+                    <span
+                        class="fw-bold
+                    fs-18">
+
+                        <?= esc(
+                            $captchaChallenge
+                        ) ?> = ?
+
+                    </span>
+
+                </div>
+
+            </div>
+
+            <input
+                type="text"
+                id="fieldOfficerRegistrationCaptcha"
+                name="captcha_answer"
+                class="form-control
+            <?= esc(
+                $captchaClass,
+                'attr'
+            ) ?>"
+                value=""
+                inputmode="numeric"
+                maxlength="2"
+                pattern="[0-9]{1,2}"
+                autocomplete="off"
+                placeholder="Enter answer"
+                required>
+
+            <div class="invalid-feedback">
+
+                <?= esc(
+                    $captchaError !== ''
+                        ? $captchaError
+                        : 'Enter the security verification answer.'
+                ) ?>
+
+            </div>
+
+            <div
+                class="form-text
+            color-pink">
+
+                The security question expires
+                after 5 minutes.
+            </div>
+
+        </div>
+
+    <?php endif; ?>
     <div
         class="mt-4
         d-flex
@@ -618,9 +758,9 @@ $selectedCity =
             data-submit-button style="background-color: var(--sak-primary); border-color: var(--sak-primary)">
 
             <span data-submit-idle>
-                <?= $editing
-                    ? 'Save Changes'
-                    : 'Add SAK Volunteer' ?>
+                <?= esc(
+                    $submitLabel
+                ) ?>
             </span>
 
             <span
@@ -634,9 +774,9 @@ $selectedCity =
                 </span>
 
                 <span class="ms-1">
-                    <?= $editing
-                        ? 'Saving changes...'
-                        : 'Creating SAK Volunteer...' ?>
+                    <?= esc(
+                        $submitLoadingLabel
+                    ) ?>
                 </span>
 
             </span>

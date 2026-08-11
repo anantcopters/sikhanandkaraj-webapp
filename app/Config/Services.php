@@ -1813,4 +1813,25 @@ final class Services extends BaseService
             )
         );
     }
+
+    /**
+     * Return the CAPTCHA service for public
+     * SAK Volunteer self-registration.
+     *
+     * Registration and login use isolated session keys so
+     * one page cannot invalidate the other's challenge.
+     */
+    public static function fieldOfficerRegistrationCaptchaService(
+        bool $getShared = true
+    ): AdminCaptchaService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'fieldOfficerRegistrationCaptchaService'
+            );
+        }
+
+        return new AdminCaptchaService(
+            'field_officer_registration_captcha'
+        );
+    }
 }

@@ -1058,6 +1058,36 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
     });
 }
 
+/*
+ * Public SAK Volunteer registration.
+ */
+$routes->get(
+    'register',
+    'FieldOfficerRegistrationController::index',
+    [
+        'as' =>
+        'field-officer.register',
+    ]
+);
+
+$routes->post(
+    'register',
+    'FieldOfficerRegistrationController::store',
+    [
+        'as' =>
+        'field-officer.register.store',
+    ]
+);
+
+$routes->get(
+    'register/master/cities/(:num)',
+    'FieldOfficerRegistrationController::cities/$1',
+    [
+        'as' =>
+        'field-officer.register.cities',
+    ]
+);
+
 // -----------------------------------------------------------------------------
 // Administrator routes
 // -----------------------------------------------------------------------------
@@ -1258,6 +1288,24 @@ $routes->group('admin', [
                     [
                         'as' =>
                         'admin.field-officers.deactivate',
+                    ]
+                );
+
+                $routes->post(
+                    'field-officers/(:num)/approve-registration',
+                    'FieldOfficerController::approveRegistration/$1',
+                    [
+                        'as' =>
+                        'admin.field-officers.approve-registration',
+                    ]
+                );
+
+                $routes->post(
+                    'field-officers/(:num)/reject-registration',
+                    'FieldOfficerController::rejectRegistration/$1',
+                    [
+                        'as' =>
+                        'admin.field-officers.reject-registration',
                     ]
                 );
             }

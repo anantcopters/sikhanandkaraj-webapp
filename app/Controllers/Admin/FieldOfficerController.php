@@ -672,6 +672,135 @@ final class FieldOfficerController extends BaseController
     }
 
     /**
+     * Approve a pending SAK Volunteer self-registration.
+     */
+    public function approveRegistration(
+        int $fieldOfficerId
+    ): RedirectResponse {
+        try {
+            /** @var FieldOfficerService $service */
+            $service =
+                service(
+                    'fieldOfficerService'
+                );
+
+            $service->approveRegistration(
+                $fieldOfficerId,
+                (int) session(
+                    'admin_user_id'
+                )
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.field-officers.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'success',
+
+                        'title' =>
+                        'SAK Volunteer approved',
+
+                        'message' =>
+                        'The SAK Volunteer registration '
+                            . 'has been approved.',
+                    ]
+                );
+        } catch (Throwable $exception) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.field-officers.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Approval failed',
+
+                        'message' =>
+                        $exception
+                            ->getMessage(),
+                    ]
+                );
+        }
+    }
+
+
+    /**
+     * Reject a pending SAK Volunteer self-registration.
+     */
+    public function rejectRegistration(
+        int $fieldOfficerId
+    ): RedirectResponse {
+        try {
+            /** @var FieldOfficerService $service */
+            $service =
+                service(
+                    'fieldOfficerService'
+                );
+
+            $service->rejectRegistration(
+                $fieldOfficerId,
+                (int) session(
+                    'admin_user_id'
+                )
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.field-officers.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'success',
+
+                        'title' =>
+                        'SAK Volunteer rejected',
+
+                        'message' =>
+                        'The SAK Volunteer registration '
+                            . 'has been rejected.',
+                    ]
+                );
+        } catch (Throwable $exception) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.field-officers.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Rejection failed',
+
+                        'message' =>
+                        $exception
+                            ->getMessage(),
+                    ]
+                );
+        }
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function createInput(): array
