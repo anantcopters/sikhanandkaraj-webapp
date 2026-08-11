@@ -3,53 +3,38 @@
 ## Review scope
 
 **Branch:** `development`  
-**Reviewed commit:** `7193e791dadddc2293e9becd0b8e92936b4038a4`  
-**Reviewed date:** 2026-08-10  
-**QA mode:** Static code/configuration review. Browser execution, live database inspection, upload execution, S3 execution and end-to-end migration were not available in this review.
+**Re-QA date:** 2026-08-11  
+**QA mode:** Static code/configuration/database-script review. Browser execution, live database inspection, upload execution, S3 execution and end-to-end migration were not available in this review.
 
-## Requirement summary observed from current implementation
+**Rules used:**
+- `docs/project_rules.md`
+- `docs/project-rules-coding.md`
+- `docs/qa/QA_RULES.md`
+- `docs/qa/QA_GATE.md`
+- `docs/qa/REGRESSION_SUITE.md`
 
-The current Prelaunch Profile module provides a public standalone profile-entry form, configured Field Officer assignment, mandatory profile/master-data validation, exactly two required photographs, local optimized WebP staging, administrator review/moderation, contact correction, profile approval/rejection, and migration of approved profiles/photos into the normal member/S3 workflow.
+## Requirement summary
 
-No current non-empty repository project-rules document exists. `docs/PROJECT_RULES.md` was empty before being removed from the latest branch. Architecture checks therefore use the current codebase patterns and `docs/qa/QA_RULES.md`.
+Prelaunch Profile is a public standalone profile-entry flow that remains separate from live member data until administrator approval/migration. It collects required profile/master data, optional email, two photographs, and Field Officer attribution. The current production-style flow requires Field Officer code verification and revalidates the code/hidden ID server-side before save. Administrator review supports photo moderation, contact correction, profile approval/rejection and migration into member/profile/media storage.
 
-## Affected components reviewed
-
-- `app/Config/Prelaunch.php`
-- `app/Config/Routes.php`
-- `app/Controllers/Prelaunch/PrelaunchProfileController.php`
-- `app/Controllers/Admin/PrelaunchProfileController.php`
-- `app/Services/Prelaunch/PrelaunchProfileService.php`
-- `app/Services/Prelaunch/PrelaunchPhotoService.php`
-- `app/Services/Prelaunch/PrelaunchAdminReviewService.php`
-- `app/Services/Prelaunch/PrelaunchMemberMigrationService.php`
-- `app/Models/Prelaunch/PrelaunchProfileModel.php`
-- `app/Validation/Prelaunch/PrelaunchProfileValidation.php`
-- `app/Validation/Prelaunch/PrelaunchPhotoValidation.php`
-- `app/Views/Prelaunch/Profile/Index.php`
-- `app/Views/Prelaunch/Profile/Partials/MemberDetails.php`
-- `public/assets/js/pages/prelaunch-profile-form.js`
-- QA knowledge base under `docs/qa/`
-
-## Findings
+## Re-QA findings
 
 ### QA-PRE-001 — Shared default password on immediately ACTIVE migrated accounts
 
-**QA area:** Security QA  
+**QA area:** Security QA / Requirement QA  
 **Severity:** HIGH  
-**Status:** OPEN / BLOCKING
+**Status:** OPEN / BLOCKING  
+**Retest:** FAIL
 
 **Location:** `app/Services/Prelaunch/PrelaunchMemberMigrationService.php`, `app/Config/Prelaunch.php`
 
-**Evidence:** Migration creates an `ACTIVE` account, hashes one environment-configured `PRELAUNCH_MEMBER_DEFAULT_PASSWORD`, and marks the migrated mobile and optional email contacts verified.
+**Evidence:** Migration still creates the member as `ACTIVE` and stores a hash derived from the single environment value `PRELAUNCH_MEMBER_DEFAULT_PASSWORD`. The migrated mobile and optional email are treated as verified.
 
-**Risk:** Every migrated prelaunch member receives the same known credential. If that credential becomes known and a member identifier is known/guessed, the account can potentially be accessed without proving control of that specific member's contact. This is particularly risky because the account is immediately ACTIVE and contacts are already treated as verified.
+**Project-rule conflict:** `docs/project-rules-coding.md` requires migration to define a safe initial account/password state and requires secure password/token behavior. A single reusable bootstrap password across all migrated members is not member-specific authentication.
 
-**Expected:** Initial access should require a per-user secret or a verified one-time password/password-creation flow. A shared reusable password must not independently grant access to all migrated accounts.
+**Risk:** Disclosure of the shared password can expose multiple migrated accounts when their login identifier is known or discoverable.
 
-**Recommended correction:** Prefer `password_hash = NULL` plus the existing verified-mobile OTP/password-creation/reset flow, or generate a cryptographically random per-member bootstrap secret with mandatory first-login replacement and secure delivery. Do not use one shared default password across migrated members.
-
-**Retest:** NOT RUN.
+**Expected:** Initial access must be member-specific. Preferred design is no reusable shared password: require verified-mobile OTP/password creation/reset, or use a cryptographically random per-member bootstrap secret with forced replacement and secure delivery.
 
 ---
 
@@ -57,19 +42,12 @@ No current non-empty repository project-rules document exists. `docs/PROJECT_RUL
 
 **QA area:** Validation QA / Code QA  
 **Severity:** MEDIUM  
-**Status:** OPEN
+**Status:** RESOLVED  
+**Retest:** PASS (static)
 
 **Location:** `app/Validation/Prelaunch/PrelaunchProfileValidation.php`; `app/Services/Prelaunch/PrelaunchProfileService.php`
 
-**Evidence:** `profile_created_for` validation accepts `RELATIVE` and `FRIEND`, but `resolveGender()` supports only `SELF`, `SON`, `DAUGHTER`, `BROTHER`, and `SISTER`. The public UI currently exposes only those five supported values, so this is primarily a tampered-request/server-contract inconsistency.
-
-**Risk:** A request can pass authoritative validation and then fail later as an internal/service exception rather than a field validation error. The validation contract and business contract disagree.
-
-**Expected:** Authoritative validation and service-accepted values must be identical.
-
-**Recommended correction:** Remove `RELATIVE` and `FRIEND` from validation unless they are intended to be supported; otherwise implement their gender handling and expose them consistently.
-
-**Retest:** NOT RUN.
+**Evidence:** Validation now accepts exactly `SELF,SON,DAUGHTER,BROTHER,SISTER`. The service resolves SON/BROTHER to MALE, DAUGHTER/SISTER to FEMALE and accepts submitted gender only for SELF. `RELATIVE` and `FRIEND` are no longer accepted by authoritative validation.
 
 ---
 
@@ -77,19 +55,12 @@ No current non-empty repository project-rules document exists. `docs/PROJECT_RUL
 
 **QA area:** Code QA  
 **Severity:** LOW  
-**Status:** OPEN
+**Status:** RESOLVED  
+**Retest:** PASS (static)
 
 **Location:** `app/Controllers/Admin/PrelaunchProfileController.php`, `review()`
 
-**Evidence:** Two consecutive identical `catch (PageNotFoundException $exception)` blocks are present.
-
-**Risk:** No expected runtime behavior difference, but it is redundant/dead code and weakens maintainability.
-
-**Expected:** One catch block.
-
-**Recommended correction:** Remove the duplicate catch.
-
-**Retest:** NOT RUN.
+**Evidence:** Only one `PageNotFoundException` catch remains before the general `Throwable` catch.
 
 ---
 
@@ -97,137 +68,175 @@ No current non-empty repository project-rules document exists. `docs/PROJECT_RUL
 
 **QA area:** Code QA  
 **Severity:** LOW  
-**Status:** OPEN
+**Status:** OPEN / NON-BLOCKING
 
-**Location:** `app/Controllers/Admin/PrelaunchProfileController.php`; `app/Services/Prelaunch/PrelaunchAdminReviewService.php`
+**Location:** `app/Services/Prelaunch/PrelaunchAdminReviewService.php::updatePhotoStatus()`
 
-**Evidence:** `updatePhotoStatus()` accepts `?string $reason`, but the controller always sends `null` and the service always stores `rejection_reason => null`.
+**Evidence:** The method still accepts `?string $reason`, but the implementation always writes `rejection_reason => null`; the argument is unused.
 
-**Risk:** Misleading/dead API contract. If photo-rejection reasons are expected later, they are currently discarded.
+**Expected:** Remove the unused argument if photo rejection reasons are intentionally unsupported, or validate/persist it if required.
 
-**Expected:** Either remove the unused parameter/field behavior or validate and persist an actual reason.
+---
 
-**Recommended correction:** Simplify the method contract if no reason is required, or persist a validated reason when rejecting.
+### QA-PRE-005 — Prelaunch migration performs external S3 work inside an open DB transaction
 
-**Retest:** NOT RUN.
+**QA area:** Code QA / Database QA  
+**Severity:** HIGH  
+**Status:** OPEN / BLOCKING
+
+**Location:** `app/Services/Prelaunch/PrelaunchMemberMigrationService.php`
+
+**Evidence:** `migrate()` begins a DB transaction, creates member/contact/profile records, calls `migrateApprovedPhotos()` through the AWS media workflow, and commits only afterwards. The service includes compensating S3 deletion if a later failure occurs.
+
+**Project-rule conflict:** `docs/project-rules-coding.md` explicitly states that external SMS, email, S3 or CloudFront calls must not keep a database transaction open; commit the database decision first or use a queue/outbox.
+
+**Risk:** Network/provider latency or failure can hold PostgreSQL locks/transactions open, increase contention, and make operational recovery dependent on cross-system compensation.
+
+**Expected:** Restructure migration so external media/provider operations do not execute while a DB transaction is held, while preserving idempotency and failure-state tracking.
+
+---
+
+### QA-PRE-006 — Immutable database baseline was modified after baseline creation
+
+**QA area:** Database QA / Code QA  
+**Severity:** HIGH  
+**Status:** OPEN / BLOCKING
+
+**Location:** `app/Database/sikhanandkaraj_db.sql`
+
+**Evidence:** The baseline declares `BASELINE_VERSION: 000` and says it is immutable and that all subsequent DB changes must be numbered incremental scripts. Comparison from the original QA commit to current `development` shows this baseline has since been modified (+15 lines).
+
+**Project-rule conflict:** Both `docs/project_rules.md` and `docs/project-rules-coding.md` require the baseline to remain immutable and later DB changes to use numbered incremental SQL files.
+
+**Risk:** Fresh and existing deployments can diverge because existing environments never replay baseline 000 while fresh environments receive schema changes that are absent from the incremental ledger.
+
+**Expected:** Restore baseline 000 to its frozen baseline content and place every post-baseline schema change in the appropriate new numbered incremental SQL script. Do not amend already executed incremental scripts.
+
+---
+
+### QA-PRE-007 — Field Officer environment/configuration contract is contradictory
+
+**QA area:** Requirement QA / Validation QA / Code QA  
+**Severity:** MEDIUM  
+**Status:** OPEN / BLOCKING
+
+**Location:** `app/Config/Prelaunch.php`; `app/Controllers/Prelaunch/PrelaunchProfileController.php`; `app/Services/Prelaunch/PrelaunchProfileService.php`
+
+**Evidence:** Comments state that production requires explicit Field Officer verification while QA/development should continue automatic configured-officer behavior. However `requiresFieldOfficerVerification` is set TRUE when `APP_DEPLOYMENT` is either `development` or `production`. The automatic configured-officer path is therefore not used for `development` as documented. Depending on the actual QA deployment value, QA behavior may also differ from the stated contract.
+
+**Risk:** Environment-specific behavior can be the opposite of the documented release intent, causing QA to test a different Field Officer workflow than expected.
+
+**Expected:** Define the intended values explicitly (for example production=true, QA/development=false if that is the requirement) and make config, comments, UI and service behavior agree.
+
+---
 
 ## 1. Requirement QA
 
-**Result: NOT VERIFIED**
+**Result: FAIL**
 
-The current implementation is internally coherent around the configured Field Officer workflow and two-photo requirement, but there is no current feature specification in the QA knowledge base and the repository project-rules document is absent. Requirement-to-code traceability therefore cannot be marked PASS solely from static implementation inspection.
+Positive re-QA evidence:
+- Field Officer verification is now implemented as an explicit public POST endpoint.
+- The hidden verified officer ID is not trusted alone; save revalidates active officer code and ID server-side.
+- Relationship/gender values are aligned.
+- Email remains optional.
 
-Manual/owner confirmation needed for:
-- configured single Field Officer assignment versus user-entered Field Officer selection;
-- exact two-photo requirement;
-- whether administrator approval is intended to migrate immediately into the live member tables/S3;
-- whether migrated contacts are intentionally considered verified;
-- intended first-login/password behavior for migrated members.
+Failure reasons:
+- `QA-PRE-001`: initial migrated-member credential model remains unsafe/unresolved.
+- `QA-PRE-007`: environment behavior contradicts the documented production versus QA/development Field Officer requirement.
 
 ## 2. Code QA
 
 **Result: FAIL**
 
-Positive observations:
-- controllers generally delegate business logic to services;
-- master-data logic is reused instead of duplicated;
-- profile creation uses a transaction;
-- filesystem cleanup is attempted on photo persistence failure;
-- migration includes transaction handling and compensating S3 deletion;
-- public input is allow-listed in the controller;
-- centralized error logging is used without intentionally logging submitted PII.
+Positive re-QA evidence:
+- `QA-PRE-003` is fixed.
+- `QA-PRE-002` is fixed.
+- Public controller continues to build allowlisted input, runs authoritative validation and delegates creation to services.
+- Field Officer browser-controlled ID is revalidated in the service.
 
-Blocking/non-blocking findings: `QA-PRE-002`, `QA-PRE-003`, `QA-PRE-004`.
+Failure reasons:
+- `QA-PRE-005`: S3/provider work is performed while a DB transaction is open, directly violating coding rules.
+- `QA-PRE-006`: baseline DB change violates change/deployment discipline.
+- `QA-PRE-007`: configuration implementation disagrees with its documented behavior.
+
+Non-blocking cleanup: `QA-PRE-004`.
 
 ## 3. UI QA
 
 **Result: NOT VERIFIED**
 
-Static review confirms server-rendered validation errors, CSRF field, responsive Bootstrap layout classes, a save-progress modal, dependent state/city behavior, DOB age guidance, and explicit consent UI. However desktop/tablet/mobile rendering, Choices.js behavior, loading modal behavior, duplicate-submit protection, browser back/refresh behavior, large-photo upload UX, error focus/accessibility and actual responsive layout were not executed.
-
-Required manual/browser checks are listed under regression coverage.
+Static review confirms the public form receives `requiresFieldOfficerVerification`, uses the Field Officer verification workflow, and has page JavaScript for dependent/verification behavior. Actual desktop/tablet/mobile rendering, keyboard/focus behavior, verification reset after code edits, loading/error states, two-photo UX and duplicate-submit behavior were not executed in a browser.
 
 ## 4. Validation QA
 
 **Result: FAIL**
 
-Positive observations:
-- server validation is authoritative;
-- email is optional and validated when present;
-- DOB enforces 18+;
-- names/gotra/contact/master IDs/photo type/size/dimensions are validated;
-- photo validation is configuration-driven;
-- live member mobile duplication is checked during prelaunch creation;
-- active education/occupation selection is revalidated through the shared master-data service.
+Positive re-QA evidence:
+- `profile_created_for` validation now matches service-supported values.
+- Production-style Field Officer validation requires `FOSAK` plus six digits and a verified positive officer ID.
+- Save revalidates officer code/ID against an ACTIVE officer.
 
-Finding `QA-PRE-002` causes FAIL because accepted server values and service-supported values disagree.
+Failure reason:
+- `QA-PRE-007`: whether Field Officer verification is required is controlled inconsistently with the documented environment contract.
 
 ## 5. Database QA
 
-**Result: NOT VERIFIED**
+**Result: FAIL**
 
-Static service/model review confirms transactional writes, soft-delete-aware duplicate lookups, migration idempotency checks, row locking during migration, contact uniqueness checks and migration status tracking. The actual current PostgreSQL DDL/migration file for the evolved prelaunch schema was not located on the latest branch during this review, so FK/UNIQUE/CHECK/index/nullability/rollback deployment guarantees cannot be fully verified.
+Positive static evidence:
+- Migration uses row locking/idempotency checks and DB transaction handling.
+- New numbered database scripts exist for later features.
 
-Required DB verification:
-- unique `profile_reference`;
-- uniqueness strategy for prelaunch mobile and optional email under concurrency;
-- FK coverage for all master IDs, field officer, reviewer and migrated user;
-- CHECK constraints for status/profile-created-for/gender/created-source/photo approval status;
-- unique `(prelaunch_profile_id, sequence_no)` photo constraint;
-- unique `users.prelaunch_profile_id` constraint referenced by migration code;
-- indexes for admin listing/search and cleanup fields;
-- nullable `medium_path`/`thumbnail_path` compatibility with current one-original-only photo storage.
+Failure reasons:
+- `QA-PRE-005`: external S3 work occurs inside the DB transaction.
+- `QA-PRE-006`: baseline 000 has been changed despite being explicitly immutable.
+
+Live PostgreSQL verification of current constraints/indexes and migration rollback remains NOT RUN.
 
 ## 6. Security QA
 
 **Result: FAIL**
 
-Positive observations:
-- admin prelaunch routes are inside `adminAuth`;
-- staged photo delivery is admin-authenticated, private/no-store and uses server-resolved local paths;
-- uploads validate image MIME/extension/decodability/dimensions and are re-encoded to WebP with random stored names;
-- raw source uploads are not permanently retained;
-- service/controller input allow-listing limits mass assignment;
-- normal query-builder parameterization/escaping is used;
-- public form includes CSRF markup.
+Positive re-QA evidence:
+- Field Officer code has strict server validation.
+- Verification resolves only an ACTIVE/non-deleted officer.
+- Save revalidates the officer ID/code pair, preventing simple hidden-ID tampering.
+- Admin routes remain protected by admin authentication.
 
-Blocking finding: `QA-PRE-001`.
+Blocking finding:
+- `QA-PRE-001`: all migrated ACTIVE members still receive a password derived from one shared environment secret.
 
-Additional runtime verification still required for the configured global CSRF filter, session/auth behavior, rate/abuse control on the public form, and direct-endpoint testing.
+Runtime CSRF, abuse/rate-limit, direct endpoint, upload and session checks remain NOT RUN.
 
 ## 7. Regression QA
 
 **Result: NOT VERIFIED**
 
-No automated CI/status checks are attached to the reviewed commit and no executed prelaunch regression suite existed before this review. Permanent cases have been added to `docs/qa/REGRESSION_SUITE.md`, but they remain `NOT RUN` until browser/database/integration execution is performed.
+Static regression review confirms `REG-PRE-009`'s relationship contract is corrected in code. No browser/integration/live-DB suite was executed, so permanent cases remain `NOT RUN` rather than PASS. Re-QA additionally requires Field Officer verification/environment behavior, migration transaction/provider behavior and deployment-baseline integrity to be covered permanently.
 
 ## QA Gate
 
 | QA Area | Result |
 | --- | --- |
-| Requirement QA | NOT VERIFIED |
+| Requirement QA | FAIL |
 | Code QA | FAIL |
 | UI QA | NOT VERIFIED |
 | Validation QA | FAIL |
-| Database QA | NOT VERIFIED |
+| Database QA | FAIL |
 | Security QA | FAIL |
 | Regression QA | NOT VERIFIED |
 | **FINAL QA GATE** | **FAILED** |
 
 ### Gate reason
 
-The release is blocked by one unresolved HIGH security finding (`QA-PRE-001`). Validation contract inconsistency (`QA-PRE-002`) must also be resolved or explicitly narrowed to the supported relationship set. UI/database/regression execution remains outstanding and must not be silently treated as passed.
+Re-QA closes `QA-PRE-002` and `QA-PRE-003`, but the feature remains release-blocked by HIGH findings `QA-PRE-001`, `QA-PRE-005` and `QA-PRE-006`, plus blocking MEDIUM `QA-PRE-007`. UI and executable regression evidence are still outstanding.
 
-## Re-QA scope
+## Required next re-QA scope
 
-After fixes, re-QA must at minimum cover:
-1. migrated-member first-login/password flow;
-2. migrated contact verification/account state;
-3. supported `profile_created_for` values including tampered POST requests;
-4. public form CSRF and duplicate submission;
-5. exactly-two-photo upload including invalid/duplicate/oversized images;
-6. admin photo approval/rejection and profile approval/rejection;
-7. contact collision against prelaunch and live member contacts;
-8. successful migration into member profile tables and S3;
-9. rollback when DB or S3 migration fails;
-10. desktop/tablet/mobile UI execution.
+1. Replace or explicitly redesign the shared migrated-member password/bootstrap flow.
+2. Move S3/provider activity outside open DB transactions while preserving safe migration recovery/idempotency.
+3. Restore immutable baseline 000 discipline and put post-baseline changes in numbered incremental SQL.
+4. Align Field Officer verification configuration with the intended production/QA/development behavior.
+5. Decide/remove or implement the unused photo rejection-reason argument.
+6. Execute browser checks for public form, Field Officer verify/edit/reverify, two-photo validation, responsive behavior and duplicate-submit prevention.
+7. Execute integration/live-DB checks for duplicate contacts, one-time migration, DB/provider failure recovery and schema constraints.
