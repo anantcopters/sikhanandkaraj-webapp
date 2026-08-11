@@ -5,12 +5,6 @@ declare(strict_types=1);
 if (!function_exists('member_profile_placeholder')) {
     /**
      * Return the standard gender-based profile placeholder.
-     *
-     * This helper is only a presentation fallback.
-     *
-     * Actual member-photo authorization must be completed before
-     * calling this helper. A placeholder must never be used as a
-     * substitute for the application's photo privacy checks.
      */
     function member_profile_placeholder(
         mixed $gender
@@ -22,17 +16,48 @@ if (!function_exists('member_profile_placeholder')) {
                 )
             );
 
-        return base_url(
-            in_array(
+        $image = match ($resolvedGender) {
+            'F',
+            'FEMALE' =>
+            'assets/images/Girl_Thumbnail.png',
+
+            'M',
+            'MALE' =>
+            'assets/images/Boy_Thumbnail.png',
+
+            /*
+             * Current user model supports Male/Female only.
+             * Retain Boy as the defensive visual fallback,
+             * but log unexpected application data.
+             */
+            default =>
+            'assets/images/user-dummy-img.jpg',
+        };
+
+        if (
+            !in_array(
                 $resolvedGender,
                 [
+                    'M',
+                    'MALE',
                     'F',
                     'FEMALE',
                 ],
                 true
             )
-                ? 'assets/images/Girl_Thumbnail.png'
-                : 'assets/images/Boy_Thumbnail.png'
+        ) {
+            log_message(
+                'warning',
+                'Member profile placeholder received invalid gender: {gender}',
+                [
+                    'gender' =>
+                    $resolvedGender,
+                ]
+            );
+        }
+
+        return base_url(
+            $image
         );
     }
 }

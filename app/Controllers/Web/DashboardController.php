@@ -110,6 +110,14 @@ final class DashboardController extends BaseController
                     'loggedInUserName' =>
                     $loggedInUserName,
 
+                    'gender' =>
+                    trim(
+                        (string) (
+                            $user['gender']
+                            ?? ''
+                        )
+                    ),
+
                     'primaryMobile' =>
                     $primaryMobile,
 

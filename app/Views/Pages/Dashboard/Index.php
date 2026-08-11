@@ -62,7 +62,7 @@ $resolvedProfileImage = trim(
 $resolvedGender =
     trim(
         (string) (
-            $profileSummary['user']['gender']
+            $gender
             ?? ''
         )
     );
