@@ -358,28 +358,19 @@ $this->section('content');
                                     </button>
 
                                 </form>
-                                <div
-                                    class="d-flex
-    align-items-center
-    gap-2
-    mt-3">
 
-                                    <span class="text-muted">
+                                <div class="mt-4 text-center">
+                                    <p class="mb-0 text-muted">
                                         Want to become a SAK Volunteer?
-                                    </span>
 
-                                    <a
-                                        href="<?= esc(
-                                                    $registrationUrl,
-                                                    'attr'
-                                                ) ?>"
-                                        class="btn
-        btn-soft-primary
-        btn-sm">
+                                        <a href="<?= esc(
+                                                        $registrationUrl,
+                                                        'attr'
+                                                    ) ?>" class="fw-semibold text-primary text-decoration-underline">
 
-                                        Register
-                                    </a>
-
+                                            Register
+                                        </a>
+                                    </p>
                                 </div>
                             </div>
                         </div>
