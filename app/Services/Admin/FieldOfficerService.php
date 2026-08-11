@@ -1149,7 +1149,8 @@ final class FieldOfficerService
     }
 
     /**
-     * Register a SAK Volunteer from the public self-registration form.
+     * Register a SAK Volunteer from the public
+     * self-registration form.
      *
      * Self-registration differs from administrator creation:
      *
@@ -1159,11 +1160,16 @@ final class FieldOfficerService
      * - login becomes available only after administrator approval.
      *
      * @param array<string, mixed> $input
+     *
+     * @return array{
+     *     fieldOfficerId: int,
+     *     officerCode: string
+     * }
      */
     public function register(
         array $input,
         int $createdBy
-    ): int {
+    ): array {
         if ($createdBy <= 0) {
             throw new RuntimeException(
                 'The registration owner could not be identified.'
@@ -1456,7 +1462,13 @@ final class FieldOfficerService
             )
         );
 
-        return (int) $inserted;
+        return [
+            'fieldOfficerId' =>
+            (int) $inserted,
+
+            'officerCode' =>
+            $officerCode,
+        ];
     }
 
     /**

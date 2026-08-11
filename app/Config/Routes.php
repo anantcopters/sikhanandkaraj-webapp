@@ -112,6 +112,15 @@ $routes->group(
         );
 
         $routes->get(
+            'register/success',
+            'FieldOfficerRegistrationController::success',
+            [
+                'as' =>
+                'field-officer.register.success',
+            ]
+        );
+
+        $routes->get(
             'register/master/cities/(:num)',
             'FieldOfficerRegistrationController::cities/$1',
             [

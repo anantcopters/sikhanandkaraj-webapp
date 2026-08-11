@@ -963,82 +963,90 @@ if ($isPublicRegistration) {
 
     <?php if ($showCaptcha): ?>
 
-        <div class="mt-4">
-
-            <label
-                for="fieldOfficerRegistrationCaptcha"
-                class="form-label">
-
-                Security Verification
-
-                <span class="text-danger">*</span>
-
-            </label>
+        <div class="row mt-4">
 
             <div
-                class="border
+                class="col-12
+            col-md-6
+            ms-md-auto">
+
+                <label
+                    for="fieldOfficerRegistrationCaptcha"
+                    class="form-label">
+
+                    Security Verification
+
+                    <span class="text-danger">*</span>
+
+                </label>
+
+                <div
+                    class="border
                 rounded
                 p-2
                 mb-2
                 bg-light
                 border-primary-subtle">
 
-                <div
-                    class="d-flex
+                    <div
+                        class="d-flex
                     align-items-center
                     justify-content-between
                     gap-2">
 
-                    <span class="text-muted">
-                        Solve this question
-                    </span>
+                        <span
+                            class="text-muted
+                        fs-13">
 
-                    <span
-                        class="fw-bold
-                        fs-18">
+                            Solve
 
-                        <?= esc(
-                            $captchaChallenge
-                        ) ?> = ?
+                        </span>
 
-                    </span>
+                        <span class="fw-bold">
+
+                            <?= esc(
+                                $captchaChallenge
+                            ) ?> = ?
+
+                        </span>
+
+                    </div>
 
                 </div>
 
-            </div>
+                <input
+                    type="text"
+                    id="fieldOfficerRegistrationCaptcha"
+                    name="captcha_answer"
+                    class="form-control <?= esc(
+                                            $captchaClass,
+                                            'attr'
+                                        ) ?>"
+                    value=""
+                    inputmode="numeric"
+                    maxlength="2"
+                    pattern="[0-9]{1,2}"
+                    autocomplete="off"
+                    placeholder="Enter answer"
+                    required>
 
-            <input
-                type="text"
-                id="fieldOfficerRegistrationCaptcha"
-                name="captcha_answer"
-                class="form-control <?= esc(
-                                        $captchaClass,
-                                        'attr'
-                                    ) ?>"
-                value=""
-                inputmode="numeric"
-                maxlength="2"
-                pattern="[0-9]{1,2}"
-                autocomplete="off"
-                placeholder="Enter answer"
-                required>
+                <div class="invalid-feedback">
 
-            <div class="invalid-feedback">
+                    <?= esc(
+                        $captchaError !== ''
+                            ? $captchaError
+                            : 'Enter the security verification answer.'
+                    ) ?>
 
-                <?= esc(
-                    $captchaError !== ''
-                        ? $captchaError
-                        : 'Enter the security verification answer.'
-                ) ?>
+                </div>
 
-            </div>
-
-            <div
-                class="form-text
+                <div
+                    class="form-text
                 color-pink">
 
-                The security question expires
-                after 5 minutes.
+                    Expires after 5 minutes.
+
+                </div>
 
             </div>
 
@@ -1046,27 +1054,50 @@ if ($isPublicRegistration) {
 
     <?php endif; ?>
 
-    <div class="d-flex flex-column flex-md-row align-items-end align-items-md-center justify-content-between gap-3">
-        <div class="text-danger fw-medium" role="alert" aria-live="polite">
+    <div
+        class="mt-4
+    d-flex
+    justify-content-end">
 
-        </div>
-        <button type="submit" class="btn registration-form__submit w-auto px-3 py-2 fs-14 fw-medium text-uppercase">
+        <button
+            type="submit"
+            class="btn
+        registration-form__submit
+        w-auto
+        px-3
+        py-2
+        fs-14
+        fw-medium
+        text-uppercase"
+            data-submit-button>
 
-            <span class="d-inline-flex align-items-center gap-2">
-                <i class="ri-save-line fs-18" aria-hidden="true"></i>
+            <span
+                class="registration-form__idle
+            d-inline-flex
+            align-items-center
+            gap-2"
+                data-submit-idle>
+
+                <i
+                    class="ri-save-line
+                fs-18"
+                    aria-hidden="true">
+                </i>
 
                 <?= esc(
                     $submitLabel
                 ) ?>
+
             </span>
 
             <span
-                class="registration-form__loading d-none"
+                class="registration-form__loading
+            d-none"
                 data-submit-loading>
 
                 <span
                     class="spinner-border
-               "
+                spinner-border-sm"
                     role="status"
                     aria-hidden="true">
                 </span>
@@ -1080,6 +1111,8 @@ if ($isPublicRegistration) {
                 </span>
 
             </span>
+
         </button>
+
     </div>
 </form>

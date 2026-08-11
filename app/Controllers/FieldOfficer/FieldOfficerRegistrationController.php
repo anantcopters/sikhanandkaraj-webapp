@@ -16,6 +16,9 @@ use Throwable;
 final class FieldOfficerRegistrationController
 extends BaseController
 {
+    private const SUCCESS_FLASH_KEY =
+    'fieldOfficerRegistrationSuccess';
+
     /**
      * Display public SAK Volunteer registration.
      */
@@ -162,6 +165,15 @@ extends BaseController
                 ]
             );
 
+        /*
+         * --------------------------------------------------
+         * SERVER FIELD VALIDATION
+         * --------------------------------------------------
+         *
+         * Every validation error is returned through
+         * validationErrors so the shared form highlights the
+         * exact field and displays its message underneath.
+         */
         if (
             !$validation->run(
                 $validationInput
@@ -171,27 +183,10 @@ extends BaseController
                 'fieldOfficerRegistrationCaptchaService'
             )->clear();
 
-            /*
-             * Do not call withInput().
-             *
-             * Only the explicit allowlisted and normalized
-             * registration fields are stored in flash data.
-             * CAPTCHA must never be flashed.
-             */
-            return redirect()
-                ->to(
-                    route_to(
-                        'field-officer.register'
-                    )
-                )
-                ->with(
-                    'fieldOfficerRegistrationInput',
-                    $input
-                )
-                ->with(
-                    'validationErrors',
-                    $validation
-                        ->getErrors()
+            return $this
+                ->registrationValidationRedirect(
+                    $input,
+                    $validation->getErrors()
                 );
         }
 
@@ -205,18 +200,9 @@ extends BaseController
                 $captchaAnswer
             )
         ) {
-            return redirect()
-                ->to(
-                    route_to(
-                        'field-officer.register'
-                    )
-                )
-                ->with(
-                    'fieldOfficerRegistrationInput',
-                    $input
-                )
-                ->with(
-                    'validationErrors',
+            return $this
+                ->registrationValidationRedirect(
+                    $input,
                     [
                         'captcha_answer' =>
                         'The security verification '
@@ -228,10 +214,7 @@ extends BaseController
         }
 
         /*
-         * created_by never comes from the browser.
-         *
-         * Public registrations are assigned to the explicitly
-         * configured Super Admin account.
+         * created_by is never accepted from the browser.
          */
         $createdBy =
             (int) env(
@@ -279,33 +262,105 @@ extends BaseController
                     'fieldOfficerService'
                 );
 
-            $service->register(
-                $input,
-                $createdBy
+            $result =
+                $service->register(
+                    $input,
+                    $createdBy
+                );
+
+            $fieldOfficerId = max(
+                0,
+                (int) (
+                    $result['fieldOfficerId']
+                    ?? 0
+                )
             );
 
+            $officerCode = trim(
+                (string) (
+                    $result['officerCode']
+                    ?? ''
+                )
+            );
+
+            if (
+                $fieldOfficerId <= 0
+                || $officerCode === ''
+            ) {
+                /*
+                 * Registration itself has already committed.
+                 * Do not tell the user that saving failed.
+                 */
+                log_message(
+                    'critical',
+                    'SAK Volunteer registration saved '
+                        . 'but success reference was invalid. '
+                        . 'Field Officer ID: {id}',
+                    [
+                        'id' =>
+                        $fieldOfficerId,
+                    ]
+                );
+
+                return redirect()
+                    ->to(
+                        route_to(
+                            'field-officer.register.success'
+                        )
+                    )
+                    ->with(
+                        self::SUCCESS_FLASH_KEY,
+                        [
+                            'officerCode' =>
+                            '',
+                        ]
+                    );
+            }
+
+            /*
+             * PRG:
+             * POST -> redirect -> GET success page.
+             *
+             * No success banner remains on the form page.
+             */
             return redirect()
                 ->to(
                     route_to(
-                        'field-officer.register'
+                        'field-officer.register.success'
                     )
                 )
                 ->with(
-                    'formAlert',
+                    self::SUCCESS_FLASH_KEY,
                     [
-                        'type' =>
-                        'success',
-
-                        'title' =>
-                        'Registration submitted',
-
-                        'message' =>
-                        'Your details have been saved '
-                            . 'successfully. They will be '
-                            . 'checked and approved in due time.',
+                        'officerCode' =>
+                        $officerCode,
                     ]
                 );
         } catch (RuntimeException $exception) {
+            /*
+             * Business-level errors such as duplicate mobile,
+             * Aadhaar, PAN or UPI belong below their actual
+             * field, not in a page-level alert.
+             */
+            $fieldErrors =
+                $this
+                ->serviceErrorToFieldErrors(
+                    $exception
+                        ->getMessage()
+                );
+
+            if ($fieldErrors !== []) {
+                return $this
+                    ->registrationValidationRedirect(
+                        $input,
+                        $fieldErrors
+                    );
+            }
+
+            /*
+             * Only a genuine non-field business failure uses
+             * a page-level error.
+             */
             return redirect()
                 ->to(
                     route_to(
@@ -371,6 +426,47 @@ extends BaseController
 
 
     /**
+     * Display registration completion.
+     */
+    public function success(): string|RedirectResponse
+    {
+        $this->preventPageCaching();
+
+        $successData =
+            session()->getFlashdata(
+                self::SUCCESS_FLASH_KEY
+            );
+
+        if (!is_array($successData)) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'field-officer.register'
+                    )
+                );
+        }
+
+        $officerCode = trim(
+            (string) (
+                $successData['officerCode']
+                ?? ''
+            )
+        );
+
+        return view(
+            'FieldOfficer/Registration/Success',
+            [
+                'pageTitle' =>
+                'Registration Submitted',
+
+                'officerCode' =>
+                $officerCode,
+            ]
+        );
+    }
+
+
+    /**
      * Return cities for the selected State.
      */
     public function cities(
@@ -432,6 +528,144 @@ extends BaseController
                     $cities,
                 ]
             );
+    }
+
+
+    /**
+     * Redirect to Registration carrying only safe form data
+     * and field-specific validation errors.
+     *
+     * @param array<string, string> $input
+     * @param array<string, string> $errors
+     */
+    private function registrationValidationRedirect(
+        array $input,
+        array $errors
+    ): RedirectResponse {
+        return redirect()
+            ->to(
+                route_to(
+                    'field-officer.register'
+                )
+            )
+            ->with(
+                'fieldOfficerRegistrationInput',
+                $input
+            )
+            ->with(
+                'validationErrors',
+                $errors
+            );
+    }
+
+
+    /**
+     * Convert known service/business errors into the field
+     * validation contract used by every form screen.
+     *
+     * @return array<string, string>
+     */
+    private function serviceErrorToFieldErrors(
+        string $message
+    ): array {
+        $message = trim(
+            $message
+        );
+
+        if ($message === '') {
+            return [];
+        }
+
+        $normalizedMessage =
+            strtolower(
+                $message
+            );
+
+        if (
+            str_contains(
+                $normalizedMessage,
+                'mobile'
+            )
+        ) {
+            return [
+                'mobile_number' =>
+                $message,
+            ];
+        }
+
+        if (
+            str_contains(
+                $normalizedMessage,
+                'aadhaar'
+            )
+        ) {
+            return [
+                'aadhaar_number' =>
+                $message,
+            ];
+        }
+
+        if (
+            str_contains(
+                $normalizedMessage,
+                'pan'
+            )
+        ) {
+            return [
+                'pan_number' =>
+                $message,
+            ];
+        }
+
+        if (
+            str_contains(
+                $normalizedMessage,
+                'upi'
+            )
+        ) {
+            return [
+                'upi_id' =>
+                $message,
+            ];
+        }
+
+        if (
+            str_contains(
+                $normalizedMessage,
+                'country'
+            )
+        ) {
+            return [
+                'country_id' =>
+                $message,
+            ];
+        }
+
+        if (
+            str_contains(
+                $normalizedMessage,
+                'state'
+            )
+        ) {
+            return [
+                'state_id' =>
+                $message,
+            ];
+        }
+
+        if (
+            str_contains(
+                $normalizedMessage,
+                'city'
+            )
+        ) {
+            return [
+                'city_id' =>
+                $message,
+            ];
+        }
+
+        return [];
     }
 
 
