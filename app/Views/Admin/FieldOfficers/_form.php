@@ -1046,35 +1046,28 @@ if ($isPublicRegistration) {
 
     <?php endif; ?>
 
-    <div
-        class="mt-4
-        d-flex
-        justify-content-end">
+    <div class="d-flex flex-column flex-md-row align-items-end align-items-md-center justify-content-between gap-3">
+        <div class="text-danger fw-medium" role="alert" aria-live="polite">
 
-        <button
-            type="submit"
-            class="btn
-            btn-primary
-            fs-16
-            fw-semibold
-            px-4"
-            data-submit-button>
+        </div>
+        <button type="submit" class="btn registration-form__submit w-auto px-3 py-2 fs-14 fw-medium text-uppercase">
 
-            <span data-submit-idle>
+            <span class="d-inline-flex align-items-center gap-2">
+                <i class="ri-save-line fs-18" aria-hidden="true"></i>
 
                 <?= esc(
                     $submitLabel
                 ) ?>
-
             </span>
 
             <span
-                class="d-none"
+                class="registration-form__loading d-none"
                 data-submit-loading>
 
                 <span
                     class="spinner-border
-                    spinner-border-sm"
+               "
+                    role="status"
                     aria-hidden="true">
                 </span>
 
@@ -1087,9 +1080,6 @@ if ($isPublicRegistration) {
                 </span>
 
             </span>
-
         </button>
-
     </div>
-
 </form>
