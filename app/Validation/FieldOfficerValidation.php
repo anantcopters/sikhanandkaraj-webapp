@@ -135,7 +135,8 @@ final class FieldOfficerValidation
     {
         return [
             'mobile_number' => [
-                'label' => 'Mobile Number',
+                'label' =>
+                'Mobile Number',
 
                 'rules' => [
                     'required',
@@ -148,6 +149,24 @@ final class FieldOfficerValidation
 
                     'regex_match' =>
                     'Enter a valid 10-digit Indian mobile number.',
+                ],
+            ],
+
+            'captcha_answer' => [
+                'label' =>
+                'Security verification',
+
+                'rules' => [
+                    'required',
+                    'regex_match[/^[0-9]{1,2}$/]',
+                ],
+
+                'errors' => [
+                    'required' =>
+                    'Please enter the security verification answer.',
+
+                    'regex_match' =>
+                    'Please enter a valid security verification answer.',
                 ],
             ],
         ];

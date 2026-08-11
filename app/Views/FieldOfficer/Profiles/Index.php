@@ -63,10 +63,6 @@ $profilesUrl =
         'field-officer.profiles.index'
     );
 
-$hasFilters =
-    $searchTerm !== ''
-    || $selectedStatus !== 'ALL';
-
 $resolvedProfiles = [];
 
 foreach ($profiles as $profile) {
@@ -321,24 +317,27 @@ $this->section('content');
 
                 <div
                     class="col-12
-                    col-md-auto">
+    col-md-auto">
 
-                    <button
-                        type="submit"
-                        class="btn
-                        btn-primary">
+                    <div
+                        class="d-flex
+        align-items-center
+        gap-2">
 
-                        <i
-                            class="ri-search-line
-                            me-1"
-                            aria-hidden="true">
-                        </i>
+                        <button
+                            type="submit"
+                            class="btn
+            btn-primary">
 
-                        Search
+                            <i
+                                class="ri-search-line
+                me-1"
+                                aria-hidden="true">
+                            </i>
 
-                    </button>
+                            Search
 
-                    <?php if ($hasFilters): ?>
+                        </button>
 
                         <a
                             href="<?= esc(
@@ -346,12 +345,19 @@ $this->section('content');
                                         'attr'
                                     ) ?>"
                             class="btn
-                            btn-light">
+            btn-light">
+
+                            <i
+                                class="ri-refresh-line
+                me-1"
+                                aria-hidden="true">
+                            </i>
 
                             Reset
+
                         </a>
 
-                    <?php endif; ?>
+                    </div>
 
                 </div>
 

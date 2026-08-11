@@ -40,6 +40,13 @@ $mobileNumber = trim(
     )
 );
 
+$captchaChallenge = trim(
+    (string) (
+        $captchaChallenge
+        ?? ''
+    )
+);
+
 $mobileNumberError = trim(
     (string) (
         $validationErrors['mobile_number']
@@ -47,11 +54,26 @@ $mobileNumberError = trim(
     )
 );
 
+$captchaError = trim(
+    (string) (
+        $validationErrors['captcha_answer']
+        ?? ''
+    )
+);
+
 $mobileHasError =
     $mobileNumberError !== '';
 
+$captchaHasError =
+    $captchaError !== '';
+
 $mobileErrorClass =
     $mobileHasError
+    ? 'is-invalid'
+    : '';
+
+$captchaErrorClass =
+    $captchaHasError
     ? 'is-invalid'
     : '';
 
@@ -125,6 +147,7 @@ $this->section('content');
                                         </i>
 
                                     </div>
+
                                 </div>
 
                                 <h1 class="fs-20">
@@ -155,7 +178,7 @@ $this->section('content');
 
                                     <?= csrf_field() ?>
 
-                                    <div class="mb-4">
+                                    <div class="mb-3">
 
                                         <label
                                             for="foMobileNumber"
@@ -207,6 +230,88 @@ $this->section('content');
                                             </div>
 
                                         </div>
+
+                                    </div>
+
+                                    <div class="mb-4">
+
+                                        <label
+                                            for="foCaptchaAnswer"
+                                            class="form-label">
+
+                                            Security Verification
+                                        </label>
+
+                                        <div
+                                            class="border
+                                            rounded
+                                            p-2
+                                            mb-2
+                                            bg-light
+                                            border-primary-subtle">
+
+                                            <div
+                                                class="d-flex
+                                                align-items-center
+                                                justify-content-between">
+
+                                                <span
+                                                    class="text-muted">
+
+                                                    Solve this question
+                                                </span>
+
+                                                <span
+                                                    class="fw-bold
+                                                    fs-18">
+
+                                                    <?= esc(
+                                                        $captchaChallenge
+                                                    ) ?> = ?
+
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+                                        <input
+                                            type="text"
+                                            id="foCaptchaAnswer"
+                                            name="captcha_answer"
+                                            class="form-control
+                                            <?= esc(
+                                                $captchaErrorClass,
+                                                'attr'
+                                            ) ?>"
+                                            value=""
+                                            placeholder="Enter answer"
+                                            inputmode="numeric"
+                                            autocomplete="off"
+                                            maxlength="2"
+                                            pattern="[0-9]{1,2}"
+                                            aria-invalid="<?= $captchaHasError
+                                                                ? 'true'
+                                                                : 'false' ?>"
+                                            required>
+
+                                        <div
+                                            class="invalid-feedback">
+
+                                            <?= esc(
+                                                $captchaError
+                                            ) ?>
+
+                                        </div>
+
+                                        <div
+                                            class="form-text
+                                            color-pink">
+
+                                            The security question expires
+                                            after 5 minutes.
+                                        </div>
+
                                     </div>
 
                                     <button

@@ -36,10 +36,28 @@ if ($fieldOfficerName === '') {
         'Field Officer';
 }
 
+$fieldOfficerCode = trim(
+    (string) session(
+        'fo_field_officer_code'
+    )
+);
+
+$fieldOfficerDisplayName =
+    $fieldOfficerCode !== ''
+    ? $fieldOfficerName
+    . ' ('
+    . $fieldOfficerCode
+    . ')'
+    : $fieldOfficerName;
+
 $currentPath = trim(
     service('uri')->getPath(),
     '/'
 );
+
+$dashboardActive =
+    $currentPath
+    === 'field-officer/dashboard';
 
 $profilesActive =
     str_starts_with(
@@ -217,11 +235,49 @@ $selectChoiceJsUrl =
 
                         <ul
                             class="navbar-nav
-                            nav-underline
-                            mx-lg-auto
-                            gap-2
-                            mt-2
-                            mt-lg-0">
+    nav-underline
+    mx-lg-auto
+    gap-2
+    mt-2
+    mt-lg-0">
+
+                            <li class="nav-item">
+
+                                <a
+                                    href="<?= esc(
+                                                $dashboardUrl,
+                                                'attr'
+                                            ) ?>"
+                                    class="nav-link
+            d-flex
+            align-items-center
+            gap-2
+            py-1
+            py-lg-2
+            <?= $dashboardActive
+                ? 'active text-primary'
+                : '' ?>"
+                                    <?= $dashboardActive
+                                        ? 'aria-current="page"'
+                                        : '' ?>>
+
+                                    <i
+                                        class="ri-dashboard-line"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <span
+                                        class="<?= $dashboardActive
+                                                    ? 'fw-semibold'
+                                                    : '' ?>">
+
+                                        Dashboard
+
+                                    </span>
+
+                                </a>
+
+                            </li>
 
                             <li class="nav-item">
 
@@ -231,14 +287,17 @@ $selectChoiceJsUrl =
                                                 'attr'
                                             ) ?>"
                                     class="nav-link
-                                    d-flex
-                                    align-items-center
-                                    gap-2
-                                    py-1
-                                    py-lg-2
+            d-flex
+            align-items-center
+            gap-2
+            py-1
+            py-lg-2
+            <?= $profilesActive
+                ? 'active text-primary'
+                : '' ?>"
                                     <?= $profilesActive
-                                        ? 'active text-primary'
-                                        : '' ?>">
+                                        ? 'aria-current="page"'
+                                        : '' ?>>
 
                                     <i
                                         class="ri-profile-line"
@@ -270,7 +329,7 @@ $selectChoiceJsUrl =
                             mt-lg-0">
 
                             <span
-                                class="text-muted
+                                class="text-body fw-medium fs-14
                                 text-truncate
                                 mw-100">
 
@@ -281,7 +340,7 @@ $selectChoiceJsUrl =
                                 </i>
 
                                 <?= esc(
-                                    $fieldOfficerName
+                                    $fieldOfficerDisplayName
                                 ) ?>
 
                             </span>

@@ -4,42 +4,87 @@ declare(strict_types=1);
 
 namespace App\Services\Admin\Authentication;
 
+use InvalidArgumentException;
+
 final class AdminCaptchaService
 {
-    private const SESSION_KEY =
+    private const DEFAULT_SESSION_KEY =
     'admin_login_captcha';
 
     private const EXPIRY_SECONDS =
     300;
 
+    private readonly string $sessionKey;
+
     /**
-     * Generate a new administrator login CAPTCHA.
+     * The service remains backward compatible with Admin login.
      *
-     * Any previous challenge is replaced.
+     * A different session key allows another authentication
+     * flow to reuse the same CAPTCHA implementation without
+     * sharing CAPTCHA state with the administrator portal.
+     */
+    public function __construct(
+        string $sessionKey =
+        self::DEFAULT_SESSION_KEY
+    ) {
+        $sessionKey = trim(
+            $sessionKey
+        );
+
+        if ($sessionKey === '') {
+            throw new InvalidArgumentException(
+                'CAPTCHA session key cannot be empty.'
+            );
+        }
+
+        $this->sessionKey =
+            $sessionKey;
+    }
+
+    /**
+     * Generate a new arithmetic CAPTCHA.
+     *
+     * Any previous challenge for this authentication
+     * context is replaced.
      */
     public function generate(): string
     {
-        $operator = random_int(0, 1) === 0
+        $operator =
+            random_int(0, 1) === 0
             ? '+'
             : '-';
 
         if ($operator === '+') {
-            $firstNumber = random_int(2, 15);
-            $secondNumber = random_int(1, 10);
+            $firstNumber =
+                random_int(
+                    2,
+                    15
+                );
+
+            $secondNumber =
+                random_int(
+                    1,
+                    10
+                );
 
             $answer =
                 $firstNumber
                 + $secondNumber;
         } else {
             /*
-             * Ensure subtraction never produces
-             * a negative answer.
+             * Never generate a negative result.
              */
-            $firstNumber = random_int(5, 20);
-            $secondNumber = random_int(
-                1,
-                $firstNumber
-            );
+            $firstNumber =
+                random_int(
+                    5,
+                    20
+                );
+
+            $secondNumber =
+                random_int(
+                    1,
+                    $firstNumber
+                );
 
             $answer =
                 $firstNumber
@@ -54,7 +99,7 @@ final class AdminCaptchaService
             . $secondNumber;
 
         session()->set(
-            self::SESSION_KEY,
+            $this->sessionKey,
             [
                 'answer_hash' =>
                 $this->hashAnswer(
@@ -70,26 +115,27 @@ final class AdminCaptchaService
     }
 
     /**
-     * Verify submitted CAPTCHA answer.
+     * Verify the submitted CAPTCHA answer.
      *
-     * CAPTCHA is always consumed after verification,
-     * whether verification succeeds or fails.
+     * CAPTCHA is single-use whether verification succeeds
+     * or fails.
      */
     public function verify(
         string $submittedAnswer
     ): bool {
         $submittedAnswer =
-            trim($submittedAnswer);
+            trim(
+                $submittedAnswer
+            );
 
-        $captchaData = session()->get(
-            self::SESSION_KEY
-        );
+        $captchaData =
+            session()->get(
+                $this->sessionKey
+            );
 
         /*
-         * CAPTCHA is single-use.
-         *
-         * Remove it before doing any checks so a
-         * failed or successful answer cannot be replayed.
+         * Consume before checking so the challenge cannot
+         * be replayed.
          */
         $this->clear();
 
@@ -119,9 +165,6 @@ final class AdminCaptchaService
             return false;
         }
 
-        /*
-         * Reject expired CAPTCHA.
-         */
         if (
             (time() - $createdAt)
             > self::EXPIRY_SECONDS
@@ -129,10 +172,6 @@ final class AdminCaptchaService
             return false;
         }
 
-        /*
-         * Arithmetic CAPTCHA answers must be
-         * non-negative integers only.
-         */
         if (
             preg_match(
                 '/^[0-9]{1,2}$/',
@@ -151,12 +190,12 @@ final class AdminCaptchaService
     }
 
     /**
-     * Remove the current CAPTCHA from session.
+     * Remove only this authentication context's CAPTCHA.
      */
     public function clear(): void
     {
         session()->remove(
-            self::SESSION_KEY
+            $this->sessionKey
         );
     }
 

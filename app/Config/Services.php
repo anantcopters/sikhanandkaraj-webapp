@@ -297,6 +297,26 @@ final class Services extends BaseService
     }
 
     /**
+     * Return the Field Officer login CAPTCHA service.
+     *
+     * The same proven CAPTCHA implementation used by Admin
+     * is reused with isolated session state.
+     */
+    public static function fieldOfficerCaptchaService(
+        bool $getShared = true
+    ): AdminCaptchaService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'fieldOfficerCaptchaService'
+            );
+        }
+
+        return new AdminCaptchaService(
+            'field_officer_login_captcha'
+        );
+    }
+
+    /**
      * Return the administrator login service.
      */
     public static function adminLoginService(

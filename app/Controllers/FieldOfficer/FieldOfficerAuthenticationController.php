@@ -30,14 +30,27 @@ extends BaseController
                 'fo_is_authenticated'
             ) === true
         ) {
-            return redirect()->to(
-                route_to(
-                    'field-officer.dashboard'
-                )
-            );
+            return redirect()
+                ->to(
+                    route_to(
+                        'field-officer.dashboard'
+                    )
+                );
         }
 
         $this->preventPageCaching();
+
+        /**
+         * Generate a fresh CAPTCHA every time the login
+         * page is rendered.
+         */
+        $captchaService =
+            service(
+                'fieldOfficerCaptchaService'
+            );
+
+        $captchaChallenge =
+            $captchaService->generate();
 
         return view(
             'FieldOfficer/Authentication/Login',
@@ -50,12 +63,16 @@ extends BaseController
                     ->readValidationErrors(),
 
                 'formAlert' =>
-                $this->readFormAlert(),
+                $this
+                    ->readFormAlert(),
 
                 'mobileNumber' =>
                 $this->readFlashString(
                     'foLoginMobile'
                 ),
+
+                'captchaChallenge' =>
+                $captchaChallenge,
 
                 'pageScripts' => [
                     'assets/js/components/submit-loader.js',
@@ -76,8 +93,17 @@ extends BaseController
                     )
             ) ?? '';
 
+        $captchaAnswer = trim(
+            (string) $this->request
+                ->getPost(
+                    'captcha_answer'
+                )
+        );
+
         $validation =
-            service('validation');
+            service(
+                'validation'
+            );
 
         $validation->setRules(
             FieldOfficerValidation
@@ -88,8 +114,22 @@ extends BaseController
             !$validation->run([
                 'mobile_number' =>
                 $mobileNumber,
+
+                'captcha_answer' =>
+                $captchaAnswer,
             ])
         ) {
+            /*
+         * CAPTCHA must be consumed even when ordinary
+         * request validation fails.
+         */
+            $captchaService =
+                service(
+                    'fieldOfficerCaptchaService'
+                );
+
+            $captchaService->clear();
+
             return redirect()
                 ->to(
                     route_to(
@@ -108,6 +148,42 @@ extends BaseController
         }
 
         try {
+            /*
+         * CAPTCHA verification happens before the
+         * Field Officer mobile is looked up or an OTP
+         * is generated.
+         */
+            $captchaService =
+                service(
+                    'fieldOfficerCaptchaService'
+                );
+
+            if (
+                !$captchaService->verify(
+                    $captchaAnswer
+                )
+            ) {
+                return redirect()
+                    ->to(
+                        route_to(
+                            'field-officer.login'
+                        )
+                    )
+                    ->with(
+                        'foLoginMobile',
+                        $mobileNumber
+                    )
+                    ->with(
+                        'validationErrors',
+                        [
+                            'captcha_answer' =>
+                            'The security verification answer '
+                                . 'is incorrect or has expired. '
+                                . 'Please try the new question.',
+                        ]
+                    );
+            }
+
             /** @var FieldOfficerLoginService $service */
             $service = service(
                 'fieldOfficerLoginService'
@@ -184,6 +260,24 @@ extends BaseController
                     ]
                 );
         } catch (Throwable $exception) {
+            /*
+         * Never retain a CAPTCHA after an unexpected
+         * login failure.
+         */
+            try {
+                $captchaService =
+                    service(
+                        'fieldOfficerCaptchaService'
+                    );
+
+                $captchaService->clear();
+            } catch (Throwable) {
+                /*
+             * CAPTCHA cleanup must never hide the
+             * original application failure.
+             */
+            }
+
             log_message(
                 'error',
                 'Field Officer OTP request failed: {message}',
@@ -199,6 +293,10 @@ extends BaseController
                     route_to(
                         'field-officer.login'
                     )
+                )
+                ->with(
+                    'foLoginMobile',
+                    $mobileNumber
                 )
                 ->with(
                     'formAlert',
