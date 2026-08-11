@@ -313,4 +313,27 @@ abstract class BaseController extends Controller
                 session('auth_user_id')
             );
     }
+
+    /**
+     * Return the authenticated member identifier.
+     *
+     * Authenticated member routes normally pass through the webAuth filter.
+     * This remains a defensive server-side check so controllers never operate
+     * with an invalid member session.
+     */
+    protected function authenticatedUserId(): int
+    {
+        $userId = session(
+            'auth_user_id'
+        );
+
+        if (!is_numeric($userId)) {
+            session()->destroy();
+
+            throw \CodeIgniter\Exceptions\PageNotFoundException
+                ::forPageNotFound();
+        }
+
+        return (int) $userId;
+    }
 }

@@ -8,13 +8,28 @@ use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\Model;
 
 /**
- * Persistence model for Field Officer records.
+ * Persistence model for SAK Volunteer records.
  */
 final class FieldOfficerModel extends Model
 {
     public const STATUS_ACTIVE = 'ACTIVE';
 
     public const STATUS_INACTIVE = 'INACTIVE';
+
+    public const REGISTRATION_SOURCE_ADMIN =
+    'ADMIN';
+
+    public const REGISTRATION_SOURCE_SELF =
+    'SELF';
+
+    public const REVIEW_STATUS_PENDING =
+    'PENDING';
+
+    public const REVIEW_STATUS_APPROVED =
+    'APPROVED';
+
+    public const REVIEW_STATUS_REJECTED =
+    'REJECTED';
 
     protected $table = 'field_officers';
 
@@ -30,6 +45,8 @@ final class FieldOfficerModel extends Model
         'officer_code',
         'full_name',
         'mobile_number',
+        'aadhaar_number',
+        'pan_number',
         'country_id',
         'state_id',
         'city_id',
@@ -40,6 +57,13 @@ final class FieldOfficerModel extends Model
         'deactivated_at',
         'created_by',
         'updated_by',
+        'last_login_at',
+
+        'registration_source',
+        'review_status',
+        'reviewed_by',
+        'reviewed_at',
+        'rejection_reason',
     ];
 
     protected $useTimestamps = true;
@@ -61,7 +85,9 @@ final class FieldOfficerModel extends Model
     }
 
     /**
-     * Return Field Officers with resolved location names.
+     * Return SAK Volunteers with resolved location names.
+     *
+     * Identity values are intentionally excluded.
      *
      * @return list<array<string, mixed>>
      */
@@ -82,6 +108,11 @@ final class FieldOfficerModel extends Model
                 'field_officers.activated_at',
                 'field_officers.deactivated_at',
                 'field_officers.created_at',
+                'field_officers.registration_source',
+                'field_officers.review_status',
+                'field_officers.reviewed_by',
+                'field_officers.reviewed_at',
+                'field_officers.rejection_reason',
                 'master_countries.name AS country_name',
                 'master_states.name AS state_name',
                 'master_cities.name AS city_name',
@@ -127,10 +158,7 @@ final class FieldOfficerModel extends Model
     }
 
     /**
-     * Find one active, non-deleted Field Officer by primary-key ID.
-     *
-     * Location joins are not required for prelaunch profile creation because
-     * only the verified database ID is persisted.
+     * Find one active, non-deleted SAK Volunteer.
      *
      * @return array<string, mixed>|null
      */
@@ -147,6 +175,8 @@ final class FieldOfficerModel extends Model
                 'field_officers.officer_code',
                 'field_officers.full_name',
                 'field_officers.account_status',
+                'field_officers.mobile_number',
+                'field_officers.last_login_at',
             ])
             ->where(
                 'field_officers.id',
@@ -171,10 +201,77 @@ final class FieldOfficerModel extends Model
         string $mobileNumber,
         ?int $exceptId = null
     ): bool {
+        $builder = $this->where(
+            'mobile_number',
+            $mobileNumber
+        );
+
+        if ($exceptId !== null) {
+            $builder->where(
+                'id !=',
+                $exceptId
+            );
+        }
+
+        return $builder->first() !== null;
+    }
+
+    public function aadhaarExists(
+        string $aadhaarNumber,
+        ?int $exceptId = null
+    ): bool {
+        $builder = $this->where(
+            'aadhaar_number',
+            trim($aadhaarNumber)
+        );
+
+        if ($exceptId !== null) {
+            $builder->where(
+                'id !=',
+                $exceptId
+            );
+        }
+
+        return $builder->first() !== null;
+    }
+
+    public function panExists(
+        string $panNumber,
+        ?int $exceptId = null
+    ): bool {
+        $builder = $this->where(
+            'pan_number',
+            strtoupper(
+                trim($panNumber)
+            )
+        );
+
+        if ($exceptId !== null) {
+            $builder->where(
+                'id !=',
+                $exceptId
+            );
+        }
+
+        return $builder->first() !== null;
+    }
+
+    public function upiExists(
+        string $upiId,
+        ?int $exceptId = null
+    ): bool {
+        $upiId = strtolower(
+            trim($upiId)
+        );
+
+        if ($upiId === '') {
+            return false;
+        }
+
         $builder = $this
             ->where(
-                'mobile_number',
-                $mobileNumber
+                'LOWER(upi_id)',
+                $upiId
             );
 
         if ($exceptId !== null) {
@@ -188,7 +285,7 @@ final class FieldOfficerModel extends Model
     }
 
     /**
-     * Check whether a Field Officer code already exists.
+     * Check whether a SAK Volunteer code already exists.
      */
     public function officerCodeExists(
         string $officerCode
@@ -202,7 +299,7 @@ final class FieldOfficerModel extends Model
     }
 
     /**
-     * Find one active Field Officer by code with location names.
+     * Find one active SAK Volunteer by code.
      *
      * @return array<string, mixed>|null
      */
@@ -230,7 +327,9 @@ final class FieldOfficerModel extends Model
             )
             ->where(
                 'UPPER(field_officers.officer_code)',
-                mb_strtoupper(trim($officerCode))
+                mb_strtoupper(
+                    trim($officerCode)
+                )
             )
             ->where(
                 'field_officers.account_status',
@@ -245,5 +344,88 @@ final class FieldOfficerModel extends Model
         return is_array($record)
             ? $record
             : null;
+    }
+
+    /**
+     * Find an ACTIVE, non-deleted SAK Volunteer by mobile number.
+     *
+     * FieldOfficerValidation stores FO mobile numbers as
+     * ten-digit Indian mobile numbers.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findActiveByMobile(
+        string $mobileNumber
+    ): ?array {
+        $mobileNumber = preg_replace(
+            '/\D+/',
+            '',
+            $mobileNumber
+        ) ?? '';
+
+        if (strlen($mobileNumber) > 10) {
+            $mobileNumber = substr(
+                $mobileNumber,
+                -10
+            );
+        }
+
+        if (
+            preg_match(
+                '/^[6-9][0-9]{9}$/',
+                $mobileNumber
+            ) !== 1
+        ) {
+            return null;
+        }
+
+        $record = $this
+            ->select([
+                'field_officers.id',
+                'field_officers.officer_code',
+                'field_officers.full_name',
+                'field_officers.mobile_number',
+                'field_officers.account_status',
+                'field_officers.last_login_at',
+            ])
+            ->where(
+                'field_officers.mobile_number',
+                $mobileNumber
+            )
+            ->where(
+                'field_officers.account_status',
+                self::STATUS_ACTIVE
+            )
+            ->where(
+                'field_officers.deleted_at',
+                null
+            )
+            ->first();
+
+        return is_array($record)
+            ? $record
+            : null;
+    }
+
+    /**
+     * Record successful FO login.
+     *
+     * Login itself must remain successful even if this operational
+     * timestamp cannot subsequently be recorded.
+     */
+    public function recordSuccessfulLogin(
+        int $fieldOfficerId
+    ): bool {
+        if ($fieldOfficerId <= 0) {
+            return false;
+        }
+
+        return $this->update(
+            $fieldOfficerId,
+            [
+                'last_login_at' =>
+                date('Y-m-d H:i:s'),
+            ]
+        );
     }
 }

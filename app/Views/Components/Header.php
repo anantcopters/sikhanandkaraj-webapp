@@ -87,12 +87,23 @@ $interestActive =
         'interests/'
     );
 
-$messagesActive =
-    $currentPath === 'messages'
+$searchActive =
+    $currentPath === 'search'
     || str_starts_with(
         $currentPath,
-        'messages/'
+        'search/'
     );
+
+/**
+ * Some reusable unauthenticated screens are used outside
+ * normal member authentication.
+ *
+ * SAK Volunteer OTP verification uses the public layout,
+ * but must not advertise member Login from its header.
+ */
+$hidePublicLoginAction =
+    ($hidePublicLoginAction ?? false)
+    === true;
 ?>
 
 <header class="public-header">
@@ -117,13 +128,13 @@ $messagesActive =
                 href="<?= $isAuthenticated
                             ? url_to('web.dashboard')
                             : site_url('/') ?>"
-                aria-label="SikhAnandKaraj home">
+                aria-label="Sikhanandkaraj home">
 
                 <img
                     src="<?= base_url(
-                                'assets/images/sikhanandkaraj_removebg_2.png'
+                                'assets/images/logo_sak_bgremove_final.png'
                             ) ?>"
-                    alt="SikhAnandKaraj"
+                    alt="Sikhanandkaraj"
                     class="public-navbar__logo">
             </a>
 
@@ -154,7 +165,7 @@ $messagesActive =
                             d-flex
                             align-items-center
                             gap-2
-                            py-1 py-lg-2 fs-14
+                            py-1 py-lg-2 fs-15
                             <?= $homeActive
                                 ? 'active text-primary'
                                 : '' ?>"
@@ -178,6 +189,38 @@ $messagesActive =
                         </a>
                     </li>
 
+                    <!-- Search -->
+                    <li class="nav-item">
+                        <a
+                            href="<?= url_to('web.search') ?>"
+                            class="nav-link
+        d-flex
+        align-items-center
+        gap-2
+        py-1 py-lg-2 fs-15
+        <?= $searchActive
+                    ? 'active text-primary'
+                    : '' ?>"
+                            <?= $searchActive
+                                ? 'aria-current="page"'
+                                : '' ?>>
+
+                            <i
+                                class="ri-search-line
+            fw-normal
+            flex-shrink-0 text-info"
+                                aria-hidden="true">
+                            </i>
+
+                            <span
+                                class="<?= $searchActive
+                                            ? 'fw-semibold'
+                                            : 'text-black' ?>">
+                                Search
+                            </span>
+                        </a>
+                    </li>
+
                     <!-- Matches -->
                     <li class="nav-item">
                         <a
@@ -186,7 +229,7 @@ $messagesActive =
                             d-flex
                             align-items-center
                             gap-2
-                            py-1 py-lg-2 fs-14
+                            py-1 py-lg-2 fs-15
                             <?= $matchesActive
                                 ? 'active text-primary'
                                 : '' ?>"
@@ -218,7 +261,7 @@ $messagesActive =
                             d-flex
                             align-items-center
                             gap-2
-                            py-1 py-lg-2 fs-14
+                            py-1 py-lg-2 fs-15
                             <?= $interestActive
                                 ? 'active text-primary'
                                 : '' ?>"
@@ -242,55 +285,7 @@ $messagesActive =
                         </a>
                     </li>
 
-                    <!-- Messages -->
-                    <li class="nav-item">
-                        <a
-                            href="<?= site_url('messages') ?>"
-                            class="nav-link
-                            d-flex
-                            align-items-center
-                            gap-2
-                            py-1 py-lg-2 fs-14
-                            <?= $messagesActive
-                                ? 'active text-primary'
-                                : '' ?>"
-                            <?= $messagesActive
-                                ? 'aria-current="page"'
-                                : '' ?>>
 
-                            <i
-                                class="ri-message-3-line
-                                fw-normal
-                                flex-shrink-0 text-info"
-                                aria-hidden="true">
-                            </i>
-
-                            <span
-                                class="<?= $messagesActive
-                                            ? 'fw-semibold'
-                                            : 'text-black' ?>">
-                                Messages
-                            </span>
-
-                            <?php if ($unreadMessageCount > 0): ?>
-                                <span
-                                    class="badge
-                                    rounded-pill
-                                    bg-danger">
-
-                                    <?= esc(
-                                        $unreadMessageCount > 99
-                                            ? '99+'
-                                            : (string) $unreadMessageCount
-                                    ) ?>
-
-                                    <span class="visually-hidden">
-                                        unread messages
-                                    </span>
-                                </span>
-                            <?php endif; ?>
-                        </a>
-                    </li>
                 </ul>
 
                 <div
@@ -328,7 +323,7 @@ $messagesActive =
                                     <span
                                         class="d-block
                                         fw-medium
-                                        user-name-text">
+                                        user-name-text fs-15">
                                         <?= esc(
                                             $resolvedLoggedInName
                                         ) ?>
@@ -339,9 +334,9 @@ $messagesActive =
                                     ): ?>
                                         <span
                                             class="d-block
-                                            fs-12
+                                            fs-13
                                             user-name-sub-text
-                                            text-muted">
+                                            text-primary">
 
                                             <?= esc(
                                                 $resolvedProfileReference
@@ -382,6 +377,25 @@ $messagesActive =
 
                                 <span class="align-middle">
                                     Edit Profile
+                                </span>
+                            </a>
+
+                            <!-- Edit Preference -->
+                            <a
+                                class="dropdown-item"
+                                href="<?= url_to('web.partner-preference') ?>">
+
+                                <i
+                                    class="ri-equalizer-line
+                                    text-muted
+                                    fs-16
+                                    align-middle
+                                    me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                <span class="align-middle">
+                                    Edit Preferences
                                 </span>
                             </a>
 
@@ -537,7 +551,28 @@ $messagesActive =
                                     Home
                                 </span>
                             </a>
+                            <a
+                                href="<?= url_to('web.search') ?>"
+                                class="dropdown-item
+        <?= $searchActive
+                    ? 'active'
+                    : '' ?>"
+                                <?= $searchActive
+                                    ? 'aria-current="page"'
+                                    : '' ?>>
 
+                                <i
+                                    class="ri-search-line
+            fs-16
+                                    align-middle
+                                    me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                <span class="align-middle">
+                                    Search
+                                </span>
+                            </a>
                             <!-- Matches -->
                             <a
                                 href="<?= site_url('matches') ?>"
@@ -586,53 +621,6 @@ $messagesActive =
                                 </span>
                             </a>
 
-                            <!-- Messages -->
-                            <a
-                                href="<?= site_url('messages') ?>"
-                                class="dropdown-item
-                                d-flex
-                                align-items-center
-                                <?= $messagesActive
-                                    ? 'active'
-                                    : '' ?>"
-                                <?= $messagesActive
-                                    ? 'aria-current="page"'
-                                    : '' ?>>
-
-                                <i
-                                    class="ri-message-3-line
-                                    fs-16
-                                    align-middle
-                                    me-1"
-                                    aria-hidden="true">
-                                </i>
-
-                                <span class="align-middle">
-                                    Messages
-                                </span>
-
-                                <?php if (
-                                    $unreadMessageCount > 0
-                                ): ?>
-                                    <span
-                                        class="badge
-                                        rounded-pill
-                                        bg-danger
-                                        ms-auto">
-
-                                        <?= esc(
-                                            $unreadMessageCount > 99
-                                                ? '99+'
-                                                : (string)
-                                                $unreadMessageCount
-                                        ) ?>
-
-                                        <span class="visually-hidden">
-                                            unread messages
-                                        </span>
-                                    </span>
-                                <?php endif; ?>
-                            </a>
 
                             <div class="dropdown-divider"></div>
 
@@ -720,6 +708,7 @@ $messagesActive =
                         btn-icon
                         btn-topbar
                         btn-ghost-secondary
+                        bg-light
                         rounded-circle
                         position-relative"
                         aria-label="View notifications">
@@ -759,30 +748,32 @@ $messagesActive =
 
                 <!-- Existing public header actions -->
                 <div class="public-navbar__actions">
-
-                    <span
-                        class="fs-16
+                    <?php if (
+                        !$hidePublicLoginAction
+                    ): ?>
+                        <span
+                            class="fs-16
                         fw-semibold
                         lh-base
                         text-dark
                         text-nowrap
                         hide-on-mobile-tablet">
-                        Already a member?
-                    </span>
+                            Already a member?
+                        </span>
 
-                    <a
-                        href="<?= site_url('login') ?>"
-                        class="btn
+                        <a
+                            href="<?= site_url('login') ?>"
+                            class="btn
                         public-navbar__login
                         fs-14">
-                        Login
-                    </a>
-
+                            Login
+                        </a>
+                    <?php endif; ?>
                     <a
                         href="tel:+919887005392"
                         class="public-navbar__phone
                         hide-on-mobile"
-                        aria-label="Call SikhAnandKaraj at +91 98870 05392">
+                        aria-label="Call Sikhanandkaraj at +91 98870 05392">
 
                         <span
                             class="mdi

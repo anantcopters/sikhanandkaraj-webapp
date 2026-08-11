@@ -9,11 +9,12 @@
     'use strict';
 
     /**
-     * Initialize the profile-created-for and gender interaction.
+     * Initialize profile relationship, gender and mobile recommendation
+     * interaction.
      *
      * @returns {void}
      */
-    function initializeGenderVisibility() {
+    function initializeRegistrationGender() {
         const profileCreatedFor = document.getElementById(
             'profileCreatedFor'
         );
@@ -22,20 +23,91 @@
             'genderContainer'
         );
 
-        /**
-         * The homepage form may change over time. Exit safely when either
-         * required element is not present.
-         */
-        if (!profileCreatedFor || !genderContainer) {
+        const mobileRecommendation = document.getElementById(
+            'femaleMobileRecommendation'
+        );
+
+        if (
+            !(profileCreatedFor instanceof HTMLSelectElement)
+            || !(genderContainer instanceof HTMLElement)
+        ) {
             return;
         }
 
-        const genderInputs = genderContainer.querySelectorAll(
-            'input[name="gender"]'
-        );
+        const genderInputs = Array.from(
+            genderContainer.querySelectorAll(
+                'input[name="gender"]'
+            )
+        ).filter(function (input) {
+            return input instanceof HTMLInputElement;
+        });
 
         /**
-         * Show Gender only when the profile is being created for Self.
+         * Return the currently selected gender-radio value.
+         *
+         * @returns {string}
+         */
+        function selectedGender() {
+            const selectedInput = genderInputs.find(
+                function (input) {
+                    return input.checked;
+                }
+            );
+
+            return selectedInput
+                ? selectedInput.value
+                : '';
+        }
+
+        /**
+         * Determine whether the form currently represents
+         * a female member.
+         *
+         * Daughter and Sister imply Female even though the
+         * explicit gender radio group is hidden.
+         *
+         * @returns {boolean}
+         */
+        function isFemaleMember() {
+            const profileType =
+                profileCreatedFor.value;
+
+            if (
+                profileType === 'daughter'
+                || profileType === 'sister'
+            ) {
+                return true;
+            }
+
+            return (
+                profileType === 'self'
+                && selectedGender() === 'F'
+            );
+        }
+
+        /**
+         * Show or hide the parent's-mobile recommendation.
+         *
+         * @returns {void}
+         */
+        function updateMobileRecommendation() {
+            if (
+                !(
+                    mobileRecommendation
+                    instanceof HTMLElement
+                )
+            ) {
+                return;
+            }
+
+            mobileRecommendation.classList.toggle(
+                'd-none',
+                !isFemaleMember()
+            );
+        }
+
+        /**
+         * Show Gender only when the profile is created for Self.
          *
          * @returns {void}
          */
@@ -49,39 +121,43 @@
             );
 
             genderInputs.forEach(function (input) {
-                /**
-                 * Gender is required only while its section is visible.
-                 */
                 input.required = shouldShowGender;
 
-                /**
-                 * Do not retain an invisible value after the user switches
-                 * from Self to another profile relationship.
+                /*
+                 * Do not retain an invisible gender-radio value when
+                 * profile relationship changes away from Self.
                  */
                 if (!shouldShowGender) {
                     input.checked = false;
                 }
             });
+
+            updateMobileRecommendation();
         }
 
-        /**
-         * Choices.js updates the original select and triggers its native
-         * change event, so no Choices-specific event is necessary here.
-         */
         profileCreatedFor.addEventListener(
             'change',
             updateGenderVisibility
         );
 
-        /**
-         * Set the correct state after page refresh, old form data, or
-         * server-side validation failure.
+        genderInputs.forEach(function (input) {
+            input.addEventListener(
+                'change',
+                updateMobileRecommendation
+            );
+        });
+
+        /*
+         * Initialize after refresh, old input or server-side
+         * validation failure.
          */
         updateGenderVisibility();
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        initializeGenderVisibility();
-    });
+    document.addEventListener(
+        'DOMContentLoaded',
+        function () {
+            initializeRegistrationGender();
+        }
+    );
 })(document);
-

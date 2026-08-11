@@ -8,17 +8,18 @@ use App\Controllers\BaseController;
 use App\Services\Admin\FieldOfficerService;
 use App\Services\Profile\ProfileMasterDataService;
 use App\Validation\FieldOfficerValidation;
+use App\Support\AdminErrorContext;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
 use Throwable;
 
 /**
- * Super Admin Field Officer management controller.
+ * Super Admin SAK Volunteer management controller.
  */
 final class FieldOfficerController extends BaseController
 {
     /**
-     * Display all Field Officers.
+     * Display all SAK Volunteers.
      */
     public function index(): string
     {
@@ -31,7 +32,7 @@ final class FieldOfficerController extends BaseController
             'Admin/FieldOfficers/Index',
             [
                 'pageTitle' =>
-                'Field Officers',
+                'SAK Volunteers',
 
                 'fieldOfficers' =>
                 $service->listFieldOfficers(),
@@ -43,7 +44,7 @@ final class FieldOfficerController extends BaseController
     }
 
     /**
-     * Display the Field Officer creation form.
+     * Display the SAK Volunteer creation form.
      */
     public function create(): string
     {
@@ -52,18 +53,45 @@ final class FieldOfficerController extends BaseController
             'profileMasterDataService'
         );
 
-        $masterData = $masterService->basicDetailsOptions();
+        /*
+     * Restore previously submitted values after a validation
+     * or business-rule failure.
+     */
+        $formInput =
+            $this->readArrayFlashData(
+                'fieldOfficerFormInput'
+            );
 
-        $formInput = $this->readArrayFlashData(
-            'fieldOfficerFormInput'
+        /*
+     * When the form is being redisplayed after a failed
+     * submission, state_id may already be available.
+     *
+     * Pass that state to the existing master-data service so
+     * the corresponding cities are loaded again. Without this,
+     * the city select is empty on retry and a corrected form
+     * cannot be submitted successfully.
+     */
+        $selectedStateId = (int) (
+            $formInput['state_id']
+            ?? 0
         );
+
+        $masterData =
+            $masterService
+            ->basicDetailsOptions(
+                $selectedStateId > 0
+                    ? $selectedStateId
+                    : null
+            );
 
         return view(
             'Admin/FieldOfficers/Create',
             [
-                'pageTitle' => 'Add Field Officer',
+                'pageTitle' =>
+                'Add SAK Volunteer',
 
-                'formInput' => $formInput,
+                'formInput' =>
+                $formInput,
 
                 'validationErrors' =>
                 $this->readValidationErrors(),
@@ -72,17 +100,36 @@ final class FieldOfficerController extends BaseController
                 $this->readFormAlert(),
 
                 'countries' =>
-                isset($masterData['country'])
-                    && is_array($masterData['country'])
-                    ? [$masterData['country']]
+                isset(
+                    $masterData['country']
+                )
+                    && is_array(
+                        $masterData['country']
+                    )
+                    ? [
+                        $masterData['country'],
+                    ]
                     : [],
 
                 'states' =>
-                is_array($masterData['states'] ?? null)
+                is_array(
+                    $masterData['states']
+                        ?? null
+                )
                     ? $masterData['states']
                     : [],
 
-                'cities' => [],
+                /*
+             * Critical for retry flow:
+             * reload cities for the previously selected state.
+             */
+                'cities' =>
+                is_array(
+                    $masterData['cities']
+                        ?? null
+                )
+                    ? $masterData['cities']
+                    : [],
 
                 'pageScripts' => [
                     'assets/js/pages/admin-field-officer-form.js',
@@ -93,7 +140,7 @@ final class FieldOfficerController extends BaseController
     }
 
     /**
-     * Persist a new Field Officer.
+     * Persist a new SAK Volunteer.
      */
     public function store(): RedirectResponse
     {
@@ -162,14 +209,28 @@ final class FieldOfficerController extends BaseController
                     'success',
 
                     'title' =>
-                    'Field Officer added',
+                    'SAK Volunteer added',
 
                     'message' =>
                     $isActive
-                        ? 'The Field Officer was created and activated because a valid UPI ID was provided.'
-                        : 'The Field Officer was created in inactive status. Add a valid UPI ID before activating the Field Officer.',
+                        ? 'The SAK Volunteer was created and activated because a valid UPI ID was provided.'
+                        : 'The SAK Volunteer was created in inactive status. Add a valid UPI ID before activating the SAK Volunteer.',
                 ]);
         } catch (Throwable $exception) {
+
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'field_officer_create',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+                )
+            );
             return redirect()
                 ->to(
                     route_to(
@@ -186,7 +247,7 @@ final class FieldOfficerController extends BaseController
                     'danger',
 
                     'title' =>
-                    'Field Officer not created',
+                    'SAK Volunteer not created',
 
                     'message' =>
                     $exception->getMessage(),
@@ -226,7 +287,7 @@ final class FieldOfficerController extends BaseController
 
             /*
              * Use the existing master-data bundle and supply the
-             * Field Officer's state so its cities are returned.
+             * SAK Volunteer's state so its cities are returned.
              */
             $masterData =
                 $masterService
@@ -243,7 +304,7 @@ final class FieldOfficerController extends BaseController
             return view(
                 'Admin/FieldOfficers/Edit',
                 [
-                    'pageTitle' => 'Edit Field Officer',
+                    'pageTitle' => 'Edit SAK Volunteer',
 
                     'fieldOfficer' =>
                     $fieldOfficer,
@@ -291,7 +352,7 @@ final class FieldOfficerController extends BaseController
                     'danger',
 
                     'title' =>
-                    'Field Officer not found',
+                    'SAK Volunteer not found',
 
                     'message' =>
                     $exception->getMessage(),
@@ -299,9 +360,10 @@ final class FieldOfficerController extends BaseController
         }
     }
 
-    /**
-     * Update editable Field Officer details.
-     */
+    /*
+    * Name, mobile number and officer code are intentionally
+    * excluded because those fields are immutable after creation.
+    */
     public function update(
         int $fieldOfficerId
     ): RedirectResponse {
@@ -363,12 +425,30 @@ final class FieldOfficerController extends BaseController
                     'success',
 
                     'title' =>
-                    'Field Officer updated',
+                    'SAK Volunteer updated',
 
                     'message' =>
-                    'The Field Officer details were updated.',
+                    'The SAK Volunteer details were updated.',
                 ]);
         } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'field_officer_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'field_officer_id' =>
+                        $fieldOfficerId,
+                    ]
+                )
+            );
             return redirect()
                 ->to(
                     route_to(
@@ -386,7 +466,7 @@ final class FieldOfficerController extends BaseController
                     'danger',
 
                     'title' =>
-                    'Field Officer not updated',
+                    'SAK Volunteer not updated',
 
                     'message' =>
                     $exception->getMessage(),
@@ -446,7 +526,7 @@ final class FieldOfficerController extends BaseController
     }
 
     /**
-     * Activate an inactive Field Officer.
+     * Activate an inactive SAK Volunteer.
      */
     public function activate(
         int $fieldOfficerId
@@ -475,12 +555,30 @@ final class FieldOfficerController extends BaseController
                     'success',
 
                     'title' =>
-                    'Field Officer activated',
+                    'SAK Volunteer activated',
 
                     'message' =>
-                    'The Field Officer is now active.',
+                    'The SAK Volunteer is now active.',
                 ]);
         } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'field_officer_activate',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'field_officer_id' =>
+                        $fieldOfficerId,
+                    ]
+                )
+            );
             return redirect()
                 ->to(
                     route_to(
@@ -492,7 +590,7 @@ final class FieldOfficerController extends BaseController
                     'danger',
 
                     'title' =>
-                    'Field Officer not activated',
+                    'SAK Volunteer not activated',
 
                     'message' =>
                     $exception->getMessage(),
@@ -501,7 +599,7 @@ final class FieldOfficerController extends BaseController
     }
 
     /**
-     * Deactivate an active Field Officer.
+     * Deactivate an active SAK Volunteer.
      */
     public function deactivate(
         int $fieldOfficerId
@@ -530,12 +628,30 @@ final class FieldOfficerController extends BaseController
                     'success',
 
                     'title' =>
-                    'Field Officer deactivated',
+                    'SAK Volunteer deactivated',
 
                     'message' =>
-                    'The Field Officer is now inactive.',
+                    'The SAK Volunteer is now inactive.',
                 ]);
         } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'field_officer_deactivate',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'field_officer_id' =>
+                        $fieldOfficerId,
+                    ]
+                )
+            );
             return redirect()
                 ->to(
                     route_to(
@@ -547,11 +663,140 @@ final class FieldOfficerController extends BaseController
                     'danger',
 
                     'title' =>
-                    'Field Officer not deactivated',
+                    'SAK Volunteer not deactivated',
 
                     'message' =>
                     $exception->getMessage(),
                 ]);
+        }
+    }
+
+    /**
+     * Approve a pending SAK Volunteer self-registration.
+     */
+    public function approveRegistration(
+        int $fieldOfficerId
+    ): RedirectResponse {
+        try {
+            /** @var FieldOfficerService $service */
+            $service =
+                service(
+                    'fieldOfficerService'
+                );
+
+            $service->approveRegistration(
+                $fieldOfficerId,
+                (int) session(
+                    'admin_user_id'
+                )
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.field-officers.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'success',
+
+                        'title' =>
+                        'SAK Volunteer approved',
+
+                        'message' =>
+                        'The SAK Volunteer registration '
+                            . 'has been approved.',
+                    ]
+                );
+        } catch (Throwable $exception) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.field-officers.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Approval failed',
+
+                        'message' =>
+                        $exception
+                            ->getMessage(),
+                    ]
+                );
+        }
+    }
+
+
+    /**
+     * Reject a pending SAK Volunteer self-registration.
+     */
+    public function rejectRegistration(
+        int $fieldOfficerId
+    ): RedirectResponse {
+        try {
+            /** @var FieldOfficerService $service */
+            $service =
+                service(
+                    'fieldOfficerService'
+                );
+
+            $service->rejectRegistration(
+                $fieldOfficerId,
+                (int) session(
+                    'admin_user_id'
+                )
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.field-officers.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'success',
+
+                        'title' =>
+                        'SAK Volunteer rejected',
+
+                        'message' =>
+                        'The SAK Volunteer registration '
+                            . 'has been rejected.',
+                    ]
+                );
+        } catch (Throwable $exception) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.field-officers.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Rejection failed',
+
+                        'message' =>
+                        $exception
+                            ->getMessage(),
+                    ]
+                );
         }
     }
 
@@ -561,9 +806,12 @@ final class FieldOfficerController extends BaseController
     private function createInput(): array
     {
         return [
-            'full_name' => trim(
+            'full_name' =>
+            trim(
                 (string) $this->request
-                    ->getPost('full_name')
+                    ->getPost(
+                        'full_name'
+                    )
             ),
 
             'mobile_number' =>
@@ -576,30 +824,65 @@ final class FieldOfficerController extends BaseController
                     )
             ) ?? '',
 
-            'country_id' => trim(
+            'aadhaar_number' =>
+            preg_replace(
+                '/\D+/',
+                '',
                 (string) $this->request
-                    ->getPost('country_id')
-            ),
+                    ->getPost(
+                        'aadhaar_number'
+                    )
+            ) ?? '',
 
-            'state_id' => trim(
-                (string) $this->request
-                    ->getPost('state_id')
-            ),
-
-            'city_id' => trim(
-                (string) $this->request
-                    ->getPost('city_id')
-            ),
-
-            'address' => trim(
-                (string) $this->request
-                    ->getPost('address')
-            ),
-
-            'upi_id' => strtolower(
+            'pan_number' =>
+            strtoupper(
                 trim(
                     (string) $this->request
-                        ->getPost('upi_id')
+                        ->getPost(
+                            'pan_number'
+                        )
+                )
+            ),
+
+            'country_id' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'country_id'
+                    )
+            ),
+
+            'state_id' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'state_id'
+                    )
+            ),
+
+            'city_id' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'city_id'
+                    )
+            ),
+
+            'address' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'address'
+                    )
+            ),
+
+            'upi_id' =>
+            strtolower(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'upi_id'
+                        )
                 )
             ),
         ];
@@ -611,30 +894,65 @@ final class FieldOfficerController extends BaseController
     private function updateInput(): array
     {
         return [
-            'country_id' => trim(
+            'aadhaar_number' =>
+            preg_replace(
+                '/\D+/',
+                '',
                 (string) $this->request
-                    ->getPost('country_id')
-            ),
+                    ->getPost(
+                        'aadhaar_number'
+                    )
+            ) ?? '',
 
-            'state_id' => trim(
-                (string) $this->request
-                    ->getPost('state_id')
-            ),
-
-            'city_id' => trim(
-                (string) $this->request
-                    ->getPost('city_id')
-            ),
-
-            'address' => trim(
-                (string) $this->request
-                    ->getPost('address')
-            ),
-
-            'upi_id' => strtolower(
+            'pan_number' =>
+            strtoupper(
                 trim(
                     (string) $this->request
-                        ->getPost('upi_id')
+                        ->getPost(
+                            'pan_number'
+                        )
+                )
+            ),
+
+            'country_id' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'country_id'
+                    )
+            ),
+
+            'state_id' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'state_id'
+                    )
+            ),
+
+            'city_id' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'city_id'
+                    )
+            ),
+
+            'address' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'address'
+                    )
+            ),
+
+            'upi_id' =>
+            strtolower(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'upi_id'
+                        )
                 )
             ),
         ];

@@ -24,7 +24,7 @@ $this->section('content');
             </p>
         </div>
 
-        <div class="card border-0 shadow-sm">
+        <div class="card border border-danger border-opacity-25 shadow-sm">
             <div class="card-body text-center py-5">
                 <div
                     class="avatar-lg mx-auto mb-3"

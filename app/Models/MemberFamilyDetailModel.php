@@ -28,6 +28,7 @@ final class MemberFamilyDetailModel extends Model
         'gotra',
         'father_name',
         'mother_name',
+        'parent_contact_number',
         'father_occupation_id',
         'mother_occupation_id',
         'brothers_count',
@@ -35,12 +36,18 @@ final class MemberFamilyDetailModel extends Model
         'country_id',
         'state_id',
         'city_id',
-        /*
-        * Optional Gurudwara and family-reference information.
-        */
         'nearest_gurudwara',
         'reference_person_1',
         'reference_person_2',
+
+        /*
+         * SAK Volunteer assignment.
+         *
+         * Service + database rules ensure these values are immutable
+         * once assigned.
+         */
+        'field_officer_id',
+        'field_officer_code',
     ];
 
     protected $useTimestamps = true;
@@ -60,8 +67,8 @@ final class MemberFamilyDetailModel extends Model
     /**
      * Find one member's Family Details with readable master values.
      *
-     * LEFT JOIN is intentional because family value, family type, family
-     * status and occupations are optional and may be NULL.
+     * LEFT JOIN is intentional because optional profile values can
+     * legitimately remain NULL.
      *
      * @return array<string, mixed>|null
      */
@@ -86,6 +93,16 @@ final class MemberFamilyDetailModel extends Model
                 'master_countries.name AS country_name',
                 'master_states.name AS state_name',
                 'master_cities.name AS city_name',
+
+                /*
+                 * Do not require the SAK Volunteer to still be ACTIVE
+                 * when reading historical Family Details.
+                 *
+                 * The officer is required to be ACTIVE only when the
+                 * assignment is first made.
+                 */
+                'field_officers.full_name '
+                    . 'AS field_officer_name',
             ])
             ->join(
                 'master_family_values family_value',
@@ -139,6 +156,12 @@ final class MemberFamilyDetailModel extends Model
                 'master_cities',
                 'master_cities.id = '
                     . 'member_family_details.city_id',
+                'left'
+            )
+            ->join(
+                'field_officers',
+                'field_officers.id = '
+                    . 'member_family_details.field_officer_id',
                 'left'
             )
             ->where(

@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Controllers\Prelaunch;
 
 use App\Controllers\BaseController;
-//use App\Services\Prelaunch\PrelaunchFieldOfficerService;
+use App\Services\Prelaunch\PrelaunchFieldOfficerService;
 use App\Services\Prelaunch\PrelaunchProfileService;
 use App\Services\Profile\ProfileMasterDataService;
 use App\Validation\Prelaunch\PrelaunchPhotoValidation;
 use App\Validation\Prelaunch\PrelaunchProfileValidation;
+use App\Support\PrelaunchErrorContext;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -34,6 +35,12 @@ final class PrelaunchProfileController extends BaseController
         if (!$config->profileEntryEnabled) {
             throw PageNotFoundException::forPageNotFound();
         }
+
+        /*
+        * Initialize before the try block because the catch block
+        * includes this value in operational error context.
+        */
+        $selectedStateId = 0;
 
         try {
             /** @var ProfileMasterDataService $masterService */
@@ -100,12 +107,36 @@ final class PrelaunchProfileController extends BaseController
                     $basicDetails['cities']
                         ?? [],
 
+                    /*
+                    * Retain flat education data for backward compatibility
+                    * with any existing included components.
+                    */
                     'educations' =>
                     $educationProfession['educations']
                         ?? [],
 
+                    /*
+                    * The prelaunch Education & Profession partial renders
+                    * education categories through native optgroups.
+                    */
+                    'educationGroups' =>
+                    $educationProfession['educationGroups']
+                        ?? [],
+
+                    /*
+                    * Retain the flat collection for backward compatibility
+                    * with any included prelaunch components.
+                    */
                     'occupations' =>
                     $educationProfession['occupations']
+                        ?? [],
+
+                    /*
+                    * The Education & Profession prelaunch partial renders
+                    * occupations using accessible HTML optgroups.
+                    */
+                    'occupationGroups' =>
+                    $educationProfession['occupationGroups']
                         ?? [],
 
                     'employmentTypes' =>
@@ -122,39 +153,62 @@ final class PrelaunchProfileController extends BaseController
                     'maximumPhotos' =>
                     $config->maximumPhotos,
 
+                    'requiresFieldOfficerVerification' =>
+                    $config->requiresFieldOfficerVerification,
+
+                    'minimumPhotoWidth' =>
+                    $config->minimumPhotoWidthPixels,
+
+                    'minimumPhotoHeight' =>
+                    $config->minimumPhotoHeightPixels,
+
+                    'recommendedPhotoWidth' =>
+                    $config->recommendedPhotoWidthPixels,
+
+                    'recommendedPhotoHeight' =>
+                    $config->recommendedPhotoHeightPixels,
+
                     'pageScripts' => [
                         'assets/js/pages/prelaunch-profile-form.js',
                     ],
                 ]
             );
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Unable to render standalone pre-launch form. '
-                    . 'Exception: {exception}. '
-                    . 'Message: {message}. '
-                    . 'File: {file}. '
-                    . 'Line: {line}.',
-                [
-                    'exception' =>
-                    $exception::class,
+                PrelaunchErrorContext::forOperation(
+                    operation: 'prelaunch_profile_form_render',
 
-                    'message' =>
-                    $exception->getMessage(),
+                    component: self::class,
 
-                    'file' =>
-                    $exception->getFile(),
+                    method: __FUNCTION__,
 
-                    'line' =>
-                    $exception->getLine(),
-                ]
+                    additionalContext: [
+                        'selected_state_id' =>
+                        $selectedStateId > 0
+                            ? $selectedStateId
+                            : null,
+
+                        'profile_entry_enabled' =>
+                        (bool) $config
+                            ->profileEntryEnabled,
+                    ]
+                )
             );
 
+            /*
+            * Development retains the normal detailed exception page.
+            * Production continues to hide implementation details.
+            */
             if (ENVIRONMENT === 'development') {
                 throw $exception;
             }
 
-            throw PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException
+                ::forPageNotFound();
         }
     }
 
@@ -210,186 +264,247 @@ final class PrelaunchProfileController extends BaseController
                 ),
             ]);
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Unable to load prelaunch cities. '
-                    . 'State ID: {stateId}. '
-                    . 'Message: {message}.',
-                [
-                    'stateId' =>
-                    $stateId,
+                PrelaunchErrorContext::forOperation(
+                    operation: 'prelaunch_city_master_load',
 
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'state_id' =>
+                        $stateId,
+                    ]
+                )
             );
 
             return $this->response
                 ->setStatusCode(500)
                 ->setJSON([
-                    'successful' => false,
+                    'successful' =>
+                    false,
+
                     'message' =>
                     'Cities could not be loaded.',
-                    'items' => [],
+
+                    'items' =>
+                    [],
                 ]);
         }
     }
 
     /**
-     * Verify an active Field Officer.
+     * Verify an active SAK Volunteer.
+     *
+     * This endpoint belongs only to the actual production
+     * prelaunch workflow.
      */
-    // public function verifyFieldOfficer(): ResponseInterface
-    // {
-    //     $config = config('Prelaunch');
+    public function verifyFieldOfficer(): ResponseInterface
+    {
+        $config = config('Prelaunch');
 
-    //     if (!$config->profileEntryEnabled) {
-    //         throw PageNotFoundException::forPageNotFound();
-    //     }
+        if (
+            !$config->profileEntryEnabled
+            || !$config->requiresFieldOfficerVerification
+        ) {
+            throw PageNotFoundException::forPageNotFound();
+        }
 
-    //     if (!$this->request->isAJAX()) {
-    //         return $this->response
-    //             ->setStatusCode(400)
-    //             ->setJSON([
-    //                 'successful' => false,
-    //                 'message' =>
-    //                 'Invalid Field Officer verification request.',
-    //                 'csrfName' =>
-    //                 csrf_token(),
-    //                 'csrfHash' =>
-    //                 csrf_hash(),
-    //             ]);
-    //     }
+        if (!$this->request->isAJAX()) {
+            return $this->response
+                ->setStatusCode(400)
+                ->setJSON([
+                    'successful' =>
+                    false,
 
-    //     $officerCode = mb_strtoupper(
-    //         trim(
-    //             (string) $this->request->getPost(
-    //                 'field_officer_code'
-    //             )
-    //         )
-    //     );
+                    'message' =>
+                    'Invalid SAK Volunteer verification request.',
 
-    //     $validation = service('validation');
+                    'csrfName' =>
+                    csrf_token(),
 
-    //     $validation->setRules([
-    //         'field_officer_code' => [
-    //             'label' => 'Field Officer code',
-    //             'rules' => [
-    //                 'required',
-    //                 'min_length[4]',
-    //                 'max_length[20]',
-    //                 'regex_match[/^[A-Z0-9-]+$/]',
-    //             ],
-    //         ],
-    //     ]);
+                    'csrfHash' =>
+                    csrf_hash(),
+                ]);
+        }
 
-    //     if (
-    //         !$validation->run([
-    //             'field_officer_code' =>
-    //             $officerCode,
-    //         ])
-    //     ) {
-    //         return $this->response
-    //             ->setStatusCode(422)
-    //             ->setJSON([
-    //                 'successful' => false,
-    //                 'message' =>
-    //                 $validation->getError(
-    //                     'field_officer_code'
-    //                 ),
+        $officerCode = mb_strtoupper(
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'field_officer_code'
+                    )
+            )
+        );
 
-    //                 'csrfName' =>
-    //                 csrf_token(),
+        $validation =
+            service('validation');
 
-    //                 'csrfHash' =>
-    //                 csrf_hash(),
-    //             ]);
-    //     }
+        $validation->setRules([
+            'field_officer_code' => [
+                'label' =>
+                'SAK Volunteer code',
 
-    //     try {
-    //         /** @var PrelaunchFieldOfficerService $service */
-    //         $service = service(
-    //             'prelaunchFieldOfficerService'
-    //         );
+                'rules' => [
+                    'required',
+                    'exact_length[11]',
+                    'regex_match[/^FOSAK[0-9]{6}$/]',
+                ],
 
-    //         $fieldOfficer =
-    //             $service->verifyCode(
-    //                 $officerCode
-    //             );
+                'errors' => [
+                    'required' =>
+                    'Please enter the SAK Volunteer code.',
 
-    //         return $this->response->setJSON([
-    //             'successful' => true,
+                    'exact_length' =>
+                    'Please enter a valid SAK Volunteer code.',
 
-    //             'message' =>
-    //             'Field Officer verified successfully.',
+                    'regex_match' =>
+                    'Please enter a valid SAK Volunteer code.',
+                ],
+            ],
+        ]);
 
-    //             'fieldOfficer' => [
-    //                 'id' =>
-    //                 (int) $fieldOfficer['id'],
+        if (
+            !$validation->run([
+                'field_officer_code' =>
+                $officerCode,
+            ])
+        ) {
+            return $this->response
+                ->setStatusCode(422)
+                ->setJSON([
+                    'successful' =>
+                    false,
 
-    //                 'officerCode' =>
-    //                 (string) $fieldOfficer['officer_code'],
+                    'message' =>
+                    $validation->getError(
+                        'field_officer_code'
+                    ),
 
-    //                 'fullName' =>
-    //                 (string) $fieldOfficer['full_name'],
+                    'csrfName' =>
+                    csrf_token(),
 
-    //                 'countryName' =>
-    //                 (string) (
-    //                     $fieldOfficer['country_name']
-    //                     ?? ''
-    //                 ),
+                    'csrfHash' =>
+                    csrf_hash(),
+                ]);
+        }
 
-    //                 'stateName' =>
-    //                 (string) (
-    //                     $fieldOfficer['state_name']
-    //                     ?? ''
-    //                 ),
+        try {
+            /** @var PrelaunchFieldOfficerService $service */
+            $service = service(
+                'prelaunchFieldOfficerService'
+            );
 
-    //                 'cityName' =>
-    //                 (string) (
-    //                     $fieldOfficer['city_name']
-    //                     ?? ''
-    //                 ),
+            $fieldOfficer =
+                $service->verifyCode(
+                    $officerCode
+                );
 
-    //                 'location' =>
-    //                 (string) (
-    //                     $fieldOfficer['location']
-    //                     ?? ''
-    //                 ),
-    //             ],
+            return $this->response
+                ->setJSON([
+                    'successful' =>
+                    true,
 
-    //             'csrfName' =>
-    //             csrf_token(),
+                    'message' =>
+                    'SAK Volunteer verified successfully.',
 
-    //             'csrfHash' =>
-    //             csrf_hash(),
-    //         ]);
-    //     } catch (Throwable $exception) {
-    //         log_message(
-    //             'notice',
-    //             'Prelaunch Field Officer verification failed: '
-    //                 . '{message}',
-    //             [
-    //                 'message' =>
-    //                 $exception->getMessage(),
-    //             ]
-    //         );
+                    'fieldOfficer' => [
+                        /*
+                     * The ID is only a client-side verification marker.
+                     *
+                     * It is revalidated against the officer code
+                     * again during profile save.
+                     */
+                        'id' =>
+                        (int) $fieldOfficer['id'],
 
-    //         return $this->response
-    //             ->setStatusCode(422)
-    //             ->setJSON([
-    //                 'successful' => false,
+                        'officerCode' =>
+                        (string) $fieldOfficer['officer_code'],
 
-    //                 'message' =>
-    //                 'Prelaunch Field Officer verification failed',
+                        'fullName' =>
+                        (string) $fieldOfficer['full_name'],
 
-    //                 'csrfName' =>
-    //                 csrf_token(),
+                        'stateName' =>
+                        (string) (
+                            $fieldOfficer['state_name'] ?? ''
+                        ),
 
-    //                 'csrfHash' =>
-    //                 csrf_hash(),
-    //             ]);
-    //     }
-    // }
+                        'cityName' =>
+                        (string) (
+                            $fieldOfficer['city_name'] ?? ''
+                        ),
+
+                        'location' =>
+                        (string) (
+                            $fieldOfficer['location'] ?? ''
+                        ),
+                    ],
+
+                    /*
+                 * CSRF token regenerates on POST.
+                 * Return the new token so Save Profile can
+                 * use the current token afterwards.
+                 */
+                    'csrfName' =>
+                    csrf_token(),
+
+                    'csrfHash' =>
+                    csrf_hash(),
+                ]);
+        } catch (RuntimeException $exception) {
+            return $this->response
+                ->setStatusCode(422)
+                ->setJSON([
+                    'successful' =>
+                    false,
+
+                    'message' =>
+                    $exception->getMessage(),
+
+                    'csrfName' =>
+                    csrf_token(),
+
+                    'csrfHash' =>
+                    csrf_hash(),
+                ]);
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                PrelaunchErrorContext::forOperation(
+                    operation: 'prelaunch_field_officer_verify',
+
+                    component: self::class,
+
+                    method: __FUNCTION__
+                )
+            );
+
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'successful' =>
+                    false,
+
+                    'message' =>
+                    'The SAK Volunteer could not be '
+                        . 'verified. Please try again.',
+
+                    'csrfName' =>
+                    csrf_token(),
+
+                    'csrfHash' =>
+                    csrf_hash(),
+                ]);
+        }
+    }
 
     /**
      * Save a prelaunch draft profile.
@@ -402,11 +517,36 @@ final class PrelaunchProfileController extends BaseController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        if ($config->profileFieldOfficerId <= 0) {
-            log_message(
-                'critical',
+        /*
+ * QA/development continue to use the configured SAK Volunteer.
+ *
+ * Production gets the officer from explicit verified user input,
+ * so profileFieldOfficerId is not required there.
+ */
+        if (
+            !$config->requiresFieldOfficerVerification
+            && $config->profileFieldOfficerId <= 0
+        ) {
+            service(
+                'applicationErrorLogger'
+            )->error(
                 'Prelaunch profile entry is unavailable because '
-                    . 'profileFieldOfficerId is not configured.'
+                    . 'profileFieldOfficerId is not configured.',
+
+                PrelaunchErrorContext::forOperation(
+                    operation: 'prelaunch_profile_configuration',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'profile_field_officer_id' =>
+                        $config->profileFieldOfficerId,
+                    ]
+                ),
+
+                'critical'
             );
 
             return redirect()
@@ -415,7 +555,9 @@ final class PrelaunchProfileController extends BaseController
                 ->with(
                     'formAlert',
                     [
-                        'type' => 'danger',
+                        'type' =>
+                        'danger',
+
                         'title' =>
                         'Profile entry unavailable',
 
@@ -432,7 +574,9 @@ final class PrelaunchProfileController extends BaseController
 
         $validation->setRules(
             array_merge(
-                PrelaunchProfileValidation::createRules(),
+                PrelaunchProfileValidation::createRules(
+                    $config->requiresFieldOfficerVerification
+                ),
                 PrelaunchPhotoValidation::rules()
             )
         );
@@ -558,30 +702,38 @@ final class PrelaunchProfileController extends BaseController
                     ]
                 );
         } catch (Throwable $exception) {
-            /*
-            * Database, filesystem, image-processing and programming errors
-            * must not expose their internal messages in the browser.
-            */
-            log_message(
+            $uploadedPhotoCount = isset($photos)
+                && is_array($photos)
+                ? count($photos)
+                : 0;
+
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Prelaunch profile creation failed. '
-                    . 'Exception: {exception}. '
-                    . 'Message: {message}. '
-                    . 'File: {file}. '
-                    . 'Line: {line}.',
-                [
-                    'exception' =>
-                    $exception::class,
+                PrelaunchErrorContext::forOperation(
+                    operation: 'prelaunch_profile_create',
 
-                    'message' =>
-                    $exception->getMessage(),
+                    component: self::class,
 
-                    'file' =>
-                    $exception->getFile(),
+                    method: __FUNCTION__,
 
-                    'line' =>
-                    $exception->getLine(),
-                ]
+                    additionalContext: [
+                        /*
+                 * Only operational metadata is retained.
+                 * Submitted profile/contact values are intentionally excluded.
+                 */
+                        'uploaded_photo_count' =>
+                        $uploadedPhotoCount,
+
+                        'maximum_photos' =>
+                        $config->maximumPhotos,
+
+                        'configured_field_officer_id' =>
+                        $config->profileFieldOfficerId,
+                    ]
+                )
             );
 
             return redirect()
@@ -590,10 +742,15 @@ final class PrelaunchProfileController extends BaseController
                 ->with(
                     'formAlert',
                     [
-                        'type' => 'danger',
-                        'title' => 'Profile not saved',
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Profile not saved',
+
                         'message' =>
-                        'The profile could not be saved. Please try again.',
+                        'The profile could not be saved. '
+                            . 'Please try again.',
                     ]
                 );
         }
@@ -722,6 +879,16 @@ final class PrelaunchProfileController extends BaseController
                 'mother_name'
             )),
 
+            'parent_contact_number' =>
+            preg_replace(
+                '/\D+/',
+                '',
+                (string) $this->request
+                    ->getPost(
+                        'parent_contact_number'
+                    )
+            ) ?? '',
+
             'gotra' =>
             trim((string) $this->request->getPost(
                 'gotra'
@@ -739,17 +906,17 @@ final class PrelaunchProfileController extends BaseController
                 'sikh_community_id'
             )),
 
-            // 'field_officer_code' =>
-            // mb_strtoupper(
-            //     trim((string) $this->request->getPost(
-            //         'field_officer_code'
-            //     ))
-            // ),
+            'field_officer_code' =>
+            mb_strtoupper(
+                trim((string) $this->request->getPost(
+                    'field_officer_code'
+                ))
+            ),
 
-            // 'verified_field_officer_id' =>
-            // trim((string) $this->request->getPost(
-            //     'verified_field_officer_id'
-            // )),
+            'verified_field_officer_id' =>
+            trim((string) $this->request->getPost(
+                'verified_field_officer_id'
+            )),
 
             'consent' =>
             trim((string) $this->request->getPost(

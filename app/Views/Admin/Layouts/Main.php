@@ -20,7 +20,7 @@ $pageScripts = $pageScripts ?? [];
         content="width=device-width, initial-scale=1">
 
     <title>
-        <?= esc($pageTitle) ?> | SikhAnandKaraj
+        <?= esc($pageTitle) ?> | Sikhanandkaraj
     </title>
 
     <link
@@ -85,6 +85,16 @@ $pageScripts = $pageScripts ?? [];
                 'admin/prelaunch/profiles'
             );
 
+        $membersActive =
+            str_starts_with(
+                $currentPath,
+                'admin/members'
+            )
+            && !str_starts_with(
+                $currentPath,
+                'admin/members/photo-approvals'
+            );
+
         $isSuperAdmin =
             session('admin_role')
             === \App\Models\AdminUserModel::ROLE_SUPER_ADMIN;
@@ -114,9 +124,9 @@ $pageScripts = $pageScripts ?? [];
 
                         <img
                             src="<?= base_url(
-                                        'assets/images/sikhanandkaraj_removebg_2.png'
+                                        'assets/images/logo_sak_bgremove_final.png'
                                     ) ?>"
-                            alt="SikhAnandKaraj"
+                            alt="Sikhanandkaraj"
                             class="public-navbar__logo">
                     </a>
 
@@ -236,6 +246,40 @@ $pageScripts = $pageScripts ?? [];
                                 </a>
                             </li>
 
+                            <li class="nav-item">
+                                <a
+                                    href="<?= route_to(
+                                                'admin.members.index'
+                                            ) ?>"
+                                    class="nav-link
+            d-flex
+            align-items-center
+            gap-2
+            py-1
+            py-lg-2
+            <?= $membersActive
+                ? 'active text-primary'
+                : '' ?>"
+                                    <?= $membersActive
+                                        ? 'aria-current="page"'
+                                        : '' ?>>
+
+                                    <i
+                                        class="ri-team-line
+                fw-normal
+                flex-shrink-0"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <span
+                                        class="<?= $membersActive
+                                                    ? 'fw-semibold'
+                                                    : '' ?>">
+                                        Members
+                                    </span>
+                                </a>
+                            </li>
+
                             <?php if ($isSuperAdmin): ?>
                                 <li class="nav-item">
                                     <a
@@ -293,7 +337,7 @@ $pageScripts = $pageScripts ?? [];
                                             class="<?= $fieldOfficerActive
                                                         ? 'fw-semibold'
                                                         : '' ?>">
-                                            Field Officers
+                                            SAK Volunteers
                                         </span>
                                     </a>
                                 </li>
@@ -487,7 +531,7 @@ $pageScripts = $pageScripts ?? [];
             <div class="text-center">
 
                 <small class="text-muted">
-                    © <?= esc(date('Y')) ?> SikhAnandKaraj. All rights reserved.
+                    © <?= esc(date('Y')) ?> Sikhanandkaraj. All rights reserved.
                 </small>
 
             </div>

@@ -7,6 +7,7 @@ namespace App\Controllers\Web;
 use App\Controllers\BaseController;
 use App\Services\Authentication\LoginResult;
 use App\Services\Authentication\LoginService;
+use App\Support\AuthenticationErrorContext;
 use App\Validation\LoginValidation;
 use CodeIgniter\HTTP\RedirectResponse;
 use RuntimeException;
@@ -43,7 +44,7 @@ final class AuthenticationController extends BaseController
     }
 
     /**
-     * Display the existing password login screen.
+     * Display the password-login screen.
      */
     public function password(): string|RedirectResponse
     {
@@ -85,9 +86,9 @@ final class AuthenticationController extends BaseController
      */
     public function login(): RedirectResponse
     {
-        /**
+        /*
          * Do not replace an already authenticated session through another
-         * login form submission.
+         * login-form submission.
          */
         if ($this->isAuthenticated()) {
             return redirect()->to(
@@ -97,7 +98,9 @@ final class AuthenticationController extends BaseController
 
         $input = $this->getLoginInput();
 
-        $validation = service('validation');
+        $validation = service(
+            'validation'
+        );
 
         $validation->setRules(
             LoginValidation::rules()
@@ -106,21 +109,30 @@ final class AuthenticationController extends BaseController
         if (!$validation->run($input)) {
             return $this->redirectToLogin(
                 identifier: $input['identifier'],
+
                 validationErrors: $validation->getErrors()
             );
         }
 
-        $validated = $validation->getValidated();
+        $validated = $validation
+            ->getValidated();
 
         try {
             /** @var LoginService $service */
-            $service = service('loginService');
+            $service = service(
+                'loginService'
+            );
 
             $result = $service->authenticate(
                 (string) $validated['identifier'],
                 (string) $validated['password']
             );
 
+            /*
+             * Invalid credentials, blocked accounts and other expected
+             * authentication decisions are represented by LoginResult.
+             * They are not application errors.
+             */
             if (!$result->successful) {
                 return $this->handleLoginFailure(
                     $result,
@@ -136,7 +148,8 @@ final class AuthenticationController extends BaseController
                 );
             }
 
-            $userId = $user['id'] ?? null;
+            $userId = $user['id']
+                ?? null;
 
             if (!is_numeric($userId)) {
                 throw new RuntimeException(
@@ -144,43 +157,79 @@ final class AuthenticationController extends BaseController
                 );
             }
 
-            /**
-             * Regenerate the session identifier immediately after
-             * authentication to prevent session fixation.
+            /*
+             * BaseController regenerates the session identifier and stores
+             * only the authenticated member session values.
              */
             $this->establishMemberSession(
                 $user
             );
 
             return redirect()
-                ->to(route_to('web.dashboard'))
-                ->with('formAlert', [
-                    'type' => 'success',
-                    'title' => 'Welcome back',
-                    'message' =>
-                    'You have logged in successfully.',
-                ]);
+                ->to(
+                    route_to(
+                        'web.dashboard'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'success',
+
+                        'title' =>
+                        'Welcome back',
+
+                        'message' =>
+                        'You have logged in successfully.',
+                    ]
+                );
         } catch (Throwable $exception) {
-            log_message(
+            /*
+             * Log only the identifier type. Never persist the submitted
+             * identifier or password in application_error_logs.
+             */
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Login failed: {message}',
                 [
-                    'message' =>
-                    $exception->getMessage(),
+                    'operation' =>
+                    'member_password_login',
+
+                    'controller' =>
+                    self::class,
+
+                    'method' =>
+                    __FUNCTION__,
+
+                    'identifier_type' =>
+                    AuthenticationErrorContext
+                        ::identifierType(
+                            (string) (
+                                $validated['identifier']
+                                ?? $input['identifier']
+                            )
+                        ),
                 ]
             );
 
-            /**
-             * Preserve only the identifier.
-             *
-             * Never call withInput() here because the submitted request
-             * also contains the plain password.
+            /*
+             * Preserve only the identifier for the user interface.
+             * Never call withInput(), because the submitted request includes
+             * the plain password.
              */
             return $this->redirectToLogin(
                 identifier: $input['identifier'],
+
                 formAlert: [
-                    'type' => 'danger',
-                    'title' => 'Login unavailable',
+                    'type' =>
+                    'danger',
+
+                    'title' =>
+                    'Login unavailable',
+
                     'message' =>
                     'We could not log you in right now. '
                         . 'Please try again.',
@@ -190,48 +239,67 @@ final class AuthenticationController extends BaseController
     }
 
     /**
-     * Destroy the authenticated session.
+     * Destroy the authenticated member session.
      */
     public function logout(): RedirectResponse
     {
         session()->destroy();
 
         return redirect()
-            ->to(route_to('web.home'))
-            ->with('formAlert', [
-                'type' => 'success',
-                'title' => 'Logged out',
-                'message' =>
-                'You have been logged out successfully.',
-            ]);
+            ->to(
+                route_to(
+                    'web.home'
+                )
+            )
+            ->with(
+                'formAlert',
+                [
+                    'type' =>
+                    'success',
+
+                    'title' =>
+                    'Logged out',
+
+                    'message' =>
+                    'You have been logged out successfully.',
+                ]
+            );
     }
 
     /**
-     * Read only the expected login fields.
+     * Read only expected login fields.
      *
      * @return array{
-     *     identifier: string,
-     *     password: string
+     *     identifier:string,
+     *     password:string
      * }
      */
     private function getLoginInput(): array
     {
         return [
-            'identifier' => trim(
-                (string) $this->request->getPost(
-                    'identifier'
-                )
+            'identifier' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'identifier'
+                    )
             ),
 
-            /**
-             * Do not trim passwords because spaces may legitimately be
-             * part of the user's password.
+            /*
+             * Do not trim passwords because spaces may legitimately be part
+             * of the user's password.
              */
-            'password' => (string) $this->request
-                ->getPost('password'),
+            'password' =>
+            (string) $this->request
+                ->getPost(
+                    'password'
+                ),
         ];
     }
 
+    /**
+     * Convert expected authentication failures into user-facing messages.
+     */
     private function handleLoginFailure(
         LoginResult $result,
         string $identifier
@@ -242,6 +310,7 @@ final class AuthenticationController extends BaseController
         ) {
             return $this->redirectToLogin(
                 identifier: $identifier,
+
                 validationErrors: [
                     $result->field =>
                     $result->message,
@@ -251,20 +320,25 @@ final class AuthenticationController extends BaseController
 
         return $this->redirectToLogin(
             identifier: $identifier,
+
             formAlert: [
-                'type' => 'danger',
-                'title' => 'Login failed',
-                'message' => $result->message
+                'type' =>
+                'danger',
+
+                'title' =>
+                'Login failed',
+
+                'message' =>
+                $result->message
                     ?? 'The login could not be completed.',
             ]
         );
     }
 
     /**
-     * Redirect back to the login page while preserving only the login
-     * identifier.
+     * Redirect back while preserving only the login identifier.
      *
-     * The password is deliberately never written to flashdata.
+     * The password is deliberately never stored in flashdata.
      *
      * @param array<string, string>      $validationErrors
      * @param array<string, string>|null $formAlert

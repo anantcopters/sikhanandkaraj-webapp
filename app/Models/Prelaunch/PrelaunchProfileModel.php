@@ -49,6 +49,7 @@ final class PrelaunchProfileModel extends Model
         'occupation_id',
         'father_name',
         'mother_name',
+        'parent_contact_number',
         'sikh_community_id',
         'gotra',
         'nearest_gurudwara',
@@ -60,6 +61,11 @@ final class PrelaunchProfileModel extends Model
         'reviewed_by',
         'reviewed_at',
         'rejection_reason',
+        'migrated_user_id',
+        'migrated_at',
+        'local_photos_cleanup_after',
+        'local_photos_cleaned_at',
+        'migration_error',
     ];
 
     public function __construct(
@@ -122,51 +128,210 @@ final class PrelaunchProfileModel extends Model
         return $builder->first() !== null;
     }
 
-    /**
-     * Return pre-launch profiles for the administrator list.
-     *
-     * LEFT JOIN is intentional. A missing or inactive master record must
-     * not make the complete pre-launch profile disappear from admin review.
-     *
-     * @return list<array<string, mixed>>
-     */
-    public function listForAdmin(
-        ?string $status = null
-    ): array {
-        $builder = $this->db
-            ->table(
-                $this->table
-                    . ' AS prelaunch_profiles'
-            );
 
-        $this->applyAdminDetailsQuery(
-            $builder
+    /**
+     * Prepare the administrator listing query.
+     *
+     * The model instance is returned so CodeIgniter's native paginate() method
+     * can execute the page query and generate matching pager metadata.
+     */
+    public function adminListQuery(
+        ?string $status = null,
+        ?string $search = null
+    ): self {
+        $normalizedStatus = mb_strtoupper(
+            trim((string) $status)
         );
 
-        if ($status !== null) {
-            $builder->where(
-                'prelaunch_profiles.status',
-                mb_strtoupper(
-                    trim($status)
-                )
-            );
+        if (
+            !in_array(
+                $normalizedStatus,
+                [
+                    self::STATUS_DRAFT,
+                    self::STATUS_APPROVED,
+                    self::STATUS_REJECTED,
+                ],
+                true
+            )
+        ) {
+            $normalizedStatus = self::STATUS_DRAFT;
         }
 
-        $builder
+        $normalizedSearch = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim((string) $search)
+        ) ?? '';
+
+        $normalizedSearch = mb_substr(
+            $normalizedSearch,
+            0,
+            100
+        );
+
+        $this
+            ->select([
+                'prelaunch_profiles.id',
+                'prelaunch_profiles.profile_reference',
+                'prelaunch_profiles.profile_created_for',
+                'prelaunch_profiles.gender',
+                'prelaunch_profiles.full_name',
+                'prelaunch_profiles.email',
+                'prelaunch_profiles.country_code',
+                'prelaunch_profiles.mobile_number',
+                'prelaunch_profiles.status',
+                'prelaunch_profiles.created_at',
+                'prelaunch_profiles.reviewed_at',
+                'prelaunch_profiles.migrated_user_id',
+
+                'field_officers.officer_code',
+                'field_officers.full_name AS field_officer_name',
+
+                'master_countries.name AS country_name',
+                'master_states.name AS state_name',
+                'master_cities.name AS city_name',
+            ])
+            ->join(
+                'field_officers',
+                'field_officers.id = '
+                    . 'prelaunch_profiles.field_officer_id',
+                'left'
+            )
+            ->join(
+                'master_countries',
+                'master_countries.id = '
+                    . 'prelaunch_profiles.country_id',
+                'left'
+            )
+            ->join(
+                'master_states',
+                'master_states.id = '
+                    . 'prelaunch_profiles.state_id',
+                'left'
+            )
+            ->join(
+                'master_cities',
+                'master_cities.id = '
+                    . 'prelaunch_profiles.city_id',
+                'left'
+            )
+            ->where(
+                'prelaunch_profiles.status',
+                $normalizedStatus
+            )
             ->where(
                 'prelaunch_profiles.deleted_at',
                 null
-            )
-            ->orderBy(
-                'prelaunch_profiles.created_at',
-                'DESC'
             );
 
-        return $builder
-            ->get()
-            ->getResultArray();
+        if ($normalizedSearch !== '') {
+            $this->applyAdminSearch(
+                $normalizedSearch
+            );
+        }
+
+        return $this->orderBy(
+            'prelaunch_profiles.created_at',
+            'DESC'
+        );
     }
 
+    /**
+     * Apply PostgreSQL-safe, case-insensitive administrator search.
+     */
+    private function applyAdminSearch(
+        string $search
+    ): void {
+        /*
+     * Escape LIKE wildcard characters supplied by the administrator.
+     */
+        $escapedSearch = $this->db
+            ->escapeLikeString(
+                trim($search)
+            );
+
+        /*
+     * Quote the full pattern before embedding it in the expression.
+     *
+     * PostgreSQL receives:
+     *
+     * ILIKE '%toor%'
+     *
+     * instead of:
+     *
+     * ILIKE %toor%
+     */
+        $quotedPattern = $this->db->escape(
+            '%' . $escapedSearch . '%'
+        );
+
+        $this
+            ->groupStart()
+            ->where(
+                'prelaunch_profiles.profile_reference '
+                    . 'ILIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'prelaunch_profiles.full_name '
+                    . 'ILIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'COALESCE(prelaunch_profiles.email, \'\') '
+                    . 'ILIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'COALESCE(prelaunch_profiles.mobile_number, \'\') '
+                    . 'ILIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'CONCAT('
+                    . 'COALESCE(prelaunch_profiles.country_code, \'\'), '
+                    . 'COALESCE(prelaunch_profiles.mobile_number, \'\')'
+                    . ') ILIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'COALESCE(field_officers.full_name, \'\') '
+                    . 'ILIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'COALESCE(field_officers.officer_code, \'\') '
+                    . 'ILIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'COALESCE(master_countries.name, \'\') '
+                    . 'ILIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'COALESCE(master_states.name, \'\') '
+                    . 'ILIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->orWhere(
+                'COALESCE(master_cities.name, \'\') '
+                    . 'ILIKE ' . $quotedPattern,
+                null,
+                false
+            )
+            ->groupEnd();
+    }
+    
     /**
      * Return one complete profile for administrator review.
      *
@@ -221,7 +386,7 @@ final class PrelaunchProfileModel extends Model
                 'prelaunch_profiles.*',
 
                 /*
-             * Field Officer information.
+             * SAK Volunteer information.
              */
                 'field_officers.officer_code',
                 'field_officers.full_name AS field_officer_name',
@@ -305,5 +470,43 @@ final class PrelaunchProfileModel extends Model
                     . 'prelaunch_profiles.sikh_community_id',
                 'left'
             );
+    }
+
+    /**
+     * Return migrated profiles whose locally staged photos may be removed.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findDueForPhotoCleanup(
+        int $limit = 100
+    ): array {
+        $safeLimit = max(
+            1,
+            min($limit, 500)
+        );
+
+        return $this
+            ->where(
+                'migrated_user_id IS NOT NULL',
+                null,
+                false
+            )
+            ->where(
+                'local_photos_cleanup_after <=',
+                date('Y-m-d H:i:s')
+            )
+            ->where(
+                'local_photos_cleaned_at',
+                null
+            )
+            ->where(
+                'deleted_at',
+                null
+            )
+            ->orderBy(
+                'local_photos_cleanup_after',
+                'ASC'
+            )
+            ->findAll($safeLimit);
     }
 }

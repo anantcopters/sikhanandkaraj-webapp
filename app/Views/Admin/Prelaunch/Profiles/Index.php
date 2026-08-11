@@ -2,9 +2,14 @@
 
 declare(strict_types=1);
 
+use CodeIgniter\Pager\Pager;
+
 /**
  * @var list<array<string, mixed>> $profiles
- * @var string $selectedStatus
+ * @var Pager                      $pager
+ * @var string                     $selectedStatus
+ * @var string                     $searchTerm
+ * @var int                        $perPage
  * @var array<string, string>|null $formAlert
  */
 
@@ -32,21 +37,39 @@ $resolvedStatus = in_array(
     ? $selectedStatus
     : 'DRAFT';
 
-$this->extend('Admin/Layouts/Main');
-$this->section('content');
+$resolvedSearch = trim(
+    (string) (
+        $searchTerm
+        ?? ''
+    )
+);
+
+$resolvedPerPage = max(
+    1,
+    (int) (
+        $perPage
+        ?? 10
+    )
+);
+
+$this->extend(
+    'Admin/Layouts/Main'
+);
+
+$this->section(
+    'content'
+);
 ?>
 
 <div class="container-fluid">
-
-    <!-- Page heading -->
     <div class="row">
         <div class="col-12">
-
             <div
                 class="page-title-box
-                d-sm-flex
-                align-items-center
-                justify-content-between">
+                    d-sm-flex
+                    align-items-sm-center
+                    justify-content-between
+                    gap-3">
 
                 <div>
                     <h4 class="mb-sm-0">
@@ -59,14 +82,29 @@ $this->section('content');
                     </p>
                 </div>
 
-                <!-- Status filter -->
-                <div class="page-title-right mt-3 mt-sm-0">
+                <!-- Choices.js status filter -->
+                <div
+                    class="page-title-right
+                        mt-3 mt-sm-0">
 
                     <form
+                        id="prelaunch-status-form"
                         method="get"
                         action="<?= route_to(
                                     'admin.prelaunch.profiles.index'
                                 ) ?>">
+
+                        <?php if (
+                            $resolvedSearch !== ''
+                        ): ?>
+                            <input
+                                type="hidden"
+                                name="search"
+                                value="<?= esc(
+                                            $resolvedSearch,
+                                            'attr'
+                                        ) ?>">
+                        <?php endif ?>
 
                         <label
                             for="prelaunch-status-filter"
@@ -76,9 +114,12 @@ $this->section('content');
 
                         <select
                             id="prelaunch-status-filter"
-                            class="form-select"
                             name="status"
-                            onchange="this.form.submit()">
+                            class="form-select"
+                            data-choice
+                            data-choice-search="false"
+                            data-choice-position="bottom"
+                            data-choice-placeholder="Select status">
 
                             <?php foreach (
                                 [
@@ -90,36 +131,29 @@ $this->section('content');
 
                                     'REJECTED' =>
                                     'Rejected',
-                                ] as $value => $label
+                                ]
+                                as $value => $label
                             ): ?>
-
                                 <option
                                     value="<?= esc(
                                                 $value,
                                                 'attr'
                                             ) ?>"
-                                    <?= $resolvedStatus === $value
+                                    <?= $resolvedStatus
+                                        === $value
                                         ? 'selected'
                                         : '' ?>>
 
                                     <?= esc($label) ?>
-
                                 </option>
-
-                            <?php endforeach; ?>
-
+                            <?php endforeach ?>
                         </select>
-
                     </form>
-
                 </div>
-
             </div>
-
         </div>
     </div>
 
-    <!-- Shared form alert -->
     <?= view(
         'Components/Alerts/FormAlert',
         [
@@ -128,23 +162,108 @@ $this->section('content');
         ]
     ) ?>
 
-    <!-- Profile list -->
     <div
         class="card
-        border
-        border-danger
-        border-opacity-25">
+            border
+            border-danger
+            border-opacity-25">
+
+        <!-- Search UI matching Pending Approval -->
+        <div class="card-header">
+            <form
+                method="get"
+                action="<?= route_to(
+                            'admin.prelaunch.profiles.index'
+                        ) ?>">
+
+                <input
+                    type="hidden"
+                    name="status"
+                    value="<?= esc(
+                                $resolvedStatus,
+                                'attr'
+                            ) ?>">
+
+                <div class="row g-2 align-items-end">
+                    <div
+                        class="col-12
+                            col-md-6
+                            col-xl-4">
+
+                        <label
+                            for="prelaunchProfileSearch"
+                            class="form-label">
+                            Search profiles
+                        </label>
+
+                        <div class="input-group">
+                            <span
+                                class="input-group-text"
+                                aria-hidden="true">
+
+                                <i class="ri-search-line"></i>
+                            </span>
+
+                            <input
+                                type="search"
+                                id="prelaunchProfileSearch"
+                                name="search"
+                                class="form-control"
+                                value="<?= esc(
+                                            $resolvedSearch,
+                                            'attr'
+                                        ) ?>"
+                                maxlength="100"
+                                placeholder="Name, reference, contact or location">
+                        </div>
+                    </div>
+
+                    <div class="col-6 col-md-auto">
+                        <button
+                            type="submit"
+                            class="btn
+                                btn-primary
+                                w-100">
+
+                            <i
+                                class="ri-search-line me-1"
+                                aria-hidden="true"></i>
+
+                            Search
+                        </button>
+                    </div>
+
+                    <div class="col-6 col-md-auto">
+                        <a
+                            href="<?= esc(
+                                        route_to(
+                                            'admin.prelaunch.profiles.index'
+                                        )
+                                            . '?status='
+                                            . rawurlencode(
+                                                $resolvedStatus
+                                            ),
+                                        'attr'
+                                    ) ?>"
+                            class="btn
+                                btn-soft-secondary
+                                w-100">
+
+                            Reset
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
 
         <div class="card-body p-0">
-
             <div class="table-responsive">
-
                 <table
                     class="table
-                    table-hover
-                    table-nowrap
-                    align-middle
-                    mb-0">
+                        table-hover
+                        table-nowrap
+                        align-middle
+                        mb-0">
 
                     <thead class="bg-info-subtle">
                         <tr>
@@ -165,7 +284,7 @@ $this->section('content');
                             </th>
 
                             <th scope="col">
-                                Field Officer
+                                SAK Volunteer
                             </th>
 
                             <th scope="col">
@@ -181,32 +300,46 @@ $this->section('content');
                     </thead>
 
                     <tbody>
-
                         <?php if (
                             $resolvedProfiles === []
                         ): ?>
-
                             <tr>
-                                <td
-                                    colspan="7"
-                                    class="text-center
-                                    text-muted
-                                    py-4">
+                                <td colspan="7">
+                                    <div class="text-center py-5">
+                                        <div
+                                            class="avatar-md
+                                                mx-auto mb-3">
 
-                                    No pre-launch profiles
-                                    found for the selected
-                                    status.
+                                            <span
+                                                class="avatar-title
+                                                    rounded-circle
+                                                    bg-primary-subtle
+                                                    text-primary
+                                                    fs-24">
 
+                                                <i
+                                                    class="ri-user-search-line"
+                                                    aria-hidden="true"></i>
+                                            </span>
+                                        </div>
+
+                                        <h2 class="h5 mb-1">
+                                            No profiles found
+                                        </h2>
+
+                                        <p class="text-muted mb-0">
+                                            Change the search term or
+                                            selected status.
+                                        </p>
+                                    </div>
                                 </td>
                             </tr>
-
-                        <?php endif; ?>
+                        <?php endif ?>
 
                         <?php foreach (
                             $resolvedProfiles
                             as $profile
                         ): ?>
-
                             <?php
                             $profileId = (int) (
                                 $profile['id']
@@ -255,30 +388,36 @@ $this->section('content');
                                 )
                             );
 
-                            $locationParts = array_filter([
-                                trim(
-                                    (string) (
-                                        $profile['city_name']
-                                        ?? ''
-                                    )
-                                ),
-                                trim(
-                                    (string) (
-                                        $profile['state_name']
-                                        ?? ''
-                                    )
-                                ),
-                                trim(
-                                    (string) (
-                                        $profile['country_name']
-                                        ?? ''
-                                    )
-                                ),
-                            ]);
-
                             $location = implode(
                                 ', ',
-                                $locationParts
+                                array_filter(
+                                    [
+                                        trim(
+                                            (string) (
+                                                $profile['city_name']
+                                                ?? ''
+                                            )
+                                        ),
+
+                                        trim(
+                                            (string) (
+                                                $profile['state_name']
+                                                ?? ''
+                                            )
+                                        ),
+
+                                        trim(
+                                            (string) (
+                                                $profile['country_name']
+                                                ?? ''
+                                            )
+                                        ),
+                                    ],
+                                    static fn(
+                                        string $value
+                                    ): bool =>
+                                    $value !== ''
+                                )
                             );
 
                             $fieldOfficerName = trim(
@@ -317,25 +456,21 @@ $this->section('content');
                             ?>
 
                             <tr>
-
-                                <!-- Reference -->
                                 <td>
                                     <span
                                         class="badge
-                                        bg-primary-subtle
-                                        text-primary
-                                        p-2">
+                                            bg-primary-subtle
+                                            text-primary
+                                            p-2">
 
                                         <?= esc(
                                             $reference !== ''
                                                 ? $reference
                                                 : '—'
                                         ) ?>
-
                                     </span>
                                 </td>
 
-                                <!-- Member -->
                                 <td>
                                     <span class="fw-semibold">
                                         <?= esc(
@@ -348,10 +483,7 @@ $this->section('content');
                                     <?php if (
                                         $gender !== ''
                                     ): ?>
-                                        <div
-                                            class="small
-                                            text-muted">
-
+                                        <div class="small text-muted">
                                             <?= esc(
                                                 ucfirst(
                                                     mb_strtolower(
@@ -359,32 +491,27 @@ $this->section('content');
                                                     )
                                                 )
                                             ) ?>
-
                                         </div>
-                                    <?php endif; ?>
+                                    <?php endif ?>
                                 </td>
 
-                                <!-- Contact -->
                                 <td>
-                                    <div>
-                                        <?php if ($email !== ''): ?>
-                                            <p class="mb-0">
-                                                <?= esc($email) ?>
-                                            </p>
-                                        <?php else: ?>
-                                            <p class="text-muted mb-0">
-                                                Not provided
-                                            </p>
-                                        <?php endif ?>
-                                    </div>
+                                    <?php if (
+                                        $email !== ''
+                                    ): ?>
+                                        <div>
+                                            <?= esc($email) ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="text-muted">
+                                            Not provided
+                                        </div>
+                                    <?php endif ?>
 
                                     <?php if (
                                         $mobileNumber !== ''
                                     ): ?>
-                                        <div
-                                            class="small
-                                            text-muted">
-
+                                        <div class="small text-muted">
                                             <?= esc(
                                                 trim(
                                                     $countryCode
@@ -392,12 +519,10 @@ $this->section('content');
                                                         . $mobileNumber
                                                 )
                                             ) ?>
-
                                         </div>
-                                    <?php endif; ?>
+                                    <?php endif ?>
                                 </td>
 
-                                <!-- Location -->
                                 <td>
                                     <?= esc(
                                         $location !== ''
@@ -406,7 +531,6 @@ $this->section('content');
                                     ) ?>
                                 </td>
 
-                                <!-- Field Officer -->
                                 <td>
                                     <?= esc(
                                         $fieldOfficerName !== ''
@@ -417,27 +541,22 @@ $this->section('content');
                                     <?php if (
                                         $officerCode !== ''
                                     ): ?>
-                                        <div
-                                            class="small
-                                            text-muted">
-
+                                        <div class="small text-muted">
                                             <?= esc(
                                                 $officerCode
                                             ) ?>
-
                                         </div>
-                                    <?php endif; ?>
+                                    <?php endif ?>
                                 </td>
 
-                                <!-- Status -->
                                 <td>
                                     <span
                                         class="badge
-                                        <?= esc(
-                                            $statusClass,
-                                            'attr'
-                                        ) ?>
-                                        p-2">
+                                            <?= esc(
+                                                $statusClass,
+                                                'attr'
+                                            ) ?>
+                                            p-2">
 
                                         <?= esc(
                                             ucfirst(
@@ -446,11 +565,9 @@ $this->section('content');
                                                 )
                                             )
                                         ) ?>
-
                                     </span>
                                 </td>
 
-                                <!-- Action -->
                                 <td class="text-end">
                                     <a
                                         href="<?= route_to(
@@ -458,8 +575,8 @@ $this->section('content');
                                                     $profileId
                                                 ) ?>"
                                         class="btn
-                                        btn-soft-primary
-                                        btn-sm"
+                                            btn-soft-primary
+                                            btn-sm"
                                         title="Review profile"
                                         aria-label="<?= esc(
                                                         'Review profile '
@@ -469,26 +586,55 @@ $this->section('content');
 
                                         <i
                                             class="ri-eye-line"
-                                            aria-hidden="true">
-                                        </i>
-
+                                            aria-hidden="true"></i>
                                     </a>
                                 </td>
-
                             </tr>
-
-                        <?php endforeach; ?>
-
+                        <?php endforeach ?>
                     </tbody>
-
                 </table>
-
             </div>
-
         </div>
 
-    </div>
+        <?php if (
+            $resolvedProfiles !== []
+        ): ?>
+            <?php
+            /*
+            * Preserve the active filters in every generated pagination URL.
+            */
+            $pager->only([
+                'status',
+                'search',
+            ]);
+            ?>
 
+            <div class="card-footer py-3">
+                <?= view(
+                    'Components/Pagination',
+                    [
+                        'pager' =>
+                        $pager,
+
+                        'group' =>
+                        'prelaunchProfiles',
+
+                        'perPage' =>
+                        $resolvedPerPage,
+
+                        'itemLabel' =>
+                        'profiles',
+
+                        /*
+                 * Show two pages on either side of the active page.
+                 */
+                        'surroundCount' =>
+                        2,
+                    ]
+                ) ?>
+            </div>
+        <?php endif ?>
+    </div>
 </div>
 
 <?php $this->endSection(); ?>

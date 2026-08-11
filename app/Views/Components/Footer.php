@@ -1,4 +1,4 @@
-<footer class="mt-5 pt-4 border-top border-secondary-subtle bg-light">
+<footer class="mt-5 pt-4 border-top border-secondary-subtle light-yellowish">
 
     <div class="container py-3 pt-0">
 
@@ -111,7 +111,7 @@
         <div class="text-center">
 
             <small class="text-muted">
-                © <?= esc(date('Y')) ?> SikhAnandKaraj. All rights reserved.
+                © <?= esc(date('Y')) ?> Sikhanandkaraj. All rights reserved.
             </small>
 
         </div>

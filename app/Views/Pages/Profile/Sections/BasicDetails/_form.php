@@ -1039,6 +1039,40 @@ if ($isJourney) {
 
         <div class="col-12 col-sm-6 col-lg-4">
             <label
+                for="countryName"
+                class="form-labelm">
+                Country
+            </label>
+
+            <input
+                type="text"
+                class="form-control bg-light"
+                id="countryName"
+                value="<?= esc(
+                            (string) ($country['name'] ?? 'India'),
+                            'attr'
+                        ) ?>"
+                readonly>
+
+            <input
+                type="hidden"
+                name="country_id"
+                value="<?= esc(
+                            (string) ($country['id'] ?? ''),
+                            'attr'
+                        ) ?>">
+
+            <?php if (
+                isset($errors['country_id'])
+            ): ?>
+                <div class="invalid-feedback d-block">
+                    <?= esc($errors['country_id']) ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label
                 for="stateId"
                 class="form-labelm">
                 State
@@ -1160,39 +1194,7 @@ if ($isJourney) {
             ]) ?>
         </div>
 
-        <div class="col-12 col-sm-6 col-lg-4">
-            <label
-                for="countryName"
-                class="form-labelm">
-                Country
-            </label>
 
-            <input
-                type="text"
-                class="form-control bg-light"
-                id="countryName"
-                value="<?= esc(
-                            (string) ($country['name'] ?? 'India'),
-                            'attr'
-                        ) ?>"
-                readonly>
-
-            <input
-                type="hidden"
-                name="country_id"
-                value="<?= esc(
-                            (string) ($country['id'] ?? ''),
-                            'attr'
-                        ) ?>">
-
-            <?php if (
-                isset($errors['country_id'])
-            ): ?>
-                <div class="invalid-feedback d-block">
-                    <?= esc($errors['country_id']) ?>
-                </div>
-            <?php endif; ?>
-        </div>
     </div>
 
     <div class="row g-2 mt-4">

@@ -62,7 +62,7 @@ $this->section('content');
             <div
                 class="col-12 col-sm-10 col-md-8
                     col-lg-5 col-xl-5">
-                <div class="card border-0 shadow-lg mb-0">
+                <div class="card border border-danger border-opacity-25 shadow-lg mb-0">
                     <div class="card-body p-4 p-md-5 pt-md-4">
 
                         <div class="text-center mb-4">
@@ -79,7 +79,7 @@ $this->section('content');
 
                             <p class="text-muted mb-0">
                                 Create a strong new password for your
-                                SikhAnandKaraj account.
+                                Sikhanandkaraj account.
                             </p>
                         </div>
 

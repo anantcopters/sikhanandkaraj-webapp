@@ -45,8 +45,42 @@ document.addEventListener('DOMContentLoaded', () => {
         'png'
     ];
 
+    const configuredMaximumFileSize =
+        Number.parseInt(
+            photoInput?.dataset
+                .maximumFileSize
+            ?? '',
+            10
+        );
+
     const maximumFileSize =
-        10 * 1024 * 1024;
+        Number.isFinite(
+            configuredMaximumFileSize
+        )
+            && configuredMaximumFileSize > 0
+            ? configuredMaximumFileSize
+            : 10 * 1024 * 1024;
+
+    const maximumFileSizeLabel =
+        photoInput?.dataset
+            .maximumFileSizeLabel
+        ?? '10 MB';
+
+    const minimumWidth =
+        Number.parseInt(
+            photoInput?.dataset
+                .minimumWidth
+            ?? '300',
+            10
+        );
+
+    const minimumHeight =
+        Number.parseInt(
+            photoInput?.dataset
+                .minimumHeight
+            ?? '300',
+            10
+        );
 
     let currentObjectUrl = null;
 
@@ -118,11 +152,69 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
+ * Read image dimensions without uploading the file.
+ *
+ * @param {File} file
+ * @returns {Promise<{width:number,height:number}>}
+ */
+    function readImageDimensions(file) {
+        return new Promise(
+            (resolve, reject) => {
+                const objectUrl =
+                    URL.createObjectURL(
+                        file
+                    );
+
+                const image =
+                    new Image();
+
+                image.addEventListener(
+                    'load',
+                    () => {
+                        const dimensions = {
+                            width:
+                                image.naturalWidth,
+                            height:
+                                image.naturalHeight
+                        };
+
+                        URL.revokeObjectURL(
+                            objectUrl
+                        );
+
+                        resolve(
+                            dimensions
+                        );
+                    }
+                );
+
+                image.addEventListener(
+                    'error',
+                    () => {
+                        URL.revokeObjectURL(
+                            objectUrl
+                        );
+
+                        reject(
+                            new Error(
+                                'Image dimensions could not be read.'
+                            )
+                        );
+                    }
+                );
+
+                image.src =
+                    objectUrl;
+            }
+        );
+    }
+
+    /**
      * Validate the selected upload before submission.
      *
      * @returns {boolean}
      */
-    function validateSelectedPhoto() {
+    async function validateSelectedPhoto() {
         if (!photoInput) {
             return false;
         }
@@ -163,7 +255,31 @@ document.addEventListener('DOMContentLoaded', () => {
             maximumFileSize
         ) {
             setPhotoError(
-                'The photo must not exceed 10 MB.'
+                `The photo must not exceed ${maximumFileSizeLabel}.`
+            );
+
+            return false;
+        }
+
+        try {
+            const dimensions =
+                await readImageDimensions(
+                    selectedFile
+                );
+
+            if (
+                dimensions.width < minimumWidth
+                || dimensions.height < minimumHeight
+            ) {
+                setPhotoError(
+                    `The photo must be at least ${minimumWidth} × ${minimumHeight} pixels.`
+                );
+
+                return false;
+            }
+        } catch (error) {
+            setPhotoError(
+                'The selected file is not a valid image.'
             );
 
             return false;
@@ -213,7 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     photoInput?.addEventListener(
         'change',
-        () => {
+        async () => {
             clearPreview();
 
             const selectedFile =
@@ -235,7 +351,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     selectedFile.name;
             }
 
-            if (!validateSelectedPhoto()) {
+            const photoIsValid =
+                await validateSelectedPhoto();
+
+            if (!photoIsValid) {
                 return;
             }
 
@@ -261,14 +380,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     uploadForm?.addEventListener(
         'submit',
-        (event) => {
+        async (event) => {
             /*
              * Do not add was-validated to the whole form.
              * It incorrectly applies green valid styling to
              * the optional main-photo checkbox.
              */
+            event.preventDefault();
+
             const photoIsValid =
-                validateSelectedPhoto();
+                await validateSelectedPhoto();
 
             const visibilityIsValid =
                 uploadVisibilitySelect
@@ -281,7 +402,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 || !visibilityIsValid
                 || !uploadForm.checkValidity()
             ) {
-                event.preventDefault();
                 event.stopPropagation();
 
                 if (!visibilityIsValid) {
@@ -301,9 +421,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     'is-invalid'
                 );
 
-            if (!submitButton) {
-                return;
+            if (submitButton) {
+                showButtonLoading(
+                    submitButton,
+                    '.registration-submit__label',
+                    '.registration-submit__loading'
+                );
             }
+
+            /*
+            * requestSubmit() would fire this same handler again.
+            * Native submit() continues only after our asynchronous checks succeed.
+            */
+            uploadForm.submit();
 
             window.setTimeout(() => {
                 if (
@@ -334,6 +464,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     );
 
+    /**
+ * Show loading state while saving photo visibility.
+ *
+ * Visibility forms submit normally, so the loader must be
+ * applied synchronously before browser navigation begins.
+ */
     document
         .querySelectorAll(
             '[data-photo-visibility-form]'
@@ -351,37 +487,40 @@ document.addEventListener('DOMContentLoaded', () => {
                         return;
                     }
 
-                    const formId =
-                        form.getAttribute('id');
-
-                    if (!formId) {
-                        return;
-                    }
-
+                    /*
+                     * The visibility button belongs to this form,
+                     * so resolve it locally rather than searching
+                     * the whole document.
+                     */
                     const saveButton =
-                        document.querySelector(
-                            '[data-photo-visibility-button]'
-                            + '[form="' + formId + '"]'
-                        );
+                        event.submitter
+                            instanceof HTMLButtonElement
+                            ? event.submitter
+                            : form.querySelector(
+                                '[data-photo-visibility-button]'
+                            );
 
                     if (
-                        !(saveButton
-                            instanceof HTMLButtonElement)
+                        !(
+                            saveButton
+                            instanceof HTMLButtonElement
+                        )
                     ) {
                         return;
                     }
 
-                    window.setTimeout(() => {
-                        if (event.defaultPrevented) {
-                            return;
-                        }
-
-                        showButtonLoading(
-                            saveButton,
-                            '[data-visibility-label]',
-                            '[data-visibility-loading]'
-                        );
-                    }, 0);
+                    /*
+                     * Do this immediately.
+                     *
+                     * A setTimeout() here is unreliable because
+                     * native form submission begins page navigation
+                     * as soon as this event handler returns.
+                     */
+                    showButtonLoading(
+                        saveButton,
+                        '[data-visibility-label]',
+                        '[data-visibility-loading]'
+                    );
                 }
             );
         });

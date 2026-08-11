@@ -9,6 +9,305 @@ use CodeIgniter\Router\RouteCollection;
  */
 
 // -----------------------------------------------------------------------------
+// Public legal pages
+// -----------------------------------------------------------------------------
+//
+// These routes intentionally remain outside the deployment-specific homepage
+// condition. Terms and privacy information must remain accessible in
+// development, QA and production environments.
+//
+
+// -----------------------------------------------------------------------------
+// SAK Volunteer portal
+// -----------------------------------------------------------------------------
+
+$routes->group(
+    'field-officer',
+    [
+        'namespace' =>
+        'App\Controllers\FieldOfficer',
+    ],
+    static function (
+        RouteCollection $routes
+    ): void {
+        /*
+         * Public SAK Volunteer authentication.
+         */
+        $routes->get(
+            'login',
+            'FieldOfficerAuthenticationController::index',
+            [
+                'as' =>
+                'field-officer.login',
+            ]
+        );
+
+        $routes->post(
+            'login/send-otp',
+            'FieldOfficerAuthenticationController::sendOtp',
+            [
+                'as' =>
+                'field-officer.login.send-otp',
+            ]
+        );
+
+        $routes->get(
+            'login/verify',
+            'FieldOfficerAuthenticationController::verifyPage',
+            [
+                'as' =>
+                'field-officer.login.verify',
+            ]
+        );
+
+        $routes->post(
+            'login/verify',
+            'FieldOfficerAuthenticationController::verifyOtp',
+            [
+                'as' =>
+                'field-officer.login.verify.submit',
+            ]
+        );
+
+        $routes->post(
+            'login/resend',
+            'FieldOfficerAuthenticationController::resendOtp',
+            [
+                'as' =>
+                'field-officer.login.resend',
+            ]
+        );
+
+        $routes->post(
+            'login/cancel',
+            'FieldOfficerAuthenticationController::cancel',
+            [
+                'as' =>
+                'field-officer.login.cancel',
+            ]
+        );
+
+        /*
+         * Public SAK Volunteer self-registration.
+         *
+         * These routes intentionally remain outside
+         * fieldOfficerAuth.
+         */
+        $routes->get(
+            'register',
+            'FieldOfficerRegistrationController::index',
+            [
+                'as' =>
+                'field-officer.register',
+            ]
+        );
+
+        $routes->post(
+            'register',
+            'FieldOfficerRegistrationController::store',
+            [
+                'as' =>
+                'field-officer.register.store',
+            ]
+        );
+
+        $routes->get(
+            'register/success',
+            'FieldOfficerRegistrationController::success',
+            [
+                'as' =>
+                'field-officer.register.success',
+            ]
+        );
+
+        $routes->get(
+            'register/master/cities/(:num)',
+            'FieldOfficerRegistrationController::cities/$1',
+            [
+                'as' =>
+                'field-officer.register.cities',
+            ]
+        );
+
+        /*
+         * Protected SAK Volunteer portal.
+         */
+        $routes->group(
+            '',
+            [
+                'filter' =>
+                'fieldOfficerAuth',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->post(
+                    'logout',
+                    'FieldOfficerAuthenticationController::logout',
+                    [
+                        'as' =>
+                        'field-officer.logout',
+                    ]
+                );
+
+                $routes->get(
+                    'dashboard',
+                    'FieldOfficerDashboardController::index',
+                    [
+                        'as' =>
+                        'field-officer.dashboard',
+                    ]
+                );
+
+                $routes->get(
+                    'profiles',
+                    'FieldOfficerProfileController::index',
+                    [
+                        'as' =>
+                        'field-officer.profiles.index',
+                    ]
+                );
+
+                $routes->get(
+                    'profiles/prelaunch/(:num)',
+                    'FieldOfficerProfileController::prelaunch/$1',
+                    [
+                        'as' =>
+                        'field-officer.profiles.prelaunch.view',
+                    ]
+                );
+
+                $routes->get(
+                    'profiles/member/(:num)',
+                    'FieldOfficerProfileController::member/$1',
+                    [
+                        'as' =>
+                        'field-officer.profiles.member.view',
+                    ]
+                );
+
+                $routes->get(
+                    'profiles/member/(:num)/photos/(:num)',
+                    'FieldOfficerProfileController::memberPhoto/$1/$2',
+                    [
+                        'as' =>
+                        'field-officer.profiles.photos.medium-url',
+                    ]
+                );
+
+                $routes->get(
+                    'profiles/prelaunch/(:num)/photos/(:num)',
+                    'FieldOfficerProfileController::prelaunchPhoto/$1/$2',
+                    [
+                        'as' =>
+                        'field-officer.profiles.prelaunch.photo',
+                    ]
+                );
+            }
+        );
+    }
+);
+
+$routes->group(
+    '',
+    [
+        'namespace' => 'App\Controllers\Web',
+    ],
+    static function (
+        RouteCollection $routes
+    ): void {
+        $routes->get(
+            'terms-and-conditions',
+            'LegalController::termsAndConditions',
+            [
+                'as' => 'web.legal.terms',
+            ]
+        );
+
+        $routes->get(
+            'privacy-policy',
+            'LegalController::privacyPolicy',
+            [
+                'as' => 'web.legal.privacy',
+            ]
+        );
+
+        $routes->get(
+            'grievances',
+            'LegalController::grievances',
+            [
+                'as' => 'web.legal.grievances',
+            ]
+        );
+
+        $routes->get(
+            'fraud-alert',
+            'LegalController::fraudAlert',
+            [
+                'as' => 'web.legal.fraud-alert',
+            ]
+        );
+
+        $routes->get(
+            'cookie-policy',
+            'LegalController::cookiePolicy',
+            [
+                'as' => 'web.legal.cookie-policy',
+            ]
+        );
+    }
+);
+
+// -----------------------------------------------------------------------------
+// Public information pages
+// -----------------------------------------------------------------------------
+//
+// These pages remain publicly accessible in development, QA and production.
+// They must therefore remain outside the deployment-specific homepage routes.
+//
+$routes->group(
+    '',
+    [
+        'namespace' => 'App\Controllers\Web',
+    ],
+    static function (
+        RouteCollection $routes
+    ): void {
+        $routes->get(
+            'about-us',
+            'InformationController::aboutUs',
+            [
+                'as' => 'web.information.about',
+            ]
+        );
+
+        $routes->get(
+            'advertise-with-us',
+            'InformationController::advertiseWithUs',
+            [
+                'as' => 'web.information.advertise',
+            ]
+        );
+
+        $routes->get(
+            'payment-options',
+            'InformationController::paymentOptions',
+            [
+                'as' => 'web.information.payment-options',
+            ]
+        );
+
+        $routes->get(
+            'careers',
+            'InformationController::career',
+            [
+                'as' => 'web.information.careers',
+            ]
+        );
+    }
+);
+
+// -----------------------------------------------------------------------------
 // Member web routes
 // -----------------------------------------------------------------------------
 
@@ -295,9 +594,27 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
 
                 $routes->get(
                     'interests',
-                    'MemberNavigationController::interests',
+                    'InterestController::index',
                     [
                         'as' => 'web.interests',
+                    ]
+                );
+
+                $routes->post(
+                    'interests/received/(:segment)/accept',
+                    'InterestController::accept/$1',
+                    [
+                        'as' =>
+                        'web.interests.received.accept',
+                    ]
+                );
+
+                $routes->post(
+                    'interests/received/(:segment)/decline',
+                    'InterestController::decline/$1',
+                    [
+                        'as' =>
+                        'web.interests.received.decline',
                     ]
                 );
 
@@ -334,6 +651,125 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                         'web.notifications.open',
                     ]
                 );
+
+                $routes->get(
+                    'members/(:segment)',
+                    'MemberProfileController::view/$1',
+                    [
+                        'as' =>
+                        'web.members.view',
+                    ]
+                );
+
+                $routes->post(
+                    'members/(:segment)/interest',
+                    'MemberProfileController::showInterest/$1',
+                    [
+                        'as' =>
+                        'web.members.interest',
+                    ]
+                );
+
+                $routes->post(
+                    'members/(:segment)/interest/accept',
+                    'MemberProfileController::acceptInterest/$1',
+                    [
+                        'as' =>
+                        'web.members.interest.accept',
+                    ]
+                );
+
+                $routes->post(
+                    'members/(:segment)/interest/decline',
+                    'MemberProfileController::declineInterest/$1',
+                    [
+                        'as' =>
+                        'web.members.interest.decline',
+                    ]
+                );
+
+                $routes->post(
+                    'members/(:segment)/shortlist',
+                    'MemberProfileController'
+                        . '::toggleShortlist/$1',
+                    [
+                        'as' =>
+                        'web.members.shortlist',
+                    ]
+                );
+
+                $routes->post(
+                    'members/(:segment)/block',
+                    'MemberProfileController::block/$1',
+                    [
+                        'as' =>
+                        'web.members.block',
+                    ]
+                );
+
+                $routes->get(
+                    'members/(:segment)/photos/(:num)/medium-url',
+                    'MemberProfileController::photoMediumUrl/$1/$2',
+                    [
+                        'as' => 'web.members.photos.medium-url',
+                    ]
+                );
+
+                /*
+                * --------------------------------------------------------------------------
+                * Member Search
+                * --------------------------------------------------------------------------
+                *
+                * Search criteria and Search results deliberately use different routes.
+                *
+                * /search
+                *     Search criteria entry/editing.
+                *
+                * /search/results
+                *     Matching member listing, sorting and pagination.
+                *
+                * /search/profile
+                *     Universal exact Profile-ID lookup.
+                *
+                * /search/cities
+                *     Dependent active-city master endpoint.
+                */
+
+                $routes->get(
+                    'search',
+                    'SearchController::index',
+                    [
+                        'as' =>
+                        'web.search',
+                    ]
+                );
+
+                $routes->get(
+                    'search/results',
+                    'SearchController::results',
+                    [
+                        'as' =>
+                        'web.search.results',
+                    ]
+                );
+
+                $routes->get(
+                    'search/profile',
+                    'SearchController::profile',
+                    [
+                        'as' =>
+                        'web.search.profile',
+                    ]
+                );
+
+                $routes->get(
+                    'search/cities',
+                    'SearchController::cities',
+                    [
+                        'as' =>
+                        'web.search.cities',
+                    ]
+                );
             }
         );
 
@@ -344,6 +780,89 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                 'as' => 'web.profile.edit',
                 'filter' => 'webAuth',
             ]
+        );
+
+        /*
+ * Authenticated member Partner Preference routes.
+ */
+        $routes->group(
+            'partner-preference',
+            [
+                'filter' => 'webAuth',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->get(
+                    '',
+                    'PartnerPreferenceController::index',
+                    [
+                        'as' =>
+                        'web.partner-preference',
+                    ]
+                );
+
+                /*
+         * Existing Basic preference item routes.
+         */
+                $routes->get(
+                    'basic/(:segment)',
+                    'PartnerPreferenceController'
+                        . '::editBasicItem/$1',
+                    [
+                        'as' =>
+                        'web.partner-preference.basic.edit',
+                    ]
+                );
+
+                $routes->post(
+                    'basic/(:segment)',
+                    'PartnerPreferenceController'
+                        . '::updateBasicItem/$1',
+                    [
+                        'as' =>
+                        'web.partner-preference.basic.update',
+                    ]
+                );
+
+                /*
+         * Religious, Professional, Location and Special Request.
+         */
+                $routes->get(
+                    'item/(:segment)',
+                    'PartnerPreferenceController'
+                        . '::editItem/$1',
+                    [
+                        'as' =>
+                        'web.partner-preference.item.edit',
+                    ]
+                );
+
+                $routes->post(
+                    'item/(:segment)',
+                    'PartnerPreferenceController'
+                        . '::updateItem/$1',
+                    [
+                        'as' =>
+                        'web.partner-preference.item.update',
+                    ]
+                );
+
+                /*
+                * Return active cities for one or more selected states.
+                *
+                * Example:
+                * GET /partner-preference/master/cities?state_ids=1,2,3
+                */
+                $routes->get(
+                    'master/cities',
+                    'PartnerPreferenceController::cities',
+                    [
+                        'as' =>
+                        'web.partner-preference.master.cities',
+                    ]
+                );
+            }
         );
 
         /*
@@ -358,6 +877,25 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
             [
                 'as' => 'web.profile.view',
                 'filter' => 'webAuth',
+            ]
+        );
+
+        /*
+        * Lazily return the medium URL for one approved,
+        * member-owned photo.
+        *
+        * Original member photographs are deliberately never
+        * exposed through member-facing gallery endpoints.
+        */
+        $routes->get(
+            'profile/photos/(:num)/medium-url',
+            'ProfilePhotoController::mediumUrl/$1',
+            [
+                'as' =>
+                'web.profile.photos.medium-url',
+
+                'filter' =>
+                'webAuth',
             ]
         );
 
@@ -412,6 +950,18 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
             [
                 'as' => 'web.profile.family-details',
                 'filter' => 'webAuth',
+            ]
+        );
+
+        $routes->post(
+            'profile/family-details/field-officer/verify',
+            'ProfileController::verifyFamilyFieldOfficer',
+            [
+                'as' =>
+                'web.profile.family-details.field-officer.verify',
+
+                'filter' =>
+                'webAuth',
             ]
         );
 
@@ -671,7 +1221,7 @@ $routes->group('admin', [
         });
 
         /*
-        * Only SUPER_ADMIN may manage Field Officers.
+        * Only SUPER_ADMIN may manage SAK Volunteers.
         */
         $routes->group(
             'field-officers',
@@ -752,6 +1302,24 @@ $routes->group('admin', [
                         'admin.field-officers.deactivate',
                     ]
                 );
+
+                $routes->post(
+                    '(:num)/approve-registration',
+                    'FieldOfficerController::approveRegistration/$1',
+                    [
+                        'as' =>
+                        'admin.field-officers.approve-registration',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)/reject-registration',
+                    'FieldOfficerController::rejectRegistration/$1',
+                    [
+                        'as' =>
+                        'admin.field-officers.reject-registration',
+                    ]
+                );
             }
         );
 
@@ -805,14 +1373,14 @@ $routes->group('admin', [
                     ]
                 );
 
-                $routes->post(
-                    '(:num)/contact',
-                    'PrelaunchProfileController::updateContact/$1',
-                    [
-                        'as' =>
-                        'admin.prelaunch.profiles.contact',
-                    ]
-                );
+                // $routes->post(
+                //     '(:num)/contact',
+                //     'PrelaunchProfileController::updateContact/$1',
+                //     [
+                //         'as' =>
+                //         'admin.prelaunch.profiles.contact',
+                //     ]
+                // );
 
                 $routes->post(
                     '(:num)/approve',
@@ -829,6 +1397,76 @@ $routes->group('admin', [
                     [
                         'as' =>
                         'admin.prelaunch.profiles.reject',
+                    ]
+                );
+            }
+        );
+
+        /*
+        * Member administration.
+        *
+        * Both ADMIN and SUPER_ADMIN may access these routes because this group is
+        * inside the existing adminAuth group and does not use the superAdmin filter.
+        */
+        $routes->group(
+            'members',
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->get(
+                    '',
+                    'MemberController::index',
+                    [
+                        'as' =>
+                        'admin.members.index',
+                    ]
+                );
+
+                /*
+                * More-specific routes are declared before members/(:num).
+                */
+                $routes->get(
+                    '(:num)/status-history',
+                    'MemberController::history/$1',
+                    [
+                        'as' =>
+                        'admin.members.history',
+                    ]
+                );
+
+                $routes->get(
+                    '(:num)/photos/(:num)/modal-urls',
+                    'MemberController::photoModalUrls/$1/$2',
+                    [
+                        'as' =>
+                        'admin.members.photos.modal-urls',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)/block',
+                    'MemberController::block/$1',
+                    [
+                        'as' =>
+                        'admin.members.block',
+                    ]
+                );
+
+                $routes->post(
+                    '(:num)/unblock',
+                    'MemberController::unblock/$1',
+                    [
+                        'as' =>
+                        'admin.members.unblock',
+                    ]
+                );
+
+                $routes->get(
+                    '(:num)',
+                    'MemberController::view/$1',
+                    [
+                        'as' =>
+                        'admin.members.view',
                     ]
                 );
             }
@@ -948,25 +1586,29 @@ $routes->group(
             ]
         );
 
-        // $routes->post(
-        //     'field-officer/verify',
-        //     'PrelaunchProfileController::verifyFieldOfficer',
-        //     [
-        //         'as' => 'prelaunch.field-officer.verify',
-        //     ]
-        // );
+        $routes->post(
+            'field-officer/verify',
+            'PrelaunchProfileController::verifyFieldOfficer',
+            [
+                'as' => 'prelaunch.field-officer.verify',
+            ]
+        );
 
         /*
-         * Public dependent master-data endpoints.
-         *
-         * These routes must not use webAuth because the prelaunch
-         * collection page is intentionally public.
-         */
+        * Return active cities for the selected state.
+        *
+        * This endpoint is intentionally public because the standalone
+        * prelaunch profile form does not require member authentication.
+        *
+        * Example:
+        * GET /prelaunch/profile/master/cities/29
+        */
         $routes->get(
-            'master/cities/(:num)',
+            'profile/master/cities/(:num)',
             'PrelaunchProfileController::cities/$1',
             [
-                'as' => 'prelaunch.master.cities',
+                'as' =>
+                'prelaunch.master.cities',
             ]
         );
 

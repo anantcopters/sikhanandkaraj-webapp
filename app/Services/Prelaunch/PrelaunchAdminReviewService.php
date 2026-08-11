@@ -22,17 +22,87 @@ final class PrelaunchAdminReviewService
         private readonly PrelaunchProfileModel $profileModel,
         private readonly PrelaunchPhotoModel $photoModel,
         private readonly AdminAuditService $auditService,
-        private readonly BaseConnection $database
+        private readonly BaseConnection $database,
+        private readonly PrelaunchContactAvailabilityService $contactAvailabilityService,
+        private readonly PrelaunchMemberMigrationService $migrationService
     ) {}
 
     /**
-     * @return list<array<string, mixed>>
+     * Return one page of administrator prelaunch-profile results.
+     *
+     * @return array{
+     *     profiles:list<array<string, mixed>>,
+     *     pager:\CodeIgniter\Pager\Pager,
+     *     status:string,
+     *     search:string
+     * }
      */
-    public function listProfiles(
-        ?string $status = null
+    public function paginatedProfiles(
+        string $status,
+        string $search,
+        int $perPage = 10
     ): array {
-        return $this->profileModel
-            ->listForAdmin($status);
+        $normalizedStatus = mb_strtoupper(
+            trim($status)
+        );
+
+        if (
+            !in_array(
+                $normalizedStatus,
+                [
+                    PrelaunchProfileModel::STATUS_DRAFT,
+                    PrelaunchProfileModel::STATUS_APPROVED,
+                    PrelaunchProfileModel::STATUS_REJECTED,
+                ],
+                true
+            )
+        ) {
+            $normalizedStatus =
+                PrelaunchProfileModel::STATUS_DRAFT;
+        }
+
+        $normalizedSearch = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim($search)
+        ) ?? '';
+
+        $normalizedSearch = mb_substr(
+            $normalizedSearch,
+            0,
+            100
+        );
+
+        $safePerPage = max(
+            1,
+            min($perPage, 100)
+        );
+
+        $profiles = $this->profileModel
+            ->adminListQuery(
+                $normalizedStatus,
+                $normalizedSearch
+            )
+            ->paginate(
+                $safePerPage,
+                'prelaunchProfiles'
+            );
+
+        return [
+            'profiles' =>
+            is_array($profiles)
+                ? $profiles
+                : [],
+
+            'pager' =>
+            $this->profileModel->pager,
+
+            'status' =>
+            $normalizedStatus,
+
+            'search' =>
+            $normalizedSearch,
+        ];
     }
 
     /**
@@ -121,9 +191,8 @@ final class PrelaunchAdminReviewService
             $photoSummary['pending']++;
         }
 
-        $photoSummary['allApproved'] =
-            $photoSummary['total'] === 3
-            && $photoSummary['approved'] === 3;
+        $photoSummary['hasApproved'] =
+            $photoSummary['approved'] >= 1;
 
         return [
             'profile' =>
@@ -137,50 +206,96 @@ final class PrelaunchAdminReviewService
         ];
     }
 
-    public function approveProfile(
+    /**
+     * Save final contact values, validate approval rules and migrate the profile.
+     *
+     * @param array<string, mixed> $contactInput
+     *
+     * @return array{
+     *     memberId:int,
+     *     profileReference:string,
+     *     migratedPhotoCount:int
+     * }
+     */
+    public function saveContactAndApprove(
         int $profileId,
+        array $contactInput,
         int $adminUserId
-    ): void {
+    ): array {
         $profile = $this->requireDraftProfile(
             $profileId
         );
 
-        $photos = $this->photoModel
-            ->findByProfile($profileId);
+        $countryCode = trim(
+            (string) (
+                $contactInput['country_code']
+                ?? ''
+            )
+        );
 
-        if (count($photos) !== 3) {
+        $mobileNumber = preg_replace(
+            '/\D+/',
+            '',
+            (string) (
+                $contactInput['mobile_number']
+                ?? ''
+            )
+        ) ?? '';
+
+        $normalizedEmail = mb_strtolower(
+            trim(
+                (string) (
+                    $contactInput['email']
+                    ?? ''
+                )
+            )
+        );
+
+        $email = $normalizedEmail !== ''
+            ? $normalizedEmail
+            : null;
+
+        if (
+            $this->photoModel
+            ->countApprovedByProfile(
+                $profileId
+            ) < 1
+        ) {
             throw new RuntimeException(
-                'The profile must contain exactly three photographs.'
+                'Approve at least one photograph before '
+                    . 'approving the profile.'
             );
         }
 
-        foreach ($photos as $photo) {
-            if (
-                (string) $photo['approval_status']
-                !== PrelaunchPhotoModel::STATUS_APPROVED
-            ) {
-                throw new RuntimeException(
-                    'All three photographs must be approved first.'
-                );
-            }
-        }
+        $this->contactAvailabilityService
+            ->assertAvailable(
+                $profileId,
+                $countryCode,
+                $mobileNumber,
+                $email
+            );
 
-        $this->profileModel->update(
+        /*
+     * Save the final administrator-corrected contact before migration.
+     */
+        $this->updateContact(
             $profileId,
             [
-                'status' =>
-                PrelaunchProfileModel::STATUS_APPROVED,
-
-                'reviewed_by' =>
-                $adminUserId,
-
-                'reviewed_at' =>
-                date('Y-m-d H:i:s'),
-
-                'rejection_reason' =>
-                null,
-            ]
+                'country_code' =>
+                $countryCode,
+                'mobile_number' =>
+                $mobileNumber,
+                'email' =>
+                $email,
+            ],
+            $adminUserId
         );
+
+        $result = $this->migrationService
+            ->migrate(
+                $profileId,
+                $adminUserId
+            );
 
         $this->recordAudit(
             AdminAuditAction::PRELAUNCH_PROFILE_APPROVED,
@@ -192,10 +307,15 @@ final class PrelaunchAdminReviewService
             ],
             [
                 'status' =>
-                PrelaunchProfileModel::STATUS_APPROVED,
+                PrelaunchProfileModel
+                ::STATUS_APPROVED,
+                'migrated_user_id' =>
+                $result['memberId'],
             ],
-            'The pre-launch profile was approved.'
+            'The prelaunch profile was approved and migrated.'
         );
+
+        return $result;
     }
 
     public function rejectProfile(
@@ -278,17 +398,6 @@ final class PrelaunchAdminReviewService
             (int) $photo['prelaunch_profile_id']
         );
 
-        $reason = trim((string) $reason);
-
-        if (
-            $status === PrelaunchPhotoModel::STATUS_REJECTED
-            && mb_strlen($reason) < 5
-        ) {
-            throw new RuntimeException(
-                'Please provide a photograph rejection reason.'
-            );
-        }
-
         $this->photoModel->update(
             $photoId,
             [
@@ -296,10 +405,7 @@ final class PrelaunchAdminReviewService
                 $status,
 
                 'rejection_reason' =>
-                $status
-                    === PrelaunchPhotoModel::STATUS_REJECTED
-                    ? $reason
-                    : null,
+                null,
 
                 'reviewed_by' =>
                 $adminUserId,
@@ -335,7 +441,7 @@ final class PrelaunchAdminReviewService
         array $input,
         int $adminUserId
     ): void {
-        $profile = $this->profileModel->find(
+        $profile = $this->requireDraftProfile(
             $profileId
         );
 
@@ -395,27 +501,39 @@ final class PrelaunchAdminReviewService
         $beforeData = [
             'email' =>
             $this->maskEmail(
-                (string) $profile['email']
+                isset($profile['email'])
+                    ? (string) $profile['email']
+                    : null
             ),
 
             'country_code' =>
-            $profile['country_code'],
+            (string) (
+                $profile['country_code']
+                ?? ''
+            ),
 
             'mobile_number' =>
             $this->maskMobile(
-                (string) $profile['mobile_number']
+                (string) (
+                    $profile['mobile_number']
+                    ?? ''
+                )
             ),
         ];
 
         $afterData = [
             'email' =>
-            $this->maskEmail($email),
+            $this->maskEmail(
+                $email
+            ),
 
             'country_code' =>
             $countryCode,
 
             'mobile_number' =>
-            $this->maskMobile($mobileNumber),
+            $this->maskMobile(
+                $mobileNumber
+            ),
         ];
 
         $this->database->transBegin();
@@ -512,26 +630,85 @@ final class PrelaunchAdminReviewService
         );
     }
 
+    /**
+     * Mask an email address before storing it in the administrator audit log.
+     *
+     * Email is optional, so null and blank values are represented explicitly
+     * rather than causing a type error.
+     */
     private function maskEmail(
-        string $email
+        ?string $email
     ): string {
+        $email = mb_strtolower(
+            trim((string) $email)
+        );
+
+        if ($email === '') {
+            return 'Not provided';
+        }
+
         [$name, $domain] = array_pad(
-            explode('@', $email, 2),
+            explode(
+                '@',
+                $email,
+                2
+            ),
             2,
             ''
         );
 
-        return mb_substr($name, 0, 2)
+        /*
+     * Defensively handle malformed legacy data. Normal input is already
+     * validated before reaching this service.
+     */
+        if (
+            $name === ''
+            || $domain === ''
+        ) {
+            return 'Invalid email';
+        }
+
+        $visibleCharacters = min(
+            2,
+            mb_strlen($name)
+        );
+
+        return mb_substr(
+            $name,
+            0,
+            $visibleCharacters
+        )
             . '***@'
             . $domain;
     }
 
+    /**
+     * Mask a mobile number before recording it in the audit log.
+     */
     private function maskMobile(
-        string $mobile
+        ?string $mobile
     ): string {
+        $mobile = preg_replace(
+            '/\D+/',
+            '',
+            (string) $mobile
+        ) ?? '';
+
+        if ($mobile === '') {
+            return 'Not provided';
+        }
+
+        if (strlen($mobile) <= 4) {
+            return $mobile;
+        }
+
         return str_repeat(
             '*',
-            max(0, strlen($mobile) - 4)
-        ) . substr($mobile, -4);
+            strlen($mobile) - 4
+        )
+            . substr(
+                $mobile,
+                -4
+            );
     }
 }

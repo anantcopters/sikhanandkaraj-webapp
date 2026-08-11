@@ -21,7 +21,7 @@ $scriptFiles = is_array($pageScripts ?? null)
     ? $pageScripts
     : [];
 
-$siteName = 'SikhAnandKaraj';
+$siteName = 'Sikhanandkaraj';
 
 $documentTitle = $resolvedPageTitle
     . ' | '
@@ -30,7 +30,7 @@ $documentTitle = $resolvedPageTitle
 $homeUrl = site_url('/prelaunch/profile');
 
 $logoUrl = base_url(
-    'assets/images/sikhanandkaraj_removebg_2.png'
+    'assets/images/logo_sak_bgremove_final.png'
 );
 
 /*
@@ -81,9 +81,9 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 </head>
 
 <body>
-    <header class="border-bottom public-header">
+    <header class="public-header">
         <nav
-            class="navbar py-2"
+            class="navbar public-navbar"
             aria-label="Prelaunch profile header">
             <div
                 class="container d-flex align-items-center justify-content-between">
@@ -120,7 +120,7 @@ $phoneUrl = 'tel:' . $phoneDialValue;
                             ) ?>"
                     class="public-navbar__phone
                         "
-                    aria-label="Call SikhAnandKaraj at <?= esc($phoneDisplay) ?>">
+                    aria-label="Call Sikhanandkaraj at <?= esc($phoneDisplay) ?>">
 
                     <span
                         class="mdi
@@ -138,10 +138,10 @@ $phoneUrl = 'tel:' . $phoneDialValue;
         </nav>
     </header>
 
-    <main>
+    <main class="light-yellowish">
         <?= $this->renderSection('content') ?>
     </main>
-    <footer class="mt-5 pt-4 border-top border-secondary-subtle bg-light">
+    <footer class="pt-4 border-top border-secondary-subtle bg-light">
 
         <div class="container py-3 pt-0">
 
@@ -254,7 +254,7 @@ $phoneUrl = 'tel:' . $phoneDialValue;
             <div class="text-center">
 
                 <small class="text-muted">
-                    © <?= esc(date('Y')) ?> SikhAnandKaraj. All rights reserved.
+                    © <?= esc(date('Y')) ?> Sikhanandkaraj. All rights reserved.
                 </small>
 
             </div>

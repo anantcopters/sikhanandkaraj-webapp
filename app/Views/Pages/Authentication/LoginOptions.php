@@ -25,7 +25,7 @@ $this->section('content');
             <div
                 class="col-12 col-sm-10 col-md-8 col-lg-6 col-xl-5">
 
-                <div class="card border-0 shadow-lg mb-0">
+                <div class="card border border-danger border-opacity-25 shadow-lg mb-0">
                     <div class="card-body p-4 p-md-5 pt-md-4">
                         <div class="text-center mb-4">
                             <h1 class="fs-24 fw-semibold mb-2">
@@ -45,12 +45,12 @@ $this->section('content');
                             ]
                         ) ?>
 
-                        <div class="d-grid gap-3">
+                        <div class="d-grid gap-4">
                             <a
                                 href="<?= route_to(
                                             'web.login.password'
                                         ) ?>"
-                                class="btn btn-outline-success fs-16 fw-semibold text-uppercase">
+                                class="btn btn-success fs-14 fw-medium text-uppercase">
 
                                 <i
                                     class="ri-lock-password-line me-2"
@@ -63,7 +63,7 @@ $this->section('content');
                                 href="<?= route_to(
                                             'web.login.otp'
                                         ) ?>"
-                                class="btn btn-outline-primary fs-16 fw-semibold text-uppercase">
+                                class="btn btn-outline-primary fs-14 fw-medium text-uppercase">
 
                                 <i
                                     class="ri-smartphone-line me-2"

@@ -7,6 +7,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Models\AdminMemberPhotoApprovalModel;
 use App\Services\Admin\MemberPhotoApprovalService;
+use App\Support\AdminErrorContext;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -111,27 +112,33 @@ final class MemberPhotoApprovalController extends BaseController
                     ],
                 ]);
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Admin photo AJAX load failed for '
-                    . 'member {memberId}: {message}',
-                [
-                    'memberId' => $memberId,
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+                AdminErrorContext::forOperation(
+                    operation: 'admin_member_photo_list',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_member_user_id' =>
+                        $memberId,
+                    ]
+                )
             );
 
             return $this->response
                 ->setStatusCode(500)
                 ->setJSON([
-                    'status' => 'error',
+                    'successful' =>
+                    false,
+
                     'message' =>
-                    'The member photos could not be loaded.',
-                    'csrf' => [
-                        'name' => csrf_token(),
-                        'hash' => csrf_hash(),
-                    ],
+                    'Member photographs could not be loaded.',
                 ]);
         }
     }
@@ -170,25 +177,43 @@ final class MemberPhotoApprovalController extends BaseController
                 409
             );
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Admin photo approval failed for '
-                    . 'photo {photoId}: {message}',
-                [
-                    'photoId' => $photoId,
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+                AdminErrorContext::forOperation(
+                    operation: 'admin_member_photo_moderation',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'photo_id' =>
+                        $photoId,
+
+                        'moderation_action' =>
+                        'Approved',
+                    ]
+                )
             );
 
-            return $this->actionResponse(
-                false,
-                'Photo not approved',
-                'The photo could not be approved. '
-                    . 'Please try again.',
-                [],
-                500
-            );
+            return redirect()
+                ->back()
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Photo not updated',
+
+                        'message' =>
+                        'The photograph could not be moderated.',
+                    ]
+                );
         }
     }
 
@@ -300,25 +325,40 @@ final class MemberPhotoApprovalController extends BaseController
                 409
             );
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Quick member photo approval failed for '
-                    . 'member {memberId}: {message}',
-                [
-                    'memberId' => $memberId,
-                    'message' =>
-                    $exception->getMessage(),
-                ]
+                AdminErrorContext::forOperation(
+                    operation: 'admin_member_photos_approve_all',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_member_user_id' =>
+                        $memberId,
+                    ]
+                )
             );
 
-            return $this->actionResponse(
-                false,
-                'Photos not approved',
-                'The member photos could not be approved. '
-                    . 'Please try again.',
-                [],
-                500
-            );
+            return redirect()
+                ->back()
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Photos not approved',
+
+                        'message' =>
+                        'The member photographs could not be approved.',
+                    ]
+                );
         }
     }
 

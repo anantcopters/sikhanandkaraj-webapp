@@ -5,6 +5,240 @@ declare(strict_types=1);
 use App\Support\BooleanValue;
 
 /**
+ * The same profile view is used for member, other-member
+ * and administrator profile presentations.
+ *
+ * Member mode:
+ * - uses the normal member layout;
+ * - shows profile editing actions;
+ * - gallery modal uses approved medium photographs only.
+ *
+ * Other-member mode:
+ * - uses the normal member layout;
+ * - enforces member-to-member authorization;
+ * - gallery modal uses viewer-authorized medium photographs only.
+ *
+ * Admin mode:
+ * - uses the administrator layout;
+ * - hides member editing actions;
+ * - administrator media authorization remains separate.
+ */
+$profileViewMode = mb_strtolower(
+    trim(
+        (string) (
+            $profileViewMode
+            ?? 'member'
+        )
+    )
+);
+
+$isOtherMemberProfileView =
+    $profileViewMode === 'other-member';
+
+$isAdminProfileView =
+    $profileViewMode === 'admin';
+
+$isFieldOfficerProfileView =
+    $profileViewMode
+    === 'field-officer';
+
+/*
+ * Public reference of the member being viewed.
+ *
+ * This exists only in other-member mode.
+ * Own-profile and administrator previews do not supply it.
+ */
+$viewedProfileReference = trim(
+    (string) (
+        $viewedProfileReference
+        ?? ''
+    )
+);
+
+$viewedMobile = trim(
+    (string) (
+        $viewedMobile
+        ?? ''
+    )
+);
+
+$viewedEmail = trim(
+    (string) (
+        $viewedEmail
+        ?? ''
+    )
+);
+
+$isViewedMobileVerified =
+    ($isViewedMobileVerified ?? false)
+    === true;
+
+$isShortlisted =
+    ($isShortlisted ?? false)
+    === true;
+
+/*
+ * Member-to-member Interest relationship is prepared entirely
+ * by MemberInteractionService.
+ *
+ * The View only selects presentation from this state.
+ */
+$interestRelationship =
+    isset($interestRelationship)
+    && is_array(
+        $interestRelationship
+    )
+    ? $interestRelationship
+    : [];
+
+$interestState =
+    strtoupper(
+        trim(
+            (string) (
+                $interestRelationship['state']
+                ?? 'NONE'
+            )
+        )
+    );
+
+$canShowInterest =
+    (
+        $interestRelationship['canShowInterest']
+        ?? false
+    ) === true;
+
+$canRespondToInterest =
+    (
+        $interestRelationship['canRespond']
+        ?? false
+    ) === true;
+
+$partnerPreferenceMatch =
+    isset($partnerPreferenceMatch)
+    && is_array(
+        $partnerPreferenceMatch
+    )
+    ? $partnerPreferenceMatch
+    : [];
+
+$preferenceMatchPercentage = max(
+    0,
+    min(
+        100,
+        (int) (
+            $partnerPreferenceMatch['percentage']
+            ?? 0
+        )
+    )
+);
+
+$matchedPreferenceCount = max(
+    0,
+    (int) (
+        $partnerPreferenceMatch['matched']
+        ?? 0
+    )
+);
+
+$totalPreferenceCount = max(
+    0,
+    (int) (
+        $partnerPreferenceMatch['total']
+        ?? 0
+    )
+);
+
+$unmatchedPreferenceCount = max(
+    0,
+    (int) (
+        $partnerPreferenceMatch['unmatched']
+        ?? 0
+    )
+);
+
+$profileLayout = match (true) {
+    $isAdminProfileView =>
+    'Admin/Layouts/Main',
+
+    $isFieldOfficerProfileView =>
+    'FieldOfficer/Layouts/Main',
+
+    default =>
+    'Layouts/Main',
+};
+
+$showMemberActions =
+    !$isAdminProfileView
+    && !$isOtherMemberProfileView
+    && !$isFieldOfficerProfileView;
+
+$adminMemberId = max(
+    0,
+    (int) (
+        $adminMemberId
+        ?? 0
+    )
+);
+
+$fieldOfficerViewedMemberId = max(
+    0,
+    (int) (
+        $fieldOfficerViewedMemberId
+        ?? 0
+    )
+);
+
+$profileBackUrl = trim(
+    (string) (
+        $profileBackUrl
+        ?? (
+            $isAdminProfileView
+            ? route_to(
+                'admin.members.index'
+            )
+            : url_to(
+                'web.profile.edit'
+            )
+        )
+    )
+);
+
+$profileBackLabel = trim(
+    (string) (
+        $profileBackLabel
+        ?? (
+            $isAdminProfileView
+            ? 'Back to Members'
+            : 'Back to profile'
+        )
+    )
+);
+
+$profileNoticeTitle = trim(
+    (string) (
+        $profileNoticeTitle
+        ?? (
+            $isAdminProfileView
+            ? 'Administrator member preview'
+            : 'This is your profile preview'
+        )
+    )
+);
+
+$profileNoticeMessage = trim(
+    (string) (
+        $profileNoticeMessage
+        ?? (
+            $isAdminProfileView
+            ? 'This screen displays the member profile using '
+            . 'the same information shown in the member-facing preview.'
+            : 'Only approved photos and saved profile '
+            . 'details are displayed below.'
+        )
+    )
+);
+
+/**
  * Authenticated member profile preview.
  *
  * @var array<string, mixed>       $user
@@ -15,7 +249,11 @@ use App\Support\BooleanValue;
  * @var string                     $aboutMe
  * @var string                     $profileImage
  * @var array<string, mixed>       $overallProfileSummary
- * @var list<array<string, mixed>> $approvedPhotos
+ * @var list<array{
+ *     id:int,
+ *     thumbnailUrl:string,
+ *     isPrimary:bool
+ * }>                              $approvedPhotos
  */
 
 $user = isset($user) && is_array($user)
@@ -59,6 +297,24 @@ $aboutMe = trim(
 $profileImage = trim(
     (string) ($profileImage ?? '')
 );
+
+/*
+ * The controller/service has already resolved whether an
+ * actual profile image can be displayed for this viewing mode.
+ *
+ * If not, apply the common gender-based presentation fallback.
+ */
+if ($profileImage === '') {
+    helper(
+        'member_profile'
+    );
+
+    $profileImage =
+        member_profile_placeholder(
+            $user['gender']
+                ?? null
+        );
+}
 
 $fullName = trim(
     (string) ($user['full_name'] ?? '')
@@ -277,80 +533,6 @@ $displayValue = static function (
         : $fallback;
 };
 
-/**
- * Resolve the first available non-empty signed photo URL.
- *
- * Null coalescing alone is insufficient because a URL key may exist
- * while containing an empty string.
- */
-$getPhotoUrl = static function (
-    array $photo
-): string {
-    $signedUrls = $photo['signedUrls'] ?? [];
-
-    if (!is_array($signedUrls)) {
-        return '';
-    }
-
-    foreach (
-        [
-            'mediumUrl',
-            'thumbnailUrl',
-            'originalUrl',
-        ] as $urlKey
-    ) {
-        $url = trim(
-            (string) (
-                $signedUrls[$urlKey]
-                ?? ''
-            )
-        );
-
-        if ($url !== '') {
-            return $url;
-        }
-    }
-
-    return '';
-};
-
-/**
- * Resolve the original signed photo URL for modal preview.
- *
- * The original image is preferred for the enlarged modal. Medium and
- * thumbnail URLs remain fallback options if the original URL is unavailable.
- */
-$getOriginalPhotoUrl = static function (
-    array $photo
-): string {
-    $signedUrls = $photo['signedUrls'] ?? [];
-
-    if (!is_array($signedUrls)) {
-        return '';
-    }
-
-    foreach (
-        [
-            'originalUrl',
-            'mediumUrl',
-            'thumbnailUrl',
-        ] as $urlKey
-    ) {
-        $url = trim(
-            (string) (
-                $signedUrls[$urlKey]
-                ?? ''
-            )
-        );
-
-        if ($url !== '') {
-            return $url;
-        }
-    }
-
-    return '';
-};
-
 $childrenLivingTogether = '';
 
 if (
@@ -527,8 +709,15 @@ $familyDetailList = [
 ];
 
 /*
- * Prepare one clean photo list for both gallery thumbnails and modal slides.
- * Photos without a signed URL are excluded from the rendered gallery.
+ * Prepare the thumbnail-only profile gallery.
+ *
+ * Medium signed URLs are intentionally not included in the
+ * initial page response.
+ *
+ * They are generated lazily after the member opens a slide.
+ *
+ * Original member photographs are never exposed through this
+ * member-facing gallery.
  */
 $galleryPhotos = [];
 
@@ -537,27 +726,65 @@ foreach ($approvedPhotos as $photo) {
         continue;
     }
 
-    $thumbnailUrl = $getPhotoUrl($photo);
-    $originalUrl = $getOriginalPhotoUrl($photo);
+    $photoId = (int) (
+        $photo['id']
+        ?? 0
+    );
+
+    $thumbnailUrl = trim(
+        (string) (
+            $photo['thumbnailUrl']
+            ?? ''
+        )
+    );
 
     if (
-        $thumbnailUrl === ''
-        || $originalUrl === ''
+        $photoId <= 0
+        || $thumbnailUrl === ''
     ) {
         continue;
     }
 
     $galleryPhotos[] = [
-        'thumbnailUrl' => $thumbnailUrl,
-        'originalUrl' => $originalUrl,
-        'isPrimary' => filter_var(
-            $photo['is_primary'] ?? false,
-            FILTER_VALIDATE_BOOL
-        ),
+        'id' => $photoId,
+
+        'thumbnailUrl' =>
+        $thumbnailUrl,
+
+        'isPrimary' => (
+            $photo['isPrimary']
+            ?? false
+        ) === true,
+
+        /*
+         * This is an authenticated application URL, not a signed S3 or
+         * CloudFront original-photo URL.
+         */
+        'modalUrlEndpoint' =>
+        $isFieldOfficerProfileView
+            ? url_to(
+                'field-officer.profiles.photos.medium-url',
+                $fieldOfficerViewedMemberId,
+                $photoId
+            )
+            : (
+                $isOtherMemberProfileView
+                ? url_to(
+                    'web.members.photos.medium-url',
+                    $viewedProfileReference,
+                    $photoId
+                )
+                : url_to(
+                    'web.profile.photos.medium-url',
+                    $photoId
+                )
+            ),
     ];
 }
 
-$this->extend('Layouts/Main');
+$this->extend(
+    $profileLayout
+);
 $this->section('content');
 ?>
 
@@ -566,526 +793,1001 @@ $this->section('content');
 
         <div class="mb-2">
             <a
-                href="<?= url_to(
-                            'web.profile.edit'
+                href="<?= esc(
+                            $profileBackUrl,
+                            'attr'
                         ) ?>"
-                class="d-inline-flex align-items-center
-                    gap-1 text-primary fw-medium mb-2">
+                class="d-inline-flex
+            align-items-center
+            gap-1 text-primary
+            fw-medium mb-2">
 
                 <i
                     class="ri-arrow-left-line"
-                    aria-hidden="true"></i>
+                    aria-hidden="true">
+                </i>
 
-                Back to profile
+                <?= esc(
+                    $profileBackLabel
+                ) ?>
             </a>
         </div>
-
-        <div
-            class="profile-preview-notice
+        <?php if (
+            !$isOtherMemberProfileView
+        ): ?>
+            <div
+                class="profile-preview-notice
                 border rounded-3 p-3 mb-3">
 
-            <div class="d-flex align-items-start gap-3">
-                <span
-                    class="d-inline-flex align-items-center
+                <div class="d-flex align-items-start gap-3">
+                    <span
+                        class="d-inline-flex align-items-center
                         justify-content-center rounded-circle
                         bg-warning-subtle text-warning
                         flex-shrink-0"
-                    style="width: 40px; height: 40px;">
+                        style="width: 40px; height: 40px;">
 
-                    <i
-                        class="ri-eye-line fs-18"
-                        aria-hidden="true"></i>
-                </span>
+                        <i
+                            class="ri-eye-line fs-18"
+                            aria-hidden="true"></i>
+                    </span>
 
-                <div>
-                    <h2 class="fs-15 fw-semibold mb-1">
-                        This is your profile preview
-                    </h2>
+                    <div>
+                        <h2
+                            class="fs-15
+        fw-semibold mb-1">
 
-                    <p class="text-muted fs-13 mb-0">
-                        Only approved photos and saved profile
-                        details are displayed below.
-                    </p>
+                            <?= esc(
+                                $profileNoticeTitle
+                            ) ?>
+                        </h2>
+
+                        <p
+                            class="text-muted
+        fs-13 mb-0">
+
+                            <?= esc(
+                                $profileNoticeMessage
+                            ) ?>
+                        </p>
+                    </div>
                 </div>
             </div>
-        </div>
+        <?php endif; ?>
 
         <!-- Main profile summary card. -->
+        <!-- Main profile summary card. -->
         <article
-            class="card border border-danger border-opacity-25 shadow-sm
-                rounded-3 mb-4">
+            class="card border border-danger
+        border-opacity-25 shadow-sm
+        rounded-3 mb-4">
 
-            <div
-                class="card-body
-                    position-relative p-3 p-lg-4">
-
-                <a
-                    href="<?= url_to(
-                                'web.profile.edit'
-                            ) ?>"
-                    class="btn btn-outline-primary
-        d-inline-flex align-items-center
-        justify-content-center gap-1
-        position-absolute top-0 end-0
-        mt-3 me-3 mt-lg-4 me-lg-4
-        profile-preview-edit-button">
-
-                    <i
-                        class="ri-edit-line"
-                        aria-hidden="true"></i>
-
-                    Edit My Profile
-                </a>
+            <div class="card-body p-3 p-lg-4">
 
 
 
-                <div class="row g-4 pt-5 pt-md-0">
+                <div
+                    class="row g-4
+                align-items-center">
 
+                    <!-- =====================================================
+                 Profile image
+                 ===================================================== -->
                     <div
                         class="col-12
-                            col-md-5 col-lg-4">
+                    col-md-auto
+                    text-center">
 
                         <div
-                            class="position-relative
-                                overflow-hidden rounded-3
-                                bg-light">
+                            class="d-inline-block
+                        position-relative
+                        overflow-hidden
+                        rounded-3
+                        bg-light">
 
-                            <?php if (
-                                $profileImage !== ''
-                            ): ?>
-                                <img
-                                    src="<?= esc(
-                                                $profileImage
-                                            ) ?>"
-                                    alt="<?= esc($fullName) ?>"
-                                    class="img-thumbnail"
-                                    loading="eager">
-                            <?php else: ?>
-                                <div
-                                    class="d-flex flex-column
-                                        align-items-center
-                                        justify-content-center
-                                        text-center text-muted p-4"
-                                    style="min-height: 360px;">
+                            <img
+                                src="<?= esc(
+                                            $profileImage,
+                                            'attr'
+                                        ) ?>"
+                                alt="<?= esc(
+                                            $fullName
+                                                . ' profile photo',
+                                            'attr'
+                                        ) ?>"
+                                class="member-photo-medium"
+                                loading="eager">
 
-                                    <i
-                                        class="ri-user-3-line
-                                            display-3 text-primary
-                                            opacity-50"
-                                        aria-hidden="true"></i>
-
-                                    <span class="mt-2">
-                                        Approved profile photo
-                                        not available
-                                    </span>
-                                </div>
-                            <?php endif; ?>
                         </div>
                     </div>
 
+                    <!-- =====================================================
+                 Profile information
+                 ===================================================== -->
                     <div
                         class="col-12
-                            col-md-7 col-lg-8">
+        col-md">
 
                         <div
-                            class="h-100 d-flex flex-column
-                                justify-content-center">
+                            class="h-100
+            d-flex
+            flex-column
+            justify-content-center">
 
-                            <div class="pe-md-3 pe-lg-5 mb-4">
+                            <!-- =====================================================
+             TOP ROW
+             Member summary + member actions
+             ===================================================== -->
+                            <div class="row g-3 align-items-start">
+
+                                <!-- Member summary -->
                                 <div
-                                    class="d-flex
-                                        align-items-center
-                                        flex-wrap gap-2 mb-2">
-
-                                    <h2
-                                        class="fs-28
-                                            fw-bold mb-0">
-                                        <?= esc($fullName) ?>
-                                    </h2>
-
-                                    <?php if (
-                                        strtoupper(
-                                            trim(
-                                                (string) (
-                                                    $user['account_status']
-                                                    ?? ''
-                                                )
+                                    class="<?= (
+                                                $isOtherMemberProfileView
+                                                && $viewedProfileReference !== ''
                                             )
-                                        ) === 'APPROVED'
-                                    ): ?>
-                                        <i
-                                            class="
-                                                ri-checkbox-circle-fill
-                                                text-success fs-18"
-                                            aria-label="
-                                                Approved profile">
-                                        </i>
-                                    <?php endif; ?>
-                                </div>
+                                                ? 'col-12 col-lg-9'
+                                                : 'col-12' ?>">
 
-                                <p class="fs-16 mb-2">
-                                    <?php if (
-                                        $age !== null
-                                    ): ?>
-                                        <?= esc(
-                                            (string) $age
-                                        ) ?> Years
-                                    <?php endif; ?>
-
-                                    <?php if (
-                                        $age !== null
-                                        && $height !== ''
-                                    ): ?>
-                                        <span class="mx-1">
-                                            •
-                                        </span>
-                                    <?php endif; ?>
-
-                                    <?php if (
-                                        $height !== ''
-                                    ): ?>
-                                        <?= esc($height) ?>
-                                    <?php endif; ?>
-                                </p>
-
-                                <?php if (
-                                    $currentLocation !== ''
-                                ): ?>
-                                    <p
-                                        class="text-muted
-                                            mb-2">
-
-                                        <i
-                                            class="ri-map-pin-line
-                                                me-1"
-                                            aria-hidden="true"></i>
-
-                                        <?= esc(
-                                            $currentLocation
-                                        ) ?>
-                                    </p>
-                                <?php endif; ?>
-                                <?php if (
-                                    $community !== ''
-                                    || $gotra !== ''
-                                ): ?>
-                                    <p
-                                        class="text-muted
-                                            mb-2">
-
-                                        <i
-                                            class="ri-community-line
-                                                me-1"
-                                            aria-hidden="true"></i>
-
-                                        <?= esc(
-                                            implode(
-                                                ' • ',
-                                                array_filter(
-                                                    [
-                                                        $community,
-                                                        $gotra !== ''
-                                                            ? 'Gotra: '
-                                                            . $gotra
-                                                            : '',
-                                                    ]
-                                                )
-                                            )
-                                        ) ?>
-                                    </p>
-                                <?php endif; ?>
-                                <?php if (
-                                    $profileCreatedFor !== ''
-                                ): ?>
-                                    <p
-                                        class="text-danger fs-14
-                                            mb-0">
-
-                                        <i
-                                            class="ri-heart-line
-                                                me-1 text-muted"
-                                            aria-hidden="true"></i>
-                                        <span class="text-muted">Profile Created By : </span>
-                                        <?= esc(
-                                            $profileCreatedFor
-                                        ) ?>
-                                    </p>
-                                <?php endif; ?>
-                            </div>
-
-                            <div
-                                class="row g-3
-                                    border-top pt-4">
-
-                                <div class="col-12 col-sm-6">
                                     <div
-                                        class="d-flex
-                                            align-items-start gap-3">
+                                        class="pe-lg-3">
 
-                                        <span
-                                            class="d-inline-flex
-                                                align-items-center
-                                                justify-content-center
-                                                rounded-circle
-                                                bg-primary-subtle
-                                                text-primary
-                                                flex-shrink-0"
-                                            style="
-                                                width: 38px;
-                                                height: 38px;
-                                            ">
+                                        <!-- Name -->
+                                        <div
+                                            class="d-flex
+    align-items-center
+    justify-content-between
+    flex-wrap
+    gap-2
+    mb-2">
+
+                                            <div
+                                                class="d-flex
+        align-items-center
+        flex-wrap
+        gap-2">
+
+                                                <h2
+                                                    class="fs-24
+            fw-bold
+            mb-0">
+
+                                                    <?= esc(
+                                                        $fullName
+                                                    ) ?>
+                                                </h2>
+
+                                                <?php if (
+                                                    strtoupper(
+                                                        trim(
+                                                            (string) (
+                                                                $user['account_status']
+                                                                ?? ''
+                                                            )
+                                                        )
+                                                    ) === 'APPROVED'
+                                                ): ?>
+
+                                                    <i
+                                                        class="ri-checkbox-circle-fill
+                text-success
+                fs-18"
+                                                        aria-label="Approved profile">
+                                                    </i>
+
+                                                <?php endif; ?>
+
+                                            </div>
+
+                                            <?php if ($showMemberActions): ?>
+
+                                                <a
+                                                    href="<?= url_to(
+                                                                'web.profile.edit'
+                                                            ) ?>"
+                                                    class="btn
+            btn-outline-primary
+            d-inline-flex
+            align-items-center
+            justify-content-center
+            gap-1">
+
+                                                    <i
+                                                        class="ri-edit-line"
+                                                        aria-hidden="true">
+                                                    </i>
+
+                                                    Edit My Profile
+                                                </a>
+
+                                            <?php endif; ?>
+
+                                        </div>
+
+                                        <!-- Age / Height -->
+                                        <p class="fs-14 mb-2">
+
+                                            <?php if (
+                                                $age !== null
+                                            ): ?>
+
+                                                <?= esc(
+                                                    (string) $age
+                                                ) ?> Years
+
+                                            <?php endif; ?>
+
+                                            <?php if (
+                                                $age !== null
+                                                && $height !== ''
+                                            ): ?>
+
+                                                <span class="mx-1">
+                                                    •
+                                                </span>
+
+                                            <?php endif; ?>
+
+                                            <?php if (
+                                                $height !== ''
+                                            ): ?>
+
+                                                <?= esc(
+                                                    $height
+                                                ) ?>
+
+                                            <?php endif; ?>
+
+                                        </p>
+
+                                        <!-- Current location -->
+                                        <?php if (
+                                            $currentLocation !== ''
+                                        ): ?>
+
+                                            <p
+                                                class="text-muted
+                                mb-2">
+
+                                                <i
+                                                    class="ri-map-pin-line
+                                    me-1"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                <?= esc(
+                                                    $currentLocation
+                                                ) ?>
+                                            </p>
+
+                                        <?php endif; ?>
+
+                                        <!-- Community / Gotra -->
+                                        <?php if (
+                                            $community !== ''
+                                            || $gotra !== ''
+                                        ): ?>
+
+                                            <p
+                                                class="text-muted
+                                mb-2">
+
+                                                <i
+                                                    class="ri-community-line
+                                    me-1"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                <?= esc(
+                                                    implode(
+                                                        ' • ',
+                                                        array_filter(
+                                                            [
+                                                                $community,
+
+                                                                $gotra !== ''
+                                                                    ? 'Gotra: '
+                                                                    . $gotra
+                                                                    : '',
+                                                            ]
+                                                        )
+                                                    )
+                                                ) ?>
+                                            </p>
+
+                                        <?php endif; ?>
+
+                                        <!-- Profile created by -->
+                                        <?php if (
+                                            $profileCreatedFor !== ''
+                                        ): ?>
+
+                                            <p
+                                                class="text-danger
+                                fs-14
+                                mb-2">
+
+                                                <i
+                                                    class="ri-heart-line
+                                    me-1
+                                    text-muted"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                <span
+                                                    class="text-muted">
+
+                                                    Profile Created By :
+                                                </span>
+
+                                                <?= esc(
+                                                    $profileCreatedFor
+                                                ) ?>
+                                            </p>
+
+                                        <?php endif; ?>
+
+                                        <p
+                                            class="text-success
+                                fs-14
+                                mb-0">
 
                                             <i
-                                                class="
-                                                    ri-fingerprint-line fs-20"
+                                                class="ri-pie-chart-line
+                                    me-1
+                                    text-muted"
                                                 aria-hidden="true">
                                             </i>
+
+                                            <span
+                                                class="text-muted">
+
+                                                Profile Completion :
+                                            </span>
+                                            <span class="fw-medium fs-16">
+                                                <?= esc(
+                                                    (string)
+                                                    $completionPercentage
+                                                ) ?>%
+                                            </span>
+                                        </p>
+
+                                    </div>
+                                </div>
+
+                                <!-- =================================================
+                 ACTIONS - TOP RIGHT
+                 ================================================= -->
+                                <?php if (
+                                    $isOtherMemberProfileView
+                                    && $viewedProfileReference !== ''
+                                ): ?>
+
+                                    <div
+                                        class="col-12
+                        col-lg-3">
+
+                                        <div
+                                            class="vstack
+                            gap-2">
+
+                                            <!-- =================================================
+     Interest
+     ================================================= -->
+
+                                            <?php if (
+                                                $interestState
+                                                === 'PENDING_RECEIVED'
+                                                && $canRespondToInterest
+                                            ): ?>
+
+                                                <!-- =================================================
+         Incoming Interest
+         ================================================= -->
+
+                                                <div
+                                                    class="border
+            rounded-3
+            bg-warning-subtle
+            p-2
+            text-center">
+
+                                                    <div
+                                                        class="d-flex
+                align-items-center
+                justify-content-center
+                gap-2
+                fw-semibold
+                text-dark
+                mb-1">
+
+                                                        <i
+                                                            class="ri-heart-fill
+                    text-danger
+                    fs-18"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                        Interest Received
+                                                    </div>
+
+                                                </div>
+
+                                                <!-- Accept Interest -->
+                                                <form
+                                                    method="post"
+                                                    action="<?= route_to(
+                                                                'web.members.interest.accept',
+                                                                $viewedProfileReference
+                                                            ) ?>"
+                                                    data-member-interest-form>
+
+                                                    <?= csrf_field() ?>
+
+                                                    <button
+                                                        type="submit"
+                                                        class="btn
+                btn-success
+                w-100
+                d-flex
+                align-items-center
+                justify-content-center
+                gap-2">
+
+                                                        <span
+                                                            data-member-interest-label>
+
+                                                            <i
+                                                                class="ri-thumb-up-fill"
+                                                                aria-hidden="true">
+                                                            </i>
+
+                                                            Accept Interest
+                                                        </span>
+
+                                                        <span
+                                                            class="d-none
+                    align-items-center"
+                                                            data-member-interest-loading>
+
+                                                            <span
+                                                                class="spinner-border
+                        spinner-border-sm
+                        me-1"
+                                                                aria-hidden="true">
+                                                            </span>
+
+                                                            Saving...
+                                                        </span>
+
+                                                    </button>
+
+                                                </form>
+
+                                                <!-- Decline Interest -->
+                                                <form
+                                                    method="post"
+                                                    action="<?= route_to(
+                                                                'web.members.interest.decline',
+                                                                $viewedProfileReference
+                                                            ) ?>"
+                                                    data-member-interest-form>
+
+                                                    <?= csrf_field() ?>
+
+                                                    <button
+                                                        type="submit"
+                                                        class="btn
+                btn-outline-danger
+                w-100
+                d-flex
+                align-items-center
+                justify-content-center
+                gap-2">
+
+                                                        <span
+                                                            data-member-interest-label>
+
+                                                            <i
+                                                                class="ri-close-line"
+                                                                aria-hidden="true">
+                                                            </i>
+
+                                                            Decline
+                                                        </span>
+
+                                                        <span
+                                                            class="d-none
+                    align-items-center"
+                                                            data-member-interest-loading>
+
+                                                            <span
+                                                                class="spinner-border
+                        spinner-border-sm
+                        me-1"
+                                                                aria-hidden="true">
+                                                            </span>
+
+                                                            Saving...
+                                                        </span>
+
+                                                    </button>
+
+                                                </form>
+
+                                            <?php elseif (
+                                                $interestState
+                                                === 'PENDING_SENT'
+                                            ): ?>
+
+                                                <div
+                                                    class="border
+            rounded-3
+            bg-success-subtle
+            text-success
+            p-2
+            text-center">
+
+                                                    <div
+                                                        class="d-flex
+                align-items-center
+                justify-content-center
+                gap-2
+                fw-semibold">
+
+                                                        <i
+                                                            class="ri-time-line"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                        Interest Sent
+                                                    </div>
+
+                                                    <div
+                                                        class="fs-12
+                text-muted
+                mt-1">
+
+                                                        Waiting for a response
+                                                    </div>
+
+                                                </div>
+
+                                            <?php elseif (
+                                                in_array(
+                                                    $interestState,
+                                                    [
+                                                        'ACCEPTED_SENT',
+                                                        'ACCEPTED_RECEIVED',
+                                                    ],
+                                                    true
+                                                )
+                                            ): ?>
+
+                                                <div
+                                                    class="border
+            rounded-3
+            bg-success-subtle
+            text-success
+            p-2
+            text-center">
+
+                                                    <div
+                                                        class="d-flex
+                align-items-center
+                justify-content-center
+                gap-2
+                fw-semibold">
+
+                                                        <i
+                                                            class="ri-thumb-up-fill"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                        Interest Accepted
+                                                    </div>
+
+                                                </div>
+
+                                            <?php elseif (
+                                                in_array(
+                                                    $interestState,
+                                                    [
+                                                        'DECLINED_SENT',
+                                                        'DECLINED_RECEIVED',
+                                                    ],
+                                                    true
+                                                )
+                                            ): ?>
+
+                                                <div
+                                                    class="border
+            rounded-3
+            bg-light
+            text-muted
+            p-2
+            text-center">
+
+                                                    <div
+                                                        class="d-flex
+                align-items-center
+                justify-content-center
+                gap-2
+                fw-medium">
+
+                                                        <i
+                                                            class="ri-close-circle-line"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                        Interest Declined
+                                                    </div>
+
+                                                </div>
+
+                                            <?php elseif (
+                                                $canShowInterest
+                                            ): ?>
+
+                                                <form
+                                                    method="post"
+                                                    action="<?= route_to(
+                                                                'web.members.interest',
+                                                                $viewedProfileReference
+                                                            ) ?>"
+                                                    data-member-interest-form>
+
+                                                    <?= csrf_field() ?>
+
+                                                    <button
+                                                        type="submit"
+                                                        class="btn
+                btn-primary
+                w-100
+                d-flex
+                align-items-center
+                justify-content-center
+                gap-2">
+
+                                                        <span
+                                                            data-member-interest-label>
+
+                                                            <i
+                                                                class="ri-heart-add-line"
+                                                                aria-hidden="true">
+                                                            </i>
+
+                                                            Show Interest
+                                                        </span>
+
+                                                        <span
+                                                            class="d-none
+                    align-items-center"
+                                                            data-member-interest-loading>
+
+                                                            <span
+                                                                class="spinner-border
+                        spinner-border-sm
+                        me-1"
+                                                                aria-hidden="true">
+                                                            </span>
+
+                                                            Saving...
+                                                        </span>
+
+                                                    </button>
+
+                                                </form>
+
+                                            <?php endif; ?>
+
+                                            <!-- ShortList -->
+                                            <!-- ShortList -->
+                                            <!-- =================================================
+     Secondary actions
+     ================================================= -->
+
+                                            <div
+                                                class="border-top
+        pt-3
+        mt-1">
+
+                                                <div
+                                                    class="d-flex
+            gap-2">
+
+                                                    <!-- ShortList -->
+                                                    <form
+                                                        method="post"
+                                                        action="<?= route_to(
+                                                                    'web.members.shortlist',
+                                                                    $viewedProfileReference
+                                                                ) ?>"
+                                                        class="flex-fill"
+                                                        data-member-shortlist-form>
+
+                                                        <?= csrf_field() ?>
+
+                                                        <button
+                                                            type="submit"
+                                                            class="btn
+                    <?= $isShortlisted
+                                        ? 'btn-success'
+                                        : 'btn-outline-primary' ?>
+                    w-100
+                    d-flex
+                    align-items-center
+                    justify-content-center
+                    gap-1">
+
+                                                            <span
+                                                                data-member-shortlist-label>
+
+                                                                <i
+                                                                    class="<?= $isShortlisted
+                                                                                ? 'ri-bookmark-fill'
+                                                                                : 'ri-bookmark-line' ?>"
+                                                                    aria-hidden="true">
+                                                                </i>
+
+                                                                <?= $isShortlisted
+                                                                    ? 'Shortlisted'
+                                                                    : 'ShortList' ?>
+
+                                                            </span>
+
+                                                            <span
+                                                                class="d-none
+                        align-items-center"
+                                                                data-member-shortlist-loading>
+
+                                                                <span
+                                                                    class="spinner-border
+                            spinner-border-sm"
+                                                                    aria-hidden="true">
+                                                                </span>
+
+                                                            </span>
+
+                                                        </button>
+
+                                                    </form>
+
+                                                    <!-- Block -->
+                                                    <button
+                                                        type="button"
+                                                        class="btn
+                btn-outline-danger
+                flex-fill
+                d-flex
+                align-items-center
+                justify-content-center
+                gap-1"
+                                                        data-member-block-open>
+
+                                                        <i
+                                                            class="ri-forbid-line"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                        Block
+                                                    </button>
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                <?php endif; ?>
+
+                            </div>
+
+                            <!-- =====================================================
+             BOTTOM ROW
+             Uses the FULL right-side width
+             ===================================================== -->
+                            <div
+                                class="row
+                g-3
+                mt-3
+                pt-3
+                border-top">
+
+                                <!-- Profile ID -->
+                                <div
+                                    class="col-12
+                    col-sm-6
+                    col-xl-4">
+
+                                    <div
+                                        class="d-flex
+                        align-items-center
+                        gap-2">
+
+                                        <span
+                                            class="avatar-sm
+                            flex-shrink-0">
+
+                                            <span
+                                                class="avatar-title
+                                rounded-circle
+                                bg-primary-subtle
+                                text-primary">
+
+                                                <i
+                                                    class="ri-fingerprint-line
+                                    fs-18"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                            </span>
                                         </span>
 
                                         <div>
+
                                             <div
-                                                class="
-                                                    text-muted fs-12">
+                                                class="text-muted
+                                fs-12">
+
                                                 Profile ID
                                             </div>
 
-                                            <strong class="fs-14">
+                                            <strong
+                                                class="fs-14">
+
                                                 <?= esc(
                                                     $displayValue(
                                                         $profileReference
                                                     )
                                                 ) ?>
                                             </strong>
+
                                         </div>
                                     </div>
                                 </div>
 
-                                <div class="col-12 col-sm-6">
+                                <!-- Profile Completion -->
+
+
+                                <?php if (
+                                    $isOtherMemberProfileView
+                                ): ?>
+
+                                    <!-- Mobile -->
                                     <div
-                                        class="d-flex
-                                            align-items-start gap-3">
+                                        class="col-12
+                        col-sm-6
+                        col-xl-4">
 
-                                        <span
-                                            class="d-inline-flex
-                                                align-items-center
-                                                justify-content-center
-                                                rounded-circle
-                                                bg-primary-subtle
-                                                text-primary
-                                                flex-shrink-0"
-                                            style="
-                                                width: 38px;
-                                                height: 38px;
-                                            ">
+                                        <div
+                                            class="d-flex
+                            align-items-center
+                            gap-2">
 
-                                            <i
-                                                class="
-                                                    ri-pie-chart-line fs-20"
-                                                aria-hidden="true">
-                                            </i>
-                                        </span>
+                                            <span
+                                                class="avatar-sm
+                                flex-shrink-0">
 
-                                        <div>
-                                            <div
-                                                class="
-                                                    text-muted fs-12">
-                                                Profile Completion
+                                                <span
+                                                    class="avatar-title
+                                    rounded-circle
+                                    bg-primary-subtle
+                                    text-primary">
+
+                                                    <i
+                                                        class="ri-phone-line
+                                        fs-18"
+                                                        aria-hidden="true">
+                                                    </i>
+
+                                                </span>
+                                            </span>
+
+                                            <div class="min-w-0">
+
+                                                <div
+                                                    class="text-muted
+                                    fs-12">
+
+                                                    Mobile Number
+                                                </div>
+
+                                                <div
+                                                    class="d-flex
+                                    align-items-center
+                                    flex-wrap
+                                    gap-1">
+
+                                                    <strong
+                                                        class="fs-14">
+
+                                                        <?= esc(
+                                                            $viewedMobile !== ''
+                                                                ? $viewedMobile
+                                                                : '-'
+                                                        ) ?>
+                                                    </strong>
+
+                                                    <?php if (
+                                                        $viewedMobile !== ''
+                                                        && $isViewedMobileVerified
+                                                    ): ?>
+
+                                                        <span
+                                                            class="badge bg-success-subtle text-success fs-11 p-2">
+
+
+
+                                                            Verified
+                                                        </span>
+
+                                                    <?php endif; ?>
+
+                                                </div>
                                             </div>
-
-                                            <strong
-                                                class="fs-13
-                                                        text-success">
-                                                <?= $completionPercentage ?>%
-                                            </strong>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div class="col-12 col-sm-6">
+                                    <!-- Email -->
                                     <div
-                                        class="d-flex
-                                            align-items-start gap-3">
+                                        class="col-12
+                        col-sm-6
+                        col-xl-4">
 
-                                        <span
-                                            class="d-inline-flex
-                                                align-items-center
-                                                justify-content-center
-                                                rounded-circle
-                                                bg-primary-subtle
-                                                text-primary
-                                                flex-shrink-0"
-                                            style="
-                                                width: 38px;
-                                                height: 38px;
-                                            ">
+                                        <div
+                                            class="d-flex
+                            align-items-center
+                            gap-2">
 
-                                            <i
-                                                class="
-                                                    ri-briefcase-line fs-20"
-                                                aria-hidden="true">
-                                            </i>
-                                        </span>
+                                            <span
+                                                class="avatar-sm
+                                flex-shrink-0">
 
-                                        <div>
-                                            <div
-                                                class="
-                                                    text-muted fs-12">
-                                                Occupation
-                                            </div>
+                                                <span
+                                                    class="avatar-title
+                                    rounded-circle
+                                    bg-primary-subtle
+                                    text-primary">
 
-                                            <div
-                                                class="
-                                                    fw-semibold fs-14">
-                                                <?= esc(
-                                                    $displayValue(
-                                                        $educationProfession['occupation_name']
-                                                            ?? null
-                                                    )
-                                                ) ?>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                                    <i
+                                                        class="ri-mail-line
+                                        fs-18"
+                                                        aria-hidden="true">
+                                                    </i>
 
-                                <div class="col-12 col-sm-6">
-                                    <div
-                                        class="d-flex
-                                            align-items-start gap-3">
+                                                </span>
+                                            </span>
 
-                                        <span
-                                            class="d-inline-flex
-                                                align-items-center
-                                                justify-content-center
-                                                rounded-circle
-                                                bg-primary-subtle
-                                                text-primary
-                                                flex-shrink-0"
-                                            style="
-                                                width: 38px;
-                                                height: 38px;
-                                            ">
+                                            <div class="min-w-0">
 
-                                            <i
-                                                class="
-                                                    ri-building-line fs-20"
-                                                aria-hidden="true">
-                                            </i>
-                                        </span>
+                                                <div
+                                                    class="text-muted
+                                    fs-12">
 
-                                        <div>
-                                            <div
-                                                class="
-                                                    text-muted fs-12">
-                                                Organization
-                                            </div>
+                                                    Email
+                                                </div>
 
-                                            <div
-                                                class="
-                                                    fw-semibold fs-14">
-                                                <?= esc(
-                                                    $displayValue(
-                                                        $educationProfession['organization']
-                                                            ?? null
-                                                    )
-                                                ) ?>
+                                                <strong
+                                                    class="fs-14
+                                    text-break">
+
+                                                    <?= esc(
+                                                        $viewedEmail !== ''
+                                                            ? $viewedEmail
+                                                            : '-'
+                                                    ) ?>
+                                                </strong>
+
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div class="col-12 col-sm-6">
-                                    <div
-                                        class="d-flex
-                                            align-items-start gap-3">
-
-                                        <span
-                                            class="d-inline-flex
-                                                align-items-center
-                                                justify-content-center
-                                                rounded-circle
-                                                bg-primary-subtle
-                                                text-primary
-                                                flex-shrink-0"
-                                            style="
-                                                width: 38px;
-                                                height: 38px;
-                                            ">
-
-                                            <i
-                                                class="
-                                                    ri-graduation-cap-line fs-20"
-                                                aria-hidden="true">
-                                            </i>
-                                        </span>
-
-                                        <div>
-                                            <div
-                                                class="
-                                                    text-muted fs-12">
-                                                Education
-                                            </div>
-
-                                            <div
-                                                class="
-                                                    fw-semibold fs-14">
-                                                <?= esc(
-                                                    $displayValue(
-                                                        $educationProfession['highest_education_name']
-                                                            ?? null
-                                                    )
-                                                ) ?>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-12 col-sm-6">
-                                    <div
-                                        class="d-flex
-                                            align-items-start gap-3">
-
-                                        <span
-                                            class="d-inline-flex
-                                                align-items-center
-                                                justify-content-center
-                                                rounded-circle
-                                                bg-primary-subtle
-                                                text-primary
-                                                flex-shrink-0"
-                                            style="
-                                                width: 38px;
-                                                height: 38px;
-                                            ">
-
-                                            <i
-                                                class="
-                                                    ri-money-rupee-circle-line fs-20"
-                                                aria-hidden="true">
-                                            </i>
-                                        </span>
-
-                                        <div>
-                                            <div
-                                                class="
-                                                    text-muted fs-12">
-                                                Annual Income
-                                            </div>
-
-                                            <div
-                                                class="
-                                                    fw-semibold fs-14">
-                                                <?= esc(
-                                                    $displayValue(
-                                                        $educationProfession['annual_income_display_name']
-                                                            ?? null
-                                                    )
-                                                ) ?>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                <?php endif; ?>
 
                             </div>
+
                         </div>
                     </div>
 
@@ -1095,128 +1797,126 @@ $this->section('content');
         <div class="row mb-0">
             <div class="col-12">
                 <section
-                    class="card border border-danger border-opacity-25 shadow-sm
-                rounded-3">
+                    class="card border border-danger
+        border-opacity-25 shadow-sm
+        rounded-3 mb-4">
 
                     <div class="card-body p-3 p-lg-4">
 
                         <div
-                            class="d-flex
-                        align-items-center gap-2 mb-3">
+                            class="d-flex align-items-center
+                justify-content-between gap-2 mb-3">
 
-                            <span
-                                class="d-inline-flex
-                            align-items-center
-                            justify-content-center
-                            rounded-circle
-                            bg-primary-subtle
-                            text-primary"
-                                style="
-                            width: 34px;
-                            height: 34px;
-                        ">
+                            <div>
+                                <h2 class="fs-17 fw-semibold mb-1">
+                                    Profile Photos
+                                </h2>
 
-                                <i
-                                    class="ri-image-2-line"
-                                    aria-hidden="true"></i>
+                                <p class="text-muted fs-13 mb-0">
+                                    Select a photo to view the enlarged gallery.
+                                </p>
+                            </div>
+
+                            <span class="badge bg-primary p-2 text-white fs-12">
+                                <?= esc(
+                                    (string) count($galleryPhotos)
+                                ) ?>
                             </span>
-
-                            <h2
-                                class="fs-16
-                            fw-semibold mb-0">
-                                Gallery
-                            </h2>
                         </div>
 
-                        <?php
-                        $visiblePhotoCount = 0;
-                        ?>
+                        <?php if ($galleryPhotos === []): ?>
 
-                        <?php if ($galleryPhotos !== []): ?>
                             <div
-                                class="row
-            row-cols-2
-            row-cols-sm-3
-            row-cols-md-5
-            g-3">
+                                class="border rounded-3
+                    text-center p-4 text-muted">
+
+                                <i
+                                    class="ri-image-line fs-24"
+                                    aria-hidden="true">
+                                </i>
+
+                                <p class="fs-13 mb-0 mt-2">
+                                    No approved photos are available.
+                                </p>
+                            </div>
+
+                        <?php else: ?>
+
+                            <div class="row g-2 g-md-3">
 
                                 <?php foreach (
-                                    $galleryPhotos
-                                    as $index => $galleryPhoto
+                                    $galleryPhotos as $index => $photo
                                 ): ?>
-                                    <div class="col">
+
+                                    <div
+                                        class="col-6 col-md-4 col-lg-3">
+
                                         <button
                                             type="button"
-                                            class="btn p-0 border-0
-                        bg-transparent w-100
-                        position-relative
-                        overflow-hidden rounded-3"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#profileGalleryModal"
-                                            data-bs-slide-to="<?= esc(
+                                            class="d-block w-100 p-0
+                                border rounded-3
+                                overflow-hidden bg-light
+                                position-relative"
+                                            data-profile-gallery-trigger
+                                            data-slide-index="<?= esc(
                                                                     (string) $index,
                                                                     'attr'
                                                                 ) ?>"
-                                            aria-label="View profile photo <?= esc(
-                                                                                (string) ($index + 1),
-                                                                                'attr'
-                                                                            ) ?>">
-
-                                            <img
-                                                src="<?= esc(
-                                                            $galleryPhoto['thumbnailUrl']
-                                                        ) ?>"
-                                                alt="Profile photo <?= esc(
-                                                                        (string) ($index + 1)
-                                                                    ) ?>"
-                                                class="profile-preview-gallery-photo"
-                                                loading="lazy">
-
-
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#profilePhotoGalleryModal"
+                                            aria-label="<?= esc(
+                                                            'Open profile photo '
+                                                                . ($index + 1),
+                                                            'attr'
+                                                        ) ?>">
 
                                             <span
-                                                class="position-absolute
-                            top-50 start-50
-                            translate-middle
-                            badge rounded-pill
-                            bg-dark bg-opacity-75">
+                                                class="ratio ratio-16x9 d-block">
 
-                                                <i
-                                                    class="ri-zoom-in-line"
-                                                    aria-hidden="true"></i>
+                                                <img
+                                                    src="<?= esc(
+                                                                $photo['thumbnailUrl'],
+                                                                'attr'
+                                                            ) ?>"
+                                                    alt="<?= esc(
+                                                                $fullName
+                                                                    . ' profile photo '
+                                                                    . ($index + 1),
+                                                                'attr'
+                                                            ) ?>"
+                                                    class="profile-preview-gallery-photo"
+                                                    loading="lazy">
 
-                                                <span class="visually-hidden">
-                                                    Open enlarged image
-                                                </span>
                                             </span>
+
+                                            <?php if (
+                                                $photo['isPrimary'] === true
+                                            ): ?>
+
+                                                <span
+                                                    class="badge bg-primary
+                                        position-absolute
+                                        top-0 start-0 m-2">
+
+                                                    <i
+                                                        class="ri-star-fill me-1"
+                                                        aria-hidden="true">
+                                                    </i>
+
+                                                    Main
+                                                </span>
+
+                                            <?php endif; ?>
+
                                         </button>
                                     </div>
+
                                 <?php endforeach; ?>
+
                             </div>
-                        <?php else: ?>
-                            <div
-                                class="border rounded-3
-            text-center text-muted p-4">
 
-                                <i
-                                    class="ri-image-add-line
-                fs-28 d-block mb-2"
-                                    aria-hidden="true"></i>
-
-                                <p class="mb-2">
-                                    No approved gallery photos are available.
-                                </p>
-
-                                <a
-                                    href="<?= url_to(
-                                                'web.profile.photos'
-                                            ) ?>"
-                                    class="btn btn-sm
-                btn-outline-primary">
-                                    Manage Photos
-                                </a>
-                            </div>
                         <?php endif; ?>
+
                     </div>
                 </section>
             </div>
@@ -1411,6 +2111,393 @@ $this->section('content');
 
             <!-- One single card for every section in the right column. -->
             <div class="col-12 col-lg-5">
+                <?php if (
+                    $isOtherMemberProfileView
+                ): ?>
+
+                    <section
+                        class="card
+                        bg-marketplace
+                        bg-primary-subtle
+            border
+            border-danger
+            border-opacity-25
+            shadow-sm
+            rounded-3
+            mb-4">
+
+                        <div
+                            class="card-body 
+                p-3
+                p-lg-4">
+
+                            <!-- Header -->
+                            <div
+                                class="d-flex
+                    flex-column
+                    flex-md-row
+                    align-items-md-center
+                    justify-content-between
+                    gap-3
+                    mb-4">
+
+                                <div
+                                    class="d-flex
+                        align-items-center
+                        gap-3">
+
+                                    <span
+                                        class="avatar-sm
+                            flex-shrink-0">
+
+                                        <span
+                                            class="avatar-title
+                                rounded-circle
+                                bg-light
+                                text-primary">
+
+                                            <i
+                                                class="ri-hearts-line
+                                    fs-20"
+                                                aria-hidden="true">
+                                            </i>
+
+                                        </span>
+                                    </span>
+
+                                    <div>
+
+                                        <h2
+                                            class="fs-16
+                                fw-semibold
+                                mb-1">
+
+                                            Partner Preference Match
+                                        </h2>
+
+                                        <p
+                                            class="text-muted
+                                fs-13
+                                mb-0">
+
+                                            See how
+                                            <?= esc($fullName) ?>
+                                            matches your partner preferences.
+                                        </p>
+
+                                    </div>
+                                </div>
+
+                                <?php if (
+                                    $totalPreferenceCount > 0
+                                ): ?>
+
+                                    <span
+                                        class="badge
+                            bg-primary-subtle
+                            text-primary
+                            fs-14
+                            p-2">
+
+                                        <?= esc(
+                                            (string)
+                                            $preferenceMatchPercentage
+                                        ) ?>% Match
+                                    </span>
+
+                                <?php endif; ?>
+
+                            </div>
+
+                            <?php if (
+                                $totalPreferenceCount > 0
+                            ): ?>
+
+                                <!-- Match statement -->
+                                <div
+                                    class="border
+                        rounded-3
+                        bg-light
+                        p-3
+                        p-lg-4
+                        mb-3">
+
+                                    <div
+                                        class="d-flex
+                            flex-column
+                            flex-md-row
+                            align-items-md-center
+                            justify-content-between
+                            gap-3
+                            mb-3">
+
+                                        <div>
+
+                                            <div
+                                                class="fs-16
+                                    fw-semibold">
+
+                                                <?= esc($fullName) ?>
+                                                matches
+
+                                                <span class="text-primary">
+                                                    <?= esc(
+                                                        (string)
+                                                        $matchedPreferenceCount
+                                                    ) ?>/<?= esc(
+                                                                (string)
+                                                                $totalPreferenceCount
+                                                            ) ?>
+                                                </span>
+
+                                                of your partner preferences
+                                            </div>
+
+                                            <p
+                                                class="text-muted
+                                    fs-13
+                                    mb-0
+                                    mt-1">
+
+                                                Based on the structured
+                                                Partner Preferences currently set.
+                                            </p>
+
+                                        </div>
+
+                                        <div
+                                            class="text-md-end">
+
+                                            <div
+                                                class="fs-24
+                                    fw-bold
+                                    text-primary">
+
+                                                <?= esc(
+                                                    (string)
+                                                    $preferenceMatchPercentage
+                                                ) ?>%
+                                            </div>
+
+                                            <span
+                                                class="text-muted
+                                    fs-12">
+
+                                                overall match
+                                            </span>
+
+                                        </div>
+
+                                    </div>
+
+                                    <!-- Existing Bootstrap progress -->
+                                    <div
+                                        class="progress"
+                                        role="progressbar"
+                                        aria-label="Partner preference match"
+                                        aria-valuenow="<?= esc(
+                                                            (string)
+                                                            $preferenceMatchPercentage,
+                                                            'attr'
+                                                        ) ?>"
+                                        aria-valuemin="0"
+                                        aria-valuemax="100">
+
+                                        <div
+                                            class="progress-bar"
+                                            style="<?= esc(
+                                                        'width: '
+                                                            . $preferenceMatchPercentage
+                                                            . '%;',
+                                                        'attr'
+                                                    ) ?>">
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                                <!-- Summary -->
+                                <div class="row g-3">
+
+                                    <div
+                                        class="col-12
+                            col-sm-6">
+
+                                        <div
+                                            class="border
+                                border border-danger
+        border-opacity-25
+        rounded-3
+                                p-3
+                                h-100 bg-dark-subtle">
+
+                                            <div
+                                                class="d-flex
+                                    align-items-center
+                                    gap-3">
+
+                                                <span
+                                                    class="avatar-sm
+                                        flex-shrink-0">
+
+                                                    <span
+                                                        class="avatar-title
+                                            rounded-circle
+                                            bg-success-subtle
+                                            text-success">
+
+                                                        <i
+                                                            class="ri-thumb-up-fill
+                                                fs-20"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                    </span>
+                                                </span>
+
+                                                <div>
+
+                                                    <div
+                                                        class="fs-18
+                                            fw-semibold
+                                            text-success">
+
+                                                        <?= esc(
+                                                            (string)
+                                                            $matchedPreferenceCount
+                                                        ) ?>
+                                                    </div>
+
+                                                    <div
+                                                        class="text-muted
+                                            fs-13">
+
+                                                        Preferences matched
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    <div
+                                        class="col-12
+                            col-sm-6">
+
+                                        <div
+                                            class="border
+                                border border-danger
+        border-opacity-25
+        rounded-3
+                                p-3
+                                h-100 bg-dark-subtle">
+
+                                            <div
+                                                class="d-flex
+                                    align-items-center
+                                    gap-3">
+
+                                                <span
+                                                    class="avatar-sm
+                                        flex-shrink-0">
+
+                                                    <span
+                                                        class="avatar-title
+                                            rounded-circle
+                                            bg-warning-subtle
+                                            text-warning">
+
+                                                        <i
+                                                            class="ri-information-line
+                                                fs-20"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                    </span>
+                                                </span>
+
+                                                <div>
+
+                                                    <div
+                                                        class="fs-18
+                                            fw-semibold">
+
+                                                        <?= esc(
+                                                            (string)
+                                                            $unmatchedPreferenceCount
+                                                        ) ?>
+                                                    </div>
+
+                                                    <div
+                                                        class="text-muted
+                                            fs-13">
+
+                                                        Preferences differ
+                                                    </div>
+
+                                                </div>
+
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                </div>
+
+                            <?php else: ?>
+
+                                <div
+                                    class="alert
+                        alert-light
+                        border
+                        mb-0"
+                                    role="status">
+
+                                    <div
+                                        class="d-flex
+                            align-items-start
+                            gap-2">
+
+                                        <i
+                                            class="ri-information-line
+                                fs-18
+                                text-muted"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        <div>
+
+                                            <strong>
+                                                Partner Preferences not available
+                                            </strong>
+
+                                            <p
+                                                class="text-muted
+                                    fs-13
+                                    mb-0
+                                    mt-1">
+
+                                                <?= esc(
+                                                    $fullName
+                                                ) ?>
+                                                has not configured enough
+                                                structured Partner Preferences
+                                                to calculate a match yet.
+                                            </p>
+
+                                        </div>
+
+                                    </div>
+                                </div>
+
+                            <?php endif; ?>
+
+                        </div>
+                    </section>
+                <?php endif; ?>
                 <div
                     class="card border border-danger border-opacity-25 shadow-sm
                         rounded-3 overflow-hidden">
@@ -1592,47 +2679,49 @@ $this->section('content');
                     </section>
 
                 </div>
+
+
+
             </div>
 
         </div>
     </div>
 </section>
 <?php if ($galleryPhotos !== []): ?>
+
     <div
         class="modal fade"
-        id="profileGalleryModal"
+        id="profilePhotoGalleryModal"
         tabindex="-1"
-        aria-labelledby="profileGalleryModalTitle"
-        aria-hidden="true">
+        aria-labelledby="profilePhotoGalleryModalLabel"
+        aria-hidden="true"
+        data-profile-gallery-modal>
 
         <div
             class="modal-dialog
-                modal-lg
                 modal-dialog-centered
-                modal-dialog-scrollable">
+                modal-xl">
 
             <div class="modal-content">
 
-                <div
-                    class="modal-header
-                        bg-info-subtle py-2">
+                <div class="modal-header bg-info-subtle py-2">
 
                     <div>
-                        <h5
-                            class="modal-title"
-                            id="profileGalleryModalTitle">
+                        <h2
+                            class="modal-title fs-17"
+                            id="profilePhotoGalleryModalLabel">
 
-                            <?= esc($fullName) ?>
-                        </h5>
+                            Profile Photos
+                        </h2>
 
-                        <p class="fs-13 mb-0 text-muted">
+                        <p
+                            class="text-muted fs-12 mb-0"
+                            data-profile-gallery-position>
 
+                            1 of
                             <?= esc(
-                                $displayValue(
-                                    $profileReference
-                                )
+                                (string) count($galleryPhotos)
                             ) ?>
-
                         </p>
                     </div>
 
@@ -1642,105 +2731,110 @@ $this->section('content');
                         data-bs-dismiss="modal"
                         aria-label="Close">
                     </button>
+
                 </div>
 
-                <div class="modal-body pt-2">
-
-                    <?php if (
-                        count($galleryPhotos) > 1
-                    ): ?>
-                        <div
-                            class="d-flex
-                                align-items-center
-                                justify-content-between
-                                gap-2 mb-3">
-
-                            <button
-                                type="button"
-                                class="btn btn-dark btn-sm"
-                                data-bs-target="#profileGalleryCarousel"
-                                data-bs-slide="prev">
-
-                                <i
-                                    class="ri-arrow-left-line me-1"
-                                    aria-hidden="true"></i>
-
-                                Previous
-                            </button>
-
-                            <button
-                                type="button"
-                                class="btn btn-dark btn-sm"
-                                data-bs-target="#profileGalleryCarousel"
-                                data-bs-slide="next">
-
-                                Next
-
-                                <i
-                                    class="ri-arrow-right-line ms-1"
-                                    aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    <?php endif; ?>
+                <div class="modal-body p-0">
 
                     <div
-                        id="profileGalleryCarousel"
+                        id="profilePhotoGalleryCarousel"
                         class="carousel slide"
                         data-bs-interval="false"
-                        data-bs-touch="true">
+                        data-bs-touch="true"
+                        data-profile-gallery-carousel>
 
-                        <div
-                            class="carousel-inner
-                                bg-light rounded">
+                        <div class="carousel-inner">
 
                             <?php foreach (
-                                $galleryPhotos
-                                as $index => $galleryPhoto
+                                $galleryPhotos as $index => $photo
                             ): ?>
+
                                 <div
                                     class="carousel-item
                                         <?= $index === 0
                                             ? 'active'
-                                            : '' ?>">
+                                            : '' ?>"
+                                    data-gallery-slide
+                                    data-photo-id="<?= esc(
+                                                        (string) $photo['id'],
+                                                        'attr'
+                                                    ) ?>"
+                                    data-modal-url-endpoint="<?= esc(
+                                                                    $photo['modalUrlEndpoint'],
+                                                                    'attr'
+                                                                ) ?>"
+                                    data-slide-index="<?= esc(
+                                                            (string) $index,
+                                                            'attr'
+                                                        ) ?>">
 
                                     <div
-                                        class="d-flex
-                                            align-items-center
+                                        class="d-flex align-items-center
                                             justify-content-center
+                                            bg-light position-relative
                                             p-3"
-                                        style="min-height: 320px;">
+                                        style="min-height: 420px;">
+
+                                        <div
+                                            class="text-center"
+                                            data-slide-loading>
+
+                                            <span
+                                                class="spinner-border
+                                                    text-primary"
+                                                role="status"
+                                                aria-hidden="true">
+                                            </span>
+
+                                            <p
+                                                class="text-muted
+                                                    fs-13 mb-0 mt-2">
+
+                                                Loading photo...
+                                            </p>
+                                        </div>
+
+                                        <div
+                                            class="alert alert-danger
+                                                d-none m-3"
+                                            role="alert"
+                                            data-slide-error>
+                                        </div>
 
                                         <img
-                                            src="<?= esc(
-                                                        $galleryPhoto['originalUrl']
+                                            src=""
+                                            alt="<?= esc(
+                                                        $fullName
+                                                            . ' enlarged profile photo '
+                                                            . ($index + 1),
+                                                        'attr'
                                                     ) ?>"
-                                            class="d-block
-                                                mx-auto
-                                                img-fluid
-                                                rounded"
-                                            style="max-height: 70vh;"
-                                            alt="Profile photo <?= esc(
-                                                                    (string) (
-                                                                        $index + 1
-                                                                    )
-                                                                ) ?>">
+                                            class="img-fluid rounded-3
+                                                object-fit-contain d-none"
+                                            style="max-height: 78vh;"
+                                            data-slide-image>
+
                                     </div>
+
                                 </div>
+
                             <?php endforeach; ?>
+
                         </div>
 
                         <?php if (
                             count($galleryPhotos) > 1
                         ): ?>
+
                             <button
                                 class="carousel-control-prev"
                                 type="button"
-                                data-bs-target="#profileGalleryCarousel"
-                                data-bs-slide="prev">
+                                data-bs-target="#profilePhotoGalleryCarousel"
+                                data-bs-slide="prev"
+                                aria-label="Previous photo">
 
                                 <span
-                                    class="
-                                        carousel-control-prev-icon"
+                                    class="carousel-control-prev-icon"
                                     aria-hidden="true">
                                 </span>
 
@@ -1752,12 +2846,12 @@ $this->section('content');
                             <button
                                 class="carousel-control-next"
                                 type="button"
-                                data-bs-target="#profileGalleryCarousel"
-                                data-bs-slide="next">
+                                data-bs-target="#profilePhotoGalleryCarousel"
+                                data-bs-slide="next"
+                                aria-label="Next photo">
 
                                 <span
-                                    class="
-                                        carousel-control-next-icon"
+                                    class="carousel-control-next-icon"
                                     aria-hidden="true">
                                 </span>
 
@@ -1765,82 +2859,223 @@ $this->section('content');
                                     Next
                                 </span>
                             </button>
+
                         <?php endif; ?>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+<?php endif; ?>
+
+<?php if (
+    $isOtherMemberProfileView
+    && $viewedProfileReference !== ''
+): ?>
+
+    <?php
+    $blockErrors = isset(
+        $validationErrors
+    )
+        && is_array(
+            $validationErrors
+        )
+        ? $validationErrors
+        : [];
+
+    $blockCommentError = trim(
+        (string) (
+            $blockErrors['comment']
+            ?? ''
+        )
+    );
+    ?>
+
+    <div
+        class="modal fade"
+        id="memberBlockModal"
+        tabindex="-1"
+        aria-labelledby="memberBlockModalTitle"
+        aria-hidden="true"
+        data-reopen-member-block="<?= (
+                                        session(
+                                            'reopenMemberBlockModal'
+                                        ) === true
+                                    )
+                                        ? '1'
+                                        : '0' ?>">
+
+        <div
+            class="modal-dialog
+                modal-dialog-centered">
+
+            <div class="modal-content">
+
+                <form
+                    method="post"
+                    action="<?= route_to(
+                                'web.members.block',
+                                $viewedProfileReference
+                            ) ?>"
+                    data-member-block-form>
+
+                    <?= csrf_field() ?>
+
+                    <div
+                        class="modal-header bg-info-subtle py-2">
+
+                        <h2
+                            class="modal-title
+                                fs-18"
+                            id="memberBlockModalTitle">
+
+                            Block the Member
+                        </h2>
+
+                        <button
+                            type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close">
+                        </button>
                     </div>
 
                     <div
-                        class="d-flex
-                            align-items-center
-                            justify-content-between
-                            gap-3 mt-3">
-                        <button type="button" class="btn btn-success btn-sm text-black">
-                            <i class="ri-check-double-line label-icon align-middle fs-16 me-2"></i>
-                            Approved Photo</button>
+                        class="modal-body">
 
+                        <p
+                            class="text-muted
+                                fs-13">
 
-                        <span class="text-muted fs-13">
-                            Use Previous or Next to browse
-                        </span>
+                            This member will no longer
+                            appear in your matches,
+                            interests, views or searches.
+                        </p>
+
+                        <label
+                            for="member-block-comment"
+                            class="form-label">
+
+                            Comment
+                            <span
+                                class="text-danger">
+                                *
+                            </span>
+                        </label>
+
+                        <textarea
+                            id="member-block-comment"
+                            name="comment"
+                            class="form-control<?= (
+                                                    $blockCommentError !== ''
+                                                )
+                                                    ? ' is-invalid'
+                                                    : '' ?>"
+                            rows="4"
+                            maxlength="250"
+                            required
+                            aria-describedby="member-block-comment-error"><?= esc(
+                                                                                old('comment')
+                                                                            ) ?></textarea>
+
+                        <div
+                            id="member-block-comment-error"
+                            class="invalid-feedback">
+
+                            <?= esc(
+                                $blockCommentError
+                                    !== ''
+                                    ? $blockCommentError
+                                    : 'Please enter a comment.'
+                            ) ?>
+                        </div>
+
+                        <div
+                            class="form-text">
+
+                            Maximum 250 characters.
+                        </div>
                     </div>
-                </div>
+
+                    <div
+                        class="modal-footer">
+
+                        <button
+                            type="button"
+                            class="btn btn-light"
+                            data-bs-dismiss="modal">
+
+                            Cancel
+                        </button>
+
+                        <button
+                            type="submit"
+                            class="btn btn-danger
+                                d-inline-flex
+                                align-items-center
+                                justify-content-center
+                                gap-2"
+                            data-member-block-submit>
+
+                            <span
+                                data-member-block-label>
+
+                                Block Member
+                            </span>
+
+                            <span
+                                class="d-none
+                                    align-items-center"
+                                data-member-block-loading>
+
+                                <span
+                                    class="spinner-border
+                                        spinner-border-sm
+                                        me-1"
+                                    aria-hidden="true">
+                                </span>
+
+                                Saving...
+                            </span>
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
-<?php endif; ?>
-<?php if (count($galleryPhotos) > 1): ?>
-    <script>
-        document.addEventListener(
-            'DOMContentLoaded',
-            function() {
-                const modalElement = document.getElementById(
-                    'profileGalleryModal'
-                );
+    <?php if (
+        $isOtherMemberProfileView
+        && isset($memberActionNotice)
+        && is_array(
+            $memberActionNotice
+        )
+    ): ?>
 
-                const carouselElement = document.getElementById(
-                    'profileGalleryCarousel'
-                );
+        <span
+            class="d-none"
+            data-member-action-notice
+            data-notice-title="<?= esc(
+                                    (string) (
+                                        $memberActionNotice['title']
+                                        ?? ''
+                                    ),
+                                    'attr'
+                                ) ?>"
+            data-notice-message="<?= esc(
+                                        (string) (
+                                            $memberActionNotice['message']
+                                            ?? ''
+                                        ),
+                                        'attr'
+                                    ) ?>">
+        </span>
 
-                if (
-                    !modalElement ||
-                    !carouselElement ||
-                    typeof bootstrap === 'undefined'
-                ) {
-                    return;
-                }
-
-                const carousel =
-                    bootstrap.Carousel.getOrCreateInstance(
-                        carouselElement, {
-                            interval: false,
-                            touch: true
-                        }
-                    );
-
-                document.addEventListener(
-                    'click',
-                    function(event) {
-                        const galleryButton =
-                            event.target.closest(
-                                '[data-bs-target="#profileGalleryModal"]'
-                            );
-
-                        if (!galleryButton) {
-                            return;
-                        }
-
-                        const requestedIndex = Number(
-                            galleryButton.dataset.bsSlideTo
-                        );
-
-                        carousel.to(
-                            Number.isInteger(requestedIndex) ?
-                            requestedIndex :
-                            0
-                        );
-                    }
-                );
-            }
-        );
-    </script>
+    <?php endif; ?>
 <?php endif; ?>
 <?php $this->endSection(); ?>

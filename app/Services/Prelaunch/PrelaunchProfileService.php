@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Services\Prelaunch;
 
 use App\Models\Prelaunch\PrelaunchProfileModel;
+use App\Services\Profile\ProfileMasterDataService;
+use App\Models\UserContactModel;
+use App\Support\IndianMobileNormalizer;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\Files\UploadedFile;
 use Config\Prelaunch;
@@ -17,16 +20,19 @@ use Throwable;
 final class PrelaunchProfileService
 {
     /**
-     * @param PrelaunchProfileModel        $profileModel       Profile model.
-     * @param PrelaunchFieldOfficerService $fieldOfficerService Officer resolver.
-     * @param PrelaunchPhotoService        $photoService       Photo service.
-     * @param BaseConnection               $database           DB connection.
-     * @param Prelaunch                    $configuration      Module config.
+     * @param PrelaunchProfileModel        $profileModel
+     * @param PrelaunchFieldOfficerService $fieldOfficerService
+     * @param PrelaunchPhotoService        $photoService
+     * @param ProfileMasterDataService     $profileMasterDataService
+     * @param BaseConnection               $database
+     * @param Prelaunch                    $configuration
      */
     public function __construct(
         private readonly PrelaunchProfileModel $profileModel,
         private readonly PrelaunchFieldOfficerService $fieldOfficerService,
         private readonly PrelaunchPhotoService $photoService,
+        private readonly ProfileMasterDataService $profileMasterDataService,
+        private readonly UserContactModel $userContactModel,
         private readonly BaseConnection $database,
         private readonly Prelaunch $configuration
     ) {}
@@ -123,7 +129,7 @@ final class PrelaunchProfileService
         /*
          * Duplicate values are user-correctable business failures.
          *
-         * Return them against the exact HTML field names so that the
+         * Return them against the exact HTML field names so the
          * controller can send them through validationErrors.
          */
         if (
@@ -138,6 +144,15 @@ final class PrelaunchProfileService
             );
         }
 
+        /*
+        * A member mobile number must be unique across both:
+        *
+        * 1. profiles collected during prelaunch;
+        * 2. existing live member contacts.
+        *
+        * Parent/Guardian contact numbers are deliberately excluded because
+        * one family mobile may legitimately be shared by multiple profiles.
+        */
         if (
             $this->profileModel->mobileExists(
                 $countryCode,
@@ -150,150 +165,267 @@ final class PrelaunchProfileService
             );
         }
 
-        // $fieldOfficerId = (int) (
-        //     $input['verified_field_officer_id']
-        //     ?? 0
-        // );
-
-        // $fieldOfficerCode = (string) (
-        //     $input['field_officer_code']
-        //     ?? ''
-        // );
-
-        // /*
-        //  * Never trust the hidden Field Officer ID alone.
-        //  * Re-check the active officer and code on the server.
-        //  */
-        // try {
-        //     $this->fieldOfficerService
-        //         ->assertVerifiedOfficer(
-        //             $fieldOfficerId,
-        //             $fieldOfficerCode
-        //         );
-        // } catch (RuntimeException) {
-        //     return PrelaunchProfileResult::fieldFailure(
-        //         'field_officer_code',
-        //         'Please verify a valid active Field Officer code.'
-        //     );
-        // }
-
-        /*
-        * The Field Officer is server-configured and never accepted from the
-        * browser. Re-resolve the database record for every profile so an officer
-        * that has been disabled or deleted cannot continue receiving profiles.
-        */
-        $fieldOfficer = $this
-            ->fieldOfficerService
-            ->resolveConfiguredOfficer(
-                $this->configuration
-                    ->profileFieldOfficerId
+        $normalizedMemberMobile =
+            IndianMobileNormalizer::normalize(
+                $countryCode . $mobileNumber
             );
 
-        $fieldOfficerId =
-            (int) $fieldOfficer['id'];
+        if ($normalizedMemberMobile === null) {
+            return PrelaunchProfileResult::fieldFailure(
+                'mobile_number',
+                'Please enter a valid mobile number.'
+            );
+        }
+
+        $existingMemberContact =
+            $this->userContactModel
+            ->findByNormalizedValue(
+                UserContactModel::TYPE_MOBILE,
+                $normalizedMemberMobile
+            );
+
+        if (is_array($existingMemberContact)) {
+            return PrelaunchProfileResult::fieldFailure(
+                'mobile_number',
+                'This mobile number is already registered with an existing member.'
+            );
+        }
+
+        /*
+ * ----------------------------------------------------------
+ * SAK Volunteer RESOLUTION
+ * ----------------------------------------------------------
+ *
+ * Production:
+ *     Explicit SAK Volunteer verification is compulsory.
+ *
+ * QA / Development:
+ *     Preserve the existing automatic configured Field
+ *     Officer behavior exactly as it works today.
+ */
+        if (
+            $this->configuration
+            ->requiresFieldOfficerVerification
+        ) {
+            $submittedFieldOfficerId =
+                (int) (
+                    $input['verified_field_officer_id'] ?? 0
+                );
+
+            $submittedFieldOfficerCode =
+                mb_strtoupper(
+                    trim(
+                        (string) (
+                            $input['field_officer_code'] ?? ''
+                        )
+                    )
+                );
+
+            /*
+     * Revalidate server-side.
+     *
+     * The hidden ID returned by AJAX is browser-controlled
+     * and cannot be trusted by itself.
+     */
+            $fieldOfficer =
+                $this->fieldOfficerService
+                ->assertVerifiedOfficer(
+                    $submittedFieldOfficerId,
+                    $submittedFieldOfficerCode
+                );
+        } else {
+            /*
+     * Existing QA/development behavior.
+     */
+            $fieldOfficer =
+                $this->fieldOfficerService
+                ->resolveConfiguredOfficer(
+                    $this->configuration
+                        ->profileFieldOfficerId
+                );
+        }
+
+        $fieldOfficerId = (int) (
+            $fieldOfficer['id']
+            ?? 0
+        );
+
+        if ($fieldOfficerId <= 0) {
+            throw new RuntimeException(
+                'The SAK Volunteer is invalid.'
+            );
+        }
 
         $profileReference =
             $this->generateReference();
 
+        $parentContactNumber =
+            $this->normalizeOptionalParentContact(
+                $input['parent_contact_number']
+                    ?? null
+            );
+
+        $educationId = (int) (
+            $input['highest_education_id']
+            ?? 0
+        );
+
+        $occupationId = (int) (
+            $input['occupation_id']
+            ?? 0
+        );
+
+        /*
+         * Prelaunch does not collect annual income, so NULL is
+         * passed for that optional selection.
+         *
+         * Reuse the same active-master validation as the live
+         * member Education & Profession flow.
+         */
+        $this->profileMasterDataService
+            ->assertValidEducationProfessionSelection(
+                $educationId,
+                $occupationId,
+                null
+            );
+
+        $this->database->transException(true);
         $this->database->transBegin();
 
         try {
-            $profileId =
-                $this->profileModel->insert(
-                    [
-                        'profile_reference' =>
-                        $profileReference,
+            $profileId = $this->profileModel->insert(
+                [
+                    'profile_reference' =>
+                    $profileReference,
 
-                        'profile_created_for' =>
-                        $profileCreatedFor,
+                    'profile_created_for' =>
+                    $profileCreatedFor,
 
-                        'gender' =>
-                        $gender,
+                    'gender' =>
+                    $gender,
 
-                        'full_name' =>
-                        trim(
-                            (string) $input['full_name']
-                        ),
+                    'full_name' =>
+                    trim(
+                        (string) (
+                            $input['full_name']
+                            ?? ''
+                        )
+                    ),
 
-                        'date_of_birth' =>
-                        (string) $input['date_of_birth'],
+                    'date_of_birth' =>
+                    (string) (
+                        $input['date_of_birth']
+                        ?? ''
+                    ),
 
-                        'email' =>
-                        $email,
+                    'email' =>
+                    $email,
 
-                        'country_code' =>
-                        $countryCode,
+                    'country_code' =>
+                    $countryCode,
 
-                        'mobile_number' =>
-                        $mobileNumber,
+                    'mobile_number' =>
+                    $mobileNumber,
 
-                        'marital_status_id' =>
-                        (int) $input['marital_status_id'],
+                    'marital_status_id' =>
+                    (int) (
+                        $input['marital_status_id']
+                        ?? 0
+                    ),
 
-                        'height_id' =>
-                        (int) $input['height_id'],
+                    'height_id' =>
+                    (int) (
+                        $input['height_id']
+                        ?? 0
+                    ),
 
-                        'country_id' =>
-                        (int) $input['country_id'],
+                    'country_id' =>
+                    (int) (
+                        $input['country_id']
+                        ?? 0
+                    ),
 
-                        'state_id' =>
-                        (int) $input['state_id'],
+                    'state_id' =>
+                    (int) (
+                        $input['state_id']
+                        ?? 0
+                    ),
 
-                        'city_id' =>
-                        (int) $input['city_id'],
+                    'city_id' =>
+                    (int) (
+                        $input['city_id']
+                        ?? 0
+                    ),
 
-                        'highest_education_id' =>
-                        (int) $input['highest_education_id'],
+                    /*
+                     * Use the already normalized and validated IDs.
+                     */
+                    'highest_education_id' =>
+                    $educationId,
 
-                        'employed_in' =>
-                        (string) $input['employed_in'],
+                    'employed_in' =>
+                    (string) (
+                        $input['employed_in']
+                        ?? ''
+                    ),
 
-                        'occupation_id' =>
-                        (int) $input['occupation_id'],
+                    'occupation_id' =>
+                    $occupationId,
 
-                        'father_name' =>
-                        trim(
-                            (string) $input['father_name']
-                        ),
+                    'father_name' =>
+                    trim(
+                        (string) (
+                            $input['father_name']
+                            ?? ''
+                        )
+                    ),
 
-                        'mother_name' =>
-                        trim(
-                            (string) $input['mother_name']
-                        ),
+                    'mother_name' =>
+                    trim(
+                        (string) (
+                            $input['mother_name']
+                            ?? ''
+                        )
+                    ),
 
-                        'sikh_community_id' =>
-                        (int) $input['sikh_community_id'],
+                    'parent_contact_number' =>
+                    $parentContactNumber,
 
-                        'gotra' =>
-                        $gotra,
+                    'sikh_community_id' =>
+                    (int) (
+                        $input['sikh_community_id']
+                        ?? 0
+                    ),
 
-                        'nearest_gurudwara' =>
-                        $nearestGurudwara,
+                    'gotra' =>
+                    $gotra,
 
+                    'nearest_gurudwara' =>
+                    $nearestGurudwara,
 
-                        'field_officer_id' =>
-                        $fieldOfficerId,
+                    'field_officer_id' =>
+                    $fieldOfficerId,
 
-                        /*
-                         * The creator is the verified Field Officer for
-                         * this standalone data-entry workflow.
-                         */
-                        'created_by' =>
-                        $fieldOfficerId,
+                    /*
+                     * The creator is the configured SAK Volunteer
+                     * for this standalone data-entry workflow.
+                     */
+                    'created_by' =>
+                    $fieldOfficerId,
 
-                        'created_source' =>
-                        PrelaunchProfileModel
-                        ::CREATED_SOURCE_FIELD_OFFICER,
+                    'created_source' =>
+                    PrelaunchProfileModel
+                    ::CREATED_SOURCE_FIELD_OFFICER,
 
-                        'is_prelaunch_profile' =>
-                        true,
+                    'is_prelaunch_profile' =>
+                    true,
 
-                        'status' =>
-                        PrelaunchProfileModel
-                        ::STATUS_DRAFT,
-                    ],
-                    true
-                );
+                    'status' =>
+                    PrelaunchProfileModel
+                    ::STATUS_DRAFT,
+                ],
+                true
+            );
 
             if ($profileId === false) {
                 throw new RuntimeException(
@@ -324,19 +456,22 @@ final class PrelaunchProfileService
                 $profileReference
             );
         } catch (Throwable $exception) {
-            $this->database->transRollback();
+            if (
+                $this->database->transStatus()
+                !== null
+            ) {
+                $this->database->transRollback();
+            }
 
             throw $exception;
         }
     }
 
     /**
-     * Resolve and enforce Gender according to Profile Created For.
+     * Resolve and enforce gender according to Profile Created For.
      *
      * Gender supplied by the browser is never trusted for relationships
      * where the relationship itself determines the member's gender.
-     *
-     * @throws RuntimeException
      */
     private function resolveGender(
         string $profileCreatedFor,
@@ -376,8 +511,6 @@ final class PrelaunchProfileService
                 $normalizedRelationship,
                 [
                     'SELF',
-                    'RELATIVE',
-                    'FRIEND',
                 ],
                 true
             )
@@ -423,15 +556,15 @@ final class PrelaunchProfileService
                     )
                 );
 
-            if (
+            $existingProfile =
                 $this->profileModel
                 ->where(
                     'profile_reference',
                     $reference
                 )
-                ->first()
-                === null
-            ) {
+                ->first();
+
+            if ($existingProfile === null) {
                 return $reference;
             }
         }
@@ -439,5 +572,48 @@ final class PrelaunchProfileService
         throw new RuntimeException(
             'A unique profile reference could not be generated.'
         );
+    }
+
+    /**
+     * Normalize an optional parent mobile number.
+     *
+     * The field is not used for authentication and is not subject to
+     * member-contact uniqueness rules.
+     */
+    private function normalizeOptionalParentContact(
+        mixed $value
+    ): ?string {
+        $submittedValue = trim(
+            (string) $value
+        );
+
+        if ($submittedValue === '') {
+            return null;
+        }
+
+        $normalized =
+            IndianMobileNormalizer::normalize(
+                $submittedValue
+            );
+
+        if ($normalized === null) {
+            /*
+             * The browser submits the national ten-digit value.
+             * Prefix +91 when the normalizer expects a complete
+             * Indian number.
+             */
+            $normalized =
+                IndianMobileNormalizer::normalize(
+                    '+91' . $submittedValue
+                );
+        }
+
+        if ($normalized === null) {
+            throw new RuntimeException(
+                'Please enter a valid parent contact number.'
+            );
+        }
+
+        return $normalized;
     }
 }

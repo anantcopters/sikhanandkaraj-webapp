@@ -78,4 +78,62 @@ final class PrelaunchPhotoModel extends Model
             )
             ->countAllResults();
     }
+
+    /**
+     * Return approved active photos for migration.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findApprovedByProfile(
+        int $profileId
+    ): array {
+        if ($profileId <= 0) {
+            return [];
+        }
+
+        return $this
+            ->where(
+                'prelaunch_profile_id',
+                $profileId
+            )
+            ->where(
+                'approval_status',
+                self::STATUS_APPROVED
+            )
+            ->where(
+                'deleted_at',
+                null
+            )
+            ->orderBy(
+                'sequence_no',
+                'ASC'
+            )
+            ->findAll();
+    }
+
+    /**
+     * Count approved photos for a prelaunch profile.
+     */
+    public function countApprovedByProfile(
+        int $profileId
+    ): int {
+        if ($profileId <= 0) {
+            return 0;
+        }
+
+        return $this
+            ->where(
+                'prelaunch_profile_id',
+                $profileId
+            )
+            ->where(
+                'approval_status',
+                self::STATUS_APPROVED
+            )
+            ->where(
+                'deleted_at',
+                null
+            )
+            ->countAllResults();
+    }
 }

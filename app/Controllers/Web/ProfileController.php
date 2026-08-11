@@ -7,7 +7,6 @@ namespace App\Controllers\Web;
 use App\Controllers\BaseController;
 use App\Services\Profile\BasicDetailsService;
 use App\Services\Profile\EducationProfessionService;
-use App\Services\Profile\ProfileCompletionService;
 use App\Validation\Profile\BasicDetailsValidation;
 use App\Validation\Profile\EducationProfessionValidation;
 use App\Services\Profile\FamilyDetailsService;
@@ -16,11 +15,13 @@ use App\Services\Profile\LifestyleService;
 use App\Validation\Profile\LifestyleValidation;
 use App\Services\Profile\AboutMeService;
 use App\Validation\Profile\AboutMeValidation;
-use App\Services\Profile\MemberPhotoUrlService;
 use App\Services\Profile\MemberPhotoService;
 use App\Services\Profile\MemberProfileSummaryService;
+use App\Support\ProfileErrorContext;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
+use CodeIgniter\HTTP\ResponseInterface;
+use App\Support\BooleanValue;
 use DomainException;
 use Throwable;
 
@@ -111,9 +112,11 @@ final class ProfileController extends BaseController
     /**
      * Display the authenticated member's public-profile preview.
      *
-     * The page reuses the existing profile-summary and photo services.
-     * Only approved photos are exposed in the preview because pending or
-     * rejected photos are not visible to other members.
+     * Initial image signing:
+     *
+     * - main approved photo: medium;
+     * - approved gallery photos: thumbnail;
+     * - original photos: not generated during initial rendering.
      */
     public function view(): string
     {
@@ -124,49 +127,41 @@ final class ProfileController extends BaseController
             'memberProfileSummaryService'
         );
 
-        /** @var MemberPhotoService $memberPhotoService */
-        $memberPhotoService = service(
-            'memberPhotoService'
-        );
-
-        $profileSummary = $profileSummaryService->getForUser(
-            $userId
-        );
-
-        $photoData = $memberPhotoService->getForMember(
-            $userId
+        /** @var MemberPhotoUrlService $photoUrlService */
+        $photoUrlService = service(
+            'memberPhotoUrlService'
         );
 
         /*
-        * The member preview should match what another member can see.
-        * Photos pending administrator approval must not appear here.
-        */
-        $approvedPhotos = array_values(
-            array_filter(
-                $photoData['photos'] ?? [],
-                static function (mixed $photo): bool {
-                    if (!is_array($photo)) {
-                        return false;
-                    }
+     * MemberProfileSummaryService already requests the approved primary
+     * image using the medium variant.
+     */
+        $profileSummary = $profileSummaryService
+            ->getForUser(
+                $userId
+            );
 
-                    return strtoupper(
-                        trim(
-                            (string) (
-                                $photo['status']
-                                ?? ''
-                            )
-                        )
-                    ) === 'APPROVED';
-                }
-            )
-        );
+        /*
+     * Gallery data contains thumbnail URLs only.
+     */
+        $approvedPhotos = $photoUrlService
+            ->getApprovedThumbnailPhotos(
+                $userId
+            );
 
         return view(
             'Pages/Profile/View',
             array_merge(
                 [
-                    'pageTitle' => 'View Profile',
-                    'approvedPhotos' => $approvedPhotos,
+                    'pageTitle' =>
+                    'View Profile',
+
+                    'approvedPhotos' =>
+                    $approvedPhotos,
+
+                    'pageScripts' => [
+                        'assets/js/pages/profile-view.js',
+                    ],
                 ],
                 $profileSummary
             )
@@ -289,14 +284,28 @@ final class ProfileController extends BaseController
                 ]
             );
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Basic profile update failed for user {userId}: '
-                    . '{message}',
-                [
-                    'userId' => $userId,
-                    'message' => $exception->getMessage(),
-                ]
+                ProfileErrorContext::forMember(
+                    memberId: $userId,
+
+                    operation: 'profile_basic_details_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'profile_section' =>
+                        'BASIC_DETAILS',
+
+                        'journey_mode' =>
+                        $this->isProfileJourney(),
+                    ]
+                )
             );
 
             return redirect()
@@ -306,13 +315,20 @@ final class ProfileController extends BaseController
                     )
                 )
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Details not saved',
-                    'message' =>
-                    'We could not save your details. '
-                        . 'Please try again.',
-                ]);
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Details not saved',
+
+                        'message' =>
+                        'We could not save your details. '
+                            . 'Please try again.',
+                    ]
+                );
         }
     }
 
@@ -423,14 +439,37 @@ final class ProfileController extends BaseController
                     'message' => $exception->getMessage(),
                 ]);
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Lifestyle update failed for user {userId}: '
-                    . '{message}',
-                [
-                    'userId' => $userId,
-                    'message' => $exception->getMessage(),
-                ]
+                ProfileErrorContext::forMember(
+                    memberId: $userId,
+
+                    operation: 'profile_lifestyle_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'profile_section' =>
+                        'LIFESTYLE',
+
+                        'journey_mode' =>
+                        $this->isProfileJourney(),
+
+                        /*
+                 * Store only the count, not selected option IDs.
+                 */
+                        'submitted_option_count' =>
+                        count(
+                            $input['lifestyle_option_ids']
+                                ?? []
+                        ),
+                    ]
+                )
             );
 
             return redirect()
@@ -440,13 +479,20 @@ final class ProfileController extends BaseController
                     )
                 )
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Lifestyle not saved',
-                    'message' =>
-                    'We could not save your lifestyle details. '
-                        . 'Please try again.',
-                ]);
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Lifestyle not saved',
+
+                        'message' =>
+                        'We could not save your lifestyle details. '
+                            . 'Please try again.',
+                    ]
+                );
         }
     }
 
@@ -491,22 +537,6 @@ final class ProfileController extends BaseController
         }
 
         return $url . '?journey=1';
-    }
-
-    /**
-     * Resolve the authenticated user identifier.
-     */
-    private function authenticatedUserId(): int
-    {
-        $userId = session('auth_user_id');
-
-        if (!is_numeric($userId)) {
-            session()->destroy();
-
-            throw PageNotFoundException::forPageNotFound();
-        }
-
-        return (int) $userId;
     }
 
     /**
@@ -748,14 +778,28 @@ final class ProfileController extends BaseController
                     'message' => $exception->getMessage(),
                 ]);
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Education and profession update failed '
-                    . 'for user {userId}: {message}',
-                [
-                    'userId' => $userId,
-                    'message' => $exception->getMessage(),
-                ]
+                ProfileErrorContext::forMember(
+                    memberId: $userId,
+
+                    operation: 'profile_education_profession_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'profile_section' =>
+                        'EDUCATION_PROFESSION',
+
+                        'journey_mode' =>
+                        $this->isProfileJourney(),
+                    ]
+                )
             );
 
             return redirect()
@@ -765,13 +809,20 @@ final class ProfileController extends BaseController
                     )
                 )
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Details not saved',
-                    'message' =>
-                    'We could not save your details. '
-                        . 'Please try again.',
-                ]);
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Details not saved',
+
+                        'message' =>
+                        'We could not save your details. '
+                            . 'Please try again.',
+                    ]
+                );
         }
     }
 
@@ -879,6 +930,158 @@ final class ProfileController extends BaseController
     }
 
     /**
+     * Verify an optional SAK Volunteer ID for Family Details.
+     *
+     * Successful verification is stored server-side in the
+     * authenticated member session. The Family Details save
+     * operation requires this verification state when assigning
+     * a SAK Volunteer for the first time.
+     */
+    public function verifyFamilyFieldOfficer(): ResponseInterface
+    {
+        $userId = $this->authenticatedUserId();
+
+        $officerCode = strtoupper(
+            trim(
+                (string) $this->request
+                    ->getPost('code')
+            )
+        );
+
+        try {
+            /** @var FamilyDetailsService $service */
+            $service = service(
+                'familyDetailsService'
+            );
+
+            $fieldOfficer =
+                $service
+                ->verifyFieldOfficerCode(
+                    $officerCode
+                );
+
+            /*
+         * Store verification only on the server.
+         *
+         * Never accept field_officer_id from the browser.
+         */
+            session()->set(
+                'familyFieldOfficerVerification',
+                [
+                    'user_id' =>
+                    $userId,
+
+                    'field_officer_id' =>
+                    (int) $fieldOfficer['id'],
+
+                    'officer_code' =>
+                    (string) $fieldOfficer['officer_code'],
+
+                    'verified_at' =>
+                    time(),
+                ]
+            );
+
+            return $this->response
+                ->setJSON([
+                    'success' =>
+                    true,
+
+                    'data' => [
+                        'officer_code' =>
+                        $fieldOfficer['officer_code'],
+
+                        'full_name' =>
+                        $fieldOfficer['full_name'],
+                    ],
+
+                    /*
+                 * CSRF regenerates after POST in this project.
+                 * Return the new token so the Family Details
+                 * form can submit successfully afterwards.
+                 */
+                    'csrf' => [
+                        'name' =>
+                        csrf_token(),
+
+                        'hash' =>
+                        csrf_hash(),
+                    ],
+                ]);
+        } catch (DomainException $exception) {
+            /*
+         * Failed verification must invalidate any previous
+         * temporary SAK Volunteer verification.
+         */
+            session()->remove(
+                'familyFieldOfficerVerification'
+            );
+
+            return $this->response
+                ->setStatusCode(422)
+                ->setJSON([
+                    'success' =>
+                    false,
+
+                    'message' =>
+                    $exception->getMessage(),
+
+                    'csrf' => [
+                        'name' =>
+                        csrf_token(),
+
+                        'hash' =>
+                        csrf_hash(),
+                    ],
+                ]);
+        } catch (Throwable $exception) {
+            session()->remove(
+                'familyFieldOfficerVerification'
+            );
+
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                ProfileErrorContext::forMember(
+                    memberId: $userId,
+
+                    operation: 'profile_field_officer_verify',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'profile_section' =>
+                        'FAMILY_DETAILS',
+                    ]
+                )
+            );
+
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'success' =>
+                    false,
+
+                    'message' =>
+                    'The SAK Volunteer ID could '
+                        . 'not be verified. Please try again.',
+
+                    'csrf' => [
+                        'name' =>
+                        csrf_token(),
+
+                        'hash' =>
+                        csrf_hash(),
+                    ],
+                ]);
+        }
+    }
+
+    /**
      * Save the Family Details profile section.
      */
     public function updateFamilyDetails(): RedirectResponse
@@ -913,9 +1116,27 @@ final class ProfileController extends BaseController
             /** @var FamilyDetailsService $service */
             $service = service('familyDetailsService');
 
+            $fieldOfficerVerification =
+                session()->get(
+                    'familyFieldOfficerVerification'
+                );
+
             $service->save(
                 $userId,
-                $validatedData
+                $validatedData,
+                is_array($fieldOfficerVerification)
+                    ? $fieldOfficerVerification
+                    : null
+            );
+
+            /*
+ * A verification can only be consumed once.
+ *
+ * The actual SAK Volunteer assignment is now permanently
+ * stored in member_family_details.
+ */
+            session()->remove(
+                'familyFieldOfficerVerification'
             );
 
             $redirectUrl = $this->isProfileJourney()
@@ -947,14 +1168,28 @@ final class ProfileController extends BaseController
                     'message' => $exception->getMessage(),
                 ]);
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Family details update failed for user '
-                    . '{userId}: {message}',
-                [
-                    'userId' => $userId,
-                    'message' => $exception->getMessage(),
-                ]
+                ProfileErrorContext::forMember(
+                    memberId: $userId,
+
+                    operation: 'profile_family_details_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'profile_section' =>
+                        'FAMILY_DETAILS',
+
+                        'journey_mode' =>
+                        $this->isProfileJourney(),
+                    ]
+                )
             );
 
             return redirect()
@@ -964,13 +1199,20 @@ final class ProfileController extends BaseController
                     )
                 )
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'Details not saved',
-                    'message' =>
-                    'We could not save your family details. '
-                        . 'Please try again.',
-                ]);
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Details not saved',
+
+                        'message' =>
+                        'We could not save your family details. '
+                            . 'Please try again.',
+                    ]
+                );
         }
     }
 
@@ -1220,14 +1462,39 @@ final class ProfileController extends BaseController
                     'message' => $exception->getMessage(),
                 ]);
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'About Me update failed for user {userId}: '
-                    . '{message}',
-                [
-                    'userId' => $userId,
-                    'message' => $exception->getMessage(),
-                ]
+                ProfileErrorContext::forMember(
+                    memberId: $userId,
+
+                    operation: 'profile_about_me_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'profile_section' =>
+                        'ABOUT_ME',
+
+                        'journey_mode' =>
+                        $this->isProfileJourney(),
+
+                        /*
+                 * Store only text length. Never store the About Me text.
+                 */
+                        'submitted_length' =>
+                        mb_strlen(
+                            (string) (
+                                $input['about_me']
+                                ?? ''
+                            )
+                        ),
+                    ]
+                )
             );
 
             return redirect()
@@ -1237,13 +1504,20 @@ final class ProfileController extends BaseController
                     )
                 )
                 ->withInput()
-                ->with('formAlert', [
-                    'type' => 'danger',
-                    'title' => 'About Me not saved',
-                    'message' =>
-                    'We could not save your introduction. '
-                        . 'Please try again.',
-                ]);
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'About Me not saved',
+
+                        'message' =>
+                        'We could not save your introduction. '
+                            . 'Please try again.',
+                    ]
+                );
         }
     }
 
@@ -1296,6 +1570,16 @@ final class ProfileController extends BaseController
                     'mother_name'
                 )
             ),
+
+            'parent_contact_number' =>
+            preg_replace(
+                '/\D+/',
+                '',
+                (string) $this->request
+                    ->getPost(
+                        'parent_contact_number'
+                    )
+            ) ?? '',
 
             'father_occupation_id' => trim(
                 (string) $this->request->getPost(
@@ -1357,6 +1641,15 @@ final class ProfileController extends BaseController
             $this->normalizeProfileText(
                 $this->request->getPost(
                     'reference_person_2'
+                )
+            ),
+
+            'field_officer_code' => strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'field_officer_code'
+                        )
                 )
             ),
         ];

@@ -133,8 +133,6 @@ $profileForOptions = [
     'DAUGHTER' => 'Daughter',
     'BROTHER' => 'Brother',
     'SISTER' => 'Sister',
-    'RELATIVE' => 'Relative',
-    'FRIEND' => 'Friend',
 ];
 
 $genderOptions = [
@@ -182,7 +180,6 @@ $genderOptions = [
                                         ) ?>"
                     aria-describedby="profile_created_forError"
                     data-choice
-                    data-choices
                     data-choice-search="false"
                     data-choice-position="bottom"
                     data-error-required="Please select who this profile is for."
@@ -234,8 +231,6 @@ $genderOptions = [
                 [
                     '',
                     'SELF',
-                    'RELATIVE',
-                    'FRIEND',
                 ],
                 true
             );
@@ -269,7 +264,6 @@ $genderOptions = [
                     aria-describedby="genderError"
                     data-error-required="Please select gender."
                     data-choice
-                    data-choices
                     data-choice-search="false"
                     data-choice-position="bottom"
                     <?= $genderMustBeSelected
@@ -468,7 +462,7 @@ $genderOptions = [
                                     $mobileNumber,
                                     'attr'
                                 ) ?>"
-                        aria-describedby="mobile_numberError"
+                        aria-describedby="mobile_numberError femaleMobileRecommendation"
                         placeholder="Enter mobile number"
                         inputmode="numeric"
                         pattern="[6-9][0-9]{9}"
@@ -487,7 +481,11 @@ $genderOptions = [
                         data-validation-error="mobile_number">
                         <?= esc($mobileDisplayError) ?>
                     </div>
+
                 </div>
+                <?= view(
+                    'Components/Forms/FemaleMobileRecommendation'
+                ) ?>
             </div>
         </div>
     </div>

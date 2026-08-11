@@ -144,6 +144,154 @@ final class ProfileMasterDataService
     }
 
     /**
+     * Return active master data required by Basic Partner Preference.
+     *
+     * Existing profile master-model methods are reused so that partner
+     * preferences and member profile details use the same active options.
+     *
+     * @return array{
+     *     maritalStatuses: array<int, array<string, mixed>>,
+     *     heights: array<int, array<string, mixed>>,
+     *     motherTongues: array<int, array<string, mixed>>,
+     *     drinkingHabits: array<int, array<string, mixed>>,
+     *     eatingHabits: array<int, array<string, mixed>>,
+     *     physicalStatuses: array<int, array<string, mixed>>
+     * }
+     */
+    public function partnerBasicPreferenceOptions(): array
+    {
+        return [
+            'maritalStatuses' =>
+            $this->maritalStatusModel
+                ->activeOptions(),
+
+            'heights' =>
+            $this->heightModel
+                ->activeOptions(),
+
+            'motherTongues' =>
+            $this->motherTongueModel
+                ->activeOptions(),
+
+            'drinkingHabits' =>
+            $this->drinkingHabitModel
+                ->activeOptions(),
+
+            'eatingHabits' =>
+            $this->eatingHabitModel
+                ->activeOptions(),
+
+            'physicalStatuses' =>
+            $this->physicalStatusModel
+                ->activeOptions(),
+        ];
+    }
+
+    /**
+     * Return active master values used by partner preferences.
+     *
+     * Flat Education and Occupation collections are retained for:
+     *
+     * - server-side submitted-ID validation;
+     * - summary label resolution;
+     * - backward-compatible consumers.
+     *
+     * Grouped collections are supplied separately for searchable
+     * category-based multi-select rendering.
+     *
+     * @return array<string, mixed>
+     */
+    public function additionalPartnerPreferenceOptions(): array
+    {
+        $india = $this->countryModel->findIndia();
+
+        if (!is_array($india)) {
+            throw new DomainException(
+                'India master data is not configured.'
+            );
+        }
+
+        return [
+            'communities' =>
+            $this->communityModel
+                ->activeOptions(),
+
+            /*
+         * Flat education collection.
+         *
+         * AdditionalPartnerPreferenceService uses this collection
+         * to validate selected IDs and resolve summary labels.
+         */
+            'educations' =>
+            $this->educationModel
+                ->activeOptions(),
+
+            /*
+         * Grouped collection used only by the Partner Preference UI.
+         */
+            'educationGroups' =>
+            $this->educationModel
+                ->activeGroupedOptions(),
+
+            'employmentTypes' => [
+                [
+                    'value' => 'GOVERNMENT_PSU',
+                    'label' => 'Government / PSU',
+                ],
+                [
+                    'value' => 'PRIVATE',
+                    'label' => 'Private',
+                ],
+                [
+                    'value' => 'BUSINESS',
+                    'label' => 'Business',
+                ],
+                [
+                    'value' => 'DEFENSE',
+                    'label' => 'Defense',
+                ],
+                [
+                    'value' => 'SELF_EMPLOYED',
+                    'label' => 'Self Employed',
+                ],
+                [
+                    'value' => 'NOT_WORKING',
+                    'label' => 'Not Working',
+                ],
+            ],
+
+            /*
+         * Keep flat occupations because the service validates
+         * submitted occupation IDs against this collection and
+         * uses it for summary labels.
+         */
+            'occupations' =>
+            $this->occupationModel
+                ->activeOptions(),
+
+            /*
+         * Grouped collection for category-based UI rendering.
+         */
+            'occupationGroups' =>
+            $this->occupationModel
+                ->activeGroupedOptions(),
+
+            'annualIncomes' =>
+            $this->annualIncomeModel
+                ->activeOptions(),
+
+            'country' =>
+            $india,
+
+            'states' =>
+            $this->stateModel
+                ->activeForCountry(
+                    (int) $india['id']
+                ),
+        ];
+    }
+
+    /**
      * Determine whether an active marital status represents Never Married.
      */
     public function isNeverMarried(
@@ -209,6 +357,40 @@ final class ProfileMasterDataService
         }
 
         return $this->cityModel->activeForState($stateId);
+    }
+
+    /**
+     * Return active cities for multiple states.
+     *
+     * @param list<int> $stateIds
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function citiesForStates(
+        array $stateIds
+    ): array {
+        $normalizedStateIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $stateIds
+                    ),
+                    static fn(int $stateId): bool =>
+                    $stateId > 0
+                )
+            )
+        );
+
+        if ($normalizedStateIds === []) {
+            return [];
+        }
+
+        return $this
+            ->cityModel
+            ->activeForStates(
+                $normalizedStateIds
+            );
     }
 
     public function assertValidSelection(
@@ -291,24 +473,40 @@ final class ProfileMasterDataService
     /**
      * Return master data required by Education & Profession.
      *
+     * Flat collections remain available for backward compatibility.
+     * Grouped collections are used by member and prelaunch selects.
+     *
      * @return array<string, mixed>
      */
     public function educationProfessionOptions(): array
     {
         return [
+            /*
+            * Preserve the existing flat contract.
+            */
             'educations' =>
-            $this->educationModel->activeOptions(),
-
-            'occupations' =>
-            $this->occupationModel->activeOptions(),
-
-            'annualIncomes' =>
-            $this->annualIncomeModel->activeOptions(),
+            $this->educationModel
+                ->activeOptions(),
 
             /*
-         * Keep enum values centralized here rather than duplicating
-         * them in the view and service.
-         */
+            * Member and prelaunch forms use optgroups.
+            */
+            'educationGroups' =>
+            $this->educationModel
+                ->activeGroupedOptions(),
+
+            'occupations' =>
+            $this->occupationModel
+                ->activeOptions(),
+
+            'occupationGroups' =>
+            $this->occupationModel
+                ->activeGroupedOptions(),
+
+            'annualIncomes' =>
+            $this->annualIncomeModel
+                ->activeOptions(),
+
             'employmentTypes' => [
                 [
                     'value' => 'GOVERNMENT_PSU',
@@ -347,12 +545,29 @@ final class ProfileMasterDataService
         ?int $annualIncomeId
     ): void {
         $education = $this->educationModel
-            ->where('id', $educationId)
-            ->where('is_active', true)
+            ->select('master_educations.id')
+            ->join(
+                'master_education_categories',
+                'master_education_categories.id = '
+                    . 'master_educations.category_id',
+                'inner'
+            )
+            ->where(
+                'master_educations.id',
+                $educationId
+            )
+            ->where(
+                'master_educations.is_active',
+                true
+            )
+            ->where(
+                'master_education_categories.is_active',
+                true
+            )
             ->first();
 
         if (!is_array($education)) {
-            throw new \DomainException(
+            throw new DomainException(
                 'Please select a valid highest education.'
             );
         }

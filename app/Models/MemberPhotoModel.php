@@ -11,6 +11,27 @@ use CodeIgniter\Model;
  */
 final class MemberPhotoModel extends Model
 {
+
+    /**
+     * Photograph is awaiting administrator moderation.
+     */
+    public const STATUS_PENDING = 'PENDING';
+
+    /**
+     * Photograph is approved for authorized member-facing display.
+     */
+    public const STATUS_APPROVED = 'APPROVED';
+
+    /**
+     * Photograph was rejected but remains privately retained until deleted.
+     */
+    public const STATUS_REJECTED = 'REJECTED';
+
+    /**
+     * Photograph is logically deleted and must not be displayed.
+     */
+    public const STATUS_DELETED = 'DELETED';
+
     protected $table = 'member_photos';
 
     protected $primaryKey = 'id';
@@ -43,6 +64,7 @@ final class MemberPhotoModel extends Model
         'rejected_at',
         'rejection_reason',
         'deleted_at',
+        'prelaunch_photo_id',
     ];
 
     protected $useTimestamps = true;
@@ -187,5 +209,164 @@ final class MemberPhotoModel extends Model
             ->where('status', 'APPROVED')
             ->where('deleted_at', null)
             ->countAllResults();
+    }
+
+    /**
+     * Return all approved active photos belonging to a member.
+     *
+     * Only columns needed for the thumbnail gallery are selected. Original
+     * object keys are deliberately excluded from the initial profile query.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findApprovedForMember(
+        int $memberId
+    ): array {
+        return $this
+            ->select([
+                'id',
+                'member_id',
+                'thumbnail_object_key',
+                'is_primary',
+                'status',
+                'created_at',
+            ])
+            ->where(
+                'member_id',
+                $memberId
+            )
+            ->where(
+                'status',
+                'APPROVED'
+            )
+            ->where(
+                'deleted_at',
+                null
+            )
+            ->orderBy(
+                'is_primary',
+                'DESC'
+            )
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->orderBy(
+                'id',
+                'DESC'
+            )
+            ->findAll();
+    }
+
+    /**
+     * Find one approved active photo owned by a member.
+     *
+     * Ownership, approval and active-state checks must all pass
+     * before a member-facing medium URL can be generated.
+     *
+     * Original object keys are deliberately excluded.
+     */
+    public function findOwnedApprovedPhoto(
+        int $photoId,
+        int $memberId
+    ): ?array {
+        $photo = $this
+            ->select([
+                'id',
+                'member_id',
+                'medium_object_key',
+                'is_primary',
+                'status',
+            ])
+            ->where(
+                'id',
+                $photoId
+            )
+            ->where(
+                'member_id',
+                $memberId
+            )
+            ->where(
+                'status',
+                'APPROVED'
+            )
+            ->where(
+                'deleted_at',
+                null
+            )
+            ->first();
+
+        return is_array($photo)
+            ? $photo
+            : null;
+    }
+
+    /**
+     * Check whether a staged prelaunch photo was already migrated.
+     */
+    public function prelaunchPhotoWasMigrated(
+        int $prelaunchPhotoId
+    ): bool {
+        if ($prelaunchPhotoId <= 0) {
+            return false;
+        }
+
+        return $this
+            ->where(
+                'prelaunch_photo_id',
+                $prelaunchPhotoId
+            )
+            ->countAllResults() > 0;
+    }
+
+    /**
+     * Return approved active photos for another-member gallery authorization.
+     *
+     * Visibility is returned because the service layer must decide whether the
+     * authenticated viewer may see each photograph.
+     *
+     * Original object keys are deliberately excluded.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findApprovedForViewerGallery(
+        int $memberId
+    ): array {
+        return $this
+            ->select([
+                'id',
+                'member_id',
+                'thumbnail_object_key',
+                'medium_object_key',
+                'is_primary',
+                'status',
+                'visibility',
+                'created_at',
+            ])
+            ->where(
+                'member_id',
+                $memberId
+            )
+            ->where(
+                'status',
+                self::STATUS_APPROVED
+            )
+            ->where(
+                'deleted_at',
+                null
+            )
+            ->orderBy(
+                'is_primary',
+                'DESC'
+            )
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->orderBy(
+                'id',
+                'DESC'
+            )
+            ->findAll();
     }
 }

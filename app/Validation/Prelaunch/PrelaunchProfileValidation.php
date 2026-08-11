@@ -13,13 +13,16 @@ final class PrelaunchProfileValidation
 {
 
     private const NEAREST_GURUDWARA_MAX_LENGTH = 300;
+
+    private const PARENT_CONTACT_NUMBER_LENGTH = 10;
     /**
      * Return the complete profile-creation validation rules.
      *
      * @return array<string, array<string, mixed>>
      */
-    public static function createRules(): array
-    {
+    public static function createRules(
+        bool $requireFieldOfficerVerification = false
+    ): array {
         /*
          * Reuse shared basic-profile validation and remove only fields
          * which are intentionally not part of the prelaunch workflow.
@@ -49,14 +52,14 @@ final class PrelaunchProfileValidation
             ],
         ];
 
-        return array_merge(
+        $rules = array_merge(
             $rules,
             [
                 'profile_created_for' => [
                     'label' => 'Profile created for',
                     'rules' => [
                         'required',
-                        'in_list[SELF,SON,DAUGHTER,BROTHER,SISTER,RELATIVE,FRIEND]',
+                        'in_list[SELF,SON,DAUGHTER,BROTHER,SISTER]',
                     ],
                     'errors' => [
                         'required' =>
@@ -181,6 +184,21 @@ final class PrelaunchProfileValidation
                     'Mother’s name'
                 ),
 
+                'parent_contact_number' => [
+                    'label' => 'Any Parent/Guradian Contact Number',
+                    'rules' => [
+                        'required',
+                        'regex_match[/^[6-9][0-9]{9}$/]',
+                    ],
+                    'errors' => [
+                        'required' =>
+                        'Please enter a contact number for either parent/guardian.',
+
+                        'regex_match' =>
+                        'Please enter a valid 10-digit Indian parent/guardian contact number.',
+                    ],
+                ],
+
                 'sikh_community_id' => self::masterRule(
                     'Community'
                 ),
@@ -212,12 +230,15 @@ final class PrelaunchProfileValidation
                 'nearest_gurudwara' => [
                     'label' => 'Nearest Gurudwara',
                     'rules' => [
-                        'permit_empty',
+                        'required',
                         'max_length['
                             . self::NEAREST_GURUDWARA_MAX_LENGTH
                             . ']',
                     ],
                     'errors' => [
+                        'required' =>
+                        'Please enter the nearest Gurudwara name or location.',
+
                         'max_length' =>
                         'Nearest Gurudwara cannot exceed '
                             . self::NEAREST_GURUDWARA_MAX_LENGTH
@@ -226,7 +247,7 @@ final class PrelaunchProfileValidation
                 ],
 
                 // 'field_officer_code' => [
-                //     'label' => 'Field Officer code',
+                //     'label' => 'SAK Volunteer code',
                 //     'rules' => [
                 //         'required',
                 //         'min_length[4]',
@@ -235,31 +256,31 @@ final class PrelaunchProfileValidation
                 //     ],
                 //     'errors' => [
                 //         'required' =>
-                //         'Please enter the Field Officer code.',
+                //         'Please enter the SAK Volunteer code.',
 
                 //         'min_length' =>
-                //         'The Field Officer code is too short.',
+                //         'The SAK Volunteer code is too short.',
 
                 //         'max_length' =>
-                //         'The Field Officer code cannot exceed 20 characters.',
+                //         'The SAK Volunteer code cannot exceed 20 characters.',
 
                 //         'regex_match' =>
-                //         'The Field Officer code may contain only letters, numbers and hyphens.',
+                //         'The SAK Volunteer code may contain only letters, numbers and hyphens.',
                 //     ],
                 // ],
 
                 // 'verified_field_officer_id' => [
-                //     'label' => 'Verified Field Officer',
+                //     'label' => 'Verified SAK Volunteer',
                 //     'rules' => [
                 //         'required',
                 //         'is_natural_no_zero',
                 //     ],
                 //     'errors' => [
                 //         'required' =>
-                //         'Please verify the Field Officer before saving the profile.',
+                //         'Please verify the SAK Volunteer before saving the profile.',
 
                 //         'is_natural_no_zero' =>
-                //         'Please verify a valid Field Officer.',
+                //         'Please verify a valid SAK Volunteer.',
                 //     ],
                 // ],
 
@@ -279,6 +300,53 @@ final class PrelaunchProfileValidation
                 ],
             ]
         );
+
+        /*
+        * SAK Volunteer verification belongs only to the
+        * production prelaunch workflow.
+        */
+        if ($requireFieldOfficerVerification) {
+            $rules['field_officer_code'] = [
+                'label' => 'SAK Volunteer code',
+
+                'rules' => [
+                    'required',
+                    'exact_length[11]',
+                    'regex_match[/^FOSAK[0-9]{6}$/]',
+                ],
+
+                'errors' => [
+                    'required' =>
+                    'Please enter the SAK Volunteer code.',
+
+                    'exact_length' =>
+                    'Please enter a valid SAK Volunteer code.',
+
+                    'regex_match' =>
+                    'Please enter a valid SAK Volunteer code.',
+                ],
+            ];
+
+            $rules['verified_field_officer_id'] = [
+                'label' => 'Verified SAK Volunteer',
+
+                'rules' => [
+                    'required',
+                    'is_natural_no_zero',
+                ],
+
+                'errors' => [
+                    'required' =>
+                    'Please verify the SAK Volunteer '
+                        . 'before saving the profile.',
+
+                    'is_natural_no_zero' =>
+                    'Please verify a valid SAK Volunteer.',
+                ],
+            ];
+        }
+
+        return $rules;
     }
 
     /**

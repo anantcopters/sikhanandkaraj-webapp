@@ -76,7 +76,7 @@ $this->section('content');
 
                 <div>
                     <h4 class="mb-sm-0">
-                        Edit Field Officer
+                        Edit SAK Volunteer
                     </h4>
 
                     <p class="text-muted mb-0 mt-1">
@@ -101,7 +101,7 @@ $this->section('content');
                             aria-hidden="true">
                         </i>
 
-                        Back to Field Officers
+                        Back to SAK Volunteers
                     </a>
                 </div>
             </div>
@@ -161,7 +161,7 @@ $this->section('content');
 
                                 <p class="mb-0">
                                     Add a valid UPI ID before
-                                    activating this Field Officer.
+                                    activating this SAK Volunteer.
                                 </p>
                             </div>
                         </div>
@@ -173,7 +173,7 @@ $this->section('content');
                                 for="fieldOfficerCode"
                                 class="form-label">
 
-                                Field Officer Code
+                                SAK Volunteer Code
                             </label>
 
                             <input

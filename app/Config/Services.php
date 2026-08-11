@@ -1,103 +1,136 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Config;
 
-use App\Models\ContactVerificationModel;
-use App\Models\UserContactModel;
-use App\Models\UserModel;
-use App\Services\Registration\RegisterFreeService;
-use App\Services\Registration\RegistrationOtpService;
-use CodeIgniter\Config\BaseService;
-use App\Services\Sms\SmsProviderFactory;
-use App\Services\Sms\SmsProviderInterface;
-use App\Models\HttpRequestLogModel;
-use App\Services\Logging\HttpRequestLogService;
-use App\Services\Logging\RequestDataSanitizer;
-use App\Services\Authentication\LoginService;
-use App\Models\AdminInvitationModel;
-use App\Models\AdminUserModel;
-use App\Services\Admin\AdminInvitationService;
-use App\Services\Admin\AdminManagementService;
-use App\Services\Admin\Authentication\AdminLoginService;
-use App\Services\Email\EmailQueueService;
 use App\Models\AdminAuditLogModel;
-use App\Services\Admin\Audit\AdminAuditService;
-use App\Models\MemberBasicDetailModel;
-use App\Services\Profile\BasicDetailsService;
+use App\Models\AdminInvitationModel;
+use App\Models\AdminMemberPhotoApprovalModel;
+use App\Models\AdminUserModel;
+use App\Models\ContactVerificationModel;
+use App\Models\FieldOfficerModel;
+use App\Models\HttpRequestLogModel;
+use App\Models\MasterAnnualIncomeModel;
+use App\Models\MasterBirthStarModel;
 use App\Models\MasterCityModel;
 use App\Models\MasterCountryModel;
-use App\Models\MasterHeightModel;
-use App\Models\MasterMaritalStatusModel;
-use App\Models\MasterMotherTongueModel;
-use App\Models\MasterStateModel;
-use App\Services\Profile\ProfileMasterDataService;
-use App\Models\MasterAnnualIncomeModel;
+use App\Models\MasterDrinkingHabitModel;
+use App\Models\MasterEatingHabitModel;
 use App\Models\MasterEducationModel;
-use App\Models\MasterOccupationModel;
-use App\Models\MemberEducationProfessionDetailModel;
-use App\Services\Profile\EducationProfessionService;
-use App\Services\Profile\ProfileCompletionService;
 use App\Models\MasterFamilyOccupationModel;
-use App\Models\MemberFamilyDetailModel;
-use App\Services\Profile\FamilyDetailsService;
-use App\Models\MasterBirthStarModel;
-use App\Models\MasterMoonSignModel;
-use App\Models\MasterSikhCommunityModel;
-use App\Models\MemberSikhReligiousDetailModel;
-use App\Services\Profile\SikhReligiousDetailsService;
+use App\Models\MasterFamilyStatusModel;
+use App\Models\MasterFamilyTypeModel;
+use App\Models\MasterFamilyValueModel;
+use App\Models\MasterHeightModel;
 use App\Models\MasterLifestyleCategoryModel;
 use App\Models\MasterLifestyleOptionModel;
+use App\Models\MasterMaritalStatusModel;
+use App\Models\MasterMoonSignModel;
+use App\Models\MasterMotherTongueModel;
+use App\Models\MasterOccupationModel;
+use App\Models\MasterPhysicalStatusModel;
+use App\Models\MasterSikhCommunityModel;
+use App\Models\MasterStateModel;
+use App\Models\MemberBasicDetailModel;
+use App\Models\MemberEducationProfessionDetailModel;
+use App\Models\MemberFamilyDetailModel;
 use App\Models\MemberLifestyleOptionModel;
-use App\Services\Profile\LifestyleService;
-use App\Services\Profile\AboutMeService;
+use App\Models\MemberNotificationModel;
 use App\Models\MemberPhotoModel;
+use App\Models\MemberSikhReligiousDetailModel;
+use App\Models\Prelaunch\PrelaunchPhotoModel;
+use App\Models\Prelaunch\PrelaunchProfileModel;
+use App\Models\UserContactModel;
+use App\Models\UserModel;
+use App\Services\Admin\AdminInvitationService;
+use App\Services\Admin\AdminManagementService;
+use App\Services\Admin\Audit\AdminAuditService;
+use App\Services\Admin\Authentication\AdminCaptchaService;
+use App\Services\Admin\Authentication\AdminLoginService;
+use App\Services\Admin\FieldOfficerService;
+use App\Services\Admin\MemberPhotoApprovalService;
+use App\Services\Authentication\LoginService;
+use App\Services\Authentication\OtpLoginService;
+use App\Services\Authentication\PasswordResetService;
 use App\Services\Aws\AwsMediaService;
 use App\Services\Aws\CloudFrontService;
 use App\Services\Aws\MediaPathService;
 use App\Services\Aws\S3Service;
-use App\Services\Media\ImageProcessorService;
-use App\Services\Profile\MemberPhotoService;
-use App\Services\Profile\MemberPhotoUrlService;
-use App\Models\AdminMemberPhotoApprovalModel;
-use App\Services\Admin\MemberPhotoApprovalService;
-use App\Services\Authentication\PasswordResetService;
-use App\Models\MemberNotificationModel;
-use App\Services\Notification\MemberNotificationService;
+use App\Services\Email\EmailQueueService;
+use App\Services\Logging\HttpRequestLogService;
+use App\Services\Logging\RequestDataSanitizer;
+use App\Services\Maintenance\FileCleanupService;
 use App\Services\Maintenance\TableCleanupService;
-use App\Models\MasterFamilyStatusModel;
-use App\Models\MasterFamilyTypeModel;
-use App\Models\MasterFamilyValueModel;
-use App\Models\FieldOfficerModel;
-use App\Services\Admin\FieldOfficerService;
-use App\Models\Prelaunch\PrelaunchPhotoModel;
-use App\Models\Prelaunch\PrelaunchProfileModel;
+use App\Services\Media\ImageProcessorService;
+use App\Services\Notification\MemberNotificationService;
 use App\Services\Prelaunch\PrelaunchAdminReviewService;
+use App\Services\Prelaunch\PrelaunchContactAvailabilityService;
 use App\Services\Prelaunch\PrelaunchFieldOfficerService;
+use App\Services\Prelaunch\PrelaunchMemberMigrationService;
 use App\Services\Prelaunch\PrelaunchPhotoService;
 use App\Services\Prelaunch\PrelaunchProfileService;
+use App\Services\Profile\AboutMeService;
+use App\Services\Profile\BasicDetailsService;
+use App\Services\Profile\EducationProfessionService;
+use App\Services\Profile\FamilyDetailsService;
+use App\Services\Profile\LifestyleService;
+use App\Services\Profile\MemberPhotoService;
+use App\Services\Profile\MemberPhotoUrlService;
 use App\Services\Profile\MemberProfileSummaryService;
-use App\Services\Authentication\OtpLoginService;
-use App\Models\MasterDrinkingHabitModel;
-use App\Models\MasterEatingHabitModel;
-use App\Models\MasterPhysicalStatusModel;
-use Config\TableCleanup;
+use App\Services\Profile\ProfileCompletionService;
+use App\Services\Profile\ProfileMasterDataService;
+use App\Services\Profile\SikhReligiousDetailsService;
+use App\Services\Registration\RegisterFreeService;
+use App\Services\Registration\RegistrationOtpService;
+use App\Models\MemberPartnerBasicPreferenceModel;
+use App\Models\MemberPartnerPreferenceDrinkingHabitModel;
+use App\Models\MemberPartnerPreferenceEatingHabitModel;
+use App\Models\MemberPartnerPreferenceMotherTongueModel;
+use App\Services\PartnerPreference\BasicPartnerPreferenceService;
+use App\Models\MemberPartnerLocationPreferenceModel;
+use App\Models\MemberPartnerProfessionalPreferenceModel;
+use App\Models\MemberPartnerReligiousPreferenceModel;
+use App\Models\MemberPartnerSpecialRequestModel;
+use App\Models\PartnerPreferenceSelectionModel;
+use App\Services\PartnerPreference\AdditionalPartnerPreferenceService;
+use App\Models\MemberAccountStatusHistoryModel;
+use App\Services\Admin\MemberManagementService;
+use App\Services\Development\DevelopmentProfileLoaderService;
+use App\Models\MemberBlockModel;
+use App\Models\MemberInterestModel;
+use App\Models\MemberMatchCandidateModel;
+use App\Models\MemberProfileViewModel;
+use App\Services\Matchmaking\MemberInterestService;
+use App\Services\Dashboard\MemberDashboardDataService;
+use App\Services\Matchmaking\MemberInteractionService;
+use App\Services\Matchmaking\MemberMatchmakingService;
+use App\Services\Matchmaking\MemberProfileViewService;
+use App\Services\Matchmaking\PartnerPreferenceMatchService;
+use App\Services\Matchmaking\MemberSearchService;
+use App\Models\FieldOfficerLoginOtpModel;
+use App\Models\FieldOfficerSubmittedProfileModel;
+use App\Services\FieldOfficer\FieldOfficerLoginService;
+use App\Services\FieldOfficer\FieldOfficerProfileService;
+use App\Models\MemberShortlistModel;
+use Config\Matchmaking;
+use App\Logging\ApplicationErrorLogWriter;
+use App\Logging\ErrorLogSanitizer;
+use App\Services\Logging\ApplicationErrorLogger;
+use Config\ErrorLogging;
+use App\Services\Sms\SmsProviderFactory;
+use App\Services\Sms\SmsProviderInterface;
 use Aws\CloudFront\CloudFrontClient;
 use Aws\S3\S3Client;
-use Config\MemberMedia;
-use Config\Database;
-use Config\Prelaunch;
-
+use CodeIgniter\Config\BaseService;
 
 /**
  * Application service configuration.
  */
-class Services extends BaseService
+final class Services extends BaseService
 {
     /**
-     * Return the Register Free service.
-     *
-     * By default, CodeIgniter returns one shared instance during
-     * the current request.
+     * Return the public registration service.
      */
     public static function registerFreeService(
         bool $getShared = true
@@ -114,14 +147,6 @@ class Services extends BaseService
             new UserModel($database),
             new UserContactModel($database),
             $database,
-
-            /**
-             * CHANGE:
-             * OTP generation is delegated to RegistrationOtpService.
-             *
-             * Pass the same database connection and model instances
-             * rather than creating an unrelated database connection.
-             */
             new RegistrationOtpService(
                 new UserModel($database),
                 new UserContactModel($database),
@@ -191,7 +216,7 @@ class Services extends BaseService
     }
 
     /**
-     * Return the password login service.
+     * Return the member password-login service.
      */
     public static function loginService(
         bool $getShared = true
@@ -211,7 +236,7 @@ class Services extends BaseService
     }
 
     /**
-     * Return the passwordless member OTP login service.
+     * Return the member OTP-login service.
      */
     public static function otpLoginService(
         bool $getShared = true
@@ -227,9 +252,7 @@ class Services extends BaseService
         return new OtpLoginService(
             new UserModel($database),
             new UserContactModel($database),
-            new ContactVerificationModel(
-                $database
-            ),
+            new ContactVerificationModel($database),
             $database,
             static::smsProvider(false)
         );
@@ -258,6 +281,44 @@ class Services extends BaseService
         );
     }
 
+    /**
+     * Return the administrator login CAPTCHA service.
+     */
+    public static function adminCaptchaService(
+        bool $getShared = true
+    ): AdminCaptchaService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'adminCaptchaService'
+            );
+        }
+
+        return new AdminCaptchaService();
+    }
+
+    /**
+     * Return the SAK Volunteer login CAPTCHA service.
+     *
+     * The same proven CAPTCHA implementation used by Admin
+     * is reused with isolated session state.
+     */
+    public static function fieldOfficerCaptchaService(
+        bool $getShared = true
+    ): AdminCaptchaService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'fieldOfficerCaptchaService'
+            );
+        }
+
+        return new AdminCaptchaService(
+            'field_officer_login_captcha'
+        );
+    }
+
+    /**
+     * Return the administrator login service.
+     */
     public static function adminLoginService(
         bool $getShared = true
     ): AdminLoginService {
@@ -273,7 +334,9 @@ class Services extends BaseService
             new AdminUserModel($database)
         );
     }
-
+    /**
+     * Return the administrator invitation service.
+     */
     public static function adminInvitationService(
         bool $getShared = true
     ): AdminInvitationService {
@@ -288,13 +351,14 @@ class Services extends BaseService
         return new AdminInvitationService(
             new AdminUserModel($database),
             new AdminInvitationModel($database),
-            new EmailQueueService(
-                $database
-            ),
+            new EmailQueueService($database),
             $database
         );
     }
 
+    /**
+     * Return the administrator management service.
+     */
     public static function adminManagementService(
         bool $getShared = true
     ): AdminManagementService {
@@ -312,6 +376,9 @@ class Services extends BaseService
         );
     }
 
+    /**
+     * Return the administrator audit service.
+     */
     public static function adminAuditService(
         bool $getShared = true
     ): AdminAuditService {
@@ -405,7 +472,7 @@ class Services extends BaseService
     }
 
     /**
-     * Return the Education & Profession profile service.
+     * Return the Education and Profession profile service.
      */
     public static function educationProfessionService(
         bool $getShared = true
@@ -444,8 +511,19 @@ class Services extends BaseService
 
         return new FamilyDetailsService(
             new UserModel($database),
-            new MemberFamilyDetailModel($database),
-            static::profileMasterDataService(false),
+
+            new MemberFamilyDetailModel(
+                $database
+            ),
+
+            static::profileMasterDataService(
+                false
+            ),
+
+            new FieldOfficerModel(
+                $database
+            ),
+
             $database
         );
     }
@@ -466,7 +544,7 @@ class Services extends BaseService
     }
 
     /**
-     * Return Sikh and Religious Details profile service.
+     * Return the Sikh and Religious Details profile service.
      */
     public static function sikhReligiousDetailsService(
         bool $getShared = true
@@ -493,7 +571,7 @@ class Services extends BaseService
     }
 
     /**
-     * Return Lifestyle profile service.
+     * Return the Lifestyle profile service.
      */
     public static function lifestyleService(
         bool $getShared = true
@@ -527,31 +605,39 @@ class Services extends BaseService
             );
         }
 
-        /** @var MemberMedia $config */
-        $config = config('MemberMedia');
+        /** @var MemberMedia $configuration */
+        $configuration = config(
+            MemberMedia::class
+        );
 
-        $config->assertS3Configured();
+        $configuration->assertS3Configured();
 
         $options = [
             'version' => 'latest',
-            'region' => $config->awsRegion,
+            'region' =>
+            $configuration->awsRegion,
         ];
 
         /*
-         * Explicit credentials are used only when both values exist.
-         * Otherwise the AWS SDK uses EC2 IAM role/default chain.
+         * Explicit credentials are used only when both are present.
+         * Otherwise, the AWS SDK uses its standard credentials chain.
          */
         if (
-            $config->awsAccessKey !== ''
-            && $config->awsSecretKey !== ''
+            $configuration->awsAccessKey !== ''
+            && $configuration->awsSecretKey !== ''
         ) {
             $options['credentials'] = [
-                'key' => $config->awsAccessKey,
-                'secret' => $config->awsSecretKey,
+                'key' =>
+                $configuration->awsAccessKey,
+
+                'secret' =>
+                $configuration->awsSecretKey,
             ];
         }
 
-        return new S3Client($options);
+        return new S3Client(
+            $options
+        );
     }
 
     /**
@@ -566,29 +652,40 @@ class Services extends BaseService
             );
         }
 
-        /** @var MemberMedia $config */
-        $config = config('MemberMedia');
+        /** @var MemberMedia $configuration */
+        $configuration = config(
+            MemberMedia::class
+        );
 
-        $config->assertCloudFrontConfigured();
+        $configuration->assertCloudFrontConfigured();
 
         $options = [
             'version' => 'latest',
-            'region' => $config->awsRegion,
+            'region' =>
+            $configuration->awsRegion,
         ];
 
         if (
-            $config->awsAccessKey !== ''
-            && $config->awsSecretKey !== ''
+            $configuration->awsAccessKey !== ''
+            && $configuration->awsSecretKey !== ''
         ) {
             $options['credentials'] = [
-                'key' => $config->awsAccessKey,
-                'secret' => $config->awsSecretKey,
+                'key' =>
+                $configuration->awsAccessKey,
+
+                'secret' =>
+                $configuration->awsSecretKey,
             ];
         }
 
-        return new CloudFrontClient($options);
+        return new CloudFrontClient(
+            $options
+        );
     }
 
+    /**
+     * Return the S3 wrapper service.
+     */
     public static function s3Service(
         bool $getShared = true
     ): S3Service {
@@ -598,15 +695,20 @@ class Services extends BaseService
             );
         }
 
-        /** @var MemberMedia $config */
-        $config = config('MemberMedia');
+        /** @var MemberMedia $configuration */
+        $configuration = config(
+            MemberMedia::class
+        );
 
         return new S3Service(
             static::memberMediaS3Client(false),
-            $config
+            $configuration
         );
     }
 
+    /**
+     * Return the CloudFront wrapper service.
+     */
     public static function cloudFrontService(
         bool $getShared = true
     ): CloudFrontService {
@@ -616,15 +718,20 @@ class Services extends BaseService
             );
         }
 
-        /** @var MemberMedia $config */
-        $config = config('MemberMedia');
+        /** @var MemberMedia $configuration */
+        $configuration = config(
+            MemberMedia::class
+        );
 
         return new CloudFrontService(
             static::memberMediaCloudFrontClient(false),
-            $config
+            $configuration
         );
     }
 
+    /**
+     * Return the member-media path service.
+     */
     public static function mediaPathService(
         bool $getShared = true
     ): MediaPathService {
@@ -637,6 +744,9 @@ class Services extends BaseService
         return new MediaPathService();
     }
 
+    /**
+     * Return the image-processing service.
+     */
     public static function imageProcessorService(
         bool $getShared = true
     ): ImageProcessorService {
@@ -646,12 +756,19 @@ class Services extends BaseService
             );
         }
 
-        /** @var MemberMedia $config */
-        $config = config('MemberMedia');
+        /** @var MemberMedia $configuration */
+        $configuration = config(
+            MemberMedia::class
+        );
 
-        return new ImageProcessorService($config);
+        return new ImageProcessorService(
+            $configuration
+        );
     }
 
+    /**
+     * Return the high-level AWS media service.
+     */
     public static function awsMediaService(
         bool $getShared = true
     ): AwsMediaService {
@@ -661,18 +778,23 @@ class Services extends BaseService
             );
         }
 
-        /** @var MemberMedia $config */
-        $config = config('MemberMedia');
+        /** @var MemberMedia $configuration */
+        $configuration = config(
+            MemberMedia::class
+        );
 
         return new AwsMediaService(
             static::s3Service(false),
             static::cloudFrontService(false),
             static::mediaPathService(false),
             static::imageProcessorService(false),
-            $config
+            $configuration
         );
     }
 
+    /**
+     * Return the member-photo workflow service.
+     */
     public static function memberPhotoService(
         bool $getShared = true
     ): MemberPhotoService {
@@ -684,18 +806,23 @@ class Services extends BaseService
 
         $database = db_connect();
 
-        /** @var MemberMedia $config */
-        $config = config('MemberMedia');
+        /** @var MemberMedia $configuration */
+        $configuration = config(
+            MemberMedia::class
+        );
 
         return new MemberPhotoService(
             new UserModel($database),
             new MemberPhotoModel($database),
             static::awsMediaService(false),
             $database,
-            $config
+            $configuration
         );
     }
 
+    /**
+     * Return the member-photo signed URL service.
+     */
     public static function memberPhotoUrlService(
         bool $getShared = true
     ): MemberPhotoUrlService {
@@ -707,13 +834,15 @@ class Services extends BaseService
 
         $database = db_connect();
 
-        /** @var MemberMedia $config */
-        $config = config('MemberMedia');
+        /** @var MemberMedia $configuration */
+        $configuration = config(
+            MemberMedia::class
+        );
 
         return new MemberPhotoUrlService(
             new MemberPhotoModel($database),
             static::cloudFrontService(false),
-            $config
+            $configuration
         );
     }
 
@@ -731,47 +860,28 @@ class Services extends BaseService
 
         $database = db_connect();
 
-        /** @var MemberMedia $mediaConfig */
-        $mediaConfig = config('MemberMedia');
+        /** @var MemberMedia $configuration */
+        $configuration = config(
+            MemberMedia::class
+        );
 
         return new MemberPhotoApprovalService(
             new AdminMemberPhotoApprovalModel(
                 $database
             ),
-
             new MemberPhotoModel(
                 $database
             ),
-
-            /*
-            * Retain the exact existing CloudFront service factory name.
-            */
-            static::CloudFrontService(
-                false
-            ),
-
-            $mediaConfig,
-
-            static::adminAuditService(
-                false
-            ),
-
-            /*
-            * Notification creation remains behind its reusable service.
-            *
-            * Both services use the application's shared database connection, so the
-            * notification participates in the photo-rejection transaction.
-            */
-            static::memberNotificationService(
-                false
-            ),
-
+            static::cloudFrontService(false),
+            $configuration,
+            static::adminAuditService(false),
+            static::memberNotificationService(false),
             $database
         );
     }
 
     /**
-     * Return the shared member-notification service.
+     * Return the member notification service.
      */
     public static function memberNotificationService(
         bool $getShared = true
@@ -785,7 +895,9 @@ class Services extends BaseService
         $database = db_connect();
 
         return new MemberNotificationService(
-            new MemberNotificationModel($database)
+            new MemberNotificationModel(
+                $database
+            )
         );
     }
 
@@ -801,16 +913,20 @@ class Services extends BaseService
             );
         }
 
+        /** @var TableCleanup $configuration */
+        $configuration = config(
+            TableCleanup::class
+        );
+
         return new TableCleanupService(
             database: Database::connect(),
-            configuration: config(
-                TableCleanup::class
-            )
+
+            configuration: $configuration
         );
     }
 
     /**
-     * Return the Field Officer management service.
+     * Return the administrator SAK Volunteer management service.
      */
     public static function fieldOfficerService(
         bool $getShared = true
@@ -831,6 +947,9 @@ class Services extends BaseService
         );
     }
 
+    /**
+     * Return the prelaunch SAK Volunteer lookup service.
+     */
     public static function prelaunchFieldOfficerService(
         bool $getShared = true
     ): PrelaunchFieldOfficerService {
@@ -847,6 +966,9 @@ class Services extends BaseService
         );
     }
 
+    /**
+     * Return the local prelaunch-photo storage service.
+     */
     public static function prelaunchPhotoService(
         bool $getShared = true
     ): PrelaunchPhotoService {
@@ -859,10 +981,15 @@ class Services extends BaseService
         $database = db_connect();
 
         return new PrelaunchPhotoService(
-            new PrelaunchPhotoModel($database)
+            new PrelaunchPhotoModel(
+                $database
+            )
         );
     }
 
+    /**
+     * Return the standalone prelaunch-profile creation service.
+     */
     public static function prelaunchProfileService(
         bool $getShared = true
     ): PrelaunchProfileService {
@@ -875,34 +1002,134 @@ class Services extends BaseService
         $database = db_connect();
 
         /** @var Prelaunch $configuration */
-        $configuration = config('Prelaunch');
+        $configuration = config(
+            Prelaunch::class
+        );
 
         return new PrelaunchProfileService(
             new PrelaunchProfileModel(
                 $database
             ),
+
             static::prelaunchFieldOfficerService(
                 false
             ),
+
             new PrelaunchPhotoService(
                 new PrelaunchPhotoModel(
                     $database
                 )
             ),
+
+            static::profileMasterDataService(
+                false
+            ),
+
+            new UserContactModel(),
+
             $database,
+
             $configuration
         );
-
-        // return new PrelaunchProfileService(
-        //     new PrelaunchProfileModel($database),
-        //     static::prelaunchFieldOfficerService(false),
-        //     new PrelaunchPhotoService(
-        //         new PrelaunchPhotoModel($database)
-        //     ),
-        //     $database
-        // );
     }
 
+    /**
+     * Return the prelaunch contact-availability validator.
+     */
+    public static function prelaunchContactAvailabilityService(
+        bool $getShared = true
+    ): PrelaunchContactAvailabilityService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'prelaunchContactAvailabilityService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new PrelaunchContactAvailabilityService(
+            new PrelaunchProfileModel(
+                $database
+            ),
+            new UserContactModel(
+                $database
+            )
+        );
+    }
+
+    /**
+     * Return the prelaunch-to-member migration service.
+     *
+     * Every model uses the same database connection so all
+     * database writes participate in the migration transaction.
+     */
+    public static function prelaunchMemberMigrationService(
+        bool $getShared = true
+    ): PrelaunchMemberMigrationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'prelaunchMemberMigrationService'
+            );
+        }
+
+        $database = db_connect();
+
+        /** @var Prelaunch $configuration */
+        $configuration = config(
+            Prelaunch::class
+        );
+
+        return new PrelaunchMemberMigrationService(
+            new PrelaunchProfileModel(
+                $database
+            ),
+
+            new PrelaunchPhotoModel(
+                $database
+            ),
+
+            new UserModel(
+                $database
+            ),
+
+            new UserContactModel(
+                $database
+            ),
+
+            new MemberPhotoModel(
+                $database
+            ),
+
+            /*
+            * Resolve the canonical SAK Volunteer code from the
+            * SAK Volunteer master during migration.
+            */
+            new FieldOfficerModel(
+                $database
+            ),
+
+            new PrelaunchPhotoService(
+                new PrelaunchPhotoModel(
+                    $database
+                )
+            ),
+
+            static::awsMediaService(
+                false
+            ),
+
+            $database,
+
+            $configuration
+        );
+    }
+
+    /**
+     * Return the prelaunch administrator review service.
+     *
+     * The dedicated factories are reused here so dependency construction is
+     * maintained in one location.
+     */
     public static function prelaunchAdminReviewService(
         bool $getShared = true
     ): PrelaunchAdminReviewService {
@@ -915,18 +1142,27 @@ class Services extends BaseService
         $database = db_connect();
 
         return new PrelaunchAdminReviewService(
-            new PrelaunchProfileModel($database),
-            new PrelaunchPhotoModel($database),
-            static::adminAuditService(false),
-            $database
+            new PrelaunchProfileModel(
+                $database
+            ),
+            new PrelaunchPhotoModel(
+                $database
+            ),
+            static::adminAuditService(
+                false
+            ),
+            $database,
+            static::prelaunchContactAvailabilityService(
+                false
+            ),
+            static::prelaunchMemberMigrationService(
+                false
+            )
         );
     }
 
     /**
      * Return the shared member profile-summary service.
-     *
-     * This service supplies the same profile-completion dataset to both the
-     * profile summary screen and member dashboard.
      */
     public static function memberProfileSummaryService(
         bool $getShared = true
@@ -946,6 +1182,656 @@ class Services extends BaseService
             static::memberPhotoService(false),
             static::memberPhotoUrlService(false),
             static::profileCompletionService(false)
+        );
+    }
+
+    /**
+     * Return the reusable filesystem cleanup service.
+     */
+    public static function fileCleanupService(
+        bool $getShared = true
+    ): FileCleanupService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'fileCleanupService'
+            );
+        }
+
+        $database = db_connect();
+
+        /** @var FileCleanup $configuration */
+        $configuration = config(
+            FileCleanup::class
+        );
+
+        return new FileCleanupService(
+            profileModel: new PrelaunchProfileModel(
+                $database
+            ),
+
+            photoModel: new PrelaunchPhotoModel(
+                $database
+            ),
+
+            photoService: new PrelaunchPhotoService(
+                new PrelaunchPhotoModel(
+                    $database
+                )
+            ),
+
+            database: $database,
+
+            configuration: $configuration
+        );
+    }
+
+    /**
+     * Return the Basic Partner Preference service.
+     */
+    public static function basicPartnerPreferenceService(
+        bool $getShared = true
+    ): BasicPartnerPreferenceService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'basicPartnerPreferenceService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new BasicPartnerPreferenceService(
+            new UserModel($database),
+
+            new MemberPartnerBasicPreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerPreferenceMotherTongueModel(
+                $database
+            ),
+
+            new MemberPartnerPreferenceEatingHabitModel(
+                $database
+            ),
+
+            new MemberPartnerPreferenceDrinkingHabitModel(
+                $database
+            ),
+
+            static::profileMasterDataService(false),
+
+            $database
+        );
+    }
+
+    /**
+     * Return the Religious, Professional, Location and
+     * Special Request Partner Preference service.
+     */
+    public static function additionalPartnerPreferenceService(
+        bool $getShared = true
+    ): AdditionalPartnerPreferenceService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'additionalPartnerPreferenceService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new AdditionalPartnerPreferenceService(
+            new UserModel($database),
+
+            new MemberPartnerReligiousPreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerProfessionalPreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerLocationPreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerSpecialRequestModel(
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'community',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'education',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'employed_in',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'occupation',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'annual_income',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'state',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'city',
+                $database
+            ),
+
+            static::profileMasterDataService(false),
+
+            $database
+        );
+    }
+
+    /**
+     * Administrator member listing and account-status management.
+     */
+    public static function memberManagementService(
+        bool $getShared = true
+    ): MemberManagementService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberManagementService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberManagementService(
+            $database,
+            new UserModel($database),
+            new MemberAccountStatusHistoryModel(
+                $database
+            ),
+            static::memberProfileSummaryService(
+                false
+            ),
+            static::memberPhotoUrlService(
+                false
+            ),
+            static::adminAuditService(
+                false
+            ),
+
+            static::memberInteractionService(
+                false
+            )
+        );
+    }
+
+    /**
+     * Structured, failure-safe application error logger.
+     */
+    public static function applicationErrorLogger(
+        bool $getShared = true
+    ): ApplicationErrorLogger {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'applicationErrorLogger'
+            );
+        }
+
+        return new ApplicationErrorLogger(
+            new ApplicationErrorLogWriter(
+                config(ErrorLogging::class),
+                new ErrorLogSanitizer()
+            )
+        );
+    }
+
+    /**
+     * Development-only bulk member profile loader.
+     */
+    public static function developmentProfileLoaderService(
+        bool $getShared = true
+    ): DevelopmentProfileLoaderService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'developmentProfileLoaderService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new DevelopmentProfileLoaderService(
+            new UserModel($database),
+            new UserContactModel($database),
+            new MemberPhotoModel($database),
+            static::basicDetailsService(),
+            static::educationProfessionService(),
+            static::basicPartnerPreferenceService(),
+            static::additionalPartnerPreferenceService(),
+            static::awsMediaService(),
+            $database
+        );
+    }
+
+    /**
+     * Return the member-to-member interaction service.
+     *
+     * All persistence dependencies use the same database connection so
+     * interaction changes and their related notifications can participate
+     * in one transaction.
+     */
+    public static function memberInteractionService(
+        bool $getShared = true
+    ): MemberInteractionService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberInteractionService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberInteractionService(
+            new UserModel(
+                $database
+            ),
+
+            new MemberBlockModel(
+                $database
+            ),
+
+            new MemberInterestModel(
+                $database
+            ),
+
+            new MemberShortlistModel(
+                $database
+            ),
+
+            new MemberProfileViewModel(
+                $database
+            ),
+
+            /*
+         * Intentionally construct this with the SAME database
+         * connection used by the interaction models.
+         *
+         * Do not call memberNotificationService(false) here if
+         * doing so could establish an independent connection.
+         */
+            new MemberNotificationService(
+                new MemberNotificationModel(
+                    $database
+                )
+            ),
+
+            $database
+        );
+    }
+
+    public static function partnerPreferenceMatchService(
+        bool $getShared = true
+    ): PartnerPreferenceMatchService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'partnerPreferenceMatchService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new PartnerPreferenceMatchService(
+            new MemberPartnerBasicPreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerPreferenceMotherTongueModel(
+                $database
+            ),
+
+            new MemberPartnerPreferenceEatingHabitModel(
+                $database
+            ),
+
+            new MemberPartnerPreferenceDrinkingHabitModel(
+                $database
+            ),
+
+            new MemberPartnerReligiousPreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerProfessionalPreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerLocationPreferenceModel(
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'community',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'education',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'employed_in',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'occupation',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'annual_income',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'state',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'city',
+                $database
+            )
+        );
+    }
+
+    public static function memberMatchmakingService(
+        bool $getShared = true
+    ): MemberMatchmakingService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMatchmakingService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberMatchmakingService(
+            new UserModel($database),
+
+            new MemberMatchCandidateModel(
+                $database
+            ),
+
+            static::partnerPreferenceMatchService(
+                false
+            ),
+
+            static::memberInteractionService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            config(
+                Matchmaking::class
+            )
+        );
+    }
+
+    public static function memberDashboardDataService(
+        bool $getShared = true
+    ): MemberDashboardDataService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberDashboardDataService'
+            );
+        }
+
+        return new MemberDashboardDataService(
+            static::memberMatchmakingService(
+                false
+            )
+        );
+    }
+
+    public static function memberProfileViewService(
+        bool $getShared = true
+    ): MemberProfileViewService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfileViewService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberProfileViewService(
+            new UserModel(
+                $database
+            ),
+
+            new UserContactModel(
+                $database
+            ),
+
+            static::memberProfileSummaryService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            static::memberInteractionService(
+                false
+            ),
+
+            static::memberMatchmakingService(
+                false
+            )
+        );
+    }
+
+    /**
+     * Return the member Interest service.
+     */
+    public static function memberInterestService(
+        bool $getShared = true
+    ): MemberInterestService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberInterestService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberInterestService(
+            new UserModel(
+                $database
+            ),
+
+            new MemberInterestModel(
+                $database
+            ),
+
+            new MemberMatchCandidateModel(
+                $database
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            /*
+         * Use the same DB connection so Interest response
+         * and notification remain in one transaction.
+         */
+            new MemberNotificationService(
+                new MemberNotificationModel(
+                    $database
+                )
+            ),
+
+            $database
+        );
+    }
+
+    /**
+     * Return the authenticated member Search service.
+     *
+     * Search reuses the central member interaction service for Interest state so
+     * Search cards and Profile View always follow identical relationship rules.
+     */
+    public static function memberSearchService(
+        bool $getShared = true
+    ): MemberSearchService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberSearchService'
+            );
+        }
+
+        /*
+        * All models/services created here use the normal application database
+        * connection managed by CI4.
+        */
+        $database =
+            db_connect();
+
+        return new MemberSearchService(
+            new UserModel(
+                $database
+            ),
+
+            new MemberMatchCandidateModel(
+                $database
+            ),
+
+            /*
+            * Same Interest authority used by Member Profile View.
+            */
+            static::memberInteractionService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            static::profileMasterDataService(
+                false
+            ),
+
+            static::lifestyleService(
+                false
+            )
+        );
+    }
+
+    /**
+     * SAK Volunteer OTP authentication.
+     */
+    public static function fieldOfficerLoginService(
+        bool $getShared = true
+    ): FieldOfficerLoginService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'fieldOfficerLoginService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new FieldOfficerLoginService(
+            new FieldOfficerModel(
+                $database
+            ),
+
+            new FieldOfficerLoginOtpModel(
+                $database
+            ),
+
+            $database,
+
+            static::smsProvider(
+                false
+            )
+        );
+    }
+
+    /**
+     * SAK Volunteer submitted-profile service.
+     */
+    public static function fieldOfficerProfileService(
+        bool $getShared = true
+    ): FieldOfficerProfileService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'fieldOfficerProfileService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new FieldOfficerProfileService(
+            new FieldOfficerSubmittedProfileModel(
+                $database
+            ),
+
+            new PrelaunchProfileModel(
+                $database
+            ),
+
+            new PrelaunchPhotoModel(
+                $database
+            ),
+
+            static::prelaunchPhotoService(
+                false
+            ),
+
+            static::memberProfileSummaryService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            )
+        );
+    }
+
+    /**
+     * Return the CAPTCHA service for public
+     * SAK Volunteer self-registration.
+     *
+     * Registration and login use isolated session keys so
+     * one page cannot invalidate the other's challenge.
+     */
+    public static function fieldOfficerRegistrationCaptchaService(
+        bool $getShared = true
+    ): AdminCaptchaService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'fieldOfficerRegistrationCaptchaService'
+            );
+        }
+
+        return new AdminCaptchaService(
+            'field_officer_registration_captcha'
         );
     }
 }

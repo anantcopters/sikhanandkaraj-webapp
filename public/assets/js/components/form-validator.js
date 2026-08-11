@@ -10,14 +10,12 @@
     const FORM_SELECTOR = 'form[data-validate]';
 
     const FIELD_SELECTOR = [
-        'input:not([type="hidden"]):not([disabled])'
+        'input:not([type="hidden"])'
         + ':not([data-validation-ignore])',
 
-        'select:not([disabled])'
-        + ':not([data-validation-ignore])',
+        'select:not([data-validation-ignore])',
 
-        'textarea:not([disabled])'
-        + ':not([data-validation-ignore])'
+        'textarea:not([data-validation-ignore])'
     ].join(',');
 
     /**
@@ -67,22 +65,53 @@
     /**
      * Return the Choices.js visual wrapper for a select.
      *
+     * The global SelectChoice component initializes selects through
+     * data-choice, so validation must use the same contract.
+     *
      * @param {HTMLSelectElement} field
      *
      * @returns {HTMLElement|null}
      */
     function getChoicesElement(field) {
-        if (!field.matches('select[data-choices]')) {
+        if (!field.matches('select[data-choice]')) {
             return null;
         }
 
-        const sibling = field.nextElementSibling;
+        /*
+         * Choices.js normally wraps the original select inside its
+         * generated .choices container, therefore looking only at the
+         * next sibling is not reliable.
+         */
+        const parent = field.closest(
+            '.choices'
+        );
+
+        if (parent instanceof HTMLElement) {
+            return parent;
+        }
+
+        const sibling =
+            field.nextElementSibling;
 
         if (
-            sibling
-            && sibling.classList.contains('choices')
+            sibling instanceof HTMLElement
+            && sibling.classList.contains(
+                'choices'
+            )
         ) {
             return sibling;
+        }
+
+        const previousSibling =
+            field.previousElementSibling;
+
+        if (
+            previousSibling instanceof HTMLElement
+            && previousSibling.classList.contains(
+                'choices'
+            )
+        ) {
+            return previousSibling;
         }
 
         return null;
@@ -367,7 +396,7 @@
     function focusInvalidField(field) {
         if (
             field instanceof HTMLSelectElement
-            && field.matches('select[data-choices]')
+            && field.matches('select[data-choice]')
         ) {
             const choicesElement = getChoicesElement(field);
 
@@ -405,6 +434,55 @@
             form.querySelectorAll(FIELD_SELECTOR)
         );
 
+        /*
+        * Preserve server-rendered validation errors after a redirect.
+        *
+        * PHP marks invalid controls with is-invalid and renders the
+        * authoritative server message inside data-validation-error.
+        *
+        * Choices.js renders a separate visual control, therefore its
+        * wrapper also needs to receive the invalid state.
+        */
+        fields.forEach(function (field) {
+            if (
+                !field.classList.contains(
+                    'is-invalid'
+                )
+            ) {
+                return;
+            }
+
+            const errorElement =
+                getErrorElement(field);
+
+            const serverMessage =
+                errorElement.textContent
+                    .trim();
+
+            if (serverMessage === '') {
+                return;
+            }
+
+            field.setAttribute(
+                'aria-invalid',
+                'true'
+            );
+
+            field.setAttribute(
+                'aria-describedby',
+                errorElement.id
+            );
+
+            errorElement.classList.add(
+                'd-block'
+            );
+
+            updateChoicesState(
+                field,
+                false
+            );
+        });
+
         form.addEventListener('submit', function (event) {
             let isFormValid = true;
             let firstInvalidField = null;
@@ -412,6 +490,18 @@
             const processedRadioGroups = new Set();
 
             fields.forEach(function (field) {
+                /*
+                 * Disabled controls do not participate in native form
+                 * submission or validation.
+                 *
+                 * They are still registered during initialization so a
+                 * dependent control such as City starts validating as soon
+                 * as page JavaScript enables it.
+                 */
+                if (field.disabled) {
+                    return;
+                }
+
                 let isFieldValid = true;
 
                 if (

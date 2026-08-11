@@ -454,7 +454,73 @@ if ($isJourney) {
                 ) ?>
             </div>
         <?php endforeach; ?>
+        <div class="col-12 col-md-6">
+            <label
+                for="parentContactNumber"
+                class="form-label">
 
+                Parent/Guardian Contact Number
+                <span
+                    class="text-danger"
+                    aria-hidden="true">
+                    *
+                </span>
+            </label>
+
+            <div class="input-group has-validation">
+                <span class="input-group-text">
+                    +91
+                </span>
+
+                <input
+                    type="tel"
+                    id="parentContactNumber"
+                    name="parent_contact_number"
+                    class="form-control"
+                    value="<?= esc(
+                                preg_replace(
+                                    '/^\+91/',
+                                    '',
+                                    $fieldValue(
+                                        'parent_contact_number',
+                                        $details['parent_contact_number'] ?? ''
+                                    )
+                                ) ?? '',
+                                'attr'
+                            ) ?>"
+                    placeholder="Enter parent contact number"
+                    inputmode="numeric"
+                    pattern="[6-9][0-9]{9}"
+                    minlength="10"
+                    maxlength="10"
+                    autocomplete="tel"
+                    data-error-required="Please enter a contact number for either parent/guardian."
+                    data-error-pattern="Please enter a valid 10-digit Indian parent/guardian contact number."
+                    data-error-minlength="Parent contact number must contain 10 digits."
+                    data-error-maxlength="Parent contact number must contain 10 digits."
+                    aria-describedby="parentContactNumberHelp parentContactNumberError">
+
+                <?= view(
+                    'Components/Forms/FieldError',
+                    [
+                        'field' =>
+                        'parent_contact_number',
+
+                        'errorId' =>
+                        'parentContactNumberError',
+
+                        'errors' =>
+                        $errors,
+                    ]
+                ) ?>
+            </div>
+
+            <div
+                id="parentContactNumberHelp"
+                class="form-text text-muted">
+                Enter the mobile number of either parent/guardian, when available.
+            </div>
+        </div>
         <div class="col-12">
             <hr class="my-2 mb-3">
 
@@ -553,6 +619,32 @@ if ($isJourney) {
             <h2 class="fs-16 fw-semibold mb-0 mt-2">
                 Family Location
             </h2>
+        </div>
+
+        <div class="col-12 col-md-4">
+            <label
+                for="familyCountryName"
+                class="form-label">
+                Country
+            </label>
+
+            <input
+                type="text"
+                id="familyCountryName"
+                class="form-control bg-light"
+                value="<?= esc(
+                            (string) ($country['name'] ?? 'India'),
+                            'attr'
+                        ) ?>"
+                readonly>
+
+            <input
+                type="hidden"
+                name="country_id"
+                value="<?= esc(
+                            (string) ($country['id'] ?? ''),
+                            'attr'
+                        ) ?>">
         </div>
 
         <div class="col-12 col-md-4">
@@ -678,31 +770,7 @@ if ($isJourney) {
             ) ?>
         </div>
 
-        <div class="col-12 col-md-4">
-            <label
-                for="familyCountryName"
-                class="form-label">
-                Country
-            </label>
 
-            <input
-                type="text"
-                id="familyCountryName"
-                class="form-control bg-light"
-                value="<?= esc(
-                            (string) ($country['name'] ?? 'India'),
-                            'attr'
-                        ) ?>"
-                readonly>
-
-            <input
-                type="hidden"
-                name="country_id"
-                value="<?= esc(
-                            (string) ($country['id'] ?? ''),
-                            'attr'
-                        ) ?>">
-        </div>
 
 
         <div class="col-12">
@@ -713,7 +781,7 @@ if ($isJourney) {
             </h2>
 
             <p class="text-muted fs-12 mb-0">
-                These details are optional and may help with family verification.
+                These details will help with family verification.
             </p>
         </div>
 
@@ -723,10 +791,7 @@ if ($isJourney) {
                 class="form-label">
 
                 Nearest Gurudwara
-
-                <span class="text-muted fw-normal">
-                    (Optional)
-                </span>
+                <span class="text-danger">*</span>
             </label>
 
             <input
@@ -743,6 +808,7 @@ if ($isJourney) {
                         ) ?>"
                 placeholder="Enter Gurudwara name or location"
                 maxlength="300"
+                data-error-required="Please enter the nearest Gurudwara name or location."
                 data-error-maxlength="Nearest Gurudwara cannot exceed 200 characters."
                 autocomplete="off"
                 aria-describedby="nearestGurudwaraError">
@@ -835,6 +901,164 @@ if ($isJourney) {
                     'errors' => $errors,
                 ]
             ) ?>
+        </div>
+
+        <?php
+        $fieldOfficerAssigned =
+            !empty($details['field_officer_id']
+                ?? null);
+
+        $fieldOfficerCode =
+            $fieldOfficerAssigned
+            ? (string) (
+                $details['field_officer_code'] ?? ''
+            )
+            : $fieldValue(
+                'field_officer_code',
+                ''
+            );
+
+        $fieldOfficerName =
+            $fieldOfficerAssigned
+            ? (string) (
+                $details['field_officer_name'] ?? ''
+            )
+            : '';
+        ?>
+
+        <div class="col-12">
+            <hr class="my-2 mb-3">
+
+            <h2 class="fs-16 fw-semibold mb-1 mt-2">
+                SAK Volunteer
+            </h2>
+
+            <p class="text-muted fs-13 mb-0">
+                Optional. If you enter a SAK Volunteer ID,
+                it must be verified before saving.
+            </p>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <label
+                for="fieldOfficerCode"
+                class="form-label">
+
+                SAK Volunteer ID
+
+                <span class="text-muted fw-normal">
+                    (Optional)
+                </span>
+            </label>
+
+            <?php if ($fieldOfficerAssigned): ?>
+
+                <input
+                    type="text"
+                    id="fieldOfficerCode"
+                    name="field_officer_code"
+                    class="form-control"
+                    value="<?= esc(
+                                $fieldOfficerCode,
+                                'attr'
+                            ) ?>"
+                    readonly
+                    aria-readonly="true">
+
+                <div class="form-text color-pink">
+                    SAK Volunteer ID cannot be changed
+                    after it has been saved.
+                </div>
+
+            <?php else: ?>
+
+                <div class="input-group has-validation">
+
+                    <input
+                        type="text"
+                        id="fieldOfficerCode"
+                        name="field_officer_code"
+                        class="form-control"
+                        value="<?= esc(
+                                    $fieldOfficerCode,
+                                    'attr'
+                                ) ?>"
+                        placeholder="Example: FOSAK000123"
+                        maxlength="11"
+                        pattern="FOSAK[0-9]{6}"
+                        autocomplete="off"
+                        data-error-pattern="Please enter a valid SAK Volunteer ID."
+                        data-verify-url="<?= esc(
+                                                url_to(
+                                                    'web.profile.family-details.field-officer.verify'
+                                                ),
+                                                'attr'
+                                            ) ?>"
+                        aria-describedby="fieldOfficerHelp fieldOfficerVerificationMessage field_officer_codeError">
+
+                    <button
+                        type="button"
+                        id="verifyFieldOfficerButton"
+                        class="btn btn-primary">
+                        Verify
+                    </button>
+
+                </div>
+
+                <?= view(
+                    'Components/Forms/FieldError',
+                    [
+                        'field' =>
+                        'field_officer_code',
+
+                        'errorId' =>
+                        'field_officer_codeError',
+
+                        'errors' =>
+                        $errors,
+                    ]
+                ) ?>
+
+                <div
+                    id="fieldOfficerHelp"
+                    class="form-text color-pink">
+                    Enter the Code provided by your SAK Volunteer.
+                </div>
+
+                <div
+                    id="fieldOfficerVerificationMessage"
+                    class="form-text"
+                    aria-live="polite">
+                </div>
+
+            <?php endif; ?>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <label
+                for="fieldOfficerName"
+                class="form-label">
+
+                SAK Volunteer Name
+            </label>
+
+            <input
+                type="text"
+                id="fieldOfficerName"
+                class="form-control"
+                value="<?= esc(
+                            $fieldOfficerName,
+                            'attr'
+                        ) ?>"
+                placeholder="Name appears after verification"
+                readonly
+                aria-readonly="true">
+
+            <?php if ($fieldOfficerAssigned): ?>
+                <div class="form-text text-success">
+                    SAK Volunteer verified and saved.
+                </div>
+            <?php endif; ?>
         </div>
     </div>
     <div class="row g-2 mt-4">

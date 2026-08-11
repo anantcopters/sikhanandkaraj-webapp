@@ -125,18 +125,64 @@ final class LoginService
             );
         }
 
-        /**
-         * Upgrade an old password hash after successful authentication.
-         *
-         * A rehash persistence failure does not block a valid login.
-         */
+        /*
+        * Upgrade an older password hash after successful authentication.
+        *
+        * Rehash persistence failure intentionally does not invalidate otherwise
+        * correct credentials.
+        */
         $this->rehashPasswordIfRequired(
             $userId,
             $password,
             $passwordHash
         );
 
-        return LoginResult::success($user);
+        /*
+        * Record successful authentication activity.
+        *
+        * last_login_at is auxiliary operational metadata. Failure to update this
+        * timestamp must never invalidate otherwise successful authentication.
+        */
+        try {
+            $loginRecorded =
+                $this->userModel
+                ->recordSuccessfulLogin(
+                    $userId
+                );
+
+            if (!$loginRecorded) {
+                log_message(
+                    'warning',
+                    'Successful password login activity could not be recorded. '
+                        . 'Member: {memberId}.',
+                    [
+                        'memberId' =>
+                        $userId,
+                    ]
+                );
+            }
+        } catch (\Throwable $exception) {
+            log_message(
+                'warning',
+                'Successful password login activity update failed. '
+                    . 'Member: {memberId}; reason: {message}',
+                [
+                    'memberId' =>
+                    $userId,
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+        }
+
+        return LoginResult::success(
+            $user
+        );
+
+        return LoginResult::success(
+            $user
+        );
     }
 
     /**

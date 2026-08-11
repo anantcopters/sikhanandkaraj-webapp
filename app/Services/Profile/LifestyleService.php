@@ -141,6 +141,46 @@ final class LifestyleService
     }
 
     /**
+     * Return active Lifestyle master options for reusable forms/search.
+     *
+     * @return array<string, mixed>
+     */
+    public function activeOptions(): array
+    {
+        $categories =
+            $this->categoryModel
+            ->activeOrdered();
+
+        $options =
+            $this->optionModel
+            ->activeOrdered();
+
+        $optionsByCategory = [];
+
+        foreach ($options as $option) {
+            $categoryId =
+                (int) (
+                    $option['lifestyle_category_id']
+                    ?? 0
+                );
+
+            if ($categoryId <= 0) {
+                continue;
+            }
+
+            $optionsByCategory[$categoryId][] = $option;
+        }
+
+        return [
+            'categories' =>
+            $categories,
+
+            'optionsByCategory' =>
+            $optionsByCategory,
+        ];
+    }
+
+    /**
      * @param list<int|string> $submittedOptionIds
      *
      * @return list<int>

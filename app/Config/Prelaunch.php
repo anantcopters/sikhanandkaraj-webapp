@@ -17,7 +17,12 @@ final class Prelaunch extends BaseConfig
     public bool $profileEntryEnabled = true;
 
     /**
-     * Field Officer assigned to every prelaunch profile.
+     * Temporary password assigned to migrated prelaunch members.
+     */
+    public string $migratedMemberDefaultPassword;
+
+    /**
+     * SAK Volunteer assigned to every prelaunch profile.
      *
      * This value must contain the primary-key ID of an ACTIVE,
      * non-deleted record from field_officers.
@@ -73,4 +78,65 @@ final class Prelaunch extends BaseConfig
      * Avoid adaptive retry loops during the synchronous form request.
      */
     public int $optimizedWebpQuality = 78;
+
+    /**
+     * Hard minimum source dimensions accepted for prelaunch photos.
+     *
+     * Keep these aligned with MemberMedia so a photograph accepted during
+     * prelaunch cannot later fail when migrated through the member-media
+     * processing pipeline.
+     */
+    public int $minimumPhotoWidthPixels = 300;
+
+    public int $minimumPhotoHeightPixels = 300;
+
+    /**
+     * Recommended upload dimensions displayed to the user.
+     *
+     * These values are guidance only and are not rejection thresholds.
+     */
+    public int $recommendedPhotoWidthPixels = 600;
+
+    public int $recommendedPhotoHeightPixels = 600;
+
+    /**
+     * Require explicit SAK Volunteer verification on the
+     * public prelaunch form.
+     *
+     * Production:
+     * Member/user must enter and verify an active SAK Volunteer.
+     *
+     * QA/Development:
+     * Continue using profileFieldOfficerId from configuration.
+     */
+    public bool $requiresFieldOfficerVerification = false;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->migratedMemberDefaultPassword = trim(
+            (string) env(
+                'PRELAUNCH_MEMBER_DEFAULT_PASSWORD',
+                ''
+            )
+        );
+
+        $deployment = trim(
+            (string) env(
+                'APP_DEPLOYMENT',
+                'development'
+            )
+        );
+
+        $this->requiresFieldOfficerVerification =
+            in_array(
+                $deployment,
+                [
+                    'development',
+                    'production',
+                ],
+                true
+            );
+    }
 }

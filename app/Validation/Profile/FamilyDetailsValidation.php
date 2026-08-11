@@ -78,6 +78,21 @@ final class FamilyDetailsValidation
                 "Please enter your mother's name."
             ),
 
+            'parent_contact_number' => [
+                'label' => 'Any Parent/Guardian Contact Number',
+                'rules' => [
+                    'required',
+                    'regex_match[/^[6-9][0-9]{9}$/]',
+                ],
+                'errors' => [
+                    'required' =>
+                    'Please enter a contact number for either parent/guardian.',
+
+                    'regex_match' =>
+                    'Please enter a valid 10-digit Indian parent/guardian contact number.',
+                ],
+            ],
+
             'father_occupation_id' => [
                 'label' => "Father's occupation",
                 'rules' => [
@@ -125,10 +140,24 @@ final class FamilyDetailsValidation
                 'Please select your family city.'
             ),
 
-            'nearest_gurudwara' => self::optionalText(
-                'Nearest Gurudwara',
-                self::GURUDWARA_MAX_LENGTH
-            ),
+            'nearest_gurudwara' => [
+                'label' => 'Nearest Gurudwara',
+                'rules' => [
+                    'required',
+                    'max_length['
+                        . self::GURUDWARA_MAX_LENGTH
+                        . ']',
+                ],
+                'errors' => [
+                    'required' =>
+                    'Please enter the nearest Gurudwara name or location.',
+
+                    'max_length' =>
+                    'Nearest Gurudwara cannot exceed '
+                        . self::GURUDWARA_MAX_LENGTH
+                        . ' characters.',
+                ],
+            ],
 
             'reference_person_1' => self::optionalText(
                 'First reference person',
@@ -139,6 +168,22 @@ final class FamilyDetailsValidation
                 'Second reference person',
                 self::REFERENCE_PERSON_MAX_LENGTH
             ),
+
+            'field_officer_code' => [
+                'label' => 'SAK Volunteer ID',
+                'rules' => [
+                    'permit_empty',
+                    'max_length[11]',
+                    'regex_match[/^FOSAK[0-9]{6}$/]',
+                ],
+                'errors' => [
+                    'max_length' =>
+                    'Please enter a valid SAK Volunteer ID.',
+
+                    'regex_match' =>
+                    'Please enter a valid SAK Volunteer ID.',
+                ],
+            ],
         ];
     }
 

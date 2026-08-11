@@ -5,13 +5,11 @@ declare(strict_types=1);
 namespace App\Validation;
 
 /**
- * Field Officer validation rules used by administrative screens.
+ * SAK Volunteer validation rules used by administrative screens.
  */
 final class FieldOfficerValidation
 {
     /**
-     * Rules for creating an officer.
-     *
      * @return array<string, array<string, mixed>>
      */
     public static function createRules(): array
@@ -19,6 +17,7 @@ final class FieldOfficerValidation
         return [
             'full_name' => [
                 'label' => 'Name',
+
                 'rules' => [
                     'required',
                     'string',
@@ -26,12 +25,17 @@ final class FieldOfficerValidation
                     'max_length[150]',
                     'regex_match[/^[\pL\pM .\'-]+$/u]',
                 ],
+
                 'errors' => [
-                    'required' => 'Name is required.',
+                    'required' =>
+                    'Name is required.',
+
                     'min_length' =>
                     'Name must contain at least 2 characters.',
+
                     'max_length' =>
                     'Name must not exceed 150 characters.',
+
                     'regex_match' =>
                     'Name contains unsupported characters.',
                 ],
@@ -39,106 +43,268 @@ final class FieldOfficerValidation
 
             'mobile_number' => [
                 'label' => 'Mobile Number',
+
                 'rules' => [
                     'required',
                     'regex_match[/^[6-9][0-9]{9}$/]',
                 ],
+
                 'errors' => [
                     'required' =>
                     'Mobile number is required.',
+
                     'regex_match' =>
                     'Enter a valid 10-digit Indian mobile number.',
                 ],
             ],
 
-            'country_id' => self::requiredIdentifierRules(
+            'aadhaar_number' =>
+            self::aadhaarRules(),
+
+            'pan_number' =>
+            self::panRules(),
+
+            'country_id' =>
+            self::requiredIdentifierRules(
                 'Country'
             ),
 
-            'state_id' => self::requiredIdentifierRules(
+            'state_id' =>
+            self::requiredIdentifierRules(
                 'State'
             ),
 
-            'city_id' => self::requiredIdentifierRules(
+            'city_id' =>
+            self::requiredIdentifierRules(
                 'City'
             ),
 
-            'address' => [
-                'label' => 'Address',
-                'rules' => [
-                    'permit_empty',
-                    'string',
-                    'max_length[500]',
-                ],
-                'errors' => [
-                    'max_length' =>
-                    'Address must not exceed 500 characters.',
-                ],
-            ],
+            'address' =>
+            self::addressRules(),
 
-            'upi_id' => [
-                'label' => 'UPI ID',
-                'rules' => [
-                    'permit_empty',
-                    'max_length[150]',
-                    'regex_match[/^[A-Za-z0-9._-]{2,256}@[A-Za-z][A-Za-z0-9.-]{1,63}$/]',
-                ],
-                'errors' => [
-                    'max_length' =>
-                    'UPI ID must not exceed 150 characters.',
-                    'regex_match' =>
-                    'Enter a valid UPI ID, for example name@bank.',
-                ],
-            ],
+            'upi_id' =>
+            self::upiRules(),
         ];
     }
 
     /**
-     * Only location, address and UPI may be edited.
+     * Name, mobile number and officer code remain immutable.
+     *
+     * Aadhaar and PAN remain required but may be changed.
      *
      * @return array<string, array<string, mixed>>
      */
     public static function updateRules(): array
     {
         return [
-            'country_id' => self::requiredIdentifierRules(
+            'aadhaar_number' =>
+            self::aadhaarRules(),
+
+            'pan_number' =>
+            self::panRules(),
+
+            'country_id' =>
+            self::requiredIdentifierRules(
                 'Country'
             ),
 
-            'state_id' => self::requiredIdentifierRules(
+            'state_id' =>
+            self::requiredIdentifierRules(
                 'State'
             ),
 
-            'city_id' => self::requiredIdentifierRules(
+            'city_id' =>
+            self::requiredIdentifierRules(
                 'City'
             ),
 
-            'address' => [
-                'label' => 'Address',
+            'address' =>
+            self::addressRules(),
+
+            'upi_id' =>
+            self::upiRules(),
+        ];
+    }
+
+    /**
+     * SAK Volunteer portal mobile-login validation.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public static function loginRules(): array
+    {
+        return [
+            'mobile_number' => [
+                'label' =>
+                'Mobile Number',
+
                 'rules' => [
-                    'permit_empty',
-                    'string',
-                    'max_length[500]',
+                    'required',
+                    'regex_match[/^[6-9][0-9]{9}$/]',
                 ],
+
                 'errors' => [
-                    'max_length' =>
-                    'Address must not exceed 500 characters.',
+                    'required' =>
+                    'Mobile number is required.',
+
+                    'regex_match' =>
+                    'Enter a valid 10-digit Indian mobile number.',
                 ],
             ],
 
-            'upi_id' => [
-                'label' => 'UPI ID',
+            'captcha_answer' => [
+                'label' =>
+                'Security verification',
+
                 'rules' => [
-                    'permit_empty',
-                    'max_length[150]',
-                    'regex_match[/^[A-Za-z0-9._-]{2,256}@[A-Za-z][A-Za-z0-9.-]{1,63}$/]',
+                    'required',
+                    'regex_match[/^[0-9]{1,2}$/]',
                 ],
+
                 'errors' => [
-                    'max_length' =>
-                    'UPI ID must not exceed 150 characters.',
+                    'required' =>
+                    'Please enter the security verification answer.',
+
                     'regex_match' =>
-                    'Enter a valid UPI ID, for example name@bank.',
+                    'Please enter a valid security verification answer.',
                 ],
+            ],
+        ];
+    }
+
+    /**
+     * Public SAK Volunteer registration.
+     *
+     * Reuses exactly the same volunteer-field rules used by
+     * Super Admin creation and adds only CAPTCHA validation.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public static function registrationRules(): array
+    {
+        $rules =
+            self::createRules();
+
+        $rules['captcha_answer'] = [
+            'label' =>
+            'Security verification',
+
+            'rules' => [
+                'required',
+                'regex_match[/^[0-9]{1,2}$/]',
+            ],
+
+            'errors' => [
+                'required' =>
+                'Please enter the security verification answer.',
+
+                'regex_match' =>
+                'Please enter a valid security verification answer.',
+            ],
+        ];
+
+        return $rules;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function aadhaarRules(): array
+    {
+        return [
+            'label' =>
+            'Aadhaar Number',
+
+            'rules' => [
+                'required',
+                'exact_length[12]',
+                'regex_match[/^[0-9]{12}$/]',
+            ],
+
+            'errors' => [
+                'required' =>
+                'Aadhaar number is required.',
+
+                'exact_length' =>
+                'Aadhaar number must contain exactly 12 digits.',
+
+                'regex_match' =>
+                'Enter a valid 12-digit Aadhaar number.',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function panRules(): array
+    {
+        return [
+            'label' =>
+            'PAN Number',
+
+            'rules' => [
+                'required',
+                'exact_length[10]',
+                'regex_match[/^[A-Z]{5}[0-9]{4}[A-Z]$/]',
+            ],
+
+            'errors' => [
+                'required' =>
+                'PAN number is required.',
+
+                'exact_length' =>
+                'PAN number must contain exactly 10 characters.',
+
+                'regex_match' =>
+                'Enter a valid PAN number, for example ABCDE1234F.',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function upiRules(): array
+    {
+        return [
+            'label' =>
+            'UPI ID',
+
+            'rules' => [
+                'permit_empty',
+                'max_length[150]',
+                'regex_match[/^[A-Za-z0-9._-]{2,256}@[A-Za-z][A-Za-z0-9.-]{1,63}$/]',
+            ],
+
+            'errors' => [
+                'max_length' =>
+                'UPI ID must not exceed 150 characters.',
+
+                'regex_match' =>
+                'Enter a valid UPI ID, for example name@bank.',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private static function addressRules(): array
+    {
+        return [
+            'label' =>
+            'Address',
+
+            'rules' => [
+                'permit_empty',
+                'string',
+                'max_length[500]',
+            ],
+
+            'errors' => [
+                'max_length' =>
+                'Address must not exceed 500 characters.',
             ],
         ];
     }
@@ -150,16 +316,22 @@ final class FieldOfficerValidation
         string $label
     ): array {
         return [
-            'label' => $label,
+            'label' =>
+            $label,
+
             'rules' => [
                 'required',
                 'is_natural_no_zero',
             ],
+
             'errors' => [
                 'required' =>
                 $label . ' is required.',
+
                 'is_natural_no_zero' =>
-                'Select a valid ' . strtolower($label) . '.',
+                'Select a valid '
+                    . strtolower($label)
+                    . '.',
             ],
         ];
     }

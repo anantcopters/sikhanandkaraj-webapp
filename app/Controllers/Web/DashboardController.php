@@ -19,13 +19,7 @@ final class DashboardController extends BaseController
 {
     public function index(): string
     {
-        $userId = session('auth_user_id');
-
-        if (!is_numeric($userId)) {
-            throw PageNotFoundException::forPageNotFound();
-        }
-
-        $resolvedUserId = (int) $userId;
+        $resolvedUserId = $this->authenticatedUserId();
 
         $user = (new UserModel())->find(
             $resolvedUserId
@@ -81,11 +75,15 @@ final class DashboardController extends BaseController
         /*
          * Dashboard-specific account and match datasets.
          */
-        $dashboardData = (
-            new MemberDashboardDataService()
-        )->getDashboardData(
-            $resolvedUserId
+        /** @var MemberDashboardDataService $dashboardService */
+        $dashboardService = service(
+            'memberDashboardDataService'
         );
+
+        $dashboardData = $dashboardService
+            ->getDashboardData(
+                $resolvedUserId
+            );
 
         /*
          * Reuse exactly the same profile summary used by profile/edit.
@@ -112,6 +110,14 @@ final class DashboardController extends BaseController
                     'loggedInUserName' =>
                     $loggedInUserName,
 
+                    'gender' =>
+                    trim(
+                        (string) (
+                            $user['gender']
+                            ?? ''
+                        )
+                    ),
+
                     'primaryMobile' =>
                     $primaryMobile,
 
@@ -135,6 +141,7 @@ final class DashboardController extends BaseController
 
                     'pageScripts' => [
                         'assets/js/pages/dashboard-security.js',
+                        'assets/js/pages/dashboard-matches.js',
                     ],
                 ],
                 $dashboardData

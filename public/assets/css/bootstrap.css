@@ -8448,6 +8448,11 @@ textarea.form-control-lg {
   width: 75% !important;
 }
 
+.w-80 {
+  width: 80% !important;
+}
+
+
 .w-100 {
   width: 100% !important;
 }
@@ -10259,6 +10264,14 @@ textarea.form-control-lg {
 
 .fs-24 {
   font-size: 24px !important;
+}
+
+.fs-26 {
+  font-size: 26px !important;
+}
+
+.fs-30 {
+  font-size: 30px !important;
 }
 
 .fs-36 {

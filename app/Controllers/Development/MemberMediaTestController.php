@@ -142,7 +142,7 @@ final class MemberMediaTestController extends BaseController
             );
 
             $testBody = implode(PHP_EOL, [
-                'SikhAnandKaraj member-media integration test',
+                'Sikhanandkaraj member-media integration test',
                 'Generated at: ' . date(DATE_ATOM),
                 'Environment: ' . ENVIRONMENT,
                 'Object key: ' . $objectKey,
@@ -550,7 +550,7 @@ final class MemberMediaTestController extends BaseController
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_USERAGENT      =>
-            'SikhAnandKaraj-MemberMedia-Test/1.0',
+            'Sikhanandkaraj-MemberMedia-Test/1.0',
         ]);
 
         $responseBody = curl_exec($curl);

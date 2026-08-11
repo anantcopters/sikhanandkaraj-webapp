@@ -42,7 +42,7 @@ Authenticated members can maintain basic details, education and profession, fami
 
 ### Administration and prelaunch
 
-The separate administrator application supports role/status authorization, administrator invitations, audit logging, field officers, prelaunch profile review and member photo review. In production prelaunch mode, public home, login and registration routes redirect to the prelaunch profile form.
+The separate administrator application supports role/status authorization, administrator invitations, audit logging, SAK Volunteers, prelaunch profile review and member photo review. In production prelaunch mode, public home, login and registration routes redirect to the prelaunch profile form.
 
 ## Architecture
 

@@ -7,53 +7,94 @@ declare(strict_types=1);
  * @var array<string, string>|null $validationErrors
  * @var array<string, string>|null $formAlert
  * @var string|null                $adminLoginIdentifier
+ * @var string|null                $captchaChallenge
  */
 
-$pageTitle = isset($pageTitle)
-    ? trim((string) $pageTitle)
+$pageTitle =
+    isset($pageTitle)
+    ? trim(
+        (string) $pageTitle
+    )
     : 'Administrator Login';
 
-$validationErrors = isset($validationErrors)
+$validationErrors =
+    isset($validationErrors)
     && is_array($validationErrors)
     ? $validationErrors
     : [];
 
-$formAlert = isset($formAlert)
+$formAlert =
+    isset($formAlert)
     && is_array($formAlert)
     ? $formAlert
     : null;
 
-$adminLoginIdentifier = isset($adminLoginIdentifier)
-    ? trim((string) $adminLoginIdentifier)
+$adminLoginIdentifier =
+    isset($adminLoginIdentifier)
+    ? trim(
+        (string) $adminLoginIdentifier
+    )
     : '';
 
-$this->extend('Admin/Layouts/Main');
-$this->section('content');
+$captchaChallenge =
+    isset($captchaChallenge)
+    ? trim(
+        (string) $captchaChallenge
+    )
+    : '';
+
+$this->extend(
+    'Admin/Layouts/Main'
+);
+
+$this->section(
+    'content'
+);
 ?>
 
 <div class="auth-page-wrapper min-vh-100">
-    <div class="auth-page-content d-flex align-items-center py-5">
+    <div
+        class="auth-page-content
+            d-flex
+            align-items-center
+            py-5">
+
         <div class="container">
 
             <div class="row justify-content-center">
-                <div
-                    class="col-md-8 col-lg-6 col-xl-5">
 
-                    <div class="card border border-danger border-opacity-25 mb-0">
+                <div
+                    class="col-md-8
+                        col-lg-6
+                        col-xl-5">
+
+                    <div
+                        class="card
+                            border
+                            border-danger
+                            border-opacity-25
+                            mb-0">
+
                         <div class="card-body p-4">
 
                             <div class="text-center mt-2">
 
                                 <div
-                                    class="avatar-md mx-auto mb-3">
+                                    class="avatar-md
+                                        mx-auto
+                                        mb-3">
+
                                     <div
                                         class="avatar-title
                                             rounded-circle
                                             bg-primary-subtle
-                                            text-primary fs-24">
+                                            text-primary
+                                            fs-24">
+
                                         <i
                                             class="ri-shield-user-line">
                                         </i>
+
                                     </div>
                                 </div>
 
@@ -65,13 +106,16 @@ $this->section('content');
                                     Sign in using your verified
                                     email address or mobile number.
                                 </p>
+
                             </div>
 
                             <div class="p-2 mt-4">
+
                                 <?= view(
                                     'Components/Alerts/FormAlert',
                                     [
-                                        'alert' => $formAlert,
+                                        'alert' =>
+                                        $formAlert,
                                     ]
                                 ) ?>
 
@@ -87,19 +131,21 @@ $this->section('content');
                                     <?= csrf_field() ?>
 
                                     <div class="mb-3">
+
                                         <label
                                             class="form-label"
                                             for="adminIdentifier">
+
                                             Email or Mobile Number
                                         </label>
 
                                         <input
                                             class="form-control
-                                    <?= isset(
-                                        $validationErrors['identifier']
-                                    )
-                                        ? 'is-invalid'
-                                        : '' ?>"
+                                            <?= isset(
+                                                $validationErrors['identifier']
+                                            )
+                                                ? 'is-invalid'
+                                                : '' ?>"
                                             type="text"
                                             id="adminIdentifier"
                                             name="identifier"
@@ -112,29 +158,38 @@ $this->section('content');
                                             maxlength="254"
                                             required>
 
-                                        <div class="invalid-feedback">
+                                        <div
+                                            class="invalid-feedback">
+
                                             <?= esc(
-                                                $validationErrors['identifier'] ?? ''
+                                                $validationErrors['identifier']
+                                                    ?? ''
                                             ) ?>
+
                                         </div>
+
                                     </div>
 
-                                    <div class="mb-4">
+                                    <div class="mb-3">
+
                                         <label
                                             class="form-label"
                                             for="adminPassword">
+
                                             Password
                                         </label>
 
-                                        <div class="password-field">
+                                        <div
+                                            class="password-field">
+
                                             <input
                                                 class="form-control
-                                        password-field__input
-                                        <?= isset(
-                                            $validationErrors['password']
-                                        )
-                                            ? 'is-invalid'
-                                            : '' ?>"
+                                                password-field__input
+                                                <?= isset(
+                                                    $validationErrors['password']
+                                                )
+                                                    ? 'is-invalid'
+                                                    : '' ?>"
                                                 type="password"
                                                 id="adminPassword"
                                                 name="password"
@@ -148,61 +203,169 @@ $this->section('content');
                                                 class="password-field__toggle"
                                                 data-password-toggle="adminPassword"
                                                 aria-label="Show password">
+
                                                 <span
-                                                    class="mdi mdi-eye-off-outline"
+                                                    class="mdi
+                                                        mdi-eye-off-outline"
                                                     aria-hidden="true">
                                                 </span>
+
                                             </button>
+
                                         </div>
 
-                                        <div class="invalid-feedback d-block">
+                                        <div
+                                            class="invalid-feedback
+                                                d-block">
+
                                             <?= esc(
-                                                $validationErrors['password'] ?? ''
+                                                $validationErrors['password']
+                                                    ?? ''
                                             ) ?>
+
                                         </div>
+
+                                    </div>
+
+                                    <div class="mb-4">
+
+                                        <label
+                                            class="form-label"
+                                            for="adminCaptchaAnswer">
+
+                                            Security Verification
+                                        </label>
+
+                                        <div
+                                            class="border
+                                                rounded
+                                                p-2
+                                                mb-2
+                                                bg-light border-primary-subtle">
+
+                                            <div
+                                                class="d-flex
+                                                    align-items-center
+                                                    justify-content-between">
+
+                                                <span
+                                                    class="text-muted">
+
+                                                    Solve this question
+                                                </span>
+
+                                                <span
+                                                    class="fw-bold
+                                                        fs-18">
+
+                                                    <?= esc(
+                                                        $captchaChallenge
+                                                    ) ?> = ?
+
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+                                        <input
+                                            class="form-control
+                                            <?= isset(
+                                                $validationErrors['captcha_answer']
+                                            )
+                                                ? 'is-invalid'
+                                                : '' ?>"
+                                            type="text"
+                                            id="adminCaptchaAnswer"
+                                            name="captcha_answer"
+                                            value=""
+                                            placeholder="Enter answer"
+                                            inputmode="numeric"
+                                            autocomplete="off"
+                                            maxlength="2"
+                                            pattern="[0-9]{1,2}"
+                                            required>
+
+                                        <div
+                                            class="invalid-feedback">
+
+                                            <?= esc(
+                                                $validationErrors['captcha_answer']
+                                                    ?? ''
+                                            ) ?>
+
+                                        </div>
+
+                                        <div
+                                            class="form-text color-pink">
+
+                                            The security question expires
+                                            after 5 minutes.
+
+                                        </div>
+
                                     </div>
 
                                     <button
                                         type="submit"
-                                        class="btn registration-form__submit
-                                fs-16 fw-semibold"
+                                        class="btn
+                                            registration-form__submit
+                                            fs-16
+                                            fw-semibold"
                                         data-submit-button>
 
-                                        <span data-submit-idle>
+                                        <span
+                                            data-submit-idle>
+
                                             Login to Administration
+
                                         </span>
 
                                         <span
                                             class="registration-submit__loading
-                                    d-none"
+                                                d-none"
                                             data-submit-loading>
+
                                             <span
                                                 class="spinner-border
-                                        spinner-border-sm">
+                                                    spinner-border-sm">
                                             </span>
+
                                             Checking credentials...
+
                                         </span>
+
                                     </button>
+
                                 </form>
+
                             </div>
 
                         </div>
                     </div>
 
                     <p
-                        class="text-center text-muted
-                            mt-4 mb-0">
+                        class="text-center
+                            text-muted
+                            mt-4
+                            mb-0">
+
                         <i
                             class="ri-lock-2-line
-                                text-danger me-1">
+                                text-danger
+                                me-1">
                         </i>
+
                         Restricted administration access
+
                     </p>
 
                 </div>
+
             </div>
 
         </div>
+
     </div>
 </div>
 

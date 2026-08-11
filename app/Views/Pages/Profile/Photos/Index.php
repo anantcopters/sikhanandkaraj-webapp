@@ -41,6 +41,61 @@ $remainingPhotos = isset($remainingPhotos)
     ? max(0, (int) $remainingPhotos)
     : max(0, $maximumPhotos - $photoCount);
 
+$maximumPhotoSizeKb = isset(
+    $maximumPhotoSizeKilobytes
+)
+    ? max(
+        1,
+        (int) $maximumPhotoSizeKilobytes
+    )
+    : 10240;
+
+$maximumPhotoSizeBytes =
+    $maximumPhotoSizeKb * 1024;
+
+$maximumPhotoSizeMb = max(
+    1,
+    (int) ceil(
+        $maximumPhotoSizeKb / 1024
+    )
+);
+
+$minimumPhotoWidth = isset(
+    $minimumPhotoWidth
+)
+    ? max(
+        1,
+        (int) $minimumPhotoWidth
+    )
+    : 300;
+
+$minimumPhotoHeight = isset(
+    $minimumPhotoHeight
+)
+    ? max(
+        1,
+        (int) $minimumPhotoHeight
+    )
+    : 300;
+
+$recommendedPhotoWidth = isset(
+    $recommendedPhotoWidth
+)
+    ? max(
+        $minimumPhotoWidth,
+        (int) $recommendedPhotoWidth
+    )
+    : 600;
+
+$recommendedPhotoHeight = isset(
+    $recommendedPhotoHeight
+)
+    ? max(
+        $minimumPhotoHeight,
+        (int) $recommendedPhotoHeight
+    )
+    : 600;
+
 $validationErrors = isset($validationErrors)
     && is_array($validationErrors)
     ? $validationErrors
@@ -158,9 +213,34 @@ $this->section('content');
                                     Add a Photo
                                 </h2>
 
-                                <p class="text-muted fs-13 mb-3">
-                                    JPEG or PNG. Maximum 10 MB.
-                                    Minimum size 400 × 400 pixels.
+                                <p class="text-muted fs-13 mb-2">
+                                    JPEG or PNG.
+                                    Maximum
+                                    <?= esc(
+                                        (string) $maximumPhotoSizeMb
+                                    ) ?>
+                                    MB.
+                                    Minimum
+                                    <?= esc(
+                                        (string) $minimumPhotoWidth
+                                    ) ?>
+                                    ×
+                                    <?= esc(
+                                        (string) $minimumPhotoHeight
+                                    ) ?>
+                                    pixels.
+                                </p>
+
+                                <p class="form-text color-pink mb-3">
+                                    For best quality, upload a photo at least
+                                    <?= esc(
+                                        (string) $recommendedPhotoWidth
+                                    ) ?>
+                                    ×
+                                    <?= esc(
+                                        (string) $recommendedPhotoHeight
+                                    ) ?>
+                                    pixels.
                                 </p>
 
                                 <?php if ($remainingPhotos > 0): ?>
@@ -196,6 +276,25 @@ $this->section('content');
                                                         ? 'is-invalid'
                                                         : '' ?>"
                                                 accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                                                data-maximum-file-size="<?= esc(
+                                                                            (string) $maximumPhotoSizeBytes,
+                                                                            'attr'
+                                                                        ) ?>"
+
+                                                data-maximum-file-size-label="<?= esc(
+                                                                                    $maximumPhotoSizeMb . ' MB',
+                                                                                    'attr'
+                                                                                ) ?>"
+
+                                                data-minimum-width="<?= esc(
+                                                                        (string) $minimumPhotoWidth,
+                                                                        'attr'
+                                                                    ) ?>"
+
+                                                data-minimum-height="<?= esc(
+                                                                            (string) $minimumPhotoHeight,
+                                                                            'attr'
+                                                                        ) ?>"
                                                 required>
 
                                             <div

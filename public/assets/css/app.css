@@ -2584,7 +2584,6 @@ video {
 .custom-accordionwithicon .accordion-button:not(.collapsed)::after {
   background-image: none !important;
   content: "\f0140";
-  margin-left: -3px;
 }
 
 .custom-accordionwithicon-plus .accordion-button::after {
@@ -4525,13 +4524,13 @@ code {
   --vz-input-bg-custom: #fff;
   --vz-input-border-custom: #ced4da;
 
-  --sak-home-background: #fef4f3;
+  --sak-home-background: #F9E9E7;
   --sak-primary: #ae1536;
   --sak-primary-hover: #92112f;
   --sak-card-background: #ffffff;
   --sak-control-border: #202020;
   --sak-section-background-green: #f8fdf7;
-  --sak-page-background: #fef4f3;
+  --sak-page-background: #F9E9E7;
   --sak-text-primary: #191919;
   --sak-white: #ffffff;
 }
@@ -14512,7 +14511,7 @@ span.flatpickr-weekday {
 }
 
 .bg-marketplace {
-  background-image: url(../images/nft/marketplace.png);
+  background-image: url(../images/cover-pattern.png);
   background-size: cover;
 }
 
@@ -17819,7 +17818,7 @@ span.flatpickr-weekday {
 }
 
 .bg-overlay-pattern {
-  background-image: url("../images/landing/bg-pattern.png");
+  background-image: url("../images/bg-pattern.png");
   background-color: transparent;
   background-position: center;
   background-size: cover;

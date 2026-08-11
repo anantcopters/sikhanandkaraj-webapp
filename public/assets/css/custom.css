@@ -11,6 +11,8 @@
     z-index: 1030;
     width: 100%;
     background-color: var(--sak-page-background);
+    border-bottom: 1px solid #EBCFCA;
+    ;
 }
 
 /**
@@ -40,8 +42,8 @@
 .public-navbar__logo {
     display: block;
     width: auto;
-    max-width: 300px;
-    max-height: 72px;
+    max-width: 290px;
+    max-height: 90px;
     object-fit: contain;
 }
 
@@ -1107,6 +1109,7 @@ form[aria-busy="true"] {
     background-color: rgba(174, 21, 54, 0.08);
     color: var(--sak-primary);
     font-size: 3rem;
+    object-fit: cover;
 }
 
 /**
@@ -1136,32 +1139,6 @@ form[aria-busy="true"] {
     overscroll-behavior-inline: contain;
     scroll-snap-type: inline proximity;
     scrollbar-width: thin;
-}
-
-/**
- * Keep every profile card a predictable width within the horizontal list.
- */
-.dashboard-profile-card {
-    min-width: 180px;
-    max-width: 180px;
-    flex: 0 0 180px;
-    scroll-snap-align: start;
-}
-
-/**
- * Temporary profile image placeholder.
- */
-.dashboard-profile-photo {
-    width: 92px;
-    height: 92px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto;
-    border-radius: 50%;
-    background-color: var(--sak-page-background);
-    color: var(--sak-primary);
-    font-size: 2.5rem;
 }
 
 /**
@@ -1197,17 +1174,8 @@ form[aria-busy="true"] {
         gap: 12px;
     }
 
-    .dashboard-profile-card {
-        min-width: 165px;
-        max-width: 165px;
-        flex-basis: 165px;
-    }
+    
 
-    .dashboard-profile-photo {
-        width: 82px;
-        height: 82px;
-        font-size: 2.15rem;
-    }
 }
 
 /* ==========================================================================
@@ -1598,14 +1566,6 @@ form[aria-busy="true"] {
     object-position: center;
 }
 
-.profile-preview-gallery-photo {
-    display: block;
-    width: 100%;
-    aspect-ratio: 1 / 1;
-    object-fit: cover;
-    object-position: center;
-}
-
 .profile-preview-notice {
     background: linear-gradient(120deg,
             #fff8e8,
@@ -1627,4 +1587,618 @@ form[aria-busy="true"] {
     #prelaunchSavingProgressBar {
         transition: none;
     }
+}
+
+/* --------------------------------------------------------------------------
+ * Administrator prelaunch photo review
+ * ----------------------------------------------------------------------- */
+
+/*
+ * The gallery button fills its Bootstrap card without adding browser-default
+ * button spacing or appearance.
+ */
+.prelaunch-admin-photo-button {
+    display: block;
+    cursor: pointer;
+    border-radius: 0.375rem;
+}
+
+.prelaunch-admin-photo-button:focus-visible {
+    outline: 3px solid rgba(174, 21, 54, 0.2);
+    outline-offset: 3px;
+}
+
+/*
+ * Keep gallery images small, square and fully visible.
+ *
+ * object-fit: contain prevents portrait and landscape photographs from being
+ * cropped. The light background fills any unused space.
+ */
+.prelaunch-admin-photo-media {
+    max-width: 10rem;
+    margin-inline: auto;
+}
+
+.prelaunch-admin-photo-media img {
+    display: block;
+    object-position: center;
+    transition: transform 180ms ease;
+}
+
+.prelaunch-admin-photo-button:hover .prelaunch-admin-photo-media img,
+.prelaunch-admin-photo-button:focus-visible .prelaunch-admin-photo-media img {
+    transform: scale(1.025);
+}
+
+/*
+ * Give the enlarged image a predictable modal boundary. The image remains
+ * contained and does not overflow the browser viewport.
+ */
+.prelaunch-admin-modal-media {
+    width: 100%;
+    max-width: 46rem;
+    height: min(68vh, 42rem);
+}
+
+.prelaunch-admin-modal-media img {
+    display: block;
+    object-position: center;
+}
+
+/*
+ * Ensure Bootstrap modals remain above the administrator layout, sidebar and
+ * sticky header.
+ */
+.modal-backdrop {
+    z-index: 1050;
+}
+
+.modal {
+    z-index: 1055;
+}
+
+@media (max-width: 767.98px) {
+    .prelaunch-admin-photo-media {
+        max-width: 8.5rem;
+    }
+
+    .prelaunch-admin-modal-media {
+        height: 58vh;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .prelaunch-admin-photo-media {
+        max-width: 7.5rem;
+    }
+
+    .prelaunch-admin-modal-media {
+        height: 52vh;
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Home registration hero
+|--------------------------------------------------------------------------
+|
+| bg_index.png covers the full left side of the section rather than only
+| the Bootstrap column. The content remains aligned with the site container.
+|
+*/
+
+.home-registration-section {
+    position: relative;
+    min-height: 650px;
+    overflow: hidden;
+    background-color: #f8fcf8;
+    isolation: isolate;
+}
+
+/*
+ * Full-height image layer.
+ *
+ * It starts at the browser's left edge and extends slightly beyond the
+ * seven-column desktop region. This removes the empty strip created by the
+ * Bootstrap container and column gutters.
+ */
+.home-registration-section::before {
+    position: absolute;
+    z-index: -2;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 61%;
+    background-image: url("../images/bg_index.png");
+    background-repeat: no-repeat;
+    background-position: center center;
+    background-size: cover;
+    content: "";
+}
+
+/*
+ * Continuous fade toward the registration form.
+ *
+ * The gradient belongs to the section, so the fade extends across the full
+ * image height without producing a separate rectangular image block.
+ */
+.home-registration-section::after {
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 66%;
+    background:
+        linear-gradient(90deg,
+            rgba(255, 248, 245, 0.1) 0%,
+            rgba(255, 248, 245, 0.04) 42%,
+            rgba(248, 252, 248, 0.16) 64%,
+            rgba(248, 252, 248, 0.7) 83%,
+            #f8fcf8 100%),
+        linear-gradient(180deg,
+            rgba(255, 249, 247, 0.82) 0%,
+            rgba(255, 249, 247, 0.58) 25%,
+            rgba(255, 249, 247, 0.1) 52%,
+            rgba(255, 249, 247, 0.03) 100%);
+    content: "";
+    pointer-events: none;
+}
+
+.home-registration-section__row {
+    min-height: 650px;
+}
+
+/*
+ * The left column now contains only overlay content.
+ * It does not limit or crop the section-level image.
+ */
+.home-registration-visual {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    width: 100%;
+    min-height: 650px;
+    height: 100%;
+}
+
+/*
+ * Text overlays the image near the top.
+ */
+.home-registration-visual__content {
+    width: min(100%, 650px);
+    padding: 46px 34px 30px;
+    text-align: center;
+}
+
+.home-registration-visual__eyebrow {
+    margin: 0 0 10px;
+    color: #945b66;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    line-height: 1.5;
+    text-transform: uppercase;
+    text-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.95),
+        0 2px 10px rgba(255, 255, 255, 0.82);
+}
+
+.home-registration-visual__title {
+    margin: 0;
+    color: #432053;
+    font-weight: 600;
+    line-height: 1.06;
+    letter-spacing: -0.025em;
+    text-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.95),
+        0 4px 18px rgba(255, 255, 255, 0.82);
+}
+
+.home-registration-visual__title span {
+    display: block;
+    margin-top: 5px;
+    color: #ae1536;
+}
+
+.home-registration-visual__divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(100%, 330px);
+    margin: 20px auto 16px;
+    color: #d69a47;
+}
+
+.home-registration-visual__divider span {
+    display: block;
+    flex: 1 1 auto;
+    height: 1px;
+    background-color: currentColor;
+    opacity: 0.82;
+}
+
+.home-registration-visual__divider i {
+    flex: 0 0 auto;
+    margin: 0 12px;
+    font-size: 20px;
+    line-height: 1;
+}
+
+.home-registration-visual__description {
+    margin: 0;
+    color: #514a4c;
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1.65;
+    text-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.98),
+        0 3px 14px rgba(255, 255, 255, 0.9);
+}
+
+/*
+ * Keep the form vertically centered without changing registration-card
+ * styling.
+ */
+.home-registration-section .col-lg-5 {
+    display: flex;
+    align-items: flex-start;
+}
+
+.home-registration-section .registration-card {
+    width: 100%;
+    margin-top: 35px;
+}
+
+/*
+ * Wide desktop screens need a slightly larger image area because the
+ * Bootstrap container leaves more space outside the content.
+ */
+@media (min-width: 1200px) {
+
+    .home-registration-section,
+    .home-registration-section__row,
+    .home-registration-visual {
+        min-height: 530px;
+    }
+
+    .home-registration-section::before {
+        width: 62%;
+    }
+
+    .home-registration-section::after {
+        width: 67%;
+    }
+
+    .home-registration-visual__content {
+        padding-top: 50px;
+    }
+}
+
+@media (min-width: 1400px) {
+
+    .home-registration-section,
+    .home-registration-section__row,
+    .home-registration-visual {
+        min-height: 550px;
+    }
+
+    .home-registration-section::before {
+        width: 63%;
+    }
+
+    .home-registration-section::after {
+        width: 68%;
+    }
+}
+
+/*
+ * The artwork remains hidden on mobile because the corresponding left
+ * Bootstrap column is hidden. Remove section pseudo-elements as well.
+ */
+@media (max-width: 991.98px) {
+    .home-registration-section {
+        min-height: auto;
+        padding-top: 24px;
+        padding-bottom: 32px;
+    }
+
+    .home-registration-section::before,
+    .home-registration-section::after {
+        display: none;
+    }
+
+    .home-registration-section__row {
+        min-height: auto;
+    }
+
+    .home-registration-section .col-lg-5 {
+        display: block;
+    }
+}
+
+.light-yellowish {
+    background-color: #f8fcf8;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Dashboard - completed profile
+|--------------------------------------------------------------------------
+*/
+
+.dashboard-profile-complete {
+    position: relative;
+    width: 100%;
+}
+
+.dashboard-profile-complete__content {
+    min-width: 0;
+}
+
+.dashboard-profile-complete__content .badge {
+    font-weight: 500;
+}
+
+.dashboard-profile-complete__actions .btn {
+    min-width: 138px;
+    white-space: nowrap;
+}
+
+@media (max-width: 991.98px) {
+    .dashboard-profile-complete__actions {
+        width: 100%;
+        padding-top: 1rem;
+        border-top: 1px solid var(--bs-border-color);
+    }
+}
+
+@media (max-width: 575.98px) {
+    .dashboard-profile-complete {
+        text-align: center;
+    }
+
+    .dashboard-profile-complete .profile-completion-circle {
+        margin-inline: auto;
+    }
+
+    .dashboard-profile-complete__content .d-flex {
+        justify-content: center;
+    }
+
+    .dashboard-profile-complete__actions {
+        width: 100%;
+    }
+
+    .dashboard-profile-complete__actions .btn {
+        width: 100%;
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
+| Admin member profile photograph
+|--------------------------------------------------------------------------
+|
+| Admin review uses a portrait-oriented photograph rather than an avatar.
+| This exposes more of the member's actual photograph while maintaining a
+| compact profile-summary header.
+|
+*/
+/* ==========================================================================
+   Member dashboard
+   ========================================================================== */
+
+/**
+ * Keep the member account panel visible while scrolling through dashboard
+ * sections on larger screens.
+ */
+.dashboard-sidebar {
+    position: sticky;
+    top: 24px;
+}
+
+/**
+ * Align the profile-completion shortcut icons consistently.
+ */
+.dashboard-shortcut-icon {
+    width: 44px;
+    height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+    color: var(--sak-primary);
+    font-size: 1.25rem;
+}
+
+/**
+ * Horizontal member-card list.
+ *
+ * This allows the dashboard to show several profiles without forcing every
+ * section into a large multi-row grid.
+ */
+.dashboard-profile-scroll {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: inline proximity;
+    scrollbar-width: thin;
+}
+
+/**
+ * Keep every dashboard profile card wide enough to contain the common
+ * member thumbnail.
+ *
+ * Thumbnail: 193px
+ * Card body horizontal padding: 16px + 16px
+ * Total required width: approximately 225px.
+ */
+.dashboard-profile-card {
+    min-width: 190px;
+    max-width: 190px;
+    flex: 0 0 190px;
+    scroll-snap-align: start;
+}
+
+/* ==========================================================================
+   Shared member profile thumbnail
+   ========================================================================== */
+
+/**
+ * Common member photograph presentation.
+ *
+ * Used by:
+ * - Admin member summary
+ * - Member dashboard sidebar
+ * - Match/recommendation cards
+ *
+ * All member thumbnails should have the same dimensions and presentation.
+ */
+.member-profile-thumbnail {
+    width: 160px;
+    height: 160px;
+    flex: 0 0 160px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    overflow: hidden;
+
+    border-radius: 18px;
+
+    background-color: var(--sak-page-background);
+    color: var(--sak-primary);
+
+    font-size: 3rem;
+    font-weight: 600;
+}
+
+/**
+ * Actual member photograph.
+ *
+ * Crop the photograph into the fixed square without stretching it.
+ */
+.member-profile-thumbnail img {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+    object-position: center;
+}
+
+/**
+ * Fallback shown when the member does not have an available photograph.
+ */
+.member-profile-thumbnail--fallback {
+    background-color: var(--vz-primary-bg-subtle);
+    color: var(--sak-primary);
+}
+
+/* ==========================================================================
+   Member dashboard responsive behaviour
+   ========================================================================== */
+
+@media (max-width: 991.98px) {
+
+    /*
+     * Sticky positioning is unnecessary once the sidebar stacks above the
+     * dashboard content.
+     */
+    .dashboard-sidebar {
+        position: static;
+    }
+}
+
+@media (max-width: 575.98px) {
+
+    .dashboard-profile-scroll {
+        gap: 12px;
+    }
+
+    /*
+     * Do not shrink profile photographs on mobile.
+     *
+     * The dashboard profile list already scrolls horizontally, so keeping
+     * one consistent thumbnail size prevents different member photos from
+     * having different visual presentation across devices.
+     */
+    .dashboard-profile-card {
+        min-width: 190px;
+        max-width: 190px;
+        flex-basis: 190px;
+    }
+}
+
+/* ==========================================================================
+   Partner Preference - Any selection
+   ========================================================================== */
+
+/**
+ * Compact representation used when every available value is acceptable.
+ *
+ * The underlying select still contains all selected values so the existing
+ * backend persistence and matching behaviour remain unchanged.
+ */
+.partner-preference-any-value {
+    display: none;
+    padding: 0.5rem 0.75rem;
+    align-items: center;
+
+    border: 1px solid var(--vz-border-color);
+    border-radius: 0.25rem;
+
+    background-color: var(--vz-input-bg);
+    color: var(--vz-body-color);
+
+    font-size: 0.8125rem;
+}
+
+/**
+ * Choices.js would normally render every selected value as an individual
+ * removable tag. Hide the Choices presentation when "Any" represents the
+ * complete selection.
+ */
+.partner-preference-multi-select.is-any .partner-preference-multi-select__control>.choices {
+    display: none;
+}
+
+/**
+ * Show one clean value instead of dozens of Choices tags.
+ */
+.partner-preference-multi-select.is-any .partner-preference-any-value {
+    display: flex;
+}
+
+/*
+ * Member profile medium display image.
+ *
+ * Used for the primary member image on profile/detail screens.
+ * The dimensions intentionally match the earlier profile presentation.
+ */
+.member-photo-medium {
+    display: block;
+    width: 320px;
+    max-width: 100%;
+    height: 280px;
+    object-fit: cover;
+    object-position: center;
+    border-radius: 0.5rem;
+}
+
+/*
+ * Gallery thumbnails remain square and independent from the
+ * medium profile-image presentation.
+ */
+.profile-preview-gallery-photo {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    object-position: center;
 }

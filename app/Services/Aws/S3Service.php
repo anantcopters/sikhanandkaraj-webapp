@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Aws;
 
+use App\Support\InfrastructureErrorContext;
 use Aws\Exception\AwsException;
 use Aws\S3\S3Client;
 use Config\MemberMedia;
@@ -31,13 +32,19 @@ final class S3Service
         string $mimeType,
         array $metadata = []
     ): string {
-        if (!is_file($localPath) || !is_readable($localPath)) {
+        if (
+            !is_file($localPath)
+            || !is_readable($localPath)
+        ) {
             throw new RuntimeException(
                 'The media file is not available for upload.'
             );
         }
 
-        $stream = fopen($localPath, 'rb');
+        $stream = fopen(
+            $localPath,
+            'rb'
+        );
 
         if ($stream === false) {
             throw new RuntimeException(
@@ -47,10 +54,17 @@ final class S3Service
 
         try {
             $this->client->putObject([
-                'Bucket' => $this->config->s3Bucket,
-                'Key' => $objectKey,
-                'Body' => $stream,
-                'ContentType' => $mimeType,
+                'Bucket' =>
+                $this->config->s3Bucket,
+
+                'Key' =>
+                $objectKey,
+
+                'Body' =>
+                $stream,
+
+                'ContentType' =>
+                $mimeType,
 
                 /*
                  * Objects use UUID names and are immutable.
@@ -62,41 +76,26 @@ final class S3Service
                  * Do not use public-read ACL.
                  * Bucket policy/OAC keeps direct S3 access private.
                  */
-                'Metadata' => $this->sanitizeMetadata(
+                'Metadata' =>
+                $this->sanitizeMetadata(
                     $metadata
                 ),
             ]);
 
             return $objectKey;
         } catch (AwsException $exception) {
-            log_message(
-                'error',
-                'S3 upload failed for object {objectKey}: '
-                    . '{awsCode}',
-                [
-                    'objectKey' => $objectKey,
-                    'awsCode' =>
-                    $exception->getAwsErrorCode()
-                        ?? 'unknown',
-                ]
-            );
-
+            /*
+             * Upload propagates the error to the workflow owner.
+             *
+             * Do not log here because MemberPhotoController or the relevant
+             * migration/controller will log the final failed operation once.
+             */
             throw new RuntimeException(
                 'The photo could not be stored.',
                 0,
                 $exception
             );
         } catch (Throwable $exception) {
-            log_message(
-                'error',
-                'Unexpected S3 upload failure for object '
-                    . '{objectKey}: {message}',
-                [
-                    'objectKey' => $objectKey,
-                    'message' => $exception->getMessage(),
-                ]
-            );
-
             throw new RuntimeException(
                 'The photo could not be stored.',
                 0,
@@ -107,30 +106,85 @@ final class S3Service
         }
     }
 
-    public function delete(string $objectKey): bool
-    {
-        if ($objectKey === '') {
+    /**
+     * Delete one private object.
+     *
+     * This method returns false instead of throwing, so it owns failure
+     * logging.
+     */
+    public function delete(
+        string $objectKey
+    ): bool {
+        if (trim($objectKey) === '') {
             return true;
         }
 
         try {
             $this->client->deleteObject([
-                'Bucket' => $this->config->s3Bucket,
-                'Key' => $objectKey,
+                'Bucket' =>
+                $this->config->s3Bucket,
+
+                'Key' =>
+                $objectKey,
             ]);
 
             return true;
         } catch (AwsException $exception) {
-            log_message(
-                'error',
-                'S3 delete failed for object {objectKey}: '
-                    . '{awsCode}',
-                [
-                    'objectKey' => $objectKey,
-                    'awsCode' =>
-                    $exception->getAwsErrorCode()
-                        ?? 'unknown',
-                ]
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'warning',
+                InfrastructureErrorContext::forOperation(
+                    operation: 's3_object_delete',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'object_key_hash' =>
+                        InfrastructureErrorContext
+                            ::objectKeyHash(
+                                $objectKey
+                            ),
+
+                        'aws_error_code' =>
+                        $exception
+                            ->getAwsErrorCode()
+                            ?? 'unknown',
+
+                        'bucket_configured' =>
+                        trim(
+                            $this->config
+                                ->s3Bucket
+                        ) !== '',
+                    ]
+                )
+            );
+
+            return false;
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'warning',
+                InfrastructureErrorContext::forOperation(
+                    operation: 's3_object_delete',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'object_key_hash' =>
+                        InfrastructureErrorContext
+                            ::objectKeyHash(
+                                $objectKey
+                            ),
+                    ]
+                )
             );
 
             return false;
@@ -142,14 +196,23 @@ final class S3Service
      *
      * @param list<string> $objectKeys
      */
-    public function deleteMany(array $objectKeys): bool
-    {
+    public function deleteMany(
+        array $objectKeys
+    ): bool {
         $objects = [];
 
-        foreach (array_unique($objectKeys) as $objectKey) {
-            if ($objectKey !== '') {
+        foreach (
+            array_unique($objectKeys)
+            as $objectKey
+        ) {
+            $resolvedObjectKey = trim(
+                (string) $objectKey
+            );
+
+            if ($resolvedObjectKey !== '') {
                 $objects[] = [
-                    'Key' => $objectKey,
+                    'Key' =>
+                    $resolvedObjectKey,
                 ];
             }
         }
@@ -159,21 +222,48 @@ final class S3Service
         }
 
         try {
-            $result = $this->client->deleteObjects([
-                'Bucket' => $this->config->s3Bucket,
-                'Delete' => [
-                    'Objects' => $objects,
-                    'Quiet' => true,
-                ],
-            ]);
+            $result = $this->client
+                ->deleteObjects([
+                    'Bucket' =>
+                    $this->config->s3Bucket,
 
-            $errors = $result->get('Errors');
+                    'Delete' => [
+                        'Objects' =>
+                        $objects,
 
-            if (is_array($errors) && $errors !== []) {
-                log_message(
-                    'error',
-                    'One or more S3 media objects could '
-                        . 'not be deleted.'
+                        'Quiet' =>
+                        true,
+                    ],
+                ]);
+
+            $errors = $result->get(
+                'Errors'
+            );
+
+            if (
+                is_array($errors)
+                && $errors !== []
+            ) {
+                service(
+                    'applicationErrorLogger'
+                )->error(
+                    'One or more S3 media objects could not be deleted.',
+                    InfrastructureErrorContext::forOperation(
+                        operation: 's3_bulk_delete_partial_failure',
+
+                        component: self::class,
+
+                        method: __FUNCTION__,
+
+                        additionalContext: [
+                            'requested_object_count' =>
+                            count($objects),
+
+                            'failed_object_count' =>
+                            count($errors),
+                        ]
+                    ),
+                    'warning'
                 );
 
                 return false;
@@ -181,38 +271,49 @@ final class S3Service
 
             return true;
         } catch (AwsException $exception) {
-            log_message(
-                'error',
-                'Bulk S3 deletion failed: {awsCode}',
-                [
-                    'awsCode' =>
-                    $exception->getAwsErrorCode()
-                        ?? 'unknown',
-                ]
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'warning',
+                InfrastructureErrorContext::forOperation(
+                    operation: 's3_bulk_delete',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'requested_object_count' =>
+                        count($objects),
+
+                        'aws_error_code' =>
+                        $exception
+                            ->getAwsErrorCode()
+                            ?? 'unknown',
+                    ]
+                )
             );
 
             return false;
-        }
-    }
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'warning',
+                InfrastructureErrorContext::forOperation(
+                    operation: 's3_bulk_delete',
 
-    public function exists(string $objectKey): bool
-    {
-        try {
-            return $this->client->doesObjectExistV2(
-                $this->config->s3Bucket,
-                $objectKey
-            );
-        } catch (AwsException $exception) {
-            log_message(
-                'error',
-                'S3 existence check failed for '
-                    . '{objectKey}: {awsCode}',
-                [
-                    'objectKey' => $objectKey,
-                    'awsCode' =>
-                    $exception->getAwsErrorCode()
-                        ?? 'unknown',
-                ]
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'requested_object_count' =>
+                        count($objects),
+                    ]
+                )
             );
 
             return false;
@@ -220,15 +321,97 @@ final class S3Service
     }
 
     /**
+     * Check whether one object exists.
+     *
+     * False may mean either absent or an infrastructure failure. The latter is
+     * logged because this method intentionally returns false.
+     */
+    public function exists(
+        string $objectKey
+    ): bool {
+        if (trim($objectKey) === '') {
+            return false;
+        }
+
+        try {
+            return $this->client
+                ->doesObjectExistV2(
+                    $this->config->s3Bucket,
+                    $objectKey
+                );
+        } catch (AwsException $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'warning',
+                InfrastructureErrorContext::forOperation(
+                    operation: 's3_object_exists_check',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'object_key_hash' =>
+                        InfrastructureErrorContext
+                            ::objectKeyHash(
+                                $objectKey
+                            ),
+
+                        'aws_error_code' =>
+                        $exception
+                            ->getAwsErrorCode()
+                            ?? 'unknown',
+                    ]
+                )
+            );
+
+            return false;
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'warning',
+                InfrastructureErrorContext::forOperation(
+                    operation: 's3_object_exists_check',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'object_key_hash' =>
+                        InfrastructureErrorContext
+                            ::objectKeyHash(
+                                $objectKey
+                            ),
+                    ]
+                )
+            );
+
+            return false;
+        }
+    }
+
+    /**
+     * Return S3 object metadata.
+     *
      * @return array<string, mixed>
      */
-    public function getMetadata(string $objectKey): array
-    {
+    public function getMetadata(
+        string $objectKey
+    ): array {
         try {
-            $result = $this->client->headObject([
-                'Bucket' => $this->config->s3Bucket,
-                'Key' => $objectKey,
-            ]);
+            $result = $this->client
+                ->headObject([
+                    'Bucket' =>
+                    $this->config->s3Bucket,
+
+                    'Key' =>
+                    $objectKey,
+                ]);
 
             return $result->toArray();
         } catch (AwsException $exception) {
@@ -240,23 +423,37 @@ final class S3Service
         }
     }
 
+    /**
+     * Copy one private S3 object.
+     */
     public function copy(
         string $sourceObjectKey,
         string $destinationObjectKey
     ): string {
         try {
             $this->client->copyObject([
-                'Bucket' => $this->config->s3Bucket,
+                'Bucket' =>
+                $this->config->s3Bucket,
+
                 'CopySource' =>
-                rawurlencode($this->config->s3Bucket)
+                rawurlencode(
+                    $this->config
+                        ->s3Bucket
+                )
                     . '/'
                     . str_replace(
                         '%2F',
                         '/',
-                        rawurlencode($sourceObjectKey)
+                        rawurlencode(
+                            $sourceObjectKey
+                        )
                     ),
-                'Key' => $destinationObjectKey,
-                'MetadataDirective' => 'COPY',
+
+                'Key' =>
+                $destinationObjectKey,
+
+                'MetadataDirective' =>
+                'COPY',
             ]);
 
             return $destinationObjectKey;
@@ -269,6 +466,9 @@ final class S3Service
         }
     }
 
+    /**
+     * Move one object by copying and then deleting the source.
+     */
     public function move(
         string $sourceObjectKey,
         string $destinationObjectKey
@@ -278,22 +478,13 @@ final class S3Service
             $destinationObjectKey
         );
 
-        if (!$this->delete($sourceObjectKey)) {
-            /*
-             * Destination remains available. Log cleanup failure
-             * without deleting the successfully copied destination.
-             */
-            log_message(
-                'warning',
-                'S3 move copied {sourceKey} to '
-                    . '{destinationKey}, but source cleanup failed.',
-                [
-                    'sourceKey' => $sourceObjectKey,
-                    'destinationKey' =>
-                    $destinationObjectKey,
-                ]
-            );
-        }
+        /*
+         * delete() logs its own swallowed failure. Do not create a second
+         * application_error_logs row here.
+         */
+        $this->delete(
+            $sourceObjectKey
+        );
 
         return $destinationObjectKey;
     }
@@ -305,16 +496,22 @@ final class S3Service
      *
      * @return array<string, string>
      */
-    private function sanitizeMetadata(array $metadata): array
-    {
+    private function sanitizeMetadata(
+        array $metadata
+    ): array {
         $clean = [];
 
-        foreach ($metadata as $key => $value) {
-            $cleanKey = strtolower(
+        foreach (
+            $metadata
+            as $key => $value
+        ) {
+            $cleanKey = mb_strtolower(
                 preg_replace(
                     '/[^a-z0-9-]/i',
                     '-',
-                    trim($key)
+                    trim(
+                        (string) $key
+                    )
                 ) ?? ''
             );
 
@@ -322,11 +519,14 @@ final class S3Service
                 continue;
             }
 
-            $clean[$cleanKey] = mb_substr(
-                trim($value),
-                0,
-                200
-            );
+            $clean[$cleanKey] =
+                mb_substr(
+                    trim(
+                        (string) $value
+                    ),
+                    0,
+                    200
+                );
         }
 
         return $clean;

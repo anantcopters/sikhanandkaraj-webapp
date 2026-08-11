@@ -35,14 +35,14 @@ declare(strict_types=1);
             <div class="modal-body p-4 text-center">
 
                 <div
-                    class="avatar-lg rounded-circle
-                        bg-danger-subtle text-danger
+                    class="avatar-md rounded-circle
+                        bg-info-subtle text-info
                         d-inline-flex align-items-center
                         justify-content-center mb-3"
                     id="appConfirmationModalIcon"
                     aria-hidden="true">
 
-                    <i class="ri-alert-line fs-24"></i>
+                    <i class="ri-information-line fs-30"></i>
                 </div>
 
                 <h2

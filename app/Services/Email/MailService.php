@@ -52,7 +52,7 @@ final class MailService
 
         $this->email->setFrom(
             $config->fromEmail,
-            $config->fromName ?: 'SikhAnandKaraj'
+            $config->fromName ?: 'Sikhanandkaraj'
         );
 
         $this->email->setTo(

@@ -109,13 +109,22 @@ final class MemberPhotoApprovalService
                 )
             );
 
+            /*
+            * Administrative photo moderation must use the medium variant.
+            * Do not fall back to the original because it may be unnecessarily
+            * large and is reserved for explicit high-resolution requirements.
+            */
             if ($objectKey === '') {
-                $objectKey = trim(
-                    (string) (
-                        $photo['original_object_key']
-                        ?? ''
-                    )
+                log_message(
+                    'error',
+                    'Medium photo object key is unavailable for '
+                        . 'photo {photoId}.',
+                    [
+                        'photoId' => $photoId,
+                    ]
                 );
+
+                continue;
             }
 
             if ($objectKey === '') {

@@ -8,9 +8,13 @@ use Aws\CloudFront\CloudFrontClient;
 use Config\MemberMedia;
 use InvalidArgumentException;
 use RuntimeException;
+use Throwable;
 
 /**
  * Generates short-lived CloudFront signed media URLs.
+ *
+ * This low-level service throws failures to the caller. The workflow service
+ * that has member/photo context owns logging.
  */
 final class CloudFrontService
 {
@@ -20,55 +24,84 @@ final class CloudFrontService
         private readonly CloudFrontClient $client,
         private readonly MemberMedia $config
     ) {
-        $this->privateKey = $this->loadPrivateKey(
-            $config->cloudFrontPrivateKeyPath
-        );
+        $this->privateKey =
+            $this->loadPrivateKey(
+                $config
+                    ->cloudFrontPrivateKeyPath
+            );
     }
 
+    /**
+     * Generate one short-lived signed CloudFront URL.
+     */
     public function signedUrl(
         string $objectKey,
         int $ttlSeconds
     ): string {
-        $objectKey = $this->normalizeObjectKey(
-            $objectKey
-        );
+        $normalizedObjectKey =
+            $this->normalizeObjectKey(
+                $objectKey
+            );
 
-        if ($objectKey === '') {
+        if ($normalizedObjectKey === '') {
             throw new InvalidArgumentException(
                 'A CloudFront object key is required.'
             );
         }
 
-        $expiresAt = time() + max(60, $ttlSeconds);
+        $domain = trim(
+            $this->config
+                ->cloudFrontDomain
+        );
+
+        $keyPairId = trim(
+            $this->config
+                ->cloudFrontKeyPairId
+        );
+
+        if (
+            $domain === ''
+            || $keyPairId === ''
+        ) {
+            throw new RuntimeException(
+                'CloudFront signing configuration is incomplete.'
+            );
+        }
+
+        $expiresAt = time()
+            + max(
+                60,
+                $ttlSeconds
+            );
 
         $resourceUrl = sprintf(
             'https://%s/%s',
-            $this->config->cloudFrontDomain,
-            $this->encodeObjectKey($objectKey)
+            $domain,
+            $this->encodeObjectKey(
+                $normalizedObjectKey
+            )
         );
 
         try {
-            return $this->client->getSignedUrl([
-                'url' => $resourceUrl,
-                'expires' => $expiresAt,
-                'private_key' => $this->privateKey,
-                'key_pair_id' =>
-                $this->config->cloudFrontKeyPairId,
-            ]);
-        } catch (\Throwable $exception) {
-            /*
-             * Do not log the signed URL or private key.
-             */
-            log_message(
-                'error',
-                'CloudFront URL signing failed for '
-                    . 'object {objectKey}: {message}',
-                [
-                    'objectKey' => $objectKey,
-                    'message' => $exception->getMessage(),
-                ]
-            );
+            return $this->client
+                ->getSignedUrl([
+                    'url' =>
+                    $resourceUrl,
 
+                    'expires' =>
+                    $expiresAt,
+
+                    'private_key' =>
+                    $this->privateKey,
+
+                    'key_pair_id' =>
+                    $keyPairId,
+                ]);
+        } catch (Throwable $exception) {
+            /*
+             * Do not log here. The caller has the member/photo context and
+             * logs once if it swallows or converts this exception.
+             */
             throw new RuntimeException(
                 'The photo could not be displayed.',
                 0,
@@ -77,27 +110,46 @@ final class CloudFrontService
         }
     }
 
-    private function loadPrivateKey(string $path): string
-    {
+    /**
+     * Load and validate the CloudFront private signing key.
+     */
+    private function loadPrivateKey(
+        string $path
+    ): string {
+        $resolvedPath = trim(
+            $path
+        );
+
         if (
-            $path === ''
-            || !is_file($path)
-            || !is_readable($path)
+            $resolvedPath === ''
+            || !is_file(
+                $resolvedPath
+            )
+            || !is_readable(
+                $resolvedPath
+            )
         ) {
             throw new RuntimeException(
-                'CloudFront private signing key '
-                    . 'is unavailable.'
+                'CloudFront private signing key is unavailable.'
             );
         }
 
-        $key = file_get_contents($path);
+        $key = file_get_contents(
+            $resolvedPath
+        );
 
         if (
             $key === false
             || trim($key) === ''
-            || !str_contains(
-                $key,
-                'BEGIN PRIVATE KEY'
+            || (
+                !str_contains(
+                    $key,
+                    'BEGIN PRIVATE KEY'
+                )
+                && !str_contains(
+                    $key,
+                    'BEGIN RSA PRIVATE KEY'
+                )
             )
         ) {
             throw new RuntimeException(
@@ -108,26 +160,45 @@ final class CloudFrontService
         return $key;
     }
 
+    /**
+     * Normalize an object key without exposing or changing its hierarchy.
+     */
     private function normalizeObjectKey(
         string $objectKey
     ): string {
         return ltrim(
-            str_replace('\\', '/', trim($objectKey)),
+            str_replace(
+                '\\',
+                '/',
+                trim($objectKey)
+            ),
             '/'
         );
     }
 
+    /**
+     * Safely encode every object-key path segment.
+     */
     private function encodeObjectKey(
         string $objectKey
     ): string {
-        $segments = explode('/', $objectKey);
+        $segments = explode(
+            '/',
+            $objectKey
+        );
 
-        $segments = array_map(
-            static fn(string $segment): string =>
-            rawurlencode($segment),
+        $encodedSegments = array_map(
+            static fn(
+                string $segment
+            ): string => rawurlencode(
+                $segment
+            ),
             $segments
         );
 
-        return implode('/', $segments);
+        return implode(
+            '/',
+            $encodedSegments
+        );
     }
 }

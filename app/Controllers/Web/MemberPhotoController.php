@@ -6,42 +6,89 @@ namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
 use App\Services\Profile\MemberPhotoService;
+use App\Support\ProfileErrorContext;
 use App\Validation\Profile\MemberPhotoValidation;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
-use Config\MemberMedia;
 use DomainException;
 use Throwable;
 
 /**
- * Handles authenticated member photo web requests.
+ * Handles authenticated member-photo requests.
  */
 final class MemberPhotoController extends BaseController
 {
+    /**
+     * Display the member photo-management screen.
+     */
     public function index(): string
     {
         $memberId = $this->authenticatedUserId();
 
         /** @var MemberPhotoService $service */
-        $service = service('memberPhotoService');
+        $service = service(
+            'memberPhotoService'
+        );
 
-        $data = $service->getForMember($memberId);
+        $data = $service->getForMember(
+            $memberId
+        );
+
+        /** @var \Config\MemberMedia $mediaConfig */
+        $mediaConfig = config(
+            'MemberMedia'
+        );
 
         return view(
             'Pages/Profile/Photos/Index',
             [
-                'pageTitle' => 'Manage Photos',
-                'user' => $data['user'],
-                'photos' => $data['photos'],
-                'photoCount' => $data['count'],
-                'approvedPhotoCount' => $data['approvedCount'],
-                'maximumPhotos' => $data['maximum'],
-                'remainingPhotos' => $data['remaining'],
+                'pageTitle' =>
+                'Manage Photos',
+
+                'user' =>
+                $data['user'],
+
+                'photos' =>
+                $data['photos'],
+
+                'photoCount' =>
+                $data['count'],
+
+                'approvedPhotoCount' =>
+                $data['approvedCount'],
+
+                'maximumPhotos' =>
+                $data['maximum'],
+
+                'remainingPhotos' =>
+                $data['remaining'],
+
+                /*
+             * Keep upload guidance configuration-driven so the UI
+             * cannot drift from server-side processing rules.
+             */
+                'maximumPhotoSizeKilobytes' =>
+                $mediaConfig->profileMaxSizeKb,
+
+                'minimumPhotoWidth' =>
+                $mediaConfig->minimumWidth,
+
+                'minimumPhotoHeight' =>
+                $mediaConfig->minimumHeight,
+
+                'recommendedPhotoWidth' =>
+                $mediaConfig->recommendedWidth,
+
+                'recommendedPhotoHeight' =>
+                $mediaConfig->recommendedHeight,
+
                 'validationErrors' =>
-                $this->readValidationErrors() ?? [],
+                $this->readValidationErrors()
+                    ?? [],
 
                 'formAlert' =>
                 $this->readFormAlert(),
+
                 'pageScripts' => [
                     'assets/js/pages/profile-photos.js',
                 ],
@@ -49,46 +96,39 @@ final class MemberPhotoController extends BaseController
         );
     }
 
+    /**
+     * Validate and upload one member photo.
+     */
     public function upload(): RedirectResponse
     {
         $memberId = $this->authenticatedUserId();
 
-        $validation = service('validation');
+        $validation = service(
+            'validation'
+        );
 
-        $validationRules = [
-            'photo' => [
-                'label' => 'Photo',
-                'rules' => [
-                    'uploaded[photo]',
-                    'is_image[photo]',
-                    'mime_in[photo,image/jpeg,image/png]',
-                    'ext_in[photo,jpg,jpeg,png]',
-                    'max_size[photo,10240]',
-                    'min_dims[photo,400,400]',
-                    'max_dims[photo,8000,8000]',
-                ],
-            ],
+        /** @var \Config\MemberMedia $mediaConfig */
+        $mediaConfig = config(
+            'MemberMedia'
+        );
 
-            'visibility' => [
-                'label' => 'Photo visibility',
-                'rules' => [
-                    'required',
-                    'in_list[PUBLIC,INTERESTED_MEMBERS]',
-                ],
-            ],
-        ];
-
-        $validation->setRules($validationRules);
+        $validation->setRules(
+            MemberPhotoValidation::uploadRules(
+                $mediaConfig
+            )
+        );
 
         /*
-     * Pass only scalar POST data. The photo is retrieved by CI4's
-     * file-validation rules directly from the request.
-     */
+         * Pass only scalar POST data. CI4 file validation reads the uploaded
+         * photo directly from the request.
+         */
         if (
             !$validation->run([
-                'visibility' => $this->request->getPost(
-                    'visibility'
-                ),
+                'visibility' =>
+                $this->request
+                    ->getPost(
+                        'visibility'
+                    ),
             ])
         ) {
             return redirect()
@@ -100,7 +140,10 @@ final class MemberPhotoController extends BaseController
                 );
         }
 
-        $uploadedFile = $this->request->getFile('photo');
+        $uploadedFile = $this->request
+            ->getFile(
+                'photo'
+            );
 
         if (
             $uploadedFile === null
@@ -116,21 +159,27 @@ final class MemberPhotoController extends BaseController
                 );
         }
 
-        $visibility = (string) $this->request->getPost(
-            'visibility'
+        $visibility = mb_strtoupper(
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'visibility'
+                    )
+            )
         );
 
-        $makePrimary = $this->request->getPost(
-            'make_primary'
-        ) === '1';
+        $makePrimary = $this->request
+            ->getPost(
+                'make_primary'
+            ) === '1';
 
         try {
-            /** @var MemberPhotoService $memberPhotoService */
-            $memberPhotoService = service(
+            /** @var MemberPhotoService $service */
+            $service = service(
                 'memberPhotoService'
             );
 
-            $memberPhotoService->upload(
+            $service->upload(
                 $memberId,
                 $uploadedFile,
                 $visibility,
@@ -139,9 +188,14 @@ final class MemberPhotoController extends BaseController
 
             return $this->successRedirect(
                 'Photo uploaded',
-                'Your photo was uploaded successfully and is pending approval.'
+                'Your photo was uploaded successfully '
+                    . 'and is pending approval.'
             );
         } catch (DomainException $exception) {
+            /*
+             * Photo-count, invalid-image and business-rule failures are
+             * expected user-facing outcomes.
+             */
             return redirect()
                 ->back()
                 ->withInput()
@@ -150,14 +204,46 @@ final class MemberPhotoController extends BaseController
                     $exception->getMessage()
                 );
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Member photo upload failed for member '
-                    . '{memberId}: {message}',
-                [
-                    'memberId' => $memberId,
-                    'message' => $exception->getMessage(),
-                ]
+                ProfileErrorContext::forMember(
+                    memberId: $memberId,
+
+                    operation: 'member_photo_upload',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'mime_type' =>
+                        $this->safeMimeType(
+                            $uploadedFile
+                        ),
+
+                        'file_size_bytes' =>
+                        $this->safeFileSize(
+                            $uploadedFile
+                        ),
+
+                        'file_extension' =>
+                        mb_strtolower(
+                            trim(
+                                (string) $uploadedFile
+                                    ->getClientExtension()
+                            )
+                        ),
+
+                        'visibility' =>
+                        $visibility,
+
+                        'requested_primary' =>
+                        $makePrimary,
+                    ]
+                )
             );
 
             return redirect()
@@ -171,6 +257,9 @@ final class MemberPhotoController extends BaseController
         }
     }
 
+    /**
+     * Mark one owned approved photo as primary.
+     */
     public function makePrimary(
         int $photoId
     ): RedirectResponse {
@@ -178,7 +267,9 @@ final class MemberPhotoController extends BaseController
 
         try {
             /** @var MemberPhotoService $service */
-            $service = service('memberPhotoService');
+            $service = service(
+                'memberPhotoService'
+            );
 
             $service->setPrimary(
                 $memberId,
@@ -189,19 +280,29 @@ final class MemberPhotoController extends BaseController
                 'Main photo updated',
                 'The selected photo is now your main photo.'
             );
-        } catch (DomainException $exception) {
-            throw PageNotFoundException::forPageNotFound();
+        } catch (DomainException) {
+            throw PageNotFoundException
+                ::forPageNotFound();
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Main photo update failed for '
-                    . 'member {memberId}, photo {photoId}: '
-                    . '{message}',
-                [
-                    'memberId' => $memberId,
-                    'photoId' => $photoId,
-                    'message' => $exception->getMessage(),
-                ]
+                ProfileErrorContext::forMember(
+                    memberId: $memberId,
+
+                    operation: 'member_photo_set_primary',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'photo_id' =>
+                        $photoId,
+                    ]
+                )
             );
 
             return $this->errorRedirect(
@@ -211,24 +312,33 @@ final class MemberPhotoController extends BaseController
         }
     }
 
+    /**
+     * Update visibility for one owned photo.
+     */
     public function updateVisibility(
         int $photoId
     ): RedirectResponse {
         $memberId = $this->authenticatedUserId();
 
         $input = [
-            'visibility' => strtoupper(
+            'visibility' =>
+            mb_strtoupper(
                 trim(
                     (string) $this->request
-                        ->getPost('visibility')
+                        ->getPost(
+                            'visibility'
+                        )
                 )
             ),
         ];
 
-        $validation = service('validation');
+        $validation = service(
+            'validation'
+        );
 
         $validation->setRules(
-            MemberPhotoValidation::visibilityRules()
+            MemberPhotoValidation
+                ::visibilityRules()
         );
 
         if (!$validation->run($input)) {
@@ -240,7 +350,9 @@ final class MemberPhotoController extends BaseController
 
         try {
             /** @var MemberPhotoService $service */
-            $service = service('memberPhotoService');
+            $service = service(
+                'memberPhotoService'
+            );
 
             $service->updateVisibility(
                 $memberId,
@@ -252,19 +364,32 @@ final class MemberPhotoController extends BaseController
                 'Visibility updated',
                 'The photo visibility has been updated.'
             );
-        } catch (DomainException $exception) {
-            throw PageNotFoundException::forPageNotFound();
+        } catch (DomainException) {
+            throw PageNotFoundException
+                ::forPageNotFound();
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Photo visibility update failed for '
-                    . 'member {memberId}, photo {photoId}: '
-                    . '{message}',
-                [
-                    'memberId' => $memberId,
-                    'photoId' => $photoId,
-                    'message' => $exception->getMessage(),
-                ]
+                ProfileErrorContext::forMember(
+                    memberId: $memberId,
+
+                    operation: 'member_photo_visibility_update',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'photo_id' =>
+                        $photoId,
+
+                        'visibility' =>
+                        $input['visibility'],
+                    ]
+                )
             );
 
             return $this->errorRedirect(
@@ -274,6 +399,9 @@ final class MemberPhotoController extends BaseController
         }
     }
 
+    /**
+     * Delete one owned member photo.
+     */
     public function delete(
         int $photoId
     ): RedirectResponse {
@@ -281,7 +409,9 @@ final class MemberPhotoController extends BaseController
 
         try {
             /** @var MemberPhotoService $service */
-            $service = service('memberPhotoService');
+            $service = service(
+                'memberPhotoService'
+            );
 
             $service->delete(
                 $memberId,
@@ -292,18 +422,29 @@ final class MemberPhotoController extends BaseController
                 'Photo deleted',
                 'The photo has been removed.'
             );
-        } catch (DomainException $exception) {
-            throw PageNotFoundException::forPageNotFound();
+        } catch (DomainException) {
+            throw PageNotFoundException
+                ::forPageNotFound();
         } catch (Throwable $exception) {
-            log_message(
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
                 'error',
-                'Photo deletion failed for member '
-                    . '{memberId}, photo {photoId}: {message}',
-                [
-                    'memberId' => $memberId,
-                    'photoId' => $photoId,
-                    'message' => $exception->getMessage(),
-                ]
+                ProfileErrorContext::forMember(
+                    memberId: $memberId,
+
+                    operation: 'member_photo_delete',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'photo_id' =>
+                        $photoId,
+                    ]
+                )
             );
 
             return $this->errorRedirect(
@@ -313,46 +454,100 @@ final class MemberPhotoController extends BaseController
         }
     }
 
+    /**
+     * Redirect with a success alert.
+     */
     private function successRedirect(
         string $title,
         string $message
     ): RedirectResponse {
         return redirect()
-            ->to(route_to('web.profile.photos'))
-            ->with('formAlert', [
-                'type' => 'success',
-                'title' => $title,
-                'message' => $message,
-            ]);
+            ->to(
+                route_to(
+                    'web.profile.photos'
+                )
+            )
+            ->with(
+                'formAlert',
+                [
+                    'type' =>
+                    'success',
+
+                    'title' =>
+                    $title,
+
+                    'message' =>
+                    $message,
+                ]
+            );
     }
 
+    /**
+     * Redirect with an error alert.
+     */
     private function errorRedirect(
         string $title,
         string $message
     ): RedirectResponse {
         return redirect()
-            ->to(route_to('web.profile.photos'))
-            ->with('formAlert', [
-                'type' => 'danger',
-                'title' => $title,
-                'message' => $message,
-            ]);
+            ->to(
+                route_to(
+                    'web.profile.photos'
+                )
+            )
+            ->with(
+                'formAlert',
+                [
+                    'type' =>
+                    'danger',
+
+                    'title' =>
+                    $title,
+
+                    'message' =>
+                    $message,
+                ]
+            );
     }
 
+    /**
+     * Read a file MIME type without allowing diagnostics to fail.
+     */
+    private function safeMimeType(
+        object $uploadedFile
+    ): string {
+        try {
+            return mb_substr(
+                trim(
+                    (string) $uploadedFile
+                        ->getMimeType()
+                ),
+                0,
+                100
+            );
+        } catch (Throwable) {
+            return '';
+        }
+    }
 
     /**
-     * Resolve the authenticated user identifier.
+     * Read the uploaded size without allowing diagnostics to fail.
      */
-    private function authenticatedUserId(): int
-    {
-        $userId = session('auth_user_id');
+    private function safeFileSize(
+        object $uploadedFile
+    ): ?int {
+        try {
+            $size = $uploadedFile
+                ->getSize();
 
-        if (!is_numeric($userId)) {
-            session()->destroy();
-
-            throw PageNotFoundException::forPageNotFound();
+            return is_numeric($size)
+                ? max(
+                    0,
+                    (int) $size
+                )
+                : null;
+        } catch (Throwable) {
+            return null;
         }
-
-        return (int) $userId;
     }
 }

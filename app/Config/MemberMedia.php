@@ -45,14 +45,6 @@ final class MemberMedia extends BaseConfig
 
     public int $profileMaxSizeKb;
 
-    public int $minimumWidth;
-
-    public int $minimumHeight;
-
-    public int $maximumWidth;
-
-    public int $maximumHeight;
-
     /**
      * Supported server-verified source image MIME types.
      *
@@ -64,6 +56,30 @@ final class MemberMedia extends BaseConfig
         'image/jpeg' => 'jpg',
         'image/png' => 'png',
     ];
+
+    /**
+     * Hard minimum dimensions accepted for a member photograph.
+     *
+     * A photograph below either dimension is rejected because it cannot
+     * produce an acceptable profile/search image without upscaling.
+     */
+    public int $minimumWidth;
+
+    public int $minimumHeight;
+
+    /**
+     * Recommended source dimensions shown to members.
+     *
+     * These values are guidance only. They are deliberately higher than
+     * the enforced minimum and must never reject an otherwise valid photo.
+     */
+    public int $recommendedWidth;
+
+    public int $recommendedHeight;
+
+    public int $maximumWidth;
+
+    public int $maximumHeight;
 
     public function __construct()
     {
@@ -162,22 +178,53 @@ final class MemberMedia extends BaseConfig
 
         $this->minimumWidth = max(
             1,
-            (int) env('memberMedia.minimumWidth', 400)
+            (int) env(
+                'memberMedia.minimumWidth',
+                300
+            )
         );
 
         $this->minimumHeight = max(
             1,
-            (int) env('memberMedia.minimumHeight', 400)
+            (int) env(
+                'memberMedia.minimumHeight',
+                300
+            )
+        );
+
+        /*
+        * Recommended quality is intentionally not a validation constraint.
+        */
+        $this->recommendedWidth = max(
+            $this->minimumWidth,
+            (int) env(
+                'memberMedia.recommendedWidth',
+                600
+            )
+        );
+
+        $this->recommendedHeight = max(
+            $this->minimumHeight,
+            (int) env(
+                'memberMedia.recommendedHeight',
+                600
+            )
         );
 
         $this->maximumWidth = max(
             $this->minimumWidth,
-            (int) env('memberMedia.maximumWidth', 8000)
+            (int) env(
+                'memberMedia.maximumWidth',
+                8000
+            )
         );
 
         $this->maximumHeight = max(
             $this->minimumHeight,
-            (int) env('memberMedia.maximumHeight', 8000)
+            (int) env(
+                'memberMedia.maximumHeight',
+                8000
+            )
         );
     }
 

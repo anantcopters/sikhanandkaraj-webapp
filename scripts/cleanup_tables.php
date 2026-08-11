@@ -2,15 +2,20 @@
 
 declare(strict_types=1);
 
+use App\Services\Maintenance\FileCleanupResult;
+use App\Services\Maintenance\FileCleanupService;
 use App\Services\Maintenance\TableCleanupResult;
 use App\Services\Maintenance\TableCleanupService;
 use CodeIgniter\Boot;
 use Config\Paths;
+use Throwable;
 
 /*
 |--------------------------------------------------------------------------
 | CLI restriction
 |--------------------------------------------------------------------------
+|
+| This maintenance script must never be executed through the web server.
 */
 
 if (PHP_SAPI !== 'cli') {
@@ -23,7 +28,6 @@ if (PHP_SAPI !== 'cli') {
 | Resolve and boot CodeIgniter
 |--------------------------------------------------------------------------
 */
-
 $projectRoot = dirname(__DIR__);
 
 define(
@@ -36,7 +40,7 @@ define(
 
 chdir($projectRoot);
 
-if (! defined('ENVIRONMENT')) {
+if (!defined('ENVIRONMENT')) {
     define(
         'ENVIRONMENT',
         getenv('CI_ENVIRONMENT')
@@ -58,61 +62,82 @@ require $paths->systemDirectory
     . DIRECTORY_SEPARATOR
     . 'Boot.php';
 
-Boot::bootConsole($paths);
+Boot::bootConsole(
+    $paths
+);
 
 /**
- * Runs configured database cleanup jobs.
+ * Run configured maintenance cleanup jobs.
  *
  * Usage:
  *
  * php scripts/cleanup_tables.php
  * php scripts/cleanup_tables.php all
- * php scripts/cleanup_tables.php read-notifications
  * php scripts/cleanup_tables.php list
- */
-
-if (PHP_SAPI !== 'cli') {
-    http_response_code(404);
-    exit;
-}
-
-/*
- * --------------------------------------------------------------------------
- * Existing project bootstrap
- * --------------------------------------------------------------------------
+ * php scripts/cleanup_tables.php table:read-notifications
+ * php scripts/cleanup_tables.php file:prelaunch-approved-photos
  *
- * Copy the bootstrap block used by the current scripts in this repository.
- * It must load the CodeIgniter environment, autoloader, .env configuration
- * and service container before this point.
+ * For backward compatibility, an unprefixed name is treated as a table job:
+ *
+ * php scripts/cleanup_tables.php read-notifications
  */
-
 $requestedJob = strtolower(
     trim(
-        (string) ($argv[1] ?? 'all')
+        (string) (
+            $argv[1]
+            ?? 'all'
+        )
     )
 );
 
 try {
-    /** @var TableCleanupService $cleanupService */
-    $cleanupService = service(
+    /** @var TableCleanupService $tableCleanupService */
+    $tableCleanupService = service(
         'tableCleanupService'
+    );
+
+    /** @var FileCleanupService $fileCleanupService */
+    $fileCleanupService = service(
+        'fileCleanupService'
     );
 
     if ($requestedJob === 'list') {
         fwrite(
             STDOUT,
-            'Registered cleanup jobs:'
+            'Registered table cleanup jobs:'
                 . PHP_EOL
         );
 
         foreach (
-            $cleanupService->getRegisteredJobs()
+            $tableCleanupService
+                ->getRegisteredJobs()
             as $jobName
         ) {
             fwrite(
                 STDOUT,
                 sprintf(
-                    ' - %s%s',
+                    ' - table:%s%s',
+                    $jobName,
+                    PHP_EOL
+                )
+            );
+        }
+
+        fwrite(
+            STDOUT,
+            'Registered file cleanup jobs:'
+                . PHP_EOL
+        );
+
+        foreach (
+            $fileCleanupService
+                ->getRegisteredJobs()
+            as $jobName
+        ) {
+            fwrite(
+                STDOUT,
+                sprintf(
+                    ' - file:%s%s',
                     $jobName,
                     PHP_EOL
                 )
@@ -122,36 +147,84 @@ try {
         exit(0);
     }
 
-    $results = $requestedJob === 'all'
-        ? $cleanupService->runAll()
-        : [
-            $cleanupService->run(
-                $requestedJob
+    $tableResults = [];
+    $fileResults = [];
+
+    if ($requestedJob === 'all') {
+        $tableResults =
+            $tableCleanupService->runAll();
+
+        $fileResults =
+            $fileCleanupService->runAll();
+    } elseif (
+        str_starts_with(
+            $requestedJob,
+            'file:'
+        )
+    ) {
+        $fileJobName = trim(
+            substr(
+                $requestedJob,
+                strlen('file:')
+            )
+        );
+
+        $fileResults = [
+            $fileCleanupService->run(
+                $fileJobName
             ),
         ];
+    } else {
+        /*
+         * Support both:
+         *
+         * table:read-notifications
+         * read-notifications
+         */
+        $tableJobName = str_starts_with(
+            $requestedJob,
+            'table:'
+        )
+            ? trim(
+                substr(
+                    $requestedJob,
+                    strlen('table:')
+                )
+            )
+            : $requestedJob;
+
+        $tableResults = [
+            $tableCleanupService->run(
+                $tableJobName
+            ),
+        ];
+    }
 
     $hasFailure = false;
 
-    foreach ($results as $result) {
-        if (! $result instanceof TableCleanupResult) {
+    foreach ($tableResults as $result) {
+        if (
+            !$result
+                instanceof TableCleanupResult
+        ) {
             $hasFailure = true;
 
             fwrite(
                 STDERR,
-                '[FAILED] Invalid cleanup result.'
+                '[FAILED] Invalid table cleanup result.'
                     . PHP_EOL
             );
 
             continue;
         }
 
-        if (! $result->successful) {
+        if (!$result->successful) {
             $hasFailure = true;
 
             fwrite(
                 STDERR,
                 sprintf(
-                    '[FAILED] %s: %s%s',
+                    '[FAILED] table:%s: %s%s',
                     $result->jobName,
                     $result->errorMessage
                         ?? 'Unknown error.',
@@ -165,7 +238,8 @@ try {
         fwrite(
             STDOUT,
             sprintf(
-                '[SUCCESS] %s: %d row(s) deleted.%s',
+                '[SUCCESS] table:%s: '
+                    . '%d row(s) deleted.%s',
                 $result->jobName,
                 $result->deletedCount,
                 PHP_EOL
@@ -173,23 +247,100 @@ try {
         );
     }
 
-    exit($hasFailure ? 1 : 0);
+    foreach ($fileResults as $result) {
+        if (
+            !$result
+                instanceof FileCleanupResult
+        ) {
+            $hasFailure = true;
+
+            fwrite(
+                STDERR,
+                '[FAILED] Invalid file cleanup result.'
+                    . PHP_EOL
+            );
+
+            continue;
+        }
+
+        if (
+            !$result->successful
+            || $result->failedProfiles > 0
+        ) {
+            $hasFailure = true;
+
+            fwrite(
+                STDERR,
+                sprintf(
+                    '[FAILED] file:%s: %s '
+                        . 'Profiles processed: %d; '
+                        . 'files deleted: %d; '
+                        . 'directories deleted: %d; '
+                        . 'profile failures: %d.%s',
+                    $result->jobName,
+                    $result->errorMessage
+                        ?? 'One or more profile folders '
+                        . 'could not be cleaned.',
+                    $result->processedProfiles,
+                    $result->deletedFiles,
+                    $result->deletedDirectories,
+                    $result->failedProfiles,
+                    PHP_EOL
+                )
+            );
+
+            continue;
+        }
+
+        fwrite(
+            STDOUT,
+            sprintf(
+                '[SUCCESS] file:%s: '
+                    . '%d profile(s) processed; '
+                    . '%d file(s) deleted; '
+                    . '%d directorie(s) deleted.%s',
+                $result->jobName,
+                $result->processedProfiles,
+                $result->deletedFiles,
+                $result->deletedDirectories,
+                PHP_EOL
+            )
+        );
+    }
+
+    exit($hasFailure
+        ? 1
+        : 0);
 } catch (Throwable $exception) {
     fwrite(
         STDERR,
         sprintf(
-            '[CRITICAL] Cleanup script failed: %s%s',
+            '[CRITICAL] Maintenance cleanup failed: %s%s',
             $exception->getMessage(),
             PHP_EOL
         )
     );
 
-    log_message(
+    service(
+        'applicationErrorLogger'
+    )->exception(
+        $exception,
         'critical',
-        'Table cleanup script failed: {message}',
         [
-            'message' =>
-            $exception->getMessage(),
+            'operation' =>
+            'maintenance_cleanup_script',
+
+            'component' =>
+            basename(__FILE__),
+
+            'method' =>
+            'main',
+
+            'requested_job' =>
+            $requestedJob,
+
+            'execution_source' =>
+            'CRON',
         ]
     );
 

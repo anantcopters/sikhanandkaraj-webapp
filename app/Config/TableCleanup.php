@@ -10,78 +10,100 @@ use CodeIgniter\Config\BaseConfig;
  * Defines database tables that may be cleaned by the maintenance script.
  *
  * Security:
- * - Only entries registered here may be executed.
- * - The CLI script must never accept raw table names, columns or SQL.
- * - Conditions remain application-controlled.
+ * - only entries registered here may be executed;
+ * - the CLI script never accepts raw table names, columns or SQL;
+ * - all conditions remain application-controlled.
  */
 final class TableCleanup extends BaseConfig
 {
     /**
      * Registered cleanup jobs.
      *
-     * Configuration:
-     *
-     * table:
-     *     Database table to clean.
-     *
-     * timestampColumn:
-     *     Column used to determine record age.
-     *
-     * retentionDays:
-     *     Number of days records are retained.
-     *
-     * conditions:
-     *     Additional equality or NULL conditions.
-     *
-     * batchSize:
-     *     Maximum records deleted in one DELETE statement.
-     *
      * @var array<string, array{
-     *     table: string,
-     *     timestampColumn: string,
-     *     retentionDays: int,
-     *     conditions: list<array{
-     *         column: string,
-     *         operator: string,
-     *         value?: scalar|null
+     *     table:string,
+     *     timestampColumn:string,
+     *     retentionDays:int,
+     *     conditions:list<array{
+     *         column:string,
+     *         operator:string,
+     *         value?:scalar|null
      *     }>,
-     *     batchSize: int
+     *     batchSize:int
      * }>
      */
-    public array $jobs = [
-        'read-notifications' => [
-            'table' => 'member_notifications',
+    public array $jobs;
 
-            /*
-             * Retention starts when the member reads the notification,
-             * rather than when the notification was created.
-             */
-            'timestampColumn' => 'read_at',
+    public function __construct()
+    {
+        parent::__construct();
 
-            'retentionDays' => 30,
+        $errorLogging =
+            config(ErrorLogging::class);
 
-            'conditions' => [
-                [
-                    'column'   => 'read_at',
-                    'operator' => 'IS NOT NULL',
+        $this->jobs = [
+            'read-notifications' => [
+                'table' =>
+                'member_notifications',
+
+                /*
+                 * Retention starts when the member reads the notification,
+                 * rather than when the notification was created.
+                 */
+                'timestampColumn' =>
+                'read_at',
+
+                'retentionDays' =>
+                30,
+
+                'conditions' => [
+                    [
+                        'column' =>
+                        'read_at',
+
+                        'operator' =>
+                        'IS NOT NULL',
+                    ],
                 ],
+
+                'batchSize' =>
+                1000,
             ],
 
-            'batchSize' => 1000,
-        ],
+            /*
+             * Application errors are retained for the configured period and
+             * removed in bounded batches by TableCleanupService.
+             */
+            'application-error-logs' => [
+                'table' =>
+                'application_error_logs',
 
-        /*
-         * Add future cleanup jobs here.
-         *
-         * Example:
-         *
-         * 'expired-otp' => [
-         *     'table' => 'otp_requests',
-         *     'timestampColumn' => 'expires_at',
-         *     'retentionDays' => 7,
-         *     'conditions' => [],
-         *     'batchSize' => 1000,
-         * ],
-         */
-    ];
+                'timestampColumn' =>
+                'created_at',
+
+                'retentionDays' =>
+                $errorLogging
+                    ->retentionDays,
+
+                'conditions' =>
+                [],
+
+                'batchSize' =>
+                1000,
+            ],
+
+            /*
+            * Add future cleanup jobs here.
+            *
+            * Example:
+            *
+            * 'expired-otp' => [
+            *     'table' => 'otp_requests',
+            *     'timestampColumn' => 'expires_at',
+            *     'retentionDays' => 7,
+            *     'conditions' => [],
+            *     'batchSize' => 1000,
+            * ],
+            */
+        ];
+    }
 }

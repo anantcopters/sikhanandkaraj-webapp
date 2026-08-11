@@ -22,15 +22,24 @@ final class PrelaunchPhotoValidation
     public static function rules(): array
     {
         /** @var Prelaunch $config */
-        $config = config('Prelaunch');
+        $config = config(
+            'Prelaunch'
+        );
 
         $maximumPhotoSizeKilobytes =
             $config->maximumPhotoSizeKilobytes;
 
         $maximumPhotoSizeMegabytes =
             (int) ceil(
-                $maximumPhotoSizeKilobytes / 1024
+                $maximumPhotoSizeKilobytes
+                    / 1024
             );
+
+        $minimumWidth =
+            $config->minimumPhotoWidthPixels;
+
+        $minimumHeight =
+            $config->minimumPhotoHeightPixels;
 
         $maximumWidth =
             $config->maximumPhotoWidthPixels;
@@ -45,13 +54,17 @@ final class PrelaunchPhotoValidation
             $sequence <= $config->maximumPhotos;
             $sequence++
         ) {
-            $field = 'photo_' . $sequence;
+            $field =
+                'photo_' . $sequence;
 
             $rules[$field] = [
-                'label' => 'Photo ' . $sequence,
+                'label' =>
+                'Photo ' . $sequence,
 
                 'rules' => [
-                    'uploaded[' . $field . ']',
+                    'uploaded['
+                        . $field
+                        . ']',
 
                     'max_size['
                         . $field
@@ -59,7 +72,9 @@ final class PrelaunchPhotoValidation
                         . $maximumPhotoSizeKilobytes
                         . ']',
 
-                    'is_image[' . $field . ']',
+                    'is_image['
+                        . $field
+                        . ']',
 
                     'mime_in['
                         . $field
@@ -69,6 +84,14 @@ final class PrelaunchPhotoValidation
                     'ext_in['
                         . $field
                         . ',jpg,jpeg,png,webp'
+                        . ']',
+
+                    'min_dims['
+                        . $field
+                        . ','
+                        . $minimumWidth
+                        . ','
+                        . $minimumHeight
                         . ']',
 
                     'max_dims['
@@ -107,6 +130,15 @@ final class PrelaunchPhotoValidation
                     'Photo '
                         . $sequence
                         . ' must be JPG, PNG or WebP.',
+
+                    'min_dims' =>
+                    'Photo '
+                        . $sequence
+                        . ' must be at least '
+                        . $minimumWidth
+                        . ' × '
+                        . $minimumHeight
+                        . ' pixels.',
 
                     'max_dims' =>
                     'Photo '

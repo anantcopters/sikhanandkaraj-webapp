@@ -427,8 +427,8 @@ final class OtpLoginService
             }
 
             /*
-             * No other pending LOGIN OTP may remain usable for the contact.
-             */
+            * No other pending LOGIN OTP may remain usable for the contact.
+            */
             $this->verificationModel
                 ->cancelPendingForContact(
                     $mobileContactId,
@@ -436,7 +436,57 @@ final class OtpLoginService
                     ::PURPOSE_LOGIN
                 );
 
+            /*
+            * Complete the OTP authentication transaction first.
+            *
+            * last_login_at is operational metadata and must not be allowed to roll back
+            * an otherwise successfully verified OTP.
+            */
             $this->commitOrFail();
+
+            /*
+            * Authentication has now successfully completed and the OTP transaction
+            * has already been committed.
+            *
+            * last_login_at is auxiliary operational metadata. Failure to record this
+            * timestamp must not invalidate the completed OTP authentication.
+            */
+            try {
+                $loginRecorded =
+                    $this->userModel
+                    ->recordSuccessfulLogin(
+                        $userId
+                    );
+
+                if (!$loginRecorded) {
+                    log_message(
+                        'warning',
+                        'Successful OTP login activity could not be recorded. '
+                            . 'Member: {memberId}.',
+                        [
+                            'memberId' =>
+                            $userId,
+                        ]
+                    );
+                }
+            } catch (\Throwable $exception) {
+                log_message(
+                    'warning',
+                    'Successful OTP login activity update failed. '
+                        . 'Member: {memberId}; reason: {message}',
+                    [
+                        'memberId' =>
+                        $userId,
+
+                        'message' =>
+                        $exception->getMessage(),
+                    ]
+                );
+            }
+
+            return OtpLoginResult::authenticated(
+                $context['user']
+            );
 
             return OtpLoginResult::authenticated(
                 $context['user']
@@ -641,7 +691,7 @@ final class OtpLoginService
                 new SmsMessage(
                     mobileNumber: $normalizedMobile,
 
-                    message: 'Your SikhAnandKaraj login OTP is '
+                    message: 'Your Sikhanandkaraj login OTP is '
                         . $otp
                         . '. It is valid for '
                         . self::OTP_EXPIRY_MINUTES
