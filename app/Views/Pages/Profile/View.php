@@ -818,37 +818,7 @@ $this->section('content');
 
             <div class="card-body p-3 p-lg-4">
 
-                <?php if (
-                    $showMemberActions
-                ): ?>
 
-                    <div
-                        class="d-flex
-                    justify-content-end
-                    mb-3">
-
-                        <a
-                            href="<?= url_to(
-                                        'web.profile.edit'
-                                    ) ?>"
-                            class="btn
-                        btn-outline-primary
-                        d-inline-flex
-                        align-items-center
-                        justify-content-center
-                        gap-1">
-
-                            <i
-                                class="ri-edit-line"
-                                aria-hidden="true">
-                            </i>
-
-                            Edit My Profile
-                        </a>
-
-                    </div>
-
-                <?php endif; ?>
 
                 <div
                     class="row g-4
@@ -956,38 +926,70 @@ $this->section('content');
                                         <!-- Name -->
                                         <div
                                             class="d-flex
-                            align-items-center
-                            flex-wrap
-                            gap-2
-                            mb-2">
+    align-items-center
+    justify-content-between
+    flex-wrap
+    gap-2
+    mb-2">
 
-                                            <h2
-                                                class="fs-24
-                                fw-bold
-                                mb-0">
+                                            <div
+                                                class="d-flex
+        align-items-center
+        flex-wrap
+        gap-2">
 
-                                                <?= esc(
-                                                    $fullName
-                                                ) ?>
-                                            </h2>
+                                                <h2
+                                                    class="fs-24
+            fw-bold
+            mb-0">
 
-                                            <?php if (
-                                                strtoupper(
-                                                    trim(
-                                                        (string) (
-                                                            $user['account_status']
-                                                            ?? ''
+                                                    <?= esc(
+                                                        $fullName
+                                                    ) ?>
+                                                </h2>
+
+                                                <?php if (
+                                                    strtoupper(
+                                                        trim(
+                                                            (string) (
+                                                                $user['account_status']
+                                                                ?? ''
+                                                            )
                                                         )
-                                                    )
-                                                ) === 'APPROVED'
-                                            ): ?>
+                                                    ) === 'APPROVED'
+                                                ): ?>
 
-                                                <i
-                                                    class="ri-checkbox-circle-fill
-                                    text-success
-                                    fs-18"
-                                                    aria-label="Approved profile">
-                                                </i>
+                                                    <i
+                                                        class="ri-checkbox-circle-fill
+                text-success
+                fs-18"
+                                                        aria-label="Approved profile">
+                                                    </i>
+
+                                                <?php endif; ?>
+
+                                            </div>
+
+                                            <?php if ($showMemberActions): ?>
+
+                                                <a
+                                                    href="<?= url_to(
+                                                                'web.profile.edit'
+                                                            ) ?>"
+                                                    class="btn
+            btn-outline-primary
+            d-inline-flex
+            align-items-center
+            justify-content-center
+            gap-1">
+
+                                                    <i
+                                                        class="ri-edit-line"
+                                                        aria-hidden="true">
+                                                    </i>
+
+                                                    Edit My Profile
+                                                </a>
 
                                             <?php endif; ?>
 

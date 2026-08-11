@@ -288,16 +288,26 @@ $occupationClass = $occupationError !== ''
                             )
                         );
 
-                        /*
-                         * Prelaunch database validation currently uses
-                         * DEFENCE while the reusable member service
-                         * exposes DEFENSE.
-                         *
-                         * Preserve the existing prelaunch persistence
-                         * contract until the enum is standardized.
-                         */
-                        if ($optionValue === 'DEFENSE') {
-                            $optionValue = 'DEFENCE';
+                        $optionValue = trim(
+                            (string) (
+                                $employmentOption['value']
+                                ?? ''
+                            )
+                        );
+
+                        $optionLabel = trim(
+                            (string) (
+                                $employmentOption['label']
+                                ?? $employmentOption['name']
+                                ?? ''
+                            )
+                        );
+
+                        if (
+                            $optionValue === ''
+                            || $optionLabel === ''
+                        ) {
+                            continue;
                         }
 
                         if (
