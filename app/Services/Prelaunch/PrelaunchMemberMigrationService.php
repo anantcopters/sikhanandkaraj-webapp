@@ -10,6 +10,7 @@ use App\Models\Prelaunch\PrelaunchProfileModel;
 use App\Models\UserContactModel;
 use App\Models\UserModel;
 use App\Services\Aws\AwsMediaService;
+use App\Models\FieldOfficerModel;
 use App\Support\IndianMobileNormalizer;
 use CodeIgniter\Database\BaseConnection;
 use Config\Prelaunch;
@@ -50,6 +51,7 @@ final class PrelaunchMemberMigrationService
         private readonly UserModel $userModel,
         private readonly UserContactModel $userContactModel,
         private readonly MemberPhotoModel $memberPhotoModel,
+        private readonly FieldOfficerModel $fieldOfficerModel,
         private readonly PrelaunchPhotoService $prelaunchPhotoService,
         private readonly AwsMediaService $awsMediaService,
         private readonly BaseConnection $database,
@@ -650,6 +652,13 @@ final class PrelaunchMemberMigrationService
     /**
      * Migrate normal member profile-section records.
      *
+     * The Field Officer associated with the source prelaunch
+     * profile is preserved in member_family_details.
+     *
+     * member_family_details requires field_officer_id and
+     * field_officer_code to either both be populated or both
+     * remain NULL.
+     *
      * @param array<string, mixed> $profile
      */
     private function insertProfileDetails(
@@ -660,7 +669,73 @@ final class PrelaunchMemberMigrationService
             'Y-m-d H:i:s'
         );
 
-        $basicInserted = $this->database
+        /*
+     * ------------------------------------------------------
+     * FIELD OFFICER
+     * ------------------------------------------------------
+     *
+     * prelaunch_profiles stores field_officer_id.
+     *
+     * The live member Family Details table additionally stores
+     * the immutable officer code. Resolve that code from the
+     * Field Officer master rather than trusting duplicated
+     * source data.
+     */
+        $fieldOfficerId = max(
+            0,
+            (int) (
+                $profile['field_officer_id']
+                ?? 0
+            )
+        );
+
+        $fieldOfficerCode = null;
+
+        if ($fieldOfficerId > 0) {
+            /*
+         * This is an existing historical relationship.
+         *
+         * Do not require the officer to still be ACTIVE.
+         * An officer may have been deactivated after the
+         * prelaunch profile was submitted.
+         */
+            $fieldOfficer =
+                $this->fieldOfficerModel
+                ->findActiveRecord(
+                    $fieldOfficerId
+                );
+
+            if (!is_array($fieldOfficer)) {
+                throw new RuntimeException(
+                    'The Field Officer associated with '
+                        . 'the prelaunch profile was not found.'
+                );
+            }
+
+            $fieldOfficerCode = strtoupper(
+                trim(
+                    (string) (
+                        $fieldOfficer['officer_code']
+                        ?? ''
+                    )
+                )
+            );
+
+            if ($fieldOfficerCode === '') {
+                throw new RuntimeException(
+                    'The Field Officer associated with '
+                        . 'the prelaunch profile has no valid code.'
+                );
+            }
+        }
+
+        /*
+     * ------------------------------------------------------
+     * BASIC DETAILS
+     * ------------------------------------------------------
+     */
+        $basicInserted =
+            $this->database
             ->table(
                 'member_basic_details'
             )
@@ -703,11 +778,18 @@ final class PrelaunchMemberMigrationService
 
         if ($basicInserted === false) {
             throw new RuntimeException(
-                'The member basic details could not be migrated.'
+                'The member basic details '
+                    . 'could not be migrated.'
             );
         }
 
-        $educationInserted = $this->database
+        /*
+     * ------------------------------------------------------
+     * EDUCATION AND PROFESSION
+     * ------------------------------------------------------
+     */
+        $educationInserted =
+            $this->database
             ->table(
                 'member_education_profession_details'
             )
@@ -743,7 +825,13 @@ final class PrelaunchMemberMigrationService
             );
         }
 
-        $familyInserted = $this->database
+        /*
+     * ------------------------------------------------------
+     * FAMILY DETAILS
+     * ------------------------------------------------------
+     */
+        $familyInserted =
+            $this->database
             ->table(
                 'member_family_details'
             )
@@ -751,6 +839,23 @@ final class PrelaunchMemberMigrationService
                 [
                     'user_id' =>
                     $memberId,
+
+                    /*
+                     * Preserve the Field Officer relationship.
+                     *
+                     * These two values must always be written
+                     * together because the DB constraint rejects
+                     * a partial FO assignment.
+                     */
+                    'field_officer_id' =>
+                    $fieldOfficerId > 0
+                        ? $fieldOfficerId
+                        : null,
+
+                    'field_officer_code' =>
+                    $fieldOfficerId > 0
+                        ? $fieldOfficerCode
+                        : null,
 
                     'father_name' =>
                     $profile['father_name']
@@ -762,8 +867,10 @@ final class PrelaunchMemberMigrationService
 
                     'parent_contact_number' =>
                     $this->requireText(
-                        $profile['parent_contact_number'] ?? null,
-                        'The prelaunch parent contact number is missing.'
+                        $profile['parent_contact_number']
+                            ?? null,
+                        'The prelaunch parent contact '
+                            . 'number is missing.'
                     ),
 
                     /*
@@ -790,9 +897,9 @@ final class PrelaunchMemberMigrationService
                     ),
 
                     /*
-                     * The prelaunch profile location represents the member's
-                     * primary location. Reuse it for family location where
-                     * the destination fields exist.
+                     * The prelaunch profile location represents
+                     * the member's primary location. Reuse it
+                     * for initial family location.
                      */
                     'country_id' =>
                     $profile['country_id']
@@ -816,7 +923,8 @@ final class PrelaunchMemberMigrationService
 
         if ($familyInserted === false) {
             throw new RuntimeException(
-                'The member family details could not be migrated.'
+                'The member family details '
+                    . 'could not be migrated.'
             );
         }
     }

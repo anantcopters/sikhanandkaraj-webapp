@@ -1060,8 +1060,8 @@ final class Services extends BaseService
     /**
      * Return the prelaunch-to-member migration service.
      *
-     * Every model uses the same database connection so all database writes
-     * participate in the migration transaction.
+     * Every model uses the same database connection so all
+     * database writes participate in the migration transaction.
      */
     public static function prelaunchMemberMigrationService(
         bool $getShared = true
@@ -1083,27 +1083,43 @@ final class Services extends BaseService
             new PrelaunchProfileModel(
                 $database
             ),
+
             new PrelaunchPhotoModel(
                 $database
             ),
+
             new UserModel(
                 $database
             ),
+
             new UserContactModel(
                 $database
             ),
+
             new MemberPhotoModel(
                 $database
             ),
+
+            /*
+            * Resolve the canonical Field Officer code from the
+            * Field Officer master during migration.
+            */
+            new FieldOfficerModel(
+                $database
+            ),
+
             new PrelaunchPhotoService(
                 new PrelaunchPhotoModel(
                     $database
                 )
             ),
+
             static::awsMediaService(
                 false
             ),
+
             $database,
+
             $configuration
         );
     }
