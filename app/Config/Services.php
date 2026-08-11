@@ -108,6 +108,10 @@ use App\Services\Matchmaking\MemberMatchmakingService;
 use App\Services\Matchmaking\MemberProfileViewService;
 use App\Services\Matchmaking\PartnerPreferenceMatchService;
 use App\Services\Matchmaking\MemberSearchService;
+use App\Models\FieldOfficerLoginOtpModel;
+use App\Models\FieldOfficerSubmittedProfileModel;
+use App\Services\FieldOfficer\FieldOfficerLoginService;
+use App\Services\FieldOfficer\FieldOfficerProfileService;
 use App\Models\MemberShortlistModel;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -1697,6 +1701,78 @@ final class Services extends BaseService
             ),
 
             static::lifestyleService(
+                false
+            )
+        );
+    }
+
+    /**
+     * Field Officer OTP authentication.
+     */
+    public static function fieldOfficerLoginService(
+        bool $getShared = true
+    ): FieldOfficerLoginService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'fieldOfficerLoginService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new FieldOfficerLoginService(
+            new FieldOfficerModel(
+                $database
+            ),
+
+            new FieldOfficerLoginOtpModel(
+                $database
+            ),
+
+            $database,
+
+            static::smsProvider(
+                false
+            )
+        );
+    }
+
+    /**
+     * Field Officer submitted-profile service.
+     */
+    public static function fieldOfficerProfileService(
+        bool $getShared = true
+    ): FieldOfficerProfileService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'fieldOfficerProfileService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new FieldOfficerProfileService(
+            new FieldOfficerSubmittedProfileModel(
+                $database
+            ),
+
+            new PrelaunchProfileModel(
+                $database
+            ),
+
+            new PrelaunchPhotoModel(
+                $database
+            ),
+
+            static::prelaunchPhotoService(
+                false
+            ),
+
+            static::memberProfileSummaryService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
                 false
             )
         );

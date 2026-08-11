@@ -38,6 +38,7 @@ class Filters extends BaseFilters
         'webAuth'       => \App\Filters\WebAuthFilter::class,
         'requestLog'    => RequestResponseLogFilter::class,
         'adminAuth'     => \App\Filters\AdminAuthFilter::class,
+        'fieldOfficerAuth' => \App\Filters\FieldOfficerAuthFilter::class,
         'superAdmin'    => \App\Filters\SuperAdminFilter::class,
     ];
 

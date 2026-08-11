@@ -38,6 +38,10 @@ $isOtherMemberProfileView =
 $isAdminProfileView =
     $profileViewMode === 'admin';
 
+$isFieldOfficerProfileView =
+    $profileViewMode
+    === 'field-officer';
+
 /*
  * Public reference of the member being viewed.
  *
@@ -152,18 +156,34 @@ $unmatchedPreferenceCount = max(
     )
 );
 
-$profileLayout = $isAdminProfileView
-    ? 'Admin/Layouts/Main'
-    : 'Layouts/Main';
+$profileLayout = match (true) {
+    $isAdminProfileView =>
+    'Admin/Layouts/Main',
+
+    $isFieldOfficerProfileView =>
+    'FieldOfficer/Layouts/Main',
+
+    default =>
+    'Layouts/Main',
+};
 
 $showMemberActions =
     !$isAdminProfileView
-    && !$isOtherMemberProfileView;
+    && !$isOtherMemberProfileView
+    && !$isFieldOfficerProfileView;
 
 $adminMemberId = max(
     0,
     (int) (
         $adminMemberId
+        ?? 0
+    )
+);
+
+$fieldOfficerViewedMemberId = max(
+    0,
+    (int) (
+        $fieldOfficerViewedMemberId
         ?? 0
     )
 );
@@ -723,15 +743,23 @@ foreach ($approvedPhotos as $photo) {
          * CloudFront original-photo URL.
          */
         'modalUrlEndpoint' =>
-        $isOtherMemberProfileView
+        $isFieldOfficerProfileView
             ? url_to(
-                'web.members.photos.medium-url',
-                $viewedProfileReference,
+                'field-officer.profiles.photos.medium-url',
+                $fieldOfficerViewedMemberId,
                 $photoId
             )
-            : url_to(
-                'web.profile.photos.medium-url',
-                $photoId
+            : (
+                $isOtherMemberProfileView
+                ? url_to(
+                    'web.members.photos.medium-url',
+                    $viewedProfileReference,
+                    $photoId
+                )
+                : url_to(
+                    'web.profile.photos.medium-url',
+                    $photoId
+                )
             ),
     ];
 }

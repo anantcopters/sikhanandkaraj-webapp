@@ -16,6 +16,156 @@ use CodeIgniter\Router\RouteCollection;
 // condition. Terms and privacy information must remain accessible in
 // development, QA and production environments.
 //
+
+// -----------------------------------------------------------------------------
+// Field Officer portal
+// -----------------------------------------------------------------------------
+
+$routes->group(
+    'field-officer',
+    [
+        'namespace' =>
+        'App\\Controllers\\FieldOfficer',
+    ],
+    static function (
+        RouteCollection $routes
+    ): void {
+        /*
+         * Public FO authentication.
+         */
+        $routes->get(
+            'login',
+            'FieldOfficerAuthenticationController::index',
+            [
+                'as' =>
+                'field-officer.login',
+            ]
+        );
+
+        $routes->post(
+            'login/send-otp',
+            'FieldOfficerAuthenticationController::sendOtp',
+            [
+                'as' =>
+                'field-officer.login.send-otp',
+            ]
+        );
+
+        $routes->get(
+            'login/verify',
+            'FieldOfficerAuthenticationController::verifyPage',
+            [
+                'as' =>
+                'field-officer.login.verify',
+            ]
+        );
+
+        $routes->post(
+            'login/verify',
+            'FieldOfficerAuthenticationController::verifyOtp',
+            [
+                'as' =>
+                'field-officer.login.verify.submit',
+            ]
+        );
+
+        $routes->post(
+            'login/resend',
+            'FieldOfficerAuthenticationController::resendOtp',
+            [
+                'as' =>
+                'field-officer.login.resend',
+            ]
+        );
+
+        $routes->post(
+            'login/cancel',
+            'FieldOfficerAuthenticationController::cancel',
+            [
+                'as' =>
+                'field-officer.login.cancel',
+            ]
+        );
+
+        /*
+         * Protected FO portal.
+         */
+        $routes->group(
+            '',
+            [
+                'filter' =>
+                'fieldOfficerAuth',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->post(
+                    'logout',
+                    'FieldOfficerAuthenticationController::logout',
+                    [
+                        'as' =>
+                        'field-officer.logout',
+                    ]
+                );
+
+                $routes->get(
+                    'dashboard',
+                    'FieldOfficerDashboardController::index',
+                    [
+                        'as' =>
+                        'field-officer.dashboard',
+                    ]
+                );
+
+                $routes->get(
+                    'profiles',
+                    'FieldOfficerProfileController::index',
+                    [
+                        'as' =>
+                        'field-officer.profiles.index',
+                    ]
+                );
+
+                $routes->get(
+                    'profiles/prelaunch/(:num)',
+                    'FieldOfficerProfileController::prelaunch/$1',
+                    [
+                        'as' =>
+                        'field-officer.profiles.prelaunch.view',
+                    ]
+                );
+
+                $routes->get(
+                    'profiles/member/(:num)',
+                    'FieldOfficerProfileController::member/$1',
+                    [
+                        'as' =>
+                        'field-officer.profiles.member.view',
+                    ]
+                );
+
+                $routes->get(
+                    'profiles/member/(:num)/photos/(:num)',
+                    'FieldOfficerProfileController::memberPhoto/$1/$2',
+                    [
+                        'as' =>
+                        'field-officer.profiles.photos.medium-url',
+                    ]
+                );
+
+                $routes->get(
+                    'profiles/prelaunch/(:num)/photos/(:num)',
+                    'FieldOfficerProfileController::prelaunchPhoto/$1/$2',
+                    [
+                        'as' =>
+                        'field-officer.profiles.prelaunch.photo',
+                    ]
+                );
+            }
+        );
+    }
+);
+
 $routes->group(
     '',
     [

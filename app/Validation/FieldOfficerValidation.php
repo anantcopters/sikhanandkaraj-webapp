@@ -127,6 +127,33 @@ final class FieldOfficerValidation
     }
 
     /**
+     * Field Officer portal mobile-login validation.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public static function loginRules(): array
+    {
+        return [
+            'mobile_number' => [
+                'label' => 'Mobile Number',
+
+                'rules' => [
+                    'required',
+                    'regex_match[/^[6-9][0-9]{9}$/]',
+                ],
+
+                'errors' => [
+                    'required' =>
+                    'Mobile number is required.',
+
+                    'regex_match' =>
+                    'Enter a valid 10-digit Indian mobile number.',
+                ],
+            ],
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private static function aadhaarRules(): array

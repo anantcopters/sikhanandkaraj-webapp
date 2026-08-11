@@ -42,6 +42,7 @@ final class FieldOfficerModel extends Model
         'deactivated_at',
         'created_by',
         'updated_by',
+        'last_login_at',
     ];
 
     protected $useTimestamps = true;
@@ -148,6 +149,8 @@ final class FieldOfficerModel extends Model
                 'field_officers.officer_code',
                 'field_officers.full_name',
                 'field_officers.account_status',
+                'field_officers.mobile_number',
+                'field_officers.last_login_at',
             ])
             ->where(
                 'field_officers.id',
@@ -315,5 +318,88 @@ final class FieldOfficerModel extends Model
         return is_array($record)
             ? $record
             : null;
+    }
+
+    /**
+     * Find an ACTIVE, non-deleted Field Officer by mobile number.
+     *
+     * FieldOfficerValidation stores FO mobile numbers as
+     * ten-digit Indian mobile numbers.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findActiveByMobile(
+        string $mobileNumber
+    ): ?array {
+        $mobileNumber = preg_replace(
+            '/\D+/',
+            '',
+            $mobileNumber
+        ) ?? '';
+
+        if (strlen($mobileNumber) > 10) {
+            $mobileNumber = substr(
+                $mobileNumber,
+                -10
+            );
+        }
+
+        if (
+            preg_match(
+                '/^[6-9][0-9]{9}$/',
+                $mobileNumber
+            ) !== 1
+        ) {
+            return null;
+        }
+
+        $record = $this
+            ->select([
+                'field_officers.id',
+                'field_officers.officer_code',
+                'field_officers.full_name',
+                'field_officers.mobile_number',
+                'field_officers.account_status',
+                'field_officers.last_login_at',
+            ])
+            ->where(
+                'field_officers.mobile_number',
+                $mobileNumber
+            )
+            ->where(
+                'field_officers.account_status',
+                self::STATUS_ACTIVE
+            )
+            ->where(
+                'field_officers.deleted_at',
+                null
+            )
+            ->first();
+
+        return is_array($record)
+            ? $record
+            : null;
+    }
+
+    /**
+     * Record successful FO login.
+     *
+     * Login itself must remain successful even if this operational
+     * timestamp cannot subsequently be recorded.
+     */
+    public function recordSuccessfulLogin(
+        int $fieldOfficerId
+    ): bool {
+        if ($fieldOfficerId <= 0) {
+            return false;
+        }
+
+        return $this->update(
+            $fieldOfficerId,
+            [
+                'last_login_at' =>
+                date('Y-m-d H:i:s'),
+            ]
+        );
     }
 }
