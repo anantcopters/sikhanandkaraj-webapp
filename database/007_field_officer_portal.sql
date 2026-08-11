@@ -23,6 +23,8 @@ CREATE TABLE IF NOT EXISTS field_officer_login_otps
  *
  * The authoritative current mobile remains field_officers.mobile_number.
  */
+
+
 mobile_number VARCHAR(16) NOT NULL,
 
     otp_hash VARCHAR(255) NOT NULL,
@@ -86,15 +88,29 @@ WHERE
 
 CREATE OR REPLACE VIEW vw_field_officer_submitted_profiles AS
 
+/*
+ * ==========================================================
+ * PRELAUNCH PROFILES
+ * ==========================================================
+ *
+ * Existing system relationship:
+ *
+ * prelaunch_profiles.id
+ *          ↓
+ * users.prelaunch_profile_id
+ *
+ * Do not depend on prelaunch_profiles.migrated_user_id for
+ * resolving the live member/profile ID.
+ */
 SELECT
     'PRELAUNCH:' || p.id::TEXT AS row_key,
     'PRELAUNCH'::VARCHAR AS source_type,
     p.id AS source_id,
-    p.migrated_user_id AS member_user_id,
+    migrated_user.id AS member_user_id,
     p.field_officer_id,
 
 /*
- * Keep the original prelaunch reference.
+ * Original prelaunch reference.
  */
 p.profile_reference AS profile_reference,
 COALESCE(
@@ -104,21 +120,29 @@ COALESCE(
 p.mobile_number,
 city.name AS city_name,
 state.name AS state_name,
+
+/*
+ * If a live user exists against this prelaunch profile,
+ * the profile has already been migrated/registered.
+ */
 CASE
-    WHEN p.migrated_user_id IS NULL THEN 'DRAFT'
+    WHEN migrated_user.id IS NULL THEN 'DRAFT'
     ELSE 'APPROVED'
 END::VARCHAR AS display_status,
 p.created_at AS submitted_at,
 
 /*
- * Live Sikhanandkaraj Profile ID.
+ * Live member Profile ID.
  *
- * NULL until the prelaunch profile is migrated.
+ * Example:
+ * SAK1625810
+ *
+ * NULL for an unmigrated prelaunch profile.
  */
 migrated_user.profile_ref_number AS profile_id
 FROM
     prelaunch_profiles p
-    LEFT JOIN users migrated_user ON migrated_user.id = p.migrated_user_id
+    LEFT JOIN users migrated_user ON migrated_user.prelaunch_profile_id = p.id
     AND migrated_user.deleted_at IS NULL
     LEFT JOIN master_states state ON state.id = p.state_id
     LEFT JOIN master_cities city ON city.id = p.city_id
@@ -126,6 +150,19 @@ WHERE
     p.deleted_at IS NULL
     AND p.field_officer_id IS NOT NULL
 UNION ALL
+
+/*
+ * ==========================================================
+ * NORMAL REGISTERED MEMBERS
+ * ==========================================================
+ *
+ * These members associated the Field Officer through
+ * member_family_details.
+ *
+ * Their SAK profile reference is already displayed under
+ * Reference, therefore Profile ID remains blank in the
+ * separate Profile ID column.
+ */
 SELECT
     'MEMBER:' || u.id::TEXT AS row_key,
     'MEMBER'::VARCHAR AS source_type,
@@ -134,11 +171,10 @@ SELECT
     family.field_officer_id,
 
 /*
- * Direct member records do not have a separate
- * prelaunch reference. Retaining profile_ref_number
- * here also keeps existing search compatibility.
+ * Normal registered members do not have a prelaunch
+ * reference.
  */
-u.profile_ref_number AS profile_reference,
+NULL::VARCHAR AS profile_reference,
 u.full_name,
 mobile.mobile_number,
 city.name AS city_name,
@@ -147,7 +183,7 @@ state.name AS state_name,
 family.created_at AS submitted_at,
 
 /*
- * Registered member Profile ID.
+ * Normal registered member's actual Profile ID.
  */
 u.profile_ref_number AS profile_id
 FROM
@@ -171,11 +207,6 @@ FROM
     ) mobile ON TRUE
 WHERE
     u.deleted_at IS NULL
-
-/*
- * Migrated prelaunch members are already represented
- * by the PRELAUNCH branch above.
- */
-AND u.prelaunch_profile_id IS NULL;
+    AND u.prelaunch_profile_id IS NULL;
 
 COMMIT;
