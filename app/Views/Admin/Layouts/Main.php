@@ -337,7 +337,7 @@ $pageScripts = $pageScripts ?? [];
                                             class="<?= $fieldOfficerActive
                                                         ? 'fw-semibold'
                                                         : '' ?>">
-                                            Field Officers
+                                            SAK Volunteers
                                         </span>
                                     </a>
                                 </li>

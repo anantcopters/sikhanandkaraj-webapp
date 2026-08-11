@@ -98,7 +98,7 @@ $searchActive =
  * Some reusable unauthenticated screens are used outside
  * normal member authentication.
  *
- * Field Officer OTP verification uses the public layout,
+ * SAK Volunteer OTP verification uses the public layout,
  * but must not advertise member Login from its header.
  */
 $hidePublicLoginAction =

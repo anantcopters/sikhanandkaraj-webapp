@@ -62,11 +62,11 @@ $this->section('content');
 
                 <div>
                     <h4 class="mb-sm-0">
-                        Add Field Officer
+                        Add SAK Volunteer
                     </h4>
 
                     <p class="text-muted mb-0 mt-1">
-                        A unique Field Officer code will be
+                        A unique SAK Volunteer code will be
                         generated automatically.
                     </p>
                 </div>
@@ -87,7 +87,7 @@ $this->section('content');
                             aria-hidden="true">
                         </i>
 
-                        Back to Field Officers
+                        Back to SAK Volunteers
                     </a>
                 </div>
             </div>
@@ -106,7 +106,7 @@ $this->section('content');
 
                 <div class="card-header">
                     <h4 class="card-title mb-0">
-                        Field Officer Details
+                        SAK Volunteer Details
                     </h4>
                 </div>
 
@@ -132,9 +132,9 @@ $this->section('content');
                         </i>
 
                         <div>
-                            A Field Officer created with a valid
+                            A SAK Volunteer created with a valid
                             UPI ID will be active immediately.
-                            Without a UPI ID, the Field Officer
+                            Without a UPI ID, the SAK Volunteer
                             will be created inactive.
                         </div>
                     </div>

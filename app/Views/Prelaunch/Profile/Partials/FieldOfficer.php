@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Production-only Field Officer verification.
+ * Production-only SAK Volunteer verification.
  *
  * @var array<string, string>|null $validationErrors
  */
@@ -68,11 +68,11 @@ $verificationUrl = url_to(
 
             <div>
                 <h5 class="mb-1 fs-14 fw-semibold">
-                    Field Officer verification
+                    SAK Volunteer verification
                 </h5>
 
                 <p class="text-muted mb-0 fs-12">
-                    Enter and verify the Field Officer code
+                    Enter and verify the SAK Volunteer code
                     before saving the profile.
                 </p>
             </div>
@@ -88,7 +88,7 @@ $verificationUrl = url_to(
                     for="field_officer_code"
                     class="form-label">
 
-                    Field Officer ID
+                    SAK Volunteer ID
                 </label>
 
                 <input
@@ -109,9 +109,9 @@ $verificationUrl = url_to(
                     autocomplete="off"
                     required
                     aria-describedby="field_officer_codeError"
-                    data-error-required="Please enter the Field Officer ID."
-                    data-error-pattern="Please enter a valid Field Officer ID."
-                    data-error-maxlength="Please enter a valid Field Officer ID.">
+                    data-error-required="Please enter the SAK Volunteer ID."
+                    data-error-pattern="Please enter a valid SAK Volunteer ID."
+                    data-error-maxlength="Please enter a valid SAK Volunteer ID.">
 
                 <input
                     type="hidden"
@@ -195,7 +195,7 @@ $verificationUrl = url_to(
 
                         <div>
                             <span class="small d-block">
-                                Verified Field Officer
+                                Verified SAK Volunteer
                             </span>
 
                             <strong

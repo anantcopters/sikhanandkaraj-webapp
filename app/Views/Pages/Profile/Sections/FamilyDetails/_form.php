@@ -930,11 +930,11 @@ if ($isJourney) {
             <hr class="my-2 mb-3">
 
             <h2 class="fs-16 fw-semibold mb-1 mt-2">
-                Field Officer
+                SAK Volunteer
             </h2>
 
             <p class="text-muted fs-13 mb-0">
-                Optional. If you enter a Field Officer ID,
+                Optional. If you enter a SAK Volunteer ID,
                 it must be verified before saving.
             </p>
         </div>
@@ -944,7 +944,7 @@ if ($isJourney) {
                 for="fieldOfficerCode"
                 class="form-label">
 
-                Field Officer ID
+                SAK Volunteer ID
 
                 <span class="text-muted fw-normal">
                     (Optional)
@@ -966,7 +966,7 @@ if ($isJourney) {
                     aria-readonly="true">
 
                 <div class="form-text color-pink">
-                    Field Officer ID cannot be changed
+                    SAK Volunteer ID cannot be changed
                     after it has been saved.
                 </div>
 
@@ -987,7 +987,7 @@ if ($isJourney) {
                         maxlength="11"
                         pattern="FOSAK[0-9]{6}"
                         autocomplete="off"
-                        data-error-pattern="Please enter a valid Field Officer ID."
+                        data-error-pattern="Please enter a valid SAK Volunteer ID."
                         data-verify-url="<?= esc(
                                                 url_to(
                                                     'web.profile.family-details.field-officer.verify'
@@ -1022,7 +1022,7 @@ if ($isJourney) {
                 <div
                     id="fieldOfficerHelp"
                     class="form-text color-pink">
-                    Enter the Code provided by your Field Officer.
+                    Enter the Code provided by your SAK Volunteer.
                 </div>
 
                 <div
@@ -1039,7 +1039,7 @@ if ($isJourney) {
                 for="fieldOfficerName"
                 class="form-label">
 
-                Field Officer Name
+                SAK Volunteer Name
             </label>
 
             <input
@@ -1056,7 +1056,7 @@ if ($isJourney) {
 
             <?php if ($fieldOfficerAssigned): ?>
                 <div class="form-text text-success">
-                    Field Officer verified and saved.
+                    SAK Volunteer verified and saved.
                 </div>
             <?php endif; ?>
         </div>

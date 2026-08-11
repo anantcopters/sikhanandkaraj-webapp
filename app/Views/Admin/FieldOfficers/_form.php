@@ -115,7 +115,7 @@ $selectedCity =
                 <div class="invalid-feedback">
                     <?= esc(
                         $errors['full_name']
-                            ?? 'Enter the Field Officer name.'
+                            ?? 'Enter the SAK Volunteer name.'
                     ) ?>
                 </div>
 
@@ -586,13 +586,13 @@ $selectedCity =
                 <?php if ($editing): ?>
 
                     UPI ID must be unique. A valid UPI ID keeps
-                    the Field Officer active. Removing it will
+                    the SAK Volunteer active. Removing it will
                     make the account inactive.
 
                 <?php else: ?>
 
                     UPI ID must be unique. Providing a valid
-                    UPI ID will create this Field Officer in
+                    UPI ID will create this SAK Volunteer in
                     active status.
 
                 <?php endif; ?>
@@ -620,7 +620,7 @@ $selectedCity =
             <span data-submit-idle>
                 <?= $editing
                     ? 'Save Changes'
-                    : 'Add Field Officer' ?>
+                    : 'Add SAK Volunteer' ?>
             </span>
 
             <span
@@ -636,7 +636,7 @@ $selectedCity =
                 <span class="ms-1">
                     <?= $editing
                         ? 'Saving changes...'
-                        : 'Creating Field Officer...' ?>
+                        : 'Creating SAK Volunteer...' ?>
                 </span>
 
             </span>

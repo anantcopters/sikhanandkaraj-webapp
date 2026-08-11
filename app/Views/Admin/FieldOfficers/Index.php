@@ -33,11 +33,11 @@ $this->section('content');
 
                 <div>
                     <h4 class="mb-sm-0">
-                        Field Officers
+                        SAK Volunteers
                     </h4>
 
                     <p class="text-muted mb-0 mt-1">
-                        Manage Field Officers and their
+                        Manage SAK Volunteers and their
                         assigned locations.
                     </p>
                 </div>
@@ -54,7 +54,7 @@ $this->section('content');
                                 align-middle me-1">
                         </i>
 
-                        Add Field Officer
+                        Add SAK Volunteer
                     </a>
                 </div>
             </div>
@@ -117,7 +117,7 @@ $this->section('content');
                                     class="text-center
                             text-muted py-4">
 
-                                    No Field Officers
+                                    No SAK Volunteers
                                     have been added.
                                 </td>
                             </tr>
@@ -235,8 +235,8 @@ $this->section('content');
                                             class="btn
                                     btn-soft-primary
                                     btn-sm"
-                                            title="Edit Field Officer"
-                                            aria-label="Edit Field Officer">
+                                            title="Edit SAK Volunteer"
+                                            aria-label="Edit SAK Volunteer">
 
                                             <i
                                                 class="ri-edit-line"
@@ -253,7 +253,7 @@ $this->section('content');
                                                 method="post"
                                                 class="d-inline"
                                                 data-confirm-form
-                                                data-confirm-title="Deactivate Field Officer?"
+                                                data-confirm-title="Deactivate SAK Volunteer?"
                                                 data-confirm-message="<?= esc(
                                                                             'Do you want to make '
                                                                                 . (string) $fieldOfficer['full_name']
@@ -273,7 +273,7 @@ $this->section('content');
                                             btn-soft-warning
                                             btn-sm"
                                                     title="Make inactive"
-                                                    aria-label="Make Field Officer inactive">
+                                                    aria-label="Make SAK Volunteer inactive">
 
                                                     <i
                                                         class="ri-user-unfollow-line"
@@ -291,7 +291,7 @@ $this->section('content');
                                                     method="post"
                                                     class="d-inline"
                                                     data-confirm-form
-                                                    data-confirm-title="Activate Field Officer?"
+                                                    data-confirm-title="Activate SAK Volunteer?"
                                                     data-confirm-message="<?= esc(
                                                                                 'Do you want to make '
                                                                                     . (string) $fieldOfficer['full_name']
@@ -309,7 +309,7 @@ $this->section('content');
                                                         type="submit"
                                                         class="btn btn-soft-success btn-sm"
                                                         title="Make active"
-                                                        aria-label="Make Field Officer active">
+                                                        aria-label="Make SAK Volunteer active">
 
                                                         <i
                                                             class="ri-user-follow-line"

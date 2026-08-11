@@ -5,13 +5,13 @@ declare(strict_types=1);
 $pageTitle = trim(
     (string) (
         $pageTitle
-        ?? 'Field Officer'
+        ?? 'SAK Volunteer'
     )
 );
 
 if ($pageTitle === '') {
     $pageTitle =
-        'Field Officer';
+        'SAK Volunteer';
 }
 
 $pageScripts =
@@ -33,7 +33,7 @@ $fieldOfficerName = trim(
 
 if ($fieldOfficerName === '') {
     $fieldOfficerName =
-        'Field Officer';
+        'SAK Volunteer';
 }
 
 $fieldOfficerCode = trim(
@@ -182,7 +182,7 @@ $selectChoiceJsUrl =
                 navbar-expand-lg
                 bg-white
                 py-2"
-                aria-label="Field Officer navigation">
+                aria-label="SAK Volunteer navigation">
 
                 <div
                     class="container-fluid
@@ -220,7 +220,7 @@ $selectChoiceJsUrl =
                         data-bs-target="#fieldOfficerNavbar"
                         aria-controls="fieldOfficerNavbar"
                         aria-expanded="false"
-                        aria-label="Toggle Field Officer navigation">
+                        aria-label="Toggle SAK Volunteer navigation">
 
                         <span
                             class="navbar-toggler-icon">

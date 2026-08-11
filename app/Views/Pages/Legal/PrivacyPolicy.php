@@ -96,7 +96,7 @@ $this->section('content');
                                 </li>
 
                                 <li>
-                                    A field officer or authorised representative
+                                    A SAK Volunteer or authorised representative
                                     who assists with profile creation.
                                 </li>
                             </ul>
@@ -244,7 +244,7 @@ $this->section('content');
                                 </li>
 
                                 <li class="mb-2">
-                                    From authorised field officers or service
+                                    From authorised SAK Volunteers or service
                                     providers assisting with registration.
                                 </li>
 

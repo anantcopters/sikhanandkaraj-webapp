@@ -5,7 +5,7 @@ declare(strict_types=1);
 $pageTitle = trim(
     (string) (
         $pageTitle
-        ?? 'Field Officer Dashboard'
+        ?? 'SAK Volunteer Dashboard'
     )
 );
 
@@ -18,7 +18,7 @@ $fieldOfficerName = trim(
 
 if ($fieldOfficerName === '') {
     $fieldOfficerName =
-        'Field Officer';
+        'SAK Volunteer';
 }
 
 $submittedProfileCount = max(
@@ -62,7 +62,7 @@ $this->section('content');
                 <div>
 
                     <h4 class="mb-sm-0">
-                        Field Officer Dashboard
+                        SAK Volunteer Dashboard
                     </h4>
 
                     <p
