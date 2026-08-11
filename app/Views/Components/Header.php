@@ -154,7 +154,7 @@ $searchActive =
                             d-flex
                             align-items-center
                             gap-2
-                            py-1 py-lg-2 fs-14
+                            py-1 py-lg-2 fs-15
                             <?= $homeActive
                                 ? 'active text-primary'
                                 : '' ?>"
@@ -186,7 +186,7 @@ $searchActive =
         d-flex
         align-items-center
         gap-2
-        py-1 py-lg-2 fs-14
+        py-1 py-lg-2 fs-15
         <?= $searchActive
                     ? 'active text-primary'
                     : '' ?>"
@@ -218,7 +218,7 @@ $searchActive =
                             d-flex
                             align-items-center
                             gap-2
-                            py-1 py-lg-2 fs-14
+                            py-1 py-lg-2 fs-15
                             <?= $matchesActive
                                 ? 'active text-primary'
                                 : '' ?>"
@@ -250,7 +250,7 @@ $searchActive =
                             d-flex
                             align-items-center
                             gap-2
-                            py-1 py-lg-2 fs-14
+                            py-1 py-lg-2 fs-15
                             <?= $interestActive
                                 ? 'active text-primary'
                                 : '' ?>"
@@ -312,7 +312,7 @@ $searchActive =
                                     <span
                                         class="d-block
                                         fw-medium
-                                        user-name-text">
+                                        user-name-text fs-15">
                                         <?= esc(
                                             $resolvedLoggedInName
                                         ) ?>
@@ -323,9 +323,9 @@ $searchActive =
                                     ): ?>
                                         <span
                                             class="d-block
-                                            fs-12
+                                            fs-13
                                             user-name-sub-text
-                                            text-muted">
+                                            text-primary">
 
                                             <?= esc(
                                                 $resolvedProfileReference
