@@ -48,33 +48,77 @@ final class AdminUserController extends BaseController
         );
     }
 
+    /**
+     * Create a new Administrator and queue the invitation email.
+     *
+     * Normal field validation is handled first. Business errors returned by the
+     * invitation service, such as duplicate mobile/email, are translated back
+     * into the same field-level validation contract used by the Create view.
+     */
     public function store(): RedirectResponse
     {
         $input = [
-            'full_name' => trim(
+            'full_name' =>
+            trim(
                 (string) $this->request
-                    ->getPost('full_name')
+                    ->getPost(
+                        'full_name'
+                    )
             ),
-            'mobile_number' => trim(
+
+            'mobile_number' =>
+            trim(
                 (string) $this->request
-                    ->getPost('mobile_number')
+                    ->getPost(
+                        'mobile_number'
+                    )
             ),
-            'email_address' => trim(
-                (string) $this->request
-                    ->getPost('email_address')
+
+            'email_address' =>
+            mb_strtolower(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'email_address'
+                        )
+                )
             ),
         ];
 
-        $validation = service('validation');
+        $validation =
+            service(
+                'validation'
+            );
 
         $validation->setRules(
-            AdminUserValidation::createRules()
+            AdminUserValidation
+                ::createRules()
         );
 
-        if (!$validation->run($input)) {
+        /*
+     * ----------------------------------------------------------
+     * Standard request validation
+     * ----------------------------------------------------------
+     *
+     * Required, format and length errors are returned directly to
+     * the related form fields.
+     */
+        if (
+            !$validation->run(
+                $input
+            )
+        ) {
             return redirect()
-                ->to(route_to('admin.users.create'))
-                ->with('adminFormInput', $input)
+                ->to(
+                    route_to(
+                        'admin.users.create'
+                    )
+                )
+                ->withInput()
+                ->with(
+                    'adminFormInput',
+                    $input
+                )
                 ->with(
                     'validationErrors',
                     $validation->getErrors()
@@ -83,28 +127,72 @@ final class AdminUserController extends BaseController
 
         try {
             /** @var AdminInvitationService $service */
-            $service = service(
-                'adminInvitationService'
-            );
+            $service =
+                service(
+                    'adminInvitationService'
+                );
 
             $service->createAdmin(
                 $input['full_name'],
                 $input['mobile_number'],
                 $input['email_address'],
-                (int) session('admin_user_id')
+                (int) session(
+                    'admin_user_id'
+                )
             );
 
             return redirect()
-                ->to(route_to('admin.users.index'))
-                ->with('formAlert', [
-                    'type' => 'success',
-                    'title' =>
-                    'Administrator invited',
-                    'message' =>
-                    'The administrator was created and '
-                        . 'an invitation email was queued.',
-                ]);
-        } catch (Throwable $exception) {
+                ->to(
+                    route_to(
+                        'admin.users.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'success',
+
+                        'title' =>
+                        'Administrator invited',
+
+                        'message' =>
+                        'The administrator was created and '
+                            . 'an invitation email was queued.',
+                    ]
+                );
+        } catch (\RuntimeException $exception) {
+            /*
+         * Known service/business errors such as duplicate mobile/email
+         * should appear against the corresponding field instead of being
+         * reduced to a generic page alert.
+         */
+            $fieldErrors =
+                $this->adminCreationFieldErrors(
+                    $exception->getMessage()
+                );
+
+            if ($fieldErrors !== []) {
+                return redirect()
+                    ->to(
+                        route_to(
+                            'admin.users.create'
+                        )
+                    )
+                    ->withInput()
+                    ->with(
+                        'adminFormInput',
+                        $input
+                    )
+                    ->with(
+                        'validationErrors',
+                        $fieldErrors
+                    );
+            }
+
+            /*
+         * Unknown RuntimeExceptions are still logged and presented safely.
+         */
             service(
                 'applicationErrorLogger'
             )->exception(
@@ -119,18 +207,75 @@ final class AdminUserController extends BaseController
 
                     additionalContext: [
                         /*
-                 * Do not log the invited administrator's email or name.
-                 */
+                     * Role is fixed by AdminInvitationService to ADMIN.
+                     * Do not reference an undefined $validatedData variable.
+                     */
                         'requested_role' =>
-                        $validatedData['role']
-                            ?? null,
+                        AdminUserModel
+                        ::ROLE_ADMIN,
                     ]
                 )
             );
 
             return redirect()
-                ->back()
+                ->to(
+                    route_to(
+                        'admin.users.create'
+                    )
+                )
                 ->withInput()
+                ->with(
+                    'adminFormInput',
+                    $input
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Administrator not created',
+
+                        'message' =>
+                        'The administrator could not be created.',
+                    ]
+                );
+        } catch (Throwable $exception) {
+            /*
+         * Unexpected failures must not expose internal exception details.
+         */
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_user_create',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'requested_role' =>
+                        AdminUserModel
+                        ::ROLE_ADMIN,
+                    ]
+                )
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.users.create'
+                    )
+                )
+                ->withInput()
+                ->with(
+                    'adminFormInput',
+                    $input
+                )
                 ->with(
                     'formAlert',
                     [
@@ -145,6 +290,60 @@ final class AdminUserController extends BaseController
                     ]
                 );
         }
+    }
+
+    /**
+     * Convert known Admin creation business errors into the field-level
+     * validation contract consumed by Admin/Users/Create.php.
+     *
+     * @return array<string, string>
+     */
+    private function adminCreationFieldErrors(
+        string $message
+    ): array {
+        $message =
+            trim(
+                $message
+            );
+
+        if ($message === '') {
+            return [];
+        }
+
+        $normalizedMessage =
+            strtolower(
+                $message
+            );
+
+        if (
+            str_contains(
+                $normalizedMessage,
+                'mobile number'
+            )
+        ) {
+            return [
+                'mobile_number' =>
+                $message,
+            ];
+        }
+
+        if (
+            str_contains(
+                $normalizedMessage,
+                'email address'
+            )
+            || str_contains(
+                $normalizedMessage,
+                'email'
+            )
+        ) {
+            return [
+                'email_address' =>
+                $message,
+            ];
+        }
+
+        return [];
     }
 
     public function resend(

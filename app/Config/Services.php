@@ -112,7 +112,9 @@ use App\Models\FieldOfficerLoginOtpModel;
 use App\Models\FieldOfficerSubmittedProfileModel;
 use App\Services\FieldOfficer\FieldOfficerLoginService;
 use App\Services\FieldOfficer\FieldOfficerProfileService;
+use App\Services\Matchmaking\MemberProfilePresentationService;
 use App\Models\MemberShortlistModel;
+use App\Services\Admin\FieldOfficerDocumentService;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
 use App\Logging\ErrorLogSanitizer;
@@ -1396,7 +1398,10 @@ final class Services extends BaseService
     }
 
     /**
-     * Development-only bulk member profile loader.
+     * Return the non-production bulk member profile loader.
+     *
+     * The loader reuses normal member profile services so generated QA data
+     * follows the same master validation and persistence rules as real profiles.
      */
     public static function developmentProfileLoaderService(
         bool $getShared = true
@@ -1407,17 +1412,49 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new DevelopmentProfileLoaderService(
-            new UserModel($database),
-            new UserContactModel($database),
-            new MemberPhotoModel($database),
-            static::basicDetailsService(),
-            static::educationProfessionService(),
-            static::basicPartnerPreferenceService(),
-            static::additionalPartnerPreferenceService(),
-            static::awsMediaService(),
+            new UserModel(
+                $database
+            ),
+
+            new UserContactModel(
+                $database
+            ),
+
+            new MemberPhotoModel(
+                $database
+            ),
+
+            static::basicDetailsService(
+                false
+            ),
+
+            static::educationProfessionService(
+                false
+            ),
+
+            /*
+         * Family Details is required by the current profile architecture.
+         */
+            static::familyDetailsService(
+                false
+            ),
+
+            static::basicPartnerPreferenceService(
+                false
+            ),
+
+            static::additionalPartnerPreferenceService(
+                false
+            ),
+
+            static::awsMediaService(
+                false
+            ),
+
             $database
         );
     }
@@ -1555,6 +1592,29 @@ final class Services extends BaseService
         );
     }
 
+    /**
+     * Return the common member-summary presentation service.
+     *
+     * Multi-profile member screens use this service so thumbnail authorization,
+     * profile identity and common profile values cannot drift between Dashboard,
+     * Search/Matches and Interests.
+     */
+    public static function memberProfilePresentationService(
+        bool $getShared = true
+    ): MemberProfilePresentationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfilePresentationService'
+            );
+        }
+
+        return new MemberProfilePresentationService(
+            static::memberPhotoUrlService(
+                false
+            )
+        );
+    }
+
     public static function memberMatchmakingService(
         bool $getShared = true
     ): MemberMatchmakingService {
@@ -1567,7 +1627,9 @@ final class Services extends BaseService
         $database = db_connect();
 
         return new MemberMatchmakingService(
-            new UserModel($database),
+            new UserModel(
+                $database
+            ),
 
             new MemberMatchCandidateModel(
                 $database
@@ -1581,7 +1643,7 @@ final class Services extends BaseService
                 false
             ),
 
-            static::memberPhotoUrlService(
+            static::memberProfilePresentationService(
                 false
             ),
 
@@ -1672,7 +1734,7 @@ final class Services extends BaseService
                 $database
             ),
 
-            static::memberPhotoUrlService(
+            static::memberProfilePresentationService(
                 false
             ),
 
@@ -1706,9 +1768,9 @@ final class Services extends BaseService
         }
 
         /*
-        * All models/services created here use the normal application database
-        * connection managed by CI4.
-        */
+     * All models/services created here use the normal application database
+     * connection managed by CI4.
+     */
         $database =
             db_connect();
 
@@ -1722,13 +1784,13 @@ final class Services extends BaseService
             ),
 
             /*
-            * Same Interest authority used by Member Profile View.
-            */
+         * Same Interest authority used by Member Profile View.
+         */
             static::memberInteractionService(
                 false
             ),
 
-            static::memberPhotoUrlService(
+            static::memberProfilePresentationService(
                 false
             ),
 
@@ -1832,6 +1894,27 @@ final class Services extends BaseService
 
         return new AdminCaptchaService(
             'field_officer_registration_captcha'
+        );
+    }
+
+    /**
+     * SAK Volunteer private verification-document service.
+     */
+    public static function fieldOfficerDocumentService(
+        bool $getShared = true
+    ): FieldOfficerDocumentService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'fieldOfficerDocumentService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new FieldOfficerDocumentService(
+            new FieldOfficerModel(
+                $database
+            )
         );
     }
 }

@@ -1221,13 +1221,24 @@ $routes->group('admin', [
         });
 
         /*
-        * Only SUPER_ADMIN may manage SAK Volunteers.
+        * --------------------------------------------------------------------------
+        * SAK Volunteer management
+        * --------------------------------------------------------------------------
+        *
+        * Authenticated Admin users may:
+        *
+        * - list;
+        * - view verification documents;
+        * - add;
+        * - edit normal volunteer data;
+        * - approve/reject self-registration;
+        * - activate/deactivate according to the existing business rules.
+        *
+        * Verification-document replacement has a stricter Super Admin boundary.
         */
         $routes->group(
             'field-officers',
-            [
-                'filter' => 'superAdmin',
-            ],
+            [],
             static function (
                 RouteCollection $routes
             ): void {
@@ -1285,6 +1296,20 @@ $routes->group('admin', [
                     ]
                 );
 
+                /*
+         * Private document download.
+         *
+         * No physical writable path is exposed.
+         */
+                $routes->get(
+                    '(:num)/documents/(:segment)',
+                    'FieldOfficerController::document/$1/$2',
+                    [
+                        'as' =>
+                        'admin.field-officers.document',
+                    ]
+                );
+
                 $routes->post(
                     '(:num)/activate',
                     'FieldOfficerController::activate/$1',
@@ -1318,6 +1343,37 @@ $routes->group('admin', [
                     [
                         'as' =>
                         'admin.field-officers.reject-registration',
+                    ]
+                );
+
+                /*
+         * Document replacement is the only SAK Volunteer operation
+         * restricted specifically to Super Admin by this requirement.
+         */
+                $routes->post(
+                    '(:num)/documents/(:segment)/replace',
+                    'FieldOfficerController::replaceDocument/$1/$2',
+                    [
+                        'as' =>
+                        'admin.field-officers.document.replace',
+
+                        'filter' =>
+                        'superAdmin',
+                    ]
+                );
+
+                /*
+ * Display profiles connected with one SAK Volunteer.
+ *
+ * The listing reuses the existing SAK Volunteer profile-list service
+ * and UI. Access is protected by the parent adminAuth group.
+ */
+                $routes->get(
+                    '(:num)/profiles',
+                    'FieldOfficerController::profiles/$1',
+                    [
+                        'as' =>
+                        'admin.field-officers.profiles',
                     ]
                 );
             }

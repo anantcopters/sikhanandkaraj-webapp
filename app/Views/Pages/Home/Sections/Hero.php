@@ -76,9 +76,13 @@ $this->section('content');
                 <div class="registration-card">
 
 
-                    <div class="registration-card__body mt-4">
+                    <div class="registration-card__body mt-0">
 
-                        <h2 class="fs-20 fw-semibold text-center lh-base mt-0 mb-3">
+                        <h2 class="text-gurmukhi fs-24 text-center lh-base mt-0 mb-2">
+                            ਸਿੱਖ ਅਨੰਦ ਕਾਰਜ
+                        </h2>
+
+                        <h2 class="fs-18 fw-medium text-center lh-base mt-0 mb-3">
                             Find your perfect match
                         </h2>
                         <?= view('Components/Alerts/FormAlert', [
@@ -518,7 +522,7 @@ $this->section('content');
                                 and
                                 <a href="<?= site_url('privacy-policy') ?>">
                                     Privacy Policy
-                                </a>.
+                                </a> and abide by the values and teachings of <strong>Sri Guru Granth Sahib Ji</strong>.
                             </p>
                         </form>
                     </div>

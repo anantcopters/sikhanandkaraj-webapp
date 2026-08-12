@@ -34,7 +34,7 @@ declare(strict_types=1);
                         </h2>
                         <div id="genques-collapseOne" class="accordion-collapse collapse show" aria-labelledby="genques-headingOne" data-bs-parent="#genques-accordion">
                             <div class="accordion-body ff-secondary">
-                                Anyone seeking a genuine Sikh matrimonial alliance may register on Sikhanandkaraj. Members are expected to provide accurate information and use the platform only for matrimonial purposes. The platform is designed for Sikh individuals and families looking for meaningful, long-term relationships.
+                                Anyone seeking a genuine Sikh matrimonial alliance <b>who have faith in Guru Granth Sahib</b> may register on Sikhanandkaraj. Members are expected to provide accurate information and use the platform only for matrimonial purposes. The platform is designed for Sikh individuals and families looking for meaningful, long-term relationships.
                             </div>
                         </div>
                     </div>

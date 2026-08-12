@@ -19,11 +19,11 @@ if (!function_exists('member_profile_placeholder')) {
         $image = match ($resolvedGender) {
             'F',
             'FEMALE' =>
-            'assets/images/Girl_Thumbnail.png',
+            'assets/images/Girl_Thumbnail_New.png',
 
             'M',
             'MALE' =>
-            'assets/images/Boy_Thumbnail.png',
+            'assets/images/Boy_Thumbnail_New.png',
 
             /*
              * Current user model supports Male/Female only.

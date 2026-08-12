@@ -9,9 +9,7 @@ use App\Models\MemberMatchCandidateModel;
 use App\Models\MemberNotificationModel;
 use App\Models\UserModel;
 use App\Services\Notification\MemberNotificationService;
-use App\Services\Profile\MemberPhotoUrlService;
 use CodeIgniter\Database\BaseConnection;
-use DateTimeImmutable;
 use DomainException;
 use RuntimeException;
 use Throwable;
@@ -49,8 +47,8 @@ final class MemberInterestService
         private readonly MemberMatchCandidateModel
         $candidateModel,
 
-        private readonly MemberPhotoUrlService
-        $photoUrlService,
+        private readonly MemberProfilePresentationService
+        $profilePresentationService,
 
         private readonly MemberNotificationService
         $notificationService,
@@ -727,6 +725,9 @@ final class MemberInterestService
     }
 
     /**
+     * Convert visible Interest records into the common member presentation
+     * contract plus Interest-specific state.
+     *
      * @param list<array<string, mixed>> $records
      *
      * @return list<array<string, mixed>>
@@ -736,9 +737,6 @@ final class MemberInterestService
         array $records,
         string $direction
     ): array {
-        helper(
-            'member_profile'
-        );
         $result = [];
 
         foreach (
@@ -749,122 +747,53 @@ final class MemberInterestService
                 $record['member']
                 ?? null;
 
-            if (
-                !is_array(
-                    $member
-                )
-            ) {
-                continue;
-            }
-
-            $memberId = max(
-                0,
-                (int) (
-                    $member['id']
-                    ?? 0
-                )
-            );
-
-            $profileReference =
-                trim(
-                    (string) (
-                        $member['profile_ref_number']
-                        ?? ''
-                    )
-                );
-
-            if (
-                $memberId <= 0
-                || $profileReference === ''
-            ) {
+            if (!is_array($member)) {
                 continue;
             }
 
             /*
-            * Interest already establishes a relationship between the
-            * two members, therefore INTERESTED_MEMBERS photo visibility
-            * is satisfied.
-            *
-            * The listing continues to request only the thumbnail variant.
-            */
-            $image =
-                $this->photoUrlService
-                ->getApprovedPrimaryUrlForViewer(
-                    memberId: $memberId,
-
+         * The Interest record itself proves that an Interest relationship
+         * exists between these members.
+         *
+         * MemberProfilePresentationService still delegates actual visibility
+         * authorization to MemberPhotoUrlService.
+         */
+            $profile =
+                $this
+                ->profilePresentationService
+                ->summary(
                     viewerUserId: $viewerUserId,
 
-                    hasInterestRelationship: true,
+                    member: $member,
 
-                    variant: 'thumbnail'
+                    hasInterestRelationship: true
                 );
 
-            /*
-            * Use the common gender placeholder only after the normal
-            * photo-authorization flow has completed.
-            *
-            * This deliberately does not reveal whether the member has
-            * no photo or whether a real photo cannot currently be shown.
-            */
-            if ($image === '') {
-                $image =
-                    member_profile_placeholder(
-                        $member['gender']
-                            ?? null
-                    );
+            if ($profile === null) {
+                continue;
             }
 
-            $result[] = [
-                'referenceId' =>
-                $profileReference,
-
-                'name' =>
-                trim(
-                    (string) (
-                        $member['full_name']
-                        ?? 'Member'
-                    )
-                ),
-
-                'age' =>
-                $this->age(
-                    $member['date_of_birth']
-                        ?? null
-                ),
-
-                'city' =>
-                trim(
-                    (string) (
-                        $member['city_name']
-                        ?? ''
-                    )
-                ),
-
-                'image' =>
-                $image,
-
-                'status' =>
+            /*
+         * Interest-specific state remains outside the common member contract.
+         */
+            $profile['status'] =
                 $this->recordStatus(
                     $record
-                ),
+                );
 
-                'createdAt' =>
+            $profile['createdAt'] =
                 $record['created_at']
-                    ?? null,
+                ?? null;
 
-                'respondedAt' =>
+            $profile['respondedAt'] =
                 $record['responded_at']
-                    ?? null,
+                ?? null;
 
-                'direction' =>
-                $direction,
+            $profile['direction'] =
+                $direction;
 
-                'profileUrl' =>
-                route_to(
-                    'web.members.view',
-                    $profileReference
-                ),
-            ];
+            $result[] =
+                $profile;
         }
 
         return $result;
@@ -914,60 +843,5 @@ final class MemberInterestService
         )
             ? $filter
             : self::FILTER_ALL;
-    }
-
-    private function age(
-        mixed $dateOfBirth
-    ): ?int {
-        $value =
-            trim(
-                (string) $dateOfBirth
-            );
-
-        if (
-            $value === ''
-        ) {
-            return null;
-        }
-
-        try {
-            $birthDate =
-                DateTimeImmutable
-                ::createFromFormat(
-                    '!Y-m-d',
-                    mb_substr(
-                        $value,
-                        0,
-                        10
-                    )
-                );
-
-            if (
-                !$birthDate
-                    instanceof DateTimeImmutable
-            ) {
-                return null;
-            }
-
-            $today =
-                new DateTimeImmutable(
-                    'today'
-                );
-
-            if (
-                $birthDate > $today
-            ) {
-                return null;
-            }
-
-            return $birthDate
-                ->diff(
-                    $today
-                )
-                ->y;
-        } catch (
-            Throwable) {
-            return null;
-        }
     }
 }

@@ -8,6 +8,9 @@ use App\Controllers\BaseController;
 use App\Services\Admin\FieldOfficerService;
 use App\Services\Profile\ProfileMasterDataService;
 use App\Validation\FieldOfficerValidation;
+use App\Services\Admin\FieldOfficerDocumentService;
+use App\Services\FieldOfficer\FieldOfficerProfileService;
+use App\Models\AdminUserModel;
 use App\Support\AdminErrorContext;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -18,6 +21,12 @@ use Throwable;
  */
 final class FieldOfficerController extends BaseController
 {
+
+    /**
+     * Keep Admin and SAK Volunteer profile listings on the same page size.
+     */
+    private const PROFILE_PER_PAGE = 10;
+
     /**
      * Display all SAK Volunteers.
      */
@@ -144,14 +153,17 @@ final class FieldOfficerController extends BaseController
      */
     public function store(): RedirectResponse
     {
-        $input = $this->createInput();
+        $input =
+            $this->createInput();
 
-        $validation = service(
-            'validation'
-        );
+        $validation =
+            service(
+                'validation'
+            );
 
         $validation->setRules(
-            FieldOfficerValidation::createRules()
+            FieldOfficerValidation
+                ::createRules()
         );
 
         if (!$validation->run($input)) {
@@ -172,11 +184,57 @@ final class FieldOfficerController extends BaseController
                 );
         }
 
-        try {
-            /** @var FieldOfficerService $service */
-            $service = service(
-                'fieldOfficerService'
+        /** @var FieldOfficerDocumentService $documentService */
+        $documentService =
+            service(
+                'fieldOfficerDocumentService'
             );
+
+        $storedDocuments = [];
+
+        try {
+            /*
+         * All three verification documents are mandatory when creating
+         * a SAK Volunteer from Admin.
+         */
+            $storedDocuments =
+                $documentService
+                ->storeRegistrationDocuments(
+                    [
+                        FieldOfficerDocumentService
+                        ::DOCUMENT_AADHAAR =>
+                        $this->request
+                            ->getFile(
+                                'aadhaar_document'
+                            ),
+
+                        FieldOfficerDocumentService
+                        ::DOCUMENT_PAN =>
+                        $this->request
+                            ->getFile(
+                                'pan_document'
+                            ),
+
+                        FieldOfficerDocumentService
+                        ::DOCUMENT_CANCELLED_CHEQUE =>
+                        $this->request
+                            ->getFile(
+                                'cancelled_cheque_document'
+                            ),
+                    ]
+                );
+
+            $input =
+                array_merge(
+                    $input,
+                    $storedDocuments
+                );
+
+            /** @var FieldOfficerService $service */
+            $service =
+                service(
+                    'fieldOfficerService'
+                );
 
             $fieldOfficerId =
                 $service->create(
@@ -193,7 +251,8 @@ final class FieldOfficerController extends BaseController
 
             $isActive =
                 (string) (
-                    $fieldOfficer['account_status'] ?? ''
+                    $fieldOfficer['account_status']
+                    ?? ''
                 )
                 === \App\Models\FieldOfficerModel
                 ::STATUS_ACTIVE;
@@ -204,19 +263,32 @@ final class FieldOfficerController extends BaseController
                         'admin.field-officers.index'
                     )
                 )
-                ->with('formAlert', [
-                    'type' =>
-                    'success',
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'success',
 
-                    'title' =>
-                    'SAK Volunteer added',
+                        'title' =>
+                        'SAK Volunteer added',
 
-                    'message' =>
-                    $isActive
-                        ? 'The SAK Volunteer was created and activated because a valid UPI ID was provided.'
-                        : 'The SAK Volunteer was created in inactive status. Add a valid UPI ID before activating the SAK Volunteer.',
-                ]);
+                        'message' =>
+                        $isActive
+                            ? 'The SAK Volunteer was created and activated because a valid UPI ID was provided.'
+                            : 'The SAK Volunteer was created in inactive status.',
+                    ]
+                );
         } catch (Throwable $exception) {
+            /*
+         * If file storage succeeded but the SAK Volunteer transaction
+         * subsequently failed, remove only files created by this request.
+         */
+            if ($storedDocuments !== []) {
+                $documentService
+                    ->rollbackNewDocuments(
+                        $storedDocuments
+                    );
+            }
 
             service(
                 'applicationErrorLogger'
@@ -228,9 +300,10 @@ final class FieldOfficerController extends BaseController
 
                     component: self::class,
 
-                    method: __FUNCTION__,
+                    method: __FUNCTION__
                 )
             );
+
             return redirect()
                 ->to(
                     route_to(
@@ -242,69 +315,225 @@ final class FieldOfficerController extends BaseController
                     'fieldOfficerFormInput',
                     $input
                 )
-                ->with('formAlert', [
-                    'type' =>
-                    'danger',
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
 
-                    'title' =>
-                    'SAK Volunteer not created',
+                        'title' =>
+                        'SAK Volunteer not created',
 
-                    'message' =>
-                    $exception->getMessage(),
-                ]);
+                        'message' =>
+                        $exception->getMessage(),
+                    ]
+                );
         }
     }
 
     /**
-     * Display the edit form.
+     * Download one private SAK Volunteer verification document.
+     *
+     * This controller is behind authenticated Admin routing. The file itself
+     * is never exposed as a public writable/ URL.
+     */
+    public function document(
+        int $fieldOfficerId,
+        string $documentType
+    ): ResponseInterface|RedirectResponse {
+        try {
+            /** @var FieldOfficerDocumentService $service */
+            $service =
+                service(
+                    'fieldOfficerDocumentService'
+                );
+
+            $document =
+                $service->resolveForDownload(
+                    $fieldOfficerId,
+                    $documentType
+                );
+
+            return $this->response
+                ->download(
+                    $document['path'],
+                    null
+                )
+                ->setFileName(
+                    $document['downloadName']
+                );
+        } catch (Throwable $exception) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.field-officers.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Document unavailable',
+
+                        'message' =>
+                        $exception->getMessage(),
+                    ]
+                );
+        }
+    }
+
+    /**
+     * Replace the current DB pointer to one document.
+     *
+     * Route-level superAdmin filtering is mandatory for this endpoint.
+     * The old physical document is intentionally retained.
+     */
+    public function replaceDocument(
+        int $fieldOfficerId,
+        string $documentType
+    ): RedirectResponse {
+        try {
+            $file =
+                $this->request
+                ->getFile(
+                    'document'
+                );
+
+            if (!$file instanceof \CodeIgniter\HTTP\Files\UploadedFile) {
+                throw new \RuntimeException(
+                    'Select a document to upload.'
+                );
+            }
+
+            /** @var FieldOfficerDocumentService $service */
+            $service =
+                service(
+                    'fieldOfficerDocumentService'
+                );
+
+            $service->replace(
+                $fieldOfficerId,
+                $documentType,
+                $file
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.field-officers.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'success',
+
+                        'title' =>
+                        'Document updated',
+
+                        'message' =>
+                        'The current SAK Volunteer document has been replaced. The previous stored file has been retained.',
+                    ]
+                );
+        } catch (Throwable $exception) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.field-officers.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Document not updated',
+
+                        'message' =>
+                        $exception->getMessage(),
+                    ]
+                );
+        }
+    }
+
+    /**
+     * Display the SAK Volunteer edit form.
      */
     public function edit(
         int $fieldOfficerId
     ): string|RedirectResponse {
         try {
             /** @var FieldOfficerService $service */
-            $service = service(
-                'fieldOfficerService'
-            );
+            $service =
+                service(
+                    'fieldOfficerService'
+                );
 
             /** @var ProfileMasterDataService $masterService */
-            $masterService = service(
-                'profileMasterDataService'
-            );
+            $masterService =
+                service(
+                    'profileMasterDataService'
+                );
 
             $fieldOfficer =
                 $service->findForEdit(
                     $fieldOfficerId
                 );
 
-
-            $formInput = array_merge(
-                $fieldOfficer,
-                $this->readArrayFlashData(
-                    'fieldOfficerFormInput'
-                )
-            );
+            /*
+         * Preserve corrected form values after a failed update.
+         *
+         * Existing persisted data remains the base so immutable/current
+         * values are still available to the view.
+         */
+            $formInput =
+                array_merge(
+                    $fieldOfficer,
+                    $this->readArrayFlashData(
+                        'fieldOfficerFormInput'
+                    )
+                );
 
             /*
-             * Use the existing master-data bundle and supply the
-             * SAK Volunteer's state so its cities are returned.
-             */
+         * Reuse the existing profile master-data service.
+         *
+         * Passing the current State ensures the matching City options are
+         * available immediately when the Edit screen is rendered.
+         */
             $masterData =
                 $masterService
                 ->basicDetailsOptions(
-                    (int) $fieldOfficer['state_id']
+                    (int) (
+                        $fieldOfficer['state_id']
+                        ?? 0
+                    )
                 );
 
-            $country = is_array(
-                $masterData['country'] ?? null
-            )
-                ? $masterData['country']
-                : [];
+            /*
+         * AdminAuthenticationController stores the authenticated role in
+         * admin_role.
+         *
+         * This deliberately mirrors SuperAdminFilter instead of introducing
+         * another role/session contract.
+         */
+            $canReplaceDocuments =
+                session(
+                    'admin_role'
+                )
+                === AdminUserModel
+                ::ROLE_SUPER_ADMIN;
 
             return view(
                 'Admin/FieldOfficers/Edit',
                 [
-                    'pageTitle' => 'Edit SAK Volunteer',
+                    'pageTitle' =>
+                    'Edit SAK Volunteer',
 
                     'fieldOfficer' =>
                     $fieldOfficer,
@@ -319,20 +548,42 @@ final class FieldOfficerController extends BaseController
                     $this->readFormAlert(),
 
                     'countries' =>
-                    isset($masterData['country'])
-                        && is_array($masterData['country'])
-                        ? [$masterData['country']]
+                    isset(
+                        $masterData['country']
+                    )
+                        && is_array(
+                            $masterData['country']
+                        )
+                        ? [
+                            $masterData['country'],
+                        ]
                         : [],
 
                     'states' =>
-                    is_array($masterData['states'] ?? null)
+                    is_array(
+                        $masterData['states']
+                            ?? null
+                    )
                         ? $masterData['states']
                         : [],
 
                     'cities' =>
-                    is_array($masterData['cities'] ?? null)
+                    is_array(
+                        $masterData['cities']
+                            ?? null
+                    )
                         ? $masterData['cities']
                         : [],
+
+                    /*
+                 * Only Super Admin receives the re-upload UI.
+                 *
+                 * The POST endpoint itself is separately protected by the
+                 * superAdmin route filter, so hiding the UI is not the
+                 * security boundary.
+                 */
+                    'canReplaceDocuments' =>
+                    $canReplaceDocuments,
 
                     'pageScripts' => [
                         'assets/js/components/submit-loader.js',
@@ -347,16 +598,19 @@ final class FieldOfficerController extends BaseController
                         'admin.field-officers.index'
                     )
                 )
-                ->with('formAlert', [
-                    'type' =>
-                    'danger',
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
 
-                    'title' =>
-                    'SAK Volunteer not found',
+                        'title' =>
+                        'SAK Volunteer not found',
 
-                    'message' =>
-                    $exception->getMessage(),
-                ]);
+                        'message' =>
+                        $exception->getMessage(),
+                    ]
+                );
         }
     }
 
@@ -795,6 +1049,174 @@ final class FieldOfficerController extends BaseController
                         'message' =>
                         $exception
                             ->getMessage(),
+                    ]
+                );
+        }
+    }
+
+    /**
+     * Display profiles connected with one SAK Volunteer.
+     *
+     * This deliberately reuses FieldOfficerProfileService rather than creating
+     * an Admin-specific profile query. The only difference is the authenticated
+     * actor and layout:
+     *
+     * - SAK Volunteer portal gets Volunteer ID from session;
+     * - Admin explicitly selects a Volunteer through this protected route.
+     */
+    public function profiles(
+        int $fieldOfficerId
+    ): string|RedirectResponse {
+        try {
+        /*
+         * First validate that the requested SAK Volunteer exists.
+         *
+         * Never trust the numeric route ID merely because this is an
+         * authenticated Admin route.
+         */
+            /** @var FieldOfficerService $fieldOfficerService */
+            $fieldOfficerService =
+                service(
+                    'fieldOfficerService'
+                );
+
+            $fieldOfficer =
+                $fieldOfficerService
+                ->findForEdit(
+                    $fieldOfficerId
+                );
+
+            /*
+         * Preserve the exact same filtering contract used by the
+         * SAK Volunteer portal.
+         */
+            $status =
+                strtoupper(
+                    trim(
+                        (string) $this->request
+                            ->getGet(
+                                'status'
+                            )
+                    )
+                );
+
+            $search =
+                trim(
+                    (string) $this->request
+                        ->getGet(
+                            'search'
+                        )
+                );
+
+            /** @var FieldOfficerProfileService $profileService */
+            $profileService =
+                service(
+                    'fieldOfficerProfileService'
+                );
+
+            $result =
+                $profileService
+                ->paginatedProfiles(
+                    $fieldOfficerId,
+                    $status,
+                    $search,
+                    self::PROFILE_PER_PAGE
+                );
+
+            /*
+         * totalProfiles() already exists in the current service and counts
+         * every profile connected with this SAK Volunteer independent of
+         * the currently selected Search/Status filter.
+         */
+            $totalProfiles =
+                $profileService
+                ->totalProfiles(
+                    $fieldOfficerId
+                );
+
+            return view(
+                'FieldOfficer/Profiles/Index',
+                [
+                    'pageTitle' =>
+                    'Connected Profiles',
+
+                    'profiles' =>
+                    $result['profiles'],
+
+                    'pager' =>
+                    $result['pager'],
+
+                    'selectedStatus' =>
+                    $result['status'],
+
+                    'searchTerm' =>
+                    $result['search'],
+
+                    'fieldOfficerName' =>
+                    trim(
+                        (string) (
+                            $fieldOfficer['full_name']
+                            ?? ''
+                        )
+                    ),
+
+                    'fieldOfficerCode' =>
+                    trim(
+                        (string) (
+                            $fieldOfficer['officer_code']
+                            ?? ''
+                        )
+                    ),
+
+                    'totalProfiles' =>
+                    $totalProfiles,
+
+                    'formAlert' =>
+                    $this->readFormAlert(),
+
+                    /*
+                 * Context values make the existing SAK Volunteer UI reusable
+                 * without creating a duplicate Admin listing screen.
+                 */
+                    'pageLayout' =>
+                    'Admin/Layouts/Main',
+
+                    'profilesUrl' =>
+                    route_to(
+                        'admin.field-officers.profiles',
+                        $fieldOfficerId
+                    ),
+
+                    'backUrl' =>
+                    route_to(
+                        'admin.field-officers.index'
+                    ),
+
+                    'backLabel' =>
+                    'Back to SAK Volunteers',
+
+                    'isAdminView' =>
+                    true,
+                ]
+            );
+        } catch (Throwable $exception) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.field-officers.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Profiles unavailable',
+
+                        'message' =>
+                        $exception->getMessage(),
                     ]
                 );
         }

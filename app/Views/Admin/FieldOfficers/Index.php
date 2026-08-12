@@ -240,6 +240,16 @@ foreach (
             $fieldOfficerId
         ),
 
+        /*
+        * Admin profile listing uses the same SAK Volunteer profile
+        * association query as the Volunteer portal.
+        */
+        'profilesUrl' =>
+        route_to(
+            'admin.field-officers.profiles',
+            $fieldOfficerId
+        ),
+
         'approveUrl' =>
         route_to(
             'admin.field-officers.approve-registration',
@@ -273,6 +283,48 @@ foreach (
         'Do you want to make '
             . $fullName
             . ' inactive?',
+
+        'aadhaarDocumentUrl' =>
+        trim(
+            (string) (
+                $fieldOfficer['aadhaar_document']
+                ?? ''
+            )
+        ) !== ''
+            ? route_to(
+                'admin.field-officers.document',
+                $fieldOfficerId,
+                'aadhaar'
+            )
+            : '',
+
+        'panDocumentUrl' =>
+        trim(
+            (string) (
+                $fieldOfficer['pan_document']
+                ?? ''
+            )
+        ) !== ''
+            ? route_to(
+                'admin.field-officers.document',
+                $fieldOfficerId,
+                'pan'
+            )
+            : '',
+
+        'cancelledChequeDocumentUrl' =>
+        trim(
+            (string) (
+                $fieldOfficer['cancelled_cheque_document']
+                ?? ''
+            )
+        ) !== ''
+            ? route_to(
+                'admin.field-officers.document',
+                $fieldOfficerId,
+                'cancelled_cheque'
+            )
+            : '',
     ];
 }
 
@@ -391,6 +443,11 @@ $this->section('content');
                                 Status
                             </th>
 
+                            <th scope="col">
+                                Documents
+                            </th>
+
+
                             <th
                                 scope="col"
                                 class="text-end">
@@ -410,7 +467,7 @@ $this->section('content');
                             <tr>
 
                                 <td
-                                    colspan="6"
+                                    colspan="7"
                                     class="text-center
                                     text-muted
                                     py-4">
@@ -488,6 +545,105 @@ $this->section('content');
                                         ) ?>
 
                                     </span>
+
+                                </td>
+
+                                <td>
+
+                                    <div
+                                        class="d-flex
+        flex-column
+        align-items-start
+        gap-1">
+
+                                        <?php if (
+                                            $row['aadhaarDocumentUrl'] !== ''
+                                        ): ?>
+
+                                            <a
+                                                href="<?= esc(
+                                                            $row['aadhaarDocumentUrl'],
+                                                            'attr'
+                                                        ) ?>"
+                                                class="text-decoration-none"
+                                                title="Download Aadhaar Card">
+
+                                                <i
+                                                    class="ri-download-2-line me-1"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                Aadhaar
+
+                                            </a>
+
+                                        <?php else: ?>
+
+                                            <span class="text-muted">
+                                                Aadhaar —
+                                            </span>
+
+                                        <?php endif; ?>
+
+                                        <?php if (
+                                            $row['panDocumentUrl'] !== ''
+                                        ): ?>
+
+                                            <a
+                                                href="<?= esc(
+                                                            $row['panDocumentUrl'],
+                                                            'attr'
+                                                        ) ?>"
+                                                class="text-decoration-none"
+                                                title="Download PAN Card">
+
+                                                <i
+                                                    class="ri-download-2-line me-1"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                PAN
+
+                                            </a>
+
+                                        <?php else: ?>
+
+                                            <span class="text-muted">
+                                                PAN —
+                                            </span>
+
+                                        <?php endif; ?>
+
+                                        <?php if (
+                                            $row['cancelledChequeDocumentUrl'] !== ''
+                                        ): ?>
+
+                                            <a
+                                                href="<?= esc(
+                                                            $row['cancelledChequeDocumentUrl'],
+                                                            'attr'
+                                                        ) ?>"
+                                                class="text-decoration-none"
+                                                title="Download Cancelled Cheque">
+
+                                                <i
+                                                    class="ri-download-2-line me-1"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                Cheque
+
+                                            </a>
+
+                                        <?php else: ?>
+
+                                            <span class="text-muted">
+                                                Cheque —
+                                            </span>
+
+                                        <?php endif; ?>
+
+                                    </div>
 
                                 </td>
 
@@ -571,7 +727,24 @@ $this->section('content');
                                             </form>
 
                                         <?php endif; ?>
+                                        <!-- View profiles connected with this SAK Volunteer. -->
+                                        <a
+                                            href="<?= esc(
+                                                        $row['profilesUrl'],
+                                                        'attr'
+                                                    ) ?>"
+                                            class="btn
+        btn-soft-info
+        btn-sm"
+                                            title="View connected profiles"
+                                            aria-label="View profiles connected with this SAK Volunteer">
 
+                                            <i
+                                                class="ri-group-line"
+                                                aria-hidden="true">
+                                            </i>
+
+                                        </a>
                                         <a
                                             href="<?= esc(
                                                         $row['editUrl'],

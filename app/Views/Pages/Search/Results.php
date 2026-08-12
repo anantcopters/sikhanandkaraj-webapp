@@ -814,7 +814,7 @@ $this->section(
                                 class="col-12 col-xl-6">
 
                                 <?= view(
-                                    'Pages/Search/_profile_card',
+                                    'Components/Member/ProfileCard',
                                     [
                                         'profile' =>
                                         $profile,

@@ -15,28 +15,43 @@ extends BaseController
 {
     private const PER_PAGE = 10;
 
+    /**
+     * Display profiles connected with the currently authenticated
+     * SAK Volunteer.
+     */
     public function index(): string
     {
-        $status = strtoupper(
+        $status =
+            strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getGet(
+                            'status'
+                        )
+                )
+            );
+
+        $search =
             trim(
                 (string) $this->request
-                    ->getGet('status')
-            )
-        );
-
-        $search = trim(
-            (string) $this->request
-                ->getGet('search')
-        );
+                    ->getGet(
+                        'search'
+                    )
+            );
 
         /** @var FieldOfficerProfileService $service */
-        $service = service(
-            'fieldOfficerProfileService'
-        );
+        $service =
+            service(
+                'fieldOfficerProfileService'
+            );
+
+        $fieldOfficerId =
+            $this->fieldOfficerId();
 
         $result =
-            $service->paginatedProfiles(
-                $this->fieldOfficerId(),
+            $service
+            ->paginatedProfiles(
+                $fieldOfficerId,
                 $status,
                 $search,
                 self::PER_PAGE
@@ -67,8 +82,35 @@ extends BaseController
                     )
                 ),
 
+                /*
+             * Use the existing service instead of calculating the number
+             * from the current page of results.
+             */
+                'totalProfiles' =>
+                $service
+                    ->totalProfiles(
+                        $fieldOfficerId
+                    ),
+
                 'formAlert' =>
                 $this->readFormAlert(),
+
+                /*
+             * Explicit context keeps the shared view readable.
+             */
+                'pageLayout' =>
+                'FieldOfficer/Layouts/Main',
+
+                'profilesUrl' =>
+                route_to(
+                    'field-officer.profiles.index'
+                ),
+
+                'backUrl' =>
+                '',
+
+                'isAdminView' =>
+                false,
             ]
         );
     }

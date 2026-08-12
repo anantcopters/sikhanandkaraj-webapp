@@ -7,7 +7,6 @@ namespace App\Services\Matchmaking;
 use App\Models\MemberMatchCandidateModel;
 use App\Models\UserModel;
 use App\Services\Profile\LifestyleService;
-use App\Services\Profile\MemberPhotoUrlService;
 use App\Services\Profile\ProfileMasterDataService;
 use App\Validation\RegisterFreeValidation;
 use DomainException;
@@ -20,15 +19,28 @@ final class MemberSearchService
      * Create the member Search service.
      *
      * MemberInteractionService remains the single authority for member-to-member
-     * Interest state. Search must not independently interpret interest records.
+     * Interest state.
+     *
+     * MemberProfilePresentationService provides the common member-card contract.
      */
     public function __construct(
-        private readonly UserModel $userModel,
-        private readonly MemberMatchCandidateModel $candidateModel,
-        private readonly MemberInteractionService $interactionService,
-        private readonly MemberPhotoUrlService $photoUrlService,
-        private readonly ProfileMasterDataService $masterDataService,
-        private readonly LifestyleService $lifestyleService
+        private readonly UserModel
+        $userModel,
+
+        private readonly MemberMatchCandidateModel
+        $candidateModel,
+
+        private readonly MemberInteractionService
+        $interactionService,
+
+        private readonly MemberProfilePresentationService
+        $profilePresentationService,
+
+        private readonly ProfileMasterDataService
+        $masterDataService,
+
+        private readonly LifestyleService
+        $lifestyleService
     ) {}
 
     /**
@@ -1293,11 +1305,11 @@ final class MemberSearchService
     }
 
     /**
-     * Convert eligible Search candidate rows into the presentation contract
-     * consumed by Search result cards.
+     * Convert eligible Search candidate rows into the common member presentation
+     * contract consumed by Search/Match profile cards.
      *
-     * Interest state deliberately comes from MemberInteractionService so Search
-     * and Profile View cannot drift into different relationship behaviour.
+     * Search-specific Interest state and activity remain Search context rather
+     * than becoming part of the common member-summary service.
      *
      * @param list<array<string, mixed>> $rows
      *
@@ -1307,55 +1319,35 @@ final class MemberSearchService
         int $viewerUserId,
         array $rows
     ): array {
-        helper(
-            'member_profile'
-        );
         $profiles = [];
 
-        foreach ($rows as $row) {
+        foreach (
+            $rows
+            as $row
+        ) {
             if (!is_array($row)) {
                 continue;
             }
 
-            $memberId =
-                max(
-                    0,
-                    (int) (
-                        $row['id']
-                        ?? 0
-                    )
-                );
+            $memberId = max(
+                0,
+                (int) (
+                    $row['id']
+                    ?? 0
+                )
+            );
 
             if ($memberId <= 0) {
                 continue;
             }
 
-            $reference =
-                trim(
-                    (string) (
-                        $row['profile_ref_number']
-                        ?? ''
-                    )
-                );
-
-            if ($reference === '') {
-                continue;
-            }
-
             /*
-         * Reuse the exact Interest relationship resolver used by Profile View.
-         *
-         * This covers:
-         *
-         * - no relationship;
-         * - Pending sent;
-         * - Pending received;
-         * - Accepted;
-         * - Declined;
-         * - whether Show Interest is currently allowed.
+         * Reuse the exact Interest relationship resolver used by
+         * Member Profile View.
          */
             $interestRelationship =
-                $this->interactionService
+                $this
+                ->interactionService
                 ->interestRelationshipFor(
                     $viewerUserId,
                     $memberId
@@ -1367,124 +1359,55 @@ final class MemberSearchService
                     ?? false
                 ) === true;
 
-            /*
-            * Multi-profile listings use only viewer-authorized thumbnails.
-            *
-            * IMPORTANT:
-            * The real photo is resolved first so existing photo-visibility
-            * and Interest rules remain authoritative.
-            */
-            $image =
-                $this->photoUrlService
-                ->getApprovedPrimaryUrlForViewer(
-                    memberId: $memberId,
-
+            $profile =
+                $this
+                ->profilePresentationService
+                ->summary(
                     viewerUserId: $viewerUserId,
 
-                    hasInterestRelationship: $hasInterestRelationship,
+                    member: $row,
 
-                    variant: 'thumbnail'
+                    hasInterestRelationship: $hasInterestRelationship
                 );
 
-            /*
-            * No authorized thumbnail is available.
-            *
-            * Do not expose whether this means:
-            *
-            * - the member has no photo;
-            * - the photo is pending/rejected;
-            * - the photo exists but this viewer cannot access it.
-            *
-            * The UI receives only the standard gender placeholder.
-            */
-            if ($image === '') {
-                $image =
-                    member_profile_placeholder(
-                        $row['gender']
-                            ?? null
-                    );
+            if ($profile === null) {
+                continue;
             }
 
-            $profiles[] = [
-                'referenceId' =>
-                $reference,
+            $reference = trim(
+                (string) (
+                    $profile['referenceId']
+                    ?? ''
+                )
+            );
 
-                'name' =>
-                trim(
-                    (string) (
-                        $row['full_name']
-                        ?? 'Member'
-                    )
-                ),
+            if ($reference === '') {
+                continue;
+            }
 
-                'age' =>
-                $this->age(
-                    $row['date_of_birth']
-                        ?? null
-                ),
-
-                'height' =>
-                trim(
-                    (string) (
-                        $row['height_name']
-                        ?? ''
-                    )
-                ),
-
-                'city' =>
-                trim(
-                    (string) (
-                        $row['city_name']
-                        ?? ''
-                    )
-                ),
-
-                'state' =>
-                trim(
-                    (string) (
-                        $row['state_name']
-                        ?? ''
-                    )
-                ),
-
-                'maritalStatus' =>
-                trim(
-                    (string) (
-                        $row['marital_status_name']
-                        ?? ''
-                    )
-                ),
-
-                'image' =>
-                $image,
-
-                'profileUrl' =>
-                route_to(
-                    'web.members.view',
-                    $reference
-                ),
-
-                /*
-             * Reuse the existing Profile View Interest endpoint.
-             */
-                'interestUrl' =>
+            /*
+         * Search-specific actions remain owned by Search.
+         */
+            $profile['interestUrl'] =
                 route_to(
                     'web.members.interest',
                     $reference
-                ),
+                );
 
-                'interestRelationship' =>
-                $interestRelationship,
+            $profile['interestRelationship'] =
+                $interestRelationship;
 
-                /*
-             * Never expose the raw last_login_at timestamp.
-             */
-                'activity' =>
+            /*
+         * Never expose the raw last-login timestamp.
+         */
+            $profile['activity'] =
                 $this->activityLabel(
                     $row['last_login_at']
                         ?? null
-                ),
-            ];
+                );
+
+            $profiles[] =
+                $profile;
         }
 
         return $profiles;
@@ -1519,6 +1442,35 @@ final class MemberSearchService
             $this->candidateModel
             ->memberLocationForUser(
                 $viewerUserId
+            );
+
+        /*
+        * Reuse the member's Family Details Community.
+        *
+        * This is deliberately resolved through MemberMatchCandidateModel rather
+        * than reading member_family_details directly inside the service.
+        */
+        $community =
+            $this->candidateModel
+            ->memberCommunityForUser(
+                $viewerUserId
+            );
+
+        $communityId =
+            max(
+                0,
+                (int) (
+                    $community['community_id']
+                    ?? 0
+                )
+            );
+
+        $communityName =
+            trim(
+                (string) (
+                    $community['community_name']
+                    ?? ''
+                )
             );
 
         $stateId =
@@ -1587,6 +1539,29 @@ final class MemberSearchService
 
                     'city_ids' => [
                         $cityId,
+                    ],
+                ]
+            )
+            : '';
+
+        /*
+ * Same-Community preset.
+ *
+ * Community is an Advanced Search criterion, so use mode=advanced.
+ * The Search service will still validate this Community ID against the
+ * existing active Community master before candidate filtering.
+ */
+        $sameCommunityUrl =
+            $communityId > 0
+            ? $searchResultsUrl
+            . '?'
+            . http_build_query(
+                [
+                    'mode' =>
+                    'advanced',
+
+                    'community_ids' => [
+                        $communityId,
                     ],
                 ]
             )
@@ -1797,6 +1772,35 @@ final class MemberSearchService
                 'Based on profile details',
 
                 'items' => [
+                    /*
+         * Same Community.
+         *
+         * Availability depends on the logged-in member having a valid,
+         * active Community saved in Family Details.
+         */
+                    [
+                        'label' =>
+                        'Same Community',
+
+                        'help' =>
+                        $communityId > 0
+                            && $communityName !== ''
+                            ? 'Find eligible profiles from the '
+                            . $communityName
+                            . ' community.'
+                            : 'Add your Community in Family Details to use this search.',
+
+                        'icon' =>
+                        'ri-group-line',
+
+                        'url' =>
+                        $sameCommunityUrl,
+
+                        'available' =>
+                        $communityId > 0
+                            && $communityName !== '',
+                    ],
+
                     [
                         'label' =>
                         'Profiles with Public Photos',
@@ -2105,31 +2109,5 @@ final class MemberSearchService
         throw new DomainException(
             'Please select a valid height.'
         );
-    }
-
-    private function age(
-        mixed $date
-    ): ?int {
-        $date = trim(
-            (string) $date
-        );
-
-        if ($date === '') {
-            return null;
-        }
-
-        try {
-            return (
-                new \DateTimeImmutable(
-                    $date
-                )
-            )->diff(
-                new \DateTimeImmutable(
-                    'today'
-                )
-            )->y;
-        } catch (\Throwable) {
-            return null;
-        }
     }
 }

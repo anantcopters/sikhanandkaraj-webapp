@@ -2,12 +2,37 @@
 
 declare(strict_types=1);
 
-$pageTitle = trim(
-    (string) (
-        $pageTitle
-        ?? 'Profiles Submitted'
-    )
-);
+/**
+ * Shared SAK Volunteer connected-profile listing.
+ *
+ * The same UI is used from:
+ *
+ * 1. SAK Volunteer login;
+ * 2. Admin SAK Volunteer management.
+ *
+ * @var string|null $pageTitle
+ * @var list<array<string, mixed>>|null $profiles
+ * @var \CodeIgniter\Pager\Pager|null $pager
+ * @var string|null $selectedStatus
+ * @var string|null $searchTerm
+ * @var string|null $fieldOfficerName
+ * @var string|null $fieldOfficerCode
+ * @var int|null $totalProfiles
+ * @var array<string, mixed>|null $formAlert
+ * @var string|null $pageLayout
+ * @var string|null $profilesUrl
+ * @var string|null $backUrl
+ * @var string|null $backLabel
+ * @var bool|null $isAdminView
+ */
+
+$pageTitle =
+    trim(
+        (string) (
+            $pageTitle
+            ?? 'Profiles Submitted'
+        )
+    );
 
 $profiles =
     isset($profiles)
@@ -21,14 +46,15 @@ $allowedStatuses = [
     'APPROVED',
 ];
 
-$selectedStatus = strtoupper(
-    trim(
-        (string) (
-            $selectedStatus
-            ?? 'ALL'
+$selectedStatus =
+    strtoupper(
+        trim(
+            (string) (
+                $selectedStatus
+                ?? 'ALL'
+            )
         )
-    )
-);
+    );
 
 if (
     !in_array(
@@ -41,12 +67,38 @@ if (
         'ALL';
 }
 
-$searchTerm = trim(
-    (string) (
-        $searchTerm
-        ?? ''
-    )
-);
+$searchTerm =
+    trim(
+        (string) (
+            $searchTerm
+            ?? ''
+        )
+    );
+
+$fieldOfficerName =
+    trim(
+        (string) (
+            $fieldOfficerName
+            ?? ''
+        )
+    );
+
+$fieldOfficerCode =
+    trim(
+        (string) (
+            $fieldOfficerCode
+            ?? ''
+        )
+    );
+
+$totalProfiles =
+    max(
+        0,
+        (int) (
+            $totalProfiles
+            ?? count($profiles)
+        )
+    );
 
 $formAlert =
     isset($formAlert)
@@ -58,11 +110,46 @@ $resolvedPager =
     $pager
     ?? null;
 
+/*
+ * Default context remains the existing SAK Volunteer portal.
+ */
+$isAdminView =
+    ($isAdminView ?? false)
+    === true;
+
+$pageLayout =
+    isset($pageLayout)
+    && is_string($pageLayout)
+    && trim($pageLayout) !== ''
+    ? trim($pageLayout)
+    : 'FieldOfficer/Layouts/Main';
+
 $profilesUrl =
-    route_to(
+    isset($profilesUrl)
+    && is_string($profilesUrl)
+    && trim($profilesUrl) !== ''
+    ? trim($profilesUrl)
+    : route_to(
         'field-officer.profiles.index'
     );
 
+$backUrl =
+    isset($backUrl)
+    && is_string($backUrl)
+    ? trim($backUrl)
+    : '';
+
+$backLabel =
+    isset($backLabel)
+    && is_string($backLabel)
+    && trim($backLabel) !== ''
+    ? trim($backLabel)
+    : 'Back';
+
+/*
+ * Convert service rows into the normalized presentation contract already
+ * used by this listing.
+ */
 $resolvedProfiles = [];
 
 foreach ($profiles as $profile) {
@@ -70,59 +157,66 @@ foreach ($profiles as $profile) {
         continue;
     }
 
-    $status = strtoupper(
+    $status =
+        strtoupper(
+            trim(
+                (string) (
+                    $profile['display_status']
+                    ?? ''
+                )
+            )
+        );
+
+    $cityName =
         trim(
             (string) (
-                $profile['display_status']
+                $profile['city_name']
                 ?? ''
             )
-        )
-    );
+        );
 
-    $cityName = trim(
-        (string) (
-            $profile['city_name']
-            ?? ''
-        )
-    );
+    $stateName =
+        trim(
+            (string) (
+                $profile['state_name']
+                ?? ''
+            )
+        );
 
-    $stateName = trim(
-        (string) (
-            $profile['state_name']
-            ?? ''
-        )
-    );
-
-    $location = implode(
-        ', ',
-        array_filter(
-            [
-                $cityName,
-                $stateName,
-            ],
-            static fn(
-                string $value
-            ): bool => $value !== ''
-        )
-    );
+    $location =
+        implode(
+            ', ',
+            array_filter(
+                [
+                    $cityName,
+                    $stateName,
+                ],
+                static fn(
+                    string $value
+                ): bool =>
+                $value !== ''
+            )
+        );
 
     if ($location === '') {
         $location = '—';
     }
 
-    $reference = trim(
-        (string) (
-            $profile['profile_reference']
-            ?? ''
-        )
-    );
+    $reference =
+        trim(
+            (string) (
+                $profile['profile_reference']
+                ?? ''
+            )
+        );
 
-    $profileId = trim(
-        (string) (
-            $profile['profile_id']
-            ?? ''
-        )
-    );
+    $profileId =
+        trim(
+            (string) (
+                $profile['profile_id']
+                ?? ''
+            )
+        );
 
     $resolvedProfiles[] = [
         'reference' =>
@@ -161,11 +255,16 @@ foreach ($profiles as $profile) {
     ];
 }
 
+/*
+ * Reuse the exact same UI with the correct authenticated-area layout.
+ */
 $this->extend(
-    'FieldOfficer/Layouts/Main'
+    $pageLayout
 );
 
-$this->section('content');
+$this->section(
+    'content'
+);
 ?>
 
 <div class="container-fluid">
@@ -184,16 +283,80 @@ $this->section('content');
                 <div>
 
                     <h4 class="mb-sm-0">
-                        Profiles Submitted
+
+                        <?= $isAdminView
+                            ? 'Connected Profiles'
+                            : 'Profiles Submitted' ?>
+
                     </h4>
 
                     <p
                         class="text-muted
-                        mb-0">
+            mb-0">
 
-                        Profiles associated with your
-                        SAK Volunteer ID.
+                        <?php if (
+                            $isAdminView
+                        ): ?>
+
+                            Profiles connected with
+
+                            <span class="fw-semibold">
+                                <?= esc(
+                                    $fieldOfficerName
+                                ) ?>
+                            </span>
+
+                            <?php if (
+                                $fieldOfficerCode !== ''
+                            ): ?>
+
+                                (<?= esc(
+                                        $fieldOfficerCode
+                                    ) ?>)
+
+                                <?php endif; ?>.
+
+                            <?php else: ?>
+
+                                Profiles associated with your
+                                SAK Volunteer ID.
+
+                            <?php endif; ?>
+
                     </p>
+
+                </div>
+
+                <div
+                    class="d-flex
+        align-items-center
+        gap-2">
+
+                    <?php if (
+                        $backUrl !== ''
+                    ): ?>
+
+                        <a
+                            href="<?= esc(
+                                        $backUrl,
+                                        'attr'
+                                    ) ?>"
+                            class="btn
+                btn-soft-secondary">
+
+                            <i
+                                class="ri-arrow-left-line
+                    me-1"
+                                aria-hidden="true">
+                            </i>
+
+                            <?= esc(
+                                $backLabel
+                            ) ?>
+
+                        </a>
+
+                    <?php endif; ?>
 
                 </div>
 
@@ -218,150 +381,185 @@ $this->section('content');
 
         <div class="card-header">
 
-            <form
-                method="get"
-                action="<?= esc(
-                            $profilesUrl,
-                            'attr'
-                        ) ?>"
-                class="row
+            <div
+                class="d-flex
+            flex-column
+            flex-lg-row
+            align-items-lg-end
+            justify-content-between
+            gap-3">
+
+                <form
+                    method="get"
+                    action="<?= esc(
+                                $profilesUrl,
+                                'attr'
+                            ) ?>"
+                    class="row
                 g-2
-                align-items-end">
+                align-items-end
+                flex-grow-1">
 
-                <div
-                    class="col-12
-                    col-md-5">
+                    <div class="col-12 col-md-5">
 
-                    <label
-                        for="fo-profile-search"
-                        class="form-label">
+                        <label
+                            for="fo-profile-search"
+                            class="form-label">
 
-                        Search profiles
-                    </label>
+                            Search profiles
 
-                    <div class="input-group">
+                        </label>
 
-                        <span
-                            class="input-group-text">
+                        <div class="input-group">
 
-                            <i
-                                class="ri-search-line"
-                                aria-hidden="true">
-                            </i>
+                            <span class="input-group-text">
 
-                        </span>
+                                <i
+                                    class="ri-search-line"
+                                    aria-hidden="true">
+                                </i>
 
-                        <input
-                            type="search"
-                            id="fo-profile-search"
-                            name="search"
-                            class="form-control"
-                            value="<?= esc(
-                                        $searchTerm,
-                                        'attr'
-                                    ) ?>"
-                            maxlength="100"
-                            placeholder="Reference, name, mobile or location">
+                            </span>
 
-                    </div>
-                </div>
+                            <input
+                                type="search"
+                                id="fo-profile-search"
+                                name="search"
+                                class="form-control"
+                                value="<?= esc(
+                                            $searchTerm,
+                                            'attr'
+                                        ) ?>"
+                                maxlength="100"
+                                placeholder="Reference, name, mobile or location">
 
-                <div
-                    class="col-12
-                    col-md-3">
-
-                    <label
-                        for="fo-profile-status"
-                        class="form-label">
-
-                        Status
-                    </label>
-
-                    <select
-                        id="fo-profile-status"
-                        name="status"
-                        class="form-select"
-                        data-choice
-                        data-choice-search="false">
-
-                        <option
-                            value="ALL"
-                            <?= $selectedStatus === 'ALL'
-                                ? 'selected'
-                                : '' ?>>
-
-                            All
-                        </option>
-
-                        <option
-                            value="DRAFT"
-                            <?= $selectedStatus === 'DRAFT'
-                                ? 'selected'
-                                : '' ?>>
-
-                            Draft
-                        </option>
-
-                        <option
-                            value="APPROVED"
-                            <?= $selectedStatus === 'APPROVED'
-                                ? 'selected'
-                                : '' ?>>
-
-                            Approved
-                        </option>
-
-                    </select>
-
-                </div>
-
-                <div
-                    class="col-12
-    col-md-auto">
-
-                    <div
-                        class="d-flex
-        align-items-center
-        gap-2">
-
-                        <button
-                            type="submit"
-                            class="btn
-            btn-primary">
-
-                            <i
-                                class="ri-search-line
-                me-1"
-                                aria-hidden="true">
-                            </i>
-
-                            Search
-
-                        </button>
-
-                        <a
-                            href="<?= esc(
-                                        $profilesUrl,
-                                        'attr'
-                                    ) ?>"
-                            class="btn
-            btn-light">
-
-                            <i
-                                class="ri-refresh-line
-                me-1"
-                                aria-hidden="true">
-                            </i>
-
-                            Reset
-
-                        </a>
+                        </div>
 
                     </div>
 
+                    <div class="col-12 col-md-3">
+
+                        <label
+                            for="fo-profile-status"
+                            class="form-label">
+
+                            Status
+
+                        </label>
+
+                        <select
+                            id="fo-profile-status"
+                            name="status"
+                            class="form-select"
+                            data-choice
+                            data-choice-search="false">
+
+                            <option
+                                value="ALL"
+                                <?= $selectedStatus === 'ALL'
+                                    ? 'selected'
+                                    : '' ?>>
+
+                                All
+
+                            </option>
+
+                            <option
+                                value="DRAFT"
+                                <?= $selectedStatus === 'DRAFT'
+                                    ? 'selected'
+                                    : '' ?>>
+
+                                Draft
+
+                            </option>
+
+                            <option
+                                value="APPROVED"
+                                <?= $selectedStatus === 'APPROVED'
+                                    ? 'selected'
+                                    : '' ?>>
+
+                                Approved
+
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-12 col-md-auto">
+
+                        <div
+                            class="d-flex
+                        align-items-center
+                        gap-2">
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary">
+
+                                <i
+                                    class="ri-search-line me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                Search
+
+                            </button>
+
+                            <a
+                                href="<?= esc(
+                                            $profilesUrl,
+                                            'attr'
+                                        ) ?>"
+                                class="btn btn-light">
+
+                                <i
+                                    class="ri-refresh-line me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                Reset
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </form>
+
+                <!-- Total connected profile count -->
+                <div
+                    class="d-flex
+                align-items-center
+                justify-content-lg-end">
+
+                    <span
+                        class="badge
+                    bg-primary-subtle
+                    text-primary
+                    p-2 fs-12">
+
+                        <i
+                            class="ri-profile-line me-1"
+                            aria-hidden="true">
+                        </i>
+
+                        <?= esc(
+                            (string) $totalProfiles
+                        ) ?>
+
+                        <?= $totalProfiles === 1
+                            ? 'Profile'
+                            : 'Profiles' ?>
+
+                    </span>
+
                 </div>
 
-            </form>
+            </div>
 
         </div>
 

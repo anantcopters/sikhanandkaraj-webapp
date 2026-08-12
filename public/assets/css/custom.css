@@ -1174,7 +1174,7 @@ form[aria-busy="true"] {
         gap: 12px;
     }
 
-    
+
 
 }
 
@@ -2201,4 +2201,11 @@ form[aria-busy="true"] {
     aspect-ratio: 1 / 1;
     object-fit: cover;
     object-position: center;
+}
+
+.text-gurmukhi {
+    color: #ae1536;
+    line-height: 1.1;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    font-weight: 700;
 }

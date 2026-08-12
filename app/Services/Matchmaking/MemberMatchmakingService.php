@@ -6,7 +6,6 @@ namespace App\Services\Matchmaking;
 
 use App\Models\MemberMatchCandidateModel;
 use App\Models\UserModel;
-use App\Services\Profile\MemberPhotoUrlService;
 use Config\Matchmaking;
 use DateTimeImmutable;
 use DomainException;
@@ -40,8 +39,8 @@ final class MemberMatchmakingService
         private readonly MemberInteractionService
         $interactionService,
 
-        private readonly MemberPhotoUrlService
-        $photoUrlService,
+        private readonly MemberProfilePresentationService
+        $profilePresentationService,
 
         private readonly Matchmaking
         $configuration
@@ -632,7 +631,11 @@ final class MemberMatchmakingService
     }
 
     /**
-     * Convert candidate rows into the contract consumed by Dashboard.
+     * Convert visible candidate rows into the common member presentation
+     * contract consumed by Dashboard.
+     *
+     * Dashboard adds only its own match-percentage context to the shared
+     * member-summary contract.
      *
      * @param list<array<string, mixed>> $rows
      *
@@ -642,12 +645,12 @@ final class MemberMatchmakingService
         int $viewerUserId,
         array $rows
     ): array {
-        helper(
-            'member_profile'
-        );
         $result = [];
 
-        foreach ($rows as $row) {
+        foreach (
+            $rows
+            as $row
+        ) {
             if (!is_array($row)) {
                 continue;
             }
@@ -660,24 +663,14 @@ final class MemberMatchmakingService
                 )
             );
 
-            $profileReference = trim(
-                (string) (
-                    $row['profile_ref_number']
-                    ?? ''
-                )
-            );
-
-            if (
-                $memberId <= 0
-                || $profileReference === ''
-            ) {
+            if ($memberId <= 0) {
                 continue;
             }
 
             /*
-             * INTERESTED_MEMBERS photo visibility is satisfied by an
-             * interest in either direction.
-             */
+         * INTERESTED_MEMBERS photo visibility is satisfied by an
+         * Interest relationship in either direction.
+         */
             $hasInterestRelationship =
                 $this
                 ->interactionService
@@ -686,89 +679,42 @@ final class MemberMatchmakingService
                     $memberId
                 );
 
-            /*
-            * Project rule:
-            * match/search/multi-profile listings use THUMBNAIL only.
-            *
-            * Resolve the actual authorized member photo before applying
-            * the presentation fallback.
-            */
-            $profileImage =
+            $profile =
                 $this
-                ->photoUrlService
-                ->getApprovedPrimaryUrlForViewer(
-                    memberId: $memberId,
-
+                ->profilePresentationService
+                ->summary(
                     viewerUserId: $viewerUserId,
-
-                    hasInterestRelationship: $hasInterestRelationship,
-
-                    variant: 'thumbnail'
+                    member: $row,
+                    hasInterestRelationship: $hasInterestRelationship
                 );
 
-            /*
-            * When no authorized thumbnail can be displayed, use the
-            * standard gender placeholder.
-            *
-            * Photo authorization remains entirely inside
-            * MemberPhotoUrlService.
-            */
-            if ($profileImage === '') {
-                $profileImage =
-                    member_profile_placeholder(
-                        $row['gender']
-                            ?? null
-                    );
+            if ($profile === null) {
+                continue;
             }
 
-            $result[] = [
-                'referenceId' =>
-                $profileReference,
-
-                'name' =>
-                trim(
-                    (string) (
-                        $row['full_name']
-                        ?? 'Member'
-                    )
-                ),
-
-                'age' =>
-                $this->age(
-                    $row['date_of_birth']
-                        ?? null
-                ),
-
-                'city' =>
-                trim(
-                    (string) (
-                        $row['city_name']
-                        ?? ''
-                    )
-                ),
-
-                'image' =>
-                $profileImage,
-
-                /*
-                 * Never expose the internal numeric user ID in member URLs.
-                 */
-                'profileUrl' =>
-                route_to(
-                    'web.members.view',
-                    $profileReference
-                ),
-
-                'matchPercentage' =>
+            /*
+         * Match percentage belongs specifically to matchmaking context,
+         * not to the generic member-summary contract.
+         */
+            $profile['matchPercentage'] =
                 isset(
                     $row['match_percentage']
                 )
-                    && is_numeric(
+                && is_numeric(
+                    $row['match_percentage']
+                )
+                ? max(
+                    0,
+                    min(
+                        100,
+                        (int)
                         $row['match_percentage']
                     )
-                    ? (int) $row['match_percentage']
-                    : null,
-            ];
+                )
+                : null;
+
+            $result[] =
+                $profile;
         }
 
         return $result;
@@ -816,55 +762,6 @@ final class MemberMatchmakingService
             return $created >= $cutOff;
         } catch (Throwable) {
             return false;
-        }
-    }
-
-    private function age(
-        mixed $dateOfBirth
-    ): ?int {
-        $value = trim(
-            (string) $dateOfBirth
-        );
-
-        if ($value === '') {
-            return null;
-        }
-
-        try {
-            $birthDate =
-                DateTimeImmutable
-                ::createFromFormat(
-                    '!Y-m-d',
-                    mb_substr(
-                        $value,
-                        0,
-                        10
-                    )
-                );
-
-            if (
-                !$birthDate
-                    instanceof DateTimeImmutable
-            ) {
-                return null;
-            }
-
-            $today =
-                new DateTimeImmutable(
-                    'today'
-                );
-
-            if ($birthDate > $today) {
-                return null;
-            }
-
-            return $birthDate
-                ->diff(
-                    $today
-                )
-                ->y;
-        } catch (Throwable) {
-            return null;
         }
     }
 }
