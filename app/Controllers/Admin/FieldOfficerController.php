@@ -456,55 +456,77 @@ final class FieldOfficerController extends BaseController
     }
 
     /**
-     * Display the edit form.
+     * Display the SAK Volunteer edit form.
      */
     public function edit(
         int $fieldOfficerId
     ): string|RedirectResponse {
         try {
             /** @var FieldOfficerService $service */
-            $service = service(
-                'fieldOfficerService'
-            );
+            $service =
+                service(
+                    'fieldOfficerService'
+                );
 
             /** @var ProfileMasterDataService $masterService */
-            $masterService = service(
-                'profileMasterDataService'
-            );
+            $masterService =
+                service(
+                    'profileMasterDataService'
+                );
 
             $fieldOfficer =
                 $service->findForEdit(
                     $fieldOfficerId
                 );
 
-
-            $formInput = array_merge(
-                $fieldOfficer,
-                $this->readArrayFlashData(
-                    'fieldOfficerFormInput'
-                )
-            );
+            /*
+         * Preserve corrected form values after a failed update.
+         *
+         * Existing persisted data remains the base so immutable/current
+         * values are still available to the view.
+         */
+            $formInput =
+                array_merge(
+                    $fieldOfficer,
+                    $this->readArrayFlashData(
+                        'fieldOfficerFormInput'
+                    )
+                );
 
             /*
-             * Use the existing master-data bundle and supply the
-             * SAK Volunteer's state so its cities are returned.
-             */
+         * Reuse the existing profile master-data service.
+         *
+         * Passing the current State ensures the matching City options are
+         * available immediately when the Edit screen is rendered.
+         */
             $masterData =
                 $masterService
                 ->basicDetailsOptions(
-                    (int) $fieldOfficer['state_id']
+                    (int) (
+                        $fieldOfficer['state_id']
+                        ?? 0
+                    )
                 );
 
-            $country = is_array(
-                $masterData['country'] ?? null
-            )
-                ? $masterData['country']
-                : [];
+            /*
+         * AdminAuthenticationController stores the authenticated role in
+         * admin_role.
+         *
+         * This deliberately mirrors SuperAdminFilter instead of introducing
+         * another role/session contract.
+         */
+            $canReplaceDocuments =
+                session(
+                    'admin_role'
+                )
+                === AdminUserModel
+                ::ROLE_SUPER_ADMIN;
 
             return view(
                 'Admin/FieldOfficers/Edit',
                 [
-                    'pageTitle' => 'Edit SAK Volunteer',
+                    'pageTitle' =>
+                    'Edit SAK Volunteer',
 
                     'fieldOfficer' =>
                     $fieldOfficer,
@@ -519,25 +541,42 @@ final class FieldOfficerController extends BaseController
                     $this->readFormAlert(),
 
                     'countries' =>
-                    isset($masterData['country'])
-                        && is_array($masterData['country'])
-                        ? [$masterData['country']]
+                    isset(
+                        $masterData['country']
+                    )
+                        && is_array(
+                            $masterData['country']
+                        )
+                        ? [
+                            $masterData['country'],
+                        ]
                         : [],
 
                     'states' =>
-                    is_array($masterData['states'] ?? null)
+                    is_array(
+                        $masterData['states']
+                            ?? null
+                    )
                         ? $masterData['states']
                         : [],
 
                     'cities' =>
-                    is_array($masterData['cities'] ?? null)
+                    is_array(
+                        $masterData['cities']
+                            ?? null
+                    )
                         ? $masterData['cities']
                         : [],
 
+                    /*
+                 * Only Super Admin receives the re-upload UI.
+                 *
+                 * The POST endpoint itself is separately protected by the
+                 * superAdmin route filter, so hiding the UI is not the
+                 * security boundary.
+                 */
                     'canReplaceDocuments' =>
-                    session(
-                        'admin_role_code'
-                    ) === AdminUserModel::ROLE_SUPER_ADMIN,
+                    $canReplaceDocuments,
 
                     'pageScripts' => [
                         'assets/js/components/submit-loader.js',
@@ -552,16 +591,19 @@ final class FieldOfficerController extends BaseController
                         'admin.field-officers.index'
                     )
                 )
-                ->with('formAlert', [
-                    'type' =>
-                    'danger',
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
 
-                    'title' =>
-                    'SAK Volunteer not found',
+                        'title' =>
+                        'SAK Volunteer not found',
 
-                    'message' =>
-                    $exception->getMessage(),
-                ]);
+                        'message' =>
+                        $exception->getMessage(),
+                    ]
+                );
         }
     }
 

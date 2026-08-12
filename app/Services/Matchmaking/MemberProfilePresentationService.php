@@ -12,31 +12,8 @@ use Throwable;
  * Builds the common member-summary presentation contract used by
  * member-facing multi-profile screens.
  *
- * The service deliberately owns presentation-data preparation rather than
- * HTML rendering.
- *
- * It centralizes:
- *
- * - public profile reference;
- * - member name;
- * - age;
- * - height;
- * - city/state;
- * - marital status;
- * - viewer-authorized thumbnail;
- * - standard gender placeholder;
- * - public Profile View URL.
- *
- * Context-specific data such as:
- *
- * - Interest status;
- * - match percentage;
- * - Search activity;
- * - action URLs;
- *
- * remains owned by the relevant domain service.
- *
- * Numeric member database IDs are never returned to the browser contract.
+ * Common presentation values are centralized here while Search,
+ * Dashboard and Interest-specific state remains with the owning service.
  */
 final class MemberProfilePresentationService
 {
@@ -46,10 +23,10 @@ final class MemberProfilePresentationService
     ) {}
 
     /**
-     * Build the common profile-summary contract for one visible member.
+     * Build the common member-summary contract for one visible member.
      *
-     * The supplied row must already have passed the caller's normal
-     * member-visibility/eligibility authorization.
+     * The calling service must already have applied the normal
+     * member visibility/eligibility rules.
      *
      * @param array<string, mixed> $member
      *
@@ -86,8 +63,8 @@ final class MemberProfilePresentationService
         );
 
         /*
-         * The component contract cannot exist without a real target member
-         * and public reference.
+         * A valid member and public profile reference are mandatory
+         * for any member-facing presentation.
          */
         if (
             $viewerUserId <= 0
@@ -98,56 +75,55 @@ final class MemberProfilePresentationService
         }
 
         /*
-         * All multi-profile presentations request only the thumbnail variant.
-         *
-         * MemberPhotoUrlService remains the authority for:
+         * MemberPhotoUrlService remains the single authority for:
          *
          * - approval;
          * - photo visibility;
-         * - interest-based visibility;
-         * - CloudFront signing.
+         * - Interest-based photo visibility;
+         * - signed media URLs.
          */
-        $image = $this
-            ->photoUrlService
+        $image =
+            $this->photoUrlService
             ->getApprovedPrimaryUrlForViewer(
                 memberId: $memberId,
+
                 viewerUserId: $viewerUserId,
+
                 hasInterestRelationship: $hasInterestRelationship,
+
                 variant: 'thumbnail'
             );
 
         /*
-         * Do not reveal why a real image is unavailable.
+         * Do not reveal why an actual photograph cannot be shown.
          *
-         * Whether the member:
-         *
-         * - has no photo;
-         * - has an unapproved photo;
-         * - has a private photo;
-         *
-         * remains hidden from the viewer.
+         * The same gender-based placeholder is used whether the member
+         * has no photo, an unapproved photo or a restricted photo.
          */
         if ($image === '') {
             helper(
                 'member_profile'
             );
 
-            $image = member_profile_placeholder(
-                $member['gender']
-                    ?? null
-            );
+            $image =
+                member_profile_placeholder(
+                    $member['gender']
+                        ?? null
+                );
         }
 
-        $name = preg_replace(
-            '/\s+/u',
-            ' ',
-            trim(
-                (string) (
-                    $member['full_name']
-                    ?? ''
+        $name =
+            preg_replace(
+                '/\s+/u',
+                ' ',
+                trim(
+                    (string) (
+                        $member['full_name']
+                        ?? ''
+                    )
                 )
             )
-        ) ?? '';
+            ?? '';
 
         if ($name === '') {
             $name = 'Member';
@@ -202,7 +178,7 @@ final class MemberProfilePresentationService
             $image,
 
             /*
-             * Never expose the numeric User ID in member-facing URLs.
+             * Numeric member IDs are deliberately not exposed in the URL.
              */
             'profileUrl' =>
             route_to(
@@ -213,17 +189,17 @@ final class MemberProfilePresentationService
     }
 
     /**
-     * Resolve current age from the persisted date of birth.
+     * Resolve current age from the stored date of birth.
      *
-     * Invalid/future dates fail closed to null so presentation code never
-     * invents an age.
+     * Invalid and future dates fail closed to null.
      */
     private function age(
         mixed $dateOfBirth
     ): ?int {
-        $value = trim(
-            (string) $dateOfBirth
-        );
+        $value =
+            trim(
+                (string) $dateOfBirth
+            );
 
         if ($value === '') {
             return null;
@@ -231,7 +207,8 @@ final class MemberProfilePresentationService
 
         try {
             $birthDate =
-                DateTimeImmutable::createFromFormat(
+                DateTimeImmutable
+                ::createFromFormat(
                     '!Y-m-d',
                     mb_substr(
                         $value,

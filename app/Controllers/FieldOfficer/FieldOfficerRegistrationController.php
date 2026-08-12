@@ -601,16 +601,21 @@ extends BaseController
 
     /**
      * Convert known service/business errors into the field
-     * validation contract used by every form screen.
+     * validation contract used by the registration form.
+     *
+     * More-specific document messages MUST be checked before generic
+     * Aadhaar/PAN text because "Aadhaar Card" also contains "aadhaar"
+     * and "PAN Card" also contains "pan".
      *
      * @return array<string, string>
      */
     private function serviceErrorToFieldErrors(
         string $message
     ): array {
-        $message = trim(
-            $message
-        );
+        $message =
+            trim(
+                $message
+            );
 
         if ($message === '') {
             return [];
@@ -621,41 +626,14 @@ extends BaseController
                 $message
             );
 
-        if (
-            str_contains(
-                $normalizedMessage,
-                'mobile'
-            )
-        ) {
-            return [
-                'mobile_number' =>
-                $message,
-            ];
-        }
-
-        if (
-            str_contains(
-                $normalizedMessage,
-                'aadhaar'
-            )
-        ) {
-            return [
-                'aadhaar_number' =>
-                $message,
-            ];
-        }
-
-        if (
-            str_contains(
-                $normalizedMessage,
-                'pan'
-            )
-        ) {
-            return [
-                'pan_number' =>
-                $message,
-            ];
-        }
+        /*
+     * ----------------------------------------------------------
+     * Verification document errors
+     * ----------------------------------------------------------
+     *
+     * These checks deliberately come before Aadhaar/PAN number
+     * checks because their messages contain the same words.
+     */
 
         if (
             str_contains(
@@ -689,6 +667,48 @@ extends BaseController
         ) {
             return [
                 'cancelled_cheque_document' =>
+                $message,
+            ];
+        }
+
+        /*
+     * ----------------------------------------------------------
+     * Existing SAK Volunteer fields
+     * ----------------------------------------------------------
+     */
+
+        if (
+            str_contains(
+                $normalizedMessage,
+                'mobile'
+            )
+        ) {
+            return [
+                'mobile_number' =>
+                $message,
+            ];
+        }
+
+        if (
+            str_contains(
+                $normalizedMessage,
+                'aadhaar'
+            )
+        ) {
+            return [
+                'aadhaar_number' =>
+                $message,
+            ];
+        }
+
+        if (
+            str_contains(
+                $normalizedMessage,
+                'pan'
+            )
+        ) {
+            return [
+                'pan_number' =>
                 $message,
             ];
         }
@@ -740,7 +760,6 @@ extends BaseController
                 $message,
             ];
         }
-
 
         return [];
     }

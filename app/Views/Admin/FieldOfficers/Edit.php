@@ -3,66 +3,158 @@
 declare(strict_types=1);
 
 /**
- * @var array<string, mixed> $fieldOfficer
- * @var array<string, mixed> $formInput
- * @var array<string, string> $validationErrors
+ * Admin SAK Volunteer edit screen.
+ *
+ * Controller supplied variables.
+ *
+ * @var array<string, mixed>|null $fieldOfficer
+ * @var array<string, mixed>|null $formInput
+ * @var array<string, string>|null $validationErrors
  * @var array<string, string>|null $formAlert
- * @var list<array<string, mixed>> $countries
- * @var list<array<string, mixed>> $states
- * @var list<array<string, mixed>> $cities
+ * @var list<array<string, mixed>>|null $countries
+ * @var list<array<string, mixed>>|null $states
+ * @var list<array<string, mixed>>|null $cities
+ * @var bool|null $canReplaceDocuments
  */
 
-$formInput = is_array(
-    $formInput ?? null
-)
+$fieldOfficer =
+    is_array(
+        $fieldOfficer
+            ?? null
+    )
+    ? $fieldOfficer
+    : [];
+
+$formInput =
+    is_array(
+        $formInput
+            ?? null
+    )
     ? $formInput
     : $fieldOfficer;
 
-$validationErrors = is_array(
-    $validationErrors ?? null
-)
+$validationErrors =
+    is_array(
+        $validationErrors
+            ?? null
+    )
     ? $validationErrors
     : [];
 
-$formAlert = is_array(
-    $formAlert ?? null
-)
+$formAlert =
+    is_array(
+        $formAlert
+            ?? null
+    )
     ? $formAlert
     : null;
 
-$countries = is_array(
-    $countries ?? null
-)
+$countries =
+    is_array(
+        $countries
+            ?? null
+    )
     ? $countries
     : [];
 
-$states = is_array(
-    $states ?? null
-)
+$states =
+    is_array(
+        $states
+            ?? null
+    )
     ? $states
     : [];
 
-$cities = is_array(
-    $cities ?? null
-)
+$cities =
+    is_array(
+        $cities
+            ?? null
+    )
     ? $cities
     : [];
 
+/*
+ * UI visibility only.
+ *
+ * Actual authorization for replacement remains enforced by the
+ * superAdmin route filter.
+ */
+$canReplaceDocuments =
+    ($canReplaceDocuments ?? false)
+    === true;
+
+$fieldOfficerId =
+    max(
+        0,
+        (int) (
+            $fieldOfficer['id']
+            ?? 0
+        )
+    );
+
+$fieldOfficerName =
+    trim(
+        (string) (
+            $fieldOfficer['full_name']
+            ?? ''
+        )
+    );
+
+$officerCode =
+    trim(
+        (string) (
+            $fieldOfficer['officer_code']
+            ?? ''
+        )
+    );
+
+$mobileNumber =
+    trim(
+        (string) (
+            $fieldOfficer['mobile_number']
+            ?? ''
+        )
+    );
+
+$accountStatus =
+    strtoupper(
+        trim(
+            (string) (
+                $fieldOfficer['account_status']
+                ?? ''
+            )
+        )
+    );
+
 $isInactive =
-    (string) (
-        $fieldOfficer['account_status'] ?? ''
-    )
-    === \App\Models\FieldOfficerModel::STATUS_INACTIVE;
+    $accountStatus
+    === \App\Models\FieldOfficerModel
+    ::STATUS_INACTIVE;
 
 $hasUpiId =
     trim(
         (string) (
-            $fieldOfficer['upi_id'] ?? ''
+            $fieldOfficer['upi_id']
+            ?? ''
         )
     ) !== '';
 
-$this->extend('Admin/Layouts/Main');
-$this->section('content');
+$displayStatus =
+    $accountStatus !== ''
+    ? ucfirst(
+        strtolower(
+            $accountStatus
+        )
+    )
+    : '';
+
+$this->extend(
+    'Admin/Layouts/Main'
+);
+
+$this->section(
+    'content'
+);
 ?>
 
 <div class="container-fluid">
@@ -121,7 +213,7 @@ $this->section('content');
                 <div class="card-header">
                     <h4 class="card-title mb-0">
                         <?= esc(
-                            (string) $fieldOfficer['full_name']
+                            $fieldOfficerName
                         ) ?>
                     </h4>
                 </div>
@@ -181,7 +273,7 @@ $this->section('content');
                                 id="fieldOfficerCode"
                                 class="form-control bg-light"
                                 value="<?= esc(
-                                            (string) $fieldOfficer['officer_code'],
+                                            $officerCode,
                                             'attr'
                                         ) ?>"
                                 readonly>
@@ -200,7 +292,7 @@ $this->section('content');
                                 id="fieldOfficerReadonlyMobile"
                                 class="form-control bg-light"
                                 value="<?= esc(
-                                            (string) $fieldOfficer['mobile_number'],
+                                            $mobileNumber,
                                             'attr'
                                         ) ?>"
                                 readonly>
@@ -254,7 +346,7 @@ $this->section('content');
                             'formAction' =>
                             route_to(
                                 'admin.field-officers.update',
-                                (int) $fieldOfficer['id']
+                                $fieldOfficerId
                             ),
                         ]
                     ) ?>
@@ -301,7 +393,7 @@ $this->section('content');
                                 enctype="multipart/form-data"
                                 action="<?= route_to(
                                             'admin.field-officers.document.replace',
-                                            (int) $fieldOfficer['id'],
+                                            $fieldOfficerId,
                                             $documentType
                                         ) ?>"
                                 class="border rounded p-3 mb-3"
