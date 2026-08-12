@@ -21,6 +21,7 @@ declare(strict_types=1);
  * @var bool|null $showCaptcha
  * @var string|null $captchaChallenge
  * @var string|null $captchaError
+ * @var bool|null $showDocuments
  */
 
 $resolvedFormInput =
@@ -130,6 +131,31 @@ $panNumber = strtoupper(
             $resolvedFormInput['pan_number']
             ?? ''
         )
+    )
+);
+
+$showDocuments =
+    ($showDocuments ?? !$editing)
+    === true;
+
+$aadhaarDocumentError = trim(
+    (string) (
+        $errors['aadhaar_document']
+        ?? ''
+    )
+);
+
+$panDocumentError = trim(
+    (string) (
+        $errors['pan_document']
+        ?? ''
+    )
+);
+
+$cancelledChequeDocumentError = trim(
+    (string) (
+        $errors['cancelled_cheque_document']
+        ?? ''
     )
 );
 
@@ -444,6 +470,7 @@ if ($isPublicRegistration) {
                 'attr'
             ) ?>"
     method="post"
+    enctype="multipart/form-data"
     data-validate
     data-submit-loader
     data-field-officer-form
@@ -671,6 +698,142 @@ if ($isPublicRegistration) {
             </div>
 
         </div>
+
+        <?php if ($showDocuments): ?>
+
+            <!-- =========================================================
+         Mandatory SAK Volunteer verification documents
+         ========================================================= -->
+
+            <div class="col-12">
+
+                <div class="alert alert-info mb-0">
+
+                    <i
+                        class="ri-information-line me-1"
+                        aria-hidden="true">
+                    </i>
+
+                    Upload Aadhaar Card, PAN Card and cancelled cheque copy.
+                    Each file must be PDF, JPG/JPEG or PNG and must not exceed
+                    1 MB.
+
+                </div>
+
+            </div>
+
+            <div class="col-12 col-md-4">
+
+                <label
+                    for="fieldOfficerAadhaarDocument"
+                    class="form-label">
+
+                    Aadhaar Card
+                    <span class="text-danger">*</span>
+
+                </label>
+
+                <input
+                    type="file"
+                    id="fieldOfficerAadhaarDocument"
+                    name="aadhaar_document"
+                    class="form-control <?= $aadhaarDocumentError !== ''
+                                            ? 'is-invalid'
+                                            : '' ?>"
+                    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                    required>
+
+                <div class="invalid-feedback">
+
+                    <?= esc(
+                        $aadhaarDocumentError !== ''
+                            ? $aadhaarDocumentError
+                            : 'Upload Aadhaar Card. Maximum size is 1 MB.'
+                    ) ?>
+
+                </div>
+
+                <div class="form-text color-pink">
+                    PDF, JPG/JPEG or PNG · maximum 1 MB
+                </div>
+
+            </div>
+
+            <div class="col-12 col-md-4">
+
+                <label
+                    for="fieldOfficerPanDocument"
+                    class="form-label">
+
+                    PAN Card
+                    <span class="text-danger">*</span>
+
+                </label>
+
+                <input
+                    type="file"
+                    id="fieldOfficerPanDocument"
+                    name="pan_document"
+                    class="form-control <?= $panDocumentError !== ''
+                                            ? 'is-invalid'
+                                            : '' ?>"
+                    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                    required>
+
+                <div class="invalid-feedback">
+
+                    <?= esc(
+                        $panDocumentError !== ''
+                            ? $panDocumentError
+                            : 'Upload PAN Card. Maximum size is 1 MB.'
+                    ) ?>
+
+                </div>
+
+                <div class="form-text color-pink">
+                    PDF, JPG/JPEG or PNG · maximum 1 MB
+                </div>
+
+            </div>
+
+            <div class="col-12 col-md-4">
+
+                <label
+                    for="fieldOfficerCancelledChequeDocument"
+                    class="form-label">
+
+                    Cancelled Cheque Copy
+                    <span class="text-danger">*</span>
+
+                </label>
+
+                <input
+                    type="file"
+                    id="fieldOfficerCancelledChequeDocument"
+                    name="cancelled_cheque_document"
+                    class="form-control <?= $cancelledChequeDocumentError !== ''
+                                            ? 'is-invalid'
+                                            : '' ?>"
+                    accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                    required>
+
+                <div class="invalid-feedback">
+
+                    <?= esc(
+                        $cancelledChequeDocumentError !== ''
+                            ? $cancelledChequeDocumentError
+                            : 'Upload cancelled cheque copy. Maximum size is 1 MB.'
+                    ) ?>
+
+                </div>
+
+                <div class="form-text color-pink">
+                    PDF, JPG/JPEG or PNG · maximum 1 MB
+                </div>
+
+            </div>
+
+        <?php endif; ?>
 
         <div class="col-12 col-md-4">
 

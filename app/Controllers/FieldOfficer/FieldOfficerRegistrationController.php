@@ -8,6 +8,7 @@ use App\Controllers\BaseController;
 use App\Services\Admin\FieldOfficerService;
 use App\Services\Profile\ProfileMasterDataService;
 use App\Validation\FieldOfficerValidation;
+use App\Services\Admin\FieldOfficerDocumentService;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
 use RuntimeException;
@@ -255,7 +256,52 @@ extends BaseController
                 );
         }
 
+        $storedDocuments = [];
+
+        /** @var FieldOfficerDocumentService $documentService */
+        $documentService =
+            service(
+                'fieldOfficerDocumentService'
+            );
+
         try {
+            /*
+            * Identity/bank verification documents are compulsory for every
+            * public SAK Volunteer registration.
+            */
+            $storedDocuments =
+                $documentService
+                ->storeRegistrationDocuments(
+                    [
+                        FieldOfficerDocumentService
+                        ::DOCUMENT_AADHAAR =>
+                        $this->request
+                            ->getFile(
+                                'aadhaar_document'
+                            ),
+
+                        FieldOfficerDocumentService
+                        ::DOCUMENT_PAN =>
+                        $this->request
+                            ->getFile(
+                                'pan_document'
+                            ),
+
+                        FieldOfficerDocumentService
+                        ::DOCUMENT_CANCELLED_CHEQUE =>
+                        $this->request
+                            ->getFile(
+                                'cancelled_cheque_document'
+                            ),
+                    ]
+                );
+
+            $input =
+                array_merge(
+                    $input,
+                    $storedDocuments
+                );
+
             /** @var FieldOfficerService $service */
             $service =
                 service(
@@ -287,10 +333,6 @@ extends BaseController
                 $fieldOfficerId <= 0
                 || $officerCode === ''
             ) {
-                /*
-                 * Registration itself has already committed.
-                 * Do not tell the user that saving failed.
-                 */
                 log_message(
                     'critical',
                     'SAK Volunteer registration saved '
@@ -317,12 +359,6 @@ extends BaseController
                     );
             }
 
-            /*
-             * PRG:
-             * POST -> redirect -> GET success page.
-             *
-             * No success banner remains on the form page.
-             */
             return redirect()
                 ->to(
                     route_to(
@@ -338,15 +374,20 @@ extends BaseController
                 );
         } catch (RuntimeException $exception) {
             /*
-             * Business-level errors such as duplicate mobile,
-             * Aadhaar, PAN or UPI belong below their actual
-             * field, not in a page-level alert.
-             */
+            * If registration did not commit, remove documents created by this
+            * request. Previously stored files are never involved here.
+            */
+            if ($storedDocuments !== []) {
+                $documentService
+                    ->rollbackNewDocuments(
+                        $storedDocuments
+                    );
+            }
+
             $fieldErrors =
                 $this
                 ->serviceErrorToFieldErrors(
-                    $exception
-                        ->getMessage()
+                    $exception->getMessage()
                 );
 
             if ($fieldErrors !== []) {
@@ -357,10 +398,6 @@ extends BaseController
                     );
             }
 
-            /*
-             * Only a genuine non-field business failure uses
-             * a page-level error.
-             */
             return redirect()
                 ->to(
                     route_to(
@@ -381,19 +418,23 @@ extends BaseController
                         'Registration not saved',
 
                         'message' =>
-                        $exception
-                            ->getMessage(),
+                        $exception->getMessage(),
                     ]
                 );
         } catch (Throwable $exception) {
+            if ($storedDocuments !== []) {
+                $documentService
+                    ->rollbackNewDocuments(
+                        $storedDocuments
+                    );
+            }
+
             log_message(
                 'error',
-                'SAK Volunteer self-registration '
-                    . 'failed: {message}',
+                'SAK Volunteer self-registration failed: {message}',
                 [
                     'message' =>
-                    $exception
-                        ->getMessage(),
+                    $exception->getMessage(),
                 ]
             );
 
@@ -417,8 +458,7 @@ extends BaseController
                         'Registration not saved',
 
                         'message' =>
-                        'We could not save your '
-                            . 'registration. Please try again.',
+                        'We could not save your registration. Please try again.',
                     ]
                 );
         }
@@ -620,6 +660,42 @@ extends BaseController
         if (
             str_contains(
                 $normalizedMessage,
+                'aadhaar card'
+            )
+        ) {
+            return [
+                'aadhaar_document' =>
+                $message,
+            ];
+        }
+
+        if (
+            str_contains(
+                $normalizedMessage,
+                'pan card'
+            )
+        ) {
+            return [
+                'pan_document' =>
+                $message,
+            ];
+        }
+
+        if (
+            str_contains(
+                $normalizedMessage,
+                'cancelled cheque'
+            )
+        ) {
+            return [
+                'cancelled_cheque_document' =>
+                $message,
+            ];
+        }
+
+        if (
+            str_contains(
+                $normalizedMessage,
                 'upi'
             )
         ) {
@@ -664,6 +740,7 @@ extends BaseController
                 $message,
             ];
         }
+
 
         return [];
     }

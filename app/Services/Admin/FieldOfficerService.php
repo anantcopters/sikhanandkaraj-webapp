@@ -187,6 +187,34 @@ final class FieldOfficerService
             );
         }
 
+        foreach (
+            [
+                'aadhaar_document' =>
+                'Aadhaar Card',
+
+                'pan_document' =>
+                'PAN Card',
+
+                'cancelled_cheque_document' =>
+                'Cancelled cheque copy',
+            ]
+            as $documentField => $documentLabel
+        ) {
+            if (
+                trim(
+                    (string) (
+                        $input[$documentField]
+                        ?? ''
+                    )
+                ) === ''
+            ) {
+                throw new RuntimeException(
+                    $documentLabel
+                        . ' is required.'
+                );
+            }
+        }
+
         /*
      * UPI validation has already run through
      * FieldOfficerValidation.
@@ -275,6 +303,30 @@ final class FieldOfficerService
 
                         'created_by' =>
                         $createdBy,
+
+                        'aadhaar_document' =>
+                        trim(
+                            (string) (
+                                $input['aadhaar_document']
+                                ?? ''
+                            )
+                        ),
+
+                        'pan_document' =>
+                        trim(
+                            (string) (
+                                $input['pan_document']
+                                ?? ''
+                            )
+                        ),
+
+                        'cancelled_cheque_document' =>
+                        trim(
+                            (string) (
+                                $input['cancelled_cheque_document']
+                                ?? ''
+                            )
+                        ),
                     ],
                     true
                 );
@@ -1285,6 +1337,34 @@ final class FieldOfficerService
             );
         }
 
+        foreach (
+            [
+                'aadhaar_document' =>
+                'Aadhaar Card',
+
+                'pan_document' =>
+                'PAN Card',
+
+                'cancelled_cheque_document' =>
+                'Cancelled cheque copy',
+            ]
+            as $documentField => $documentLabel
+        ) {
+            if (
+                trim(
+                    (string) (
+                        $input[$documentField]
+                        ?? ''
+                    )
+                ) === ''
+            ) {
+                throw new RuntimeException(
+                    $documentLabel
+                        . ' is required.'
+                );
+            }
+        }
+
         /*
      * Generate exactly the same immutable volunteer code
      * used by administrator creation.
@@ -1374,6 +1454,30 @@ final class FieldOfficerService
 
                         'rejection_reason' =>
                         null,
+
+                        'aadhaar_document' =>
+                        trim(
+                            (string) (
+                                $input['aadhaar_document']
+                                ?? ''
+                            )
+                        ),
+
+                        'pan_document' =>
+                        trim(
+                            (string) (
+                                $input['pan_document']
+                                ?? ''
+                            )
+                        ),
+
+                        'cancelled_cheque_document' =>
+                        trim(
+                            (string) (
+                                $input['cancelled_cheque_document']
+                                ?? ''
+                            )
+                        ),
                     ],
                     true
                 );
@@ -1525,6 +1629,34 @@ final class FieldOfficerService
                 'Only a pending SAK Volunteer '
                     . 'registration may be approved.'
             );
+        }
+
+        foreach (
+            [
+                'aadhaar_document' =>
+                'Aadhaar Card',
+
+                'pan_document' =>
+                'PAN Card',
+
+                'cancelled_cheque_document' =>
+                'Cancelled cheque copy',
+            ]
+            as $column => $label
+        ) {
+            if (
+                trim(
+                    (string) (
+                        $existing[$column]
+                        ?? ''
+                    )
+                ) === ''
+            ) {
+                throw new RuntimeException(
+                    $label
+                        . ' must be uploaded before the SAK Volunteer can be approved.'
+                );
+            }
         }
 
         $hasUpiId =

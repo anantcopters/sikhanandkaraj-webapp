@@ -47,6 +47,16 @@ final class FieldOfficerModel extends Model
         'mobile_number',
         'aadhaar_number',
         'pan_number',
+
+        /*
+        * Current SAK Volunteer verification document filenames.
+        *
+        * Physical files remain outside public/ under writable/uploads.
+        */
+        'aadhaar_document',
+        'pan_document',
+        'cancelled_cheque_document',
+
         'country_id',
         'state_id',
         'city_id',
@@ -113,6 +123,9 @@ final class FieldOfficerModel extends Model
                 'field_officers.reviewed_by',
                 'field_officers.reviewed_at',
                 'field_officers.rejection_reason',
+                'field_officers.aadhaar_document',
+                'field_officers.pan_document',
+                'field_officers.cancelled_cheque_document',
                 'master_countries.name AS country_name',
                 'master_states.name AS state_name',
                 'master_cities.name AS city_name',

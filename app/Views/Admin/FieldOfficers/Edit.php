@@ -260,6 +260,111 @@ $this->section('content');
                     ) ?>
                 </div>
             </div>
+
+            <?php if ($canReplaceDocuments): ?>
+
+                <div
+                    class="card border border-danger
+            border-opacity-25 mt-4">
+
+                    <div class="card-header">
+
+                        <h4 class="card-title mb-0">
+                            Verification Documents
+                        </h4>
+
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="alert alert-warning">
+                            Re-uploading changes the current document reference.
+                            The previously stored physical file is retained.
+                        </div>
+
+                        <?php foreach (
+                            [
+                                'aadhaar' =>
+                                'Aadhaar Card',
+
+                                'pan' =>
+                                'PAN Card',
+
+                                'cancelled_cheque' =>
+                                'Cancelled Cheque Copy',
+                            ]
+                            as $documentType => $documentLabel
+                        ): ?>
+
+                            <form
+                                method="post"
+                                enctype="multipart/form-data"
+                                action="<?= route_to(
+                                            'admin.field-officers.document.replace',
+                                            (int) $fieldOfficer['id'],
+                                            $documentType
+                                        ) ?>"
+                                class="border rounded p-3 mb-3"
+                                data-submit-loader>
+
+                                <?= csrf_field() ?>
+
+                                <div
+                                    class="row g-2
+                            align-items-end">
+
+                                    <div class="col-12 col-md-8">
+
+                                        <label
+                                            class="form-label">
+
+                                            <?= esc(
+                                                $documentLabel
+                                            ) ?>
+
+                                        </label>
+
+                                        <input
+                                            type="file"
+                                            name="document"
+                                            class="form-control"
+                                            accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                                            required>
+
+                                        <div class="form-text">
+                                            PDF, JPG/JPEG or PNG · maximum 1 MB
+                                        </div>
+
+                                    </div>
+
+                                    <div class="col-12 col-md-4">
+
+                                        <button
+                                            type="submit"
+                                            class="btn btn-outline-primary w-100">
+
+                                            <i
+                                                class="ri-upload-2-line me-1"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            Re-upload
+
+                                        </button>
+
+                                    </div>
+
+                                </div>
+
+                            </form>
+
+                        <?php endforeach; ?>
+
+                    </div>
+
+                </div>
+
+            <?php endif; ?>
         </div>
     </div>
 </div>

@@ -234,6 +234,9 @@ $this->section('content');
 
                                 'captchaError' =>
                                 $captchaError,
+
+                                'showDocuments' =>
+                                true,
                             ]
                         ) ?>
 

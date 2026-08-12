@@ -114,6 +114,7 @@ use App\Services\FieldOfficer\FieldOfficerLoginService;
 use App\Services\FieldOfficer\FieldOfficerProfileService;
 use App\Services\Matchmaking\MemberProfilePresentationService;
 use App\Models\MemberShortlistModel;
+use App\Services\Admin\FieldOfficerDocumentService;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
 use App\Logging\ErrorLogSanitizer;
@@ -1858,6 +1859,27 @@ final class Services extends BaseService
 
         return new AdminCaptchaService(
             'field_officer_registration_captcha'
+        );
+    }
+
+    /**
+     * SAK Volunteer private verification-document service.
+     */
+    public static function fieldOfficerDocumentService(
+        bool $getShared = true
+    ): FieldOfficerDocumentService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'fieldOfficerDocumentService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new FieldOfficerDocumentService(
+            new FieldOfficerModel(
+                $database
+            )
         );
     }
 }

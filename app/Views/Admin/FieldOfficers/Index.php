@@ -273,6 +273,48 @@ foreach (
         'Do you want to make '
             . $fullName
             . ' inactive?',
+
+        'aadhaarDocumentUrl' =>
+        trim(
+            (string) (
+                $fieldOfficer['aadhaar_document']
+                ?? ''
+            )
+        ) !== ''
+            ? route_to(
+                'admin.field-officers.document',
+                $fieldOfficerId,
+                'aadhaar'
+            )
+            : '',
+
+        'panDocumentUrl' =>
+        trim(
+            (string) (
+                $fieldOfficer['pan_document']
+                ?? ''
+            )
+        ) !== ''
+            ? route_to(
+                'admin.field-officers.document',
+                $fieldOfficerId,
+                'pan'
+            )
+            : '',
+
+        'cancelledChequeDocumentUrl' =>
+        trim(
+            (string) (
+                $fieldOfficer['cancelled_cheque_document']
+                ?? ''
+            )
+        ) !== ''
+            ? route_to(
+                'admin.field-officers.document',
+                $fieldOfficerId,
+                'cancelled_cheque'
+            )
+            : '',
     ];
 }
 
@@ -497,6 +539,72 @@ $this->section('content');
                                         class="d-inline-flex
                                         align-items-center
                                         gap-1">
+
+                                        <?php if (
+                                            $row['aadhaarDocumentUrl'] !== ''
+                                        ): ?>
+
+                                            <a
+                                                href="<?= esc(
+                                                            $row['aadhaarDocumentUrl'],
+                                                            'attr'
+                                                        ) ?>"
+                                                class="btn btn-sm btn-soft-primary"
+                                                title="Download Aadhaar Card"
+                                                aria-label="Download Aadhaar Card">
+
+                                                <i
+                                                    class="ri-download-2-line"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                            </a>
+
+                                        <?php endif; ?>
+
+                                        <?php if (
+                                            $row['panDocumentUrl'] !== ''
+                                        ): ?>
+
+                                            <a
+                                                href="<?= esc(
+                                                            $row['panDocumentUrl'],
+                                                            'attr'
+                                                        ) ?>"
+                                                class="btn btn-sm btn-soft-primary"
+                                                title="Download PAN Card"
+                                                aria-label="Download PAN Card">
+
+                                                <i
+                                                    class="ri-download-2-line"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                            </a>
+
+                                        <?php endif; ?>
+
+                                        <?php if (
+                                            $row['cancelledChequeDocumentUrl'] !== ''
+                                        ): ?>
+
+                                            <a
+                                                href="<?= esc(
+                                                            $row['cancelledChequeDocumentUrl'],
+                                                            'attr'
+                                                        ) ?>"
+                                                class="btn btn-sm btn-soft-primary"
+                                                title="Download Cancelled Cheque"
+                                                aria-label="Download Cancelled Cheque">
+
+                                                <i
+                                                    class="ri-download-2-line"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                            </a>
+
+                                        <?php endif; ?>
 
                                         <?php if (
                                             $row['isPendingRegistration']

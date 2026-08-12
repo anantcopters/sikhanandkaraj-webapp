@@ -160,6 +160,9 @@ $this->section('content');
                             'isEdit' =>
                             false,
 
+                            'showDocuments' =>
+                            true,
+
                             'formAction' =>
                             route_to(
                                 'admin.field-officers.store'
