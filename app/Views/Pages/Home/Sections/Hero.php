@@ -522,7 +522,7 @@ $this->section('content');
                                 and
                                 <a href="<?= site_url('privacy-policy') ?>">
                                     Privacy Policy
-                                </a> and abide by the values and teachings of <strong>Sri Guru Granth Sahib Ji</strong>.
+                                </a> and I solemnly declare that I am a Sikh and identify myself with the Sikh faith and way of life. I respect and believe in the teachings of <strong>Sri Guru Granth Sahib Ji</strong>.
                             </p>
                         </form>
                     </div>
