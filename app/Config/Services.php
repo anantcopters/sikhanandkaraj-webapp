@@ -112,6 +112,7 @@ use App\Models\FieldOfficerLoginOtpModel;
 use App\Models\FieldOfficerSubmittedProfileModel;
 use App\Services\FieldOfficer\FieldOfficerLoginService;
 use App\Services\FieldOfficer\FieldOfficerProfileService;
+use App\Services\Matchmaking\MemberProfilePresentationService;
 use App\Models\MemberShortlistModel;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -1555,6 +1556,29 @@ final class Services extends BaseService
         );
     }
 
+    /**
+     * Return the common member-summary presentation service.
+     *
+     * Multi-profile member screens use this service so thumbnail authorization,
+     * profile identity and common profile values cannot drift between Dashboard,
+     * Search/Matches and Interests.
+     */
+    public static function memberProfilePresentationService(
+        bool $getShared = true
+    ): MemberProfilePresentationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfilePresentationService'
+            );
+        }
+
+        return new MemberProfilePresentationService(
+            static::memberPhotoUrlService(
+                false
+            )
+        );
+    }
+
     public static function memberMatchmakingService(
         bool $getShared = true
     ): MemberMatchmakingService {
@@ -1567,7 +1591,9 @@ final class Services extends BaseService
         $database = db_connect();
 
         return new MemberMatchmakingService(
-            new UserModel($database),
+            new UserModel(
+                $database
+            ),
 
             new MemberMatchCandidateModel(
                 $database
@@ -1581,7 +1607,7 @@ final class Services extends BaseService
                 false
             ),
 
-            static::memberPhotoUrlService(
+            static::memberProfilePresentationService(
                 false
             ),
 
@@ -1672,7 +1698,7 @@ final class Services extends BaseService
                 $database
             ),
 
-            static::memberPhotoUrlService(
+            static::memberProfilePresentationService(
                 false
             ),
 
@@ -1706,9 +1732,9 @@ final class Services extends BaseService
         }
 
         /*
-        * All models/services created here use the normal application database
-        * connection managed by CI4.
-        */
+     * All models/services created here use the normal application database
+     * connection managed by CI4.
+     */
         $database =
             db_connect();
 
@@ -1722,13 +1748,13 @@ final class Services extends BaseService
             ),
 
             /*
-            * Same Interest authority used by Member Profile View.
-            */
+         * Same Interest authority used by Member Profile View.
+         */
             static::memberInteractionService(
                 false
             ),
 
-            static::memberPhotoUrlService(
+            static::memberProfilePresentationService(
                 false
             ),
 
