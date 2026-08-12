@@ -332,29 +332,6 @@ $this->section(
         align-items-center
         gap-2">
 
-                    <!-- Total number of profiles connected with this Volunteer. -->
-                    <span
-                        class="badge
-            bg-primary-subtle
-            text-primary
-            p-2">
-
-                        <i
-                            class="ri-profile-line
-                me-1"
-                            aria-hidden="true">
-                        </i>
-
-                        <?= esc(
-                            (string) $totalProfiles
-                        ) ?>
-
-                        <?= $totalProfiles === 1
-                            ? 'Profile'
-                            : 'Profiles' ?>
-
-                    </span>
-
                     <?php if (
                         $backUrl !== ''
                     ): ?>
@@ -404,150 +381,185 @@ $this->section(
 
         <div class="card-header">
 
-            <form
-                method="get"
-                action="<?= esc(
-                            $profilesUrl,
-                            'attr'
-                        ) ?>"
-                class="row
+            <div
+                class="d-flex
+            flex-column
+            flex-lg-row
+            align-items-lg-end
+            justify-content-between
+            gap-3">
+
+                <form
+                    method="get"
+                    action="<?= esc(
+                                $profilesUrl,
+                                'attr'
+                            ) ?>"
+                    class="row
                 g-2
-                align-items-end">
+                align-items-end
+                flex-grow-1">
 
-                <div
-                    class="col-12
-                    col-md-5">
+                    <div class="col-12 col-md-5">
 
-                    <label
-                        for="fo-profile-search"
-                        class="form-label">
+                        <label
+                            for="fo-profile-search"
+                            class="form-label">
 
-                        Search profiles
-                    </label>
+                            Search profiles
 
-                    <div class="input-group">
+                        </label>
 
-                        <span
-                            class="input-group-text">
+                        <div class="input-group">
 
-                            <i
-                                class="ri-search-line"
-                                aria-hidden="true">
-                            </i>
+                            <span class="input-group-text">
 
-                        </span>
+                                <i
+                                    class="ri-search-line"
+                                    aria-hidden="true">
+                                </i>
 
-                        <input
-                            type="search"
-                            id="fo-profile-search"
-                            name="search"
-                            class="form-control"
-                            value="<?= esc(
-                                        $searchTerm,
-                                        'attr'
-                                    ) ?>"
-                            maxlength="100"
-                            placeholder="Reference, name, mobile or location">
+                            </span>
 
-                    </div>
-                </div>
+                            <input
+                                type="search"
+                                id="fo-profile-search"
+                                name="search"
+                                class="form-control"
+                                value="<?= esc(
+                                            $searchTerm,
+                                            'attr'
+                                        ) ?>"
+                                maxlength="100"
+                                placeholder="Reference, name, mobile or location">
 
-                <div
-                    class="col-12
-                    col-md-3">
-
-                    <label
-                        for="fo-profile-status"
-                        class="form-label">
-
-                        Status
-                    </label>
-
-                    <select
-                        id="fo-profile-status"
-                        name="status"
-                        class="form-select"
-                        data-choice
-                        data-choice-search="false">
-
-                        <option
-                            value="ALL"
-                            <?= $selectedStatus === 'ALL'
-                                ? 'selected'
-                                : '' ?>>
-
-                            All
-                        </option>
-
-                        <option
-                            value="DRAFT"
-                            <?= $selectedStatus === 'DRAFT'
-                                ? 'selected'
-                                : '' ?>>
-
-                            Draft
-                        </option>
-
-                        <option
-                            value="APPROVED"
-                            <?= $selectedStatus === 'APPROVED'
-                                ? 'selected'
-                                : '' ?>>
-
-                            Approved
-                        </option>
-
-                    </select>
-
-                </div>
-
-                <div
-                    class="col-12
-    col-md-auto">
-
-                    <div
-                        class="d-flex
-        align-items-center
-        gap-2">
-
-                        <button
-                            type="submit"
-                            class="btn
-            btn-primary">
-
-                            <i
-                                class="ri-search-line
-                me-1"
-                                aria-hidden="true">
-                            </i>
-
-                            Search
-
-                        </button>
-
-                        <a
-                            href="<?= esc(
-                                        $profilesUrl,
-                                        'attr'
-                                    ) ?>"
-                            class="btn
-            btn-light">
-
-                            <i
-                                class="ri-refresh-line
-                me-1"
-                                aria-hidden="true">
-                            </i>
-
-                            Reset
-
-                        </a>
+                        </div>
 
                     </div>
 
+                    <div class="col-12 col-md-3">
+
+                        <label
+                            for="fo-profile-status"
+                            class="form-label">
+
+                            Status
+
+                        </label>
+
+                        <select
+                            id="fo-profile-status"
+                            name="status"
+                            class="form-select"
+                            data-choice
+                            data-choice-search="false">
+
+                            <option
+                                value="ALL"
+                                <?= $selectedStatus === 'ALL'
+                                    ? 'selected'
+                                    : '' ?>>
+
+                                All
+
+                            </option>
+
+                            <option
+                                value="DRAFT"
+                                <?= $selectedStatus === 'DRAFT'
+                                    ? 'selected'
+                                    : '' ?>>
+
+                                Draft
+
+                            </option>
+
+                            <option
+                                value="APPROVED"
+                                <?= $selectedStatus === 'APPROVED'
+                                    ? 'selected'
+                                    : '' ?>>
+
+                                Approved
+
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="col-12 col-md-auto">
+
+                        <div
+                            class="d-flex
+                        align-items-center
+                        gap-2">
+
+                            <button
+                                type="submit"
+                                class="btn btn-primary">
+
+                                <i
+                                    class="ri-search-line me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                Search
+
+                            </button>
+
+                            <a
+                                href="<?= esc(
+                                            $profilesUrl,
+                                            'attr'
+                                        ) ?>"
+                                class="btn btn-light">
+
+                                <i
+                                    class="ri-refresh-line me-1"
+                                    aria-hidden="true">
+                                </i>
+
+                                Reset
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </form>
+
+                <!-- Total connected profile count -->
+                <div
+                    class="d-flex
+                align-items-center
+                justify-content-lg-end">
+
+                    <span
+                        class="badge
+                    bg-primary-subtle
+                    text-primary
+                    p-2 fs-12">
+
+                        <i
+                            class="ri-profile-line me-1"
+                            aria-hidden="true">
+                        </i>
+
+                        <?= esc(
+                            (string) $totalProfiles
+                        ) ?>
+
+                        <?= $totalProfiles === 1
+                            ? 'Profile'
+                            : 'Profiles' ?>
+
+                    </span>
+
                 </div>
 
-            </form>
+            </div>
 
         </div>
 
