@@ -1444,6 +1444,35 @@ final class MemberSearchService
                 $viewerUserId
             );
 
+        /*
+        * Reuse the member's Family Details Community.
+        *
+        * This is deliberately resolved through MemberMatchCandidateModel rather
+        * than reading member_family_details directly inside the service.
+        */
+        $community =
+            $this->candidateModel
+            ->memberCommunityForUser(
+                $viewerUserId
+            );
+
+        $communityId =
+            max(
+                0,
+                (int) (
+                    $community['community_id']
+                    ?? 0
+                )
+            );
+
+        $communityName =
+            trim(
+                (string) (
+                    $community['community_name']
+                    ?? ''
+                )
+            );
+
         $stateId =
             max(
                 0,
@@ -1510,6 +1539,29 @@ final class MemberSearchService
 
                     'city_ids' => [
                         $cityId,
+                    ],
+                ]
+            )
+            : '';
+
+        /*
+ * Same-Community preset.
+ *
+ * Community is an Advanced Search criterion, so use mode=advanced.
+ * The Search service will still validate this Community ID against the
+ * existing active Community master before candidate filtering.
+ */
+        $sameCommunityUrl =
+            $communityId > 0
+            ? $searchResultsUrl
+            . '?'
+            . http_build_query(
+                [
+                    'mode' =>
+                    'advanced',
+
+                    'community_ids' => [
+                        $communityId,
                     ],
                 ]
             )
@@ -1720,6 +1772,35 @@ final class MemberSearchService
                 'Based on profile details',
 
                 'items' => [
+                    /*
+         * Same Community.
+         *
+         * Availability depends on the logged-in member having a valid,
+         * active Community saved in Family Details.
+         */
+                    [
+                        'label' =>
+                        'Same Community',
+
+                        'help' =>
+                        $communityId > 0
+                            && $communityName !== ''
+                            ? 'Find eligible profiles from the '
+                            . $communityName
+                            . ' community.'
+                            : 'Add your Community in Family Details to use this search.',
+
+                        'icon' =>
+                        'ri-group-line',
+
+                        'url' =>
+                        $sameCommunityUrl,
+
+                        'available' =>
+                        $communityId > 0
+                            && $communityName !== '',
+                    ],
+
                     [
                         'label' =>
                         'Profiles with Public Photos',

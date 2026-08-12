@@ -948,4 +948,108 @@ final class MemberMatchCandidateModel extends Model
             ),
         ];
     }
+
+    /**
+     * Return the authenticated member's active Sikh Community.
+     *
+     * Search Quick Links use this value for "Same Community".
+     *
+     * Community remains sourced from member_family_details and the existing
+     * master_sikh_communities master table.
+     *
+     * An inactive/missing master value returns community_id = 0 so the
+     * Quick Link becomes unavailable instead of accidentally becoming an
+     * unrestricted Search.
+     *
+     * @return array{
+     *     community_id:int,
+     *     community_name:string
+     * }
+     */
+    public function memberCommunityForUser(
+        int $userId
+    ): array {
+        if ($userId <= 0) {
+            return [
+                'community_id' =>
+                0,
+
+                'community_name' =>
+                '',
+            ];
+        }
+
+        $row =
+            $this->db
+            ->table(
+                'member_family_details fd'
+            )
+            ->select([
+                'fd.community_id',
+                'community.name AS community_name',
+            ])
+            ->join(
+                'master_sikh_communities community',
+                'community.id = fd.community_id',
+                'inner'
+            )
+            ->where(
+                'fd.user_id',
+                $userId
+            )
+            ->where(
+                'community.is_active',
+                true
+            )
+            ->get()
+            ->getRowArray();
+
+        if (!is_array($row)) {
+            return [
+                'community_id' =>
+                0,
+
+                'community_name' =>
+                '',
+            ];
+        }
+
+        $communityId =
+            max(
+                0,
+                (int) (
+                    $row['community_id']
+                    ?? 0
+                )
+            );
+
+        $communityName =
+            trim(
+                (string) (
+                    $row['community_name']
+                    ?? ''
+                )
+            );
+
+        if (
+            $communityId <= 0
+            || $communityName === ''
+        ) {
+            return [
+                'community_id' =>
+                0,
+
+                'community_name' =>
+                '',
+            ];
+        }
+
+        return [
+            'community_id' =>
+            $communityId,
+
+            'community_name' =>
+            $communityName,
+        ];
+    }
 }
