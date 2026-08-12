@@ -132,10 +132,9 @@ $this->section('content');
                         </i>
 
                         <div>
-                            A SAK Volunteer created with a valid
-                            UPI ID will be active immediately.
-                            Without a UPI ID, the SAK Volunteer
-                            will be created inactive.
+                            UPI ID and all verification documents
+                            are required. A SAK Volunteer created
+                            by Admin will be active immediately.
                         </div>
                     </div>
 

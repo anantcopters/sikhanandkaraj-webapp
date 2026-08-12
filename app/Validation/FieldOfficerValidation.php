@@ -263,6 +263,14 @@ final class FieldOfficerValidation
     }
 
     /**
+     * UPI ID is compulsory for every SAK Volunteer.
+     *
+     * The same rule is reused by:
+     *
+     * - Admin creation;
+     * - public SAK Volunteer registration;
+     * - Admin edit.
+     *
      * @return array<string, mixed>
      */
     private static function upiRules(): array
@@ -272,12 +280,15 @@ final class FieldOfficerValidation
             'UPI ID',
 
             'rules' => [
-                'permit_empty',
+                'required',
                 'max_length[150]',
                 'regex_match[/^[A-Za-z0-9._-]{2,256}@[A-Za-z][A-Za-z0-9.-]{1,63}$/]',
             ],
 
             'errors' => [
+                'required' =>
+                'UPI ID is required.',
+
                 'max_length' =>
                 'UPI ID must not exceed 150 characters.',
 

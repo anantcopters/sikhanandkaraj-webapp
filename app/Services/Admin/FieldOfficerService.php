@@ -169,15 +169,29 @@ final class FieldOfficerService
             $cityId
         );
 
+        /*
+        * UPI ID is compulsory for every SAK Volunteer.
+        *
+        * FieldOfficerValidation is the primary validation layer, but the service
+        * also enforces the business invariant so direct service callers cannot
+        * create a Volunteer without a UPI ID.
+        */
         $upiId =
-            $this->nullableText(
-                $input['upi_id']
-                    ?? null
+            trim(
+                (string) (
+                    $input['upi_id']
+                    ?? ''
+                )
             );
 
+        if ($upiId === '') {
+            throw new RuntimeException(
+                'UPI ID is required.'
+            );
+        }
+
         if (
-            $upiId !== null
-            && $this->fieldOfficerModel
+            $this->fieldOfficerModel
             ->upiExists(
                 $upiId
             )
@@ -216,26 +230,23 @@ final class FieldOfficerService
         }
 
         /*
-     * UPI validation has already run through
-     * FieldOfficerValidation.
-     */
+        * Admin-created Volunteers are approved at creation and UPI is mandatory,
+        * therefore a successful Admin creation starts ACTIVE.
+        */
         $initialStatus =
-            $upiId !== null
-            ? FieldOfficerModel::STATUS_ACTIVE
-            : FieldOfficerModel::STATUS_INACTIVE;
+            FieldOfficerModel::STATUS_ACTIVE;
 
         $activatedAt =
-            $initialStatus
-            === FieldOfficerModel::STATUS_ACTIVE
-            ? date('Y-m-d H:i:s')
-            : null;
+            date(
+                'Y-m-d H:i:s'
+            );
 
         /*
-     * Generate the code before beginning the transaction.
-     *
-     * Code generation performs existence checks and does
-     * not itself need to be part of this transaction.
-     */
+        * Generate the code before beginning the transaction.
+        *
+        * Code generation performs existence checks and does
+        * not itself need to be part of this transaction.
+        */
         $officerCode =
             $this->generateOfficerCode();
 
@@ -453,7 +464,7 @@ final class FieldOfficerService
                     $cityId,
 
                     'upi_id_present' =>
-                    $upiId !== null,
+                    true,
 
                     'account_status' =>
                     $initialStatus,
@@ -485,7 +496,7 @@ final class FieldOfficerService
 
                     targetLabel: $officerCode,
 
-                    description: 'SAK Volunteer was activated during creation because a valid UPI ID was supplied.',
+                    description: 'SAK Volunteer was created in active status.',
 
                     beforeData: [
                         'account_status' =>
@@ -654,15 +665,25 @@ final class FieldOfficerService
                     ?? null
             );
 
+        /*
+        * UPI is an invariant for SAK Volunteers and cannot be removed.
+        */
         $upiId =
-            $this->nullableText(
-                $input['upi_id']
-                    ?? null
+            trim(
+                (string) (
+                    $input['upi_id']
+                    ?? ''
+                )
             );
 
+        if ($upiId === '') {
+            throw new RuntimeException(
+                'UPI ID is required.'
+            );
+        }
+
         if (
-            $upiId !== null
-            && $this->fieldOfficerModel
+            $this->fieldOfficerModel
             ->upiExists(
                 $upiId,
                 $fieldOfficerId
@@ -716,17 +737,15 @@ final class FieldOfficerService
             ::REVIEW_STATUS_APPROVED;
 
         /*
-     * Pending/rejected self-registration remains inactive.
-     *
-     * Approved/Admin records use normal UPI-driven status.
-     */
+        * UPI presence no longer controls activation because UPI is mandatory.
+        *
+        * A pending/rejected self-registration must still remain inactive.
+        * Admin-created or approved self-registered Volunteers may be active.
+        */
         $newStatus =
             $reviewAllowsActivation
-            && $upiId !== null
-            ? FieldOfficerModel
-            ::STATUS_ACTIVE
-            : FieldOfficerModel
-            ::STATUS_INACTIVE;
+            ? FieldOfficerModel::STATUS_ACTIVE
+            : FieldOfficerModel::STATUS_INACTIVE;
 
         $statusChanged =
             $existingStatus
@@ -823,7 +842,7 @@ final class FieldOfficerService
             $address,
 
             'upi_id_present' =>
-            $upiId !== null,
+            true,
 
             'account_status' =>
             $newStatus,
@@ -1561,7 +1580,7 @@ final class FieldOfficerService
                     ::STATUS_INACTIVE,
 
                     'upi_id_present' =>
-                    $upiId !== null,
+                    true,
                 ]
             )
         );

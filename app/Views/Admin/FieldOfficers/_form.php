@@ -445,22 +445,22 @@ foreach (
     ];
 }
 
+/*
+ * UPI ID is now compulsory for every SAK Volunteer.
+ *
+ * Public self-registration still remains inactive until Admin approval;
+ * Admin-created volunteers can become active immediately.
+ */
 if ($isPublicRegistration) {
     $upiHelpText =
         'UPI ID must be unique. Your registration '
-        . 'will remain inactive until reviewed. '
-        . 'If approved and a valid UPI ID is present, '
-        . 'your SAK Volunteer account will be activated.';
+        . 'will remain inactive until reviewed and approved.';
 } elseif ($editing) {
     $upiHelpText =
-        'UPI ID must be unique. A valid UPI ID keeps '
-        . 'the SAK Volunteer active. Removing it will '
-        . 'make the account inactive.';
+        'UPI ID is required and must be unique.';
 } else {
     $upiHelpText =
-        'UPI ID must be unique. Providing a valid '
-        . 'UPI ID will create this SAK Volunteer in '
-        . 'active status.';
+        'UPI ID is required and must be unique.';
 }
 ?>
 
@@ -1077,8 +1077,8 @@ if ($isPublicRegistration) {
 
                 UPI ID
 
-                <span class="text-muted">
-                    (Optional)
+                <span class="text-danger">
+                    *
                 </span>
 
             </label>
@@ -1098,7 +1098,8 @@ if ($isPublicRegistration) {
                 maxlength="150"
                 pattern="[A-Za-z0-9._\-]{2,256}@[A-Za-z][A-Za-z0-9.\-]{1,63}"
                 autocomplete="off"
-                placeholder="name@bank">
+                placeholder="name@bank"
+                required>
 
             <div class="invalid-feedback">
 
@@ -1112,7 +1113,7 @@ if ($isPublicRegistration) {
 
             <div
                 class="form-text
-                color-pink">
+        color-pink">
 
                 <?= esc(
                     $upiHelpText

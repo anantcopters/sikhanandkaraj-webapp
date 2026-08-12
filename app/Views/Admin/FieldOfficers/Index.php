@@ -433,6 +433,11 @@ $this->section('content');
                                 Status
                             </th>
 
+                            <th scope="col">
+                                Documents
+                            </th>
+
+
                             <th
                                 scope="col"
                                 class="text-end">
@@ -452,7 +457,7 @@ $this->section('content');
                             <tr>
 
                                 <td
-                                    colspan="6"
+                                    colspan="7"
                                     class="text-center
                                     text-muted
                                     py-4">
@@ -533,12 +538,13 @@ $this->section('content');
 
                                 </td>
 
-                                <td class="text-end">
+                                <td>
 
                                     <div
-                                        class="d-inline-flex
-                                        align-items-center
-                                        gap-1">
+                                        class="d-flex
+        flex-column
+        align-items-start
+        gap-1">
 
                                         <?php if (
                                             $row['aadhaarDocumentUrl'] !== ''
@@ -549,16 +555,23 @@ $this->section('content');
                                                             $row['aadhaarDocumentUrl'],
                                                             'attr'
                                                         ) ?>"
-                                                class="btn btn-sm btn-soft-primary"
-                                                title="Download Aadhaar Card"
-                                                aria-label="Download Aadhaar Card">
+                                                class="text-decoration-none"
+                                                title="Download Aadhaar Card">
 
                                                 <i
-                                                    class="ri-download-2-line"
+                                                    class="ri-download-2-line me-1"
                                                     aria-hidden="true">
                                                 </i>
 
+                                                Aadhaar
+
                                             </a>
+
+                                        <?php else: ?>
+
+                                            <span class="text-muted">
+                                                Aadhaar —
+                                            </span>
 
                                         <?php endif; ?>
 
@@ -571,16 +584,23 @@ $this->section('content');
                                                             $row['panDocumentUrl'],
                                                             'attr'
                                                         ) ?>"
-                                                class="btn btn-sm btn-soft-primary"
-                                                title="Download PAN Card"
-                                                aria-label="Download PAN Card">
+                                                class="text-decoration-none"
+                                                title="Download PAN Card">
 
                                                 <i
-                                                    class="ri-download-2-line"
+                                                    class="ri-download-2-line me-1"
                                                     aria-hidden="true">
                                                 </i>
 
+                                                PAN
+
                                             </a>
+
+                                        <?php else: ?>
+
+                                            <span class="text-muted">
+                                                PAN —
+                                            </span>
 
                                         <?php endif; ?>
 
@@ -593,18 +613,36 @@ $this->section('content');
                                                             $row['cancelledChequeDocumentUrl'],
                                                             'attr'
                                                         ) ?>"
-                                                class="btn btn-sm btn-soft-primary"
-                                                title="Download Cancelled Cheque"
-                                                aria-label="Download Cancelled Cheque">
+                                                class="text-decoration-none"
+                                                title="Download Cancelled Cheque">
 
                                                 <i
-                                                    class="ri-download-2-line"
+                                                    class="ri-download-2-line me-1"
                                                     aria-hidden="true">
                                                 </i>
 
+                                                Cheque
+
                                             </a>
 
+                                        <?php else: ?>
+
+                                            <span class="text-muted">
+                                                Cheque —
+                                            </span>
+
                                         <?php endif; ?>
+
+                                    </div>
+
+                                </td>
+
+                                <td class="text-end">
+
+                                    <div
+                                        class="d-inline-flex
+                                        align-items-center
+                                        gap-1">
 
                                         <?php if (
                                             $row['isPendingRegistration']
