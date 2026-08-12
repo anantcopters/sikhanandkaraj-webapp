@@ -240,6 +240,16 @@ foreach (
             $fieldOfficerId
         ),
 
+        /*
+        * Admin profile listing uses the same SAK Volunteer profile
+        * association query as the Volunteer portal.
+        */
+        'profilesUrl' =>
+        route_to(
+            'admin.field-officers.profiles',
+            $fieldOfficerId
+        ),
+
         'approveUrl' =>
         route_to(
             'admin.field-officers.approve-registration',
@@ -717,7 +727,24 @@ $this->section('content');
                                             </form>
 
                                         <?php endif; ?>
+                                        <!-- View profiles connected with this SAK Volunteer. -->
+                                        <a
+                                            href="<?= esc(
+                                                        $row['profilesUrl'],
+                                                        'attr'
+                                                    ) ?>"
+                                            class="btn
+        btn-soft-info
+        btn-sm"
+                                            title="View connected profiles"
+                                            aria-label="View profiles connected with this SAK Volunteer">
 
+                                            <i
+                                                class="ri-group-line"
+                                                aria-hidden="true">
+                                            </i>
+
+                                        </a>
                                         <a
                                             href="<?= esc(
                                                         $row['editUrl'],

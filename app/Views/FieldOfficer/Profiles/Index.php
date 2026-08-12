@@ -2,12 +2,37 @@
 
 declare(strict_types=1);
 
-$pageTitle = trim(
-    (string) (
-        $pageTitle
-        ?? 'Profiles Submitted'
-    )
-);
+/**
+ * Shared SAK Volunteer connected-profile listing.
+ *
+ * The same UI is used from:
+ *
+ * 1. SAK Volunteer login;
+ * 2. Admin SAK Volunteer management.
+ *
+ * @var string|null $pageTitle
+ * @var list<array<string, mixed>>|null $profiles
+ * @var \CodeIgniter\Pager\Pager|null $pager
+ * @var string|null $selectedStatus
+ * @var string|null $searchTerm
+ * @var string|null $fieldOfficerName
+ * @var string|null $fieldOfficerCode
+ * @var int|null $totalProfiles
+ * @var array<string, mixed>|null $formAlert
+ * @var string|null $pageLayout
+ * @var string|null $profilesUrl
+ * @var string|null $backUrl
+ * @var string|null $backLabel
+ * @var bool|null $isAdminView
+ */
+
+$pageTitle =
+    trim(
+        (string) (
+            $pageTitle
+            ?? 'Profiles Submitted'
+        )
+    );
 
 $profiles =
     isset($profiles)
@@ -21,14 +46,15 @@ $allowedStatuses = [
     'APPROVED',
 ];
 
-$selectedStatus = strtoupper(
-    trim(
-        (string) (
-            $selectedStatus
-            ?? 'ALL'
+$selectedStatus =
+    strtoupper(
+        trim(
+            (string) (
+                $selectedStatus
+                ?? 'ALL'
+            )
         )
-    )
-);
+    );
 
 if (
     !in_array(
@@ -41,12 +67,38 @@ if (
         'ALL';
 }
 
-$searchTerm = trim(
-    (string) (
-        $searchTerm
-        ?? ''
-    )
-);
+$searchTerm =
+    trim(
+        (string) (
+            $searchTerm
+            ?? ''
+        )
+    );
+
+$fieldOfficerName =
+    trim(
+        (string) (
+            $fieldOfficerName
+            ?? ''
+        )
+    );
+
+$fieldOfficerCode =
+    trim(
+        (string) (
+            $fieldOfficerCode
+            ?? ''
+        )
+    );
+
+$totalProfiles =
+    max(
+        0,
+        (int) (
+            $totalProfiles
+            ?? count($profiles)
+        )
+    );
 
 $formAlert =
     isset($formAlert)
@@ -58,11 +110,46 @@ $resolvedPager =
     $pager
     ?? null;
 
+/*
+ * Default context remains the existing SAK Volunteer portal.
+ */
+$isAdminView =
+    ($isAdminView ?? false)
+    === true;
+
+$pageLayout =
+    isset($pageLayout)
+    && is_string($pageLayout)
+    && trim($pageLayout) !== ''
+    ? trim($pageLayout)
+    : 'FieldOfficer/Layouts/Main';
+
 $profilesUrl =
-    route_to(
+    isset($profilesUrl)
+    && is_string($profilesUrl)
+    && trim($profilesUrl) !== ''
+    ? trim($profilesUrl)
+    : route_to(
         'field-officer.profiles.index'
     );
 
+$backUrl =
+    isset($backUrl)
+    && is_string($backUrl)
+    ? trim($backUrl)
+    : '';
+
+$backLabel =
+    isset($backLabel)
+    && is_string($backLabel)
+    && trim($backLabel) !== ''
+    ? trim($backLabel)
+    : 'Back';
+
+/*
+ * Convert service rows into the normalized presentation contract already
+ * used by this listing.
+ */
 $resolvedProfiles = [];
 
 foreach ($profiles as $profile) {
@@ -70,59 +157,66 @@ foreach ($profiles as $profile) {
         continue;
     }
 
-    $status = strtoupper(
+    $status =
+        strtoupper(
+            trim(
+                (string) (
+                    $profile['display_status']
+                    ?? ''
+                )
+            )
+        );
+
+    $cityName =
         trim(
             (string) (
-                $profile['display_status']
+                $profile['city_name']
                 ?? ''
             )
-        )
-    );
+        );
 
-    $cityName = trim(
-        (string) (
-            $profile['city_name']
-            ?? ''
-        )
-    );
+    $stateName =
+        trim(
+            (string) (
+                $profile['state_name']
+                ?? ''
+            )
+        );
 
-    $stateName = trim(
-        (string) (
-            $profile['state_name']
-            ?? ''
-        )
-    );
-
-    $location = implode(
-        ', ',
-        array_filter(
-            [
-                $cityName,
-                $stateName,
-            ],
-            static fn(
-                string $value
-            ): bool => $value !== ''
-        )
-    );
+    $location =
+        implode(
+            ', ',
+            array_filter(
+                [
+                    $cityName,
+                    $stateName,
+                ],
+                static fn(
+                    string $value
+                ): bool =>
+                $value !== ''
+            )
+        );
 
     if ($location === '') {
         $location = '—';
     }
 
-    $reference = trim(
-        (string) (
-            $profile['profile_reference']
-            ?? ''
-        )
-    );
+    $reference =
+        trim(
+            (string) (
+                $profile['profile_reference']
+                ?? ''
+            )
+        );
 
-    $profileId = trim(
-        (string) (
-            $profile['profile_id']
-            ?? ''
-        )
-    );
+    $profileId =
+        trim(
+            (string) (
+                $profile['profile_id']
+                ?? ''
+            )
+        );
 
     $resolvedProfiles[] = [
         'reference' =>
@@ -161,11 +255,16 @@ foreach ($profiles as $profile) {
     ];
 }
 
+/*
+ * Reuse the exact same UI with the correct authenticated-area layout.
+ */
 $this->extend(
-    'FieldOfficer/Layouts/Main'
+    $pageLayout
 );
 
-$this->section('content');
+$this->section(
+    'content'
+);
 ?>
 
 <div class="container-fluid">
@@ -184,16 +283,103 @@ $this->section('content');
                 <div>
 
                     <h4 class="mb-sm-0">
-                        Profiles Submitted
+
+                        <?= $isAdminView
+                            ? 'Connected Profiles'
+                            : 'Profiles Submitted' ?>
+
                     </h4>
 
                     <p
                         class="text-muted
-                        mb-0">
+            mb-0">
 
-                        Profiles associated with your
-                        SAK Volunteer ID.
+                        <?php if (
+                            $isAdminView
+                        ): ?>
+
+                            Profiles connected with
+
+                            <span class="fw-semibold">
+                                <?= esc(
+                                    $fieldOfficerName
+                                ) ?>
+                            </span>
+
+                            <?php if (
+                                $fieldOfficerCode !== ''
+                            ): ?>
+
+                                (<?= esc(
+                                        $fieldOfficerCode
+                                    ) ?>)
+
+                                <?php endif; ?>.
+
+                            <?php else: ?>
+
+                                Profiles associated with your
+                                SAK Volunteer ID.
+
+                            <?php endif; ?>
+
                     </p>
+
+                </div>
+
+                <div
+                    class="d-flex
+        align-items-center
+        gap-2">
+
+                    <!-- Total number of profiles connected with this Volunteer. -->
+                    <span
+                        class="badge
+            bg-primary-subtle
+            text-primary
+            p-2">
+
+                        <i
+                            class="ri-profile-line
+                me-1"
+                            aria-hidden="true">
+                        </i>
+
+                        <?= esc(
+                            (string) $totalProfiles
+                        ) ?>
+
+                        <?= $totalProfiles === 1
+                            ? 'Profile'
+                            : 'Profiles' ?>
+
+                    </span>
+
+                    <?php if (
+                        $backUrl !== ''
+                    ): ?>
+
+                        <a
+                            href="<?= esc(
+                                        $backUrl,
+                                        'attr'
+                                    ) ?>"
+                            class="btn
+                btn-soft-secondary">
+
+                            <i
+                                class="ri-arrow-left-line
+                    me-1"
+                                aria-hidden="true">
+                            </i>
+
+                            <?= esc(
+                                $backLabel
+                            ) ?>
+
+                        </a>
+
+                    <?php endif; ?>
 
                 </div>
 

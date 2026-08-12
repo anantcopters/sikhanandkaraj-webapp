@@ -1361,6 +1361,21 @@ $routes->group('admin', [
                         'superAdmin',
                     ]
                 );
+
+                /*
+ * Display profiles connected with one SAK Volunteer.
+ *
+ * The listing reuses the existing SAK Volunteer profile-list service
+ * and UI. Access is protected by the parent adminAuth group.
+ */
+                $routes->get(
+                    '(:num)/profiles',
+                    'FieldOfficerController::profiles/$1',
+                    [
+                        'as' =>
+                        'admin.field-officers.profiles',
+                    ]
+                );
             }
         );
 

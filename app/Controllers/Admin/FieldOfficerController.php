@@ -9,6 +9,7 @@ use App\Services\Admin\FieldOfficerService;
 use App\Services\Profile\ProfileMasterDataService;
 use App\Validation\FieldOfficerValidation;
 use App\Services\Admin\FieldOfficerDocumentService;
+use App\Services\FieldOfficer\FieldOfficerProfileService;
 use App\Models\AdminUserModel;
 use App\Support\AdminErrorContext;
 use CodeIgniter\HTTP\RedirectResponse;
@@ -20,6 +21,12 @@ use Throwable;
  */
 final class FieldOfficerController extends BaseController
 {
+
+    /**
+     * Keep Admin and SAK Volunteer profile listings on the same page size.
+     */
+    private const PROFILE_PER_PAGE = 10;
+
     /**
      * Display all SAK Volunteers.
      */
@@ -1042,6 +1049,174 @@ final class FieldOfficerController extends BaseController
                         'message' =>
                         $exception
                             ->getMessage(),
+                    ]
+                );
+        }
+    }
+
+    /**
+     * Display profiles connected with one SAK Volunteer.
+     *
+     * This deliberately reuses FieldOfficerProfileService rather than creating
+     * an Admin-specific profile query. The only difference is the authenticated
+     * actor and layout:
+     *
+     * - SAK Volunteer portal gets Volunteer ID from session;
+     * - Admin explicitly selects a Volunteer through this protected route.
+     */
+    public function profiles(
+        int $fieldOfficerId
+    ): string|RedirectResponse {
+        try {
+        /*
+         * First validate that the requested SAK Volunteer exists.
+         *
+         * Never trust the numeric route ID merely because this is an
+         * authenticated Admin route.
+         */
+            /** @var FieldOfficerService $fieldOfficerService */
+            $fieldOfficerService =
+                service(
+                    'fieldOfficerService'
+                );
+
+            $fieldOfficer =
+                $fieldOfficerService
+                ->findForEdit(
+                    $fieldOfficerId
+                );
+
+            /*
+         * Preserve the exact same filtering contract used by the
+         * SAK Volunteer portal.
+         */
+            $status =
+                strtoupper(
+                    trim(
+                        (string) $this->request
+                            ->getGet(
+                                'status'
+                            )
+                    )
+                );
+
+            $search =
+                trim(
+                    (string) $this->request
+                        ->getGet(
+                            'search'
+                        )
+                );
+
+            /** @var FieldOfficerProfileService $profileService */
+            $profileService =
+                service(
+                    'fieldOfficerProfileService'
+                );
+
+            $result =
+                $profileService
+                ->paginatedProfiles(
+                    $fieldOfficerId,
+                    $status,
+                    $search,
+                    self::PROFILE_PER_PAGE
+                );
+
+            /*
+         * totalProfiles() already exists in the current service and counts
+         * every profile connected with this SAK Volunteer independent of
+         * the currently selected Search/Status filter.
+         */
+            $totalProfiles =
+                $profileService
+                ->totalProfiles(
+                    $fieldOfficerId
+                );
+
+            return view(
+                'FieldOfficer/Profiles/Index',
+                [
+                    'pageTitle' =>
+                    'Connected Profiles',
+
+                    'profiles' =>
+                    $result['profiles'],
+
+                    'pager' =>
+                    $result['pager'],
+
+                    'selectedStatus' =>
+                    $result['status'],
+
+                    'searchTerm' =>
+                    $result['search'],
+
+                    'fieldOfficerName' =>
+                    trim(
+                        (string) (
+                            $fieldOfficer['full_name']
+                            ?? ''
+                        )
+                    ),
+
+                    'fieldOfficerCode' =>
+                    trim(
+                        (string) (
+                            $fieldOfficer['officer_code']
+                            ?? ''
+                        )
+                    ),
+
+                    'totalProfiles' =>
+                    $totalProfiles,
+
+                    'formAlert' =>
+                    $this->readFormAlert(),
+
+                    /*
+                 * Context values make the existing SAK Volunteer UI reusable
+                 * without creating a duplicate Admin listing screen.
+                 */
+                    'pageLayout' =>
+                    'Admin/Layouts/Main',
+
+                    'profilesUrl' =>
+                    route_to(
+                        'admin.field-officers.profiles',
+                        $fieldOfficerId
+                    ),
+
+                    'backUrl' =>
+                    route_to(
+                        'admin.field-officers.index'
+                    ),
+
+                    'backLabel' =>
+                    'Back to SAK Volunteers',
+
+                    'isAdminView' =>
+                    true,
+                ]
+            );
+        } catch (Throwable $exception) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.field-officers.index'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Profiles unavailable',
+
+                        'message' =>
+                        $exception->getMessage(),
                     ]
                 );
         }
