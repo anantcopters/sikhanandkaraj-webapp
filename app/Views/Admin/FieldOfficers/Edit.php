@@ -76,8 +76,8 @@ $cities =
 /*
  * UI visibility only.
  *
- * Actual authorization for replacement remains enforced by the
- * superAdmin route filter.
+ * Real document replacement authorization remains enforced
+ * by the superAdmin route filter.
  */
 $canReplaceDocuments =
     ($canReplaceDocuments ?? false)
@@ -126,19 +126,6 @@ $accountStatus =
         )
     );
 
-$isInactive =
-    $accountStatus
-    === \App\Models\FieldOfficerModel
-    ::STATUS_INACTIVE;
-
-$hasUpiId =
-    trim(
-        (string) (
-            $fieldOfficer['upi_id']
-            ?? ''
-        )
-    ) !== '';
-
 $displayStatus =
     $accountStatus !== ''
     ? ucfirst(
@@ -158,8 +145,14 @@ $this->section(
 ?>
 
 <div class="container-fluid">
+
+    <!-- =========================================================
+         Page heading
+         ========================================================= -->
     <div class="row">
+
         <div class="col-12">
+
             <div
                 class="page-title-box
                     d-sm-flex
@@ -167,14 +160,16 @@ $this->section(
                     justify-content-between">
 
                 <div>
+
                     <h4 class="mb-sm-0">
                         Edit SAK Volunteer
                     </h4>
 
                     <p class="text-muted mb-0 mt-1">
-                        Only location, address and UPI ID
-                        can be changed.
+                        Update SAK Volunteer details and
+                        verification information.
                     </p>
+
                 </div>
 
                 <div
@@ -194,31 +189,47 @@ $this->section(
                         </i>
 
                         Back to SAK Volunteers
+
                     </a>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
 
+    <!-- =========================================================
+         Main SAK Volunteer edit card
+         ========================================================= -->
     <div class="row justify-content-center">
+
         <div
             class="col-md-10
                 col-lg-8
                 col-xl-7">
 
             <div
-                class="card border border-danger
+                class="card
+                    border
+                    border-danger
                     border-opacity-25">
 
                 <div class="card-header">
+
                     <h4 class="card-title mb-0">
+
                         <?= esc(
                             $fieldOfficerName
                         ) ?>
+
                     </h4>
+
                 </div>
 
                 <div class="card-body">
+
                     <?= view(
                         'Components/Alerts/FormAlert',
                         [
@@ -227,45 +238,19 @@ $this->section(
                         ]
                     ) ?>
 
-                    <?php if (
-                        $isInactive
-                        && !$hasUpiId
-                    ): ?>
-                        <div
-                            class="alert alert-warning
-                                d-flex align-items-start
-                                gap-2"
-                            role="alert">
-
-                            <i
-                                class="ri-information-line
-                                    fs-20 flex-shrink-0"
-                                aria-hidden="true">
-                            </i>
-
-                            <div>
-                                <h6
-                                    class="alert-heading
-                                        mb-1">
-
-                                    UPI ID required for activation
-                                </h6>
-
-                                <p class="mb-0">
-                                    Add a valid UPI ID before
-                                    activating this SAK Volunteer.
-                                </p>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
+                    <!-- =================================================
+                         Read-only SAK Volunteer identity
+                         ================================================= -->
                     <div class="row g-3 mb-4">
+
                         <div class="col-12 col-md-4">
+
                             <label
                                 for="fieldOfficerCode"
                                 class="form-label">
 
                                 SAK Volunteer Code
+
                             </label>
 
                             <input
@@ -277,14 +262,17 @@ $this->section(
                                             'attr'
                                         ) ?>"
                                 readonly>
+
                         </div>
 
                         <div class="col-12 col-md-4">
+
                             <label
                                 for="fieldOfficerReadonlyMobile"
                                 class="form-label">
 
                                 Mobile Number
+
                             </label>
 
                             <input
@@ -296,14 +284,17 @@ $this->section(
                                             'attr'
                                         ) ?>"
                                 readonly>
+
                         </div>
 
                         <div class="col-12 col-md-4">
+
                             <label
                                 for="fieldOfficerStatus"
                                 class="form-label">
 
                                 Status
+
                             </label>
 
                             <input
@@ -311,17 +302,268 @@ $this->section(
                                 id="fieldOfficerStatus"
                                 class="form-control bg-light"
                                 value="<?= esc(
-                                            ucfirst(
-                                                strtolower(
-                                                    (string) $fieldOfficer['account_status']
-                                                )
-                                            ),
+                                            $displayStatus,
                                             'attr'
                                         ) ?>"
                                 readonly>
+
                         </div>
+
                     </div>
 
+                    <?php if (
+                        $canReplaceDocuments
+                    ): ?>
+
+                        <!-- =========================================================
+         Super Admin verification-document replacement
+         ========================================================= -->
+
+                        <div class="border rounded p-3 mb-4">
+
+                            <div class="mb-3">
+
+                                <h5 class="fs-15 mb-1">
+                                    Verification Documents
+                                </h5>
+
+                                <p class="text-muted fs-13 mb-0">
+                                    Upload a new document only when replacement is required.
+                                    The previously stored physical file will be retained.
+                                </p>
+
+                            </div>
+
+                            <div class="row g-3">
+
+                                <!-- Aadhaar Card -->
+                                <div class="col-12 col-md-4">
+
+                                    <form
+                                        method="post"
+                                        enctype="multipart/form-data"
+                                        action="<?= route_to(
+                                                    'admin.field-officers.document.replace',
+                                                    $fieldOfficerId,
+                                                    'aadhaar'
+                                                ) ?>"
+                                        data-submit-loader>
+
+                                        <?= csrf_field() ?>
+
+                                        <label
+                                            for="fieldOfficerReplaceAadhaar"
+                                            class="form-label">
+
+                                            Aadhaar Card
+
+                                        </label>
+
+                                        <input
+                                            type="file"
+                                            id="fieldOfficerReplaceAadhaar"
+                                            name="document"
+                                            class="form-control"
+                                            accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                                            required>
+
+                                        <div class="form-text color-pink">
+                                            PDF, JPG/JPEG or PNG · maximum 1 MB
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            class="btn
+                            btn-outline-primary
+                            w-100
+                            mt-2">
+
+                                            <span class="registration-submit__idle">
+
+                                                <i
+                                                    class="ri-upload-2-line me-1"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                Re-upload
+
+                                            </span>
+
+                                            <span
+                                                class="registration-submit__loading
+                                d-none">
+
+                                                <span
+                                                    class="spinner-border
+                                    spinner-border-sm"
+                                                    aria-hidden="true">
+                                                </span>
+
+                                                Uploading...
+
+                                            </span>
+
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+                                <!-- PAN Card -->
+                                <div class="col-12 col-md-4">
+
+                                    <form
+                                        method="post"
+                                        enctype="multipart/form-data"
+                                        action="<?= route_to(
+                                                    'admin.field-officers.document.replace',
+                                                    $fieldOfficerId,
+                                                    'pan'
+                                                ) ?>"
+                                        data-submit-loader>
+
+                                        <?= csrf_field() ?>
+
+                                        <label
+                                            for="fieldOfficerReplacePan"
+                                            class="form-label">
+
+                                            PAN Card
+
+                                        </label>
+
+                                        <input
+                                            type="file"
+                                            id="fieldOfficerReplacePan"
+                                            name="document"
+                                            class="form-control"
+                                            accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                                            required>
+
+                                        <div class="form-text color-pink">
+                                            PDF, JPG/JPEG or PNG · maximum 1 MB
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            class="btn
+                            btn-outline-primary
+                            w-100
+                            mt-2">
+
+                                            <span class="registration-submit__idle">
+
+                                                <i
+                                                    class="ri-upload-2-line me-1"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                Re-upload
+
+                                            </span>
+
+                                            <span
+                                                class="registration-submit__loading
+                                d-none">
+
+                                                <span
+                                                    class="spinner-border
+                                    spinner-border-sm"
+                                                    aria-hidden="true">
+                                                </span>
+
+                                                Uploading...
+
+                                            </span>
+
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+                                <!-- Cancelled Cheque -->
+                                <div class="col-12 col-md-4">
+
+                                    <form
+                                        method="post"
+                                        enctype="multipart/form-data"
+                                        action="<?= route_to(
+                                                    'admin.field-officers.document.replace',
+                                                    $fieldOfficerId,
+                                                    'cancelled_cheque'
+                                                ) ?>"
+                                        data-submit-loader>
+
+                                        <?= csrf_field() ?>
+
+                                        <label
+                                            for="fieldOfficerReplaceCheque"
+                                            class="form-label">
+
+                                            Cancelled Cheque Copy
+
+                                        </label>
+
+                                        <input
+                                            type="file"
+                                            id="fieldOfficerReplaceCheque"
+                                            name="document"
+                                            class="form-control"
+                                            accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                                            required>
+
+                                        <div class="form-text color-pink">
+                                            PDF, JPG/JPEG or PNG · maximum 1 MB
+                                        </div>
+
+                                        <button
+                                            type="submit"
+                                            class="btn
+                            btn-outline-primary
+                            w-100
+                            mt-2">
+
+                                            <span class="registration-submit__idle">
+
+                                                <i
+                                                    class="ri-upload-2-line me-1"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                Re-upload
+
+                                            </span>
+
+                                            <span
+                                                class="registration-submit__loading
+                                d-none">
+
+                                                <span
+                                                    class="spinner-border
+                                    spinner-border-sm"
+                                                    aria-hidden="true">
+                                                </span>
+
+                                                Uploading...
+
+                                            </span>
+
+                                        </button>
+
+                                    </form>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    <?php endif; ?>
+
+                    <!-- =================================================
+                         Existing editable SAK Volunteer form
+                         ================================================= -->
                     <?= view(
                         'Admin/FieldOfficers/_form',
                         [
@@ -350,115 +592,15 @@ $this->section(
                             ),
                         ]
                     ) ?>
+
                 </div>
+
             </div>
 
-            <?php if ($canReplaceDocuments): ?>
-
-                <div
-                    class="card border border-danger
-            border-opacity-25 mt-4">
-
-                    <div class="card-header">
-
-                        <h4 class="card-title mb-0">
-                            Verification Documents
-                        </h4>
-
-                    </div>
-
-                    <div class="card-body">
-
-                        <div class="alert alert-warning">
-                            Re-uploading changes the current document reference.
-                            The previously stored physical file is retained.
-                        </div>
-
-                        <?php foreach (
-                            [
-                                'aadhaar' =>
-                                'Aadhaar Card',
-
-                                'pan' =>
-                                'PAN Card',
-
-                                'cancelled_cheque' =>
-                                'Cancelled Cheque Copy',
-                            ]
-                            as $documentType => $documentLabel
-                        ): ?>
-
-                            <form
-                                method="post"
-                                enctype="multipart/form-data"
-                                action="<?= route_to(
-                                            'admin.field-officers.document.replace',
-                                            $fieldOfficerId,
-                                            $documentType
-                                        ) ?>"
-                                class="border rounded p-3 mb-3"
-                                data-submit-loader>
-
-                                <?= csrf_field() ?>
-
-                                <div
-                                    class="row g-2
-                            align-items-end">
-
-                                    <div class="col-12 col-md-8">
-
-                                        <label
-                                            class="form-label">
-
-                                            <?= esc(
-                                                $documentLabel
-                                            ) ?>
-
-                                        </label>
-
-                                        <input
-                                            type="file"
-                                            name="document"
-                                            class="form-control"
-                                            accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-                                            required>
-
-                                        <div class="form-text">
-                                            PDF, JPG/JPEG or PNG · maximum 1 MB
-                                        </div>
-
-                                    </div>
-
-                                    <div class="col-12 col-md-4">
-
-                                        <button
-                                            type="submit"
-                                            class="btn btn-outline-primary w-100">
-
-                                            <i
-                                                class="ri-upload-2-line me-1"
-                                                aria-hidden="true">
-                                            </i>
-
-                                            Re-upload
-
-                                        </button>
-
-                                    </div>
-
-                                </div>
-
-                            </form>
-
-                        <?php endforeach; ?>
-
-                    </div>
-
-                </div>
-
-            <?php endif; ?>
         </div>
+
     </div>
+
 </div>
 
 <?php $this->endSection(); ?>
