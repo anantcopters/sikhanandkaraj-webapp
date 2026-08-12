@@ -22,6 +22,19 @@ This document is the mandatory engineering rule set for SikhanAndKaraj. All impl
 - Use dependency/service wiring consistent with the existing `Config\Services` pattern.
 - Do not introduce new third-party dependencies unless they are necessary and explicitly justified.
 
+### Member profile views
+
+The member-facing application uses exactly four profile presentation contexts. New member-listing/profile UI must reuse the appropriate existing presentation context rather than creating another independent member-card implementation.
+
+1. **Dashboard profile thumbnail** — compact member presentation used by Dashboard profile collections. The shared component is `app/Views/Components/Member/ProfileThumbnail.php`.
+2. **Search / Matches profile card** — standard member card used by Search Results and Matches. Search and Matches deliberately share the same presentation component and result pipeline. The shared component is `app/Views/Components/Member/ProfileCard.php`.
+3. **Interest profile card** — member presentation used by Interest Received and Interest Sent, including Interest-specific status/actions. The shared component is `app/Views/Components/Member/ProfileInterestCard.php`.
+4. **Full member profile view** — detailed single-member profile opened from member cards/thumbnails. This remains the authoritative detailed profile presentation and must not be replaced by listing-card logic.
+
+Common member-summary data used by the first three multi-profile contexts must be produced through `App\Services\Matchmaking\MemberProfilePresentationService`. Context-specific state such as match percentage, Interest status/actions, Search state and pagination remains with the owning domain/service and must not be moved into the common presentation service.
+
+All four contexts must preserve the application's member visibility, authorization, photo privacy and public profile-reference rules. Multi-profile views must use the authorized thumbnail media path and the standard gender-based placeholder when no authorized thumbnail is available. A new fifth member profile/card presentation must not be introduced unless an explicit requirement demonstrates that none of these four contexts can safely satisfy it.
+
 ## Validation
 
 - Server-side validation is authoritative and mandatory for all submitted data.
