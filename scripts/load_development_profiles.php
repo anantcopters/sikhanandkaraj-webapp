@@ -56,10 +56,14 @@ define(
  * The framework bootstrap requires an environment constant before
  * Boot::bootConsole() loads the environment-specific bootstrap file.
  *
- * The loader itself performs a second strict check for both:
+ * The loader performs its own deployment safety check after bootstrap.
+ * It is permitted only when:
  *
- * - ENVIRONMENT === development
- * - APP_DEPLOYMENT === development
+ * - APP_DEPLOYMENT is explicitly development or qa; and
+ * - DEVELOPMENT_PROFILE_LOADER_ENABLED=true.
+ *
+ * Production deployment remains prohibited regardless of the framework
+ * CI_ENVIRONMENT value.
  */
 if (!defined('ENVIRONMENT')) {
     $environment = getenv('CI_ENVIRONMENT');

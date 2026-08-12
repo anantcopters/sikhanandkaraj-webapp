@@ -1398,7 +1398,10 @@ final class Services extends BaseService
     }
 
     /**
-     * Development-only bulk member profile loader.
+     * Return the non-production bulk member profile loader.
+     *
+     * The loader reuses normal member profile services so generated QA data
+     * follows the same master validation and persistence rules as real profiles.
      */
     public static function developmentProfileLoaderService(
         bool $getShared = true
@@ -1409,17 +1412,49 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new DevelopmentProfileLoaderService(
-            new UserModel($database),
-            new UserContactModel($database),
-            new MemberPhotoModel($database),
-            static::basicDetailsService(),
-            static::educationProfessionService(),
-            static::basicPartnerPreferenceService(),
-            static::additionalPartnerPreferenceService(),
-            static::awsMediaService(),
+            new UserModel(
+                $database
+            ),
+
+            new UserContactModel(
+                $database
+            ),
+
+            new MemberPhotoModel(
+                $database
+            ),
+
+            static::basicDetailsService(
+                false
+            ),
+
+            static::educationProfessionService(
+                false
+            ),
+
+            /*
+         * Family Details is required by the current profile architecture.
+         */
+            static::familyDetailsService(
+                false
+            ),
+
+            static::basicPartnerPreferenceService(
+                false
+            ),
+
+            static::additionalPartnerPreferenceService(
+                false
+            ),
+
+            static::awsMediaService(
+                false
+            ),
+
             $database
         );
     }

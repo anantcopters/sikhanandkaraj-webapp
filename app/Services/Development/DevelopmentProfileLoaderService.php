@@ -14,6 +14,7 @@ use App\Services\Profile\BasicDetailsService;
 use App\Services\Profile\EducationProfessionService;
 use App\Support\PartnerPreference\AdditionalPreferenceItem;
 use App\Support\PartnerPreference\BasicPreferenceItem;
+use App\Services\Profile\FamilyDetailsService;
 use CodeIgniter\Database\BaseConnection;
 use DomainException;
 use FilesystemIterator;
@@ -55,7 +56,10 @@ final class DevelopmentProfileLoaderService
     private const MOBILE_START = 7000000000;
 
     /**
-     * Common first names used only for non-production development data.
+     * Sikh male names used only for generated non-production profiles.
+     *
+     * Keep enough unique names for the current QA image inventory so profile
+     * cards are easier to distinguish during Search/Matches/Interest testing.
      *
      * @var list<string>
      */
@@ -72,9 +76,39 @@ final class DevelopmentProfileLoaderService
         'Parminder Singh',
         'Hardeep Singh',
         'Sukhman Singh',
+        'Amandeep Singh',
+        'Gagandeep Singh',
+        'Gurkirat Singh',
+        'Harmanpreet Singh',
+        'Inderpreet Singh',
+        'Jagdeep Singh',
+        'Jaskaran Singh',
+        'Karanbir Singh',
+        'Mandeep Singh',
+        'Prabhjot Singh',
+        'Rajveer Singh',
+        'Sandeep Singh',
+        'Satnam Singh',
+        'Shivraj Singh',
+        'Sukhdeep Singh',
+        'Tajinder Singh',
+        'Tejinder Singh',
+        'Arshdeep Singh',
+        'Balpreet Singh',
+        'Charanjit Singh',
+        'Daljit Singh',
+        'Ekampreet Singh',
+        'Fateh Singh',
+        'Gurbir Singh',
+        'Gurinder Singh',
+        'Gursharan Singh',
+        'Harjot Singh',
+        'Harsimran Singh',
     ];
 
     /**
+     * Sikh female names used only for generated non-production profiles.
+     *
      * @var list<string>
      */
     private const FEMALE_NAMES = [
@@ -90,6 +124,34 @@ final class DevelopmentProfileLoaderService
         'Parminder Kaur',
         'Hardeep Kaur',
         'Sukhman Kaur',
+        'Amandeep Kaur',
+        'Gagandeep Kaur',
+        'Gurleen Kaur',
+        'Harmanpreet Kaur',
+        'Inderpreet Kaur',
+        'Jasleen Kaur',
+        'Jaskiran Kaur',
+        'Kiranpreet Kaur',
+        'Mandeep Kaur',
+        'Mehar Kaur',
+        'Prabhjot Kaur',
+        'Rajveer Kaur',
+        'Sandeep Kaur',
+        'Satinder Kaur',
+        'Sukhdeep Kaur',
+        'Tajinder Kaur',
+        'Arshdeep Kaur',
+        'Baljeet Kaur',
+        'Charanpreet Kaur',
+        'Daljit Kaur',
+        'Eknoor Kaur',
+        'Guneet Kaur',
+        'Gurkirat Kaur',
+        'Harleen Kaur',
+        'Harsimran Kaur',
+        'Jasmine Kaur',
+        'Komalpreet Kaur',
+        'Navneet Kaur',
     ];
 
     /**
@@ -111,15 +173,41 @@ final class DevelopmentProfileLoaderService
     ];
 
     public function __construct(
-        private readonly UserModel $userModel,
-        private readonly UserContactModel $userContactModel,
-        private readonly MemberPhotoModel $memberPhotoModel,
-        private readonly BasicDetailsService $basicDetailsService,
-        private readonly EducationProfessionService $educationProfessionService,
-        private readonly BasicPartnerPreferenceService $basicPreferenceService,
-        private readonly AdditionalPartnerPreferenceService $additionalPreferenceService,
-        private readonly AwsMediaService $awsMediaService,
-        private readonly BaseConnection $database
+        private readonly UserModel
+        $userModel,
+
+        private readonly UserContactModel
+        $userContactModel,
+
+        private readonly MemberPhotoModel
+        $memberPhotoModel,
+
+        private readonly BasicDetailsService
+        $basicDetailsService,
+
+        private readonly EducationProfessionService
+        $educationProfessionService,
+
+        /*
+     * Family Details is now part of the current member profile contract.
+     *
+     * Generated QA profiles need Community and the other mandatory Family
+     * fields so Search/Matches/Profile View exercise the current schema.
+     */
+        private readonly FamilyDetailsService
+        $familyDetailsService,
+
+        private readonly BasicPartnerPreferenceService
+        $basicPreferenceService,
+
+        private readonly AdditionalPartnerPreferenceService
+        $additionalPreferenceService,
+
+        private readonly AwsMediaService
+        $awsMediaService,
+
+        private readonly BaseConnection
+        $database
     ) {}
 
     /**
@@ -437,9 +525,23 @@ final class DevelopmentProfileLoaderService
             $folderNumber
         );
 
-        $fullName = $this->randomName(
-            $gender
-        );
+        /*
+        * Couple the generated test identity to its source image folder.
+        *
+        * This makes reruns/environments deterministic:
+        *
+        * male/1   -> first male name
+        * male/2   -> second male name
+        * female/1 -> first female name
+        *
+        * QA screenshots and defect reports can therefore refer to a stable
+        * profile identity instead of receiving a different random name each load.
+        */
+        $fullName =
+            $this->profileName(
+                $gender,
+                $folderNumber
+            );
 
         $this->database->transException(true);
         $this->database->transStart();
@@ -660,6 +762,249 @@ final class DevelopmentProfileLoaderService
                     ? (string) $annualIncome['id']
                     : '',
             ]
+        );
+
+        /*
+        * --------------------------------------------------------------------------
+        * Family Details
+        * --------------------------------------------------------------------------
+        *
+        * Family Details is now part of the active member journey and contains the
+        * authoritative Community used by member Search and Same Community Quick
+        * Links.
+        *
+        * Use FamilyDetailsService rather than direct inserts so:
+        *
+        * - active master values are enforced;
+        * - current required fields are honoured;
+        * - future Family Details validation continues applying to generated data.
+        */
+        $this->saveFamilyDetails(
+            userId: $userId,
+            countryId: (int) $country['id'],
+            stateId: (int) $state['id'],
+            cityId: (int) $city['id']
+        );
+    }
+
+    /**
+     * Create valid Family Details for one generated member.
+     *
+     * SAK Volunteer assignment remains empty because it is optional and test
+     * profile generation must not fabricate an actual officer relationship.
+     */
+    private function saveFamilyDetails(
+        int $userId,
+        int $countryId,
+        int $stateId,
+        int $cityId
+    ): void {
+        $familyProfile =
+            $this->familyDetailsService
+            ->getForUser(
+                $userId
+            );
+
+        $masterData =
+            is_array(
+                $familyProfile['masterData']
+                    ?? null
+            )
+            ? $familyProfile['masterData']
+            : [];
+
+        /*
+     * Community is mandatory.
+     *
+     * This also ensures generated profiles participate in the current
+     * Same Community Search Quick Link.
+     */
+        $community =
+            $this->randomRecord(
+                is_array(
+                    $masterData['communities']
+                        ?? null
+                )
+                    ? $masterData['communities']
+                    : [],
+                'Community master data is unavailable.'
+            );
+
+        /*
+     * These Family masters are optional in the domain but using them gives
+     * QA profiles more realistic data and exercises their relationships.
+     */
+        $familyValue =
+            $this->randomOptionalRecord(
+                is_array(
+                    $masterData['familyValues']
+                        ?? null
+                )
+                    ? $masterData['familyValues']
+                    : []
+            );
+
+        $familyType =
+            $this->randomOptionalRecord(
+                is_array(
+                    $masterData['familyTypes']
+                        ?? null
+                )
+                    ? $masterData['familyTypes']
+                    : []
+            );
+
+        $familyStatus =
+            $this->randomOptionalRecord(
+                is_array(
+                    $masterData['familyStatuses']
+                        ?? null
+                )
+                    ? $masterData['familyStatuses']
+                    : []
+            );
+
+        $familyOccupations =
+            is_array(
+                $masterData['familyOccupations']
+                    ?? null
+            )
+            ? $masterData['familyOccupations']
+            : [];
+
+        $fatherOccupation =
+            $this->randomOptionalRecord(
+                $familyOccupations
+            );
+
+        $motherOccupation =
+            $this->randomOptionalRecord(
+                $familyOccupations
+            );
+
+        /*
+     * Use valid Indian mobile formatting for the required parent/guardian
+     * contact. Uniqueness is not a Family Details requirement.
+     */
+        $parentContactNumber =
+            $this->developmentParentContact(
+                $userId
+            );
+
+        $this->familyDetailsService
+            ->save(
+                $userId,
+                [
+                    'family_value_id' =>
+                    $familyValue !== null
+                        ? (string) $familyValue['id']
+                        : '',
+
+                    'family_type_id' =>
+                    $familyType !== null
+                        ? (string) $familyType['id']
+                        : '',
+
+                    'family_status_id' =>
+                    $familyStatus !== null
+                        ? (string) $familyStatus['id']
+                        : '',
+
+                    'community_id' =>
+                    (string) $community['id'],
+
+                    /*
+                 * Gotra is currently required by Family Details.
+                 */
+                    'gotra' =>
+                    'Development Gotra',
+
+                    'father_name' =>
+                    'Development Father',
+
+                    'mother_name' =>
+                    'Development Mother',
+
+                    'parent_contact_number' =>
+                    $parentContactNumber,
+
+                    'father_occupation_id' =>
+                    $fatherOccupation !== null
+                        ? (string) $fatherOccupation['id']
+                        : '',
+
+                    'mother_occupation_id' =>
+                    $motherOccupation !== null
+                        ? (string) $motherOccupation['id']
+                        : '',
+
+                    /*
+                 * Current Family Details accepts sibling counts 0–10.
+                 */
+                    'brothers_count' =>
+                    (string) random_int(
+                        0,
+                        3
+                    ),
+
+                    'sisters_count' =>
+                    (string) random_int(
+                        0,
+                        3
+                    ),
+
+                    'country_id' =>
+                    (string) $countryId,
+
+                    'state_id' =>
+                    (string) $stateId,
+
+                    'city_id' =>
+                    (string) $cityId,
+
+                    'nearest_gurudwara' =>
+                    'Development Test Gurudwara',
+
+                    'reference_person_1' =>
+                    'Development Reference One',
+
+                    'reference_person_2' =>
+                    'Development Reference Two',
+
+                    /*
+                 * SAK Volunteer is optional. Do not fabricate an assignment.
+                 */
+                    'field_officer_code' =>
+                    '',
+                ],
+
+                /*
+             * No SAK Volunteer code is being submitted, therefore no
+             * verification session is required.
+             */
+                null
+            );
+    }
+
+    /**
+     * Generate a syntactically valid Indian parent/guardian mobile number
+     * for non-production QA data.
+     *
+     * Family Details does not require this contact to be globally unique.
+     */
+    private function developmentParentContact(
+        int $userId
+    ): string {
+        $offset =
+            max(
+                0,
+                $userId
+            )
+            % 1000000000;
+
+        return (string) (
+            9000000000
+            + $offset
         );
     }
 
@@ -1414,14 +1759,69 @@ final class DevelopmentProfileLoaderService
         return $mobile;
     }
 
-    private function randomName(
-        string $gender
+    /**
+     * Resolve a stable generated member name from gender + source folder.
+     *
+     * Names do not repeat while the configured pool is large enough for the
+     * numbered profile folders.
+     *
+     * If future QA image folders exceed the configured name pool, retain a
+     * readable unique suffix rather than silently assigning duplicate names.
+     */
+    private function profileName(
+        string $gender,
+        int $folderNumber
     ): string {
-        $names = $gender === self::GENDER_MALE
-            ? self::MALE_NAMES
-            : self::FEMALE_NAMES;
+        if ($folderNumber <= 0) {
+            throw new DomainException(
+                'Invalid development profile folder number.'
+            );
+        }
 
-        return $this->randomValue($names);
+        $names =
+            match ($gender) {
+                self::GENDER_MALE =>
+                self::MALE_NAMES,
+
+                self::GENDER_FEMALE =>
+                self::FEMALE_NAMES,
+
+                default =>
+                throw new DomainException(
+                    'Unsupported development profile gender.'
+                ),
+            };
+
+        if ($names === []) {
+            throw new RuntimeException(
+                'Development profile names are not configured.'
+            );
+        }
+
+        /*
+        * Numeric folders start at 1 while PHP arrays start at 0.
+        */
+        $index =
+            $folderNumber - 1;
+
+        if (isset($names[$index])) {
+            return $names[$index];
+        }
+
+        /*
+     * Future-proof fallback.
+     *
+     * Do not fail QA profile loading merely because more image folders were
+     * added than names. Use the configured name cyclically but append the
+     * folder number to keep the visible test identity unique.
+     */
+        $baseName =
+            $names[$index
+                % count($names)];
+
+        return $baseName
+            . ' QA '
+            . $folderNumber;
     }
 
     private function randomDateOfBirth(
@@ -1536,37 +1936,72 @@ final class DevelopmentProfileLoaderService
             : '0';
     }
 
+    /**
+     * Allow bulk generated profiles only in explicitly approved
+     * non-production deployments.
+     *
+     * CI_ENVIRONMENT is intentionally not used as the deployment authority
+     * because QA may correctly run CodeIgniter with production framework
+     * settings while APP_DEPLOYMENT identifies it as QA.
+     *
+     * Production remains prohibited even if somebody accidentally enables
+     * DEVELOPMENT_PROFILE_LOADER_ENABLED.
+     */
     private function assertDevelopmentEnvironment(): void
     {
-        $deployment = strtolower(
-            trim(
-                (string) env(
-                    'APP_DEPLOYMENT',
-                    'development'
+        /*
+     * Do not default APP_DEPLOYMENT to development here.
+     *
+     * A missing deployment identity must fail closed so the loader can
+     * never accidentally become available on an unidentified server.
+     */
+        $deployment =
+            strtolower(
+                trim(
+                    (string) env(
+                        'APP_DEPLOYMENT',
+                        ''
+                    )
                 )
-            )
-        );
+            );
+
+        $allowedDeployments = [
+            'development',
+            'qa',
+        ];
 
         if (
-            $_ENV['CI_ENVIRONMENT'] !== 'development'
-            || $deployment !== 'development'
+            !in_array(
+                $deployment,
+                $allowedDeployments,
+                true
+            )
         ) {
             throw new RuntimeException(
-                'Development profile loading is disabled outside development.'
+                'Development profile loading is allowed only '
+                    . 'in development or QA deployments.'
             );
         }
 
-        $enabled = filter_var(
-            env(
-                'DEVELOPMENT_PROFILE_LOADER_ENABLED',
-                false
-            ),
-            FILTER_VALIDATE_BOOLEAN
-        );
+        /*
+     * Explicit opt-in is additionally required on the individual server.
+     *
+     * Therefore even Development/QA cannot run the loader merely because
+     * the code exists there.
+     */
+        $enabled =
+            filter_var(
+                env(
+                    'DEVELOPMENT_PROFILE_LOADER_ENABLED',
+                    false
+                ),
+                FILTER_VALIDATE_BOOLEAN
+            );
 
         if (!$enabled) {
             throw new RuntimeException(
-                'Set DEVELOPMENT_PROFILE_LOADER_ENABLED=true before running the loader.'
+                'Set DEVELOPMENT_PROFILE_LOADER_ENABLED=true '
+                    . 'before running the loader.'
             );
         }
     }
