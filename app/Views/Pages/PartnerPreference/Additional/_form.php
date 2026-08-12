@@ -534,7 +534,7 @@ $formAction = url_to(
             <div class="col-12">
                 <div
                     class="alert alert-light
-                border mb-0 fs-14">
+                border mb-0 fs-14 color-pink">
 
                     Select one or more preferred states.
                     Cities belonging to the selected states
