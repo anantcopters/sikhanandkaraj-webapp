@@ -6,7 +6,6 @@ namespace App\Services\Matchmaking;
 
 use App\Models\MemberMatchCandidateModel;
 use App\Models\UserModel;
-//use App\Services\Profile\MemberPhotoUrlService;
 use Config\Matchmaking;
 use DateTimeImmutable;
 use DomainException;
