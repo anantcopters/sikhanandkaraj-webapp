@@ -63,22 +63,54 @@ $unreadMessageCount = isset($unreadMessageCount)
     : 0;
 
 /**
- * Determine the active navigation item.
+ * Determine the active member-navigation item.
+ *
+ * Matches deliberately reuses the Search Results pipeline and redirects to:
+ *
+ *     /search/results?activity=all-matches
+ *
+ * Therefore pathname alone is not sufficient to determine the active menu.
+ * The activity query parameter identifies the semantic Matches context.
  */
 $currentPath = trim(
     service('uri')->getPath(),
     '/'
 );
 
-$homeActive =
-    $currentPath === 'dashboard';
+$currentActivity = strtolower(
+    trim(
+        (string) service('request')
+            ->getGet('activity')
+    )
+);
 
-$matchesActive =
+/*
+ * Matches context.
+ *
+ * Support both:
+ *
+ * - direct /matches routes;
+ * - the shared Search Results page when opened as All Matches.
+ */
+$isMatchesContext =
     $currentPath === 'matches'
     || str_starts_with(
         $currentPath,
         'matches/'
+    )
+    || (
+        str_starts_with(
+            $currentPath,
+            'search/'
+        )
+        && $currentActivity === 'all-matches'
     );
+
+$homeActive =
+    $currentPath === 'dashboard';
+
+$matchesActive =
+    $isMatchesContext;
 
 $interestActive =
     $currentPath === 'interests'
@@ -87,11 +119,18 @@ $interestActive =
         'interests/'
     );
 
+/*
+ * Search remains active for normal Search pages/results, but must not be
+ * highlighted when the shared Search Results screen represents Matches.
+ */
 $searchActive =
-    $currentPath === 'search'
-    || str_starts_with(
-        $currentPath,
-        'search/'
+    !$isMatchesContext
+    && (
+        $currentPath === 'search'
+        || str_starts_with(
+            $currentPath,
+            'search/'
+        )
     );
 
 /**
