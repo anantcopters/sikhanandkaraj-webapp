@@ -1,0 +1,204 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - production
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: sikhanandkaraj-production-deployment
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  PROD_INSTANCE_ID: ${{ vars.PROD_INSTANCE_ID }}
+
+jobs:
+
+  validate:
+    name: Validate application
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout production code
+        uses: actions/checkout@v5
+
+      - name: Configure PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: intl, mbstring, pgsql, pdo_pgsql, curl, xml, zip, gd
+          tools: composer:v2
+          coverage: none
+
+      - name: Validate Composer files
+        run: composer validate --no-check-publish
+
+      - name: Install dependencies
+        run: |
+          composer install \
+            --prefer-dist \
+            --no-interaction \
+            --no-progress
+
+      - name: Validate incremental SQL filenames
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          INVALID_FILES="$(
+            find database \
+              -maxdepth 1 \
+              -type f \
+              -name '*.sql' \
+              ! -regextype posix-extended \
+              -regex '.*/[0-9]{3,}_[A-Za-z0-9_-]+\.sql' \
+              -print
+          )"
+
+          if [[ -n "${INVALID_FILES}" ]]; then
+            echo "Invalid incremental SQL filenames:"
+            echo "${INVALID_FILES}"
+            exit 1
+          fi
+
+      - name: Detect duplicate SQL sequence numbers
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DUPLICATES="$(
+            find database \
+              -maxdepth 1 \
+              -type f \
+              -name '*.sql' \
+              -printf '%f\n' |
+            cut -d_ -f1 |
+            sort |
+            uniq -d
+          )"
+
+          if [[ -n "${DUPLICATES}" ]]; then
+            echo "Duplicate SQL sequence numbers:"
+            echo "${DUPLICATES}"
+            exit 1
+          fi
+
+  deploy:
+
+    name: Deploy Production
+
+    needs:
+      - validate
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+      url: https://www.sikhanandkaraj.com/
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+
+      - name: Configure temporary AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+          role-session-name: github-sikhanandkaraj-prod
+
+      - name: Verify AWS identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          aws sts get-caller-identity
+
+      - name: Verify EC2 is online in Systems Manager
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          STATUS="$(
+            aws ssm describe-instance-information \
+              --filters "Key=InstanceIds,Values=${PROD_INSTANCE_ID}" \
+              --query 'InstanceInformationList[0].PingStatus' \
+              --output text
+          )"
+
+          if [[ "${STATUS}" != "Online" ]]; then
+            echo "Production EC2 is not online in Systems Manager."
+            echo "Current status: ${STATUS}"
+            exit 1
+          fi
+
+      - name: Start production deployment
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          COMMAND_ID="$(
+            aws ssm send-command \
+              --instance-ids "${PROD_INSTANCE_ID}" \
+              --document-name "AWS-RunShellScript" \
+              --comment "Deploy commit ${{ github.sha }} to Production" \
+              --parameters "commands=[\"sudo /var/www/deploy/deploy-prod.sh ${{ github.sha }}\"]" \
+              --query 'Command.CommandId' \
+              --output text
+          )"
+
+          echo "command_id=${COMMAND_ID}" >> "${GITHUB_OUTPUT}"
+
+          echo "Started SSM command: ${COMMAND_ID}"
+
+      - name: Wait for deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          aws ssm wait command-executed \
+            --command-id "${{ steps.deploy.outputs.command_id }}" \
+            --instance-id "${PROD_INSTANCE_ID}"
+
+      - name: Display deployment result
+        if: always()
+        shell: bash
+        run: |
+          aws ssm get-command-invocation \
+            --command-id "${{ steps.deploy.outputs.command_id }}" \
+            --instance-id "${PROD_INSTANCE_ID}" \
+            --query '{
+              Status:Status,
+              ResponseCode:ResponseCode,
+              StandardOutput:StandardOutputContent,
+              StandardError:StandardErrorContent
+            }' \
+            --output json
+
+      - name: Confirm deployment succeeded
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          STATUS="$(
+            aws ssm get-command-invocation \
+              --command-id "${{ steps.deploy.outputs.command_id }}" \
+              --instance-id "${PROD_INSTANCE_ID}" \
+              --query 'Status' \
+              --output text
+          )"
+
+          if [[ "${STATUS}" != "Success" ]]; then
+            echo "Production deployment failed: ${STATUS}"
+            exit 1
+          fi

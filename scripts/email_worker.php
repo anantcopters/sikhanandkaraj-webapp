@@ -6,7 +6,6 @@ use App\Services\Email\EmailQueueWorker;
 use App\Support\InfrastructureErrorContext;
 use CodeIgniter\Boot;
 use Config\Paths;
-use Throwable;
 
 /*
 |--------------------------------------------------------------------------
