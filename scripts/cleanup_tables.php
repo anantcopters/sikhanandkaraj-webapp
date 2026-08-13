@@ -8,7 +8,6 @@ use App\Services\Maintenance\TableCleanupResult;
 use App\Services\Maintenance\TableCleanupService;
 use CodeIgniter\Boot;
 use Config\Paths;
-use Throwable;
 
 /*
 |--------------------------------------------------------------------------
