@@ -5,8 +5,6 @@ declare(strict_types=1);
 use App\Support\InfrastructureErrorContext;
 use CodeIgniter\Boot;
 use Config\Paths;
-use RuntimeException;
-use Throwable;
 
 /*
 |--------------------------------------------------------------------------
