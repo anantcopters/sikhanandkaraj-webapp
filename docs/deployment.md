@@ -1,260 +1,170 @@
 # Deployment
 
+_Last reconciled with `development` HEAD `f2b16aa1a3ce7c53278b3b68d20524d3970fca05` on 2026-08-12._
+
 ## Environments
 
 - Local: Windows/XAMPP.
 - QA and production: Ubuntu EC2, Apache, PHP 8.3 and PostgreSQL 16.
-- Apache document root must point only to `<project>/public`.
-- Each environment has separate database, base URL, sessions, provider credentials, AWS resources and secrets.
+- Apache document root points only to `<project>/public`.
+- Each environment has separate DB, base URL, session cookie, provider credentials, AWS resources and secrets.
 
-## HTTPS and secure-request policy
+## Deployment mode versus CI environment
 
-CodeIgniter's built-in `ForceHTTPS` filter is registered globally in `app/Config/Filters.php`. Do not call `forceHTTPS()` from individual controllers and do not create a duplicate custom HTTPS filter.
+`CI_ENVIRONMENT` controls CodeIgniter runtime behavior/diagnostics. `APP_DEPLOYMENT` controls product deployment behavior such as production prelaunch routing and explicit non-production tooling gates.
 
-`app/Config/App.php` keeps the repository-safe default:
+QA may intentionally run with `CI_ENVIRONMENT=production` for production-like behavior while `APP_DEPLOYMENT=qa`. Do not infer product deployment mode from `CI_ENVIRONMENT` alone.
 
-```php
-public bool $forceGlobalSecureRequests = false;
-```
+## HTTPS and cookies
 
-Each environment overrides that value through its own uncommitted `.env` file.
+CI4 `ForceHTTPS` remains the application safeguard; Apache should perform the primary HTTP→HTTPS redirect in QA/production.
 
-### Environment matrix
+Repository-safe local defaults keep forced HTTPS disabled. Environment `.env` overrides own the deployed values.
 
-| Environment | Base URL | Force HTTPS | Secure cookies |
-|---|---|---:|---:|
-| Local | `http://sikhanandkaraj.local/` | `false` | `false` |
-| QA | QA HTTPS hostname | `true` | `true` |
-| Production | Canonical production HTTPS hostname | `true` | `true` |
+| Environment | Typical root | HTTPS | Secure cookies | Session cookie |
+|---|---|---:|---:|---|
+| Local | local checkout | no | no | `sak_session` (local) |
+| QA | `/var/www/sikhanandkaraj-qa` | yes | yes | `sak_qa_session` |
+| Production | `/var/www/sikhanandkaraj-webapp` | yes | yes | `sak_session` |
 
-### Local Windows/XAMPP
+Never trust `0.0.0.0/0` as a proxy source. When TLS terminates at a trusted proxy/load balancer, configure only the real trusted proxy subnet and preserve `X-Forwarded-Proto: https`.
 
-The local virtual host currently uses HTTP. Keep HTTPS enforcement and secure-only cookies disabled:
+## Product route mode
 
-```ini
-CI_ENVIRONMENT = development
-app.baseURL = 'http://sikhanandkaraj.local/'
-app.indexPage = ''
-app.forceGlobalSecureRequests = false
+When `APP_DEPLOYMENT=production`, current public home/login/register entry points redirect to the prelaunch profile flow. Launching the normal member entry flow therefore requires an explicit deployment-mode/routing decision; changing only `CI_ENVIRONMENT` is not sufficient.
 
-cookie.secure = false
-cookie.httponly = true
-cookie.samesite = 'Lax'
-```
+Public legal/information and SAK Volunteer routes remain intentionally independent of this homepage redirect logic where configured in `Routes.php`.
 
-This prevents redirects to a local HTTPS endpoint that has not been configured.
+## Database deployment contract
 
-### QA Ubuntu/Apache
-
-QA is deployed under:
+The immutable baseline is:
 
 ```text
-/var/www/sikhanandkaraj-qa
+app/Database/sikhanandkaraj_db.sql   # version 000
 ```
 
-Use the real QA hostname in `/var/www/sikhanandkaraj-qa/.env`:
+Incremental deployed changes are:
+
+```text
+database/001_*.sql
+database/002_*.sql
+...
+database/009_*.sql   # current latest as of this reconciliation
+```
+
+CI4 `app/Database/Migrations` is not the deployment mechanism.
+
+### Target classification
+
+```text
+FRESH
+  → run baseline 000
+  → verify baseline
+  → run 001+ in numeric order
+  → record successful increments
+
+EXISTING
+  → never run baseline 000
+  → read deployment_sql_history
+  → run only missing 001+ in numeric order
+
+UNKNOWN / PARTIAL
+  → STOP
+  → do not guess, rerun 000, or mark scripts manually
+  → reconcile actual schema with deployment_sql_history first
+```
+
+A numbered script is recorded only after it succeeds. Any SQL failure stops deployment.
+
+## Secrets and private signing material
+
+Never deploy CloudFront private keys, AWS secret keys, SMS/email credentials or encryption keys from source control.
+
+CloudFront signing keys may live outside the application checkout. Preserve least-privilege permissions (for example root-owned, service-group readable, mode `0640`). Verify both the Apache/PHP user and every authorized CLI deployment/maintenance user that instantiates media services can read the key.
+
+A web upload/display succeeding does not prove a CLI process can read the signer key; Linux permissions are evaluated for the actual process user.
+
+## QA environment essentials
+
+Example intent (values remain environment-specific):
 
 ```ini
 CI_ENVIRONMENT = production
+APP_DEPLOYMENT = qa
 app.baseURL = 'https://qa.sikhanandkaraj.com/'
-app.indexPage = ''
 app.forceGlobalSecureRequests = true
-
 cookie.secure = true
 cookie.httponly = true
 cookie.samesite = 'Lax'
-
 session.cookieName = sak_qa_session
 ```
 
-Use a QA-specific session cookie name so QA and production sessions cannot collide when they share a parent domain.
+QA-specific development-profile loading must additionally be explicitly enabled; production must remain prohibited.
 
-### Production Ubuntu/Apache
-
-Production is deployed under:
-
-```text
-/var/www/sikhanandkaraj-webapp
-```
-
-Use the selected canonical hostname in `/var/www/sikhanandkaraj-webapp/.env`:
+## Production essentials
 
 ```ini
 CI_ENVIRONMENT = production
+APP_DEPLOYMENT = production
 app.baseURL = 'https://www.sikhanandkaraj.com/'
-app.indexPage = ''
 app.forceGlobalSecureRequests = true
-
 cookie.secure = true
 cookie.httponly = true
 cookie.samesite = 'Lax'
-
 session.cookieName = sak_session
 ```
 
-Choose either the `www` or non-`www` hostname as canonical and use it consistently in DNS, Apache redirects, certificates and `app.baseURL`.
+Use one canonical production hostname consistently across DNS, Apache redirects, certificates and `app.baseURL`.
 
-### Apache redirect and SSL virtual hosts
+## Apache checks
 
-Apache should perform the primary HTTP-to-HTTPS redirect before PHP executes. CodeIgniter's `ForceHTTPS` filter remains the application-level safeguard.
-
-QA port 80 example:
-
-```apache
-<VirtualHost *:80>
-    ServerName qa.sikhanandkaraj.com
-
-    RewriteEngine On
-    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
-</VirtualHost>
-```
-
-QA SSL virtual host example:
-
-```apache
-<VirtualHost *:443>
-    ServerName qa.sikhanandkaraj.com
-
-    DocumentRoot /var/www/sikhanandkaraj-qa/public
-
-    <Directory /var/www/sikhanandkaraj-qa/public>
-        AllowOverride All
-        Options -Indexes
-        Require all granted
-    </Directory>
-
-    SSLEngine on
-    SSLCertificateFile /etc/letsencrypt/live/qa.sikhanandkaraj.com/fullchain.pem
-    SSLCertificateKeyFile /etc/letsencrypt/live/qa.sikhanandkaraj.com/privkey.pem
-
-    ErrorLog ${APACHE_LOG_DIR}/sikhanandkaraj-qa-error.log
-    CustomLog ${APACHE_LOG_DIR}/sikhanandkaraj-qa-access.log combined
-</VirtualHost>
-```
-
-Production port 80 example with `www` as canonical:
-
-```apache
-<VirtualHost *:80>
-    ServerName sikhanandkaraj.com
-    ServerAlias www.sikhanandkaraj.com
-
-    RewriteEngine On
-    RewriteRule ^ https://www.sikhanandkaraj.com%{REQUEST_URI} [R=301,L]
-</VirtualHost>
-```
-
-Production SSL virtual host example:
-
-```apache
-<VirtualHost *:443>
-    ServerName www.sikhanandkaraj.com
-    ServerAlias sikhanandkaraj.com
-
-    DocumentRoot /var/www/sikhanandkaraj-webapp/public
-
-    <Directory /var/www/sikhanandkaraj-webapp/public>
-        AllowOverride All
-        Options -Indexes
-        Require all granted
-    </Directory>
-
-    SSLEngine on
-    SSLCertificateFile /etc/letsencrypt/live/www.sikhanandkaraj.com/fullchain.pem
-    SSLCertificateKeyFile /etc/letsencrypt/live/www.sikhanandkaraj.com/privkey.pem
-
-    ErrorLog ${APACHE_LOG_DIR}/sikhanandkaraj-error.log
-    CustomLog ${APACHE_LOG_DIR}/sikhanandkaraj-access.log combined
-</VirtualHost>
-```
-
-Enable required modules, validate Apache and reload:
+Before reload:
 
 ```bash
-sudo a2enmod rewrite
-sudo a2enmod ssl
 sudo apachectl configtest
+```
+
+Reload only after `Syntax OK`:
+
+```bash
 sudo systemctl reload apache2
 ```
 
-Do not reload Apache unless `apachectl configtest` reports `Syntax OK`.
-
-### Reverse proxies and forwarded HTTPS
-
-Keep `Config\App::$proxyIPs` empty when Apache directly terminates browser HTTPS.
-
-When HTTPS terminates at a trusted load balancer or reverse proxy, configure only the real private proxy address or subnet. Never trust `0.0.0.0/0`. The proxy must forward the original scheme, normally through:
-
-```text
-X-Forwarded-Proto: https
-```
-
-Incorrect proxy trust or missing forwarded-protocol information can cause an HTTPS redirect loop.
-
-### HSTS caution
-
-Enable long-lived HSTS only after HTTPS is stable, certificate renewal is automated and every required production subdomain supports HTTPS. Do not apply production HSTS assumptions to the local `.local` environment.
-
-### HTTPS verification
-
-Local must remain on HTTP:
-
-```text
-http://sikhanandkaraj.local/
-```
-
-Verify QA redirect and final response:
-
-```bash
-curl -I http://qa.sikhanandkaraj.com/
-curl -I https://qa.sikhanandkaraj.com/
-curl -IL --max-redirs 5 http://qa.sikhanandkaraj.com/
-```
-
-Verify production canonical redirect:
-
-```bash
-curl -IL --max-redirs 5 http://sikhanandkaraj.com/
-```
-
-Expected behavior:
-
-- HTTP returns a `301` redirect to HTTPS.
-- HTTPS returns a valid application response or intentional application redirect.
-- The redirect chain does not loop.
-- Session and CSRF cookies contain the `Secure` and `HttpOnly` attributes in QA and production.
-
-## Production route mode
-
-Production currently supports prelaunch routing: public home, login and registration entry points redirect to the prelaunch profile flow. Confirm this mode before every release; launch requires an explicit route/configuration decision rather than accidental environment behavior.
+Validate HTTP→HTTPS and redirect chains with `curl -I`/`curl -IL --max-redirs 5`. QA/production session and CSRF cookies must be `Secure` and `HttpOnly`.
 
 ## Release order
 
 ```text
 Reviewed commit
-  → backup and prerequisites
+  → classify database target (FRESH / EXISTING / STOP)
+  → backup + prerequisite checks
   → composer install --no-dev --optimize-autoloader
-  → apply pending SQL in order
-  → deploy files
-  → verify writable permissions and cron
-  → verify HTTPS, canonical redirects and secure cookies
-  → smoke-test public, member, admin, prelaunch, SMS and media paths
+  → run baseline only when FRESH
+  → apply pending numbered SQL in order
+  → deploy files/configuration
+  → verify writable + lock-directory permissions
+  → verify signer/provider secret permissions
+  → verify cron/CLI commands as their real OS users
+  → verify HTTPS/cookies/route mode
+  → run smoke tests
 ```
 
 ## Mandatory smoke tests
 
-- HTTP redirects once to the canonical HTTPS hostname;
-- HTTPS has no redirect loop;
-- QA and production cookies are `Secure` and `HttpOnly`;
-- local HTTP remains usable without forced HTTPS;
-- mobile-only registration and OTP activation;
-- password and OTP login choices;
-- password recovery through verified mobile;
-- profile sections and completion calculation;
-- private-media upload and signed delivery;
-- admin role restrictions and photo/profile review;
-- prelaunch form, field-officer verification and optional email;
-- no-cache headers on sensitive pages;
-- PostgreSQL/session/provider connectivity.
+- HTTP redirects once to canonical HTTPS; no loop.
+- Local HTTP remains usable where local TLS is not configured.
+- QA and production cookies are Secure/HttpOnly.
+- Mobile-only registration and OTP activation.
+- Password + OTP member login.
+- Forgot/reset password through verified-mobile OTP.
+- Member dashboard/profile sections/completion.
+- Search and Matches member cards/results.
+- Interest Received/Sent counts, filters and pending Accept/Decline.
+- Notifications.
+- Private media upload and authorized signed delivery.
+- Admin role restrictions, member/photo/prelaunch review.
+- SAK Volunteer self-registration/review/login/profile visibility.
+- PostgreSQL, sessions, SMS/email providers, S3 and CloudFront.
+- Authorized CLI profile loader on development/QA only, when intentionally enabled.
 
-Never deploy secrets, CloudFront private keys or AWS access keys from source control. Prefer instance roles and protected environment configuration.
+Never continue a release with unknown/partial DB state or unreadable required secrets.
