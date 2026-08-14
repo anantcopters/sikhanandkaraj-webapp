@@ -515,6 +515,8 @@ $this->section('content');
                                                 btn-sm
                                                 btn-soft-primary"
                                             title="View member"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
                                             aria-label="View <?= esc(
                                                                     $fullName,
                                                                     'attr'
@@ -538,6 +540,9 @@ $this->section('content');
                                                                     ),
                                                                     'attr'
                                                                 ) ?>"
+
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
                                             title="View status history"
                                             aria-label="View status history for <?= esc(
                                                                                     $fullName,
@@ -572,7 +577,10 @@ $this->section('content');
                                                                         ),
                                                                         'attr'
                                                                     ) ?>"
-                                                title="Block member">
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="top"
+                                                title="Block member"
+                                                aria-label="Block member">
 
                                                 <i
                                                     class="ri-forbid-line"
@@ -601,6 +609,8 @@ $this->section('content');
                                                                         ),
                                                                         'attr'
                                                                     ) ?>"
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="top"
                                                 title="Unblock member"
                                                 aria-label="Unblock <?= esc(
                                                                         $fullName,
