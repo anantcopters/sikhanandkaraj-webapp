@@ -1917,4 +1917,27 @@ final class Services extends BaseService
             )
         );
     }
+
+    /**
+     * Administrator password-reset service.
+     *
+     * Uses the existing Admin model, dedicated Admin OTP model,
+     * shared database connection and project SMS abstraction.
+     */
+    public static function adminPasswordResetService(
+        bool $getShared = true
+    ): \App\Services\Admin\Authentication\AdminPasswordResetService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'adminPasswordResetService'
+            );
+        }
+
+        return new \App\Services\Admin\Authentication\AdminPasswordResetService(
+            new \App\Models\AdminUserModel(),
+            new \App\Models\AdminPasswordResetVerificationModel(),
+            \Config\Database::connect(),
+            static::smsProvider()
+        );
+    }
 }
