@@ -8,6 +8,7 @@ use App\Models\AdminPasswordResetVerificationModel;
 use App\Models\AdminUserModel;
 use App\Services\Sms\SmsMessage;
 use App\Services\Sms\SmsProviderInterface;
+use App\Support\BooleanValue;
 use App\Support\IndianMobileNormalizer;
 use App\Support\OtpGenerator;
 use CodeIgniter\Database\BaseConnection;
@@ -18,56 +19,36 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Handles the administrator forgot-password workflow.
+ * Handles administrator password reset.
+ *
+ * This service mirrors Member password-reset behaviour while keeping
+ * administrator data in the Admin authentication context.
  *
  * Flow:
  *
- * 1. Resolve Admin using registered email/mobile.
- * 2. Confirm the account is eligible.
- * 3. Generate OTP using the SAME OtpGenerator used by Member.
- * 4. Send OTP using the SAME SmsProviderInterface used by Member.
- * 5. Verify OTP.
- * 6. Set a new password.
- * 7. Consume the verified OTP.
- *
- * The Admin authentication context remains separate from Member.
+ * 1. Resolve registered email/mobile.
+ * 2. Confirm Admin account is eligible.
+ * 3. Confirm verified mobile.
+ * 4. Generate OTP through shared OtpGenerator.
+ * 5. Deliver OTP through shared SmsProviderInterface.
+ * 6. Verify OTP.
+ * 7. Replace password.
+ * 8. Consume OTP authorization.
  */
 final class AdminPasswordResetService
 {
-    /**
-     * Keep this identical to Member password reset.
-     */
     private const OTP_LENGTH = 4;
 
-    /**
-     * Keep this identical to Member password reset.
-     */
     private const OTP_EXPIRY_MINUTES = 3;
 
-    /**
-     * Keep this identical to Member password reset.
-     */
     private const OTP_RESEND_COOLDOWN_SECONDS = 120;
 
-    /**
-     * Keep this identical to Member password reset.
-     */
     private const VERIFY_ATTEMPT_LIMIT = 5;
 
-    /**
-     * Keep this identical to Member password reset.
-     */
     private const SEND_LIMIT_PER_DAY = 5;
 
-    /**
-     * Keep this identical to Member password reset.
-     */
     private const SEND_WINDOW_HOURS = 24;
 
-    /**
-     * Maximum time after OTP verification in which the password
-     * can be changed.
-     */
     private const VERIFIED_PASSWORD_WINDOW_SECONDS = 900;
 
     public function __construct(
@@ -78,7 +59,8 @@ final class AdminPasswordResetService
     ) {}
 
     /**
-     * Resolve an Admin and send a password-reset OTP.
+     * Resolve the supplied email/mobile and send an OTP to the
+     * administrator's verified mobile number.
      */
     public function requestOtp(
         string $identifier
@@ -103,14 +85,45 @@ final class AdminPasswordResetService
             );
         }
 
-        if (!$this->isEligible($admin)) {
+        if (
+            !$this->isPasswordResetAllowedForAdmin(
+                $admin
+            )
+        ) {
             return AdminPasswordResetResult::failure(
                 'Password reset is not available for this administrator account.'
             );
         }
 
+        /*
+         * If email was supplied, follow the Member rule:
+         * the identifier itself must be verified.
+         */
         if (
-            !$this->isMobileVerified($admin)
+            filter_var(
+                $identifier,
+                FILTER_VALIDATE_EMAIL
+            ) !== false
+            && !BooleanValue::fromDatabase(
+                $admin['is_email_verified']
+                    ?? false
+            )
+        ) {
+            return AdminPasswordResetResult::failure(
+                'This email address has not been verified. '
+                    . 'Please enter your verified mobile number.'
+            );
+        }
+
+        /*
+         * OTP always goes to the verified mobile number,
+         * regardless of whether email or mobile was supplied.
+         */
+        if (
+            !BooleanValue::fromDatabase(
+                $admin['is_mobile_verified']
+                    ?? false
+            )
         ) {
             return AdminPasswordResetResult::failure(
                 'Password reset is available only after mobile verification.'
@@ -124,21 +137,27 @@ final class AdminPasswordResetService
     }
 
     /**
-     * Resend the password-reset OTP.
+     * Resend password-reset OTP.
      */
     public function resendOtp(
         int $adminUserId
     ): AdminPasswordResetResult {
+        if (
+            !$this->isValidResetAdmin(
+                $adminUserId
+            )
+        ) {
+            return AdminPasswordResetResult::failure(
+                'The password reset request is no longer valid.'
+            );
+        }
+
         $admin =
             $this->adminModel->find(
                 $adminUserId
             );
 
-        if (
-            !is_array($admin)
-            || !$this->isEligible($admin)
-            || !$this->isMobileVerified($admin)
-        ) {
+        if (!is_array($admin)) {
             return AdminPasswordResetResult::failure(
                 'The password reset request is no longer valid.'
             );
@@ -146,117 +165,92 @@ final class AdminPasswordResetService
 
         return $this->issueOtp(
             $adminUserId,
-            (string) $admin['mobile_number']
+            (string) (
+                $admin['mobile_number']
+                ?? ''
+            )
         );
     }
 
     /**
-     * Verify the submitted four-digit OTP.
+     * Verify password-reset OTP.
      */
     public function verifyOtp(
         int $adminUserId,
         string $submittedOtp
     ): AdminPasswordResetResult {
         if (
-            !preg_match(
+            preg_match(
                 '/^\d{4}$/',
                 $submittedOtp
-            )
+            ) !== 1
         ) {
             return AdminPasswordResetResult::failure(
                 'Please enter a valid four-digit OTP.'
             );
         }
 
-        $verification =
-            $this->verificationModel
-            ->findLatestPending(
+        if (
+            !$this->isValidResetAdmin(
                 $adminUserId
-            );
-
-        if ($verification === null) {
-            return AdminPasswordResetResult::failure(
-                'The OTP is no longer valid. Please request a new OTP.'
-            );
-        }
-
-        $expiresAt =
-            $this->parseUtcTimestamp(
-                (string) (
-                    $verification['expires_at']
-                    ?? ''
-                )
-            );
-
-        if (
-            $expiresAt === null
-            || $expiresAt <= time()
+            )
         ) {
-            $this->verificationModel->update(
-                (int) $verification['id'],
-                [
-                    'status' =>
-                    AdminPasswordResetVerificationModel::STATUS_EXPIRED,
-                ]
-            );
-
             return AdminPasswordResetResult::failure(
-                'The OTP has expired. Please request a new OTP.'
+                'The password reset request is no longer valid.'
             );
         }
 
-        $attemptCount =
-            (int) (
-                $verification['attempt_count']
-                ?? 0
-            );
+        $this->database->transBegin();
 
-        if (
-            $attemptCount >=
-            self::VERIFY_ATTEMPT_LIMIT
-        ) {
-            $this->verificationModel->update(
-                (int) $verification['id'],
-                [
-                    'status' =>
-                    AdminPasswordResetVerificationModel::STATUS_CANCELLED,
-                ]
-            );
-
-            return AdminPasswordResetResult::failure(
-                'Too many incorrect attempts. Please request a new OTP.'
-            );
-        }
-
-        /**
-         * OTP is always stored as a password hash.
-         *
-         * This is identical to Member password reset.
-         */
-        $matches =
-            password_verify(
-                $submittedOtp,
-                (string) (
-                    $verification['otp_hash']
-                    ?? ''
-                )
-            );
-
-        if (!$matches) {
-            $this->verificationModel
-                ->incrementAttemptCount(
-                    (int) $verification['id']
+        try {
+            $verification =
+                $this->verificationModel
+                ->findLatestPending(
+                    $adminUserId
                 );
 
-            $remaining =
-                max(
-                    0,
-                    self::VERIFY_ATTEMPT_LIMIT
-                        - $attemptCount
-                        - 1
+            if ($verification === null) {
+                $this->database->transRollback();
+
+                return AdminPasswordResetResult::failure(
+                    'The OTP is no longer valid. Please request a new OTP.'
+                );
+            }
+
+            $expiresAt =
+                $this->parseUtcTimestamp(
+                    (string) (
+                        $verification['expires_at']
+                        ?? ''
+                    )
                 );
 
-            if ($remaining === 0) {
+            if (
+                $expiresAt === null
+                || $expiresAt <= time()
+            ) {
+                $this->verificationModel
+                    ->markExpired(
+                        (int) $verification['id']
+                    );
+
+                $this->commitOrFail();
+
+                return AdminPasswordResetResult::failure(
+                    'The OTP has expired. Please request a new OTP.'
+                );
+            }
+
+            $attemptCount =
+                (int) (
+                    $verification['attempt_count']
+                    ?? 0
+                );
+
+            if (
+                $attemptCount >=
+                self::VERIFY_ATTEMPT_LIMIT
+            ) {
                 $this->verificationModel->update(
                     (int) $verification['id'],
                     [
@@ -264,63 +258,119 @@ final class AdminPasswordResetService
                         AdminPasswordResetVerificationModel::STATUS_CANCELLED,
                     ]
                 );
+
+                $this->commitOrFail();
+
+                return AdminPasswordResetResult::failure(
+                    'Too many incorrect attempts. Please request a new OTP.'
+                );
             }
 
-            return AdminPasswordResetResult::failure(
-                $remaining > 0
-                    ? 'Incorrect OTP. '
-                    . $remaining
-                    . ' attempt(s) remaining.'
-                    : 'Too many incorrect attempts. '
-                    . 'Please request a new OTP.'
+            $matches =
+                password_verify(
+                    $submittedOtp,
+                    (string) (
+                        $verification['otp_hash']
+                        ?? ''
+                    )
+                );
+
+            if (!$matches) {
+                $this->verificationModel
+                    ->incrementAttemptCount(
+                        (int) $verification['id']
+                    );
+
+                $remaining =
+                    max(
+                        0,
+                        self::VERIFY_ATTEMPT_LIMIT
+                            - $attemptCount
+                            - 1
+                    );
+
+                if ($remaining === 0) {
+                    $this->verificationModel->update(
+                        (int) $verification['id'],
+                        [
+                            'status' =>
+                            AdminPasswordResetVerificationModel::STATUS_CANCELLED,
+                        ]
+                    );
+                }
+
+                $this->commitOrFail();
+
+                return AdminPasswordResetResult::failure(
+                    $remaining > 0
+                        ? 'Incorrect OTP. '
+                        . $remaining
+                        . ' attempt(s) remaining.'
+                        : 'Too many incorrect attempts. '
+                        . 'Please request a new OTP.'
+                );
+            }
+
+            $verifiedAt =
+                $this->utcNow();
+
+            $updated =
+                $this->verificationModel->update(
+                    (int) $verification['id'],
+                    [
+                        'status' =>
+                        AdminPasswordResetVerificationModel::STATUS_VERIFIED,
+
+                        'verified_at' =>
+                        $verifiedAt,
+                    ]
+                );
+
+            if ($updated === false) {
+                throw new RuntimeException(
+                    'Unable to complete OTP verification.'
+                );
+            }
+
+            /*
+             * Cancel any other pending reset OTP.
+             */
+            $cancelled =
+                $this->verificationModel
+                ->cancelPending(
+                    $adminUserId
+                );
+
+            if (!$cancelled) {
+                throw new RuntimeException(
+                    'Unable to cancel previous password reset OTPs.'
+                );
+            }
+
+            $this->commitOrFail();
+
+            return AdminPasswordResetResult::success(
+                'OTP verified successfully.',
+                $adminUserId
             );
+        } catch (Throwable $exception) {
+            $this->database->transRollback();
+
+            throw $exception;
         }
-
-        $verifiedAt =
-            $this->utcNow();
-
-        $updated =
-            $this->verificationModel->update(
-                (int) $verification['id'],
-                [
-                    'status' =>
-                    AdminPasswordResetVerificationModel::STATUS_VERIFIED,
-
-                    'verified_at' =>
-                    $verifiedAt,
-                ]
-            );
-
-        if ($updated === false) {
-            throw new RuntimeException(
-                'Unable to complete OTP verification.'
-            );
-        }
-
-        return AdminPasswordResetResult::success(
-            'OTP verified successfully.',
-            $adminUserId
-        );
     }
 
     /**
-     * Replace the administrator password.
-     *
-     * The verified OTP is checked again inside a transaction so that
-     * the authorization cannot be reused concurrently.
+     * Replace the administrator's password after successful OTP verification.
      */
     public function resetPassword(
         int $adminUserId,
         string $password
     ): AdminPasswordResetResult {
-        $admin =
-            $this->adminModel->find(
-                $adminUserId
-            );
-
         if (
-            !is_array($admin)
-            || !$this->isEligible($admin)
+            !$this->isValidResetAdmin(
+                $adminUserId
+            )
         ) {
             return AdminPasswordResetResult::failure(
                 'The password reset request is no longer valid.'
@@ -339,6 +389,18 @@ final class AdminPasswordResetService
             );
         }
 
+        $verificationId =
+            (int) (
+                $verifiedOtp['id']
+                ?? 0
+            );
+
+        if ($verificationId <= 0) {
+            return AdminPasswordResetResult::failure(
+                'The password reset authorization is invalid.'
+            );
+        }
+
         $verifiedAt =
             $this->parseUtcTimestamp(
                 (string) (
@@ -353,16 +415,9 @@ final class AdminPasswordResetService
             time()
             - self::VERIFIED_PASSWORD_WINDOW_SECONDS
         ) {
-            $this->verificationModel->update(
-                (int) $verifiedOtp['id'],
-                [
-                    'status' =>
-                    AdminPasswordResetVerificationModel::STATUS_EXPIRED,
-                ]
-            );
-
             return AdminPasswordResetResult::failure(
-                'Your password reset session has expired. Please request another OTP.'
+                'Your password reset session has expired. '
+                    . 'Please request another OTP.'
             );
         }
 
@@ -381,14 +436,19 @@ final class AdminPasswordResetService
         $this->database->transBegin();
 
         try {
-            $verification =
+            /*
+             * Re-lock the verified authorization in the transaction.
+             *
+             * This prevents concurrent reuse of the same OTP.
+             */
+            $currentVerification =
                 $this->verificationModel
                 ->lockVerified(
-                    (int) $verifiedOtp['id'],
+                    $verificationId,
                     $adminUserId
                 );
 
-            if (!is_array($verification)) {
+            if (!is_array($currentVerification)) {
                 $this->database->transRollback();
 
                 return AdminPasswordResetResult::failure(
@@ -399,7 +459,7 @@ final class AdminPasswordResetService
             $lockedVerifiedAt =
                 $this->parseUtcTimestamp(
                     (string) (
-                        $verification['verified_at']
+                        $currentVerification['verified_at']
                         ?? ''
                     )
                 );
@@ -411,7 +471,7 @@ final class AdminPasswordResetService
                 - self::VERIFIED_PASSWORD_WINDOW_SECONDS
             ) {
                 $this->verificationModel->update(
-                    (int) $verification['id'],
+                    $verificationId,
                     [
                         'status' =>
                         AdminPasswordResetVerificationModel::STATUS_EXPIRED,
@@ -421,11 +481,12 @@ final class AdminPasswordResetService
                 $this->commitOrFail();
 
                 return AdminPasswordResetResult::failure(
-                    'Your password reset session has expired. Please request another OTP.'
+                    'Your password reset session has expired. '
+                        . 'Please request another OTP.'
                 );
             }
 
-            $updated =
+            $passwordUpdated =
                 $this->adminModel->update(
                     $adminUserId,
                     [
@@ -437,32 +498,32 @@ final class AdminPasswordResetService
                     ]
                 );
 
-            if ($updated === false) {
+            if ($passwordUpdated === false) {
                 throw new RuntimeException(
                     'Unable to update the administrator password.'
                 );
             }
 
-            /**
-             * Consume the verified OTP.
+            /*
+             * Consume the verified reset authorization.
              */
-            $consumed =
+            $verificationConsumed =
                 $this->verificationModel->update(
-                    (int) $verification['id'],
+                    $verificationId,
                     [
                         'status' =>
                         AdminPasswordResetVerificationModel::STATUS_CANCELLED,
                     ]
                 );
 
-            if ($consumed === false) {
+            if ($verificationConsumed === false) {
                 throw new RuntimeException(
                     'Unable to consume the password reset authorization.'
                 );
             }
 
-            /**
-             * Cancel any other outstanding reset authorizations.
+            /*
+             * Cancel every other usable reset authorization for this Admin.
              */
             $this->verificationModel
                 ->where(
@@ -471,7 +532,7 @@ final class AdminPasswordResetService
                 )
                 ->where(
                     'id !=',
-                    (int) $verification['id']
+                    $verificationId
                 )
                 ->whereIn(
                     'status',
@@ -499,7 +560,7 @@ final class AdminPasswordResetService
     }
 
     /**
-     * Return the expiry timestamp for the currently pending OTP.
+     * Return pending OTP expiry timestamp.
      */
     public function getPendingExpiryTimestamp(
         int $adminUserId
@@ -523,24 +584,22 @@ final class AdminPasswordResetService
     }
 
     /**
-     * Issue a new password-reset OTP.
-     *
-     * IMPORTANT:
-     *
-     * OTP generation deliberately uses OtpGenerator rather than random_int().
-     *
-     * Therefore:
-     *
-     * Development/QA:
-     * OTP_FIXED_VALUE is respected.
-     *
-     * Production:
-     * OTP_FIXED_VALUE is rejected and a secure random OTP is generated.
+     * Create and deliver a password-reset OTP.
      */
     private function issueOtp(
         int $adminUserId,
         string $mobileNumber
     ): AdminPasswordResetResult {
+        if (
+            !$this->isValidResetAdmin(
+                $adminUserId
+            )
+        ) {
+            return AdminPasswordResetResult::failure(
+                'The password reset request is no longer valid.'
+            );
+        }
+
         $mobileNumber =
             IndianMobileNormalizer::normalize(
                 $mobileNumber
@@ -552,51 +611,34 @@ final class AdminPasswordResetService
             );
         }
 
+        /*
+         * SAME generator as Member.
+         *
+         * DEV / QA:
+         * OTP_FIXED_VALUE may be used.
+         *
+         * PROD:
+         * fixed OTP is prohibited and secure random generation is used.
+         */
+        $otp =
+            OtpGenerator::generate(
+                self::OTP_LENGTH
+            );
+
         $now =
             new DateTimeImmutable(
                 'now',
                 new DateTimeZone('UTC')
             );
 
-        $pending =
-            $this->verificationModel
-            ->findLatestPending(
-                $adminUserId
+        $expiresAt =
+            $now->add(
+                new DateInterval(
+                    'PT'
+                        . self::OTP_EXPIRY_MINUTES
+                        . 'M'
+                )
             );
-
-        if (is_array($pending)) {
-            $createdAt =
-                $this->parseUtcTimestamp(
-                    (string) (
-                        $pending['created_at']
-                        ?? ''
-                    )
-                );
-
-            if (
-                $createdAt !== null
-                && $createdAt
-                + self::OTP_RESEND_COOLDOWN_SECONDS
-                > time()
-            ) {
-                $remaining =
-                    (
-                        $createdAt
-                        + self::OTP_RESEND_COOLDOWN_SECONDS
-                    )
-                    - time();
-
-                return AdminPasswordResetResult::failure(
-                    sprintf(
-                        'Please wait %d second%s before requesting another OTP.',
-                        $remaining,
-                        $remaining === 1
-                            ? ''
-                            : 's'
-                    )
-                );
-            }
-        }
 
         $since =
             $now->sub(
@@ -609,54 +651,71 @@ final class AdminPasswordResetService
                 'Y-m-d H:i:sP'
             );
 
-        $issuedCount =
-            $this->verificationModel
-            ->countIssuedSince(
-                $adminUserId,
-                $since
-            );
+        $verificationId = null;
 
-        if (
-            $issuedCount >=
-            self::SEND_LIMIT_PER_DAY
-        ) {
-            return AdminPasswordResetResult::failure(
-                'The OTP request limit has been reached. Please try again later.'
-            );
-        }
-
-        /**
-         * SAME OTP GENERATOR AS MEMBER.
-         *
-         * This is what makes OTP_FIXED_VALUE work in DEV/QA.
-         */
-        $otp =
-            OtpGenerator::generate(
-                self::OTP_LENGTH
-            );
-
-        $expiresAt =
-            $now->add(
-                new DateInterval(
-                    'PT'
-                        . self::OTP_EXPIRY_MINUTES
-                        . 'M'
-                )
-            );
-
-        /**
-         * Replace the previous pending OTP.
-         */
         $this->database->transBegin();
 
         try {
-            $cancelled =
+            /*
+             * Respect the same resend cooldown as Member.
+             */
+            $pendingVerification =
+                $this->verificationModel
+                ->findLatestPending(
+                    $adminUserId
+                );
+
+            if (is_array($pendingVerification)) {
+                $cooldownRemaining =
+                    $this->getCooldownRemainingSeconds(
+                        $pendingVerification
+                    );
+
+                if ($cooldownRemaining > 0) {
+                    $this->database->transRollback();
+
+                    return AdminPasswordResetResult::failure(
+                        sprintf(
+                            'Please wait %d second%s before requesting another OTP.',
+                            $cooldownRemaining,
+                            $cooldownRemaining === 1
+                                ? ''
+                                : 's'
+                        )
+                    );
+                }
+            }
+
+            /*
+             * DELIVERY_FAILED records do not consume daily OTP allowance,
+             * matching Member PasswordResetService.
+             */
+            $issuedCount =
+                $this->verificationModel
+                ->countDeliveredOrPendingSince(
+                    $adminUserId,
+                    $since
+                );
+
+            if (
+                $issuedCount >=
+                self::SEND_LIMIT_PER_DAY
+            ) {
+                $this->database->transRollback();
+
+                return AdminPasswordResetResult::failure(
+                    'The OTP request limit has been reached. '
+                        . 'Please try again later.'
+                );
+            }
+
+            $pendingCancelled =
                 $this->verificationModel
                 ->cancelPending(
                     $adminUserId
                 );
 
-            if (!$cancelled) {
+            if (!$pendingCancelled) {
                 throw new RuntimeException(
                     'Unable to cancel the previous password reset OTP.'
                 );
@@ -705,7 +764,7 @@ final class AdminPasswordResetService
 
             if (!is_numeric($verificationId)) {
                 throw new RuntimeException(
-                    'Unable to create the password reset OTP.'
+                    'Unable to create the administrator password reset OTP.'
                 );
             }
 
@@ -716,10 +775,8 @@ final class AdminPasswordResetService
             throw $exception;
         }
 
-        /**
-         * Use the same SmsMessage/SmsProvider abstraction as Member.
-         *
-         * The provider itself is selected by SmsProviderFactory.
+        /*
+         * Same SMS abstraction/template configuration as Member.
          */
         try {
             $smsResult =
@@ -727,7 +784,7 @@ final class AdminPasswordResetService
                     new SmsMessage(
                         mobileNumber: $mobileNumber,
 
-                        message: 'Your Sikhanandkaraj administrator password reset OTP is '
+                        message: 'Your Sikhanandkaraj password reset OTP is '
                             . $otp
                             . '. It is valid for '
                             . self::OTP_EXPIRY_MINUTES
@@ -764,7 +821,8 @@ final class AdminPasswordResetService
 
             log_message(
                 'error',
-                'Admin password reset OTP SMS failed: admin_id={adminId}, error={error}',
+                'Admin password reset OTP SMS failed: '
+                    . 'admin_id={adminId}, error={error}',
                 [
                     'adminId' =>
                     $adminUserId,
@@ -789,47 +847,27 @@ final class AdminPasswordResetService
     }
 
     /**
-     * Mark an OTP as undelivered.
-     */
-    private function markOtpDeliveryFailed(
-        int $verificationId
-    ): void {
-        if ($verificationId <= 0) {
-            return;
-        }
-
-        $this->verificationModel->update(
-            $verificationId,
-            [
-                'status' =>
-                AdminPasswordResetVerificationModel::STATUS_DELIVERY_FAILED,
-            ]
-        );
-    }
-
-    /**
-     * Find an administrator using the existing AdminUserModel lookup.
+     * Find administrator by registered email/mobile.
      *
-     * AdminUserModel already handles the email/mobile lookup and
-     * CodeIgniter's soft-delete behavior.
+     * This deliberately follows Member identifier normalization:
+     *
+     * - email -> trim + lowercase
+     * - mobile -> IndianMobileNormalizer
+     *
+     * AdminUserModel remains the canonical Admin lookup.
      *
      * @return array<string, mixed>|null
      */
     private function findAdminByIdentifier(
         string $identifier
     ): ?array {
-        $identifier = trim($identifier);
+        $identifier =
+            trim($identifier);
 
         if ($identifier === '') {
             return null;
         }
 
-        /*
-     * Email lookup.
-     *
-     * AdminUserModel::findByIdentifier() expects the actual
-     * email_address value stored in admin_users.
-     */
         if (
             filter_var(
                 $identifier,
@@ -838,57 +876,117 @@ final class AdminPasswordResetService
         ) {
             return $this->adminModel
                 ->findByIdentifier(
-                    strtolower($identifier)
+                    mb_strtolower(
+                        $identifier
+                    )
                 );
         }
 
-        /*
-     * Mobile lookup.
-     *
-     * Normalize the supplied number before passing it to the
-     * existing AdminUserModel lookup method.
-     */
-        $mobileNumber =
+        $normalizedMobile =
             IndianMobileNormalizer::normalize(
                 $identifier
             );
 
-        if ($mobileNumber === null) {
+        if ($normalizedMobile === null) {
             return null;
         }
 
         return $this->adminModel
             ->findByIdentifier(
-                $mobileNumber
+                $normalizedMobile
             );
     }
 
     /**
-     * Only verified Admin accounts may reset their passwords.
+     * Confirm the Admin remains eligible during the complete reset flow.
+     *
+     * This mirrors Member isValidResetContact().
      */
-    private function isEligible(
-        array $admin
+    private function isValidResetAdmin(
+        int $adminUserId
     ): bool {
-        return strtoupper(
-            trim(
-                (string) (
-                    $admin['account_status']
-                    ?? ''
-                )
+        if ($adminUserId <= 0) {
+            return false;
+        }
+
+        $admin =
+            $this->adminModel->find(
+                $adminUserId
+            );
+
+        if (
+            !is_array($admin)
+            || !$this->isPasswordResetAllowedForAdmin(
+                $admin
             )
-        ) === AdminUserModel::STATUS_VERIFIED;
+        ) {
+            return false;
+        }
+
+        return BooleanValue::fromDatabase(
+            $admin['is_mobile_verified']
+                ?? false
+        );
     }
 
     /**
-     * Password reset requires verified mobile.
+     * Determine whether the administrator may reset their password.
+     *
+     * Status is normalized before comparison, matching Member behaviour.
+     *
+     * @param array<string, mixed> $admin
      */
-    private function isMobileVerified(
+    private function isPasswordResetAllowedForAdmin(
         array $admin
     ): bool {
-        return filter_var(
-            $admin['is_mobile_verified'] ?? false,
-            FILTER_VALIDATE_BOOLEAN
-        );
+        $accountStatus =
+            strtoupper(
+                trim(
+                    (string) (
+                        $admin['account_status']
+                        ?? ''
+                    )
+                )
+            );
+
+        if ($accountStatus === '') {
+            return false;
+        }
+
+        return $accountStatus ===
+            AdminUserModel::STATUS_VERIFIED;
+    }
+
+    /**
+     * Prevent an undelivered OTP from remaining usable.
+     */
+    private function markOtpDeliveryFailed(
+        int $verificationId
+    ): void {
+        if ($verificationId <= 0) {
+            return;
+        }
+
+        $updated =
+            $this->verificationModel->update(
+                $verificationId,
+                [
+                    'status' =>
+                    AdminPasswordResetVerificationModel::STATUS_DELIVERY_FAILED,
+                ]
+            );
+
+        if ($updated === false) {
+            log_message(
+                'critical',
+                'Unable to mark failed Admin password reset OTP delivery: '
+                    . 'verification_id={verificationId}',
+                [
+                    'verificationId' =>
+                    $verificationId,
+                ]
+            );
+        }
     }
 
     /**
@@ -907,19 +1005,19 @@ final class AdminPasswordResetService
     }
 
     /**
-     * Parse an application timestamp.
+     * Parse database UTC timestamp.
      */
     private function parseUtcTimestamp(
-        string $timestamp
+        string $value
     ): ?int {
-        if ($timestamp === '') {
+        if ($value === '') {
             return null;
         }
 
         try {
             return (
                 new DateTimeImmutable(
-                    $timestamp,
+                    $value,
                     new DateTimeZone('UTC')
                 )
             )->getTimestamp();
@@ -929,14 +1027,63 @@ final class AdminPasswordResetService
     }
 
     /**
-     * Complete the current database transaction.
+     * Complete an active database transaction.
      */
     private function commitOrFail(): void
     {
-        if (!$this->database->transCommit()) {
+        if (
+            $this->database->transStatus() === false
+            || $this->database->transCommit() === false
+        ) {
             throw new RuntimeException(
-                'Unable to commit the password reset transaction.'
+                'Unable to commit the password-reset transaction.'
             );
         }
+    }
+
+    /**
+     * Return remaining OTP resend cooldown.
+     *
+     * @param array<string, mixed> $verification
+     */
+    private function getCooldownRemainingSeconds(
+        array $verification
+    ): int {
+        $createdAt =
+            trim(
+                (string) (
+                    $verification['created_at']
+                    ?? ''
+                )
+            );
+
+        if ($createdAt === '') {
+            return 0;
+        }
+
+        try {
+            $createdAtTimestamp =
+                (
+                    new DateTimeImmutable(
+                        $createdAt
+                    )
+                )->getTimestamp();
+        } catch (Throwable) {
+            /*
+             * Malformed historical data must not permanently
+             * block password reset.
+             */
+            return 0;
+        }
+
+        $resendAllowedAt =
+            $createdAtTimestamp
+            + self::OTP_RESEND_COOLDOWN_SECONDS;
+
+        return max(
+            0,
+            $resendAllowedAt
+                - time()
+        );
     }
 }

@@ -7,11 +7,11 @@ namespace App\Models;
 use CodeIgniter\Model;
 
 /**
- * Stores OTP verification records for administrator password reset.
+ * Stores administrator password-reset OTP records.
  *
- * Admin authentication is intentionally isolated from the Member
- * contact_verifications workflow because administrators are stored
- * directly in admin_users.
+ * Administrators do not use user_contacts, therefore this table remains
+ * separate from the Member contact_verifications table while following
+ * the same OTP lifecycle.
  */
 final class AdminPasswordResetVerificationModel extends Model
 {
@@ -146,9 +146,13 @@ final class AdminPasswordResetVerificationModel extends Model
     }
 
     /**
-     * Count OTPs issued during the supplied period.
+     * Count OTPs which were delivered or may still be usable.
+     *
+     * DELIVERY_FAILED records are intentionally excluded, matching
+     * the Member password-reset implementation. Provider failures
+     * must not exhaust the administrator's daily OTP allowance.
      */
-    public function countIssuedSince(
+    public function countDeliveredOrPendingSince(
         int $adminUserId,
         string $since
     ): int {
@@ -161,11 +165,20 @@ final class AdminPasswordResetVerificationModel extends Model
                 'created_at >=',
                 $since
             )
+            ->whereIn(
+                'status',
+                [
+                    self::STATUS_PENDING,
+                    self::STATUS_VERIFIED,
+                    self::STATUS_EXPIRED,
+                    self::STATUS_CANCELLED,
+                ]
+            )
             ->countAllResults();
     }
 
     /**
-     * Increment incorrect OTP attempt count.
+     * Increment incorrect verification attempts atomically.
      */
     public function incrementAttemptCount(
         int $verificationId
@@ -184,7 +197,22 @@ final class AdminPasswordResetVerificationModel extends Model
     }
 
     /**
-     * Lock a verified OTP inside a database transaction.
+     * Mark an OTP as expired.
+     */
+    public function markExpired(
+        int $verificationId
+    ): bool {
+        return $this->update(
+            $verificationId,
+            [
+                'status' =>
+                self::STATUS_EXPIRED,
+            ]
+        );
+    }
+
+    /**
+     * Lock a verified OTP inside an active transaction.
      *
      * @return array<string, mixed>|null
      */
