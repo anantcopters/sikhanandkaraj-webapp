@@ -11,6 +11,10 @@ declare(strict_types=1);
  * @var string|null $loggedInUserName
  * @var string|null $primaryMobile
  * @var bool        $isMobileVerified
+ * @var string|null $primaryEmail
+ * @var bool        $isEmailVerified
+ * @var bool        $isAadhaarVerified
+ * @var bool        $isSelfieVerified
  *
  * Dashboard-specific variables.
  *
@@ -148,6 +152,51 @@ $preferenceBadgeClass =
     $preferencesComplete
     ? 'bg-success-subtle text-success'
     : 'bg-primary-subtle text-primary';
+
+/*
+ * Resolve visibility presentation once for both incomplete and
+ * complete profile states.
+ */
+$visibilityLabel = '';
+$visibilityClass = 'danger';
+
+if (
+    isset($overallProfileSummary)
+    && is_array($overallProfileSummary)
+) {
+    $visibilityLabel = trim(
+        (string) (
+            $overallProfileSummary['visibilityLabel']
+            ?? ''
+        )
+    );
+
+    $visibilityClass = trim(
+        (string) (
+            $overallProfileSummary['visibilityClass']
+            ?? 'danger'
+        )
+    );
+
+    $supportedVisibilityClasses = [
+        'success',
+        'warning',
+        'danger',
+    ];
+
+    if (
+        !in_array(
+            $visibilityClass,
+            $supportedVisibilityClasses,
+            true
+        )
+    ) {
+        $visibilityClass = 'danger';
+    }
+}
+
+$isProfileComplete =
+    $completionPercentage >= 100;
 
 /*
  * Combine the separate service datasets into presentation sections.
@@ -324,43 +373,366 @@ $matchSections = [
                             </p>
 
                             <div class="border-top pt-3 text-start">
+
+                                <!-- =====================================================
+         Mobile verification
+         ===================================================== -->
                                 <div
-                                    class="d-flex align-items-center justify-content-between gap-3 mb-2">
+                                    class="d-flex
+            align-items-center
+            justify-content-between
+            gap-3
+            pb-2
+            mb-2
+            border-bottom">
 
                                     <span
-                                        class="d-flex align-items-center gap-2">
+                                        class="d-flex
+                align-items-center
+                gap-2
+                min-w-0">
 
                                         <i
-                                            class="ri-smartphone-line fs-18"
+                                            class="ri-smartphone-line
+                    fs-18
+                    text-primary
+                    flex-shrink-0"
                                             aria-hidden="true">
                                         </i>
 
-                                        <span><?php if (
-                                                    is_string($primaryMobile)
-                                                    && $primaryMobile !== ''
-                                                ): ?>
-                                                <p class="mb-0 fw-medium">
+                                        <span class="min-w-0">
+
+                                            <span
+                                                class="d-block
+                        fs-12
+                        text-muted">
+
+                                                Mobile
+                                            </span>
+
+                                            <?php if (
+                                                is_string($primaryMobile)
+                                                && $primaryMobile !== ''
+                                            ): ?>
+
+                                                <span
+                                                    class="d-block
+                            fw-medium
+                            text-truncate">
+
                                                     <?= esc($primaryMobile) ?>
-                                                </p>
+
+                                                </span>
+
+                                            <?php else: ?>
+
+                                                <span
+                                                    class="d-block
+                            text-muted
+                            fs-13">
+
+                                                    Not added
+
+                                                </span>
+
                                             <?php endif; ?>
+
                                         </span>
+
                                     </span>
 
                                     <?php if ($isMobileVerified): ?>
+
                                         <span
-                                            class="badge bg-success-subtle text-body p-2">
+                                            class="badge
+                    bg-success-subtle
+                    text-success
+                    fs-11
+                    p-2
+                    flex-shrink-0">
+
+
 
                                             Verified
+
                                         </span>
+
                                     <?php else: ?>
+
                                         <span
-                                            class="badge bg-warning-subtle text-body p-2">
+                                            class="badge
+                    bg-warning-subtle
+                    text-warning
+                    fs-11
+                    p-2
+                    flex-shrink-0">
+
+
 
                                             Pending
+
                                         </span>
+
                                     <?php endif; ?>
+
                                 </div>
 
+
+                                <!-- =====================================================
+         Email verification
+         ===================================================== -->
+                                <div
+                                    class="d-flex
+            align-items-center
+            justify-content-between
+            gap-3
+            pb-2
+            mb-2
+            border-bottom">
+
+                                    <span
+                                        class="d-flex
+                align-items-center
+                gap-2
+                min-w-0">
+
+                                        <i
+                                            class="ri-mail-line
+                    fs-18
+                    text-info
+                    flex-shrink-0"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        <span class="min-w-0">
+
+                                            <span
+                                                class="d-block
+                        fs-12
+                        text-muted">
+
+                                                Email
+
+                                            </span>
+
+                                            <?php if (
+                                                is_string($primaryEmail)
+                                                && $primaryEmail !== ''
+                                            ): ?>
+
+                                                <span
+                                                    class="d-block
+                            fw-medium
+                            text-truncate"
+                                                    title="<?= esc(
+                                                                $primaryEmail,
+                                                                'attr'
+                                                            ) ?>">
+
+                                                    <?= esc($primaryEmail) ?>
+
+                                                </span>
+
+                                            <?php else: ?>
+
+                                                <span
+                                                    class="d-block
+                            text-muted
+                            fs-13">
+
+                                                    Not added
+
+                                                </span>
+
+                                            <?php endif; ?>
+
+                                        </span>
+
+                                    </span>
+
+                                    <?php if (
+                                        is_string($primaryEmail)
+                                        && $primaryEmail !== ''
+                                    ): ?>
+
+                                        <?php if ($isEmailVerified): ?>
+
+                                            <span
+                                                class="badge
+                        bg-success-subtle
+                        text-success
+                        fs-11
+                        p-2
+                        flex-shrink-0">
+
+
+
+                                                Verified
+
+                                            </span>
+
+                                        <?php else: ?>
+
+                                            <span
+                                                class="badge
+                        bg-warning-subtle
+                        text-warning
+                        fs-11
+                        p-2
+                        flex-shrink-0">
+
+
+
+                                                Pending
+
+                                            </span>
+
+                                        <?php endif; ?>
+
+                                    <?php else: ?>
+
+                                        <span
+                                            class="badge
+                    bg-secondary-subtle
+                    text-body-secondary
+                    fs-11
+                    p-2
+                    flex-shrink-0">
+
+                                            Not added
+
+                                        </span>
+
+                                    <?php endif; ?>
+
+                                </div>
+
+
+                                <!-- =====================================================
+         Aadhaar verification
+         ===================================================== -->
+                                <div
+                                    class="d-flex
+            align-items-center
+            justify-content-between
+            gap-3
+            pb-2
+            mb-2
+            border-bottom">
+
+                                    <span
+                                        class="d-flex
+                align-items-center
+                gap-2">
+
+                                        <i
+                                            class="ri-fingerprint-line
+                    fs-18
+                    text-warning"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        <span class="fw-medium">
+                                            Aadhaar
+                                        </span>
+
+                                    </span>
+
+                                    <?php if ($isAadhaarVerified): ?>
+
+                                        <span
+                                            class="badge
+                    bg-success-subtle
+                    text-success
+                    fs-11
+                    p-2">
+
+
+
+                                            Verified
+
+                                        </span>
+
+                                    <?php else: ?>
+
+                                        <span
+                                            class="badge
+                    bg-warning-subtle
+                    text-warning
+                    fs-11
+                    p-2">
+
+
+
+                                            Pending
+
+                                        </span>
+
+                                    <?php endif; ?>
+
+                                </div>
+
+
+                                <!-- =====================================================
+         Selfie verification
+         ===================================================== -->
+                                <div
+                                    class="d-flex
+            align-items-center
+            justify-content-between
+            gap-3
+            pb-2">
+
+                                    <span
+                                        class="d-flex
+                align-items-center
+                gap-2">
+
+                                        <i
+                                            class="ri-camera-lens-line
+                    fs-18
+                    text-danger"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        <span class="fw-medium">
+                                            Selfie
+                                        </span>
+
+                                    </span>
+
+                                    <?php if ($isSelfieVerified): ?>
+
+                                        <span
+                                            class="badge
+                    bg-success-subtle
+                    text-success
+                    fs-11
+                    p-2">
+
+
+
+                                            Verified
+
+                                        </span>
+
+                                    <?php else: ?>
+
+                                        <span
+                                            class="badge
+                    bg-warning-subtle
+                    text-warning
+                    fs-11
+                    p-2">
+
+
+                                            Pending
+
+                                        </span>
+
+                                    <?php endif; ?>
+
+                                </div>
 
                             </div>
                         </div>
@@ -371,14 +743,55 @@ $matchSections = [
 
                             <a
                                 href="<?= url_to('web.profile.edit') ?>"
-                                class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-3">
+                                class="list-group-item
+        list-group-item-action
+        d-flex
+        align-items-center
+        justify-content-between
+        gap-3
+        py-3">
 
-                                <i
-                                    class="ri-user-settings-line fs-18"
-                                    aria-hidden="true">
-                                </i>
+                                <span
+                                    class="d-flex
+            align-items-center
+            gap-2">
 
-                                <span>Edit Profile</span>
+                                    <i
+                                        class="ri-user-settings-line fs-18"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <span>
+                                        Edit Profile
+                                    </span>
+
+                                </span>
+
+                                <span
+                                    class="badge
+            bg-<?= esc(
+                $visibilityClass,
+                'attr'
+            ) ?>-subtle
+            fs-11
+            p-2
+            fw-medium
+            text-black
+            text-nowrap"
+                                    data-bs-toggle="tooltip"
+                                    data-bs-placement="top"
+                                    title="<?= esc(
+                                                $completionPercentage
+                                                    . '% profile completed',
+                                                'attr'
+                                            ) ?>">
+
+                                    <?= esc(
+                                        (string) $completionPercentage
+                                    ) ?>% complete
+
+                                </span>
+
                             </a>
 
                             <a
@@ -449,9 +862,9 @@ $matchSections = [
                                             (string)
                                             $preferencesConfigured
                                         ) ?>/<?= esc(
-                                        (string)
-                                        $preferencesAvailable
-                                    ) ?> set
+                                                    (string)
+                                                    $preferencesAvailable
+                                                ) ?> set
 
                                     </span>
 
@@ -480,50 +893,7 @@ $matchSections = [
             <div class="col-12 col-lg-8 col-xl-9">
 
                 <?php
-                /*
- * Resolve visibility presentation once for both incomplete and
- * complete profile states.
- */
-                $visibilityLabel = '';
-                $visibilityClass = 'danger';
 
-                if (
-                    isset($overallProfileSummary)
-                    && is_array($overallProfileSummary)
-                ) {
-                    $visibilityLabel = trim(
-                        (string) (
-                            $overallProfileSummary['visibilityLabel']
-                            ?? ''
-                        )
-                    );
-
-                    $visibilityClass = trim(
-                        (string) (
-                            $overallProfileSummary['visibilityClass']
-                            ?? 'danger'
-                        )
-                    );
-
-                    $supportedVisibilityClasses = [
-                        'success',
-                        'warning',
-                        'danger',
-                    ];
-
-                    if (
-                        !in_array(
-                            $visibilityClass,
-                            $supportedVisibilityClasses,
-                            true
-                        )
-                    ) {
-                        $visibilityClass = 'danger';
-                    }
-                }
-
-                $isProfileComplete =
-                    $completionPercentage >= 100;
                 ?>
 
                 <section
