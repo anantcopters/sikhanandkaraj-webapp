@@ -1121,11 +1121,11 @@ $routes->group('admin', [
     );
 
     /*
- * Administrator password reset.
- *
- * These routes intentionally remain outside adminAuth because
- * the administrator is not authenticated while resetting a password.
- */
+    * Administrator Forgot Password
+    *
+    * These routes must remain publicly accessible because the
+    * administrator is not authenticated during password recovery.
+    */
     $routes->group(
         'admin/forgot-password',
         [
@@ -1133,7 +1133,7 @@ $routes->group('admin', [
             'App\Controllers\Admin',
         ],
         static function (
-            RouteCollection $routes
+            $routes
         ): void {
 
             $routes->get(

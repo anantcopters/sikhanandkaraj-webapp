@@ -6,7 +6,6 @@ declare(strict_types=1);
  * @var string|null                $pageTitle
  * @var array<string, string>|null $validationErrors
  * @var array<string, string>|null $formAlert
- * @var string|null                $adminLoginUrl
  */
 
 $pageTitle =
@@ -25,23 +24,6 @@ $formAlert =
     && is_array($formAlert)
     ? $formAlert
     : null;
-
-$adminLoginUrl =
-    isset($adminLoginUrl)
-    ? (string) $adminLoginUrl
-    : route_to('admin.login');
-
-$identifier =
-    trim(
-        (string) old('identifier')
-    );
-
-$identifierError =
-    isset(
-        $validationErrors['identifier']
-    )
-    ? (string) $validationErrors['identifier']
-    : '';
 
 $this->extend(
     'Admin/Layouts/Main'
@@ -69,12 +51,7 @@ $this->section(
                         col-lg-6
                         col-xl-5">
 
-                    <div
-                        class="card
-                            border
-                            border-danger
-                            border-opacity-25
-                            mb-0">
+                    <div class="card mb-0">
 
                         <div class="card-body p-4">
 
@@ -138,8 +115,8 @@ $this->section(
                                     <div class="mb-4">
 
                                         <label
-                                            class="form-label"
-                                            for="adminForgotIdentifier">
+                                            for="adminForgotIdentifier"
+                                            class="form-label">
 
                                             Email or Mobile Number
 
@@ -147,29 +124,39 @@ $this->section(
 
                                         <input
                                             type="text"
-                                            class="form-control
-                                                <?= $identifierError !== ''
-                                                    ? 'is-invalid'
-                                                    : '' ?>"
                                             id="adminForgotIdentifier"
                                             name="identifier"
+                                            class="form-control
+                                                <?= isset(
+                                                    $validationErrors['identifier']
+                                                )
+                                                    ? 'is-invalid'
+                                                    : '' ?>"
                                             value="<?= esc(
-                                                        $identifier,
+                                                        old('identifier'),
                                                         'attr'
                                                     ) ?>"
-                                            placeholder="Email or mobile number"
                                             maxlength="254"
                                             autocomplete="username"
+                                            placeholder="Email or mobile number"
                                             required>
 
-                                        <div
-                                            class="invalid-feedback">
+                                        <?php if (
+                                            isset(
+                                                $validationErrors['identifier']
+                                            )
+                                        ): ?>
 
-                                            <?= esc(
-                                                $identifierError
-                                            ) ?>
+                                            <div
+                                                class="invalid-feedback">
 
-                                        </div>
+                                                <?= esc(
+                                                    $validationErrors['identifier']
+                                                ) ?>
+
+                                            </div>
+
+                                        <?php endif; ?>
 
                                     </div>
 
@@ -191,16 +178,13 @@ $this->section(
                                                 aria-hidden="true">
                                             </i>
 
-                                            <p
-                                                class="mb-0
-                                                    fs-13
-                                                    text-muted">
+                                            <div class="fs-13 text-muted">
 
                                                 The OTP will be sent only
                                                 to your verified primary
                                                 mobile number.
 
-                                            </p>
+                                            </div>
 
                                         </div>
 
@@ -251,7 +235,9 @@ $this->section(
 
                                         <a
                                             href="<?= esc(
-                                                        $adminLoginUrl,
+                                                        route_to(
+                                                            'admin.login'
+                                                        ),
                                                         'attr'
                                                     ) ?>"
                                             class="fw-semibold
@@ -271,23 +257,6 @@ $this->section(
                         </div>
 
                     </div>
-
-                    <p
-                        class="text-center
-                            text-muted
-                            mt-4
-                            mb-0">
-
-                        <i
-                            class="ri-shield-check-line
-                                text-danger
-                                me-1"
-                            aria-hidden="true">
-                        </i>
-
-                        Administrator password reset is securely protected.
-
-                    </p>
 
                 </div>
 

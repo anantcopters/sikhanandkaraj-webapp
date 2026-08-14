@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Admin\Authentication;
 
 /**
- * Immutable result object returned by the Admin password-reset service.
+ * Result object for administrator password-reset operations.
  */
 final readonly class AdminPasswordResetResult
 {
@@ -16,7 +16,8 @@ final readonly class AdminPasswordResetResult
         public bool $successful,
         public string $message,
         public ?int $adminUserId = null,
-        public ?array $admin = null
+        public ?array $admin = null,
+        public ?int $expiresAtTimestamp = null
     ) {}
 
     /**
@@ -27,13 +28,15 @@ final readonly class AdminPasswordResetResult
     public static function success(
         string $message,
         ?int $adminUserId = null,
-        ?array $admin = null
+        ?array $admin = null,
+        ?int $expiresAtTimestamp = null
     ): self {
         return new self(
             true,
             $message,
             $adminUserId,
-            $admin
+            $admin,
+            $expiresAtTimestamp
         );
     }
 

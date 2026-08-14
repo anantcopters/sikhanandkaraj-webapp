@@ -12,17 +12,17 @@ use CodeIgniter\HTTP\RedirectResponse;
 use Throwable;
 
 /**
- * Handles the administrator forgot-password workflow.
+ * Administrator forgot-password controller.
  *
  * Flow:
  *
- * 1. Admin submits registered email/mobile.
+ * 1. Admin enters registered email/mobile.
  * 2. OTP is sent to verified mobile.
  * 3. Admin verifies OTP.
- * 4. Admin creates a new password.
- * 5. Admin returns to Admin Login.
+ * 4. Admin sets a new password.
+ * 5. Admin returns to login.
  *
- * This controller does not authenticate the administrator.
+ * No admin authentication filter is applied to these routes.
  */
 final class AdminForgotPasswordController
 extends BaseController
@@ -64,11 +64,6 @@ extends BaseController
                 'formAlert' =>
                 $this->readFormAlert(),
 
-                'adminLoginUrl' =>
-                route_to(
-                    'admin.login'
-                ),
-
                 'pageScripts' => [
                     'assets/js/components/submit-loader.js',
                 ],
@@ -77,7 +72,7 @@ extends BaseController
     }
 
     /**
-     * Resolve the administrator and send OTP.
+     * Resolve Admin and send OTP.
      */
     public function sendOtp(): RedirectResponse
     {
@@ -89,43 +84,16 @@ extends BaseController
                     )
             );
 
-        $validation =
-            service(
-                'validation'
-            );
-
-        $validation->setRules([
-            'identifier' => [
-                'label' =>
-                'Email or Mobile Number',
-
-                'rules' => [
-                    'required',
-                    'max_length[254]',
-                ],
-
-                'errors' => [
-                    'required' =>
-                    'Please enter your registered email address or mobile number.',
-
-                    'max_length' =>
-                    'The identifier is too long.',
-                ],
-            ],
-        ]);
-
-        if (
-            !$validation->run([
-                'identifier' =>
-                $identifier,
-            ])
-        ) {
+        if ($identifier === '') {
             return redirect()
                 ->back()
                 ->withInput()
                 ->with(
                     'validationErrors',
-                    $validation->getErrors()
+                    [
+                        'identifier' =>
+                        'Please enter your registered email address or mobile number.',
+                    ]
                 );
         }
 
@@ -164,13 +132,14 @@ extends BaseController
                 $result->adminUserId === null
             ) {
                 throw new \RuntimeException(
-                    'Password reset service did not return an administrator ID.'
+                    'Admin password reset service did not return an administrator ID.'
                 );
             }
 
-            session()->regenerate(
-                true
-            );
+            /**
+             * Regenerate before storing temporary sensitive reset state.
+             */
+            session()->regenerate(true);
 
             session()->set([
                 self::SESSION_ADMIN_ID =>
@@ -209,7 +178,7 @@ extends BaseController
         } catch (Throwable $exception) {
             log_message(
                 'error',
-                'Administrator password reset OTP request failed: {message}',
+                'Admin password reset OTP request failed: {message}',
                 [
                     'message' =>
                     $exception->getMessage(),
@@ -236,12 +205,14 @@ extends BaseController
     }
 
     /**
-     * Display the reusable OTP verification screen.
+     * Display OTP verification page.
      */
     public function verifyPage(): string|RedirectResponse
     {
+        $this->preventPageCaching();
+
         $adminUserId =
-            $this->pendingAdminUserId();
+            $this->getPendingAdminId();
 
         if ($adminUserId === null) {
             return $this->redirectToForgotPassword();
@@ -270,7 +241,7 @@ extends BaseController
                 'Pages/Registration/VerifyOtp',
                 [
                     'pageTitle' =>
-                    'Verify Administrator OTP',
+                    'Verify OTP',
 
                     'heading' =>
                     'Verify password reset OTP',
@@ -280,9 +251,6 @@ extends BaseController
 
                     'profileReference' =>
                     null,
-
-                    'hidePublicLoginAction' =>
-                    true,
 
                     'expiresAtTimestamp' =>
                     $service->getPendingExpiryTimestamp(
@@ -325,7 +293,7 @@ extends BaseController
         } catch (Throwable $exception) {
             log_message(
                 'error',
-                'Unable to display administrator password reset OTP page: {message}',
+                'Admin password reset OTP page failed: {message}',
                 [
                     'message' =>
                     $exception->getMessage(),
@@ -352,12 +320,12 @@ extends BaseController
     }
 
     /**
-     * Verify submitted OTP.
+     * Verify the submitted OTP.
      */
     public function verifyOtp(): RedirectResponse
     {
         $adminUserId =
-            $this->pendingAdminUserId();
+            $this->getPendingAdminId();
 
         if ($adminUserId === null) {
             return $this->redirectToForgotPassword();
@@ -399,6 +367,7 @@ extends BaseController
             if (!$result->successful) {
                 return redirect()
                     ->back()
+                    ->withInput()
                     ->with(
                         'formAlert',
                         [
@@ -414,9 +383,10 @@ extends BaseController
                     );
             }
 
-            session()->regenerate(
-                true
-            );
+            /**
+             * Regenerate after OTP verification.
+             */
+            session()->regenerate(true);
 
             session()->set([
                 self::SESSION_OTP_VERIFIED =>
@@ -448,7 +418,7 @@ extends BaseController
         } catch (Throwable $exception) {
             log_message(
                 'error',
-                'Administrator password reset OTP verification failed: {message}',
+                'Admin password reset OTP verification failed: {message}',
                 [
                     'message' =>
                     $exception->getMessage(),
@@ -479,22 +449,10 @@ extends BaseController
     public function resendOtp(): RedirectResponse
     {
         $adminUserId =
-            $this->pendingAdminUserId();
+            $this->getPendingAdminId();
 
         if ($adminUserId === null) {
             return $this->redirectToForgotPassword();
-        }
-
-        if (
-            session(
-                self::SESSION_OTP_VERIFIED
-            ) === true
-        ) {
-            return redirect()->to(
-                route_to(
-                    'admin.forgot-password.password'
-                )
-            );
         }
 
         try {
@@ -575,7 +533,7 @@ extends BaseController
         } catch (Throwable $exception) {
             log_message(
                 'error',
-                'Administrator password reset OTP resend failed: {message}',
+                'Admin password reset OTP resend failed: {message}',
                 [
                     'message' =>
                     $exception->getMessage(),
@@ -601,14 +559,14 @@ extends BaseController
     }
 
     /**
-     * Display the new-password page.
+     * Display the new password page.
      */
     public function passwordPage(): string|RedirectResponse
     {
         $this->preventPageCaching();
 
         $adminUserId =
-            $this->pendingAdminUserId();
+            $this->getPendingAdminId();
 
         if (
             $adminUserId === null
@@ -640,12 +598,12 @@ extends BaseController
     }
 
     /**
-     * Validate and replace the password.
+     * Validate and save the new password.
      */
     public function updatePassword(): RedirectResponse
     {
         $adminUserId =
-            $this->pendingAdminUserId();
+            $this->getPendingAdminId();
 
         if (
             $adminUserId === null
@@ -656,19 +614,62 @@ extends BaseController
             return $this->redirectToForgotPassword();
         }
 
+        $password =
+            (string) $this->request
+                ->getPost(
+                    'password'
+                );
+
+        $passwordConfirmation =
+            (string) $this->request
+                ->getPost(
+                    'password_confirmation'
+                );
+
         $validation =
             service(
                 'validation'
             );
 
-        $validation->setRules(
-            PasswordValidation::passwordRules()
-        );
+        $validation->setRules([
+            'password' => [
+                'label' =>
+                'Password',
+
+                'rules' =>
+                PasswordValidation::passwordRules()['password']['rules'],
+
+                'errors' => [
+                    'required' =>
+                    'Please enter a password.',
+                ],
+            ],
+
+            'password_confirmation' => [
+                'label' =>
+                'Confirm Password',
+
+                'rules' =>
+                'required|matches[password]',
+
+                'errors' => [
+                    'required' =>
+                    'Please confirm your password.',
+
+                    'matches' =>
+                    'The passwords do not match.',
+                ],
+            ],
+        ]);
 
         if (
-            !$validation->run(
-                $this->request->getPost()
-            )
+            !$validation->run([
+                'password' =>
+                $password,
+
+                'password_confirmation' =>
+                $passwordConfirmation,
+            ])
         ) {
             return redirect()
                 ->back()
@@ -718,10 +719,7 @@ extends BaseController
             $result =
                 $service->resetPassword(
                     $adminUserId,
-                    (string) $this->request
-                        ->getPost(
-                            'password'
-                        )
+                    $password
                 );
 
             if (!$result->successful) {
@@ -767,7 +765,7 @@ extends BaseController
         } catch (Throwable $exception) {
             log_message(
                 'error',
-                'Administrator password update failed: {message}',
+                'Admin password update failed: {message}',
                 [
                     'message' =>
                     $exception->getMessage(),
@@ -793,7 +791,7 @@ extends BaseController
     }
 
     /**
-     * Cancel the reset process.
+     * Cancel password reset.
      */
     public function cancel(): RedirectResponse
     {
@@ -807,37 +805,9 @@ extends BaseController
     }
 
     /**
-     * Read and normalize the OTP fields.
+     * Read the pending Admin reset session.
      */
-    private function readOtp(): string
-    {
-        return implode(
-            '',
-            [
-                trim(
-                    (string) $this->request
-                        ->getPost('otp_1')
-                ),
-                trim(
-                    (string) $this->request
-                        ->getPost('otp_2')
-                ),
-                trim(
-                    (string) $this->request
-                        ->getPost('otp_3')
-                ),
-                trim(
-                    (string) $this->request
-                        ->getPost('otp_4')
-                ),
-            ]
-        );
-    }
-
-    /**
-     * Read the pending Admin ID from the reset session.
-     */
-    private function pendingAdminUserId(): ?int
+    private function getPendingAdminId(): ?int
     {
         $adminUserId =
             session(
@@ -865,7 +835,35 @@ extends BaseController
     }
 
     /**
-     * Redirect to the Admin forgot-password page.
+     * Combine the four OTP input fields.
+     */
+    private function readOtp(): string
+    {
+        return implode(
+            '',
+            [
+                trim(
+                    (string) $this->request
+                        ->getPost('otp_1')
+                ),
+                trim(
+                    (string) $this->request
+                        ->getPost('otp_2')
+                ),
+                trim(
+                    (string) $this->request
+                        ->getPost('otp_3')
+                ),
+                trim(
+                    (string) $this->request
+                        ->getPost('otp_4')
+                ),
+            ]
+        );
+    }
+
+    /**
+     * Redirect to Admin forgot password.
      */
     private function redirectToForgotPassword(): RedirectResponse
     {
@@ -877,7 +875,7 @@ extends BaseController
     }
 
     /**
-     * Clear all temporary password-reset session state.
+     * Remove all temporary reset state.
      */
     private function clearResetSession(): void
     {

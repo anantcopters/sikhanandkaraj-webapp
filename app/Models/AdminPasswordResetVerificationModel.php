@@ -7,12 +7,11 @@ namespace App\Models;
 use CodeIgniter\Model;
 
 /**
- * Handles OTP verification records used exclusively by
- * the administrator password-reset workflow.
+ * Stores OTP verification records for administrator password reset.
  *
- * This model intentionally remains separate from the member
- * contact_verifications table because administrators are stored
- * in admin_users and do not use user_contacts.
+ * Admin authentication is intentionally isolated from the Member
+ * contact_verifications workflow because administrators are stored
+ * directly in admin_users.
  */
 final class AdminPasswordResetVerificationModel extends Model
 {
@@ -69,7 +68,7 @@ final class AdminPasswordResetVerificationModel extends Model
     true;
 
     /**
-     * Find the latest pending OTP for an administrator.
+     * Find the latest pending password-reset OTP.
      *
      * @return array<string, mixed>|null
      */
@@ -97,96 +96,7 @@ final class AdminPasswordResetVerificationModel extends Model
     }
 
     /**
-     * Cancel existing pending OTPs.
-     */
-    public function cancelPending(
-        int $adminUserId
-    ): bool {
-        return $this
-            ->where(
-                'admin_user_id',
-                $adminUserId
-            )
-            ->where(
-                'status',
-                self::STATUS_PENDING
-            )
-            ->set([
-                'status' =>
-                self::STATUS_CANCELLED,
-            ])
-            ->update();
-    }
-
-    /**
-     * Count OTPs issued during a rolling period.
-     */
-    public function countIssuedSince(
-        int $adminUserId,
-        string $since
-    ): int {
-        return $this
-            ->where(
-                'admin_user_id',
-                $adminUserId
-            )
-            ->where(
-                'created_at >=',
-                $since
-            )
-            ->countAllResults();
-    }
-
-    /**
-     * Find the oldest OTP in the supplied period.
-     *
-     * @return array<string, mixed>|null
-     */
-    public function findOldestIssuedSince(
-        int $adminUserId,
-        string $since
-    ): ?array {
-        $record = $this
-            ->where(
-                'admin_user_id',
-                $adminUserId
-            )
-            ->where(
-                'created_at >=',
-                $since
-            )
-            ->orderBy(
-                'created_at',
-                'ASC'
-            )
-            ->first();
-
-        return is_array($record)
-            ? $record
-            : null;
-    }
-
-    /**
-     * Atomically increment incorrect OTP attempts.
-     */
-    public function incrementAttemptCount(
-        int $verificationId
-    ): bool {
-        return $this
-            ->where(
-                'id',
-                $verificationId
-            )
-            ->set(
-                'attempt_count',
-                'attempt_count + 1',
-                false
-            )
-            ->update();
-    }
-
-    /**
-     * Find the most recent verified OTP.
+     * Find the latest verified password-reset OTP.
      *
      * @return array<string, mixed>|null
      */
@@ -214,7 +124,67 @@ final class AdminPasswordResetVerificationModel extends Model
     }
 
     /**
-     * Lock a verified OTP inside a transaction.
+     * Cancel all pending OTPs for an administrator.
+     */
+    public function cancelPending(
+        int $adminUserId
+    ): bool {
+        return $this
+            ->where(
+                'admin_user_id',
+                $adminUserId
+            )
+            ->where(
+                'status',
+                self::STATUS_PENDING
+            )
+            ->set([
+                'status' =>
+                self::STATUS_CANCELLED,
+            ])
+            ->update();
+    }
+
+    /**
+     * Count OTPs issued during the supplied period.
+     */
+    public function countIssuedSince(
+        int $adminUserId,
+        string $since
+    ): int {
+        return $this
+            ->where(
+                'admin_user_id',
+                $adminUserId
+            )
+            ->where(
+                'created_at >=',
+                $since
+            )
+            ->countAllResults();
+    }
+
+    /**
+     * Increment incorrect OTP attempt count.
+     */
+    public function incrementAttemptCount(
+        int $verificationId
+    ): bool {
+        return $this
+            ->where(
+                'id',
+                $verificationId
+            )
+            ->set(
+                'attempt_count',
+                'attempt_count + 1',
+                false
+            )
+            ->update();
+    }
+
+    /**
+     * Lock a verified OTP inside a database transaction.
      *
      * @return array<string, mixed>|null
      */

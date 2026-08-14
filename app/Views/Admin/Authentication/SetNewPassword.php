@@ -51,12 +51,7 @@ $this->section(
                         col-lg-6
                         col-xl-5">
 
-                    <div
-                        class="card
-                            border
-                            border-danger
-                            border-opacity-25
-                            mb-0">
+                    <div class="card mb-0">
 
                         <div class="card-body p-4">
 
@@ -120,15 +115,14 @@ $this->section(
                                     <div class="mb-3">
 
                                         <label
-                                            class="form-label"
-                                            for="adminNewPassword">
+                                            for="adminNewPassword"
+                                            class="form-label">
 
                                             New Password
 
                                         </label>
 
-                                        <div
-                                            class="password-field">
+                                        <div class="password-field">
 
                                             <input
                                                 type="password"
@@ -141,8 +135,8 @@ $this->section(
                                                     )
                                                         ? 'is-invalid'
                                                         : '' ?>"
-                                                maxlength="128"
                                                 autocomplete="new-password"
+                                                maxlength="128"
                                                 required>
 
                                             <button
@@ -161,31 +155,37 @@ $this->section(
 
                                         </div>
 
-                                        <div
-                                            class="invalid-feedback
-                                                d-block">
-
-                                            <?= esc(
+                                        <?php if (
+                                            isset(
                                                 $validationErrors['password']
-                                                    ?? ''
-                                            ) ?>
+                                            )
+                                        ): ?>
 
-                                        </div>
+                                            <div
+                                                class="invalid-feedback
+                                                    d-block">
+
+                                                <?= esc(
+                                                    $validationErrors['password']
+                                                ) ?>
+
+                                            </div>
+
+                                        <?php endif; ?>
 
                                     </div>
 
                                     <div class="mb-4">
 
                                         <label
-                                            class="form-label"
-                                            for="adminConfirmPassword">
+                                            for="adminConfirmPassword"
+                                            class="form-label">
 
                                             Confirm Password
 
                                         </label>
 
-                                        <div
-                                            class="password-field">
+                                        <div class="password-field">
 
                                             <input
                                                 type="password"
@@ -198,8 +198,8 @@ $this->section(
                                                     )
                                                         ? 'is-invalid'
                                                         : '' ?>"
-                                                maxlength="128"
                                                 autocomplete="new-password"
+                                                maxlength="128"
                                                 required>
 
                                             <button
@@ -218,60 +218,23 @@ $this->section(
 
                                         </div>
 
-                                        <div
-                                            class="invalid-feedback
-                                                d-block">
-
-                                            <?= esc(
+                                        <?php if (
+                                            isset(
                                                 $validationErrors['password_confirmation']
-                                                    ?? ''
-                                            ) ?>
+                                            )
+                                        ): ?>
 
-                                        </div>
+                                            <div
+                                                class="invalid-feedback
+                                                    d-block">
 
-                                    </div>
+                                                <?= esc(
+                                                    $validationErrors['password_confirmation']
+                                                ) ?>
 
-                                    <div
-                                        class="alert
-                                            alert-light
-                                            border
-                                            mb-4">
+                                            </div>
 
-                                        <p
-                                            class="mb-1
-                                                fw-semibold">
-
-                                            Password requirements
-
-                                        </p>
-
-                                        <ul
-                                            class="mb-0
-                                                ps-3
-                                                text-muted
-                                                fs-13">
-
-                                            <li>
-                                                Minimum 10 characters
-                                            </li>
-
-                                            <li>
-                                                At least one uppercase letter
-                                            </li>
-
-                                            <li>
-                                                At least one lowercase letter
-                                            </li>
-
-                                            <li>
-                                                At least one number
-                                            </li>
-
-                                            <li>
-                                                At least one special character
-                                            </li>
-
-                                        </ul>
+                                        <?php endif; ?>
 
                                     </div>
 

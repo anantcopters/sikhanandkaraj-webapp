@@ -113,6 +113,7 @@ use App\Models\FieldOfficerSubmittedProfileModel;
 use App\Services\FieldOfficer\FieldOfficerLoginService;
 use App\Services\FieldOfficer\FieldOfficerProfileService;
 use App\Services\Matchmaking\MemberProfilePresentationService;
+use App\Services\Admin\Authentication\AdminPasswordResetService;
 use App\Models\MemberShortlistModel;
 use App\Services\Admin\FieldOfficerDocumentService;
 use Config\Matchmaking;
@@ -1919,25 +1920,34 @@ final class Services extends BaseService
     }
 
     /**
-     * Administrator password-reset service.
+     * Return the administrator password-reset service.
      *
-     * Uses the existing Admin model, dedicated Admin OTP model,
-     * shared database connection and project SMS abstraction.
+     * This service deliberately uses the same SMS provider abstraction
+     * and OtpGenerator behavior as the Member password-reset flow.
      */
     public static function adminPasswordResetService(
         bool $getShared = true
-    ): \App\Services\Admin\Authentication\AdminPasswordResetService {
+    ): AdminPasswordResetService {
         if ($getShared) {
             return static::getSharedInstance(
                 'adminPasswordResetService'
             );
         }
 
-        return new \App\Services\Admin\Authentication\AdminPasswordResetService(
-            new \App\Models\AdminUserModel(),
-            new \App\Models\AdminPasswordResetVerificationModel(),
-            \Config\Database::connect(),
-            static::smsProvider()
+        $database = db_connect();
+
+        return new AdminPasswordResetService(
+            new \App\Models\AdminUserModel(
+                $database
+            ),
+
+            new \App\Models\AdminPasswordResetVerificationModel(
+                $database
+            ),
+
+            $database,
+
+            static::smsProvider(false)
         );
     }
 }
