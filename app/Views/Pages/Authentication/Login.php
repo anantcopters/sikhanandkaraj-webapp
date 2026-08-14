@@ -133,7 +133,7 @@ $this->section('content');
                                         href="<?= route_to(
                                                     'web.forgot-password'
                                                 ) ?>"
-                                        class="color-pink fs-13">
+                                        class="color-pink fs-13 form-label">
                                         Forgot password?
                                     </a>
                                 </div>

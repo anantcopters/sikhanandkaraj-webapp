@@ -678,8 +678,10 @@ $this->section('content');
                                                 <button
                                                     type="submit"
                                                     class="btn
-                                                    btn-soft-success
-                                                    btn-sm"
+    btn-soft-success
+    btn-sm"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="top"
                                                     title="Approve SAK Volunteer"
                                                     aria-label="Approve SAK Volunteer">
 
@@ -712,8 +714,10 @@ $this->section('content');
                                                 <button
                                                     type="submit"
                                                     class="btn
-                                                    btn-soft-danger
-                                                    btn-sm"
+    btn-soft-danger
+    btn-sm"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="top"
                                                     title="Reject SAK Volunteer"
                                                     aria-label="Reject SAK Volunteer">
 
@@ -723,7 +727,6 @@ $this->section('content');
                                                     </i>
 
                                                 </button>
-
                                             </form>
 
                                         <?php endif; ?>
@@ -734,8 +737,10 @@ $this->section('content');
                                                         'attr'
                                                     ) ?>"
                                             class="btn
-        btn-soft-info
-        btn-sm"
+    btn-soft-info
+    btn-sm"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
                                             title="View connected profiles"
                                             aria-label="View profiles connected with this SAK Volunteer">
 
@@ -745,14 +750,17 @@ $this->section('content');
                                             </i>
 
                                         </a>
+                                        <!-- Edit -->
                                         <a
                                             href="<?= esc(
                                                         $row['editUrl'],
                                                         'attr'
                                                     ) ?>"
                                             class="btn
-                                            btn-soft-primary
-                                            btn-sm"
+    btn-soft-primary
+    btn-sm"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
                                             title="Edit SAK Volunteer"
                                             aria-label="Edit SAK Volunteer">
 
@@ -791,11 +799,14 @@ $this->section('content');
 
                                                     <?= csrf_field() ?>
 
+                                                    <!-- Deactivate -->
                                                     <button
                                                         type="submit"
                                                         class="btn
-                                                        btn-soft-warning
-                                                        btn-sm"
+    btn-soft-warning
+    btn-sm"
+                                                        data-bs-toggle="tooltip"
+                                                        data-bs-placement="top"
                                                         title="Make inactive"
                                                         aria-label="Make SAK Volunteer inactive">
 
@@ -832,11 +843,14 @@ $this->section('content');
 
                                                     <?= csrf_field() ?>
 
+                                                    <!-- Activate -->
                                                     <button
                                                         type="submit"
                                                         class="btn
-                                                        btn-soft-success
-                                                        btn-sm"
+    btn-soft-success
+    btn-sm"
+                                                        data-bs-toggle="tooltip"
+                                                        data-bs-placement="top"
                                                         title="Make active"
                                                         aria-label="Make SAK Volunteer active">
 
@@ -851,11 +865,14 @@ $this->section('content');
 
                                             <?php else: ?>
 
+                                                <!-- UPI required -->
                                                 <button
                                                     type="button"
                                                     class="btn
-                                                    btn-soft-secondary
-                                                    btn-sm"
+    btn-soft-secondary
+    btn-sm"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="top"
                                                     title="UPI ID required"
                                                     aria-label="UPI ID required before activation"
                                                     data-bs-toggle="modal"

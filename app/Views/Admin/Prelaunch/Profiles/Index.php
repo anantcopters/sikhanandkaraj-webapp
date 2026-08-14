@@ -578,6 +578,8 @@ $this->section(
                                             btn-soft-primary
                                             btn-sm"
                                         title="Review profile"
+                                        data-bs-toggle="tooltip"
+                                        data-bs-placement="top"
                                         aria-label="<?= esc(
                                                         'Review profile '
                                                             . $fullName,

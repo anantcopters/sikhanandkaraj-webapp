@@ -71,6 +71,12 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 
     <link
         rel="stylesheet"
+        href="<?= base_url(
+                    'assets/vendor/air-datepicker/air-datepicker.css'
+                ) ?>">
+
+    <link
+        rel="stylesheet"
         href="<?= base_url('assets/css/app.css') ?>">
 
     <link
@@ -263,7 +269,19 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 
     </footer>
     <script src="<?= base_url('assets/js/jquery.js') ?>"></script>
-    <script src="<?= base_url('assets/js/bootstrap.bundle.min.js') ?>"></script>
+
+    <script
+        src="<?= base_url(
+                    'assets/js/bootstrap.bundle.min.js'
+                ) ?>">
+    </script>
+
+    <script
+        src="<?= base_url(
+                    'assets/vendor/air-datepicker/air-datepicker.js'
+                ) ?>">
+    </script>
+
     <script src="<?= base_url('assets/js/choices.min.js') ?>"></script>
 
     <script src="<?= base_url(

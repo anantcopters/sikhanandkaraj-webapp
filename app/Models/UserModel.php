@@ -50,7 +50,18 @@ final class UserModel extends Model
         'full_name',
         'password_hash',
         'account_status',
-        'last_login_at'
+
+        /*
+        * Member identity-verification state.
+        *
+        * Verification workflows will update these fields later.
+        */
+        'is_aadhaar_verified',
+        'aadhaar_verified_at',
+        'is_selfie_verified',
+        'selfie_verified_at',
+
+        'last_login_at',
     ];
 
     protected $useTimestamps = true;

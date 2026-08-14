@@ -545,6 +545,7 @@ $pageScripts = $pageScripts ?? [];
                 ) ?>">
     </script>
     <script src="<?= base_url('assets/js/components/feedback-modal.js') ?>"></script>
+    <script src="<?= base_url('assets/js/app.js') ?>"></script>
     <script
         src="<?= base_url(
                     'assets/js/components/confirmation-modal.js'

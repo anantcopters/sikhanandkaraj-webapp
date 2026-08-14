@@ -393,10 +393,15 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     /**
- * Initialize native DOB validation, formatted preview and age display.
+ * Initialize Air Datepicker for member DOB.
  *
- * The native date input always submits YYYY-MM-DD. A separate helper
- * displays the selected date as DD/MM/YYYY.
+ * UI value:
+ * DD/MM/YYYY
+ *
+ * Submitted value:
+ * YYYY-MM-DD
+ *
+ * CI4 server-side validation remains authoritative.
  *
  * @returns {void}
  */
@@ -404,6 +409,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const dateOfBirth =
             document.getElementById(
                 'date_of_birth'
+            );
+
+        const dateOfBirthDisplay =
+            document.getElementById(
+                'date_of_birth_display'
+            );
+
+        const pickerButton =
+            document.getElementById(
+                'date-of-birth-picker-button'
             );
 
         const datePreview =
@@ -427,6 +442,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 instanceof HTMLInputElement
             )
             || !(
+                dateOfBirthDisplay
+                instanceof HTMLInputElement
+            )
+            || !(
                 datePreview
                 instanceof HTMLElement
             )
@@ -447,7 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
         /**
-         * Format a Date object as YYYY-MM-DD using local values.
+         * Format local Date as YYYY-MM-DD.
          *
          * @param {Date} date
          *
@@ -481,7 +500,10 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         /**
-         * Convert YYYY-MM-DD into a real local Date without UTC shifts.
+         * Convert YYYY-MM-DD to a local Date.
+         *
+         * DOB is a calendar date and must not be converted
+         * through UTC.
          *
          * @param {string} value
          *
@@ -492,20 +514,28 @@ document.addEventListener('DOMContentLoaded', () => {
         ) => {
             const match =
                 /^(\d{4})-(\d{2})-(\d{2})$/
-                    .exec(value);
+                    .exec(
+                        value
+                    );
 
             if (!match) {
                 return null;
             }
 
             const year =
-                Number(match[1]);
+                Number(
+                    match[1]
+                );
 
             const month =
-                Number(match[2]);
+                Number(
+                    match[2]
+                );
 
             const day =
-                Number(match[3]);
+                Number(
+                    match[3]
+                );
 
             const parsedDate =
                 new Date(
@@ -528,7 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         /**
-         * Convert a Date object to DD/MM/YYYY.
+         * Format DOB for the UI.
          *
          * @param {Date} date
          *
@@ -562,7 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         /**
-         * Calculate completed years of age.
+         * Calculate completed age.
          *
          * @param {Date} birthDate
          *
@@ -597,7 +627,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         /**
-         * Return the latest DOB allowed for the minimum age.
+         * Latest DOB allowed by the minimum-age rule.
          *
          * @returns {Date}
          */
@@ -615,7 +645,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
         /**
-         * Clear DOB-specific validation.
+         * Clear visible and hidden DOB validation.
          *
          * @returns {void}
          */
@@ -624,19 +654,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 ''
             );
 
+            dateOfBirthDisplay
+                .setCustomValidity(
+                    ''
+                );
+
             dateOfBirth.classList.remove(
                 'is-invalid'
             );
+
+            dateOfBirthDisplay
+                .classList.remove(
+                    'is-invalid'
+                );
 
             dateOfBirth.removeAttribute(
                 'aria-invalid'
             );
 
+            dateOfBirthDisplay
+                .removeAttribute(
+                    'aria-invalid'
+                );
+
             if (
                 errorElement
                 instanceof HTMLElement
             ) {
-                errorElement.textContent = '';
+                errorElement.textContent =
+                    '';
 
                 errorElement.classList.remove(
                     'd-block'
@@ -645,7 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         /**
-         * Display a DOB validation error.
+         * Show DOB validation next to the visual input.
          *
          * @param {string} message
          *
@@ -658,17 +704,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 message
             );
 
+            dateOfBirthDisplay
+                .setCustomValidity(
+                    message
+                );
+
             dateOfBirth.classList.add(
                 'is-invalid'
             );
+
+            dateOfBirthDisplay
+                .classList.add(
+                    'is-invalid'
+                );
 
             dateOfBirth.setAttribute(
                 'aria-invalid',
                 'true'
             );
 
-            datePreview.textContent = '';
-            agePreview.textContent = '';
+            dateOfBirthDisplay
+                .setAttribute(
+                    'aria-invalid',
+                    'true'
+                );
+
+            datePreview.textContent =
+                '';
+
+            agePreview.textContent =
+                '';
 
             if (
                 errorElement
@@ -684,7 +749,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         /**
-         * Validate DOB and refresh its formatted date and age.
+         * Validate the real YYYY-MM-DD DOB value.
          *
          * @returns {boolean}
          */
@@ -694,15 +759,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     dateOfBirth.value
                         .trim();
 
-                datePreview.textContent = '';
-                agePreview.textContent = '';
+                datePreview.textContent =
+                    '';
 
-                /*
-                 * Required validation remains with the shared form
-                 * validator and native browser constraint validation.
-                 */
+                agePreview.textContent =
+                    '';
+
                 if (selectedValue === '') {
-                    clearDateError();
+                    showDateError(
+                        'Please select the member’s date of birth.'
+                    );
 
                     return false;
                 }
@@ -741,6 +807,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 clearDateError();
 
+                /*
+                 * Synchronize the visual value in case DOB came
+                 * from CI4 old input.
+                 */
+                dateOfBirthDisplay.value =
+                    formatDisplayDate(
+                        birthDate
+                    );
+
                 datePreview.textContent =
                     `Selected date: ${formatDisplayDate(
                         birthDate
@@ -756,72 +831,318 @@ document.addEventListener('DOMContentLoaded', () => {
                 return true;
             };
 
+        const latestEligibleDate =
+            getLatestEligibleBirthDate();
+
         /*
-         * Synchronize the native maximum date with the user's local date.
+         * Restore a previously submitted DOB after a CI4
+         * validation redirect.
          */
-        dateOfBirth.max =
-            formatIsoDate(
-                getLatestEligibleBirthDate()
+        const existingBirthDate =
+            parseIsoDate(
+                dateOfBirth.value
+                    .trim()
             );
 
-        dateOfBirth.addEventListener(
-            'change',
-            validateAndDisplayAge
-        );
+        /*
+         * When no previous DOB exists, open the calendar
+         * around a useful adult DOB rather than today's date.
+         *
+         * 30 years old is only the initial calendar position;
+         * it is not a validation restriction.
+         */
+        const initialCalendarDate =
+            existingBirthDate
+            ?? latestEligibleDate;
 
-        dateOfBirth.addEventListener(
-            'input',
-            () => {
-                if (
-                    dateOfBirth.value === ''
-                ) {
-                    clearDateError();
+        let datePicker = null;
 
-                    datePreview.textContent =
-                        '';
+        const englishLocale = {
+            days: [
+                'Sunday',
+                'Monday',
+                'Tuesday',
+                'Wednesday',
+                'Thursday',
+                'Friday',
+                'Saturday',
+            ],
 
-                    agePreview.textContent =
-                        '';
+            daysShort: [
+                'Sun',
+                'Mon',
+                'Tue',
+                'Wed',
+                'Thu',
+                'Fri',
+                'Sat',
+            ],
 
-                    return;
+            daysMin: [
+                'Su',
+                'Mo',
+                'Tu',
+                'We',
+                'Th',
+                'Fr',
+                'Sa',
+            ],
+
+            months: [
+                'January',
+                'February',
+                'March',
+                'April',
+                'May',
+                'June',
+                'July',
+                'August',
+                'September',
+                'October',
+                'November',
+                'December',
+            ],
+
+            monthsShort: [
+                'Jan',
+                'Feb',
+                'Mar',
+                'Apr',
+                'May',
+                'Jun',
+                'Jul',
+                'Aug',
+                'Sep',
+                'Oct',
+                'Nov',
+                'Dec',
+            ],
+
+            today: 'Today',
+            clear: 'Clear',
+
+            dateFormat:
+                'dd/MM/yyyy',
+
+            timeFormat:
+                'hh:mm aa',
+
+            /*
+             * Sunday = 0.
+             *
+             * Change to 1 if you want Monday to be the
+             * first day of the week.
+             */
+            firstDay: 0,
+        };
+
+        /*
+         * Air Datepicker is page enhancement only.
+         *
+         * If the library fails to load, the server still remains
+         * protected. The user will receive the normal required DOB
+         * validation instead of submitting an invalid value.
+         */
+        if (
+            typeof window.AirDatepicker
+            === 'function'
+        ) {
+            datePicker =
+                new window.AirDatepicker(
+                    dateOfBirthDisplay,
+                    {
+                        locale:
+                            englishLocale,
+
+                        dateFormat:
+                            'dd/MM/yyyy',
+
+                        altField:
+                            dateOfBirth,
+
+                        altFieldDateFormat:
+                            'yyyy-MM-dd',
+
+                        selectedDates:
+                            existingBirthDate
+                                instanceof Date
+                                ? [
+                                    existingBirthDate,
+                                ]
+                                : [],
+
+                        startDate:
+                            initialCalendarDate,
+
+                        maxDate:
+                            latestEligibleDate,
+
+                        multipleDates:
+                            false,
+
+                        range:
+                            false,
+
+                        autoClose:
+                            true,
+
+                        keyboardNav:
+                            true,
+
+                        position:
+                            'bottom left',
+
+                        isMobile: true,
+                        autoClose: true,
+
+                        /*
+                         * Use full English month names
+                         * in the month-selection screen.
+                         */
+                        monthsField:
+                            'months',
+
+                        view:
+                            'days',
+
+                        minView:
+                            'days',
+
+                        onSelect: ({
+                            date,
+                        }) => {
+                            if (
+                                !(
+                                    date
+                                    instanceof Date
+                                )
+                            ) {
+                                dateOfBirth.value =
+                                    '';
+
+                                dateOfBirthDisplay.value =
+                                    '';
+
+                                datePreview.textContent =
+                                    '';
+
+                                agePreview.textContent =
+                                    '';
+
+                                clearDateError();
+
+                                return;
+                            }
+
+                            dateOfBirth.value =
+                                formatIsoDate(
+                                    date
+                                );
+
+                            dateOfBirthDisplay.value =
+                                formatDisplayDate(
+                                    date
+                                );
+
+                            validateAndDisplayAge();
+
+                            dateOfBirth.dispatchEvent(
+                                new Event(
+                                    'change',
+                                    {
+                                        bubbles: true,
+                                    }
+                                )
+                            );
+                        },
+                    }
+                );
+        }
+
+        /*
+         * Explicit calendar icon.
+         */
+        if (
+            pickerButton
+            instanceof HTMLButtonElement
+        ) {
+            pickerButton.addEventListener(
+                'click',
+                () => {
+                    if (datePicker) {
+                        datePicker.show();
+
+                        return;
+                    }
+
+                    dateOfBirthDisplay.focus();
                 }
+            );
+        }
 
-                validateAndDisplayAge();
+        /*
+         * Clicking/focusing the visual field opens the
+         * Air Datepicker automatically.
+         */
+        dateOfBirthDisplay.addEventListener(
+            'click',
+            () => {
+                if (datePicker) {
+                    datePicker.show();
+                }
             }
         );
 
         /*
-        * Do not overwrite an authoritative server error immediately
-        * after redirect. Client validation resumes when the member
-        * changes or edits the field.
-        */
+         * Preserve an authoritative server-rendered error
+         * immediately after redirect.
+         */
         if (
-            dateOfBirth.value !== ''
-            && !hasServerValidationError(
+            hasServerValidationError(
                 dateOfBirth
             )
+        ) {
+            dateOfBirthDisplay.classList.add(
+                'is-invalid'
+            );
+
+            dateOfBirthDisplay.setAttribute(
+                'aria-invalid',
+                'true'
+            );
+        } else if (
+            existingBirthDate
+            instanceof Date
         ) {
             validateAndDisplayAge();
         }
 
         /*
-         * Final DOB verification before form submission.
+         * DOB is represented by a hidden business field,
+         * therefore page-specific client validation must run
+         * before the generic form submit completes.
          */
         form.addEventListener(
             'submit',
             (event) => {
                 if (
-                    dateOfBirth.value !== ''
-                    && !validateAndDisplayAge()
+                    validateAndDisplayAge()
                 ) {
-                    event.preventDefault();
+                    return;
+                }
 
-                    dateOfBirth.focus();
+                event.preventDefault();
+
+                dateOfBirthDisplay.focus();
+
+                if (datePicker) {
+                    datePicker.show();
                 }
             },
             true
         );
     };
+
 
     /**
  * Initialize Profile Created For and Gender dependency.

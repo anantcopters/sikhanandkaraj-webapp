@@ -171,14 +171,20 @@ $this->section(
                                     </div>
 
                                     <div class="mb-3">
-
-                                        <label
-                                            class="form-label"
-                                            for="adminPassword">
-
-                                            Password
-                                        </label>
-
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <label
+                                                for="adminPassword"
+                                                class="form-label">
+                                                Password
+                                            </label>
+                                            <a
+                                                href="<?= route_to(
+                                                            'admin.forgot-password'
+                                                        ) ?>"
+                                                class="color-pink fs-13 form-label">
+                                                Forgot password?
+                                            </a>
+                                        </div>
                                         <div
                                             class="password-field">
 
@@ -226,7 +232,6 @@ $this->section(
                                         </div>
 
                                     </div>
-
                                     <div class="mb-4">
 
                                         <label

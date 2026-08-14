@@ -158,7 +158,7 @@ $this->section('content');
                                 </div>
 
                                 <div class="form-text color-pink">
-                                    Mobile will be marked verified.
+                                    Enter the member’s active mobile or WhatsApp number.
                                 </div>
 
                                 <?php if (
