@@ -582,13 +582,8 @@ if ($isPublicRegistration) {
 
                 <?php else: ?>
 
-                    <div
-                        class="form-text
-                        color-pink">
-
-                        Enter a unique 10-digit Indian
-                        mobile number.
-
+                    <div class="form-text color-pink">
+                        Enter the member’s active mobile or WhatsApp number.
                     </div>
 
                 <?php endif; ?>
