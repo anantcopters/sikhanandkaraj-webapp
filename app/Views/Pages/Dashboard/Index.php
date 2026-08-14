@@ -31,6 +31,7 @@ declare(strict_types=1);
  * @var array<string, mixed>              $overallProfileSummary
  * @var array<int, array<string, mixed>>  $profileShortcuts
  * @var array<string, string>|null        $nextProfileSection
+ * @var array<string, mixed>             $partnerPreferenceSetup
  */
 
 $this->extend('Layouts/Main');
@@ -100,6 +101,53 @@ $totalSteps = max(
     0,
     (int) ($profileCompletion['totalSteps'] ?? 0)
 );
+
+/*
+ * Partner Preference setup information comes from the matchmaking
+ * algorithm itself.
+ */
+$resolvedPreferenceSetup =
+    isset($partnerPreferenceSetup)
+    && is_array($partnerPreferenceSetup)
+    ? $partnerPreferenceSetup
+    : [];
+
+$preferencesConfigured = max(
+    0,
+    (int) (
+        $resolvedPreferenceSetup['configured']
+        ?? 0
+    )
+);
+
+$preferencesAvailable = max(
+    0,
+    (int) (
+        $resolvedPreferenceSetup['available']
+        ?? 0
+    )
+);
+
+$preferenceSetupPercentage = max(
+    0,
+    min(
+        100,
+        (int) (
+            $resolvedPreferenceSetup['percentage']
+            ?? 0
+        )
+    )
+);
+
+$preferencesComplete =
+    $preferencesAvailable > 0
+    && $preferencesConfigured
+    >= $preferencesAvailable;
+
+$preferenceBadgeClass =
+    $preferencesComplete
+    ? 'bg-success-subtle text-success'
+    : 'bg-primary-subtle text-primary';
 
 /*
  * Combine the separate service datasets into presentation sections.
@@ -334,15 +382,81 @@ $matchSections = [
                             </a>
 
                             <a
-                                href="<?= url_to('web.partner-preference') ?>"
-                                class="list-group-item list-group-item-action d-flex align-items-center gap-2 py-3">
+                                href="<?= url_to(
+                                            'web.partner-preference'
+                                        ) ?>"
+                                class="list-group-item
+        list-group-item-action
+        d-flex
+        align-items-center
+        justify-content-between
+        gap-3
+        py-3">
 
-                                <i
-                                    class="ri-equalizer-line fs-18"
-                                    aria-hidden="true">
-                                </i>
+                                <span
+                                    class="d-flex
+            align-items-center
+            gap-2">
 
-                                <span>Edit Preferences</span>
+                                    <i
+                                        class="ri-equalizer-line fs-18"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <span>
+                                        Edit Preferences
+                                    </span>
+
+                                </span>
+
+                                <?php if ($preferencesAvailable > 0): ?>
+
+                                    <span
+                                        class="badge
+                <?= esc(
+                                        $preferenceBadgeClass,
+                                        'attr'
+                                    ) ?>
+                fs-11
+                p-2
+                fw-medium
+                text-nowrap"
+                                        data-bs-toggle="tooltip"
+                                        data-bs-placement="top"
+                                        title="<?= esc(
+                                                    $preferenceSetupPercentage
+                                                        . '% of partner preferences set',
+                                                    'attr'
+                                                ) ?>"
+                                        aria-label="<?= esc(
+                                                        $preferencesConfigured
+                                                            . ' of '
+                                                            . $preferencesAvailable
+                                                            . ' partner preferences set',
+                                                        'attr'
+                                                    ) ?>">
+
+                                        <?php if ($preferencesComplete): ?>
+
+                                            <i
+                                                class="ri-checkbox-circle-line me-1"
+                                                aria-hidden="true">
+                                            </i>
+
+                                        <?php endif; ?>
+
+                                        <?= esc(
+                                            (string)
+                                            $preferencesConfigured
+                                        ) ?>/<?= esc(
+                                        (string)
+                                        $preferencesAvailable
+                                    ) ?> set
+
+                                    </span>
+
+                                <?php endif; ?>
+
                             </a>
 
                             <a

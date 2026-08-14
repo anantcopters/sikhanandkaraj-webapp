@@ -220,7 +220,22 @@ final class MemberMatchmakingService
                     )
             );
 
+        /*
+        * Partner Preference setup progress.
+        *
+        * Use the exact matchmaking algorithm as the source of truth rather
+        * than maintaining another list of preference fields for Dashboard.
+        */
+        $partnerPreferenceSetup =
+            $this->matchService
+            ->preferenceSetupSummary(
+                $userId
+            );
+
         return [
+            'partnerPreferenceSetup' =>
+            $partnerPreferenceSetup,
+
             'minimumMatchPercentage' =>
             $minimumPercentage,
 
