@@ -33,6 +33,7 @@ use App\Models\MasterPhysicalStatusModel;
 use App\Models\MasterSikhCommunityModel;
 use App\Models\MasterStateModel;
 use App\Models\MemberBasicDetailModel;
+use App\Models\MemberAadhaarSubmissionModel;
 use App\Models\MemberEducationProfessionDetailModel;
 use App\Models\MemberFamilyDetailModel;
 use App\Models\MemberLifestyleOptionModel;
@@ -76,6 +77,7 @@ use App\Services\Profile\EducationProfessionService;
 use App\Services\Profile\FamilyDetailsService;
 use App\Services\Profile\LifestyleService;
 use App\Services\Profile\MemberPhotoService;
+use App\Services\Profile\MemberAadhaarService;
 use App\Services\Profile\MemberPhotoUrlService;
 use App\Services\Profile\MemberProfileSummaryService;
 use App\Services\Profile\ProfileCompletionService;
@@ -880,6 +882,56 @@ final class Services extends BaseService
             static::adminAuditService(false),
             static::memberNotificationService(false),
             $database
+        );
+    }
+
+    /**
+     * Return the member Aadhaar upload and review service.
+     */
+    public static function memberAadhaarService(
+        bool $getShared = true
+    ): MemberAadhaarService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberAadhaarService'
+            );
+        }
+
+        $database = db_connect();
+
+        /** @var MemberMedia $configuration */
+        $configuration = config(
+            MemberMedia::class
+        );
+
+        return new MemberAadhaarService(
+            new UserModel(
+                $database
+            ),
+
+            new MemberAadhaarSubmissionModel(
+                $database
+            ),
+
+            static::s3Service(
+                false
+            ),
+
+            static::cloudFrontService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            static::adminAuditService(
+                false
+            ),
+
+            $database,
+
+            $configuration
         );
     }
 

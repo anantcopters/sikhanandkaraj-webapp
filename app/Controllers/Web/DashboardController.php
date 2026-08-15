@@ -9,6 +9,7 @@ use App\Models\UserContactModel;
 use App\Models\UserModel;
 use App\Services\Dashboard\MemberDashboardDataService;
 use App\Services\Profile\MemberProfileSummaryService;
+use App\Services\Profile\MemberAadhaarService;
 use App\Support\BooleanValue;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
@@ -105,11 +106,9 @@ final class DashboardController extends BaseController
          * PostgreSQL boolean values must always pass through the project's
          * existing BooleanValue support class.
          */
-        $isAadhaarVerified =
-            BooleanValue::fromDatabase(
-                $user['is_aadhaar_verified']
-                    ?? false
-            );
+        /** @var MemberAadhaarService $aadhaarService */
+        $aadhaarService = service('memberAadhaarService');
+        $aadhaarState = $aadhaarService->dashboardState($resolvedUserId);
 
         $isSelfieVerified =
             BooleanValue::fromDatabase(
@@ -197,8 +196,20 @@ final class DashboardController extends BaseController
                     /*
                      * Identity verification.
                      */
-                    'isAadhaarVerified' =>
-                    $isAadhaarVerified,
+                    'aadhaarStatus' =>
+                    $aadhaarState['status'],
+
+                    'aadhaarRejectionReason' =>
+                    $aadhaarState['rejectionReason'],
+
+                    'aadhaarValidationErrors' =>
+                    session('aadhaarValidationErrors') ?? [],
+
+                    'openAadhaarModal' =>
+                    session('openAadhaarModal') === true,
+
+                    'formAlert' =>
+                    $this->readFormAlert(),
 
                     'isSelfieVerified' =>
                     $isSelfieVerified,
@@ -219,8 +230,10 @@ final class DashboardController extends BaseController
                     $profileSummary['nextProfileSection'],
 
                     'pageScripts' => [
+                        'assets/js/components/submit-loader.js',
                         'assets/js/pages/dashboard-security.js',
                         'assets/js/pages/dashboard-matches.js',
+                        'assets/js/pages/member-aadhaar.js',
                     ],
                 ],
                 $dashboardData

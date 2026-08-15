@@ -13,7 +13,11 @@ declare(strict_types=1);
  * @var bool        $isMobileVerified
  * @var string|null $primaryEmail
  * @var bool        $isEmailVerified
- * @var bool        $isAadhaarVerified
+ * @var string      $aadhaarStatus
+ * @var string      $aadhaarRejectionReason
+ * @var array<string, string> $aadhaarValidationErrors
+ * @var bool        $openAadhaarModal
+ * @var array<string, string>|null $formAlert
  * @var bool        $isSelfieVerified
  *
  * Dashboard-specific variables.
@@ -86,6 +90,14 @@ if ($resolvedProfileImage === '') {
 
 $resolvedPlanName = trim(
     (string) ($accountPlan['name'] ?? 'Free account')
+);
+
+$resolvedAadhaarStatus = mb_strtoupper(
+    trim((string) ($aadhaarStatus ?? 'NOT_ADDED'))
+);
+
+$resolvedAadhaarRejectionReason = trim(
+    (string) ($aadhaarRejectionReason ?? '')
 );
 
 $completionPercentage = max(
@@ -333,6 +345,11 @@ $matchSections = [
 
 <section class="py-3 py-lg-4">
     <div class="container">
+
+        <?= view(
+            'Components/Alerts/FormAlert',
+            ['alert' => $formAlert ?? null]
+        ) ?>
 
         <div class="row g-4">
             <aside class="col-12 col-lg-4 col-xl-3">
@@ -638,7 +655,7 @@ $matchSections = [
 
                                     </span>
 
-                                    <?php if ($isAadhaarVerified): ?>
+                                    <?php if ($resolvedAadhaarStatus === 'APPROVED'): ?>
 
                                         <span
                                             class="badge
@@ -647,13 +664,12 @@ $matchSections = [
                     fs-11
                     p-2">
 
-
-
-                                            Verified
+                                            <i class="ri-checkbox-circle-fill me-1" aria-hidden="true"></i>
+                                            Approved
 
                                         </span>
 
-                                    <?php else: ?>
+                                    <?php elseif ($resolvedAadhaarStatus === 'UNDER_REVIEW'): ?>
 
                                         <span
                                             class="badge
@@ -662,11 +678,36 @@ $matchSections = [
                     fs-11
                     p-2">
 
-
-
-                                            Pending
+                                            Under Review
 
                                         </span>
+
+                                    <?php elseif ($resolvedAadhaarStatus === 'REJECTED'): ?>
+
+                                        <span class="d-inline-flex align-items-center gap-1">
+                                            <span class="badge bg-danger-subtle text-danger fs-11 p-2">
+                                                Rejected
+                                            </span>
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-sm btn-outline-danger"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#aadhaarUploadModal"
+                                                title="<?= esc($resolvedAadhaarRejectionReason ?: 'Upload Aadhaar again', 'attr') ?>">
+                                                Re-upload
+                                            </button>
+                                        </span>
+
+                                    <?php else: ?>
+
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-primary"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#aadhaarUploadModal">
+                                            Add
+                                        </button>
 
                                     <?php endif; ?>
 
@@ -1629,5 +1670,16 @@ $matchSections = [
         </form>
     </div>
 </section>
+
+<?= view(
+    'Pages/Dashboard/_AadhaarUploadModal',
+    [
+        'memberName' => $resolvedName,
+        'profileReference' => $resolvedReference,
+        'validationErrors' => $aadhaarValidationErrors ?? [],
+        'openModal' => $openAadhaarModal ?? false,
+        'rejectionReason' => $resolvedAadhaarRejectionReason,
+    ]
+) ?>
 
 <?php $this->endSection(); ?>

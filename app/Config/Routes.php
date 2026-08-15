@@ -573,6 +573,15 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
             ]
         );
 
+        $routes->post(
+            'member/aadhaar',
+            'MemberAadhaarController::upload',
+            [
+                'as' => 'web.member.aadhaar.upload',
+                'filter' => 'webAuth',
+            ]
+        );
+
         /*
  * Authenticated member navigation.
  */
@@ -1566,6 +1575,55 @@ $routes->group('admin', [
                         'as' =>
                         'admin.members.index',
                     ]
+                );
+
+                $routes->group(
+                    'aadhaar-approvals',
+                    static function (RouteCollection $routes): void {
+                        $routes->get(
+                            '',
+                            'MemberAadhaarReviewController::index',
+                            [
+                                'as' => 'admin.members.aadhaar-approvals',
+                            ]
+                        );
+
+                        $routes->get(
+                            '(:segment)/document',
+                            'MemberAadhaarReviewController::document/$1',
+                            [
+                                'as' =>
+                                'admin.members.aadhaar-approvals.document',
+                            ]
+                        );
+
+                        $routes->get(
+                            '(:segment)',
+                            'MemberAadhaarReviewController::review/$1',
+                            [
+                                'as' =>
+                                'admin.members.aadhaar-approvals.review',
+                            ]
+                        );
+
+                        $routes->post(
+                            '(:segment)/approve',
+                            'MemberAadhaarReviewController::approve/$1',
+                            [
+                                'as' =>
+                                'admin.members.aadhaar-approvals.approve',
+                            ]
+                        );
+
+                        $routes->post(
+                            '(:segment)/reject',
+                            'MemberAadhaarReviewController::reject/$1',
+                            [
+                                'as' =>
+                                'admin.members.aadhaar-approvals.reject',
+                            ]
+                        );
+                    }
                 );
 
                 /*

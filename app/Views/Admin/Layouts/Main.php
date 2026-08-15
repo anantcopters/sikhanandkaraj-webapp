@@ -67,6 +67,12 @@ $pageScripts = $pageScripts ?? [];
                 'admin/members/photo-approvals'
             );
 
+        $pendingAadhaarActive =
+            str_starts_with(
+                $currentPath,
+                'admin/members/aadhaar-approvals'
+            );
+
         $administratorActive =
             str_starts_with(
                 $currentPath,
@@ -93,6 +99,10 @@ $pageScripts = $pageScripts ?? [];
             && !str_starts_with(
                 $currentPath,
                 'admin/members/photo-approvals'
+            )
+            && !str_starts_with(
+                $currentPath,
+                'admin/members/aadhaar-approvals'
             );
 
         $isSuperAdmin =
@@ -180,6 +190,19 @@ $pageScripts = $pageScripts ?? [];
                                                     ? 'fw-semibold'
                                                     : '' ?>">
                                         Dashboard
+                                    </span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a
+                                    href="<?= route_to('admin.members.aadhaar-approvals') ?>"
+                                    class="nav-link d-flex align-items-center gap-2 py-1 py-lg-2 <?= $pendingAadhaarActive ? 'active text-primary' : '' ?>"
+                                    <?= $pendingAadhaarActive ? 'aria-current="page"' : '' ?>>
+
+                                    <i class="ri-fingerprint-line fw-normal flex-shrink-0" aria-hidden="true"></i>
+
+                                    <span class="<?= $pendingAadhaarActive ? 'fw-semibold' : '' ?>">
+                                        Aadhaar Review
                                     </span>
                                 </a>
                             </li>
