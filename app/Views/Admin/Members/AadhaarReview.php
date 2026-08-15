@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\MemberPhotoModel;
 use App\Support\DateDisplay;
 
 /**
@@ -10,51 +11,101 @@ use App\Support\DateDisplay;
  * @var list<array<string, mixed>> $photos
  * @var list<array<string, mixed>> $history
  * @var array<string, string>      $validationErrors
+ * @var string                     $validationWorkflow
  * @var array<string, string>|null $formAlert
  */
 
-$resolvedSubmission = isset($submission) && is_array($submission)
+$resolvedSubmission =
+    isset($submission)
+    && is_array($submission)
     ? $submission
     : [];
 
 $resolvedDocumentDownloadUrl = trim(
-    (string) ($documentDownloadUrl ?? '')
+    (string) (
+        $documentDownloadUrl
+        ?? ''
+    )
 );
 
-$resolvedPhotos = isset($photos) && is_array($photos)
+$resolvedPhotos =
+    isset($photos)
+    && is_array($photos)
     ? $photos
     : [];
 
-$resolvedHistory = isset($history) && is_array($history)
+$resolvedHistory =
+    isset($history)
+    && is_array($history)
     ? $history
     : [];
 
-$errors = isset($validationErrors) && is_array($validationErrors)
+$errors =
+    isset($validationErrors)
+    && is_array($validationErrors)
     ? $validationErrors
     : [];
 
-$reference = trim(
-    (string) ($resolvedSubmission['profile_ref_number'] ?? '')
+$resolvedValidationWorkflow = trim(
+    (string) (
+        $validationWorkflow
+        ?? ''
+    )
 );
 
-$storedDob = trim(
-    (string) ($resolvedSubmission['aadhaar_date_of_birth'] ?? '')
+$reference = trim(
+    (string) (
+        $resolvedSubmission['profile_ref_number']
+        ?? ''
+    )
+);
+
+/*
+ * Aadhaar DOB is separate from the member's matrimonial-profile DOB.
+ */
+$storedAadhaarDob = trim(
+    (string) (
+        $resolvedSubmission['aadhaar_date_of_birth']
+        ?? ''
+    )
 );
 
 $dobParts = preg_match(
     '/^([0-9]{4})-([0-9]{2})-([0-9]{2})$/',
-    $storedDob,
+    $storedAadhaarDob,
     $matches
 ) === 1
-    ? [$matches[1], $matches[2], $matches[3]]
-    : ['', '', ''];
+    ? [
+        $matches[1],
+        $matches[2],
+        $matches[3],
+    ]
+    : [
+        '',
+        '',
+        '',
+    ];
 
-$selectedYear = old('birth_year', $dobParts[0]);
-$selectedMonth = old('birth_month', $dobParts[1]);
-$selectedDay = old('birth_day', $dobParts[2]);
+$selectedYear = old(
+    'birth_year',
+    $dobParts[0]
+);
 
-$maximumBirthYear = (int) date('Y') - 18;
-$minimumBirthYear = $maximumBirthYear - 42;
+$selectedMonth = old(
+    'birth_month',
+    $dobParts[1]
+);
+
+$selectedDay = old(
+    'birth_day',
+    $dobParts[2]
+);
+
+$maximumBirthYear =
+    (int) date('Y') - 18;
+
+$minimumBirthYear =
+    $maximumBirthYear - 42;
 
 $months = [
     '01' => 'Jan',
@@ -71,46 +122,115 @@ $months = [
     '12' => 'Dec',
 ];
 
-$gender = strtoupper(
-    trim((string) ($resolvedSubmission['gender'] ?? ''))
+$gender = mb_strtoupper(
+    trim(
+        (string) (
+            $resolvedSubmission['gender']
+            ?? ''
+        )
+    )
 );
 
-$memberProfileDob = DateDisplay::formatDate(
-    $resolvedSubmission['date_of_birth'] ?? null
+$genderLabel = match ($gender) {
+    'M' => 'Male',
+    'F' => 'Female',
+    default => '—',
+};
+
+$memberProfileDob =
+    DateDisplay::formatDate(
+        $resolvedSubmission['date_of_birth']
+            ?? null
+    );
+
+$openRejectModal =
+    $resolvedValidationWorkflow
+    === 'reject'
+    && isset(
+        $errors['rejection_reason']
+    );
+
+$this->extend(
+    'Admin/Layouts/Main'
 );
 
-$openRejectModal = isset($errors['rejection_reason']);
-
-$this->extend('Admin/Layouts/Main');
 $this->section('content');
 ?>
 
 <div class="container-fluid">
-    <a
-        href="<?= route_to('admin.members.aadhaar-approvals') ?>"
-        class="d-inline-flex align-items-center gap-1 mb-3">
-        <i class="ri-arrow-left-line" aria-hidden="true"></i>
-        Back to pending Aadhaar
-    </a>
+
+    <div
+        class="page-title-box
+            d-sm-flex
+            align-items-center
+            justify-content-between">
+
+        <div>
+            <h4 class="mb-sm-0">
+                Review Member Aadhaar
+            </h4>
+
+            <p class="text-muted mb-0 mt-1">
+                Review the submitted document and member information.
+            </p>
+        </div>
+
+        <div class="page-title-right mt-3 mt-sm-0">
+            <a
+                href="<?= route_to(
+                            'admin.members.aadhaar-approvals'
+                        ) ?>"
+                class="btn
+                    btn-light
+                    d-inline-flex
+                    align-items-center
+                    gap-1">
+
+                <i
+                    class="ri-arrow-left-line"
+                    aria-hidden="true"></i>
+
+                Back to Pending Aadhaar
+            </a>
+        </div>
+    </div>
 
     <?= view(
         'Components/Alerts/FormAlert',
-        ['alert' => $formAlert ?? null]
+        [
+            'alert' =>
+            $formAlert ?? null,
+        ]
     ) ?>
 
-    <div class="row g-4">
+    <div class="row g-4 align-items-start">
+
+        <!-- Left column: document, gallery and history -->
         <div class="col-12 col-xl-7">
-            <div class="card border border-danger border-opacity-25">
+
+            <!-- Aadhaar download -->
+            <div
+                class="card
+                    border
+                    border-danger
+                    border-opacity-25
+                    mb-4">
+
                 <div class="card-header">
-                    <h1 class="fs-18 fw-semibold mb-1">
+                    <h5 class="card-title mb-1">
+                        <i
+                            class="ri-file-shield-2-line me-1"
+                            aria-hidden="true"></i>
+
                         Aadhaar Document
-                    </h1>
+                    </h5>
 
                     <p class="text-muted fs-13 mb-0">
                         Uploaded
                         <?= esc(
                             DateDisplay::formatUtcDateTime(
-                                $resolvedSubmission['uploaded_at'] ?? null
+                                $resolvedSubmission['uploaded_at']
+                                    ?? null
                             )
                         ) ?>
                     </p>
@@ -119,66 +239,497 @@ $this->section('content');
                 <div class="card-body">
                     <p class="text-muted mb-3">
                         The Aadhaar document is not displayed on this page.
-                        Use the secure link below when it is required for
-                        review.
+                        Use the secure download link when the document is
+                        required for review.
                     </p>
 
-                    <a
-                        href="<?= esc(
-                                    $resolvedDocumentDownloadUrl,
-                                    'attr'
-                                ) ?>"
-                        class="btn btn-outline-primary" target="_new">
+                    <?php if (
+                        $resolvedDocumentDownloadUrl
+                        !== ''
+                    ): ?>
+                        <a
+                            href="<?= esc(
+                                        $resolvedDocumentDownloadUrl,
+                                        'attr'
+                                    ) ?>"
+                            class="btn
+                                btn-outline-primary
+                                d-inline-flex
+                                align-items-center
+                                gap-1"
+                            target="_blank"
+                            rel="noopener noreferrer">
+
+                            <i
+                                class="ri-download-2-line"
+                                aria-hidden="true"></i>
+
+                            Download Aadhaar Document
+                        </a>
+                    <?php else: ?>
+                        <div
+                            class="alert
+                                alert-warning
+                                border-0
+                                mb-0"
+                            role="alert">
+
+                            The Aadhaar document download is unavailable.
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Member photo gallery -->
+            <div
+                class="card
+                    border
+                    border-danger
+                    border-opacity-25
+                    mb-4">
+
+                <div
+                    class="card-header
+                        d-flex
+                        align-items-center
+                        justify-content-between
+                        gap-2">
+
+                    <div>
+                        <h5 class="card-title mb-1">
+                            <i
+                                class="ri-gallery-line me-1"
+                                aria-hidden="true"></i>
+
+                            Member Photographs
+                        </h5>
+
+                        <p class="text-muted fs-13 mb-0">
+                            Current member photographs and approval status.
+                        </p>
+                    </div>
+
+                    <span
+                        class="badge
+                            bg-primary-subtle
+                            text-primary">
+
+                        <?= esc(
+                            (string) count(
+                                $resolvedPhotos
+                            )
+                        ) ?>
+                    </span>
+                </div>
+
+                <div class="card-body">
+
+                    <?php if (
+                        $resolvedPhotos === []
+                    ): ?>
+                        <div
+                            class="border
+                                rounded-3
+                                text-center
+                                text-muted
+                                p-4">
+
+                            <i
+                                class="ri-image-line
+                                    fs-28
+                                    d-block
+                                    mb-2"
+                                aria-hidden="true"></i>
+
+                            <p class="mb-0">
+                                No member photographs are available.
+                            </p>
+                        </div>
+                    <?php else: ?>
+                        <div
+                            class="row
+                                flex-nowrap
+                                overflow-auto
+                                g-3
+                                pb-2">
+
+                            <?php foreach (
+                                $resolvedPhotos
+                                as $index => $photo
+                            ): ?>
+                                <?php
+                                if (!is_array($photo)) {
+                                    continue;
+                                }
+
+                                $thumbnailUrl = trim(
+                                    (string) (
+                                        $photo['thumbnailUrl']
+                                        ?? ''
+                                    )
+                                );
+
+                                if ($thumbnailUrl === '') {
+                                    continue;
+                                }
+
+                                $photoStatus =
+                                    mb_strtoupper(
+                                        trim(
+                                            (string) (
+                                                $photo['status']
+                                                ?? ''
+                                            )
+                                        )
+                                    );
+
+                                $ribbonClass =
+                                    match ($photoStatus) {
+                                        MemberPhotoModel
+                                        ::STATUS_APPROVED =>
+                                        'ribbon-success',
+
+                                        MemberPhotoModel
+                                        ::STATUS_REJECTED =>
+                                        'ribbon-danger',
+
+                                        MemberPhotoModel
+                                        ::STATUS_PENDING =>
+                                        'ribbon-warning',
+
+                                        default =>
+                                        'ribbon-secondary',
+                                    };
+
+                                $statusLabel =
+                                    match ($photoStatus) {
+                                        MemberPhotoModel
+                                        ::STATUS_APPROVED =>
+                                        'Approved',
+
+                                        MemberPhotoModel
+                                        ::STATUS_REJECTED =>
+                                        'Rejected',
+
+                                        MemberPhotoModel
+                                        ::STATUS_PENDING =>
+                                        'Pending',
+
+                                        default =>
+                                        'Unknown',
+                                    };
+                                ?>
+
+                                <div
+                                    class="col-8
+                                        col-sm-5
+                                        col-md-4
+                                        col-lg-3
+                                        flex-shrink-0">
+
+                                    <div
+                                        class="card
+                                            ribbon-box
+                                            border
+                                            shadow-none
+                                            h-100
+                                            mb-0">
+
+                                        <div
+                                            class="ribbon
+                                                ribbon-shape
+                                                <?= esc(
+                                                    $ribbonClass,
+                                                    'attr'
+                                                ) ?>">
+
+                                            <?= esc(
+                                                $statusLabel
+                                            ) ?>
+                                        </div>
+
+                                        <div class="card-body p-2 pt-5">
+                                            <img
+                                                src="<?= esc(
+                                                            $thumbnailUrl,
+                                                            'attr'
+                                                        ) ?>"
+                                                alt="<?= esc(
+                                                            'Member photograph '
+                                                                . ($index + 1),
+                                                            'attr'
+                                                        ) ?>"
+                                                class="img-thumbnail w-100"
+                                                loading="lazy"
+                                                referrerpolicy="no-referrer">
+
+                                            <?php if (
+                                                (
+                                                    $photo['isPrimary']
+                                                    ?? false
+                                                ) === true
+                                            ): ?>
+                                                <span
+                                                    class="badge
+                                                        bg-primary-subtle
+                                                        text-primary
+                                                        mt-2">
+
+                                                    <i
+                                                        class="ri-star-fill me-1"
+                                                        aria-hidden="true"></i>
+
+                                                    Main
+                                                </span>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <!-- Aadhaar history -->
+            <div
+                class="card
+                    border
+                    border-danger
+                    border-opacity-25">
+
+                <div class="card-header">
+                    <h5 class="card-title mb-1">
                         <i
-                            class="ri-download-2-line me-1"
+                            class="ri-history-line me-1"
                             aria-hidden="true"></i>
-                        Download Aadhaar document
-                    </a>
+
+                        Aadhaar Upload History
+                    </h5>
+
+                    <p class="text-muted fs-13 mb-0">
+                        Previous Aadhaar submissions and review decisions.
+                    </p>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table
+                            class="table
+                                table-nowrap
+                                align-middle
+                                mb-0">
+
+                            <thead class="bg-info-subtle">
+                                <tr>
+                                    <th>Uploaded</th>
+                                    <th>Status</th>
+                                    <th>Reviewed</th>
+                                    <th>Performed By</th>
+                                    <th>Reason</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <?php if (
+                                    $resolvedHistory === []
+                                ): ?>
+                                    <tr>
+                                        <td
+                                            colspan="5"
+                                            class="text-center
+                                                text-muted
+                                                py-4">
+
+                                            No Aadhaar upload history
+                                            is available.
+                                        </td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach (
+                                        $resolvedHistory
+                                        as $item
+                                    ): ?>
+                                        <?php
+                                        if (!is_array($item)) {
+                                            continue;
+                                        }
+
+                                        $historyStatus =
+                                            mb_strtoupper(
+                                                trim(
+                                                    (string) (
+                                                        $item['status']
+                                                        ?? ''
+                                                    )
+                                                )
+                                            );
+
+                                        $historyBadgeClass =
+                                            match ($historyStatus) {
+                                                'APPROVED' =>
+                                                'bg-success-subtle text-success',
+
+                                                'REJECTED' =>
+                                                'bg-danger-subtle text-danger',
+
+                                                'UNDER_REVIEW' =>
+                                                'bg-warning-subtle text-dark',
+
+                                                default =>
+                                                'bg-secondary-subtle text-secondary',
+                                            };
+                                        ?>
+
+                                        <tr>
+                                            <td>
+                                                <?= esc(
+                                                    DateDisplay
+                                                        ::formatUtcDateTime(
+                                                            $item['uploaded_at']
+                                                                ?? null
+                                                        )
+                                                ) ?>
+                                            </td>
+
+                                            <td>
+                                                <span
+                                                    class="badge
+                                                        <?= esc(
+                                                            $historyBadgeClass,
+                                                            'attr'
+                                                        ) ?>">
+
+                                                    <?= esc(
+                                                        ucwords(
+                                                            mb_strtolower(
+                                                                str_replace(
+                                                                    '_',
+                                                                    ' ',
+                                                                    $historyStatus
+                                                                )
+                                                            )
+                                                        )
+                                                    ) ?>
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                <?= esc(
+                                                    DateDisplay
+                                                        ::formatUtcDateTime(
+                                                            $item['reviewed_at']
+                                                                ?? null
+                                                        )
+                                                ) ?>
+                                            </td>
+
+                                            <td>
+                                                <?= esc(
+                                                    trim(
+                                                        (string) (
+                                                            $item['reviewer_name']
+                                                            ?? ''
+                                                        )
+                                                    ) ?: '—'
+                                                ) ?>
+                                            </td>
+
+                                            <td>
+                                                <?= esc(
+                                                    trim(
+                                                        (string) (
+                                                            $item['rejection_reason']
+                                                            ?? ''
+                                                        )
+                                                    ) ?: '—'
+                                                ) ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
 
+        <!-- Right column: member details and review actions -->
         <div class="col-12 col-xl-5">
-            <div class="card border border-danger border-opacity-25 mb-4">
+
+            <!-- Member Details -->
+            <div
+                class="card
+                    border
+                    border-danger
+                    border-opacity-25
+                    mb-4">
+
                 <div class="card-header">
-                    <h2 class="fs-16 fw-semibold mb-0">
+                    <h5 class="card-title mb-0">
+                        <i
+                            class="ri-user-line me-1"
+                            aria-hidden="true"></i>
+
                         Member Details
-                    </h2>
+                    </h5>
                 </div>
 
                 <div class="card-body">
                     <dl class="row mb-0">
-                        <dt class="col-5">Name</dt>
+                        <dt class="col-5">
+                            Name
+                        </dt>
+
                         <dd class="col-7">
                             <?= esc(
-                                (string) (
-                                    $resolvedSubmission['full_name']
-                                    ?? 'Member'
-                                )
+                                trim(
+                                    (string) (
+                                        $resolvedSubmission['full_name']
+                                        ?? ''
+                                    )
+                                ) ?: 'Member'
                             ) ?>
                         </dd>
 
-                        <dt class="col-5">Member ID</dt>
-                        <dd class="col-7"><?= esc($reference) ?></dd>
+                        <dt class="col-5">
+                            Member ID
+                        </dt>
 
-                        <dt class="col-5">Date of birth</dt>
                         <dd class="col-7">
-                            <?= esc($memberProfileDob) ?>
+                            <?= esc(
+                                $reference !== ''
+                                    ? $reference
+                                    : '—'
+                            ) ?>
                         </dd>
 
-                        <dt class="col-5">Gender</dt>
+                        <dt class="col-5">
+                            Date of Birth
+                        </dt>
+
                         <dd class="col-7">
-                            <?php if ($gender === 'M'): ?>
-                                Male
-                            <?php elseif ($gender === 'F'): ?>
-                                Female
-                            <?php else: ?>
-                                —
-                            <?php endif; ?>
+                            <?= esc(
+                                $memberProfileDob
+                            ) ?>
                         </dd>
 
-                        <dt class="col-5">Location</dt>
+                        <dt class="col-5">
+                            Gender
+                        </dt>
+
                         <dd class="col-7">
+                            <?= esc(
+                                $genderLabel
+                            ) ?>
+                        </dd>
+
+                        <dt class="col-5 mb-0">
+                            Location
+                        </dt>
+
+                        <dd class="col-7 mb-0">
                             <?= esc(
                                 trim(
                                     (string) (
@@ -192,20 +743,32 @@ $this->section('content');
                 </div>
             </div>
 
-            <div class="card border border-danger border-opacity-25">
+            <!-- Approval form -->
+            <div
+                class="card
+                    border
+                    border-danger
+                    border-opacity-25">
+
                 <div class="card-header">
-                    <h2 class="fs-16 fw-semibold mb-0">
-                        Approve Aadhaar
-                    </h2>
+                    <h5 class="card-title mb-0">
+                        <i
+                            class="ri-shield-check-line me-1"
+                            aria-hidden="true"></i>
+
+                        Aadhaar Review
+                    </h5>
                 </div>
 
                 <div class="card-body">
                     <form
                         method="post"
                         action="<?= route_to(
-                                    'admin.members.aadhaar-approvals.approve',
+                                    'admin.members.'
+                                        . 'aadhaar-approvals.approve',
                                     $reference
                                 ) ?>"
+                        data-aadhaar-approval-form
                         data-submit-loader
                         data-confirm-form
                         data-confirm-title="Approve Aadhaar?"
@@ -221,6 +784,7 @@ $this->section('content');
                             <label
                                 for="aadhaarName"
                                 class="form-label">
+
                                 Name on Aadhaar
                                 <span class="text-danger">*</span>
                             </label>
@@ -229,32 +793,42 @@ $this->section('content');
                                 type="text"
                                 id="aadhaarName"
                                 name="aadhaar_name"
-                                class="form-control <?= isset(
-                                                        $errors['aadhaar_name']
-                                                    ) ? 'is-invalid' : '' ?>"
+                                class="form-control
+                                    <?= isset(
+                                        $errors['aadhaar_name']
+                                    )
+                                        ? 'is-invalid'
+                                        : '' ?>"
                                 value="<?= esc(
                                             old(
                                                 'aadhaar_name',
                                                 (string) (
-                                                    $resolvedSubmission['aadhaar_name'] ?? ''
+                                                    $resolvedSubmission['aadhaar_name']
+                                                    ?? ''
                                                 )
                                             ),
                                             'attr'
                                         ) ?>"
+                                minlength="2"
                                 maxlength="100"
+                                autocomplete="off"
+                                aria-describedby="aadhaarNameError"
                                 required>
 
-                            <div class="invalid-feedback">
+                            <div
+                                id="aadhaarNameError"
+                                class="invalid-feedback">
+
                                 <?= esc(
                                     $errors['aadhaar_name']
-                                        ?? 'Please enter the name shown on Aadhaar.'
+                                        ?? 'Enter the name shown on Aadhaar.'
                                 ) ?>
                             </div>
                         </div>
 
                         <fieldset class="mb-3">
                             <legend class="form-label fs-14">
-                                Date of birth on Aadhaar
+                                Date of Birth on Aadhaar
                                 <span class="text-danger">*</span>
                             </legend>
 
@@ -263,17 +837,24 @@ $this->section('content');
                                     <label
                                         for="aadhaarBirthDay"
                                         class="visually-hidden">
+
                                         Birth day
                                     </label>
 
                                     <select
                                         id="aadhaarBirthDay"
                                         name="birth_day"
-                                        class="form-select <?= isset(
-                                                                $errors['date_of_birth']
-                                                            ) ? 'is-invalid' : '' ?>"
+                                        class="form-select
+                                            <?= isset(
+                                                $errors['date_of_birth']
+                                            )
+                                                ? 'is-invalid'
+                                                : '' ?>"
                                         required>
-                                        <option value="">Day</option>
+
+                                        <option value="">
+                                            Day
+                                        </option>
 
                                         <?php for (
                                             $day = 1;
@@ -281,19 +862,28 @@ $this->section('content');
                                             $day++
                                         ): ?>
                                             <?php
-                                            $value = str_pad(
-                                                (string) $day,
-                                                2,
-                                                '0',
-                                                STR_PAD_LEFT
-                                            );
+                                            $dayValue =
+                                                str_pad(
+                                                    (string) $day,
+                                                    2,
+                                                    '0',
+                                                    STR_PAD_LEFT
+                                                );
                                             ?>
+
                                             <option
-                                                value="<?= $value ?>"
-                                                <?= $selectedDay === $value
+                                                value="<?= esc(
+                                                            $dayValue,
+                                                            'attr'
+                                                        ) ?>"
+                                                <?= (string) $selectedDay
+                                                    === $dayValue
                                                     ? 'selected'
                                                     : '' ?>>
-                                                <?= $value ?>
+
+                                                <?= esc(
+                                                    $dayValue
+                                                ) ?>
                                             </option>
                                         <?php endfor; ?>
                                     </select>
@@ -303,27 +893,42 @@ $this->section('content');
                                     <label
                                         for="aadhaarBirthMonth"
                                         class="visually-hidden">
+
                                         Birth month
                                     </label>
 
                                     <select
                                         id="aadhaarBirthMonth"
                                         name="birth_month"
-                                        class="form-select <?= isset(
-                                                                $errors['date_of_birth']
-                                                            ) ? 'is-invalid' : '' ?>"
+                                        class="form-select
+                                            <?= isset(
+                                                $errors['date_of_birth']
+                                            )
+                                                ? 'is-invalid'
+                                                : '' ?>"
                                         required>
-                                        <option value="">Month</option>
+
+                                        <option value="">
+                                            Month
+                                        </option>
 
                                         <?php foreach (
-                                            $months as $value => $label
+                                            $months
+                                            as $value => $label
                                         ): ?>
                                             <option
-                                                value="<?= $value ?>"
-                                                <?= $selectedMonth === $value
+                                                value="<?= esc(
+                                                            $value,
+                                                            'attr'
+                                                        ) ?>"
+                                                <?= (string) $selectedMonth
+                                                    === $value
                                                     ? 'selected'
                                                     : '' ?>>
-                                                <?= esc($label) ?>
+
+                                                <?= esc(
+                                                    $label
+                                                ) ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
@@ -333,17 +938,24 @@ $this->section('content');
                                     <label
                                         for="aadhaarBirthYear"
                                         class="visually-hidden">
+
                                         Birth year
                                     </label>
 
                                     <select
                                         id="aadhaarBirthYear"
                                         name="birth_year"
-                                        class="form-select <?= isset(
-                                                                $errors['date_of_birth']
-                                                            ) ? 'is-invalid' : '' ?>"
+                                        class="form-select
+                                            <?= isset(
+                                                $errors['date_of_birth']
+                                            )
+                                                ? 'is-invalid'
+                                                : '' ?>"
                                         required>
-                                        <option value="">Year</option>
+
+                                        <option value="">
+                                            Year
+                                        </option>
 
                                         <?php for (
                                             $year = $maximumBirthYear;
@@ -351,235 +963,118 @@ $this->section('content');
                                             $year--
                                         ): ?>
                                             <option
-                                                value="<?= $year ?>"
+                                                value="<?= esc(
+                                                            (string) $year,
+                                                            'attr'
+                                                        ) ?>"
                                                 <?= (string) $selectedYear
                                                     === (string) $year
                                                     ? 'selected'
                                                     : '' ?>>
-                                                <?= $year ?>
+
+                                                <?= esc(
+                                                    (string) $year
+                                                ) ?>
                                             </option>
                                         <?php endfor; ?>
                                     </select>
                                 </div>
                             </div>
 
-                            <?php if (
-                                isset($errors['date_of_birth'])
-                            ): ?>
-                                <div class="text-danger fs-12 mt-1">
-                                    <?= esc(
-                                        $errors['date_of_birth']
-                                    ) ?>
-                                </div>
-                            <?php endif; ?>
+                            <div
+                                id="aadhaarDobError"
+                                class="<?= isset(
+                                            $errors['date_of_birth']
+                                        )
+                                            ? 'text-danger fs-12 mt-1'
+                                            : 'invalid-feedback' ?>">
+
+                                <?= esc(
+                                    $errors['date_of_birth']
+                                        ?? 'Select a valid date of birth.'
+                                ) ?>
+                            </div>
                         </fieldset>
 
-                        <button
-                            type="submit"
-                            class="btn btn-success w-100"
-                            data-submit-button>
-                            <span data-submit-idle>
-                                <i
-                                    class="ri-checkbox-circle-line me-1"
-                                    aria-hidden="true"></i>
-                                Approve Aadhaar
-                            </span>
+                        <div
+                            class="d-flex
+                                flex-wrap
+                                justify-content-end
+                                gap-2">
 
-                            <span
-                                data-submit-loading
-                                class="d-none">
+                            <button
+                                type="button"
+                                class="btn btn-outline-danger"
+                                data-bs-toggle="modal"
+                                data-bs-target="#rejectAadhaarModal">
+
+                                <i
+                                    class="ri-close-circle-line me-1"
+                                    aria-hidden="true"></i>
+
+                                Reject
+                            </button>
+
+                            <button
+                                type="submit"
+                                class="btn btn-success"
+                                data-submit-button>
+
+                                <span data-submit-idle>
+                                    <i
+                                        class="ri-checkbox-circle-line me-1"
+                                        aria-hidden="true"></i>
+
+                                    Approve
+                                </span>
+
                                 <span
-                                    class="spinner-border spinner-border-sm me-1"
-                                    aria-hidden="true"></span>
-                                Approving...
-                            </span>
-                        </button>
+                                    data-submit-loading
+                                    class="d-none">
+
+                                    <span
+                                        class="spinner-border
+                                            spinner-border-sm
+                                            me-1"
+                                        aria-hidden="true"></span>
+
+                                    Approving...
+                                </span>
+                            </button>
+                        </div>
                     </form>
                 </div>
-            </div>
-
-            <div class="card border border-danger border-opacity-25 mt-4">
-                <div class="card-header">
-                    <h2 class="fs-16 fw-semibold mb-0">
-                        Reject Aadhaar
-                    </h2>
-                </div>
-
-                <div class="card-body">
-                    <p class="text-muted">
-                        Reject this submission and allow the member to
-                        upload another Aadhaar document.
-                    </p>
-
-                    <button
-                        type="button"
-                        class="btn btn-outline-danger w-100"
-                        data-bs-toggle="modal"
-                        data-bs-target="#rejectAadhaarModal">
-                        <i
-                            class="ri-close-circle-line me-1"
-                            aria-hidden="true"></i>
-                        Reject Aadhaar
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="card border border-danger border-opacity-25 mt-4">
-        <div class="card-header">
-            <h2 class="fs-16 fw-semibold mb-0">
-                Member Photos
-            </h2>
-        </div>
-
-        <div class="card-body">
-            <div class="row g-3">
-                <?php if ($resolvedPhotos === []): ?>
-                    <p class="text-muted mb-0">
-                        No uploaded member photos.
-                    </p>
-                <?php endif; ?>
-
-                <?php foreach ($resolvedPhotos as $photo): ?>
-                    <div class="col-6 col-md-4 col-xl-2">
-                        <img
-                            src="<?= esc(
-                                        (string) (
-                                            $photo['thumbnailUrl'] ?? ''
-                                        ),
-                                        'attr'
-                                    ) ?>"
-                            alt="Member profile photo"
-                            class="img-fluid rounded border"
-                            referrerpolicy="no-referrer">
-
-                        <span
-                            class="badge bg-secondary-subtle text-body-secondary mt-1">
-                            <?= esc(
-                                (string) ($photo['status'] ?? '')
-                            ) ?>
-                        </span>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-    </div>
-
-    <div class="card border border-danger border-opacity-25 mt-4">
-        <div class="card-header">
-            <h2 class="fs-16 fw-semibold mb-0">
-                Aadhaar Upload History
-            </h2>
-        </div>
-
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-nowrap align-middle mb-0">
-                    <thead class="bg-info-subtle">
-                        <tr>
-                            <th>Uploaded</th>
-                            <th>Status</th>
-                            <th>Reviewed</th>
-                            <th>Performed by</th>
-                            <th>Reason</th>
-                        </tr>
-                    </thead>
-
-                    <tbody>
-                        <?php foreach ($resolvedHistory as $item): ?>
-                            <tr>
-                                <td>
-                                    <?= esc(
-                                        DateDisplay::formatUtcDateTime(
-                                            $item['uploaded_at'] ?? null
-                                        )
-                                    ) ?>
-                                </td>
-
-                                <td>
-                                    <?= esc(
-                                        str_replace(
-                                            '_',
-                                            ' ',
-                                            (string) (
-                                                $item['status'] ?? ''
-                                            )
-                                        )
-                                    ) ?>
-                                </td>
-
-                                <td>
-                                    <?= esc(
-                                        DateDisplay::formatUtcDateTime(
-                                            $item['reviewed_at'] ?? null
-                                        )
-                                    ) ?>
-                                </td>
-
-                                <td>
-                                    <?= esc(
-                                        trim(
-                                            (string) (
-                                                $item['reviewer_name']
-                                                ?? ''
-                                            )
-                                        ) ?: '—'
-                                    ) ?>
-                                </td>
-
-                                <td>
-                                    <?= esc(
-                                        trim(
-                                            (string) (
-                                                $item['rejection_reason'] ?? ''
-                                            )
-                                        ) ?: '—'
-                                    ) ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Rejection modal -->
 <div
     class="modal fade"
     id="rejectAadhaarModal"
     tabindex="-1"
     aria-labelledby="rejectAadhaarModalLabel"
     aria-hidden="true"
-    data-open-on-load="<?= $openRejectModal ? 'true' : 'false' ?>">
+    data-open-on-load="<?= $openRejectModal
+                            ? 'true'
+                            : 'false' ?>">
 
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h2
-                    class="modal-title fs-18"
-                    id="rejectAadhaarModalLabel">
-                    Reject Aadhaar
-                </h2>
-
-                <button
-                    type="button"
-                    class="btn-close"
-                    data-bs-dismiss="modal"
-                    aria-label="Close"></button>
-            </div>
 
             <form
                 method="post"
                 action="<?= route_to(
-                            'admin.members.aadhaar-approvals.reject',
+                            'admin.members.'
+                                . 'aadhaar-approvals.reject',
                             $reference
                         ) ?>"
+                data-aadhaar-rejection-form
                 data-submit-loader
                 data-confirm-form
                 data-confirm-title="Reject Aadhaar?"
-                data-confirm-message="Reject this document and allow the member to upload again?"
+                data-confirm-message="Reject this document and allow the member to upload another Aadhaar document?"
                 data-confirm-button-text="Reject"
                 data-confirm-loading-text="Rejecting..."
                 data-confirm-button-class="btn-danger"
@@ -587,30 +1082,78 @@ $this->section('content');
 
                 <?= csrf_field() ?>
 
+                <div class="modal-header bg-info-subtle py-2">
+                    <div>
+                        <h5
+                            class="modal-title mb-1"
+                            id="rejectAadhaarModalLabel">
+
+                            Reject Aadhaar
+                        </h5>
+
+                        <p class="text-muted fs-13 mb-0">
+                            <?= esc(
+                                $reference
+                            ) ?>
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+                </div>
+
                 <div class="modal-body">
+                    <p class="text-muted">
+                        Enter the reason shown to the member before
+                        rejecting this submission.
+                    </p>
+
                     <label
                         for="aadhaarRejectionReason"
                         class="form-label">
-                        Rejection reason
+
+                        Rejection Reason
                         <span class="text-danger">*</span>
                     </label>
 
                     <textarea
                         id="aadhaarRejectionReason"
                         name="rejection_reason"
-                        class="form-control <?= isset(
-                                                $errors['rejection_reason']
-                                            ) ? 'is-invalid' : '' ?>"
-                        rows="3"
+                        class="form-control
+                            <?= isset(
+                                $errors['rejection_reason']
+                            )
+                                ? 'is-invalid'
+                                : '' ?>"
+                        rows="4"
+                        minlength="3"
                         maxlength="500"
+                        aria-describedby="
+                            aadhaarRejectionReasonHelp
+                            aadhaarRejectionReasonError"
                         required><?= esc(
-                                        old('rejection_reason')
+                                        old(
+                                            'rejection_reason'
+                                        )
                                     ) ?></textarea>
 
-                    <div class="invalid-feedback">
+                    <div
+                        id="aadhaarRejectionReasonHelp"
+                        class="form-text color-pink">
+
+                        Enter between 3 and 500 characters.
+                    </div>
+
+                    <div
+                        id="aadhaarRejectionReasonError"
+                        class="invalid-feedback">
+
                         <?= esc(
                             $errors['rejection_reason']
-                                ?? 'Please enter a rejection reason.'
+                                ?? 'Enter a rejection reason of at least 3 characters.'
                         ) ?>
                     </div>
                 </div>
@@ -620,6 +1163,7 @@ $this->section('content');
                         type="button"
                         class="btn btn-light"
                         data-bs-dismiss="modal">
+
                         Cancel
                     </button>
 
@@ -627,19 +1171,25 @@ $this->section('content');
                         type="submit"
                         class="btn btn-danger"
                         data-submit-button>
+
                         <span data-submit-idle>
                             <i
                                 class="ri-close-circle-line me-1"
                                 aria-hidden="true"></i>
-                            Reject Aadhaar
+
+                            Reject
                         </span>
 
                         <span
                             data-submit-loading
                             class="d-none">
+
                             <span
-                                class="spinner-border spinner-border-sm me-1"
+                                class="spinner-border
+                                    spinner-border-sm
+                                    me-1"
                                 aria-hidden="true"></span>
+
                             Rejecting...
                         </span>
                     </button>

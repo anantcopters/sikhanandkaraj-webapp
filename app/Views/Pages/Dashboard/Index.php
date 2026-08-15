@@ -659,13 +659,15 @@ $matchSections = [
 
                                         <span
                                             class="badge
-                    bg-success-subtle
-                    text-success
-                    fs-11
-                    p-2">
+                        bg-success-subtle
+                        text-success
+                        fs-11
+                        p-2
+                        flex-shrink-0">
 
-                                            <i class="ri-checkbox-circle-fill me-1" aria-hidden="true"></i>
-                                            Approved
+
+
+                                            Verified
 
                                         </span>
 
@@ -811,9 +813,9 @@ $matchSections = [
                                 <span
                                     class="badge
             bg-<?= esc(
-                $visibilityClass,
-                'attr'
-            ) ?>-subtle
+                    $visibilityClass,
+                    'attr'
+                ) ?>-subtle
             fs-11
             p-2
             fw-medium
