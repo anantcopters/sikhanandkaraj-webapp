@@ -768,7 +768,8 @@ $this->section('content');
                                         . 'aadhaar-approvals.approve',
                                     $reference
                                 ) ?>"
-                        data-aadhaar-approval-form
+                        data-validate
+                        novalidate
                         data-submit-loader
                         data-confirm-form
                         data-confirm-title="Approve Aadhaar?"
@@ -794,11 +795,11 @@ $this->section('content');
                                 id="aadhaarName"
                                 name="aadhaar_name"
                                 class="form-control
-                                    <?= isset(
-                                        $errors['aadhaar_name']
-                                    )
-                                        ? 'is-invalid'
-                                        : '' ?>"
+                <?= isset(
+                    $errors['aadhaar_name']
+                )
+                    ? 'is-invalid'
+                    : '' ?>"
                                 value="<?= esc(
                                             old(
                                                 'aadhaar_name',
@@ -811,17 +812,22 @@ $this->section('content');
                                         ) ?>"
                                 minlength="2"
                                 maxlength="100"
+                                pattern="[\p{L}\p{M} .'\-]+"
                                 autocomplete="off"
-                                aria-describedby="aadhaarNameError"
+                                data-error-required="Please enter the name shown on Aadhaar."
+                                data-error-minlength="Aadhaar name must contain at least 2 characters."
+                                data-error-maxlength="Aadhaar name cannot exceed 100 characters."
+                                data-error-pattern="Aadhaar name contains unsupported characters."
                                 required>
 
                             <div
                                 id="aadhaarNameError"
-                                class="invalid-feedback">
+                                class="invalid-feedback"
+                                data-validation-error="aadhaar_name">
 
                                 <?= esc(
                                     $errors['aadhaar_name']
-                                        ?? 'Enter the name shown on Aadhaar.'
+                                        ?? ''
                                 ) ?>
                             </div>
                         </div>
@@ -845,11 +851,12 @@ $this->section('content');
                                         id="aadhaarBirthDay"
                                         name="birth_day"
                                         class="form-select
-                                            <?= isset(
-                                                $errors['date_of_birth']
-                                            )
-                                                ? 'is-invalid'
-                                                : '' ?>"
+                        <?= isset(
+                            $errors['date_of_birth']
+                        )
+                            ? 'is-invalid'
+                            : '' ?>"
+                                        data-error-required="Please select the birth day."
                                         required>
 
                                         <option value="">
@@ -862,13 +869,12 @@ $this->section('content');
                                             $day++
                                         ): ?>
                                             <?php
-                                            $dayValue =
-                                                str_pad(
-                                                    (string) $day,
-                                                    2,
-                                                    '0',
-                                                    STR_PAD_LEFT
-                                                );
+                                            $dayValue = str_pad(
+                                                (string) $day,
+                                                2,
+                                                '0',
+                                                STR_PAD_LEFT
+                                            );
                                             ?>
 
                                             <option
@@ -881,12 +887,24 @@ $this->section('content');
                                                     ? 'selected'
                                                     : '' ?>>
 
-                                                <?= esc(
-                                                    $dayValue
-                                                ) ?>
+                                                <?= esc($dayValue) ?>
                                             </option>
                                         <?php endfor; ?>
                                     </select>
+
+                                    <div
+                                        id="aadhaarBirthDayError"
+                                        class="invalid-feedback"
+                                        data-validation-error="birth_day">
+
+                                        <?= isset(
+                                            $errors['date_of_birth']
+                                        )
+                                            ? esc(
+                                                $errors['date_of_birth']
+                                            )
+                                            : '' ?>
+                                    </div>
                                 </div>
 
                                 <div class="col-4">
@@ -900,12 +918,8 @@ $this->section('content');
                                     <select
                                         id="aadhaarBirthMonth"
                                         name="birth_month"
-                                        class="form-select
-                                            <?= isset(
-                                                $errors['date_of_birth']
-                                            )
-                                                ? 'is-invalid'
-                                                : '' ?>"
+                                        class="form-select"
+                                        data-error-required="Please select the birth month."
                                         required>
 
                                         <option value="">
@@ -926,12 +940,16 @@ $this->section('content');
                                                     ? 'selected'
                                                     : '' ?>>
 
-                                                <?= esc(
-                                                    $label
-                                                ) ?>
+                                                <?= esc($label) ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
+
+                                    <div
+                                        id="aadhaarBirthMonthError"
+                                        class="invalid-feedback"
+                                        data-validation-error="birth_month">
+                                    </div>
                                 </div>
 
                                 <div class="col-4">
@@ -945,12 +963,8 @@ $this->section('content');
                                     <select
                                         id="aadhaarBirthYear"
                                         name="birth_year"
-                                        class="form-select
-                                            <?= isset(
-                                                $errors['date_of_birth']
-                                            )
-                                                ? 'is-invalid'
-                                                : '' ?>"
+                                        class="form-select"
+                                        data-error-required="Please select the birth year."
                                         required>
 
                                         <option value="">
@@ -978,29 +992,21 @@ $this->section('content');
                                             </option>
                                         <?php endfor; ?>
                                     </select>
+
+                                    <div
+                                        id="aadhaarBirthYearError"
+                                        class="invalid-feedback"
+                                        data-validation-error="birth_year">
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div
-                                id="aadhaarDobError"
-                                class="<?= isset(
-                                            $errors['date_of_birth']
-                                        )
-                                            ? 'text-danger fs-12 mt-1'
-                                            : 'invalid-feedback' ?>">
-
-                                <?= esc(
-                                    $errors['date_of_birth']
-                                        ?? 'Select a valid date of birth.'
-                                ) ?>
                             </div>
                         </fieldset>
 
                         <div
                             class="d-flex
-                                flex-wrap
-                                justify-content-end
-                                gap-2">
+            flex-wrap
+            justify-content-end
+            gap-2">
 
                             <button
                                 type="button"
@@ -1034,8 +1040,8 @@ $this->section('content');
 
                                     <span
                                         class="spinner-border
-                                            spinner-border-sm
-                                            me-1"
+                        spinner-border-sm
+                        me-1"
                                         aria-hidden="true"></span>
 
                                     Approving...
@@ -1070,7 +1076,8 @@ $this->section('content');
                                 . 'aadhaar-approvals.reject',
                             $reference
                         ) ?>"
-                data-aadhaar-rejection-form
+                data-validate
+                novalidate
                 data-submit-loader
                 data-confirm-form
                 data-confirm-title="Reject Aadhaar?"
@@ -1092,8 +1099,11 @@ $this->section('content');
                         </h5>
 
                         <p class="text-muted fs-13 mb-0">
+                            Member ID:
                             <?= esc(
-                                $reference
+                                $reference !== ''
+                                    ? $reference
+                                    : '—'
                             ) ?>
                         </p>
                     </div>
@@ -1102,13 +1112,14 @@ $this->section('content');
                         type="button"
                         class="btn-close"
                         data-bs-dismiss="modal"
-                        aria-label="Close"></button>
+                        aria-label="Close">
+                    </button>
                 </div>
 
                 <div class="modal-body">
                     <p class="text-muted">
-                        Enter the reason shown to the member before
-                        rejecting this submission.
+                        Enter the reason for rejecting this Aadhaar
+                        submission.
                     </p>
 
                     <label
@@ -1123,38 +1134,34 @@ $this->section('content');
                         id="aadhaarRejectionReason"
                         name="rejection_reason"
                         class="form-control
-                            <?= isset(
-                                $errors['rejection_reason']
-                            )
-                                ? 'is-invalid'
-                                : '' ?>"
+                <?= isset(
+                    $errors['rejection_reason']
+                )
+                    ? 'is-invalid'
+                    : '' ?>"
                         rows="4"
                         minlength="3"
                         maxlength="500"
-                        aria-describedby="
-                            aadhaarRejectionReasonHelp
-                            aadhaarRejectionReasonError"
+                        data-error-required="Please enter a rejection reason."
+                        data-error-minlength="Rejection reason must contain at least 3 characters."
+                        data-error-maxlength="Rejection reason cannot exceed 500 characters."
                         required><?= esc(
-                                        old(
-                                            'rejection_reason'
-                                        )
+                                        old('rejection_reason')
                                     ) ?></textarea>
 
                     <div
-                        id="aadhaarRejectionReasonHelp"
-                        class="form-text color-pink">
-
-                        Enter between 3 and 500 characters.
-                    </div>
-
-                    <div
                         id="aadhaarRejectionReasonError"
-                        class="invalid-feedback">
+                        class="invalid-feedback"
+                        data-validation-error="rejection_reason">
 
                         <?= esc(
                             $errors['rejection_reason']
-                                ?? 'Enter a rejection reason of at least 3 characters.'
+                                ?? ''
                         ) ?>
+                    </div>
+
+                    <div class="form-text color-pink">
+                        Enter between 3 and 500 characters.
                     </div>
                 </div>
 
@@ -1186,8 +1193,8 @@ $this->section('content');
 
                             <span
                                 class="spinner-border
-                                    spinner-border-sm
-                                    me-1"
+                        spinner-border-sm
+                        me-1"
                                 aria-hidden="true"></span>
 
                             Rejecting...
