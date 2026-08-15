@@ -58,34 +58,26 @@ $pageScripts = $pageScripts ?? [];
             '/'
         );
 
+        /*
+     * Individual destination states.
+     */
         $dashboardActive =
-            $currentPath === 'admin/dashboard';
+            $currentPath
+            === 'admin/dashboard';
 
-        $pendingApprovalActive =
+        $photoApprovalsActive =
             str_starts_with(
                 $currentPath,
                 'admin/members/photo-approvals'
             );
 
-        $pendingAadhaarActive =
+        $aadhaarApprovalsActive =
             str_starts_with(
                 $currentPath,
                 'admin/members/aadhaar-approvals'
             );
 
-        $administratorActive =
-            str_starts_with(
-                $currentPath,
-                'admin/users'
-            );
-
-        $fieldOfficerActive =
-            str_starts_with(
-                $currentPath,
-                'admin/field-officers'
-            );
-
-        $prelaunchProfileActive =
+        $prelaunchProfilesActive =
             str_starts_with(
                 $currentPath,
                 'admin/prelaunch/profiles'
@@ -96,18 +88,56 @@ $pageScripts = $pageScripts ?? [];
                 $currentPath,
                 'admin/members'
             )
-            && !str_starts_with(
+            && !$photoApprovalsActive
+            && !$aadhaarApprovalsActive;
+
+        $administratorsActive =
+            str_starts_with(
                 $currentPath,
-                'admin/members/photo-approvals'
-            )
-            && !str_starts_with(
-                $currentPath,
-                'admin/members/aadhaar-approvals'
+                'admin/users'
             );
+
+        $sakVolunteersActive =
+            str_starts_with(
+                $currentPath,
+                'admin/field-officers'
+            );
+
+        /*
+     * Parent dropdown states.
+     */
+        $memberGroupActive =
+            $membersActive
+            || $prelaunchProfilesActive;
+
+        $approvalGroupActive =
+            $photoApprovalsActive
+            || $aadhaarApprovalsActive;
+
+        $administrationGroupActive =
+            $administratorsActive
+            || $sakVolunteersActive;
 
         $isSuperAdmin =
             session('admin_role')
-            === \App\Models\AdminUserModel::ROLE_SUPER_ADMIN;
+            === \App\Models\AdminUserModel
+            ::ROLE_SUPER_ADMIN;
+
+        $adminUserName = trim(
+            (string) session(
+                'admin_user_name'
+            )
+        );
+
+        if ($adminUserName === '') {
+            $adminUserName =
+                'Administrator';
+        }
+
+        $adminRoleLabel =
+            $isSuperAdmin
+            ? 'Super Administrator'
+            : 'Administrator';
         ?>
 
         <header
@@ -115,31 +145,39 @@ $pageScripts = $pageScripts ?? [];
             class="position-static border-bottom">
 
             <nav
-                class="navbar navbar-expand-lg bg-white py-2"
+                class="navbar
+                navbar-expand-lg
+                bg-white
+                py-2"
                 aria-label="Administrator navigation">
 
                 <div class="container-fluid px-3 px-lg-4">
 
+                    <!-- Application logo -->
                     <a
-                        href="<?= route_to('admin.dashboard') ?>"
+                        href="<?= route_to(
+                                    'admin.dashboard'
+                                ) ?>"
                         class="navbar-brand
-        d-inline-flex
-        align-items-center
-        flex-shrink-0
-        me-lg-3
-        m-0
-        p-0
-        text-decoration-none"
+                        d-inline-flex
+                        align-items-center
+                        flex-shrink-0
+                        me-lg-3
+                        m-0
+                        p-0
+                        text-decoration-none"
                         aria-label="Administrator dashboard">
 
                         <img
                             src="<?= base_url(
-                                        'assets/images/logo_sak_bgremove_final.png'
+                                        'assets/images/'
+                                            . 'logo_sak_bgremove_final.png'
                                     ) ?>"
                             alt="Sikhanandkaraj"
                             class="public-navbar__logo">
                     </a>
 
+                    <!-- Mobile navigation toggle -->
                     <button
                         type="button"
                         class="navbar-toggler"
@@ -156,244 +194,358 @@ $pageScripts = $pageScripts ?? [];
                         class="collapse navbar-collapse"
                         id="adminNavbar">
 
+                        <!-- Primary navigation -->
                         <ul
                             class="navbar-nav
-            nav-underline
-            mx-lg-auto
-            gap-2
-            mt-2 mt-lg-0">
+                            nav-underline
+                            mx-lg-auto
+                            gap-lg-2
+                            mt-2
+                            mt-lg-0">
 
+                            <!-- Dashboard -->
                             <li class="nav-item">
                                 <a
                                     href="<?= route_to(
                                                 'admin.dashboard'
                                             ) ?>"
                                     class="nav-link
-                    d-flex align-items-center
-                    gap-2
-                    py-1 py-lg-2
-                    <?= $dashboardActive
-                        ? 'active text-primary'
-                        : '' ?>"
+                                    d-flex
+                                    align-items-center
+                                    gap-2
+                                    py-2
+                                    <?= $dashboardActive
+                                        ? 'active text-primary'
+                                        : '' ?>"
                                     <?= $dashboardActive
                                         ? 'aria-current="page"'
                                         : '' ?>>
 
                                     <i
                                         class="ri-layout-grid-line
-                        fw-normal flex-shrink-0"
-                                        aria-hidden="true">
-                                    </i>
+                                        fw-normal
+                                        flex-shrink-0"
+                                        aria-hidden="true"></i>
 
                                     <span
                                         class="<?= $dashboardActive
                                                     ? 'fw-semibold'
                                                     : '' ?>">
+
                                         Dashboard
                                     </span>
                                 </a>
                             </li>
-                            <li class="nav-item">
+
+                            <!-- Members dropdown -->
+                            <li class="nav-item dropdown">
                                 <a
-                                    href="<?= route_to('admin.members.aadhaar-approvals') ?>"
-                                    class="nav-link d-flex align-items-center gap-2 py-1 py-lg-2 <?= $pendingAadhaarActive ? 'active text-primary' : '' ?>"
-                                    <?= $pendingAadhaarActive ? 'aria-current="page"' : '' ?>>
-
-                                    <i class="ri-fingerprint-line fw-normal flex-shrink-0" aria-hidden="true"></i>
-
-                                    <span class="<?= $pendingAadhaarActive ? 'fw-semibold' : '' ?>">
-                                        Aadhaar Review
-                                    </span>
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a
-                                    href="<?= route_to(
-                                                'admin.members'
-                                                    . '.photo-approvals'
-                                            ) ?>"
+                                    href="#"
                                     class="nav-link
-                    d-flex align-items-center
-                    gap-2
-                    py-1 py-lg-2
-                    <?= $pendingApprovalActive
-                        ? 'active text-primary'
-                        : '' ?>"
-                                    <?= $pendingApprovalActive
-                                        ? 'aria-current="page"'
-                                        : '' ?>>
-
-                                    <i
-                                        class="ri-image-line
-                        fw-normal flex-shrink-0"
-                                        aria-hidden="true">
-                                    </i>
-
-                                    <span
-                                        class="<?= $pendingApprovalActive
-                                                    ? 'fw-semibold'
-                                                    : '' ?>">
-                                        Pending Approval
-                                    </span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a
-                                    href="<?= route_to(
-                                                'admin.prelaunch.profiles.index'
-                                            ) ?>"
-                                    class="nav-link
-        d-flex align-items-center
-        gap-2
-        py-1 py-lg-2
-        <?= $prelaunchProfileActive
-            ? 'active text-primary'
-            : '' ?>"
-                                    <?= $prelaunchProfileActive
-                                        ? 'aria-current="page"'
-                                        : '' ?>>
-
-                                    <i
-                                        class="ri-profile-line
-            fw-normal flex-shrink-0"
-                                        aria-hidden="true">
-                                    </i>
-
-                                    <span
-                                        class="<?= $prelaunchProfileActive
-                                                    ? 'fw-semibold'
-                                                    : '' ?>">
-                                        Pre-launch Profiles
-                                    </span>
-                                </a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a
-                                    href="<?= route_to(
-                                                'admin.members.index'
-                                            ) ?>"
-                                    class="nav-link
-            d-flex
-            align-items-center
-            gap-2
-            py-1
-            py-lg-2
-            <?= $membersActive
-                ? 'active text-primary'
-                : '' ?>"
-                                    <?= $membersActive
+                                    dropdown-toggle
+                                    d-flex
+                                    align-items-center
+                                    gap-2
+                                    py-2
+                                    <?= $memberGroupActive
+                                        ? 'active text-primary fw-semibold'
+                                        : '' ?>"
+                                    id="adminMembersDropdown"
+                                    role="button"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    <?= $memberGroupActive
                                         ? 'aria-current="page"'
                                         : '' ?>>
 
                                     <i
                                         class="ri-team-line
-                fw-normal
-                flex-shrink-0"
-                                        aria-hidden="true">
-                                    </i>
+                                        fw-normal
+                                        flex-shrink-0"
+                                        aria-hidden="true"></i>
 
-                                    <span
-                                        class="<?= $membersActive
-                                                    ? 'fw-semibold'
-                                                    : '' ?>">
-                                        Members
-                                    </span>
+                                    <span>Members</span>
                                 </a>
+
+                                <ul
+                                    class="dropdown-menu"
+                                    aria-labelledby="adminMembersDropdown">
+
+                                    <li>
+                                        <a
+                                            href="<?= route_to(
+                                                        'admin.members.index'
+                                                    ) ?>"
+                                            class="dropdown-item
+                                            d-flex
+                                            align-items-center
+                                            gap-2
+                                            <?= $membersActive
+                                                ? 'active'
+                                                : '' ?>"
+                                            <?= $membersActive
+                                                ? 'aria-current="page"'
+                                                : '' ?>>
+
+                                            <i
+                                                class="ri-team-line"
+                                                aria-hidden="true"></i>
+
+                                            All Members
+                                        </a>
+                                    </li>
+
+                                    <li>
+                                        <a
+                                            href="<?= route_to(
+                                                        'admin.prelaunch.'
+                                                            . 'profiles.index'
+                                                    ) ?>"
+                                            class="dropdown-item
+                                            d-flex
+                                            align-items-center
+                                            gap-2
+                                            <?= $prelaunchProfilesActive
+                                                ? 'active'
+                                                : '' ?>"
+                                            <?= $prelaunchProfilesActive
+                                                ? 'aria-current="page"'
+                                                : '' ?>>
+
+                                            <i
+                                                class="ri-profile-line"
+                                                aria-hidden="true"></i>
+
+                                            Pre-launch Profiles
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
 
-                            <?php if ($isSuperAdmin): ?>
-                                <li class="nav-item">
-                                    <a
-                                        href="<?= route_to(
-                                                    'admin.users.index'
-                                                ) ?>"
-                                        class="nav-link
-                        d-flex align-items-center
-                        gap-2
-                        py-1 py-lg-2
-                        <?= $administratorActive
-                                    ? 'active text-primary'
-                                    : '' ?>"
-                                        <?= $administratorActive
-                                            ? 'aria-current="page"'
-                                            : '' ?>>
-
-                                        <i
-                                            class="ri-user-settings-line
-                            fw-normal flex-shrink-0"
-                                            aria-hidden="true">
-                                        </i>
-
-                                        <span
-                                            class="<?= $administratorActive
-                                                        ? 'fw-semibold'
-                                                        : '' ?>">
-                                            Administrators
-                                        </span>
-                                    </a>
-                                </li>
-
-                            <?php endif; ?>
-                            <li class="nav-item">
+                            <!-- Approvals dropdown -->
+                            <li class="nav-item dropdown">
                                 <a
-                                    href="<?= route_to(
-                                                'admin.field-officers.index'
-                                            ) ?>"
+                                    href="#"
                                     class="nav-link
-            d-flex align-items-center
-            gap-2
-            py-1 py-lg-2
-            <?= $fieldOfficerActive
-                ? 'active text-primary'
-                : '' ?>"
-                                    <?= $fieldOfficerActive
+                                    dropdown-toggle
+                                    d-flex
+                                    align-items-center
+                                    gap-2
+                                    py-2
+                                    <?= $approvalGroupActive
+                                        ? 'active text-primary fw-semibold'
+                                        : '' ?>"
+                                    id="adminApprovalsDropdown"
+                                    role="button"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    <?= $approvalGroupActive
                                         ? 'aria-current="page"'
                                         : '' ?>>
 
                                     <i
-                                        class="ri-user-location-line
-                fw-normal flex-shrink-0"
-                                        aria-hidden="true">
-                                    </i>
+                                        class="ri-checkbox-circle-line
+                                        fw-normal
+                                        flex-shrink-0"
+                                        aria-hidden="true"></i>
 
-                                    <span
-                                        class="<?= $fieldOfficerActive
-                                                    ? 'fw-semibold'
-                                                    : '' ?>">
-                                        SAK Volunteers
-                                    </span>
+                                    <span>Approvals</span>
                                 </a>
+
+                                <ul
+                                    class="dropdown-menu"
+                                    aria-labelledby="adminApprovalsDropdown">
+
+                                    <li>
+                                        <a
+                                            href="<?= route_to(
+                                                        'admin.members.'
+                                                            . 'photo-approvals'
+                                                    ) ?>"
+                                            class="dropdown-item
+                                            d-flex
+                                            align-items-center
+                                            gap-2
+                                            <?= $photoApprovalsActive
+                                                ? 'active'
+                                                : '' ?>"
+                                            <?= $photoApprovalsActive
+                                                ? 'aria-current="page"'
+                                                : '' ?>>
+
+                                            <i
+                                                class="ri-image-line"
+                                                aria-hidden="true"></i>
+
+                                            Photo Approvals
+                                        </a>
+                                    </li>
+
+                                    <li>
+                                        <a
+                                            href="<?= route_to(
+                                                        'admin.members.'
+                                                            . 'aadhaar-approvals'
+                                                    ) ?>"
+                                            class="dropdown-item
+                                            d-flex
+                                            align-items-center
+                                            gap-2
+                                            <?= $aadhaarApprovalsActive
+                                                ? 'active'
+                                                : '' ?>"
+                                            <?= $aadhaarApprovalsActive
+                                                ? 'aria-current="page"'
+                                                : '' ?>>
+
+                                            <i
+                                                class="ri-fingerprint-line"
+                                                aria-hidden="true"></i>
+
+                                            Aadhaar Approvals
+                                        </a>
+                                    </li>
+                                </ul>
                             </li>
+
+                            <!-- Super Admin-only administration dropdown -->
+                            <?php if ($isSuperAdmin): ?>
+                                <li class="nav-item dropdown">
+                                    <a
+                                        href="#"
+                                        class="nav-link
+                                        dropdown-toggle
+                                        d-flex
+                                        align-items-center
+                                        gap-2
+                                        py-2
+                                        <?= $administrationGroupActive
+                                            ? 'active text-primary fw-semibold'
+                                            : '' ?>"
+                                        id="adminAdministrationDropdown"
+                                        role="button"
+                                        data-bs-toggle="dropdown"
+                                        aria-expanded="false"
+                                        <?= $administrationGroupActive
+                                            ? 'aria-current="page"'
+                                            : '' ?>>
+
+                                        <i
+                                            class="ri-settings-3-line
+                                            fw-normal
+                                            flex-shrink-0"
+                                            aria-hidden="true"></i>
+
+                                        <span>Administration</span>
+                                    </a>
+
+                                    <ul
+                                        class="dropdown-menu"
+                                        aria-labelledby="adminAdministrationDropdown">
+
+                                        <li>
+                                            <a
+                                                href="<?= route_to(
+                                                            'admin.users.index'
+                                                        ) ?>"
+                                                class="dropdown-item
+                                                d-flex
+                                                align-items-center
+                                                gap-2
+                                                <?= $administratorsActive
+                                                    ? 'active'
+                                                    : '' ?>"
+                                                <?= $administratorsActive
+                                                    ? 'aria-current="page"'
+                                                    : '' ?>>
+
+                                                <i
+                                                    class="ri-user-settings-line"
+                                                    aria-hidden="true"></i>
+
+                                                Administrators
+                                            </a>
+                                        </li>
+
+                                        <li>
+                                            <a
+                                                href="<?= route_to(
+                                                            'admin.'
+                                                                . 'field-officers.index'
+                                                        ) ?>"
+                                                class="dropdown-item
+                                                d-flex
+                                                align-items-center
+                                                gap-2
+                                                <?= $sakVolunteersActive
+                                                    ? 'active'
+                                                    : '' ?>"
+                                                <?= $sakVolunteersActive
+                                                    ? 'aria-current="page"'
+                                                    : '' ?>>
+
+                                                <i
+                                                    class="ri-user-location-line"
+                                                    aria-hidden="true"></i>
+
+                                                SAK Volunteers
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                            <?php endif; ?>
                         </ul>
 
+                        <!-- Administrator identity and logout -->
                         <div
-                            class="d-flex flex-column
-            flex-lg-row
-            align-items-lg-center
-            gap-2
-            mt-2 mt-lg-0">
+                            class="d-flex
+                            flex-column
+                            flex-lg-row
+                            align-items-lg-center
+                            gap-2
+                            mt-3
+                            mt-lg-0
+                            ms-lg-3">
 
-                            <span
-                                class="text-muted
-                text-truncate
-                mw-100
-                py-1 py-lg-0">
+                            <div
+                                class="d-flex
+                                align-items-center
+                                gap-2
+                                text-muted
+                                py-1
+                                py-lg-0"
+                                title="<?= esc(
+                                            $adminUserName
+                                                . ' · '
+                                                . $adminRoleLabel,
+                                            'attr'
+                                        ) ?>">
 
                                 <i
                                     class="ri-user-line
-                    fw-normal
-                    align-middle me-1"
-                                    aria-hidden="true">
-                                </i>
+                                    fw-normal
+                                    flex-shrink-0"
+                                    aria-hidden="true"></i>
 
-                                <?= esc(
-                                    (string) session(
-                                        'admin_user_name'
-                                    )
-                                ) ?>
-                            </span>
+                                <div class="lh-sm">
+                                    <div
+                                        class="text-body
+                                        text-truncate
+                                        fw-medium"
+                                        style="max-width: 160px;">
+
+                                        <?= esc(
+                                            $adminUserName
+                                        ) ?>
+                                    </div>
+
+                                    <small class="text-muted">
+                                        <?= esc(
+                                            $adminRoleLabel
+                                        ) ?>
+                                    </small>
+                                </div>
+                            </div>
 
                             <form
                                 action="<?= route_to(
@@ -407,15 +559,17 @@ $pageScripts = $pageScripts ?? [];
                                 <button
                                     type="submit"
                                     class="btn
-                    btn-soft-secondary
-                    btn-sm w-100">
+                                    btn-soft-secondary
+                                    btn-sm
+                                    w-100
+                                    d-inline-flex
+                                    align-items-center
+                                    justify-content-center
+                                    gap-1">
 
                                     <i
-                                        class="ri-logout-box-r-line
-                        fw-normal
-                        align-middle me-1"
-                                        aria-hidden="true">
-                                    </i>
+                                        class="ri-logout-box-r-line"
+                                        aria-hidden="true"></i>
 
                                     Logout
                                 </button>

@@ -1228,15 +1228,44 @@ final class Services extends BaseService
             );
         }
 
+        $database = db_connect();
+
         return new MemberProfileSummaryService(
-            static::basicDetailsService(false),
-            static::educationProfessionService(false),
-            static::familyDetailsService(false),
-            static::lifestyleService(false),
-            static::aboutMeService(false),
-            static::memberPhotoService(false),
-            static::memberPhotoUrlService(false),
-            static::profileCompletionService(false)
+            static::basicDetailsService(
+                false
+            ),
+
+            static::educationProfessionService(
+                false
+            ),
+
+            static::familyDetailsService(
+                false
+            ),
+
+            static::lifestyleService(
+                false
+            ),
+
+            static::aboutMeService(
+                false
+            ),
+
+            static::memberPhotoService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            static::profileCompletionService(
+                false
+            ),
+
+            new MemberAadhaarSubmissionModel(
+                $database
+            )
         );
     }
 

@@ -73,6 +73,86 @@ final class MemberAadhaarSubmissionModel extends Model
     }
 
     /**
+     * Return only the approved Aadhaar identity values required by
+     * the shared read-only profile view.
+     *
+     * Document location, checksum, upload reference, reviewer,
+     * timestamps and rejection history are intentionally excluded.
+     *
+     * @return array{
+     *     aadhaar_name:string,
+     *     aadhaar_date_of_birth:string
+     * }|null
+     */
+    public function approvedIdentityForMember(
+        int $memberId
+    ): ?array {
+        if ($memberId <= 0) {
+            return null;
+        }
+
+        $row = $this
+            ->select([
+                'aadhaar_name',
+                'aadhaar_date_of_birth',
+            ])
+            ->where(
+                'member_id',
+                $memberId
+            )
+            ->where(
+                'status',
+                self::STATUS_APPROVED
+            )
+            ->first();
+
+        if (!is_array($row)) {
+            return null;
+        }
+
+        $aadhaarName = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim(
+                (string) (
+                    $row['aadhaar_name']
+                    ?? ''
+                )
+            )
+        ) ?? '';
+
+        $aadhaarDateOfBirth = trim(
+            (string) (
+                $row['aadhaar_date_of_birth']
+                ?? ''
+            )
+        );
+
+        /*
+     * An approved record should always contain both fields because
+     * the database constraint requires them. Fail closed if an old
+     * or manually-created inconsistent record exists.
+     */
+        if (
+            $aadhaarName === ''
+            || preg_match(
+                '/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/',
+                $aadhaarDateOfBirth
+            ) !== 1
+        ) {
+            return null;
+        }
+
+        return [
+            'aadhaar_name' =>
+            $aadhaarName,
+
+            'aadhaar_date_of_birth' =>
+            $aadhaarDateOfBirth,
+        ];
+    }
+
+    /**
      * Build the paginated administrator pending-review query.
      */
     public function preparePendingListing(string $search): self

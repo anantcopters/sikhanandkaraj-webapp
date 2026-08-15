@@ -249,11 +249,17 @@ $profileNoticeMessage = trim(
  * @var string                     $aboutMe
  * @var string                     $profileImage
  * @var array<string, mixed>       $overallProfileSummary
+ *
+ * @var array{
+ *     aadhaar_name:string,
+ *     aadhaar_date_of_birth:string
+ * }|null $aadhaarVerification
+ *
  * @var list<array{
  *     id:int,
  *     thumbnailUrl:string,
  *     isPrimary:bool
- * }>                              $approvedPhotos
+ * }> $approvedPhotos
  */
 
 $user = isset($user) && is_array($user)
@@ -274,6 +280,78 @@ $familyDetails = isset($familyDetails)
     && is_array($familyDetails)
     ? $familyDetails
     : [];
+
+$aadhaarVerification =
+    isset($aadhaarVerification)
+    && is_array($aadhaarVerification)
+    ? $aadhaarVerification
+    : [];
+
+$aadhaarVerifiedName = preg_replace(
+    '/\s+/u',
+    ' ',
+    trim(
+        (string) (
+            $aadhaarVerification['aadhaar_name']
+            ?? ''
+        )
+    )
+) ?? '';
+
+$aadhaarDateOfBirth = trim(
+    (string) (
+        $aadhaarVerification['aadhaar_date_of_birth']
+        ?? ''
+    )
+);
+
+$formattedAadhaarDateOfBirth = '';
+
+if ($aadhaarDateOfBirth !== '') {
+    try {
+        $parsedAadhaarDate =
+            DateTimeImmutable::createFromFormat(
+                '!Y-m-d',
+                $aadhaarDateOfBirth
+            );
+
+        $parseErrors =
+            DateTimeImmutable::getLastErrors();
+
+        $hasDateErrors =
+            is_array($parseErrors)
+            && (
+                (
+                    $parseErrors['warning_count']
+                    ?? 0
+                ) > 0
+                || (
+                    $parseErrors['error_count']
+                    ?? 0
+                ) > 0
+            );
+
+        if (
+            $parsedAadhaarDate
+            instanceof DateTimeImmutable
+            && !$hasDateErrors
+            && $parsedAadhaarDate->format(
+                'Y-m-d'
+            ) === $aadhaarDateOfBirth
+        ) {
+            $formattedAadhaarDateOfBirth =
+                $parsedAadhaarDate->format(
+                    'd M Y'
+                );
+        }
+    } catch (Throwable) {
+        $formattedAadhaarDateOfBirth = '';
+    }
+}
+
+$hasApprovedAadhaarIdentity =
+    $aadhaarVerifiedName !== ''
+    && $formattedAadhaarDateOfBirth !== '';
 
 $lifestyleDetails = isset($lifestyleDetails)
     && is_array($lifestyleDetails)
@@ -855,7 +933,6 @@ $this->section('content');
             </div>
         <?php endif; ?>
 
-        <!-- Main profile summary card. -->
         <!-- Main profile summary card. -->
         <article
             class="card border border-danger
@@ -1794,6 +1871,129 @@ $this->section('content');
                 </div>
             </div>
         </article>
+        <?php if (
+            $hasApprovedAadhaarIdentity
+        ): ?>
+            <section
+                class="card
+            border
+            border-success
+            border-opacity-25
+            shadow-sm
+            rounded-3
+            mb-4"
+                aria-labelledby="aadhaarVerifiedDetailsTitle">
+
+                <div
+                    class="card-header
+                bg-success-subtle
+                d-flex
+                align-items-center
+                justify-content-between
+                gap-2">
+
+                    <div
+                        class="d-flex
+                    align-items-center
+                    gap-2">
+
+                        <i
+                            class="ri-shield-check-line
+                        text-success
+                        fs-18"
+                            aria-hidden="true"></i>
+
+                        <h2
+                            id="aadhaarVerifiedDetailsTitle"
+                            class="card-title
+                        fs-16
+                        fw-semibold
+                        mb-0">
+
+                            Aadhaar Verified Details
+                        </h2>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="row g-3">
+
+                        <div class="col-12 col-md-6">
+                            <div
+                                class="border-bottom
+                            pb-2
+                            h-100">
+
+                                <div
+                                    class="text-muted
+                                fs-12
+                                mb-1">
+
+                                    Name on Aadhaar
+                                </div>
+
+                                <div
+                                    class="fw-medium
+                                fs-14
+                                d-flex
+                                align-items-center
+                                gap-1">
+
+                                    <?= esc(
+                                        $aadhaarVerifiedName
+                                    ) ?>
+
+                                    <i
+                                        class="ri-checkbox-circle-fill
+                                    text-success"
+                                        aria-label="Aadhaar name verified">
+                                    </i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div
+                                class="border-bottom
+                            pb-2
+                            h-100">
+
+                                <div
+                                    class="text-muted
+                                fs-12
+                                mb-1">
+
+                                    Date of Birth on Aadhaar
+                                </div>
+
+                                <div
+                                    class="fw-medium
+                                fs-14
+                                d-flex
+                                align-items-center
+                                gap-1">
+
+                                    <?= esc(
+                                        $formattedAadhaarDateOfBirth
+                                    ) ?>
+
+                                    <i
+                                        class="ri-checkbox-circle-fill
+                                    text-success"
+                                        aria-label="Aadhaar date of birth verified">
+                                    </i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-muted fs-12 mb-0 mt-3">
+                        These details were recorded during Aadhaar verification
+                        and cannot be edited from the matrimonial profile.
+                    </p>
+                </div>
+            </section>
+        <?php endif; ?>
         <div class="row mb-0">
             <div class="col-12">
                 <section
