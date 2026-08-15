@@ -11,6 +11,7 @@ use App\Models\UserModel;
 use App\Models\MemberShortlistModel;
 use App\Services\Notification\MemberNotificationService;
 use CodeIgniter\Database\BaseConnection;
+use App\Support\MemberNameVisibility;
 use DomainException;
 use RuntimeException;
 use Throwable;
@@ -894,20 +895,39 @@ final class MemberInteractionService
             );
         }
 
-        $actorName = preg_replace(
-            '/\s+/u',
-            ' ',
-            trim(
-                (string) (
-                    $actor['full_name']
-                    ?? ''
+        $storedActorName =
+            preg_replace(
+                '/\s+/u',
+                ' ',
+                trim(
+                    (string) (
+                        $actor['full_name']
+                        ?? ''
+                    )
                 )
             )
-        ) ?? '';
+            ?? '';
 
-        if ($actorName === '') {
-            $actorName = 'A member';
-        }
+        /*
+        * The notification recipient is another member.
+        *
+        * Apply the same centralized female-name privacy rule used
+        * by member cards and the other-member Full Profile view.
+        *
+        * A future paid-member entitlement may replace false with
+        * the recipient's resolved full-name access permission.
+        */
+        $actorName =
+            $storedActorName !== ''
+            ? MemberNameVisibility::forDisplay(
+                fullName: $storedActorName,
+
+                gender: $actor['gender']
+                    ?? '',
+
+                canViewFullName: false
+            )
+            : 'A member';
 
         $profileReference = trim(
             (string) (
@@ -923,11 +943,11 @@ final class MemberInteractionService
         }
 
         /*
-     * Keep notification targets as application-internal paths.
-     *
-     * MemberNotificationService performs an additional safety
-     * validation before storing the target URL.
-     */
+        * Keep notification targets as application-internal paths.
+        *
+        * MemberNotificationService performs an additional safety
+        * validation before storing the target URL.
+        */
         $targetUrl =
             '/members/'
             . rawurlencode(
@@ -938,14 +958,14 @@ final class MemberInteractionService
             ->create(
                 [
                     /*
-                 * The person RECEIVING the interest receives
+                 * The person receiving the Interest receives
                  * the notification.
                  */
                     'recipientUserId' =>
                     $toUserId,
 
                     /*
-                 * The person who SHOWED interest is the actor.
+                 * The person who showed Interest is the actor.
                  */
                     'actorUserId' =>
                     $fromUserId,
@@ -963,7 +983,7 @@ final class MemberInteractionService
 
                     /*
                  * Keep entity information available for future
-                 * notification processing/auditing.
+                 * notification processing and auditing.
                  */
                     'entityType' =>
                     'MEMBER_INTEREST',

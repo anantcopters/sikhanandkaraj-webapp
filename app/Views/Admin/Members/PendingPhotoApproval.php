@@ -335,6 +335,8 @@ $this->section('content');
                                                                 'attr'
                                                             ) ?>"
                                             title="View photos"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
                                             aria-label="View member photos">
 
                                             <i
@@ -375,6 +377,8 @@ $this->section('content');
         align-items-center
         justify-content-center"
                                                 title="Approve all pending photos"
+                                                data-bs-toggle="tooltip"
+                                                data-bs-placement="top"
                                                 aria-label="Approve all pending photos">
 
                                                 <i

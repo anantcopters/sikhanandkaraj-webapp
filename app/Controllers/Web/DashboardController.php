@@ -19,11 +19,13 @@ final class DashboardController extends BaseController
 {
     public function index(): string
     {
-        $resolvedUserId = $this->authenticatedUserId();
+        $resolvedUserId =
+            $this->authenticatedUserId();
 
-        $user = (new UserModel())->find(
-            $resolvedUserId
-        );
+        $user =
+            (new UserModel())->find(
+                $resolvedUserId
+            );
 
         if (!is_array($user)) {
             session()->destroy();
@@ -31,35 +33,89 @@ final class DashboardController extends BaseController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        $loggedInUserName = trim(
-            (string) ($user['full_name'] ?? '')
-        );
+        $loggedInUserName =
+            trim(
+                (string) (
+                    $user['full_name']
+                    ?? ''
+                )
+            );
 
         if ($loggedInUserName === '') {
-            $loggedInUserName = 'Member';
+            $loggedInUserName =
+                'Member';
         }
 
-        $profileReference = trim(
-            (string) (
-                $user['profile_ref_number']
-                ?? ''
-            )
-        );
+        $profileReference =
+            trim(
+                (string) (
+                    $user['profile_ref_number']
+                    ?? ''
+                )
+            );
 
-        $contactModel = new UserContactModel();
+        /*
+         * ------------------------------------------------------------------
+         * Member contacts
+         * ------------------------------------------------------------------
+         *
+         * Mobile and email remain in user_contacts.
+         * Do not duplicate either value on users.
+         */
+        $contactModel =
+            new UserContactModel();
 
-        $mobileContact = $contactModel->findPrimaryForUser(
-            $resolvedUserId,
-            UserContactModel::TYPE_MOBILE
-        );
+        $mobileContact =
+            $contactModel->findPrimaryForUser(
+                $resolvedUserId,
+                UserContactModel::TYPE_MOBILE
+            );
 
-        $primaryMobile = $this->contactValue(
-            $mobileContact
-        );
+        $emailContact =
+            $contactModel->findPrimaryForUser(
+                $resolvedUserId,
+                UserContactModel::TYPE_EMAIL
+            );
 
-        $isMobileVerified = $this->isContactVerified(
-            $mobileContact
-        );
+        $primaryMobile =
+            $this->contactValue(
+                $mobileContact
+            );
+
+        $primaryEmail =
+            $this->contactValue(
+                $emailContact
+            );
+
+        $isMobileVerified =
+            $this->isContactVerified(
+                $mobileContact
+            );
+
+        $isEmailVerified =
+            $this->isContactVerified(
+                $emailContact
+            );
+
+        /*
+         * ------------------------------------------------------------------
+         * Member identity verification
+         * ------------------------------------------------------------------
+         *
+         * PostgreSQL boolean values must always pass through the project's
+         * existing BooleanValue support class.
+         */
+        $isAadhaarVerified =
+            BooleanValue::fromDatabase(
+                $user['is_aadhaar_verified']
+                    ?? false
+            );
+
+        $isSelfieVerified =
+            BooleanValue::fromDatabase(
+                $user['is_selfie_verified']
+                    ?? false
+            );
 
         /*
          * Keep shared authenticated-session values current for the header.
@@ -76,11 +132,13 @@ final class DashboardController extends BaseController
          * Dashboard-specific account and match datasets.
          */
         /** @var MemberDashboardDataService $dashboardService */
-        $dashboardService = service(
-            'memberDashboardDataService'
-        );
+        $dashboardService =
+            service(
+                'memberDashboardDataService'
+            );
 
-        $dashboardData = $dashboardService
+        $dashboardData =
+            $dashboardService
             ->getDashboardData(
                 $resolvedUserId
             );
@@ -89,13 +147,16 @@ final class DashboardController extends BaseController
          * Reuse exactly the same profile summary used by profile/edit.
          */
         /** @var MemberProfileSummaryService $profileSummaryService */
-        $profileSummaryService = service(
-            'memberProfileSummaryService'
-        );
+        $profileSummaryService =
+            service(
+                'memberProfileSummaryService'
+            );
 
-        $profileSummary = $profileSummaryService->getForUser(
-            $resolvedUserId
-        );
+        $profileSummary =
+            $profileSummaryService
+            ->getForUser(
+                $resolvedUserId
+            );
 
         return view(
             'Pages/Dashboard/Index',
@@ -118,11 +179,29 @@ final class DashboardController extends BaseController
                         )
                     ),
 
+                    /*
+                     * Contact verification.
+                     */
                     'primaryMobile' =>
                     $primaryMobile,
 
                     'isMobileVerified' =>
                     $isMobileVerified,
+
+                    'primaryEmail' =>
+                    $primaryEmail,
+
+                    'isEmailVerified' =>
+                    $isEmailVerified,
+
+                    /*
+                     * Identity verification.
+                     */
+                    'isAadhaarVerified' =>
+                    $isAadhaarVerified,
+
+                    'isSelfieVerified' =>
+                    $isSelfieVerified,
 
                     'profileImage' =>
                     $profileSummary['profileImage'],
@@ -161,12 +240,13 @@ final class DashboardController extends BaseController
             return null;
         }
 
-        $value = trim(
-            (string) (
-                $contact['contact_value']
-                ?? ''
-            )
-        );
+        $value =
+            trim(
+                (string) (
+                    $contact['contact_value']
+                    ?? ''
+                )
+            );
 
         return $value !== ''
             ? $value
@@ -186,7 +266,8 @@ final class DashboardController extends BaseController
         }
 
         return BooleanValue::fromDatabase(
-            $contact['is_verified'] ?? false
+            $contact['is_verified']
+                ?? false
         );
     }
 }

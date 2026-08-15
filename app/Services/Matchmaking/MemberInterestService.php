@@ -9,6 +9,7 @@ use App\Models\MemberMatchCandidateModel;
 use App\Models\MemberNotificationModel;
 use App\Models\UserModel;
 use App\Services\Notification\MemberNotificationService;
+use App\Support\MemberNameVisibility;
 use CodeIgniter\Database\BaseConnection;
 use DomainException;
 use RuntimeException;
@@ -426,7 +427,7 @@ final class MemberInterestService
             );
         }
 
-        $responderName =
+        $storedResponderName =
             preg_replace(
                 '/\s+/u',
                 ' ',
@@ -439,12 +440,26 @@ final class MemberInterestService
             )
             ?? '';
 
-        if (
-            $responderName === ''
-        ) {
-            $responderName =
-                'A member';
-        }
+        /*
+        * The notification sender is another member.
+        *
+        * Apply the centralized female-name visibility rule before
+        * persisting the notification message.
+        *
+        * A future paid-member entitlement may replace false with
+        * the sender's resolved full-name access permission.
+        */
+        $responderName =
+            $storedResponderName !== ''
+            ? MemberNameVisibility::forDisplay(
+                fullName: $storedResponderName,
+
+                gender: $responder['gender']
+                    ?? '',
+
+                canViewFullName: false
+            )
+            : 'A member';
 
         $profileReference =
             trim(

@@ -143,16 +143,14 @@ final class PartnerPreferenceMatchService
      * Unlike scoreCandidates(), this method does not remove
      * a profile when a compulsory preference fails.
      *
-     * Profile View must be able to explain the actual match
-     * percentage even when one or more compulsory preferences
-     * are different.
-     *
      * @param array<string, mixed> $candidate
      *
      * @return array{
      *     percentage:int,
      *     matched:int,
      *     total:int,
+     *     configured:int,
+     *     available:int,
      *     passesCompulsory:bool
      * }
      */
@@ -168,6 +166,8 @@ final class PartnerPreferenceMatchService
                 'percentage' => 0,
                 'matched' => 0,
                 'total' => 0,
+                'configured' => 0,
+                'available' => 0,
                 'passesCompulsory' => true,
             ];
         }
@@ -180,6 +180,100 @@ final class PartnerPreferenceMatchService
             $snapshot,
             $candidate
         );
+    }
+
+    /**
+     * Return Partner Preference setup progress for a member.
+     *
+     * Available and configured counts come directly from the same
+     * criterion definitions used by matchmaking.
+     *
+     * Therefore, when a new matching criterion is added to
+     * scoreCandidate(), the Dashboard total automatically increases.
+     *
+     * @return array{
+     *     configured:int,
+     *     available:int,
+     *     percentage:int,
+     *     isComplete:bool
+     * }
+     */
+    public function preferenceSetupSummary(
+        int $userId
+    ): array {
+        if ($userId <= 0) {
+            return [
+                'configured' => 0,
+                'available' => 0,
+                'percentage' => 0,
+                'isComplete' => false,
+            ];
+        }
+
+        $snapshot = $this->snapshotForUser(
+            $userId
+        );
+
+        /*
+     * Candidate values are irrelevant for setup progress.
+     *
+     * scoreCandidate() still builds every supported criterion,
+     * allowing us to dynamically know both:
+     *
+     * - how many criteria currently exist;
+     * - how many the member has configured.
+     */
+        $score = $this->scoreCandidate(
+            $snapshot,
+            []
+        );
+
+        $configured = max(
+            0,
+            (int) (
+                $score['configured']
+                ?? 0
+            )
+        );
+
+        $available = max(
+            0,
+            (int) (
+                $score['available']
+                ?? 0
+            )
+        );
+
+        $percentage =
+            $available > 0
+            ? (int) round(
+                (
+                    $configured
+                    / $available
+                ) * 100
+            )
+            : 0;
+
+        return [
+            'configured' =>
+            $configured,
+
+            'available' =>
+            $available,
+
+            'percentage' =>
+            max(
+                0,
+                min(
+                    100,
+                    $percentage
+                )
+            ),
+
+            'isComplete' =>
+            $available > 0
+                && $configured >= $available,
+        ];
     }
 
     /**
@@ -502,17 +596,38 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-         * SPECIAL REQUEST IS INTENTIONALLY EXCLUDED.
-         *
-         * It is free text and therefore cannot form a deterministic
-         * master-data-backed matching criterion.
-         */
+ * Every criterion supported by this service is retained in $criteria.
+ *
+ * This gives us a dynamic available count. A preference is included in
+ * the matchmaking denominator only when configured by the member.
+ */
+        $available = count(
+            $criteria
+        );
 
-        $total = count($criteria);
+        $configuredCriteria = array_values(
+            array_filter(
+                $criteria,
+                static fn(array $criterion): bool =>
+                $criterion['configured']
+            )
+        );
+
+        $configured = count(
+            $configuredCriteria
+        );
+
+        /*
+ * Keep "total" as the configured count for backward compatibility.
+ *
+ * Existing matchmaking consumers already understand total_preferences
+ * as the number of preferences against which the candidate was scored.
+ */
+        $total = $configured;
 
         $matched = count(
             array_filter(
-                $criteria,
+                $configuredCriteria,
                 static fn(array $criterion): bool =>
                 $criterion['matched']
             )
@@ -520,13 +635,14 @@ final class PartnerPreferenceMatchService
 
         $passesCompulsory =
             !array_filter(
-                $criteria,
+                $configuredCriteria,
                 static fn(array $criterion): bool =>
                 $criterion['compulsory']
                     && !$criterion['matched']
             );
 
-        $percentage = $total > 0
+        $percentage =
+            $total > 0
             ? (int) round(
                 ($matched / $total) * 100
             )
@@ -539,8 +655,20 @@ final class PartnerPreferenceMatchService
             'matched' =>
             $matched,
 
+            /*
+     * Existing property retained.
+     */
             'total' =>
             $total,
+
+            /*
+     * Explicit setup-information properties.
+     */
+            'configured' =>
+            $configured,
+
+            'available' =>
+            $available,
 
             'passesCompulsory' =>
             $passesCompulsory,
@@ -756,7 +884,18 @@ final class PartnerPreferenceMatchService
     }
 
     /**
+     * Register one supported Partner Preference criterion.
+     *
+     * IMPORTANT:
+     *
+     * Every supported criterion is retained, even when the member has not
+     * configured it. This allows the service to dynamically determine the
+     * total number of Partner Preferences supported by matchmaking.
+     *
+     * Only configured criteria participate in candidate scoring.
+     *
      * @param list<array{
+     *     configured:bool,
      *     matched:bool,
      *     compulsory:bool
      * }> $criteria
@@ -767,21 +906,33 @@ final class PartnerPreferenceMatchService
         bool $matched,
         bool $compulsory
     ): void {
-        if (!$configured) {
-            return;
-        }
-
         $criteria[] = [
-            'matched' =>
-            $matched,
+            'configured' =>
+            $configured,
 
+            /*
+         * An unconfigured preference must never accidentally be
+         * considered a candidate match.
+         */
+            'matched' =>
+            $configured
+                && $matched,
+
+            /*
+         * Compulsory has meaning only when the preference itself
+         * has been configured.
+         */
             'compulsory' =>
-            $compulsory,
+            $configured
+                && $compulsory,
         ];
     }
 
     /**
+     * Register a multi-select Partner Preference criterion.
+     *
      * @param list<array{
+     *     configured:bool,
      *     matched:bool,
      *     compulsory:bool
      * }> $criteria
@@ -794,15 +945,22 @@ final class PartnerPreferenceMatchService
         int $candidateId,
         mixed $matchMode
     ): void {
+        $configured =
+            $acceptedIds !== [];
+
         $this->criterion(
             $criteria,
-            configured: $acceptedIds !== [],
-            matched: $candidateId > 0
+
+            configured: $configured,
+
+            matched: $configured
+                && $candidateId > 0
                 && in_array(
                     $candidateId,
                     $acceptedIds,
                     true
                 ),
+
             compulsory: $this->boolean(
                 $matchMode
             )

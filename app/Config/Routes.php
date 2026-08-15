@@ -1120,6 +1120,96 @@ $routes->group('admin', [
         ]
     );
 
+    /*
+    * Administrator Forgot Password
+    *
+    * These routes must remain publicly accessible because the
+    * administrator is not authenticated during password recovery.
+    */
+    $routes->group(
+        'admin/forgot-password',
+        [
+            'namespace' =>
+            'App\Controllers\Admin',
+        ],
+        static function (
+            $routes
+        ): void {
+
+            $routes->get(
+                '',
+                'AdminForgotPasswordController::index',
+                [
+                    'as' =>
+                    'admin.forgot-password',
+                ]
+            );
+
+            $routes->post(
+                'send-otp',
+                'AdminForgotPasswordController::sendOtp',
+                [
+                    'as' =>
+                    'admin.forgot-password.send-otp',
+                ]
+            );
+
+            $routes->get(
+                'verify',
+                'AdminForgotPasswordController::verifyPage',
+                [
+                    'as' =>
+                    'admin.forgot-password.verify',
+                ]
+            );
+
+            $routes->post(
+                'verify',
+                'AdminForgotPasswordController::verifyOtp',
+                [
+                    'as' =>
+                    'admin.forgot-password.verify.submit',
+                ]
+            );
+
+            $routes->post(
+                'resend',
+                'AdminForgotPasswordController::resendOtp',
+                [
+                    'as' =>
+                    'admin.forgot-password.resend',
+                ]
+            );
+
+            $routes->get(
+                'password',
+                'AdminForgotPasswordController::passwordPage',
+                [
+                    'as' =>
+                    'admin.forgot-password.password',
+                ]
+            );
+
+            $routes->post(
+                'password',
+                'AdminForgotPasswordController::updatePassword',
+                [
+                    'as' =>
+                    'admin.forgot-password.password.update',
+                ]
+            );
+
+            $routes->post(
+                'cancel',
+                'AdminForgotPasswordController::cancel',
+                [
+                    'as' =>
+                    'admin.forgot-password.cancel',
+                ]
+            );
+        }
+    );
+
     $routes->post(
         'login',
         'AdminAuthenticationController::login',

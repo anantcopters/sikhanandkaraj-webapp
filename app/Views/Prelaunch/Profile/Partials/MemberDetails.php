@@ -35,6 +35,35 @@ $maximumDateOfBirth = date(
     strtotime('-18 years')
 );
 
+/*
+ * The server always stores/submits DOB as YYYY-MM-DD.
+ *
+ * Air Datepicker uses a separate visual field so members
+ * see the friendlier DD/MM/YYYY representation.
+ */
+$dateOfBirthDisplay = '';
+
+if ($dateOfBirth !== '') {
+    $parsedDateOfBirth =
+        DateTimeImmutable::createFromFormat(
+            '!Y-m-d',
+            $dateOfBirth
+        );
+
+    if (
+        $parsedDateOfBirth
+        instanceof DateTimeImmutable
+        && $parsedDateOfBirth->format(
+            'Y-m-d'
+        ) === $dateOfBirth
+    ) {
+        $dateOfBirthDisplay =
+            $parsedDateOfBirth->format(
+                'd/m/Y'
+            );
+    }
+}
+
 $email = (string) old(
     'email',
     ''
@@ -343,50 +372,86 @@ $genderOptions = [
 
             <div class="col-12 col-md-6">
                 <label
-                    for="date_of_birth"
+                    for="date_of_birth_display"
                     class="form-label">
                     Date of birth
                 </label>
 
+                <!--
+                    Actual value submitted to CI4.
+
+                    Keep this field in YYYY-MM-DD so all existing
+                    server-side validation remains unchanged.
+                -->
                 <input
-                    type="date"
+                    type="hidden"
                     id="date_of_birth"
                     name="date_of_birth"
-                    class="form-control <?= esc(
-                                            $dateOfBirthClass,
-                                            'attr'
-                                        ) ?>"
                     value="<?= esc(
                                 $dateOfBirth,
                                 'attr'
                             ) ?>"
-                    max="<?= esc(
-                                $maximumDateOfBirth,
-                                'attr'
-                            ) ?>"
-                    autocomplete="bday"
-                    aria-describedby="date_of_birthError date-of-birth-preview member-age-preview"
-                    data-minimum-age="18"
-                    data-error-required="Please select the member’s date of birth."
-                    data-error-max="The member must be at least 18 years old."
-                    required>
+                    data-minimum-age="18">
 
-                <div
-                    id="date_of_birthError"
-                    class="invalid-feedback"
-                    data-validation-error="date_of_birth">
-                    <?= esc($dateOfBirthError) ?>
+                <div class="input-group has-validation">
+
+                    <!--
+                        User-facing DOB control.
+
+                        It deliberately has no name attribute because only the
+                        ISO date_of_birth field should be submitted to CI4.
+                    -->
+                    <input
+                        type="text"
+                        id="date_of_birth_display"
+                        class="form-control <?= esc(
+                                                $dateOfBirthClass,
+                                                'attr'
+                                            ) ?>"
+                        value="<?= esc(
+                                    $dateOfBirthDisplay,
+                                    'attr'
+                                ) ?>"
+                        placeholder="DD/MM/YYYY"
+                        autocomplete="bday"
+                        readonly
+                        data-validation-ignore
+                        aria-describedby="date_of_birthError date-of-birth-preview member-age-preview"
+                        aria-required="true">
+
+                    <button
+                        type="button"
+                        id="date-of-birth-picker-button"
+                        class="btn btn-outline-secondary"
+                        aria-label="Open date of birth calendar">
+
+                        <i
+                            class="ri-calendar-line"
+                            aria-hidden="true">
+                        </i>
+                    </button>
+
+                    <div
+                        id="date_of_birthError"
+                        class="invalid-feedback"
+                        data-validation-error="date_of_birth">
+                        <?= esc(
+                            $dateOfBirthError
+                        ) ?>
+                    </div>
                 </div>
 
                 <div
                     id="date-of-birth-preview"
                     class="form-text color-pink"
-                    aria-live="polite"></div>
+                    aria-live="polite">
+                </div>
 
                 <div
                     id="member-age-preview"
                     class="form-text color-pink"
-                    aria-live="polite"></div>
+                    aria-live="polite">
+                </div>
             </div>
 
             <div class="col-12 col-md-6">
