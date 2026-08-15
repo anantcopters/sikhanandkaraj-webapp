@@ -7,6 +7,7 @@ namespace App\Services\Matchmaking;
 use App\Models\UserModel;
 use App\Services\Profile\MemberPhotoUrlService;
 use App\Models\UserContactModel;
+use App\Support\MemberNameVisibility;
 use App\Support\BooleanValue;
 use App\Services\Profile\MemberProfileSummaryService;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -125,6 +126,31 @@ final class MemberProfileViewService
                 $targetUserId,
                 false
             );
+
+        /*
+        * The other-member Full Profile view must use the same female-name
+        * privacy rule as all multi-profile presentation components.
+        *
+        * This route rejects self-access, so the logged-in member is always
+        * viewing somebody else's profile. Admin and Super Admin use their
+        * separate management service and are not affected by this mutation.
+        */
+        if (
+            isset($summary['user'])
+            && is_array($summary['user'])
+        ) {
+            $summary['user']['full_name'] =
+                MemberNameVisibility::forDisplay(
+                    fullName: $summary['user']['full_name']
+                        ?? '',
+
+                    gender: $summary['user']['gender']
+                        ?? $target['gender']
+                        ?? '',
+
+                    canViewFullName: false
+                );
+        }
 
         /*
          * INTERESTED_MEMBERS visibility is satisfied by an interest

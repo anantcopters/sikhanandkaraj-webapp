@@ -11,17 +11,17 @@ use App\Validation\Profile\BasicDetailsValidation;
  */
 final class PrelaunchProfileValidation
 {
-
     private const NEAREST_GURUDWARA_MAX_LENGTH = 300;
 
     private const PARENT_CONTACT_NUMBER_LENGTH = 10;
+
     /**
      * Return the complete profile-creation validation rules.
      *
      * @return array<string, array<string, mixed>>
      */
     public static function createRules(
-        bool $requireFieldOfficerVerification = false
+        bool $enableFieldOfficerVerification = false
     ): array {
         /*
          * Reuse shared basic-profile validation and remove only fields
@@ -185,11 +185,14 @@ final class PrelaunchProfileValidation
                 ),
 
                 'parent_contact_number' => [
-                    'label' => 'Any Parent/Guradian Contact Number',
+                    'label' =>
+                    'Any Parent/Guardian Contact Number',
+
                     'rules' => [
                         'required',
                         'regex_match[/^[6-9][0-9]{9}$/]',
                     ],
+
                     'errors' => [
                         'required' =>
                         'Please enter a contact number for either parent/guardian.',
@@ -202,7 +205,6 @@ final class PrelaunchProfileValidation
                 'sikh_community_id' => self::masterRule(
                     'Community'
                 ),
-
 
                 'gotra' => [
                     'label' => 'Gotra',
@@ -246,44 +248,6 @@ final class PrelaunchProfileValidation
                     ],
                 ],
 
-                // 'field_officer_code' => [
-                //     'label' => 'SAK Volunteer code',
-                //     'rules' => [
-                //         'required',
-                //         'min_length[4]',
-                //         'max_length[20]',
-                //         'regex_match[/^[A-Za-z0-9-]+$/]',
-                //     ],
-                //     'errors' => [
-                //         'required' =>
-                //         'Please enter the SAK Volunteer code.',
-
-                //         'min_length' =>
-                //         'The SAK Volunteer code is too short.',
-
-                //         'max_length' =>
-                //         'The SAK Volunteer code cannot exceed 20 characters.',
-
-                //         'regex_match' =>
-                //         'The SAK Volunteer code may contain only letters, numbers and hyphens.',
-                //     ],
-                // ],
-
-                // 'verified_field_officer_id' => [
-                //     'label' => 'Verified SAK Volunteer',
-                //     'rules' => [
-                //         'required',
-                //         'is_natural_no_zero',
-                //     ],
-                //     'errors' => [
-                //         'required' =>
-                //         'Please verify the SAK Volunteer before saving the profile.',
-
-                //         'is_natural_no_zero' =>
-                //         'Please verify a valid SAK Volunteer.',
-                //     ],
-                // ],
-
                 'consent' => [
                     'label' => 'Consent',
                     'rules' => [
@@ -302,28 +266,29 @@ final class PrelaunchProfileValidation
         );
 
         /*
-        * SAK Volunteer verification belongs only to the
-        * production prelaunch workflow.
-        */
-        if ($requireFieldOfficerVerification) {
+         * The SAK Volunteer component is rendered only in deployments
+         * where explicit verification is enabled.
+         *
+         * Both fields are optional. When either value is supplied,
+         * PrelaunchProfileService requires the complete verified pair
+         * and revalidates it server-side before persistence.
+         */
+        if ($enableFieldOfficerVerification) {
             $rules['field_officer_code'] = [
-                'label' => 'SAK Volunteer code',
+                'label' => 'SAK Volunteer ID',
 
                 'rules' => [
-                    'required',
+                    'permit_empty',
                     'exact_length[11]',
                     'regex_match[/^FOSAK[0-9]{6}$/]',
                 ],
 
                 'errors' => [
-                    'required' =>
-                    'Please enter the SAK Volunteer code.',
-
                     'exact_length' =>
-                    'Please enter a valid SAK Volunteer code.',
+                    'Please enter a valid SAK Volunteer ID.',
 
                     'regex_match' =>
-                    'Please enter a valid SAK Volunteer code.',
+                    'Please enter a valid SAK Volunteer ID.',
                 ],
             ];
 
@@ -331,15 +296,11 @@ final class PrelaunchProfileValidation
                 'label' => 'Verified SAK Volunteer',
 
                 'rules' => [
-                    'required',
+                    'permit_empty',
                     'is_natural_no_zero',
                 ],
 
                 'errors' => [
-                    'required' =>
-                    'Please verify the SAK Volunteer '
-                        . 'before saving the profile.',
-
                     'is_natural_no_zero' =>
                     'Please verify a valid SAK Volunteer.',
                 ],
