@@ -528,11 +528,24 @@ $pageScripts = $pageScripts ?? [];
 
             <hr class="my-4">
 
-            <div class="text-center">
+            <div
+                class="d-flex
+    flex-column
+    flex-md-row
+    align-items-center
+    justify-content-center
+    gap-2">
 
                 <small class="text-muted">
-                    © <?= esc(date('Y')) ?> Sikhanandkaraj. All rights reserved.
+                    © <?= esc(
+                            date('Y')
+                        ) ?>
+                    Sikhanandkaraj. All rights reserved.
                 </small>
+
+                <?= view(
+                    'Components/ReleaseVersion'
+                ) ?>
 
             </div>
 
