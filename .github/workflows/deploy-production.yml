@@ -1,11 +1,16 @@
 name: Deploy Production
 
 on:
-  push:
-    branches:
-      - production
+  release:
+    types:
+      - published
 
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: Existing production tag, for example v1.0.0
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -22,13 +27,91 @@ env:
 jobs:
 
   validate:
-    name: Validate application
+    name: Validate production release
     runs-on: ubuntu-latest
+
+    outputs:
+      target_commit: ${{ steps.release.outputs.target_commit }}
+      release_version: ${{ steps.release.outputs.release_version }}
 
     steps:
 
-      - name: Checkout production code
+      - name: Checkout released code
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || github.ref }}
+          fetch-depth: 0
+
+      - name: Validate production release
+        id: release
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          IS_PRERELEASE: ${{ github.event.release.prerelease }}
+          MANUAL_RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          set -Eeuo pipefail
+
+          if [[ "${EVENT_NAME}" == "release" ]]; then
+              if [[ "${IS_PRERELEASE}" == "true" ]]; then
+                  echo "Production deployment cannot use a pre-release." >&2
+                  exit 1
+              fi
+
+              RELEASE_VERSION="${RELEASE_TAG}"
+          else
+              RELEASE_VERSION="${MANUAL_RELEASE_VERSION}"
+          fi
+
+          if [[ ! "${RELEASE_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Invalid production release version: ${RELEASE_VERSION}" >&2
+              echo "Expected format: vMAJOR.MINOR.PATCH" >&2
+              echo "Example: v1.0.0" >&2
+              exit 1
+          fi
+
+          TARGET_COMMIT="$(
+              git rev-parse 'HEAD^{commit}'
+          )"
+
+          git fetch \
+              --no-tags \
+              origin \
+              refs/heads/production:refs/remotes/origin/production
+
+          PRODUCTION_COMMIT="$(
+              git rev-parse 'origin/production^{commit}'
+          )"
+
+          if [[ "${TARGET_COMMIT}" != "${PRODUCTION_COMMIT}" ]]; then
+              echo "Release tag does not point to the latest production commit." >&2
+              echo "Release commit: ${TARGET_COMMIT}" >&2
+              echo "Production commit: ${PRODUCTION_COMMIT}" >&2
+              exit 1
+          fi
+
+          git fetch \
+              --force \
+              origin \
+              "refs/tags/${RELEASE_VERSION}:refs/tags/${RELEASE_VERSION}"
+
+          TAG_COMMIT="$(
+              git rev-list -n 1 "${RELEASE_VERSION}"
+          )"
+
+          if [[ "${TAG_COMMIT}" != "${TARGET_COMMIT}" ]]; then
+              echo "Release tag and deployment commit do not match." >&2
+              echo "Tag commit: ${TAG_COMMIT}" >&2
+              echo "Deployment commit: ${TARGET_COMMIT}" >&2
+              exit 1
+          fi
+
+          echo "Validated production release ${RELEASE_VERSION}."
+          echo "Production commit: ${TARGET_COMMIT}"
+
+          echo "target_commit=${TARGET_COMMIT}" >> "${GITHUB_OUTPUT}"
+          echo "release_version=${RELEASE_VERSION}" >> "${GITHUB_OUTPUT}"
 
       - name: Configure PHP
         uses: shivammathur/setup-php@v2
@@ -51,7 +134,7 @@ jobs:
       - name: Validate incremental SQL filenames
         shell: bash
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
 
           INVALID_FILES="$(
             find database \
@@ -64,15 +147,15 @@ jobs:
           )"
 
           if [[ -n "${INVALID_FILES}" ]]; then
-            echo "Invalid incremental SQL filenames:"
-            echo "${INVALID_FILES}"
-            exit 1
+              echo "Invalid incremental SQL filenames:"
+              echo "${INVALID_FILES}"
+              exit 1
           fi
 
       - name: Detect duplicate SQL sequence numbers
         shell: bash
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
 
           DUPLICATES="$(
             find database \
@@ -86,15 +169,13 @@ jobs:
           )"
 
           if [[ -n "${DUPLICATES}" ]]; then
-            echo "Duplicate SQL sequence numbers:"
-            echo "${DUPLICATES}"
-            exit 1
+              echo "Duplicate SQL sequence numbers:"
+              echo "${DUPLICATES}"
+              exit 1
           fi
 
   deploy:
-
     name: Deploy Production
-
     needs:
       - validate
 
@@ -120,13 +201,14 @@ jobs:
       - name: Verify AWS identity
         shell: bash
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
+
           aws sts get-caller-identity
 
       - name: Verify EC2 is online in Systems Manager
         shell: bash
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
 
           STATUS="$(
             aws ssm describe-instance-information \
@@ -136,42 +218,61 @@ jobs:
           )"
 
           if [[ "${STATUS}" != "Online" ]]; then
-            echo "Production EC2 is not online in Systems Manager."
-            echo "Current status: ${STATUS}"
-            exit 1
+              echo "Production EC2 is not online in Systems Manager."
+              echo "Current status: ${STATUS}"
+              exit 1
           fi
 
       - name: Start production deployment
         id: deploy
         shell: bash
+        env:
+          TARGET_COMMIT: ${{ needs.validate.outputs.target_commit }}
+          RELEASE_VERSION: ${{ needs.validate.outputs.release_version }}
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
+
+          if [[ ! "${TARGET_COMMIT}" =~ ^[0-9a-fA-F]{40}$ ]]; then
+              echo "Invalid deployment commit: ${TARGET_COMMIT}" >&2
+              exit 1
+          fi
+
+          if [[ ! "${RELEASE_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Invalid release version: ${RELEASE_VERSION}" >&2
+              exit 1
+          fi
 
           COMMAND_ID="$(
             aws ssm send-command \
               --instance-ids "${PROD_INSTANCE_ID}" \
               --document-name "AWS-RunShellScript" \
-              --comment "Deploy commit ${{ github.sha }} to Production" \
-              --parameters "commands=[\"sudo /var/www/deploy/deploy-prod.sh ${{ github.sha }}\"]" \
+              --comment "Deploy ${RELEASE_VERSION} to Production" \
+              --parameters "commands=[\"sudo /var/www/deploy/deploy-prod.sh ${TARGET_COMMIT} ${RELEASE_VERSION}\"]" \
               --query 'Command.CommandId' \
               --output text
           )"
 
-          echo "command_id=${COMMAND_ID}" >> "${GITHUB_OUTPUT}"
+          if [[ -z "${COMMAND_ID}" || "${COMMAND_ID}" == "None" ]]; then
+              echo "AWS Systems Manager did not return a command ID." >&2
+              exit 1
+          fi
 
+          echo "command_id=${COMMAND_ID}" >> "${GITHUB_OUTPUT}"
           echo "Started SSM command: ${COMMAND_ID}"
+          echo "Release version: ${RELEASE_VERSION}"
+          echo "Target commit: ${TARGET_COMMIT}"
 
       - name: Wait for deployment
         shell: bash
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
 
           aws ssm wait command-executed \
             --command-id "${{ steps.deploy.outputs.command_id }}" \
             --instance-id "${PROD_INSTANCE_ID}"
 
       - name: Display deployment result
-        if: always()
+        if: always() && steps.deploy.outputs.command_id != ''
         shell: bash
         run: |
           aws ssm get-command-invocation \
@@ -186,9 +287,10 @@ jobs:
             --output json
 
       - name: Confirm deployment succeeded
+        if: always() && steps.deploy.outputs.command_id != ''
         shell: bash
         run: |
-          set -euo pipefail
+          set -Eeuo pipefail
 
           STATUS="$(
             aws ssm get-command-invocation \
@@ -199,6 +301,10 @@ jobs:
           )"
 
           if [[ "${STATUS}" != "Success" ]]; then
-            echo "Production deployment failed: ${STATUS}"
-            exit 1
+              echo "Production deployment failed: ${STATUS}"
+              exit 1
           fi
+
+          echo "Production deployment completed successfully."
+          echo "Release: ${{ needs.validate.outputs.release_version }}"
+          echo "Commit: ${{ needs.validate.outputs.target_commit }}"

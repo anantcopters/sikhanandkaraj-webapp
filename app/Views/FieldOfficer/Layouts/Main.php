@@ -395,6 +395,38 @@ $selectChoiceJsUrl =
 
     </main>
 
+    <footer
+        class="border-top
+    border-secondary-subtle
+    bg-light">
+
+        <div class="container py-3">
+
+            <div
+                class="d-flex
+            flex-column
+            flex-md-row
+            align-items-center
+            justify-content-center
+            gap-2">
+
+                <small class="text-muted">
+                    © <?= esc(
+                            date('Y')
+                        ) ?>
+                    Sikhanandkaraj. All rights reserved.
+                </small>
+
+                <?= view(
+                    'Components/ReleaseVersion'
+                ) ?>
+
+            </div>
+
+        </div>
+
+    </footer>
+
     <script
         src="<?= esc(
                     $bootstrapJsUrl,

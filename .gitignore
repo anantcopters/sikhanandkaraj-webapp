@@ -22,6 +22,10 @@
 /writable/uploads/*
 !/writable/uploads/index.html
 
+# Generated deployment release version
+/writable/release-version
+/writable/.release-version.*
+
 # Testing and quality reports
 .phpunit.cache/
 coverage/
