@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Matchmaking;
 
 use App\Services\Profile\MemberPhotoUrlService;
+use App\Support\MemberNameVisibility;
 use DateTimeImmutable;
 use Throwable;
 
@@ -112,22 +113,29 @@ final class MemberProfilePresentationService
                 );
         }
 
-        $name =
-            preg_replace(
-                '/\s+/u',
-                ' ',
-                trim(
-                    (string) (
-                        $member['full_name']
-                        ?? ''
-                    )
-                )
-            )
-            ?? '';
+        /*
+         * Ordinary members may not see another female member's
+         * complete first name.
+         *
+         * The equality check preserves the full name if this shared
+         * presentation service is ever used for the member's own card.
+         *
+         * A future paid entitlement can be added here by resolving
+         * $canViewFullName before calling MemberNameVisibility.
+         */
+        $canViewFullName =
+            $viewerUserId === $memberId;
 
-        if ($name === '') {
-            $name = 'Member';
-        }
+        $name =
+            MemberNameVisibility::forDisplay(
+                fullName: $member['full_name']
+                    ?? '',
+
+                gender: $member['gender']
+                    ?? '',
+
+                canViewFullName: $canViewFullName
+            );
 
         return [
             'referenceId' =>

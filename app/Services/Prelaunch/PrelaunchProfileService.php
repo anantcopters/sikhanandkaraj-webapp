@@ -43,7 +43,7 @@ final class PrelaunchProfileService
      * User-correctable failures, such as duplicate optional email or
      * duplicate mobile number, are returned through PrelaunchProfileResult.
      *
-     * An omitted email is persisted as NULL.
+     * An omitted email and omitted SAK Volunteer are persisted as NULL.
      *
      * @param array<string, mixed>     $input
      * @param array<int, UploadedFile> $photos
@@ -127,11 +127,11 @@ final class PrelaunchProfileService
         ) ?? '';
 
         /*
-         * Duplicate values are user-correctable business failures.
-         *
-         * Return them against the exact HTML field names so the
-         * controller can send them through validationErrors.
-         */
+     * Duplicate values are user-correctable business failures.
+     *
+     * Return them against the exact HTML field names so the
+     * controller can send them through validationErrors.
+     */
         if (
             $email !== null
             && $this->profileModel->emailExists(
@@ -145,14 +145,14 @@ final class PrelaunchProfileService
         }
 
         /*
-        * A member mobile number must be unique across both:
-        *
-        * 1. profiles collected during prelaunch;
-        * 2. existing live member contacts.
-        *
-        * Parent/Guardian contact numbers are deliberately excluded because
-        * one family mobile may legitimately be shared by multiple profiles.
-        */
+     * A member mobile number must be unique across both:
+     *
+     * 1. profiles collected during prelaunch;
+     * 2. existing live member contacts.
+     *
+     * Parent/Guardian contact numbers are deliberately excluded because
+     * one family mobile may legitimately be shared by multiple profiles.
+     */
         if (
             $this->profileModel->mobileExists(
                 $countryCode,
@@ -192,68 +192,108 @@ final class PrelaunchProfileService
         }
 
         /*
- * ----------------------------------------------------------
- * SAK Volunteer RESOLUTION
- * ----------------------------------------------------------
- *
- * Production:
- *     Explicit SAK Volunteer verification is compulsory.
- *
- * QA / Development:
- *     Preserve the existing automatic configured Field
- *     Officer behavior exactly as it works today.
- */
+        * ----------------------------------------------------------
+        * SAK VOLUNTEER RESOLUTION
+        * ----------------------------------------------------------
+        *
+        * Explicit verification deployments:
+        *     SAK Volunteer is optional. When an ID is entered,
+        *     the submitted verification marker and code must both
+        *     be present and are revalidated server-side.
+        *
+        * Configured-volunteer deployments:
+        *     Preserve the existing automatic configured SAK
+        *     Volunteer behaviour.
+        */
+        $fieldOfficerId = null;
+
         if (
             $this->configuration
             ->requiresFieldOfficerVerification
         ) {
             $submittedFieldOfficerId =
                 (int) (
-                    $input['verified_field_officer_id'] ?? 0
+                    $input['verified_field_officer_id']
+                    ?? 0
                 );
 
             $submittedFieldOfficerCode =
                 mb_strtoupper(
                     trim(
                         (string) (
-                            $input['field_officer_code'] ?? ''
+                            $input['field_officer_code']
+                            ?? ''
                         )
                     )
                 );
 
             /*
-     * Revalidate server-side.
-     *
-     * The hidden ID returned by AJAX is browser-controlled
-     * and cannot be trusted by itself.
-     */
-            $fieldOfficer =
-                $this->fieldOfficerService
-                ->assertVerifiedOfficer(
-                    $submittedFieldOfficerId,
-                    $submittedFieldOfficerCode
-                );
+            * Both empty means that the optional SAK Volunteer
+            * association was not supplied.
+            *
+            * If either value is present, assertVerifiedOfficer()
+            * requires and revalidates the complete pair. The hidden
+            * numeric ID is never trusted by itself.
+            */
+            if (
+                $submittedFieldOfficerCode !== ''
+                || $submittedFieldOfficerId !== 0
+            ) {
+                try {
+                    $fieldOfficer =
+                        $this->fieldOfficerService
+                        ->assertVerifiedOfficer(
+                            $submittedFieldOfficerId,
+                            $submittedFieldOfficerCode
+                        );
+                } catch (RuntimeException $exception) {
+                    return PrelaunchProfileResult::fieldFailure(
+                        'field_officer_code',
+                        $exception->getMessage()
+                    );
+                }
+
+                $resolvedFieldOfficerId =
+                    (int) (
+                        $fieldOfficer['id']
+                        ?? 0
+                    );
+
+                if ($resolvedFieldOfficerId <= 0) {
+                    throw new RuntimeException(
+                        'The verified SAK Volunteer is invalid.'
+                    );
+                }
+
+                $fieldOfficerId =
+                    $resolvedFieldOfficerId;
+            }
         } else {
             /*
-     * Existing QA/development behavior.
-     */
+            * Preserve existing configured-volunteer behaviour for
+            * deployments where the explicit component is not rendered.
+            */
             $fieldOfficer =
                 $this->fieldOfficerService
                 ->resolveConfiguredOfficer(
                     $this->configuration
                         ->profileFieldOfficerId
                 );
-        }
 
-        $fieldOfficerId = (int) (
-            $fieldOfficer['id']
-            ?? 0
-        );
+            $resolvedFieldOfficerId =
+                (int) (
+                    $fieldOfficer['id']
+                    ?? 0
+                );
 
-        if ($fieldOfficerId <= 0) {
-            throw new RuntimeException(
-                'The SAK Volunteer is invalid.'
-            );
+            if ($resolvedFieldOfficerId <= 0) {
+                throw new RuntimeException(
+                    'The configured SAK Volunteer is invalid.'
+                );
+            }
+
+            $fieldOfficerId =
+                $resolvedFieldOfficerId;
         }
 
         $profileReference =
@@ -276,12 +316,12 @@ final class PrelaunchProfileService
         );
 
         /*
-         * Prelaunch does not collect annual income, so NULL is
-         * passed for that optional selection.
-         *
-         * Reuse the same active-master validation as the live
-         * member Education & Profession flow.
-         */
+        * Prelaunch does not collect annual income, so NULL is
+        * passed for that optional selection.
+        *
+        * Reuse the same active-master validation as the live
+        * member Education & Profession flow.
+        */
         $this->profileMasterDataService
             ->assertValidEducationProfessionSelection(
                 $educationId,
@@ -358,8 +398,8 @@ final class PrelaunchProfileService
                     ),
 
                     /*
-                     * Use the already normalized and validated IDs.
-                     */
+                    * Use the already normalized and validated IDs.
+                    */
                     'highest_education_id' =>
                     $educationId,
 
@@ -403,13 +443,14 @@ final class PrelaunchProfileService
                     'nearest_gurudwara' =>
                     $nearestGurudwara,
 
+                    /*
+                    * Both values remain NULL when no SAK Volunteer
+                    * was supplied. When supplied, both store the
+                    * verified volunteer's database ID.
+                    */
                     'field_officer_id' =>
                     $fieldOfficerId,
 
-                    /*
-                     * The creator is the configured SAK Volunteer
-                     * for this standalone data-entry workflow.
-                     */
                     'created_by' =>
                     $fieldOfficerId,
 

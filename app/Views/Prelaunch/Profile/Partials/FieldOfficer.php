@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 /**
- * Production-only SAK Volunteer verification.
+ * Optional SAK Volunteer verification.
+ *
+ * When a volunteer ID is entered, it must be verified before the
+ * prelaunch profile can be saved.
  *
  * @var array<string, string>|null $validationErrors
  */
@@ -72,8 +75,8 @@ $verificationUrl = url_to(
                 </h5>
 
                 <p class="text-muted mb-0 fs-12">
-                    Enter and verify the SAK Volunteer code
-                    before saving the profile.
+                    Optional. If you enter a SAK Volunteer ID,
+                    it must be verified before saving the profile.
                 </p>
             </div>
         </div>
@@ -89,6 +92,10 @@ $verificationUrl = url_to(
                     class="form-label">
 
                     SAK Volunteer ID
+
+                    <span class="text-muted fw-normal">
+                        (Optional)
+                    </span>
                 </label>
 
                 <input
@@ -107,9 +114,7 @@ $verificationUrl = url_to(
                     maxlength="11"
                     pattern="FOSAK[0-9]{6}"
                     autocomplete="off"
-                    required
                     aria-describedby="field_officer_codeError"
-                    data-error-required="Please enter the SAK Volunteer ID."
                     data-error-pattern="Please enter a valid SAK Volunteer ID."
                     data-error-maxlength="Please enter a valid SAK Volunteer ID.">
 
