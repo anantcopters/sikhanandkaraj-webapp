@@ -82,9 +82,12 @@ $this->section('content');
                         method="get"
                         action="<?= route_to(
                                     'admin.support.contacts'
-                                ) ?>">
+                                ) ?>"
+                        class="d-flex gap-2">
 
-                        <?php if ($resolvedSearch !== ''): ?>
+                        <?php if (
+                            $resolvedSearch !== ''
+                        ): ?>
                             <input
                                 type="hidden"
                                 name="search"
@@ -135,6 +138,13 @@ $this->section('content');
                                 </option>
                             <?php endforeach; ?>
                         </select>
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary">
+
+                            Filter
+                        </button>
                     </form>
                 </div>
             </div>

@@ -133,46 +133,68 @@ $errors = isset($reportValidationErrors)
 
                     <div class="mb-3">
                         <label
-                            for="member-report-captcha"
-                            class="form-label">
+                            class="form-label"
+                            for="memberReportCaptchaAnswer">
 
-                            What is
-                            <strong>
-                                <?= esc(
-                                    $reportCaptcha
-                                        ?? ''
-                                ) ?>
-                            </strong>
-                            ?
+                            Security Verification
                         </label>
+
+                        <div
+                            class="border
+            rounded
+            p-2
+            mb-2
+            bg-light
+            border-primary-subtle">
+
+                            <div
+                                class="d-flex
+                align-items-center
+                justify-content-between">
+
+                                <span class="text-muted">
+                                    Solve this question
+                                </span>
+
+                                <span class="fw-bold fs-18">
+                                    <?= esc($reportCaptcha) ?> = ?
+                                </span>
+                            </div>
+                        </div>
 
                         <input
                             type="text"
+                            id="memberReportCaptchaAnswer"
+                            name="captcha_answer"
+                            class="form-control
+            <?= isset($errors['captcha_answer'])
+                ? 'is-invalid'
+                : '' ?>"
+                            placeholder="Enter answer"
                             inputmode="numeric"
                             autocomplete="off"
-                            id="member-report-captcha"
-                            name="captcha_answer"
                             maxlength="2"
                             pattern="[0-9]{1,2}"
-                            class="form-control
-        <?= isset($errors['captcha_answer'])
-            ? 'is-invalid'
-            : '' ?>"
                             data-error-required="Please enter the security answer."
                             data-error-pattern="Please enter a valid security answer."
                             required>
 
                         <div
                             class="invalid-feedback
-        <?= isset($errors['captcha_answer'])
-            ? 'd-block'
-            : '' ?>"
+            <?= isset($errors['captcha_answer'])
+                ? 'd-block'
+                : '' ?>"
                             data-validation-error="captcha_answer">
 
                             <?= esc(
                                 $errors['captcha_answer']
                                     ?? ''
                             ) ?>
+                        </div>
+
+                        <div class="form-text color-pink">
+                            The security question expires after 5 minutes
+                            and can be used only once.
                         </div>
                     </div>
                 </div>

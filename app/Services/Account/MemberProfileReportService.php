@@ -10,9 +10,6 @@ use CodeIgniter\Exceptions\PageNotFoundException;
 use DomainException;
 use RuntimeException;
 
-/**
- * Owns profile-safety reports submitted by members.
- */
 final class MemberProfileReportService
 {
     public function __construct(
@@ -20,6 +17,56 @@ final class MemberProfileReportService
         private readonly MemberProfileReportModel
         $reportModel
     ) {}
+
+    /**
+     * Return reports raised by the authenticated member.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function historyForReporter(
+        int $reporterUserId
+    ): array {
+        if ($reporterUserId <= 0) {
+            return [];
+        }
+
+        return $this
+            ->reportModel
+            ->historyForReporter(
+                $reporterUserId
+            );
+    }
+
+    public function hasReportedProfile(
+        int $reporterUserId,
+        string $profileReference
+    ): bool {
+        if ($reporterUserId <= 0) {
+            return false;
+        }
+
+        $reportedMember = $this
+            ->findReportedMember(
+                $profileReference
+            );
+
+        if (!is_array($reportedMember)) {
+            return false;
+        }
+
+        $reportedUserId = (int) (
+            $reportedMember['id']
+            ?? 0
+        );
+
+        return $reportedUserId > 0
+            && $this
+            ->reportModel
+            ->hasReport(
+                $reporterUserId,
+                $reportedUserId
+            );
+    }
 
     public function report(
         int $reporterUserId,
@@ -43,17 +90,13 @@ final class MemberProfileReportService
         }
 
         $reportedMember = $this
-            ->userModel
-            ->findActiveByProfileReference(
-                mb_strtoupper(
-                    trim(
-                        $reportedProfileReference
-                    )
-                )
+            ->findReportedMember(
+                $reportedProfileReference
             );
 
         if (!is_array($reportedMember)) {
-            throw PageNotFoundException::forPageNotFound();
+            throw PageNotFoundException
+                ::forPageNotFound();
         }
 
         $reportedUserId = (int) (
@@ -72,14 +115,13 @@ final class MemberProfileReportService
 
         if (
             $this->reportModel
-            ->hasOpenReport(
+            ->hasReport(
                 $reporterUserId,
                 $reportedUserId
             )
         ) {
             throw new DomainException(
-                'You have already reported this profile. '
-                    . 'The report is awaiting administrator review.'
+                'You have already reported this profile.'
             );
         }
 
@@ -97,15 +139,57 @@ final class MemberProfileReportService
                     $description,
 
                     'status' =>
-                    MemberProfileReportModel::STATUS_OPEN,
+                    MemberProfileReportModel
+                    ::STATUS_OPEN,
                 ],
                 true
             );
 
         if (!is_numeric($inserted)) {
+            /*
+             * The database unique index also protects against two
+             * simultaneous submissions by the same reporter.
+             */
+            if (
+                $this->reportModel
+                ->hasReport(
+                    $reporterUserId,
+                    $reportedUserId
+                )
+            ) {
+                throw new DomainException(
+                    'You have already reported this profile.'
+                );
+            }
+
             throw new RuntimeException(
                 'The profile report could not be saved.'
             );
         }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function findReportedMember(
+        string $profileReference
+    ): ?array {
+        $profileReference = mb_strtoupper(
+            trim($profileReference)
+        );
+
+        if ($profileReference === '') {
+            return null;
+        }
+
+        $member = $this
+            ->userModel
+            ->findActiveByProfileReference(
+                $profileReference
+            );
+
+        return is_array($member)
+            ? $member
+            : null;
     }
 }

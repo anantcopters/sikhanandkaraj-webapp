@@ -14,6 +14,16 @@
             return;
         }
 
+        if (
+            modalElement.dataset.supportInitialized
+            === 'true'
+        ) {
+            return;
+        }
+
+        modalElement.dataset.supportInitialized =
+            'true';
+
         const form = modalElement.querySelector(
             '[data-support-review-form]'
         );
@@ -47,6 +57,11 @@
             id,
             requestLabel
         ) {
+            const normalizedType =
+                type === 'report'
+                    ? 'report'
+                    : 'contact';
+
             const normalizedId =
                 String(id || '').replace(
                     /[^0-9]/g,
@@ -58,9 +73,11 @@
             }
 
             const template =
-                type === 'report'
-                    ? form.dataset.reportActionTemplate
-                    : form.dataset.contactActionTemplate;
+                normalizedType === 'report'
+                    ? form.dataset
+                        .reportActionTemplate
+                    : form.dataset
+                        .contactActionTemplate;
 
             if (!template) {
                 return false;
@@ -73,7 +90,7 @@
 
             if (title) {
                 title.textContent =
-                    type === 'report'
+                    normalizedType === 'report'
                         ? 'Review Profile Report'
                         : 'Resolve Contact Request';
             }
@@ -82,7 +99,7 @@
                 label.textContent =
                     requestLabel !== ''
                         ? (
-                            type === 'report'
+                            normalizedType === 'report'
                                 ? 'Profile ID: '
                                 : 'Request ID: '
                         ) + requestLabel
@@ -107,14 +124,23 @@
                         note.classList.remove(
                             'is-invalid'
                         );
+
+                        note.dispatchEvent(
+                            new CustomEvent(
+                                'app:validate-field'
+                            )
+                        );
                     }
 
                     const configured = configure(
-                        button.dataset.reviewType
+                        button.dataset
+                            .supportReviewType
                         || '',
-                        button.dataset.reviewId
+                        button.dataset
+                            .supportReviewId
                         || '',
-                        button.dataset.reviewLabel
+                        button.dataset
+                            .supportReviewLabel
                         || ''
                     );
 
@@ -157,8 +183,12 @@
         );
     }
 
-    document.addEventListener(
-        'DOMContentLoaded',
-        initializeSupportReviewModal
-    );
+    if (document.readyState === 'loading') {
+        document.addEventListener(
+            'DOMContentLoaded',
+            initializeSupportReviewModal
+        );
+    } else {
+        initializeSupportReviewModal();
+    }
 })(window, document);

@@ -11,7 +11,6 @@ use App\Validation\Member\MemberBlockValidation;
 use App\Services\Matchmaking\MemberInterestService;
 use App\Exceptions\PaidMembershipRequiredException;
 use App\Services\Account\MemberProfileReportService;
-use App\Services\Admin\Authentication\AdminCaptchaService;
 use App\Validation\Member\MemberProfileReportValidation;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
@@ -38,6 +37,21 @@ final class MemberProfileController extends BaseController
                     $profileReference
                 );
 
+            $viewerUserId =
+                $this->authenticatedUserId();
+
+            /** @var MemberProfileReportService $reportService */
+            $reportService = service(
+                'memberProfileReportService'
+            );
+
+            $hasReportedProfile =
+                $reportService
+                ->hasReportedProfile(
+                    $viewerUserId,
+                    $profileReference
+                );
+
             return view(
                 'Pages/Profile/View',
                 array_merge(
@@ -54,10 +68,15 @@ final class MemberProfileController extends BaseController
                             'web.dashboard'
                         ),
 
+                        'hasReportedProfile' =>
+                        $hasReportedProfile,
+
                         'reportCaptcha' =>
-                        $this
-                            ->reportCaptchaService()
-                            ->generate(),
+                        $hasReportedProfile
+                            ? ''
+                            : service(
+                                'memberProfileReportCaptchaService'
+                            )->generate(),
 
                         'reportValidationErrors' =>
                         session(
@@ -65,9 +84,10 @@ final class MemberProfileController extends BaseController
                         ) ?? [],
 
                         'reopenReportModal' =>
-                        session(
-                            'reopenReportModal'
-                        ) === true,
+                        !$hasReportedProfile
+                            && session(
+                                'reopenReportModal'
+                            ) === true,
 
                         'memberActionNotice' =>
                         session(
@@ -129,11 +149,11 @@ final class MemberProfileController extends BaseController
 
         if (
             !$validation->run($input)
-            || !$this
-                ->reportCaptchaService()
-                ->verify(
-                    $input['captcha_answer']
-                )
+            || !service(
+                'memberProfileReportCaptchaService'
+            )->verify(
+                $input['captcha_answer']
+            )
         ) {
             $errors = $validation
                 ->getErrors();
@@ -215,13 +235,6 @@ final class MemberProfileController extends BaseController
                     ]
                 );
         }
-    }
-
-    private function reportCaptchaService(): AdminCaptchaService
-    {
-        return new AdminCaptchaService(
-            'member_profile_report_captcha'
-        );
     }
 
     /**

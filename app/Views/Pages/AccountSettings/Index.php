@@ -15,6 +15,12 @@ use App\Support\DateDisplay;
  * @var array<string, mixed>|null $accountNotice
  */
 
+$profileReports =
+    isset($profileReports)
+    && is_array($profileReports)
+    ? $profileReports
+    : [];
+
 $contactRequests =
     isset($contactRequests)
     && is_array($contactRequests)
@@ -788,30 +794,193 @@ $this->section('content');
                             $activeSection === 'report-profile'
                         ): ?>
 
-                            <h2 class="fs-18 fw-semibold">
-                                Report a Profile
-                            </h2>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <div>
+                                    <h2 class="fs-18 fw-semibold mb-0">
+                                        Reported Profiles
+                                    </h2>
 
-                            <div class="alert alert-warning">
-                                Reports should be used only for fake identity,
-                                fraud, impersonation, abusive behaviour,
-                                inappropriate content or safety concerns.
+                                    <p class="text-muted fs-13 mb-0">
+                                        Review profiles you have reported
+                                        to the support team.
+                                    </p>
+                                </div>
                             </div>
 
-                            <p>
-                                Open the member’s full profile and select
-                                <strong>Report Profile</strong>. The correct
-                                Profile ID will be added automatically.
-                            </p>
+                            <hr class="my-4">
 
-                            <a
-                                href="<?= route_to(
-                                            'web.search'
-                                        ) ?>"
-                                class="btn btn-outline-primary">
+                            <?php if ($profileReports === []): ?>
+                                <div
+                                    class="border
+                rounded
+                text-center
+                text-muted
+                py-4">
 
-                                Find a Profile
-                            </a>
+                                    <i
+                                        class="ri-flag-line
+                    fs-24
+                    d-block
+                    mb-2"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    You have not reported any profiles.
+
+                                    <div class="mt-3">
+                                        <a
+                                            href="<?= route_to(
+                                                        'web.search'
+                                                    ) ?>"
+                                            class="btn btn-outline-primary">
+
+                                            Find a Profile
+                                        </a>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <div class="table-responsive">
+                                    <table
+                                        class="table
+                    table-hover
+                    align-middle
+                    mb-0">
+
+                                        <thead class="bg-info-subtle">
+                                            <tr>
+                                                <th scope="col">
+                                                    Member ID
+                                                </th>
+
+                                                <th scope="col">
+                                                    Why Reported
+                                                </th>
+
+                                                <th scope="col">
+                                                    Current Status
+                                                </th>
+
+                                                <th scope="col">
+                                                    Reported On
+                                                </th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+                                            <?php foreach (
+                                                $profileReports as $report
+                                            ): ?>
+                                                <?php
+                                                $status = mb_strtoupper(
+                                                    trim(
+                                                        (string) (
+                                                            $report['status']
+                                                            ?? 'OPEN'
+                                                        )
+                                                    )
+                                                );
+
+                                                $statusLabel = match ($status) {
+                                                    'REVIEWED' =>
+                                                    'Reviewed',
+
+                                                    'DISMISSED' =>
+                                                    'Dismissed',
+
+                                                    'ACTION_TAKEN' =>
+                                                    'Action Taken',
+
+                                                    default =>
+                                                    'Open',
+                                                };
+
+                                                $statusClass = match ($status) {
+                                                    'DISMISSED' =>
+                                                    'bg-secondary-subtle text-secondary',
+
+                                                    'ACTION_TAKEN' =>
+                                                    'bg-danger-subtle text-danger',
+
+                                                    'REVIEWED' =>
+                                                    'bg-success-subtle text-success',
+
+                                                    default =>
+                                                    'bg-warning-subtle text-dark',
+                                                };
+
+                                                $reportedAt =
+                                                    DateDisplay::formatUtcDateTime(
+                                                        $report['created_at']
+                                                            ?? null
+                                                    );
+
+                                                $reportedAtIso =
+                                                    DateDisplay::utcToDisplayIso(
+                                                        $report['created_at']
+                                                            ?? null
+                                                    );
+                                                ?>
+
+                                                <tr>
+                                                    <td>
+                                                        <span
+                                                            class="badge
+                                        bg-primary-subtle
+                                        text-primary
+                                        p-2">
+
+                                                            <?= esc(
+                                                                $report['reported_profile_reference'] ?? '—'
+                                                            ) ?>
+                                                        </span>
+                                                    </td>
+
+                                                    <td class="text-break">
+                                                        <?= esc(
+                                                            $report['description']
+                                                                ?? '—'
+                                                        ) ?>
+                                                    </td>
+
+                                                    <td>
+                                                        <span
+                                                            class="badge
+                                        <?= esc(
+                                                    $statusClass,
+                                                    'attr'
+                                                ) ?>
+                                        p-2">
+
+                                                            <?= esc($statusLabel) ?>
+                                                        </span>
+                                                    </td>
+
+                                                    <td class="text-nowrap">
+                                                        <?php if (
+                                                            $reportedAtIso !== ''
+                                                        ): ?>
+                                                            <time
+                                                                datetime="<?= esc(
+                                                                                $reportedAtIso,
+                                                                                'attr'
+                                                                            ) ?>">
+
+                                                                <?= esc(
+                                                                    $reportedAt
+                                                                ) ?>
+                                                            </time>
+                                                        <?php else: ?>
+                                                            <?= esc(
+                                                                $reportedAt
+                                                            ) ?>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php endif; ?>
 
                         <?php elseif (
                             $activeSection === 'plans'

@@ -887,6 +887,10 @@ foreach ($approvedPhotos as $photo) {
     ];
 }
 
+$hasReportedProfile =
+    ($hasReportedProfile ?? false)
+    === true;
+
 $this->extend(
     $profileLayout
 );
@@ -1651,25 +1655,53 @@ $this->section('content');
                                                         </button>
                                                     </form>
 
-                                                    <button
-                                                        type="button"
-                                                        class="btn
-            btn-outline-warning
-            w-100
-            d-inline-flex
-            align-items-center
-            justify-content-center
-            gap-1"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#memberReportModal">
+                                                    <div class="col-6">
+                                                        <?php if ($hasReportedProfile): ?>
+                                                            <button
+                                                                type="button"
+                                                                class="btn
+                btn-light
+                w-100
+                d-flex
+                align-items-center
+                justify-content-center
+                gap-1"
+                                                                disabled>
 
-                                                        <i
-                                                            class="ri-flag-line"
-                                                            aria-hidden="true">
-                                                        </i>
+                                                                <i
+                                                                    class="ri-checkbox-circle-line
+                    text-success"
+                                                                    aria-hidden="true">
+                                                                </i>
 
-                                                        Report Profile
-                                                    </button>
+                                                                Reported
+                                                            </button>
+
+                                                            <div class="small text-success text-center mt-1">
+                                                                You have reported this profile
+                                                            </div>
+                                                        <?php else: ?>
+                                                            <button
+                                                                type="button"
+                                                                class="btn
+                btn-outline-warning
+                w-100
+                d-flex
+                align-items-center
+                justify-content-center
+                gap-1"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#memberReportModal">
+
+                                                                <i
+                                                                    class="ri-flag-line"
+                                                                    aria-hidden="true">
+                                                                </i>
+
+                                                                Report
+                                                            </button>
+                                                        <?php endif; ?>
+                                                    </div>
 
                                                     <button
                                                         type="button"
@@ -3443,7 +3475,11 @@ $this->section('content');
 
     <?php endif; ?>
 <?php endif; ?>
-<?php if ($isOtherMemberProfileView): ?>
+<?php if (
+    $isOtherMemberProfileView
+    && $viewedProfileReference !== ''
+    && !$hasReportedProfile
+): ?>
     <?= view(
         'Pages/Profile/_ReportProfileModal',
         [

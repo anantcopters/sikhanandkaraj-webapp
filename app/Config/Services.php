@@ -331,6 +331,26 @@ final class Services extends BaseService
     }
 
     /**
+     * Return the member profile-report CAPTCHA service.
+     *
+     * Reuses the established arithmetic CAPTCHA implementation with
+     * isolated session state.
+     */
+    public static function memberProfileReportCaptchaService(
+        bool $getShared = true
+    ): AdminCaptchaService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfileReportCaptchaService'
+            );
+        }
+
+        return new AdminCaptchaService(
+            'member_profile_report_captcha'
+        );
+    }
+
+    /**
      * Return the SAK Volunteer login CAPTCHA service.
      *
      * The same proven CAPTCHA implementation used by Admin

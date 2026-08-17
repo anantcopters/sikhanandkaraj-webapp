@@ -8,6 +8,7 @@ use App\Controllers\BaseController;
 use App\Services\Account\MemberAccountSettingsService;
 use App\Services\Account\MemberContactRequestService;
 use App\Validation\Member\AccountSettingsValidation;
+use App\Services\Account\MemberProfileReportService;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
 use Throwable;
@@ -26,6 +27,8 @@ final class AccountSettingsController extends BaseController
     public function index(
         string $section = 'email'
     ): string {
+        $profileReports = [];
+
         $section = $this->normaliseSection(
             $section
         );
@@ -62,6 +65,18 @@ final class AccountSettingsController extends BaseController
                 );
         }
 
+        if ($section === 'report-profile') {
+            /** @var MemberProfileReportService $reportService */
+            $reportService = service(
+                'memberProfileReportService'
+            );
+
+            $profileReports = $reportService
+                ->historyForReporter(
+                    $userId
+                );
+        }
+
         return view(
             'Pages/AccountSettings/Index',
             array_merge(
@@ -91,6 +106,9 @@ final class AccountSettingsController extends BaseController
 
                     'contactRequests' =>
                     $contactRequests,
+
+                    'profileReports' =>
+                    $profileReports,
 
                     'pageScripts' => [
                         'assets/js/components/password-toggle.js',
