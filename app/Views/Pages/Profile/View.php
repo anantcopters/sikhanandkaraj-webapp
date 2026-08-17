@@ -1712,8 +1712,8 @@ $this->section('content');
                 gap-2">
 
                                         <span
-                                            class="avatar-sm
-                    flex-shrink-0">
+                                            class="avatar-xs
+                        flex-shrink-0">
 
                                             <span
                                                 class="avatar-title
@@ -1723,7 +1723,7 @@ $this->section('content');
 
                                                 <i
                                                     class="ri-fingerprint-line
-                            fs-18"
+                            fs-16"
                                                     aria-hidden="true">
                                                 </i>
                                             </span>
@@ -1753,7 +1753,7 @@ $this->section('content');
 
                                 <?php if ($isOtherMemberProfileView): ?>
 
-                                    <!-- Mobile -->
+                                    <!-- Contact number -->
                                     <div
                                         class="col-12
         col-sm-6
@@ -1762,11 +1762,12 @@ $this->section('content');
                                         <div
                                             class="d-flex
             align-items-start
-            gap-2">
+            gap-2
+            h-100">
 
                                             <span
-                                                class="avatar-sm
-                flex-shrink-0">
+                                                class="avatar-xs
+                        flex-shrink-0">
 
                                                 <span
                                                     class="avatar-title
@@ -1776,7 +1777,7 @@ $this->section('content');
 
                                                     <i
                                                         class="ri-phone-line
-                        fs-18"
+                        fs-16"
                                                         aria-hidden="true">
                                                     </i>
                                                 </span>
@@ -1784,101 +1785,104 @@ $this->section('content');
 
                                             <div class="min-w-0 flex-grow-1">
 
+                                                <!-- Primary contact -->
+                                                <div
+                                                    class="text-muted
+                    fs-12">
+
+                                                    <?= $isViewedParentMobile
+                                                        ? 'Parents Mobile'
+                                                        : 'Mobile Number' ?>
+                                                </div>
+
+                                                <div
+                                                    class="d-flex
+                    align-items-center
+                    flex-wrap
+                    gap-1">
+
+                                                    <strong
+                                                        class="fs-14
+                        text-break">
+
+                                                        <?= esc(
+                                                            $viewedMobile !== ''
+                                                                ? $viewedMobile
+                                                                : '-'
+                                                        ) ?>
+                                                    </strong>
+
+                                                    <?php if (
+                                                        !$isViewedParentMobile
+                                                        && $viewedMobile !== ''
+                                                        && $isViewedMobileVerified
+                                                    ): ?>
+
+                                                        <span
+                                                            class="badge
+                            bg-success-subtle
+                            text-success
+                            fs-11
+                            p-1">
+
+                                                            <i
+                                                                class="ri-checkbox-circle-fill"
+                                                                aria-hidden="true">
+                                                            </i>
+
+                                                            Verified
+                                                        </span>
+
+                                                    <?php endif; ?>
+                                                </div>
+
+                                                <!-- Female member's masked verified mobile -->
                                                 <?php if (
                                                     $isViewedParentMobile
                                                     && $viewedMaskedMemberMobile !== ''
                                                 ): ?>
 
-                                                    <!-- Female member's privacy-safe verified number -->
-                                                    <div class="mb-2">
-                                                        <div
-                                                            class="text-muted
-                            fs-12">
-
-                                                            Member Mobile
-                                                        </div>
-
-                                                        <div
-                                                            class="d-flex
-                            align-items-center
-                            flex-wrap
-                            gap-1">
-
-                                                            <strong
-                                                                class="fs-13">
-
-                                                                <?= esc(
-                                                                    $viewedMaskedMemberMobile
-                                                                ) ?>
-                                                            </strong>
-
-                                                            <?php if (
-                                                                $isViewedMaskedMobileVerified
-                                                            ): ?>
-
-                                                                <span
-                                                                    class="badge
-                                    bg-success-subtle
-                                    text-success
-                                    fs-11
-                                    p-2">
-
-                                                                    Verified
-                                                                </span>
-
-                                                            <?php endif; ?>
-                                                        </div>
-                                                    </div>
-
-                                                <?php endif; ?>
-
-                                                <!-- Parent contact or normal member-mobile fallback -->
-                                                <div>
-                                                    <div
-                                                        class="text-muted
-                        fs-12">
-
-                                                        <?= esc(
-                                                            $viewedMobileLabel
-                                                        ) ?>
-                                                    </div>
-
                                                     <div
                                                         class="d-flex
                         align-items-center
                         flex-wrap
-                        gap-1">
+                        gap-1
+                        mt-1
+                        text-muted
+                        fs-12">
 
-                                                        <strong
-                                                            class="fs-14
-                            text-break">
+                                                        <span>
+                                                            Member:
+                                                        </span>
 
+                                                        <span class="fw-medium text-body">
                                                             <?= esc(
-                                                                $viewedMobile !== ''
-                                                                    ? $viewedMobile
-                                                                    : '-'
+                                                                $viewedMaskedMemberMobile
                                                             ) ?>
-                                                        </strong>
+                                                        </span>
 
                                                         <?php if (
-                                                            !$isViewedParentMobile
-                                                            && $viewedMobile !== ''
-                                                            && $isViewedMobileVerified
+                                                            $isViewedMaskedMobileVerified
                                                         ): ?>
 
                                                             <span
-                                                                class="badge
-                                bg-success-subtle
-                                text-success
-                                fs-11
-                                p-2">
+                                                                class="text-success
+                                d-inline-flex
+                                align-items-center
+                                gap-1">
+
+                                                                <i
+                                                                    class="ri-checkbox-circle-fill"
+                                                                    aria-hidden="true">
+                                                                </i>
 
                                                                 Verified
                                                             </span>
 
                                                         <?php endif; ?>
                                                     </div>
-                                                </div>
+
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>
@@ -1895,7 +1899,7 @@ $this->section('content');
                     gap-2">
 
                                             <span
-                                                class="avatar-sm
+                                                class="avatar-xs
                         flex-shrink-0">
 
                                                 <span
@@ -1906,7 +1910,7 @@ $this->section('content');
 
                                                     <i
                                                         class="ri-mail-line
-                                fs-18"
+                                fs-16"
                                                         aria-hidden="true">
                                                     </i>
                                                 </span>

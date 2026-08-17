@@ -137,6 +137,14 @@ final class MemberProfileViewService
                     ?? false
             );
 
+        /*
+        * Gender is currently stored by registration as:
+        *
+        * M = Male
+        * F = Female
+        *
+        * FEMALE is also accepted defensively for older/imported data.
+        */
         $gender = mb_strtoupper(
             trim(
                 (string) (
@@ -147,21 +155,13 @@ final class MemberProfileViewService
             )
         );
 
-        $parentContactNumber = trim(
-            (string) (
-                $familyDetails['parent_contact_number']
-                ?? ''
-            )
-        );
-
-        $gender = mb_strtoupper(
-            trim(
-                (string) (
-                    $target['gender']
-                    ?? $summary['user']['gender']
-                    ?? ''
-                )
-            )
+        $isFemale = in_array(
+            $gender,
+            [
+                'F',
+                'FEMALE',
+            ],
+            true
         );
 
         $parentContactNumber = trim(
@@ -176,21 +176,23 @@ final class MemberProfileViewService
         *
         * When a parent contact exists:
         *
-        * - show the female member's OTP-verified mobile in masked form;
-        * - show the parent contact as the primary usable contact beneath it.
+        * - show the female member's mobile in masked form;
+        * - retain the verified badge when her primary mobile is OTP-verified;
+        * - show the full parent contact beneath it.
         *
         * When a parent contact does not exist:
         *
-        * - fall back to the female member's normal primary mobile.
+        * - display the female member's full primary mobile.
         *
-        * Male profiles continue showing their normal primary mobile.
+        * Male profiles continue displaying their normal primary mobile.
         */
         $hasParentContact =
-            $gender === 'FEMALE'
+            $isFemale
             && $parentContactNumber !== '';
 
         $maskedMemberMobile =
             $hasParentContact
+            && $memberMobileNumber !== ''
             ? MobileNumberMasker::lastThree(
                 $memberMobileNumber
             )
@@ -207,11 +209,11 @@ final class MemberProfileViewService
             : 'Mobile Number';
 
         /*
-        * This flag belongs only to the displayed full contact.
+        * The displayed full number is verified only when it is the
+        * member's primary mobile.
         *
-        * A parent contact does not inherit the member's OTP verification.
-        * The female member's separate masked number retains its own
-        * verification status.
+        * When a parent contact is displayed, the separate masked member
+        * number carries the member-mobile verification state.
         */
         $isDisplayMobileVerified =
             !$hasParentContact
@@ -364,7 +366,7 @@ final class MemberProfileViewService
                 $viewerUserId,
                 $targetUserId
             );
-
+        
         return array_merge(
             $summary,
             [
