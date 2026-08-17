@@ -695,10 +695,13 @@ $matchSections = [
                                                 type="button"
                                                 class="btn btn-sm btn-outline-danger"
                                                 data-bs-toggle="modal"
+                                                data-bs-placement="top"
                                                 data-bs-target="#aadhaarUploadModal"
-                                                title="<?= esc($resolvedAadhaarRejectionReason ?: 'Upload Aadhaar again', 'attr') ?>">
-                                                Re-upload
+                                                title="Reupload Aadhaar">
+                                                <i class="ri-upload-2-fill"></i>
                                             </button>
+                                            
+
                                         </span>
 
                                     <?php else: ?>
