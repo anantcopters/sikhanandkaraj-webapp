@@ -55,11 +55,13 @@ final class MemberProfileReportModel extends Model
     true;
 
     /**
-     * Return the existing report raised by one member against another.
+     * Return the latest non-dismissed report for the reporter/profile pair.
+     *
+     * DISMISSED restores the profile's original reportable state.
      *
      * @return array<string, mixed>|null
      */
-    public function findReport(
+    public function findActiveReport(
         int $reporterUserId,
         int $reportedUserId
     ): ?array {
@@ -78,6 +80,22 @@ final class MemberProfileReportModel extends Model
                 'reported_user_id',
                 $reportedUserId
             )
+            ->whereIn(
+                'status',
+                [
+                    self::STATUS_OPEN,
+                    self::STATUS_REVIEWED,
+                    self::STATUS_ACTION_TAKEN,
+                ]
+            )
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->orderBy(
+                'id',
+                'DESC'
+            )
             ->first();
 
         return is_array($record)
@@ -85,11 +103,11 @@ final class MemberProfileReportModel extends Model
             : null;
     }
 
-    public function hasReport(
+    public function hasActiveReport(
         int $reporterUserId,
         int $reportedUserId
     ): bool {
-        return $this->findReport(
+        return $this->findActiveReport(
             $reporterUserId,
             $reportedUserId
         ) !== null;

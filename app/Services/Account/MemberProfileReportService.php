@@ -38,10 +38,10 @@ final class MemberProfileReportService
     }
 
     /**
-     * Return the existing report status for the viewed profile.
+     * Return the current actionable report status for a profile.
      *
-     * An empty string means the authenticated member has not reported
-     * the profile.
+     * An empty result means the Report button should be displayed.
+     * DISMISSED reports are deliberately excluded by the model.
      */
     public function reportStatusForProfile(
         int $reporterUserId,
@@ -71,7 +71,7 @@ final class MemberProfileReportService
 
         $report = $this
             ->reportModel
-            ->findReport(
+            ->findActiveReport(
                 $reporterUserId,
                 $reportedUserId
             );
@@ -94,7 +94,6 @@ final class MemberProfileReportService
             [
                 MemberProfileReportModel::STATUS_OPEN,
                 MemberProfileReportModel::STATUS_REVIEWED,
-                MemberProfileReportModel::STATUS_DISMISSED,
                 MemberProfileReportModel::STATUS_ACTION_TAKEN,
             ],
             true
@@ -150,7 +149,7 @@ final class MemberProfileReportService
 
         if (
             $this->reportModel
-            ->hasReport(
+            ->hasActiveReport(
                 $reporterUserId,
                 $reportedUserId
             )
@@ -187,7 +186,7 @@ final class MemberProfileReportService
              */
             if (
                 $this->reportModel
-                ->hasReport(
+                ->hasActiveReport(
                     $reporterUserId,
                     $reportedUserId
                 )

@@ -347,7 +347,7 @@ $matchSections = [
             <aside class="col-12 col-lg-4 col-xl-3">
                 <div class="dashboard-sidebar">
                     <div class="card border border-danger border-opacity-25 shadow-sm">
-                        <div class="card-body p-4 pb-1 text-center">
+                        <div class="card-body p-3 pb-1 text-center">
 
                             <div class="member-profile-thumbnail mx-auto mb-2">
 
@@ -380,7 +380,7 @@ $matchSections = [
                             <p class="text-primary fs-12 mb-4">
                                 <?= esc($resolvedPlanName) ?>
                             </p>
-                            <div class="border-top pt-3 text-start">
+                            <div class="pt-3 text-start">
 
                                 <?= view(
                                     'Components/Member/TrustVerification',
