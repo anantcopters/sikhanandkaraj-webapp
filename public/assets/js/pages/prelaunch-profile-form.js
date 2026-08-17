@@ -258,9 +258,17 @@ document.addEventListener('DOMContentLoaded', () => {
         template,
         placeholder
     ) => {
+        let activeController = null;
+
         source.addEventListener(
             'change',
             async () => {
+                if (activeController) {
+                    activeController.abort();
+                }
+
+                activeController = new AbortController();
+
                 const selectedId =
                     source.value.trim();
 
@@ -293,6 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             requestUrl,
                             {
                                 method: 'GET',
+                                signal: activeController.signal,
                                 credentials:
                                     'same-origin',
 
@@ -343,6 +352,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             : 'No options available'
                     );
                 } catch (error) {
+                    if (error?.name === 'AbortError') {
+                        return;
+                    }
+
                     console.error(
                         'Dependent dropdown loading failed.',
                         error
@@ -2552,6 +2565,11 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
  * Initialize State → City dependency.
  */
+    const countrySelect =
+        document.getElementById(
+            'country_id'
+        );
+
     const stateSelect =
         document.getElementById(
             'state_id'
@@ -2561,6 +2579,40 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById(
             'city_id'
         );
+
+    if (
+        countrySelect
+        instanceof HTMLSelectElement
+        && stateSelect
+        instanceof HTMLSelectElement
+        && citySelect
+        instanceof HTMLSelectElement
+    ) {
+        const stateUrlTemplate =
+            countrySelect.dataset
+                .stateUrlTemplate
+            ?? '';
+
+        countrySelect.addEventListener(
+            'change',
+            () => {
+                updateSelectOptions(
+                    citySelect,
+                    [],
+                    'Select state first'
+                );
+            }
+        );
+
+        if (stateUrlTemplate !== '') {
+            bindDependentSelect(
+                countrySelect,
+                stateSelect,
+                stateUrlTemplate,
+                'Select state'
+            );
+        }
+    }
 
     if (
         stateSelect

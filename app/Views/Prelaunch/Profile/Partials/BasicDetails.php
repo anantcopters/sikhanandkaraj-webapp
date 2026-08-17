@@ -5,6 +5,7 @@ declare(strict_types=1);
 /**
  * @var array<string, string>|null            $validationErrors
  * @var array<string, mixed>|null             $country
+ * @var array<int, array<string, mixed>>|null $countries
  * @var array<int, array<string, mixed>>|null $maritalStatuses
  * @var array<int, array<string, mixed>>|null $heights
  * @var array<int, array<string, mixed>>|null $states
@@ -17,6 +18,10 @@ $errorBag = is_array($validationErrors ?? null)
 
 $countryData = is_array($country ?? null)
     ? $country
+    : [];
+
+$countryOptions = is_array($countries ?? null)
+    ? $countries
     : [];
 
 $maritalStatusOptions = is_array(
@@ -37,21 +42,10 @@ $cityOptions = is_array($cities ?? null)
     ? $cities
     : [];
 
-$countryId = (string) (
-    $countryData['id']
-    ?? ''
+$countryId = (string) old(
+    'country_id',
+    $countryData['id'] ?? ''
 );
-
-$countryName = trim(
-    (string) (
-        $countryData['name']
-        ?? 'India'
-    )
-);
-
-if ($countryName === '') {
-    $countryName = 'India';
-}
 
 $maritalStatusId = (string) old(
     'marital_status_id',
@@ -133,6 +127,11 @@ $cityRouteTemplate = route_to(
     'prelaunch.master.cities',
     0
 );
+
+$stateRouteTemplate = route_to(
+    'prelaunch.master.states',
+    0
+);
 ?>
 
 <div class="card border border-danger border-opacity-25 shadow-sm mb-3">
@@ -156,14 +155,6 @@ $cityRouteTemplate = route_to(
             </div>
         </div>
 
-        <input
-            type="hidden"
-            id="country_id"
-            name="country_id"
-            value="<?= esc(
-                        $countryId,
-                        'attr'
-                    ) ?>">
         <hr class="my-2 mb-2">
         </hr>
         <div class="row g-3 pt-2">
@@ -325,28 +316,52 @@ $cityRouteTemplate = route_to(
 
             <div class="col-12 col-md-6">
                 <label
-                    for="country_display"
+                    for="country_id"
                     class="form-label">
                     Country
                 </label>
 
-                <input
-                    type="text"
-                    id="country_display"
-                    class="form-control <?= esc(
+                <select
+                    id="country_id"
+                    name="country_id"
+                    class="form-select <?= esc(
                                             $countryClass,
                                             'attr'
                                         ) ?>"
-                    value="<?= esc(
-                                $countryName,
-                                'attr'
-                            ) ?>"
-                    readonly
-                    aria-readonly="true">
+                    data-state-url-template="<?= esc(
+                                                $stateRouteTemplate,
+                                                'attr'
+                                            ) ?>"
+                    data-choice
+                    data-choice-search="false"
+                    data-choice-position="bottom"
+                    data-error-required="Please select country."
+                    required>
+                    <option value="">Select country</option>
+                    <?php foreach ($countryOptions as $countryOption): ?>
+                        <?php
+                        if (!is_array($countryOption)) {
+                            continue;
+                        }
+
+                        $optionId = (string) ($countryOption['id'] ?? '');
+                        $optionName = trim((string) ($countryOption['name'] ?? ''));
+
+                        if ($optionId === '' || $optionName === '') {
+                            continue;
+                        }
+                        ?>
+                        <option
+                            value="<?= esc($optionId, 'attr') ?>"
+                            <?= $countryId === $optionId ? 'selected' : '' ?>>
+                            <?= esc($optionName) ?>
+                        </option>
+                    <?php endforeach ?>
+                </select>
                 <div
-                    id="country_displayError"
+                    id="country_idError"
                     class="invalid-feedback"
-                    data-validation-error="country_display">
+                    data-validation-error="country_id">
                     <?= esc($countryError) ?>
                 </div>
             </div>
@@ -369,6 +384,7 @@ $cityRouteTemplate = route_to(
                                                 $cityRouteTemplate,
                                                 'attr'
                                             ) ?>"
+                    <?= $countryId === '' ? 'disabled' : '' ?>
                     data-choice
                     data-choice-search="true"
                     data-choice-position="bottom"

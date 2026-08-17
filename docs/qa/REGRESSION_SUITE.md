@@ -124,6 +124,44 @@ No permanent cases recorded yet.
 **Automation:** Manual / Playwright candidate  
 **Last result:** NOT RUN
 
+## International Location Hierarchy
+
+### REG-MASTER-001 - Country dependent location options
+**Origin:** Canada international-location rollout
+
+**Expected:** India remains the default. Changing country clears stale state/city values and loads only active states for the newest country request; changing state loads only active cities for the newest state request.
+
+**Automation:** Integration/manual pending automation
+
+**Last result:** NOT RUN
+
+### REG-MASTER-002 - Location hierarchy tampering
+**Origin:** Canada international-location rollout
+
+**Expected:** Prelaunch and live member saves reject a country, state and city combination when the state does not belong to the country or the city does not belong to the state.
+
+**Automation:** Integration test pending
+
+**Last result:** NOT RUN
+
+### REG-MASTER-003 - Migrated Canadian profile editing
+**Origin:** Canada international-location rollout
+
+**Expected:** A Canadian prelaunch profile can migrate and then reopen/save Basic Details, Family Details and Sikh/Religious birth location without being forced back to India.
+
+**Automation:** End-to-end/manual pending automation
+
+**Last result:** NOT RUN
+
+### REG-MASTER-004 - International Search and Partner Preference
+**Origin:** Canada international-location rollout
+
+**Expected:** Search and Partner Preference show active Canadian provinces/territories with country-qualified labels and load cities for selected Canadian states.
+
+**Automation:** Integration/manual pending automation
+
+**Last result:** NOT RUN
+
 ## Cross-module Database Integrity
 
 No dedicated permanent DB cases recorded yet. Prelaunch migration integrity is covered by `REG-PRE-007` and `REG-PRE-008` pending DDL baseline verification.

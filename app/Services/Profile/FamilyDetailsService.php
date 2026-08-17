@@ -39,7 +39,11 @@ final class FamilyDetailsService
      *
      * @return array<string, mixed>
      */
-    public function getForUser(int $userId): array
+    public function getForUser(
+        int $userId,
+        ?int $requestedCountryId = null,
+        ?int $requestedStateId = null
+    ): array
     {
         $user = $this->userModel->find($userId);
 
@@ -57,6 +61,18 @@ final class FamilyDetailsService
             $details['state_id'] ?? null
         );
 
+        $selectedCountryId = $this->existingInteger(
+            $details['country_id'] ?? null
+        );
+
+        if ($requestedCountryId !== null && $requestedCountryId > 0) {
+            $selectedCountryId = $requestedCountryId;
+        }
+
+        if ($requestedStateId !== null && $requestedStateId > 0) {
+            $selectedStateId = $requestedStateId;
+        }
+
         return [
             'user' => $user,
 
@@ -65,7 +81,8 @@ final class FamilyDetailsService
             'masterData' =>
             $this->masterDataService
                 ->familyDetailsOptions(
-                    $selectedStateId
+                    $selectedStateId,
+                    $selectedCountryId
                 ),
 
             'completion' =>

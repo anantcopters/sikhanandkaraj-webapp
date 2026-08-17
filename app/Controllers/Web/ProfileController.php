@@ -43,8 +43,13 @@ final class ProfileController extends BaseController
             'basicDetailsService'
         );
 
+        $requestedCountryId = (int) old('country_id', 0);
+        $requestedStateId = (int) old('state_id', 0);
+
         $basicProfile = $basicDetailsService->getForUser(
-            $userId
+            $userId,
+            $requestedCountryId > 0 ? $requestedCountryId : null,
+            $requestedStateId > 0 ? $requestedStateId : null
         );
 
         return view(
@@ -373,7 +378,14 @@ final class ProfileController extends BaseController
         /** @var LifestyleService $service */
         $service = service('lifestyleService');
 
-        $profile = $service->getForUser($userId);
+        $requestedCountryId = (int) old('country_id', 0);
+        $requestedStateId = (int) old('state_id', 0);
+
+        $profile = $service->getForUser(
+            $userId,
+            $requestedCountryId > 0 ? $requestedCountryId : null,
+            $requestedStateId > 0 ? $requestedStateId : null
+        );
 
         return view(
             'Pages/Profile/Sections/Lifestyle/Edit',

@@ -1155,6 +1155,14 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
         );
 
         $routes->get(
+            'profile/master/states/(:num)',
+            'ProfileMasterController::states/$1',
+            [
+                'as' => 'web.profile.master.states',
+            ]
+        );
+
+        $routes->get(
             'profile/master/cities/(:num)',
             'ProfileMasterController::cities/$1',
             [
@@ -1913,6 +1921,15 @@ $routes->group(
         * Example:
         * GET /prelaunch/profile/master/cities/29
         */
+        $routes->get(
+            'profile/master/states/(:num)',
+            'PrelaunchProfileController::states/$1',
+            [
+                'as' =>
+                'prelaunch.master.states',
+            ]
+        );
+
         $routes->get(
             'profile/master/cities/(:num)',
             'PrelaunchProfileController::cities/$1',

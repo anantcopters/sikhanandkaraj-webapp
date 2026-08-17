@@ -179,6 +179,17 @@ $country = is_array(
     ? $resolvedMasterData['country']
     : [];
 
+$countries = is_array(
+    $resolvedMasterData['countries'] ?? null
+)
+    ? $resolvedMasterData['countries']
+    : [];
+
+$selectedCountryId = $fieldValue(
+    'country_id',
+    $details['country_id'] ?? ($country['id'] ?? '')
+);
+
 $selectedStateId = $fieldValue(
     'state_id',
     $details['state_id'] ?? ''
@@ -1039,28 +1050,38 @@ if ($isJourney) {
 
         <div class="col-12 col-sm-6 col-lg-4">
             <label
-                for="countryName"
+                for="countryId"
                 class="form-labelm">
                 Country
+                <span class="text-danger">*</span>
             </label>
 
-            <input
-                type="text"
-                class="form-control bg-light"
-                id="countryName"
-                value="<?= esc(
-                            (string) ($country['name'] ?? 'India'),
-                            'attr'
-                        ) ?>"
-                readonly>
-
-            <input
-                type="hidden"
+            <select
+                id="countryId"
                 name="country_id"
-                value="<?= esc(
-                            (string) ($country['id'] ?? ''),
-                            'attr'
-                        ) ?>">
+                class="form-select <?= isset($errors['country_id'])
+                                        ? 'is-invalid'
+                                        : '' ?>"
+                data-choice
+                data-choice-search="false"
+                data-states-url="<?= esc(
+                                        site_url('profile/master/states'),
+                                        'attr'
+                                    ) ?>"
+                data-error-required="Please select your country."
+                required>
+                <option value="">Select country</option>
+                <?php foreach ($countries as $countryOption): ?>
+                    <?php
+                    $optionId = (string) ($countryOption['id'] ?? '');
+                    ?>
+                    <option
+                        value="<?= esc($optionId, 'attr') ?>"
+                        <?= $selectedCountryId === $optionId ? 'selected' : '' ?>>
+                        <?= esc((string) ($countryOption['name'] ?? '')) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
 
             <?php if (
                 isset($errors['country_id'])
@@ -1094,6 +1115,7 @@ if ($isJourney) {
                 data-choice-search-placeholder="Search state"
                 data-choice-position="bottom"
                 data-error-required="Please select your state."
+                <?= $selectedCountryId === '' ? 'disabled' : '' ?>
                 required>
                 <option
                     value=""

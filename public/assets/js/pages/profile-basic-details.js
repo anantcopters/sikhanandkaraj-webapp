@@ -382,17 +382,44 @@ document.addEventListener('DOMContentLoaded', () => {
  * Configure dependent State and City Choices.js fields.
  */
 function initializeStateCityDependency() {
+    const countrySelect = document.getElementById('countryId');
     const stateSelect = document.getElementById('stateId');
     const citySelect = document.getElementById('cityId');
 
-    if (!stateSelect || !citySelect) {
+    if (!countrySelect || !stateSelect || !citySelect) {
         return;
     }
 
+    const statesBaseUrl = countrySelect.dataset.statesUrl;
     const citiesBaseUrl = citySelect.dataset.citiesUrl;
 
-    if (!citiesBaseUrl) {
+    if (!statesBaseUrl || !citiesBaseUrl) {
         return;
+    }
+
+    let stateRequestController = null;
+    let cityRequestController = null;
+
+    function replaceStateOptions(states) {
+        window.SelectChoice?.destroy(stateSelect);
+        stateSelect.replaceChildren();
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = states.length > 0
+            ? 'Select state'
+            : 'No states available';
+        stateSelect.appendChild(placeholder);
+
+        states.forEach((state) => {
+            const option = document.createElement('option');
+            option.value = String(state.value ?? '');
+            option.textContent = String(state.label ?? '');
+            stateSelect.appendChild(option);
+        });
+
+        stateSelect.disabled = states.length === 0;
+        window.SelectChoice?.create(stateSelect);
     }
 
     /**
@@ -458,6 +485,8 @@ function initializeStateCityDependency() {
         }
 
         citySelect.disabled = true;
+        cityRequestController?.abort();
+        cityRequestController = new AbortController();
 
         try {
             const response = await fetch(
@@ -468,7 +497,8 @@ function initializeStateCityDependency() {
                         Accept: 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'
                     },
-                    credentials: 'same-origin'
+                    credentials: 'same-origin',
+                    signal: cityRequestController.signal
                 }
             );
 
@@ -489,11 +519,62 @@ function initializeStateCityDependency() {
                 selectedCityId
             );
         } catch (error) {
+            if (error?.name === 'AbortError') {
+                return;
+            }
+
             console.error(error);
 
             replaceCityOptions([], '');
         }
     }
+
+    async function loadStates(countryId) {
+        replaceCityOptions([], '');
+
+        if (!countryId) {
+            replaceStateOptions([]);
+            return;
+        }
+
+        stateRequestController?.abort();
+        stateRequestController = new AbortController();
+        stateSelect.disabled = true;
+
+        try {
+            const response = await fetch(
+                `${statesBaseUrl}/${encodeURIComponent(countryId)}`,
+                {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin',
+                    signal: stateRequestController.signal
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error('Unable to load states.');
+            }
+
+            const payload = await response.json();
+            replaceStateOptions(
+                Array.isArray(payload.data) ? payload.data : []
+            );
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                return;
+            }
+
+            console.error(error);
+            replaceStateOptions([]);
+        }
+    }
+
+    countrySelect.addEventListener('change', () => {
+        void loadStates(countrySelect.value);
+    });
 
     stateSelect.addEventListener(
         'change',

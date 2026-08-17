@@ -55,18 +55,28 @@ final class ProfileMasterDataService
      * @return array<string, mixed>
      */
     public function basicDetailsOptions(
-        ?int $selectedStateId = null
+        ?int $selectedStateId = null,
+        ?int $selectedCountryId = null
     ): array {
-        $india = $this->countryModel->findIndia();
+        $countries = $this->countryModel->activeOptions();
+        $country = $selectedCountryId !== null
+            ? $this->countryModel->findActive($selectedCountryId)
+            : $this->countryModel->findIndia();
 
-        if (!is_array($india)) {
+        if (!is_array($country)) {
+            $country = $this->countryModel->findIndia();
+        }
+
+        if (!is_array($country)) {
             throw new DomainException(
-                'India master data is not configured.'
+                'Country master data is not configured.'
             );
         }
 
         return [
-            'country' => $india,
+            'country' => $country,
+
+            'countries' => $countries,
 
             'maritalStatuses' =>
             $this->maritalStatusModel
@@ -94,11 +104,15 @@ final class ProfileMasterDataService
 
             'states' =>
             $this->stateModel->activeForCountry(
-                (int) $india['id']
+                (int) $country['id']
             ),
 
             'cities' =>
             $selectedStateId !== null
+                && $this->stateBelongsToCountry(
+                    $selectedStateId,
+                    (int) $country['id']
+                )
                 ? $this->cityModel->activeForState(
                     $selectedStateId
                 )
@@ -203,14 +217,6 @@ final class ProfileMasterDataService
      */
     public function additionalPartnerPreferenceOptions(): array
     {
-        $india = $this->countryModel->findIndia();
-
-        if (!is_array($india)) {
-            throw new DomainException(
-                'India master data is not configured.'
-            );
-        }
-
         return [
             'communities' =>
             $this->communityModel
@@ -280,14 +286,12 @@ final class ProfileMasterDataService
             $this->annualIncomeModel
                 ->activeOptions(),
 
-            'country' =>
-            $india,
+            'countries' =>
+            $this->countryModel->activeOptions(),
 
             'states' =>
             $this->stateModel
-                ->activeForCountry(
-                    (int) $india['id']
-                ),
+                ->activeAcrossCountries(),
         ];
     }
 
@@ -356,7 +360,27 @@ final class ProfileMasterDataService
             return [];
         }
 
+        if (!is_array(
+            $this->stateModel->findActiveWithCountry($stateId)
+        )) {
+            return [];
+        }
+
         return $this->cityModel->activeForState($stateId);
+    }
+
+    /**
+     * Return active states for one active country.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function statesForCountry(int $countryId): array
+    {
+        if (!$this->countryExists($countryId)) {
+            return [];
+        }
+
+        return $this->stateModel->activeForCountry($countryId);
     }
 
     /**
@@ -401,12 +425,7 @@ final class ProfileMasterDataService
         int $stateId,
         int $cityId
     ): void {
-        $india = $this->countryModel->findIndia();
-
-        if (
-            !is_array($india)
-            || (int) $india['id'] !== $countryId
-        ) {
+        if (!$this->countryExists($countryId)) {
             throw new DomainException(
                 'Please select a valid country.'
             );
@@ -605,25 +624,39 @@ final class ProfileMasterDataService
      * @return array<string, mixed>
      */
     public function familyDetailsOptions(
-        ?int $selectedStateId = null
+        ?int $selectedStateId = null,
+        ?int $selectedCountryId = null
     ): array {
-        $india = $this->countryModel->findIndia();
+        $countries = $this->countryModel->activeOptions();
+        $country = $selectedCountryId !== null
+            ? $this->countryModel->findActive($selectedCountryId)
+            : $this->countryModel->findIndia();
 
-        if (!is_array($india)) {
+        if (!is_array($country)) {
+            $country = $this->countryModel->findIndia();
+        }
+
+        if (!is_array($country)) {
             throw new DomainException(
-                'India master data is not configured.'
+                'Country master data is not configured.'
             );
         }
 
         return [
-            'country' => $india,
+            'country' => $country,
+
+            'countries' => $countries,
 
             'states' =>
             $this->stateModel->activeForCountry(
-                (int) $india['id']
+                (int) $country['id']
             ),
 
             'cities' => $selectedStateId !== null
+                && $this->stateBelongsToCountry(
+                    $selectedStateId,
+                    (int) $country['id']
+                )
                 ? $this->cityModel->activeForState(
                     $selectedStateId
                 )
@@ -700,12 +733,7 @@ final class ProfileMasterDataService
             );
         }
 
-        $india = $this->countryModel->findIndia();
-
-        if (
-            !is_array($india)
-            || (int) $india['id'] !== $countryId
-        ) {
+        if (!$this->countryExists($countryId)) {
             throw new DomainException(
                 'Please select a valid country.'
             );
@@ -827,25 +855,62 @@ final class ProfileMasterDataService
     }
 
     /**
+     * Validate one complete active Country → State → City hierarchy.
+     */
+    public function assertValidLocationSelection(
+        int $countryId,
+        int $stateId,
+        int $cityId
+    ): void {
+        if (!$this->countryExists($countryId)) {
+            throw new DomainException(
+                'Please select a valid country.'
+            );
+        }
+
+        if (!$this->stateBelongsToCountry($stateId, $countryId)) {
+            throw new DomainException(
+                'Please select a valid state for the selected country.'
+            );
+        }
+
+        if (!$this->cityBelongsToState($cityId, $stateId)) {
+            throw new DomainException(
+                'Please select a valid city for the selected state.'
+            );
+        }
+    }
+
+    /**
      * Return only basic master data required by the prelaunch form.
      *
      * @return array<string, mixed>
      */
     public function prelaunchBasicDetailsOptions(
-        ?int $selectedStateId = null
+        ?int $selectedStateId = null,
+        ?int $selectedCountryId = null
     ): array {
-        $india =
-            $this->countryModel->findIndia();
+        $countries = $this->countryModel->activeOptions();
+        $country = $selectedCountryId !== null
+            ? $this->countryModel->findActive($selectedCountryId)
+            : $this->countryModel->findIndia();
 
-        if (!is_array($india)) {
+        if (!is_array($country)) {
+            $country = $this->countryModel->findIndia();
+        }
+
+        if (!is_array($country)) {
             throw new DomainException(
-                'India master data is not configured.'
+                'Country master data is not configured.'
             );
         }
 
         return [
             'country' =>
-            $india,
+            $country,
+
+            'countries' =>
+            $countries,
 
             'maritalStatuses' =>
             $this->maritalStatusModel
@@ -858,11 +923,15 @@ final class ProfileMasterDataService
             'states' =>
             $this->stateModel
                 ->activeForCountry(
-                    (int) $india['id']
+                    (int) $country['id']
                 ),
 
             'cities' =>
             $selectedStateId !== null
+                && $this->stateBelongsToCountry(
+                    $selectedStateId,
+                    (int) $country['id']
+                )
                 ? $this->cityModel
                 ->activeForState(
                     $selectedStateId
