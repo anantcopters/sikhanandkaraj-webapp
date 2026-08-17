@@ -13,6 +13,12 @@ declare(strict_types=1);
  * @var array<string, mixed>|null $accountNotice
  */
 
+$contactRequests =
+    isset($contactRequests)
+    && is_array($contactRequests)
+    ? $contactRequests
+    : [];
+
 $activeSection = isset($activeSection)
     && is_string($activeSection)
     ? $activeSection
@@ -826,162 +832,324 @@ $this->section('content');
 
                         <?php else: ?>
 
-                            <h2 class="fs-18 fw-semibold">
-                                Contact Us
-                            </h2>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <span
+                                    class="avatar-sm flex-shrink-0">
 
-                            <form
-                                method="post"
-                                action="<?= route_to(
-                                            'web.account.settings.contact'
-                                        ) ?>"
-                                data-validate
-                                data-account-contact-form
-                                data-submit-loader
-                                novalidate>
+                                    <span
+                                        class="avatar-title
+                    rounded-circle
+                    bg-primary-subtle
+                    text-primary">
 
-                                <?= csrf_field() ?>
+                                        <i
+                                            class="ri-customer-service-2-line"
+                                            aria-hidden="true">
+                                        </i>
+                                    </span>
+                                </span>
 
-                                <div class="mb-3">
-                                    <label
-                                        for="contactMessage"
-                                        class="form-label">
+                                <div>
+                                    <h2 class="fs-18 fw-semibold mb-0">
+                                        Contact Us
+                                    </h2>
 
-                                        Message
-                                    </label>
+                                    <p class="text-muted fs-13 mb-0">
+                                        Review your previous requests or send
+                                        a new message to our support team.
+                                    </p>
+                                </div>
+                            </div>
 
-                                    <textarea
-                                        id="contactMessage"
-                                        name="message"
-                                        rows="6"
-                                        minlength="10"
-                                        maxlength="2000"
-                                        class="form-control
-                <?= isset($errors['message'])
+                            <hr class="my-4">
+
+                            <h3 class="fs-16 fw-semibold mb-3">
+                                Request History
+                            </h3>
+
+                            <?php if ($contactRequests === []): ?>
+                                <div
+                                    class="border rounded
+                text-center text-muted py-4 mb-4">
+
+                                    <i
+                                        class="ri-inbox-line fs-24 d-block mb-2"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    You have not raised any support requests.
+                                </div>
+                            <?php else: ?>
+                                <div class="table-responsive mb-4">
+                                    <table
+                                        class="table
+                    table-hover
+                    align-middle
+                    mb-0">
+
+                                        <thead class="bg-info-subtle">
+                                            <tr>
+                                                <th scope="col">
+                                                    Request ID
+                                                </th>
+
+                                                <th scope="col">
+                                                    Message
+                                                </th>
+
+                                                <th scope="col">
+                                                    Status
+                                                </th>
+
+                                                <th scope="col">
+                                                    Resolution
+                                                </th>
+
+                                                <th scope="col">
+                                                    Raised On
+                                                </th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+                                            <?php foreach (
+                                                $contactRequests as $request
+                                            ): ?>
+                                                <?php
+                                                $requestStatus = mb_strtoupper(
+                                                    trim(
+                                                        (string) (
+                                                            $request['status']
+                                                            ?? 'OPEN'
+                                                        )
+                                                    )
+                                                );
+
+                                                $isResolved =
+                                                    $requestStatus === 'RESOLVED';
+                                                ?>
+
+                                                <tr>
+                                                    <td>
+                                                        <span
+                                                            class="badge
+                                        bg-primary-subtle
+                                        text-primary
+                                        p-2">
+
+                                                            <?= esc(
+                                                                $request['request_reference'] ?? '—'
+                                                            ) ?>
+                                                        </span>
+                                                    </td>
+
+                                                    <td class="text-break">
+                                                        <?= esc(
+                                                            $request['message']
+                                                                ?? '—'
+                                                        ) ?>
+                                                    </td>
+
+                                                    <td>
+                                                        <span
+                                                            class="badge
+                                        <?= $isResolved
+                                                    ? 'bg-success-subtle text-success'
+                                                    : 'bg-warning-subtle text-dark' ?>
+                                        p-2">
+
+                                                            <?= $isResolved
+                                                                ? 'Resolved'
+                                                                : 'Open' ?>
+                                                        </span>
+                                                    </td>
+
+                                                    <td class="text-break">
+                                                        <?php if ($isResolved): ?>
+                                                            <?= esc(
+                                                                $request['response_note']
+                                                                    ?? 'Resolved'
+                                                            ) ?>
+                                                        <?php else: ?>
+                                                            <span class="text-muted">
+                                                                Awaiting response
+                                                            </span>
+                                                        <?php endif; ?>
+                                                    </td>
+
+                                                    <td class="text-nowrap">
+                                                        <?= esc(
+                                                            $request['created_at']
+                                                                ?? '—'
+                                                        ) ?>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php endif; ?>
+
+                            <div class="border-top pt-4">
+                                <h3 class="fs-16 fw-semibold mb-1">
+                                    Create New Request
+                                </h3>
+
+                                <p class="text-muted fs-13">
+                                    Describe how our support team can help you.
+                                </p>
+
+                                <form
+                                    method="post"
+                                    action="<?= route_to(
+                                                'web.account.settings.contact'
+                                            ) ?>"
+                                    data-validate
+                                    data-account-contact-form
+                                    data-submit-loader
+                                    novalidate>
+
+                                    <?= csrf_field() ?>
+
+                                    <div class="mb-3">
+                                        <label
+                                            for="contactMessage"
+                                            class="form-label">
+
+                                            Message
+                                        </label>
+
+                                        <textarea
+                                            id="contactMessage"
+                                            name="message"
+                                            rows="4"
+                                            minlength="10"
+                                            maxlength="255"
+                                            class="form-control
+                        <?= isset($errors['message'])
                                 ? 'is-invalid'
                                 : '' ?>"
-                                        placeholder="Tell us how we can help you"
-                                        data-error-required="Please enter your message."
-                                        data-error-minlength="Please enter at least 10 characters."
-                                        data-error-maxlength="Message cannot exceed 2000 characters."
-                                        required><?= esc(
-                                                        old('message')
-                                                    ) ?></textarea>
-
-                                    <div
-                                        class="invalid-feedback
-                <?= isset($errors['message'])
-                                ? 'd-block'
-                                : '' ?>"
-                                        data-validation-error="message">
-
-                                        <?= esc(
-                                            $errors['message']
-                                                ?? ''
-                                        ) ?>
-                                    </div>
-                                </div>
-
-                                <div class="mb-4">
-                                    <label
-                                        class="form-label"
-                                        for="contactCaptchaAnswer">
-
-                                        Security Verification
-                                    </label>
-
-                                    <div
-                                        class="border
-                rounded
-                p-2
-                mb-2
-                bg-light
-                border-primary-subtle">
+                                            placeholder="Enter your message"
+                                            data-error-required="Please enter your message."
+                                            data-error-minlength="Please enter at least 10 characters."
+                                            data-error-maxlength="Message cannot exceed 255 characters."
+                                            required><?= esc(
+                                                            old('message')
+                                                        ) ?></textarea>
 
                                         <div
-                                            class="d-flex
-                    align-items-center
-                    justify-content-between">
+                                            class="invalid-feedback
+                        <?= isset($errors['message'])
+                                ? 'd-block'
+                                : '' ?>"
+                                            data-validation-error="message">
 
-                                            <span class="text-muted">
-                                                Solve this question
-                                            </span>
+                                            <?= esc(
+                                                $errors['message']
+                                                    ?? ''
+                                            ) ?>
+                                        </div>
 
-                                            <span class="fw-bold fs-18">
-                                                <?= esc($contactCaptcha) ?> = ?
-                                            </span>
+                                        <div class="form-text text-end">
+                                            Maximum 255 characters
                                         </div>
                                     </div>
 
-                                    <input
-                                        class="form-control
-                <?= isset($errors['captcha_answer'])
+                                    <div class="mb-4">
+                                        <label
+                                            for="contactCaptchaAnswer"
+                                            class="form-label">
+
+                                            Security Verification
+                                        </label>
+
+                                        <div
+                                            class="border rounded p-2 mb-2
+                        bg-light border-primary-subtle">
+
+                                            <div
+                                                class="d-flex
+                            align-items-center
+                            justify-content-between">
+
+                                                <span class="text-muted">
+                                                    Solve this question
+                                                </span>
+
+                                                <span class="fw-bold fs-18">
+                                                    <?= esc($contactCaptcha) ?> = ?
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <input
+                                            type="text"
+                                            id="contactCaptchaAnswer"
+                                            name="captcha_answer"
+                                            class="form-control
+                        <?= isset(
+                                $errors['captcha_answer']
+                            )
                                 ? 'is-invalid'
                                 : '' ?>"
-                                        type="text"
-                                        id="contactCaptchaAnswer"
-                                        name="captcha_answer"
-                                        value=""
-                                        placeholder="Enter answer"
-                                        inputmode="numeric"
-                                        autocomplete="off"
-                                        maxlength="2"
-                                        pattern="[0-9]{1,2}"
-                                        data-error-required="Please enter the security answer."
-                                        data-error-pattern="Please enter a valid security answer."
-                                        required>
+                                            placeholder="Enter answer"
+                                            inputmode="numeric"
+                                            autocomplete="off"
+                                            maxlength="2"
+                                            pattern="[0-9]{1,2}"
+                                            data-error-required="Please enter the security answer."
+                                            data-error-pattern="Please enter a valid security answer."
+                                            required>
 
-                                    <div
-                                        class="invalid-feedback
-                <?= isset($errors['captcha_answer'])
+                                        <div
+                                            class="invalid-feedback
+                        <?= isset(
+                                $errors['captcha_answer']
+                            )
                                 ? 'd-block'
                                 : '' ?>"
-                                        data-validation-error="captcha_answer">
+                                            data-validation-error="captcha_answer">
 
-                                        <?= esc(
-                                            $errors['captcha_answer']
-                                                ?? ''
-                                        ) ?>
+                                            <?= esc(
+                                                $errors['captcha_answer']
+                                                    ?? ''
+                                            ) ?>
+                                        </div>
                                     </div>
 
-                                    <div class="form-text color-pink color-pink">
-                                        The security question expires after 5 minutes
-                                        and can be used only once.
-                                    </div>
-                                </div>
+                                    <div class="d-flex justify-content-end">
+                                        <button
+                                            type="submit"
+                                            class="btn
+                        registration-form__submit
+                        fs-14 fw-semibold text-uppercase w-25"
+                                            data-submit-button>
 
-                                <div class="d-flex justify-content-end">
-                                    <button
-                                        type="submit"
-                                        class="btn
-                registration-form__submit
-                fs-14
-                fw-semibold w-25 text-uppercase"
-                                        data-submit-button>
+                                            <span data-submit-idle>
+                                                <i
+                                                    class="ri-send-plane-line me-1 fw-medium"
+                                                    aria-hidden="true">
+                                                </i>
 
-                                        <span data-submit-idle>
-                                            <i
-                                                class="ri-send-plane-line me-1 fw-medium"
-                                                aria-hidden="true">
-                                            </i>
-
-                                            Send Message
-                                        </span>
-
-                                        <span
-                                            class="registration-submit__loading d-none"
-                                            data-submit-loading>
-
-                                            <span
-                                                class="spinner-border spinner-border-sm"
-                                                aria-hidden="true">
+                                                Send Request
                                             </span>
 
-                                            Sending...
-                                        </span>
-                                    </button>
-                                </div>
-                            </form>
+                                            <span
+                                                class="registration-submit__loading
+                            d-none"
+                                                data-submit-loading>
+
+                                                <span
+                                                    class="spinner-border
+                                spinner-border-sm">
+                                                </span>
+
+                                                Sending...
+                                            </span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
 
                         <?php endif; ?>
                     </div>

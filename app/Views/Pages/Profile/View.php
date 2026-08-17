@@ -1658,24 +1658,49 @@ $this->section('content');
                                                     </form>
 
                                                     <!-- Block -->
-                                                    <button
-                                                        type="button"
-                                                        class="btn
-                btn-outline-danger
-                flex-fill
-                d-flex
-                align-items-center
-                justify-content-center
-                gap-1"
-                                                        data-member-block-open>
+                                                    <div
+                                                        class="d-flex
+        flex-wrap
+        gap-2">
 
-                                                        <i
-                                                            class="ri-forbid-line"
-                                                            aria-hidden="true">
-                                                        </i>
+                                                        <button
+                                                            type="button"
+                                                            class="btn
+            btn-outline-warning
+            flex-grow-1
+            d-inline-flex
+            align-items-center
+            justify-content-center
+            gap-1"
+                                                            data-member-report-open>
 
-                                                        Block
-                                                    </button>
+                                                            <i
+                                                                class="ri-flag-line"
+                                                                aria-hidden="true">
+                                                            </i>
+
+                                                            Report
+                                                        </button>
+
+                                                        <button
+                                                            type="button"
+                                                            class="btn
+            btn-outline-danger
+            flex-grow-1
+            d-inline-flex
+            align-items-center
+            justify-content-center
+            gap-1"
+                                                            data-member-block-open>
+
+                                                            <i
+                                                                class="ri-forbid-line"
+                                                                aria-hidden="true">
+                                                            </i>
+
+                                                            Block
+                                                        </button>
+                                                    </div>
 
                                                 </div>
 
@@ -3282,12 +3307,9 @@ $this->section('content');
 
                     <?= csrf_field() ?>
 
-                    <div
-                        class="modal-header bg-info-subtle py-2">
-
+                    <div class="modal-header bg-info-subtle py-2">
                         <h2
-                            class="modal-title
-                                fs-18"
+                            class="modal-title fs-18"
                             id="memberBlockModalTitle">
 
                             Block the Member
@@ -3298,24 +3320,6 @@ $this->section('content');
                             class="btn-close"
                             data-bs-dismiss="modal"
                             aria-label="Close">
-                        </button>
-
-                        <button
-                            type="button"
-                            class="btn btn-outline-warning
-        flex-fill
-        d-flex
-        align-items-center
-        justify-content-center
-        gap-1"
-                            data-member-report-open>
-
-                            <i
-                                class="ri-flag-line"
-                                aria-hidden="true">
-                            </i>
-
-                            Report
                         </button>
                     </div>
 

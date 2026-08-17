@@ -44,10 +44,22 @@ final class AccountSettingsController extends BaseController
 
         $contactCaptcha = '';
 
+        $contactRequests = [];
+
         if ($section === 'contact') {
             $contactCaptcha = service(
                 'memberContactCaptchaService'
             )->generate();
+
+            /** @var MemberContactRequestService $contactService */
+            $contactService = service(
+                'memberContactRequestService'
+            );
+
+            $contactRequests = $contactService
+                ->historyForMember(
+                    $userId
+                );
         }
 
         return view(
@@ -76,6 +88,9 @@ final class AccountSettingsController extends BaseController
 
                     'contactCaptcha' =>
                     $contactCaptcha,
+
+                    'contactRequests' =>
+                    $contactRequests,
 
                     'pageScripts' => [
                         'assets/js/components/password-toggle.js',
@@ -543,7 +558,7 @@ final class AccountSettingsController extends BaseController
                 'memberContactRequestService'
             );
 
-            $service->create(
+            $requestReference = $service->create(
                 $this->authenticatedUserId(),
                 (string) $validation
                     ->getValidated()['message']
@@ -560,11 +575,15 @@ final class AccountSettingsController extends BaseController
                     'accountNotice',
                     [
                         'type' => 'success',
+
                         'title' =>
-                        'Message received',
+                        'Request received',
+
                         'message' =>
-                        'Your message has been sent to '
-                            . 'our support team.',
+                        'Your support request '
+                            . $requestReference
+                            . ' has been sent to our support team.',
+
                         'logoutAfterClose' =>
                         false,
                     ]

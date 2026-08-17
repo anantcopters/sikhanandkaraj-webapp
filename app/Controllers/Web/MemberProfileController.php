@@ -75,6 +75,7 @@ final class MemberProfileController extends BaseController
                         ),
 
                         'pageScripts' => [
+                            'assets/js/components/submit-loader.js',
                             'assets/js/pages/profile-view.js',
                             'assets/js/pages/member-profile-actions.js',
                         ],

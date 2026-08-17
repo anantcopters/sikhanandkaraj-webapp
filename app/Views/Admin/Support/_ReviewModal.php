@@ -102,20 +102,20 @@ $recordId = max(
                             Status
                         </label>
 
-                        <select
-                            id="supportReviewStatus"
-                            name="status"
-                            class="form-select
-                                <?= isset($errors['status'])
-                                    ? 'is-invalid'
-                                    : '' ?>"
-                            required>
+                        <?php if ($isReport): ?>
+                            <select
+                                id="supportReviewStatus"
+                                name="status"
+                                class="form-select
+            <?= isset($errors['status'])
+                                ? 'is-invalid'
+                                : '' ?>"
+                                required>
 
-                            <option value="">
-                                Select status
-                            </option>
+                                <option value="">
+                                    Select status
+                                </option>
 
-                            <?php if ($isReport): ?>
                                 <option value="REVIEWED">
                                     Reviewed
                                 </option>
@@ -127,20 +127,17 @@ $recordId = max(
                                 <option value="ACTION_TAKEN">
                                     Action Taken
                                 </option>
-                            <?php else: ?>
-                                <option value="IN_PROGRESS">
-                                    In Progress
-                                </option>
+                            </select>
+                        <?php else: ?>
+                            <input
+                                type="hidden"
+                                name="status"
+                                value="RESOLVED">
 
-                                <option value="RESOLVED">
-                                    Resolved
-                                </option>
-
-                                <option value="CLOSED">
-                                    Closed
-                                </option>
-                            <?php endif; ?>
-                        </select>
+                            <div class="form-control bg-light">
+                                Resolved
+                            </div>
+                        <?php endif; ?>
 
                         <div class="invalid-feedback">
                             <?= esc(
@@ -151,13 +148,13 @@ $recordId = max(
                     </div>
 
                     <?php
-                    $noteName = $isReport
-                        ? 'resolution_note'
-                        : 'response_note';
+                    $noteLabel = $isReport
+                        ? 'Resolution note'
+                        : 'Message to member';
 
                     $maximumLength = $isReport
                         ? 1000
-                        : 2000;
+                        : 255;
                     ?>
 
                     <div class="mb-3">
@@ -173,7 +170,7 @@ $recordId = max(
                         <textarea
                             id="supportReviewNote"
                             name="<?= esc(
-                                        $noteName,
+                                        $$noteLabel,
                                         'attr'
                                     ) ?>"
                             rows="5"
@@ -182,17 +179,20 @@ $recordId = max(
                                             (string) $maximumLength,
                                             'attr'
                                         ) ?>"
+                            data-error-required="Please enter a message."
+                            data-error-minlength="Please enter at least 5 characters."
+                            data-error-maxlength="Message cannot exceed 255 characters."
                             class="form-control
-                                <?= isset($errors[$noteName])
+                                <?= isset($errors[$noteLabel])
                                     ? 'is-invalid'
                                     : '' ?>"
                             required><?= esc(
-                                            old($noteName)
+                                            old($noteLabel)
                                         ) ?></textarea>
 
                         <div class="invalid-feedback">
                             <?= esc(
-                                $errors[$noteName]
+                                $errors[$noteLabel]
                                     ?? 'Please enter at least 5 characters.'
                             ) ?>
                         </div>

@@ -48,7 +48,9 @@ $errors = isset($reportValidationErrors)
                             'web.members.report',
                             $viewedProfileReference
                         ) ?>"
+                data-validate
                 data-member-report-form
+                data-submit-loader
                 novalidate>
 
                 <?= csrf_field() ?>
@@ -105,17 +107,26 @@ $errors = isset($reportValidationErrors)
                             minlength="10"
                             maxlength="1000"
                             class="form-control
-                                <?= isset($errors['description'])
-                                    ? 'is-invalid'
-                                    : '' ?>"
+        <?= isset($errors['description'])
+            ? 'is-invalid'
+            : '' ?>"
+                            data-error-required="Please explain why you are reporting this profile."
+                            data-error-minlength="Please enter at least 10 characters."
+                            data-error-maxlength="Report description cannot exceed 1000 characters."
                             required><?= esc(
                                             old('description')
                                         ) ?></textarea>
 
-                        <div class="invalid-feedback">
+                        <div
+                            class="invalid-feedback
+        <?= isset($errors['description'])
+            ? 'd-block'
+            : '' ?>"
+                            data-validation-error="description">
+
                             <?= esc(
                                 $errors['description']
-                                    ?? 'Please enter between 10 and 1000 characters.'
+                                    ?? ''
                             ) ?>
                         </div>
                     </div>
@@ -138,21 +149,29 @@ $errors = isset($reportValidationErrors)
                         <input
                             type="text"
                             inputmode="numeric"
+                            autocomplete="off"
                             id="member-report-captcha"
                             name="captcha_answer"
                             maxlength="2"
+                            pattern="[0-9]{1,2}"
                             class="form-control
-                                <?= isset(
-                                    $errors['captcha_answer']
-                                )
-                                    ? 'is-invalid'
-                                    : '' ?>"
+        <?= isset($errors['captcha_answer'])
+            ? 'is-invalid'
+            : '' ?>"
+                            data-error-required="Please enter the security answer."
+                            data-error-pattern="Please enter a valid security answer."
                             required>
 
-                        <div class="invalid-feedback">
+                        <div
+                            class="invalid-feedback
+        <?= isset($errors['captcha_answer'])
+            ? 'd-block'
+            : '' ?>"
+                            data-validation-error="captcha_answer">
+
                             <?= esc(
                                 $errors['captcha_answer']
-                                    ?? 'Please enter the security answer.'
+                                    ?? ''
                             ) ?>
                         </div>
                     </div>
@@ -170,19 +189,24 @@ $errors = isset($reportValidationErrors)
                     <button
                         type="submit"
                         class="btn btn-danger"
-                        data-member-report-submit>
+                        data-submit-button>
 
-                        <span data-member-report-label>
+                        <span data-submit-idle>
+                            <i
+                                class="ri-flag-line me-1"
+                                aria-hidden="true">
+                            </i>
+
                             Submit Report
                         </span>
 
                         <span
                             class="d-none"
-                            data-member-report-loading>
+                            data-submit-loading>
 
                             <span
-                                class="spinner-border
-                                    spinner-border-sm">
+                                class="spinner-border spinner-border-sm"
+                                aria-hidden="true">
                             </span>
 
                             Submitting...

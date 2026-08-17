@@ -229,28 +229,19 @@ final class MemberSupportService
         string $status,
         string $responseNote
     ): void {
-        $allowedStatuses = [
-            MemberContactRequestModel::STATUS_IN_PROGRESS,
-            MemberContactRequestModel::STATUS_RESOLVED,
-            MemberContactRequestModel::STATUS_CLOSED,
-        ];
-
         if (
-            !in_array(
-                $status,
-                $allowedStatuses,
-                true
-            )
+            $status
+            !== MemberContactRequestModel::STATUS_RESOLVED
         ) {
             throw new DomainException(
-                'The selected request status is invalid.'
+                'The request can only be marked as resolved.'
             );
         }
 
         $responseNote = $this
             ->normaliseNote(
                 $responseNote,
-                2000
+                255
             );
 
         $this->database->transBegin();
@@ -262,38 +253,16 @@ final class MemberSupportService
                     'id',
                     $requestId
                 )
-                ->whereIn(
+                ->where(
                     'status',
-                    [
-                        MemberContactRequestModel::STATUS_OPEN,
-                        MemberContactRequestModel::STATUS_IN_PROGRESS,
-                    ]
+                    MemberContactRequestModel::STATUS_OPEN
                 )
                 ->first();
 
             if (!is_array($request)) {
                 throw new DomainException(
-                    'This request is already closed or unavailable.'
-                );
-            }
-
-            $currentStatus = strtoupper(
-                trim(
-                    (string) (
-                        $request['status']
-                        ?? ''
-                    )
-                )
-            );
-
-            if (
-                $currentStatus
-                === MemberContactRequestModel::STATUS_IN_PROGRESS
-                && $status
-                === MemberContactRequestModel::STATUS_IN_PROGRESS
-            ) {
-                throw new DomainException(
-                    'This request is already in progress.'
+                    'This request is already resolved '
+                        . 'or is unavailable.'
                 );
             }
 
@@ -305,11 +274,12 @@ final class MemberSupportService
                 )
                 ->where(
                     'status',
-                    $currentStatus
+                    MemberContactRequestModel::STATUS_OPEN
                 )
                 ->set([
                     'status' =>
-                    $status,
+                    MemberContactRequestModel
+                    ::STATUS_RESOLVED,
 
                     'reviewed_by_admin_id' =>
                     $adminUserId,
@@ -328,13 +298,14 @@ final class MemberSupportService
                 || $this->database->affectedRows() !== 1
             ) {
                 throw new DomainException(
-                    'This request was updated by another administrator.'
+                    'This request was already resolved '
+                        . 'by another administrator.'
                 );
             }
 
             if (!$this->database->transStatus()) {
                 throw new RuntimeException(
-                    'The request review transaction failed.'
+                    'The support request transaction failed.'
                 );
             }
 
@@ -379,15 +350,13 @@ final class MemberSupportService
             $status,
             [
                 'ALL',
-                'OPEN',
-                'IN_PROGRESS',
-                'RESOLVED',
-                'CLOSED',
+                MemberContactRequestModel::STATUS_OPEN,
+                MemberContactRequestModel::STATUS_RESOLVED,
             ],
             true
         )
             ? $status
-            : 'OPEN';
+            : MemberContactRequestModel::STATUS_OPEN;
     }
 
     private function normaliseSearch(

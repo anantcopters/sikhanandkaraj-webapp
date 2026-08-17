@@ -71,7 +71,7 @@ final class MemberSupportValidation
 
                 'rules' => [
                     'required',
-                    'in_list[IN_PROGRESS,RESOLVED,CLOSED]',
+                    'in_list[RESOLVED]',
                 ],
 
                 'errors' => [
@@ -79,31 +79,31 @@ final class MemberSupportValidation
                     'Please select the request status.',
 
                     'in_list' =>
-                    'The selected request status is invalid.',
+                    'The request can only be marked as resolved.',
                 ],
             ],
 
             'response_note' => [
                 'label' =>
-                'Response note',
+                'Resolution message',
 
                 'rules' => [
                     'required',
                     'min_length[5]',
-                    'max_length[2000]',
+                    'max_length[255]',
                 ],
 
                 'errors' => [
                     'required' =>
-                    'Please enter a response note.',
+                    'Please enter the resolution message.',
 
                     'min_length' =>
-                    'Response note must contain '
+                    'Resolution message must contain '
                         . 'at least 5 characters.',
 
                     'max_length' =>
-                    'Response note cannot exceed '
-                        . '2000 characters.',
+                    'Resolution message cannot exceed '
+                        . '255 characters.',
                 ],
             ],
         ];

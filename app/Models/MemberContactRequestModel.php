@@ -7,20 +7,13 @@ namespace App\Models;
 use CodeIgniter\Model;
 
 /**
- * Stores authenticated member Contact Us requests.
+ * Stores Contact Us requests created by authenticated members.
  */
 final class MemberContactRequestModel extends Model
 {
     public const STATUS_OPEN = 'OPEN';
 
-    public const STATUS_IN_PROGRESS =
-    'IN_PROGRESS';
-
-    public const STATUS_RESOLVED =
-    'RESOLVED';
-
-    public const STATUS_CLOSED =
-    'CLOSED';
+    public const STATUS_RESOLVED = 'RESOLVED';
 
     protected $table =
     'member_contact_requests';
@@ -35,6 +28,7 @@ final class MemberContactRequestModel extends Model
     true;
 
     protected $allowedFields = [
+        'request_reference',
         'member_user_id',
         'message',
         'status',
@@ -75,6 +69,10 @@ final class MemberContactRequestModel extends Model
                 'created_at',
                 'DESC'
             )
+            ->orderBy(
+                'id',
+                'DESC'
+            )
             ->first();
 
         return is_array($record)
@@ -83,22 +81,70 @@ final class MemberContactRequestModel extends Model
     }
 
     /**
-     * Prepare the administrator Contact Us queue.
+     * Return complete support history for one authenticated member.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function historyForMember(
+        int $memberUserId
+    ): array {
+        $records = $this
+            ->select([
+                'request_reference',
+                'message',
+                'status',
+                'response_note',
+                'reviewed_at',
+                'created_at',
+            ])
+            ->where(
+                'member_user_id',
+                $memberUserId
+            )
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->orderBy(
+                'id',
+                'DESC'
+            )
+            ->findAll();
+
+        return is_array($records)
+            ? $records
+            : [];
+    }
+
+    public function referenceExists(
+        string $requestReference
+    ): bool {
+        return $this
+            ->where(
+                'request_reference',
+                $requestReference
+            )
+            ->countAllResults() > 0;
+    }
+
+    /**
+     * Prepare the administrator Contact Us listing.
      */
     public function prepareAdminListing(
         string $status,
         string $search
     ): self {
-        $this->select([
-            'member_contact_requests.*',
+        $this
+            ->select([
+                'member_contact_requests.*',
 
-            'users.profile_ref_number',
+                'users.profile_ref_number',
 
-            'users.full_name AS member_name',
+                'users.full_name AS member_name',
 
-            'admin_users.full_name '
-                . 'AS reviewer_name',
-        ])
+                'admin_users.full_name '
+                    . 'AS reviewer_name',
+            ])
             ->join(
                 'users',
                 'users.id = '
@@ -122,6 +168,13 @@ final class MemberContactRequestModel extends Model
             $this
                 ->groupStart()
                 ->like(
+                    'member_contact_requests.request_reference',
+                    $search,
+                    'both',
+                    true,
+                    true
+                )
+                ->orLike(
                     'users.profile_ref_number',
                     $search,
                     'both',
@@ -138,10 +191,15 @@ final class MemberContactRequestModel extends Model
                 ->groupEnd();
         }
 
-        return $this->orderBy(
-            'member_contact_requests.created_at',
-            'DESC'
-        );
+        return $this
+            ->orderBy(
+                'member_contact_requests.created_at',
+                'DESC'
+            )
+            ->orderBy(
+                'member_contact_requests.id',
+                'DESC'
+            );
     }
 
     /**
@@ -157,11 +215,20 @@ final class MemberContactRequestModel extends Model
                 'users.profile_ref_number',
 
                 'users.full_name AS member_name',
+
+                'admin_users.full_name '
+                    . 'AS reviewer_name',
             ])
             ->join(
                 'users',
                 'users.id = '
                     . 'member_contact_requests.member_user_id'
+            )
+            ->join(
+                'admin_users',
+                'admin_users.id = '
+                    . 'member_contact_requests.reviewed_by_admin_id',
+                'left'
             )
             ->where(
                 'member_contact_requests.id',

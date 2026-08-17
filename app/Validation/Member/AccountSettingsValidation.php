@@ -111,7 +111,7 @@ final class AccountSettingsValidation
                 'rules' => [
                     'required',
                     'min_length[10]',
-                    'max_length[2000]',
+                    'max_length[255]',
                 ],
 
                 'errors' => [
@@ -122,7 +122,7 @@ final class AccountSettingsValidation
                     'Please enter at least 10 characters.',
 
                     'max_length' =>
-                    'Message cannot exceed 2000 characters.',
+                    'Message cannot exceed 255 characters.',
                 ],
             ],
 
