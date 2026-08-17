@@ -116,6 +116,7 @@ use App\Services\FieldOfficer\FieldOfficerLoginService;
 use App\Services\FieldOfficer\FieldOfficerProfileService;
 use App\Services\Matchmaking\MemberProfilePresentationService;
 use App\Services\Admin\Authentication\AdminPasswordResetService;
+use App\Services\Profile\MemberTrustVerificationService;
 use App\Models\MemberShortlistModel;
 use App\Services\Admin\FieldOfficerDocumentService;
 use Config\Matchmaking;
@@ -932,6 +933,38 @@ final class Services extends BaseService
             $database,
 
             $configuration
+        );
+    }
+
+    /**
+     * Return the shared member Trust and Verification service.
+     *
+     * Dashboard and Profile Edit use this service as the single authority
+     * for contact, Aadhaar and selfie verification states.
+     */
+    public static function memberTrustVerificationService(
+        bool $getShared = true
+    ): MemberTrustVerificationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberTrustVerificationService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberTrustVerificationService(
+            new UserModel(
+                $database
+            ),
+
+            new UserContactModel(
+                $database
+            ),
+
+            static::memberAadhaarService(
+                false
+            )
         );
     }
 

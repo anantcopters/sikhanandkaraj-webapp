@@ -92,14 +92,6 @@ $resolvedPlanName = trim(
     (string) ($accountPlan['name'] ?? 'Free account')
 );
 
-$resolvedAadhaarStatus = mb_strtoupper(
-    trim((string) ($aadhaarStatus ?? 'NOT_ADDED'))
-);
-
-$resolvedAadhaarRejectionReason = trim(
-    (string) ($aadhaarRejectionReason ?? '')
-);
-
 $completionPercentage = max(
     0,
     min(
@@ -388,399 +380,21 @@ $matchSections = [
                             <p class="text-primary fs-12 mb-4">
                                 <?= esc($resolvedPlanName) ?>
                             </p>
-
                             <div class="border-top pt-3 text-start">
 
-                                <!-- =====================================================
-         Mobile verification
-         ===================================================== -->
-                                <div
-                                    class="d-flex
-            align-items-center
-            justify-content-between
-            gap-3
-            pb-2
-            mb-2
-            border-bottom">
-
-                                    <span
-                                        class="d-flex
-                align-items-center
-                gap-2
-                min-w-0">
-
-                                        <i
-                                            class="ri-smartphone-line
-                    fs-18
-                    text-primary
-                    flex-shrink-0"
-                                            aria-hidden="true">
-                                        </i>
-
-                                        <span class="min-w-0">
-
-                                            <span
-                                                class="d-block
-                        fs-12
-                        text-muted">
-
-                                                Mobile
-                                            </span>
-
-                                            <?php if (
-                                                is_string($primaryMobile)
-                                                && $primaryMobile !== ''
-                                            ): ?>
-
-                                                <span
-                                                    class="d-block
-                            fw-medium
-                            text-truncate">
-
-                                                    <?= esc($primaryMobile) ?>
-
-                                                </span>
-
-                                            <?php else: ?>
-
-                                                <span
-                                                    class="d-block
-                            text-muted
-                            fs-13">
-
-                                                    Not added
-
-                                                </span>
-
-                                            <?php endif; ?>
-
-                                        </span>
-
-                                    </span>
-
-                                    <?php if ($isMobileVerified): ?>
-
-                                        <span
-                                            class="badge
-                    bg-success-subtle
-                    text-success
-                    fs-11
-                    p-2
-                    flex-shrink-0">
-
-
-
-                                            Verified
-
-                                        </span>
-
-                                    <?php else: ?>
-
-                                        <span
-                                            class="badge
-                    bg-warning-subtle
-                    text-warning
-                    fs-11
-                    p-2
-                    flex-shrink-0">
-
-
-
-                                            Pending
-
-                                        </span>
-
-                                    <?php endif; ?>
-
-                                </div>
-
-
-                                <!-- =====================================================
-         Email verification
-         ===================================================== -->
-                                <div
-                                    class="d-flex
-            align-items-center
-            justify-content-between
-            gap-3
-            pb-2
-            mb-2
-            border-bottom">
-
-                                    <span
-                                        class="d-flex
-                align-items-center
-                gap-2
-                min-w-0">
-
-                                        <i
-                                            class="ri-mail-line
-                    fs-18
-                    text-info
-                    flex-shrink-0"
-                                            aria-hidden="true">
-                                        </i>
-
-                                        <span class="min-w-0">
-
-                                            <span
-                                                class="d-block
-                        fs-12
-                        text-muted">
-
-                                                Email
-
-                                            </span>
-
-                                            <?php if (
-                                                is_string($primaryEmail)
-                                                && $primaryEmail !== ''
-                                            ): ?>
-
-                                                <span
-                                                    class="d-block
-                            fw-medium
-                            text-truncate"
-                                                    title="<?= esc(
-                                                                $primaryEmail,
-                                                                'attr'
-                                                            ) ?>">
-
-                                                    <?= esc($primaryEmail) ?>
-
-                                                </span>
-
-                                            <?php else: ?>
-
-                                                <span
-                                                    class="d-block
-                            text-muted
-                            fs-13">
-
-                                                    Not added
-
-                                                </span>
-
-                                            <?php endif; ?>
-
-                                        </span>
-
-                                    </span>
-
-                                    <?php if (
-                                        is_string($primaryEmail)
-                                        && $primaryEmail !== ''
-                                    ): ?>
-
-                                        <?php if ($isEmailVerified): ?>
-
-                                            <span
-                                                class="badge
-                        bg-success-subtle
-                        text-success
-                        fs-11
-                        p-2
-                        flex-shrink-0">
-
-
-
-                                                Verified
-
-                                            </span>
-
-                                        <?php else: ?>
-
-                                            <span
-                                                class="badge
-                        bg-warning-subtle
-                        text-warning
-                        fs-11
-                        p-2
-                        flex-shrink-0">
-
-
-
-                                                Pending
-
-                                            </span>
-
-                                        <?php endif; ?>
-
-                                    <?php else: ?>
-
-                                        <span
-                                            class="badge
-                    bg-secondary-subtle
-                    text-body-secondary
-                    fs-11
-                    p-2
-                    flex-shrink-0">
-
-                                            Not added
-
-                                        </span>
-
-                                    <?php endif; ?>
-
-                                </div>
-
-
-                                <!-- =====================================================
-         Aadhaar verification
-         ===================================================== -->
-                                <div
-                                    class="d-flex
-            align-items-center
-            justify-content-between
-            gap-3
-            pb-2
-            mb-2
-            border-bottom">
-
-                                    <span
-                                        class="d-flex
-                align-items-center
-                gap-2">
-
-                                        <i
-                                            class="ri-fingerprint-line
-                    fs-18
-                    text-warning"
-                                            aria-hidden="true">
-                                        </i>
-
-                                        <span class="fw-medium">
-                                            Aadhaar
-                                        </span>
-
-                                    </span>
-
-                                    <?php if ($resolvedAadhaarStatus === 'APPROVED'): ?>
-
-                                        <span
-                                            class="badge
-                        bg-success-subtle
-                        text-success
-                        fs-11
-                        p-2
-                        flex-shrink-0">
-
-
-
-                                            Verified
-
-                                        </span>
-
-                                    <?php elseif ($resolvedAadhaarStatus === 'UNDER_REVIEW'): ?>
-
-                                        <span
-                                            class="badge
-                    bg-warning-subtle
-                    text-warning
-                    fs-11
-                    p-2">
-
-                                            Under Review
-
-                                        </span>
-
-                                    <?php elseif ($resolvedAadhaarStatus === 'REJECTED'): ?>
-
-                                        <span class="d-inline-flex align-items-center gap-1">
-                                            <span class="badge bg-danger-subtle text-danger fs-11 p-2">
-                                                Rejected
-                                            </span>
-
-                                            <button
-                                                type="button"
-                                                class="btn btn-sm btn-outline-danger"
-                                                data-bs-toggle="modal"
-                                                data-bs-placement="top"
-                                                data-bs-target="#aadhaarUploadModal"
-                                                title="Reupload Aadhaar">
-                                                <i class="ri-upload-2-fill"></i>
-                                            </button>
-                                            
-
-                                        </span>
-
-                                    <?php else: ?>
-
-                                        <button
-                                            type="button"
-                                            class="btn btn-sm btn-outline-primary"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#aadhaarUploadModal">
-                                            Add
-                                        </button>
-
-                                    <?php endif; ?>
-
-                                </div>
-
-
-                                <!-- =====================================================
-         Selfie verification
-         ===================================================== -->
-                                <div
-                                    class="d-flex
-            align-items-center
-            justify-content-between
-            gap-3
-            pb-2">
-
-                                    <span
-                                        class="d-flex
-                align-items-center
-                gap-2">
-
-                                        <i
-                                            class="ri-camera-lens-line
-                    fs-18
-                    text-danger"
-                                            aria-hidden="true">
-                                        </i>
-
-                                        <span class="fw-medium">
-                                            Selfie
-                                        </span>
-
-                                    </span>
-
-                                    <?php if ($isSelfieVerified): ?>
-
-                                        <span
-                                            class="badge
-                    bg-success-subtle
-                    text-success
-                    fs-11
-                    p-2">
-
-
-
-                                            Verified
-
-                                        </span>
-
-                                    <?php else: ?>
-
-                                        <span
-                                            class="badge
-                    bg-warning-subtle
-                    text-warning
-                    fs-11
-                    p-2">
-
-
-                                            Pending
-
-                                        </span>
-
-                                    <?php endif; ?>
-
-                                </div>
+                                <?= view(
+                                    'Components/Member/TrustVerification',
+                                    [
+                                        'trustVerification' =>
+                                        $trustVerification ?? [],
+
+                                        'showCard' =>
+                                        false,
+                                    ]
+                                ) ?>
 
                             </div>
+
                         </div>
 
                         <nav
@@ -1676,14 +1290,45 @@ $matchSections = [
     </div>
 </section>
 
+<?php
+$dashboardTrustVerification =
+    isset($trustVerification)
+    && is_array($trustVerification)
+    ? $trustVerification
+    : [];
+
+$dashboardAadhaar =
+    isset($dashboardTrustVerification['aadhaar'])
+    && is_array($dashboardTrustVerification['aadhaar'])
+    ? $dashboardTrustVerification['aadhaar']
+    : [];
+?>
+
 <?= view(
     'Pages/Dashboard/_AadhaarUploadModal',
     [
-        'memberName' => $resolvedName,
-        'profileReference' => $resolvedReference,
-        'validationErrors' => $aadhaarValidationErrors ?? [],
-        'openModal' => $openAadhaarModal ?? false,
-        'rejectionReason' => $resolvedAadhaarRejectionReason,
+        'memberName' =>
+        $dashboardTrustVerification['memberName']
+            ?? $resolvedName,
+
+        'profileReference' =>
+        $dashboardTrustVerification['profileReference']
+            ?? $resolvedReference,
+
+        'validationErrors' =>
+        $aadhaarValidationErrors
+            ?? [],
+
+        'openModal' =>
+        $openAadhaarModal
+            ?? false,
+
+        'rejectionReason' =>
+        $dashboardAadhaar['rejectionReason']
+            ?? '',
+
+        'returnContext' =>
+        'DASHBOARD',
     ]
 ) ?>
 

@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
-use App\Models\UserContactModel;
 use App\Models\UserModel;
 use App\Services\Dashboard\MemberDashboardDataService;
 use App\Services\Profile\MemberProfileSummaryService;
-use App\Services\Profile\MemberAadhaarService;
-use App\Support\BooleanValue;
+use App\Services\Profile\MemberTrustVerificationService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
 /**
@@ -20,13 +18,11 @@ final class DashboardController extends BaseController
 {
     public function index(): string
     {
-        $resolvedUserId =
-            $this->authenticatedUserId();
+        $userId = $this->authenticatedUserId();
 
-        $user =
-            (new UserModel())->find(
-                $resolvedUserId
-            );
+        $user = (new UserModel())->find(
+            $userId
+        );
 
         if (!is_array($user)) {
             session()->destroy();
@@ -34,91 +30,30 @@ final class DashboardController extends BaseController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        $loggedInUserName =
-            trim(
-                (string) (
-                    $user['full_name']
-                    ?? ''
-                )
+        /** @var MemberTrustVerificationService $trustService */
+        $trustService = service(
+            'memberTrustVerificationService'
+        );
+
+        $trustVerification = $trustService
+            ->getForUser(
+                $userId
             );
 
-        if ($loggedInUserName === '') {
-            $loggedInUserName =
-                'Member';
-        }
+        $loggedInUserName = trim(
+            (string) (
+                $trustVerification['memberName']
+                ?? 'Member'
+            )
+        );
 
-        $profileReference =
-            trim(
-                (string) (
-                    $user['profile_ref_number']
-                    ?? ''
-                )
-            );
+        $profileReference = trim(
+            (string) (
+                $trustVerification['profileReference']
+                ?? ''
+            )
+        );
 
-        /*
-         * ------------------------------------------------------------------
-         * Member contacts
-         * ------------------------------------------------------------------
-         *
-         * Mobile and email remain in user_contacts.
-         * Do not duplicate either value on users.
-         */
-        $contactModel =
-            new UserContactModel();
-
-        $mobileContact =
-            $contactModel->findPrimaryForUser(
-                $resolvedUserId,
-                UserContactModel::TYPE_MOBILE
-            );
-
-        $emailContact =
-            $contactModel->findPrimaryForUser(
-                $resolvedUserId,
-                UserContactModel::TYPE_EMAIL
-            );
-
-        $primaryMobile =
-            $this->contactValue(
-                $mobileContact
-            );
-
-        $primaryEmail =
-            $this->contactValue(
-                $emailContact
-            );
-
-        $isMobileVerified =
-            $this->isContactVerified(
-                $mobileContact
-            );
-
-        $isEmailVerified =
-            $this->isContactVerified(
-                $emailContact
-            );
-
-        /*
-         * ------------------------------------------------------------------
-         * Member identity verification
-         * ------------------------------------------------------------------
-         *
-         * PostgreSQL boolean values must always pass through the project's
-         * existing BooleanValue support class.
-         */
-        /** @var MemberAadhaarService $aadhaarService */
-        $aadhaarService = service('memberAadhaarService');
-        $aadhaarState = $aadhaarService->dashboardState($resolvedUserId);
-
-        $isSelfieVerified =
-            BooleanValue::fromDatabase(
-                $user['is_selfie_verified']
-                    ?? false
-            );
-
-        /*
-         * Keep shared authenticated-session values current for the header.
-         */
         session()->set([
             'auth_user_name' =>
             $loggedInUserName,
@@ -127,34 +62,24 @@ final class DashboardController extends BaseController
             $profileReference,
         ]);
 
-        /*
-         * Dashboard-specific account and match datasets.
-         */
         /** @var MemberDashboardDataService $dashboardService */
-        $dashboardService =
-            service(
-                'memberDashboardDataService'
-            );
+        $dashboardService = service(
+            'memberDashboardDataService'
+        );
 
-        $dashboardData =
-            $dashboardService
+        $dashboardData = $dashboardService
             ->getDashboardData(
-                $resolvedUserId
+                $userId
             );
 
-        /*
-         * Reuse exactly the same profile summary used by profile/edit.
-         */
         /** @var MemberProfileSummaryService $profileSummaryService */
-        $profileSummaryService =
-            service(
-                'memberProfileSummaryService'
-            );
+        $profileSummaryService = service(
+            'memberProfileSummaryService'
+        );
 
-        $profileSummary =
-            $profileSummaryService
+        $profileSummary = $profileSummaryService
             ->getForUser(
-                $resolvedUserId
+                $userId
             );
 
         return view(
@@ -178,41 +103,21 @@ final class DashboardController extends BaseController
                         )
                     ),
 
-                    /*
-                     * Contact verification.
-                     */
-                    'primaryMobile' =>
-                    $primaryMobile,
-
-                    'isMobileVerified' =>
-                    $isMobileVerified,
-
-                    'primaryEmail' =>
-                    $primaryEmail,
-
-                    'isEmailVerified' =>
-                    $isEmailVerified,
-
-                    /*
-                     * Identity verification.
-                     */
-                    'aadhaarStatus' =>
-                    $aadhaarState['status'],
-
-                    'aadhaarRejectionReason' =>
-                    $aadhaarState['rejectionReason'],
+                    'trustVerification' =>
+                    $trustVerification,
 
                     'aadhaarValidationErrors' =>
-                    session('aadhaarValidationErrors') ?? [],
+                    session(
+                        'aadhaarValidationErrors'
+                    ) ?? [],
 
                     'openAadhaarModal' =>
-                    session('openAadhaarModal') === true,
+                    session(
+                        'openAadhaarModal'
+                    ) === true,
 
                     'formAlert' =>
                     $this->readFormAlert(),
-
-                    'isSelfieVerified' =>
-                    $isSelfieVerified,
 
                     'profileImage' =>
                     $profileSummary['profileImage'],
@@ -238,49 +143,6 @@ final class DashboardController extends BaseController
                 ],
                 $dashboardData
             )
-        );
-    }
-
-    /**
-     * Resolve a stored contact value.
-     *
-     * @param array<string, mixed>|null $contact
-     */
-    private function contactValue(
-        ?array $contact
-    ): ?string {
-        if (!is_array($contact)) {
-            return null;
-        }
-
-        $value =
-            trim(
-                (string) (
-                    $contact['contact_value']
-                    ?? ''
-                )
-            );
-
-        return $value !== ''
-            ? $value
-            : null;
-    }
-
-    /**
-     * Resolve the verification state of a contact record.
-     *
-     * @param array<string, mixed>|null $contact
-     */
-    private function isContactVerified(
-        ?array $contact
-    ): bool {
-        if (!is_array($contact)) {
-            return false;
-        }
-
-        return BooleanValue::fromDatabase(
-            $contact['is_verified']
-                ?? false
         );
     }
 }

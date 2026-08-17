@@ -17,19 +17,49 @@ final class MemberAadhaarValidation
     public static function uploadRules(): array
     {
         return [
+            'return_context' => [
+                'label' =>
+                'Return context',
+
+                'rules' => [
+                    'required',
+                    'in_list[DASHBOARD,PROFILE_EDIT]',
+                ],
+
+                'errors' => [
+                    'required' =>
+                    'The Aadhaar upload context is required.',
+
+                    'in_list' =>
+                    'The Aadhaar upload context is invalid.',
+                ],
+            ],
+
             'aadhaar_document' => [
-                'label' => 'Aadhaar document',
+                'label' =>
+                'Aadhaar document',
+
                 'rules' => [
                     'uploaded[aadhaar_document]',
                     'mime_in[aadhaar_document,image/jpeg,image/png,application/pdf]',
                     'ext_in[aadhaar_document,jpg,jpeg,png,pdf]',
-                    'max_size[aadhaar_document,' . self::MAXIMUM_SIZE_KB . ']',
+                    'max_size[aadhaar_document,'
+                        . self::MAXIMUM_SIZE_KB
+                        . ']',
                 ],
+
                 'errors' => [
-                    'uploaded' => 'Please select an Aadhaar document.',
-                    'mime_in' => 'Only JPG, JPEG, PNG or PDF files are allowed.',
-                    'ext_in' => 'Only JPG, JPEG, PNG or PDF files are allowed.',
-                    'max_size' => 'The Aadhaar document must be smaller than 1 MB.',
+                    'uploaded' =>
+                    'Please select an Aadhaar document.',
+
+                    'mime_in' =>
+                    'Only JPG, JPEG, PNG or PDF files are allowed.',
+
+                    'ext_in' =>
+                    'Only JPG, JPEG, PNG or PDF files are allowed.',
+
+                    'max_size' =>
+                    'The Aadhaar document must be smaller than 1 MB.',
                 ],
             ],
         ];

@@ -10,6 +10,7 @@ declare(strict_types=1);
  * @var array<string, string> $validationErrors
  * @var bool                  $openModal
  * @var string                $rejectionReason
+ * @var string                $returnContext
  */
 
 $resolvedMemberName = trim((string) ($memberName ?? 'Member'));
@@ -19,6 +20,29 @@ $resolvedErrors = isset($validationErrors) && is_array($validationErrors)
     : [];
 $shouldOpen = ($openModal ?? false) === true;
 $resolvedRejectionReason = trim((string) ($rejectionReason ?? ''));
+$resolvedReturnContext =
+    mb_strtoupper(
+        trim(
+            (string) (
+                $returnContext
+                ?? 'DASHBOARD'
+            )
+        )
+    );
+
+if (
+    !in_array(
+        $resolvedReturnContext,
+        [
+            'DASHBOARD',
+            'PROFILE_EDIT',
+        ],
+        true
+    )
+) {
+    $resolvedReturnContext =
+        'DASHBOARD';
+}
 ?>
 
 <div
@@ -40,7 +64,13 @@ $resolvedRejectionReason = trim((string) ($rejectionReason ?? ''));
                 novalidate>
 
                 <?= csrf_field() ?>
-
+                <input
+                    type="hidden"
+                    name="return_context"
+                    value="<?= esc(
+                                $resolvedReturnContext,
+                                'attr'
+                            ) ?>">
                 <div class="modal-header bg-info-subtle py-2">
                     <div>
                         <h2 id="aadhaarUploadModalTitle" class="modal-title fs-16 fw-semibold mb-1">
