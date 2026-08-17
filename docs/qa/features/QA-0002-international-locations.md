@@ -14,7 +14,8 @@ country-code internationalisation is explicitly excluded.
 - Member Basic, Family and Sikh/Religious Details
 - Search and Partner Preference location options
 - Prelaunch-to-member migration compatibility
-- Incremental database script `018_canada_matrimonial_locations.sql`
+- Incremental database scripts `018_canada_matrimonial_locations.sql` and
+  `019_country_location_integrity.sql`
 
 ## QA status
 
@@ -37,8 +38,15 @@ country-code internationalisation is explicitly excluded.
 4. Rapidly switch countries/states and confirm stale AJAX responses never win.
 5. Submit mismatched country/state/city IDs and confirm rejection.
 6. Migrate a Canadian prelaunch profile and edit all affected live sections.
-7. Verify Canadian state/city filtering in Search and Partner Preference.
-8. Verify keyboard, mobile and Choices.js loading/empty/error states.
+7. Verify Country = Canada with no state/city returns Canadian profiles in
+   Search and matches Canadian candidates in Partner Preference.
+8. Verify a selected Canadian province rejects an Indian city, and a selected
+   India country rejects a Canadian province in both flows.
+9. Save a legacy-style state/city preference with no country selection and
+   confirm its existing match behaviour is unchanged.
+10. Run increment 019 against a deliberately mismatched copy and confirm it
+    aborts before adding composite foreign keys; repair the row and rerun.
+11. Verify keyboard, mobile and Choices.js loading/empty/error states.
 
 ## QA Gate
 

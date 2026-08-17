@@ -602,6 +602,7 @@ final class SearchController extends BaseController
      */
         $arrayFields = [
             'marital_status_ids',
+            'country_ids',
             'state_ids',
             'city_ids',
             'photo_visibility',

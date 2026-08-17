@@ -1493,6 +1493,11 @@ final class Services extends BaseService
             ),
 
             new PartnerPreferenceSelectionModel(
+                'country',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
                 'state',
                 $database
             ),
@@ -1744,6 +1749,11 @@ final class Services extends BaseService
 
             new PartnerPreferenceSelectionModel(
                 'annual_income',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'country',
                 $database
             ),
 

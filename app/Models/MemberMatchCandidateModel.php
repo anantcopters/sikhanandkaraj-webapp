@@ -362,6 +362,12 @@ final class MemberMatchCandidateModel extends Model
 
         $this->applyIntegerArrayFilter(
             $builder,
+            'bd.country_id',
+            $filters['country_ids'] ?? []
+        );
+
+        $this->applyIntegerArrayFilter(
+            $builder,
             'bd.state_id',
             $filters['state_ids'] ?? []
         );
@@ -752,6 +758,7 @@ final class MemberMatchCandidateModel extends Model
             'bd.eating_habit_id',
             'bd.physical_status_id',
             'bd.number_of_children',
+            'bd.country_id',
             'bd.state_id',
             'bd.city_id',
 

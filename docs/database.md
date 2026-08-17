@@ -184,3 +184,15 @@ Approved primary photo indexes support search/listing retrieval. Viewer authoriz
 - Prefer `RESTRICT` when deleting a referenced master/business actor would destroy historical meaning; use cascade only for genuinely owned child rows.
 
 For the detailed constraint inventory, see `docs/database-constraints.md`.
+
+## Increment 019 — Country-aware search/preferences and hierarchy integrity
+
+`database/019_country_location_integrity.sql` adds persisted country-level
+partner preferences. An empty country selection intentionally means Any country,
+so existing preference rows retain their behaviour.
+
+The increment also adds composite foreign keys for every persisted
+country/state/city tuple used by live members, family details, Sikh birth
+locations, SAK Volunteers and prelaunch profiles. A precondition block aborts
+the transaction with a table-specific count if historical rows contain a state
+from another country or a city from another state.

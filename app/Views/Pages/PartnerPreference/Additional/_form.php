@@ -152,6 +152,18 @@ $selectedAnnualIncomes = is_array(
     ? $resolvedSelectedValues['annualIncomes']
     : [];
 
+$countries = is_array(
+    $resolvedMasterData['countries'] ?? null
+)
+    ? $resolvedMasterData['countries']
+    : [];
+
+$selectedCountries = is_array(
+    $resolvedSelectedValues['countries'] ?? null
+)
+    ? $resolvedSelectedValues['countries']
+    : [];
+
 $selectedStates = is_array(
     $resolvedSelectedValues['states'] ?? null
 )
@@ -522,6 +534,11 @@ $formAction = url_to(
                 $selectedStates
             );
 
+            $resolvedCountryValues = $arrayValue(
+                'country_ids',
+                $selectedCountries
+            );
+
             $resolvedCityValues = $arrayValue(
                 'city_ids',
                 $selectedCities
@@ -536,11 +553,30 @@ $formAction = url_to(
                     class="alert alert-light
                 border mb-0 fs-14 color-pink">
 
-                    Select one or more preferred states.
+                    Select countries, then optionally narrow by states and cities.
+                    An empty level means Any within the preceding selection.
                     Cities belonging to the selected states
                     will appear below.
                 </div>
             </div>
+
+            <?= view(
+                'Pages/PartnerPreference/Additional/_multi_select',
+                [
+                    'field' => 'country_ids',
+                    'label' => 'Preferred Countries',
+                    'placeholder' => 'Any country',
+                    'options' => $countries,
+                    'optionValueKey' => 'id',
+                    'optionLabelKey' => 'name',
+                    'selectedValues' => $resolvedCountryValues,
+                    'showSelectAll' => true,
+                    'disabled' => false,
+                    'errors' => $errors,
+                ]
+            ) ?>
+
+            <div class="col-12"><hr class="my-1"></div>
 
             <?= view(
                 'Pages/PartnerPreference/'

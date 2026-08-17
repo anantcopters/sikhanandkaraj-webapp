@@ -1219,21 +1219,3 @@ SET display_order = EXCLUDED.display_order,
     updated_at = CURRENT_TIMESTAMP;
 
 COMMIT;
-
--- Verification summary: expected 1 country, 13 provinces/territories,
--- and 1127 selectable locations (including 13 Other options)
--- after successful execution.
-SELECT
-    country.iso_code,
-    country.name AS country_name,
-    COUNT(DISTINCT state.id) FILTER (
-        WHERE state.is_active = TRUE
-    ) AS state_count,
-    COUNT(city.id) FILTER (
-        WHERE city.is_active = TRUE
-    ) AS city_count
-FROM master_countries country
-LEFT JOIN master_states state ON state.country_id = country.id
-LEFT JOIN master_cities city ON city.state_id = state.id
-WHERE country.iso_code = 'CA'
-GROUP BY country.iso_code, country.name;

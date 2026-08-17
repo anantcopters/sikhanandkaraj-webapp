@@ -87,6 +87,17 @@ final class PartnerPreferenceSelectionModel extends Model
             'state_id',
         ],
 
+        'country' => [
+            'table' =>
+            'member_partner_preference_countries',
+
+            'parent' =>
+            'partner_location_preference_id',
+
+            'value' =>
+            'country_id',
+        ],
+
         'city' => [
             'table' =>
             'member_partner_preference_cities',
