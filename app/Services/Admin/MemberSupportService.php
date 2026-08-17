@@ -238,11 +238,21 @@ final class MemberSupportService
             );
         }
 
-        $responseNote = $this
-            ->normaliseNote(
-                $responseNote,
-                255
+        $responseNote = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim($responseNote)
+        ) ?? '';
+
+        if (
+            mb_strlen($responseNote) < 5
+            || mb_strlen($responseNote) > 255
+        ) {
+            throw new DomainException(
+                'The message to the member must contain '
+                    . 'between 5 and 255 characters.'
             );
+        }
 
         $this->database->transBegin();
 
@@ -278,8 +288,7 @@ final class MemberSupportService
                 )
                 ->set([
                     'status' =>
-                    MemberContactRequestModel
-                    ::STATUS_RESOLVED,
+                    MemberContactRequestModel::STATUS_RESOLVED,
 
                     'reviewed_by_admin_id' =>
                     $adminUserId,

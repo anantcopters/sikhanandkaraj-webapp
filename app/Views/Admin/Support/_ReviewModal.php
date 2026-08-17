@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+/**
+ * @var string                     $reviewType
+ * @var array<string, string>      $validationErrors
+ * @var array<string, mixed>       $reviewRecord
+ */
+
 $isReport =
     ($reviewType ?? '') === 'report';
 
@@ -28,6 +34,22 @@ $recordId = max(
         ?? 0
     )
 );
+
+$noteName = $isReport
+    ? 'resolution_note'
+    : 'response_note';
+
+$noteLabel = $isReport
+    ? 'Resolution note'
+    : 'Message to member';
+
+$maximumLength = $isReport
+    ? 1000
+    : 255;
+
+$maximumLengthMessage = $isReport
+    ? 'Resolution note cannot exceed 1000 characters.'
+    : 'Message cannot exceed 255 characters.';
 ?>
 
 <div
@@ -53,6 +75,7 @@ $recordId = max(
             <form
                 method="post"
                 action=""
+                data-validate
                 data-support-review-form
                 data-report-action-template="<?= esc(
                                                     site_url(
@@ -66,17 +89,20 @@ $recordId = max(
                                                     ),
                                                     'attr'
                                                 ) ?>"
+                data-submit-loader
                 novalidate>
 
                 <?= csrf_field() ?>
 
-                <div class="modal-header bg-info-subtle">
+                <div class="modal-header bg-info-subtle py-2">
                     <div>
                         <h2
                             class="modal-title fs-16 fw-semibold"
                             id="memberSupportReviewTitle">
 
-                            Review
+                            <?= $isReport
+                                ? 'Review Profile Report'
+                                : 'Resolve Contact Request' ?>
                         </h2>
 
                         <p
@@ -94,6 +120,7 @@ $recordId = max(
                 </div>
 
                 <div class="modal-body">
+
                     <div class="mb-3">
                         <label
                             for="supportReviewStatus"
@@ -107,70 +134,86 @@ $recordId = max(
                                 id="supportReviewStatus"
                                 name="status"
                                 class="form-select
-            <?= isset($errors['status'])
-                                ? 'is-invalid'
-                                : '' ?>"
+                                    <?= isset($errors['status'])
+                                        ? 'is-invalid'
+                                        : '' ?>"
+                                data-error-required="Please select a status."
                                 required>
 
                                 <option value="">
                                     Select status
                                 </option>
 
-                                <option value="REVIEWED">
+                                <option
+                                    value="REVIEWED"
+                                    <?= old('status')
+                                        === 'REVIEWED'
+                                        ? 'selected'
+                                        : '' ?>>
+
                                     Reviewed
                                 </option>
 
-                                <option value="DISMISSED">
+                                <option
+                                    value="DISMISSED"
+                                    <?= old('status')
+                                        === 'DISMISSED'
+                                        ? 'selected'
+                                        : '' ?>>
+
                                     Dismissed
                                 </option>
 
-                                <option value="ACTION_TAKEN">
+                                <option
+                                    value="ACTION_TAKEN"
+                                    <?= old('status')
+                                        === 'ACTION_TAKEN'
+                                        ? 'selected'
+                                        : '' ?>>
+
                                     Action Taken
                                 </option>
                             </select>
+
+                            <div
+                                class="invalid-feedback
+                                    <?= isset($errors['status'])
+                                        ? 'd-block'
+                                        : '' ?>"
+                                data-validation-error="status">
+
+                                <?= esc(
+                                    $errors['status']
+                                        ?? ''
+                                ) ?>
+                            </div>
                         <?php else: ?>
                             <input
                                 type="hidden"
                                 name="status"
                                 value="RESOLVED">
 
-                            <div class="form-control bg-light">
+                            <div
+                                id="supportReviewStatus"
+                                class="form-control bg-light">
+
                                 Resolved
                             </div>
                         <?php endif; ?>
-
-                        <div class="invalid-feedback">
-                            <?= esc(
-                                $errors['status']
-                                    ?? 'Please select a status.'
-                            ) ?>
-                        </div>
                     </div>
-
-                    <?php
-                    $noteLabel = $isReport
-                        ? 'Resolution note'
-                        : 'Message to member';
-
-                    $maximumLength = $isReport
-                        ? 1000
-                        : 255;
-                    ?>
 
                     <div class="mb-3">
                         <label
                             for="supportReviewNote"
                             class="form-label">
 
-                            <?= $isReport
-                                ? 'Resolution note'
-                                : 'Response note' ?>
+                            <?= esc($noteLabel) ?>
                         </label>
 
                         <textarea
                             id="supportReviewNote"
                             name="<?= esc(
-                                        $$noteLabel,
+                                        $noteName,
                                         'attr'
                                     ) ?>"
                             rows="5"
@@ -179,22 +222,49 @@ $recordId = max(
                                             (string) $maximumLength,
                                             'attr'
                                         ) ?>"
-                            data-error-required="Please enter a message."
+                            data-error-required="<?= esc(
+                                                        'Please enter '
+                                                            . mb_strtolower(
+                                                                $noteLabel
+                                                            )
+                                                            . '.',
+                                                        'attr'
+                                                    ) ?>"
                             data-error-minlength="Please enter at least 5 characters."
-                            data-error-maxlength="Message cannot exceed 255 characters."
+                            data-error-maxlength="<?= esc(
+                                                        $maximumLengthMessage,
+                                                        'attr'
+                                                    ) ?>"
                             class="form-control
-                                <?= isset($errors[$noteLabel])
+                                <?= isset($errors[$noteName])
                                     ? 'is-invalid'
                                     : '' ?>"
                             required><?= esc(
-                                            old($noteLabel)
+                                            old($noteName)
                                         ) ?></textarea>
 
-                        <div class="invalid-feedback">
+                        <div
+                            class="invalid-feedback
+                                <?= isset($errors[$noteName])
+                                    ? 'd-block'
+                                    : '' ?>"
+                            data-validation-error="<?= esc(
+                                                        $noteName,
+                                                        'attr'
+                                                    ) ?>">
+
                             <?= esc(
-                                $errors[$noteLabel]
-                                    ?? 'Please enter at least 5 characters.'
+                                $errors[$noteName]
+                                    ?? ''
                             ) ?>
+                        </div>
+
+                        <div class="form-text text-end">
+                            Maximum
+                            <?= esc(
+                                (string) $maximumLength
+                            ) ?>
+                            characters
                         </div>
                     </div>
                 </div>
@@ -214,16 +284,26 @@ $recordId = max(
                         data-submit-button>
 
                         <span data-submit-idle>
-                            Save Review
+                            <i
+                                class="<?= $isReport
+                                            ? 'ri-save-line'
+                                            : 'ri-check-line' ?> me-1"
+                                aria-hidden="true">
+                            </i>
+
+                            <?= $isReport
+                                ? 'Save Review'
+                                : 'Resolve Request' ?>
                         </span>
 
                         <span
-                            data-submit-loading
-                            class="d-none">
+                            class="d-none"
+                            data-submit-loading>
 
                             <span
                                 class="spinner-border
-                                    spinner-border-sm">
+                                    spinner-border-sm"
+                                aria-hidden="true">
                             </span>
 
                             Saving...

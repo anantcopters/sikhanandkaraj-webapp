@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Support\DateDisplay;
+
 /**
  * @var list<array<string, mixed>> $requests
  * @var mixed                      $pager
@@ -316,6 +318,31 @@ $this->section('content');
                             );
 
                             $isOpen = $status === 'OPEN';
+
+                            $submittedDateTime =
+                                DateDisplay::formatUtcDateTime(
+                                    $request['created_at']
+                                        ?? null
+                                );
+
+                            $submittedIso =
+                                DateDisplay::utcToDisplayIso(
+                                    $request['created_at']
+                                        ?? null
+                                );
+
+                            $resolvedDateTime =
+                                DateDisplay::formatUtcDateTime(
+                                    $request['reviewed_at']
+                                        ?? null,
+                                    ''
+                                );
+
+                            $resolvedIso =
+                                DateDisplay::utcToDisplayIso(
+                                    $request['reviewed_at']
+                                        ?? null
+                                );
                             ?>
 
                             <tr>
@@ -384,21 +411,40 @@ $this->section('content');
                                         <?php if (
                                             !empty($request['reviewer_name'])
                                         ): ?>
-                                            <div class="small text-muted">
+                                            <div class="small text-muted mt-1">
                                                 By
                                                 <?= esc(
                                                     $request['reviewer_name']
                                                 ) ?>
                                             </div>
                                         <?php endif; ?>
+
+                                        <?php if (
+                                            $resolvedDateTime !== ''
+                                        ): ?>
+                                            <div class="small text-muted">
+                                                <time
+                                                    datetime="<?= esc(
+                                                                    $resolvedIso,
+                                                                    'attr'
+                                                                ) ?>">
+
+                                                    <?= esc($resolvedDateTime) ?>
+                                                </time>
+                                            </div>
+                                        <?php endif; ?>
                                     <?php endif; ?>
                                 </td>
 
                                 <td class="text-nowrap">
-                                    <?= esc(
-                                        $request['created_at']
-                                            ?? '—'
-                                    ) ?>
+                                    <time
+                                        datetime="<?= esc(
+                                                        $submittedIso,
+                                                        'attr'
+                                                    ) ?>">
+
+                                        <?= esc($submittedDateTime) ?>
+                                    </time>
                                 </td>
 
                                 <td class="text-end">

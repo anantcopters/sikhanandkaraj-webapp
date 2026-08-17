@@ -55,7 +55,7 @@ $errors = isset($reportValidationErrors)
 
                 <?= csrf_field() ?>
 
-                <div class="modal-header bg-warning-subtle">
+                <div class="modal-header bg-warning-subtle py-2">
                     <div>
                         <h2
                             class="modal-title fs-16 fw-semibold"

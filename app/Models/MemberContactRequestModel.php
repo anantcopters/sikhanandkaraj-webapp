@@ -81,7 +81,7 @@ final class MemberContactRequestModel extends Model
     }
 
     /**
-     * Return complete support history for one authenticated member.
+     * Return complete Contact Us history for one member.
      *
      * @return list<array<string, mixed>>
      */

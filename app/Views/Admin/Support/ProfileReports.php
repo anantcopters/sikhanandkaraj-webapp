@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Support\DateDisplay;
+
 /**
  * @var list<array<string, mixed>> $reports
  * @var mixed                      $pager
@@ -237,11 +239,9 @@ $this->section('content');
                                     </td>
 
                                     <td class="text-nowrap">
-                                        <?= esc(
-                                            (string) (
-                                                $report['created_at'] ?? ''
-                                            )
-                                        ) ?>
+                                        <?= DateDisplay::formatUtcDateTime(
+                                            $report['created_at'] ?? null
+                                        ); ?>
                                     </td>
 
                                     <td class="text-end">

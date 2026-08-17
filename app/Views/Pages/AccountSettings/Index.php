@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Support\DateDisplay;
+
 /**
  * @var string                   $activeSection
  * @var array<string, mixed>|null $primaryEmail
@@ -927,6 +929,38 @@ $this->section('content');
 
                                                 $isResolved =
                                                     $requestStatus === 'RESOLVED';
+
+                                                $raisedDateTime =
+                                                    DateDisplay::formatUtcDateTime(
+                                                        $request['created_at']
+                                                            ?? null
+                                                    );
+
+                                                $raisedIso =
+                                                    DateDisplay::utcToDisplayIso(
+                                                        $request['created_at']
+                                                            ?? null
+                                                    );
+
+                                                $resolvedDateTime =
+                                                    DateDisplay::formatUtcDateTime(
+                                                        $request['reviewed_at']
+                                                            ?? null,
+                                                        ''
+                                                    );
+
+                                                $resolvedIso =
+                                                    DateDisplay::utcToDisplayIso(
+                                                        $request['reviewed_at']
+                                                            ?? null
+                                                    );
+
+                                                $resolutionMessage = trim(
+                                                    (string) (
+                                                        $request['response_note']
+                                                        ?? ''
+                                                    )
+                                                );
                                                 ?>
 
                                                 <tr>
@@ -965,11 +999,34 @@ $this->section('content');
                                                     </td>
 
                                                     <td class="text-break">
-                                                        <?php if ($isResolved): ?>
-                                                            <?= esc(
-                                                                $request['response_note']
-                                                                    ?? 'Resolved'
-                                                            ) ?>
+                                                        <?php if (
+                                                            $isResolved
+                                                            && $resolutionMessage !== ''
+                                                        ): ?>
+                                                            <div>
+                                                                <?= esc($resolutionMessage) ?>
+                                                            </div>
+
+                                                            <?php if (
+                                                                $resolvedDateTime !== ''
+                                                            ): ?>
+                                                                <div class="small text-muted mt-1">
+                                                                    Resolved on
+
+                                                                    <time
+                                                                        datetime="<?= esc(
+                                                                                        $resolvedIso,
+                                                                                        'attr'
+                                                                                    ) ?>">
+
+                                                                        <?= esc($resolvedDateTime) ?>
+                                                                    </time>
+                                                                </div>
+                                                            <?php endif; ?>
+                                                        <?php elseif ($isResolved): ?>
+                                                            <span class="text-muted">
+                                                                Resolved by the support team
+                                                            </span>
                                                         <?php else: ?>
                                                             <span class="text-muted">
                                                                 Awaiting response
@@ -978,10 +1035,14 @@ $this->section('content');
                                                     </td>
 
                                                     <td class="text-nowrap">
-                                                        <?= esc(
-                                                            $request['created_at']
-                                                                ?? '—'
-                                                        ) ?>
+                                                        <time
+                                                            datetime="<?= esc(
+                                                                            $raisedIso,
+                                                                            'attr'
+                                                                        ) ?>">
+
+                                                            <?= esc($raisedDateTime) ?>
+                                                        </time>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>

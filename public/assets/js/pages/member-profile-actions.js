@@ -2,14 +2,19 @@
     'use strict';
 
     function initializeReportModal() {
-        const modalElement =
-            document.getElementById(
-                'memberReportModal'
-            );
+        const modalElement = document.getElementById(
+            'memberReportModal'
+        );
 
         if (
-            !modalElement
+            !(modalElement instanceof HTMLElement)
             || typeof bootstrap === 'undefined'
+        ) {
+            return;
+        }
+
+        if (
+            modalElement.dataset.reopenReport !== '1'
         ) {
             return;
         }
@@ -19,101 +24,7 @@
                 modalElement
             );
 
-        document.querySelectorAll(
-            '[data-member-report-open]'
-        ).forEach(function (button) {
-            button.addEventListener(
-                'click',
-                function () {
-                    modal.show();
-                }
-            );
-        });
-
-        if (
-            modalElement.dataset.reopenReport
-            === '1'
-        ) {
-            modal.show();
-        }
-
-        const form = modalElement.querySelector(
-            '[data-member-report-form]'
-        );
-
-        if (!(form instanceof HTMLFormElement)) {
-            return;
-        }
-
-        form.addEventListener(
-            'submit',
-            function (event) {
-                const description =
-                    form.querySelector(
-                        '[name="description"]'
-                    );
-
-                const captcha =
-                    form.querySelector(
-                        '[name="captcha_answer"]'
-                    );
-
-                if (
-                    description
-                    instanceof HTMLTextAreaElement
-                ) {
-                    description.value =
-                        description.value
-                            .replace(/\s+/g, ' ')
-                            .trim();
-                }
-
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-
-                    form.querySelector(
-                        ':invalid'
-                    )?.classList.add(
-                        'is-invalid'
-                    );
-
-                    form.querySelector(
-                        ':invalid'
-                    )?.focus();
-
-                    return;
-                }
-
-                const submit =
-                    form.querySelector(
-                        '[data-member-report-submit]'
-                    );
-
-                submit?.setAttribute(
-                    'disabled',
-                    'disabled'
-                );
-
-                form.querySelector(
-                    '[data-member-report-label]'
-                )?.classList.add(
-                    'd-none'
-                );
-
-                const loading =
-                    form.querySelector(
-                        '[data-member-report-loading]'
-                    );
-
-                loading?.classList.remove(
-                    'd-none'
-                );
-
-                loading?.classList.add(
-                    'd-inline-flex'
-                );
-            }
-        );
+        modal.show();
     }
 
     function initializeBlockModal() {

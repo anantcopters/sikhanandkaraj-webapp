@@ -1596,18 +1596,14 @@ $this->section('content');
         pt-3
         mt-1">
 
-                                                <div
-                                                    class="d-flex
-            gap-2">
+                                                <div class="d-grid gap-2">
 
-                                                    <!-- ShortList -->
                                                     <form
                                                         method="post"
                                                         action="<?= route_to(
                                                                     'web.members.shortlist',
                                                                     $viewedProfileReference
                                                                 ) ?>"
-                                                        class="flex-fill"
                                                         data-member-shortlist-form>
 
                                                         <?= csrf_field() ?>
@@ -1615,16 +1611,18 @@ $this->section('content');
                                                         <button
                                                             type="submit"
                                                             class="btn
-                    <?= $isShortlisted
-                                        ? 'btn-success'
-                                        : 'btn-outline-primary' ?>
-                    w-100
-                    d-flex
-                    align-items-center
-                    justify-content-center
-                    gap-1">
+                btn-outline-primary
+                w-100
+                d-inline-flex
+                align-items-center
+                justify-content-center
+                gap-1"
+                                                            data-member-shortlist-submit>
 
                                                             <span
+                                                                class="d-inline-flex
+                    align-items-center
+                    gap-1"
                                                                 data-member-shortlist-label>
 
                                                                 <i
@@ -1637,71 +1635,61 @@ $this->section('content');
                                                                 <?= $isShortlisted
                                                                     ? 'Shortlisted'
                                                                     : 'ShortList' ?>
-
                                                             </span>
 
                                                             <span
-                                                                class="d-none
-                        align-items-center"
+                                                                class="d-none align-items-center gap-1"
                                                                 data-member-shortlist-loading>
 
                                                                 <span
-                                                                    class="spinner-border
-                            spinner-border-sm"
+                                                                    class="spinner-border spinner-border-sm"
                                                                     aria-hidden="true">
                                                                 </span>
 
+                                                                Saving...
                                                             </span>
-
                                                         </button>
-
                                                     </form>
 
-                                                    <!-- Block -->
-                                                    <div
-                                                        class="d-flex
-        flex-wrap
-        gap-2">
-
-                                                        <button
-                                                            type="button"
-                                                            class="btn
+                                                    <button
+                                                        type="button"
+                                                        class="btn
             btn-outline-warning
-            flex-grow-1
+            w-100
             d-inline-flex
             align-items-center
             justify-content-center
             gap-1"
-                                                            data-member-report-open>
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#memberReportModal">
 
-                                                            <i
-                                                                class="ri-flag-line"
-                                                                aria-hidden="true">
-                                                            </i>
+                                                        <i
+                                                            class="ri-flag-line"
+                                                            aria-hidden="true">
+                                                        </i>
 
-                                                            Report
-                                                        </button>
+                                                        Report Profile
+                                                    </button>
 
-                                                        <button
-                                                            type="button"
-                                                            class="btn
+                                                    <button
+                                                        type="button"
+                                                        class="btn
             btn-outline-danger
-            flex-grow-1
+            w-100
             d-inline-flex
             align-items-center
             justify-content-center
             gap-1"
-                                                            data-member-block-open>
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#memberBlockModal">
 
-                                                            <i
-                                                                class="ri-forbid-line"
-                                                                aria-hidden="true">
-                                                            </i>
+                                                        <i
+                                                            class="ri-forbid-line"
+                                                            aria-hidden="true">
+                                                        </i>
 
-                                                            Block
-                                                        </button>
-                                                    </div>
-
+                                                        Block Profile
+                                                    </button>
                                                 </div>
 
                                             </div>
