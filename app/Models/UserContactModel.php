@@ -31,6 +31,12 @@ final class UserContactModel extends Model
         'is_primary',
         'is_verified',
         'verified_at',
+
+        /*
+         * Pending replacement-email state.
+         */
+        'replaces_contact_id',
+        'change_available_at',
     ];
 
     protected $useTimestamps = true;
@@ -53,11 +59,19 @@ final class UserContactModel extends Model
         string $normalizedValue
     ): ?array {
         $record = $this
-            ->where('contact_type', $type)
-            ->where('normalized_value', $normalizedValue)
+            ->where(
+                'contact_type',
+                $type
+            )
+            ->where(
+                'normalized_value',
+                $normalizedValue
+            )
             ->first();
 
-        return is_array($record) ? $record : null;
+        return is_array($record)
+            ? $record
+            : null;
     }
 
     /**
@@ -70,12 +84,23 @@ final class UserContactModel extends Model
         string $type
     ): ?array {
         $record = $this
-            ->where('user_id', $userId)
-            ->where('contact_type', $type)
-            ->where('is_primary', true)
+            ->where(
+                'user_id',
+                $userId
+            )
+            ->where(
+                'contact_type',
+                $type
+            )
+            ->where(
+                'is_primary',
+                true
+            )
             ->first();
 
-        return is_array($record) ? $record : null;
+        return is_array($record)
+            ? $record
+            : null;
     }
 
     /**
@@ -89,13 +114,95 @@ final class UserContactModel extends Model
         string $type
     ): ?array {
         $record = $this
-            ->where('id', $contactId)
-            ->where('user_id', $userId)
-            ->where('contact_type', $type)
+            ->where(
+                'id',
+                $contactId
+            )
+            ->where(
+                'user_id',
+                $userId
+            )
+            ->where(
+                'contact_type',
+                $type
+            )
             ->first();
 
         return is_array($record)
             ? $record
             : null;
+    }
+
+    /**
+     * Return the replacement email currently awaiting verification.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findPendingEmailForUser(
+        int $userId
+    ): ?array {
+        $record = $this
+            ->where(
+                'user_id',
+                $userId
+            )
+            ->where(
+                'contact_type',
+                self::TYPE_EMAIL
+            )
+            ->where(
+                'is_primary',
+                false
+            )
+            ->where(
+                'is_verified',
+                false
+            )
+            ->where(
+                'replaces_contact_id IS NOT NULL',
+                null,
+                false
+            )
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->first();
+
+        return is_array($record)
+            ? $record
+            : null;
+    }
+
+    /**
+     * Return all email contacts for a member.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function emailContactsForUser(
+        int $userId
+    ): array {
+        $records = $this
+            ->where(
+                'user_id',
+                $userId
+            )
+            ->where(
+                'contact_type',
+                self::TYPE_EMAIL
+            )
+            ->orderBy(
+                'is_primary',
+                'DESC'
+            )
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->findAll();
+
+        return is_array($records)
+            ? $records
+            : [];
     }
 }

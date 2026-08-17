@@ -10,6 +10,7 @@ use App\Models\UserContactModel;
 use App\Support\MemberNameVisibility;
 use App\Support\BooleanValue;
 use App\Services\Profile\MemberProfileSummaryService;
+use App\Exceptions\PaidMembershipRequiredException;
 use App\Support\MobileNumberMasker;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
@@ -71,6 +72,42 @@ final class MemberProfileViewService
                 ?? 0
             )
         );
+
+        /*
+        * Enforce paid-member visibility before loading contacts,
+        * profile details, Aadhaar identity, photographs or gallery URLs.
+        */
+        $profileVisibility = mb_strtoupper(
+            trim(
+                (string) (
+                    $target['profile_visibility']
+                    ?? 'ALL_MEMBERS'
+                )
+            )
+        );
+
+        if (
+            $profileVisibility === 'PAID_MEMBERS_ONLY'
+        ) {
+            $viewer = $this
+                ->userModel
+                ->find(
+                    $viewerUserId
+                );
+
+            $viewerIsPaid =
+                is_array($viewer)
+                && BooleanValue::fromDatabase(
+                    $viewer['is_paid']
+                        ?? false
+                );
+
+            if (!$viewerIsPaid) {
+                throw new PaidMembershipRequiredException(
+                    'A paid membership is required to view this profile.'
+                );
+            }
+        }
 
         /*
         * Load profile information without resolving an owner-context
@@ -366,7 +403,7 @@ final class MemberProfileViewService
                 $viewerUserId,
                 $targetUserId
             );
-        
+
         return array_merge(
             $summary,
             [

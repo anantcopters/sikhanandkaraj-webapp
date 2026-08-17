@@ -118,6 +118,22 @@ $pageScripts = $pageScripts ?? [];
             $administratorsActive
             || $sakVolunteersActive;
 
+        $profileReportsActive =
+            str_starts_with(
+                $currentPath,
+                'admin/support/profile-reports'
+            );
+
+        $contactRequestsActive =
+            str_starts_with(
+                $currentPath,
+                'admin/support/contact-requests'
+            );
+
+        $supportGroupActive =
+            $profileReportsActive
+            || $contactRequestsActive;
+
         $isSuperAdmin =
             session('admin_role')
             === \App\Models\AdminUserModel
@@ -403,6 +419,87 @@ $pageScripts = $pageScripts ?? [];
                                                 aria-hidden="true"></i>
 
                                             Aadhaar Approvals
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <!-- Member Support dropdown -->
+                            <li class="nav-item dropdown">
+                                <a
+                                    href="#"
+                                    class="nav-link
+            dropdown-toggle
+            d-flex
+            align-items-center
+            gap-2
+            py-2
+            <?= $supportGroupActive
+                ? 'active text-primary fw-semibold'
+                : '' ?>"
+                                    id="adminSupportDropdown"
+                                    role="button"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    <?= $supportGroupActive
+                                        ? 'aria-current="page"'
+                                        : '' ?>>
+
+                                    <i
+                                        class="ri-customer-service-2-line
+                fw-normal
+                flex-shrink-0"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <span>Member Support</span>
+                                </a>
+
+                                <ul
+                                    class="dropdown-menu"
+                                    aria-labelledby="adminSupportDropdown">
+
+                                    <li>
+                                        <a
+                                            href="<?= route_to(
+                                                        'admin.support.reports'
+                                                    ) ?>"
+                                            class="dropdown-item
+                    d-flex
+                    align-items-center
+                    gap-2
+                    <?= $profileReportsActive
+                        ? 'active'
+                        : '' ?>">
+
+                                            <i
+                                                class="ri-flag-line"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            Reported Profiles
+                                        </a>
+                                    </li>
+
+                                    <li>
+                                        <a
+                                            href="<?= route_to(
+                                                        'admin.support.contacts'
+                                                    ) ?>"
+                                            class="dropdown-item
+                    d-flex
+                    align-items-center
+                    gap-2
+                    <?= $contactRequestsActive
+                        ? 'active'
+                        : '' ?>">
+
+                                            <i
+                                                class="ri-mail-line"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            Contact Requests
                                         </a>
                                     </li>
                                 </ul>

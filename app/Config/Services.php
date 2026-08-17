@@ -117,8 +117,15 @@ use App\Services\FieldOfficer\FieldOfficerProfileService;
 use App\Services\Matchmaking\MemberProfilePresentationService;
 use App\Services\Admin\Authentication\AdminPasswordResetService;
 use App\Services\Profile\MemberTrustVerificationService;
+use App\Models\MemberContactRequestModel;
+use App\Models\MemberProfileReportModel;
+use App\Services\Account\MemberAccountSettingsService;
+use App\Services\Account\MemberContactRequestService;
+use App\Services\Account\MemberProfileReportService;
+use App\Services\EmailVerification\EmailVerificationService;
 use App\Models\MemberShortlistModel;
 use App\Services\Admin\FieldOfficerDocumentService;
+use App\Services\Admin\MemberSupportService;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
 use App\Logging\ErrorLogSanitizer;
@@ -2062,6 +2069,90 @@ final class Services extends BaseService
             $database,
 
             static::smsProvider(false)
+        );
+    }
+
+    public static function memberAccountSettingsService(
+        bool $getShared = true
+    ): MemberAccountSettingsService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberAccountSettingsService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberAccountSettingsService(
+            new UserModel($database),
+            new UserContactModel($database),
+            new EmailVerificationTokenModel($database),
+            new EmailVerificationService(
+                new UserModel($database),
+                new UserContactModel($database),
+                new EmailVerificationTokenModel($database),
+                static::emailQueueService(false)
+            ),
+            $database
+        );
+    }
+
+    public static function memberContactRequestService(
+        bool $getShared = true
+    ): MemberContactRequestService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberContactRequestService'
+            );
+        }
+
+        return new MemberContactRequestService(
+            new MemberContactRequestModel(
+                db_connect()
+            )
+        );
+    }
+
+    public static function memberProfileReportService(
+        bool $getShared = true
+    ): MemberProfileReportService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfileReportService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberProfileReportService(
+            new UserModel($database),
+            new MemberProfileReportModel(
+                $database
+            )
+        );
+    }
+
+    public static function memberSupportService(
+        bool $getShared = true
+    ): MemberSupportService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberSupportService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberSupportService(
+            new MemberProfileReportModel(
+                $database
+            ),
+
+            new MemberContactRequestModel(
+                $database
+            ),
+
+            $database
         );
     }
 }

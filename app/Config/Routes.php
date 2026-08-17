@@ -1074,11 +1074,74 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
         );
 
         $routes->get(
-            'account/settings',
+            'account-settings',
             'AccountSettingsController::index',
             [
-                'as' => 'web.account.settings',
-                'filter' => 'webAuth',
+                'as' =>
+                'web.account.settings',
+            ]
+        );
+
+        $routes->get(
+            'account-settings/(:segment)',
+            'AccountSettingsController::index/$1',
+            [
+                'as' =>
+                'web.account.settings.section',
+            ]
+        );
+
+        $routes->post(
+            'account-settings/password',
+            'AccountSettingsController::changePassword',
+            [
+                'as' =>
+                'web.account.settings.password',
+            ]
+        );
+
+        $routes->post(
+            'account-settings/email',
+            'AccountSettingsController::saveEmail',
+            [
+                'as' =>
+                'web.account.settings.email',
+            ]
+        );
+
+        $routes->post(
+            'account-settings/email/resend',
+            'AccountSettingsController::resendEmail',
+            [
+                'as' =>
+                'web.account.settings.email.resend',
+            ]
+        );
+
+        $routes->post(
+            'account-settings/visibility',
+            'AccountSettingsController::saveVisibility',
+            [
+                'as' =>
+                'web.account.settings.visibility',
+            ]
+        );
+
+        $routes->post(
+            'account-settings/contact',
+            'AccountSettingsController::contact',
+            [
+                'as' =>
+                'web.account.settings.contact',
+            ]
+        );
+
+        $routes->post(
+            'members/(:segment)/report',
+            'MemberProfileController::report/$1',
+            [
+                'as' =>
+                'web.members.report',
             ]
         );
 
@@ -1268,6 +1331,49 @@ $routes->group('admin', [
             [
                 'as' => 'admin.dashboard',
             ]
+        );
+
+        $routes->group(
+            'support',
+            static function (
+                \CodeIgniter\Router\RouteCollection $routes
+            ): void {
+                $routes->get(
+                    'profile-reports',
+                    'MemberSupportController::reports',
+                    [
+                        'as' =>
+                        'admin.support.reports',
+                    ]
+                );
+
+                $routes->post(
+                    'profile-reports/(:num)',
+                    'MemberSupportController::updateReport/$1',
+                    [
+                        'as' =>
+                        'admin.support.reports.update',
+                    ]
+                );
+
+                $routes->get(
+                    'contact-requests',
+                    'MemberSupportController::contacts',
+                    [
+                        'as' =>
+                        'admin.support.contacts',
+                    ]
+                );
+
+                $routes->post(
+                    'contact-requests/(:num)',
+                    'MemberSupportController::updateContact/$1',
+                    [
+                        'as' =>
+                        'admin.support.contacts.update',
+                    ]
+                );
+            }
         );
 
         /*

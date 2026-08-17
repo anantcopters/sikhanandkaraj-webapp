@@ -3299,6 +3299,24 @@ $this->section('content');
                             data-bs-dismiss="modal"
                             aria-label="Close">
                         </button>
+
+                        <button
+                            type="button"
+                            class="btn btn-outline-warning
+        flex-fill
+        d-flex
+        align-items-center
+        justify-content-center
+        gap-1"
+                            data-member-report-open>
+
+                            <i
+                                class="ri-flag-line"
+                                aria-hidden="true">
+                            </i>
+
+                            Report
+                        </button>
                     </div>
 
                     <div
@@ -3432,5 +3450,23 @@ $this->section('content');
         </span>
 
     <?php endif; ?>
+<?php endif; ?>
+<?php if ($isOtherMemberProfileView): ?>
+    <?= view(
+        'Pages/Profile/_ReportProfileModal',
+        [
+            'viewedProfileReference' =>
+            $viewedProfileReference,
+
+            'reportCaptcha' =>
+            $reportCaptcha ?? '',
+
+            'reportValidationErrors' =>
+            $reportValidationErrors ?? [],
+
+            'reopenReportModal' =>
+            $reopenReportModal ?? false,
+        ]
+    ) ?>
 <?php endif; ?>
 <?php $this->endSection(); ?>
