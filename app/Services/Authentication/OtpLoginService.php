@@ -43,7 +43,7 @@ final class OtpLoginService
 
     private const VERIFY_ATTEMPT_LIMIT = 5;
 
-    private const SEND_LIMIT_PER_DAY = 5;
+    private const SEND_LIMIT_PER_DAY = 10;
 
     private const SEND_WINDOW_HOURS = 24;
 

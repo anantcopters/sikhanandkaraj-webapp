@@ -293,7 +293,7 @@ $this->section('content');
                                         ) ?>
                                     </div>
 
-                                    <div class="form-text">
+                                    <div class="form-text color-pink">
                                         Use at least 10 characters with uppercase,
                                         lowercase, number and special character.
                                     </div>
@@ -359,13 +359,13 @@ $this->section('content');
                                         type="submit"
                                         class="btn
                 registration-form__submit
-                fs-16
-                fw-semibold"
+                fs-14
+                fw-semibold w-25 text-uppercase"
                                         data-submit-button>
 
                                         <span data-submit-idle>
                                             <i
-                                                class="ri-save-line me-1"
+                                                class="ri-save-line me-1 fw-medium"
                                                 aria-hidden="true">
                                             </i>
 
@@ -532,7 +532,7 @@ $this->section('content');
                                             ) ?>
                                         </div>
 
-                                        <div class="form-text">
+                                        <div class="form-text color-pink">
                                             We will send a verification link that remains
                                             valid for 24 hours.
                                         </div>
@@ -543,13 +543,13 @@ $this->section('content');
                                             type="submit"
                                             class="btn
                 registration-form__submit
-                fs-16
-                fw-semibold"
+                fs-14
+                fw-semibold w-35 text-uppercase"
                                             data-submit-button>
 
                                             <span data-submit-idle>
                                                 <i
-                                                    class="ri-mail-send-line me-1"
+                                                    class="ri-mail-send-line me-1 fw-medium"
                                                     aria-hidden="true">
                                                 </i>
 
@@ -748,13 +748,13 @@ $this->section('content');
                                         type="submit"
                                         class="btn
                 registration-form__submit
-                fs-16
-                fw-semibold"
+                fs-14
+                fw-semibold w-25 text-uppercase"
                                         data-submit-button>
 
                                         <span data-submit-idle>
                                             <i
-                                                class="ri-save-line me-1"
+                                                class="ri-save-line me-1 fw-medium"
                                                 aria-hidden="true">
                                             </i>
 
@@ -944,7 +944,7 @@ $this->section('content');
                                         ) ?>
                                     </div>
 
-                                    <div class="form-text color-pink">
+                                    <div class="form-text color-pink color-pink">
                                         The security question expires after 5 minutes
                                         and can be used only once.
                                     </div>
@@ -955,13 +955,13 @@ $this->section('content');
                                         type="submit"
                                         class="btn
                 registration-form__submit
-                fs-16
-                fw-semibold"
+                fs-14
+                fw-semibold w-25 text-uppercase"
                                         data-submit-button>
 
                                         <span data-submit-idle>
                                             <i
-                                                class="ri-send-plane-line me-1"
+                                                class="ri-send-plane-line me-1 fw-medium"
                                                 aria-hidden="true">
                                             </i>
 
