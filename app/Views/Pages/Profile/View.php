@@ -62,6 +62,33 @@ $viewedMobile = trim(
     )
 );
 
+$viewedMobileLabel = trim(
+    (string) (
+        $viewedMobileLabel
+        ?? 'Mobile Number'
+    )
+);
+
+if ($viewedMobileLabel === '') {
+    $viewedMobileLabel =
+        'Mobile Number';
+}
+
+$viewedMaskedMemberMobile = trim(
+    (string) (
+        $viewedMaskedMemberMobile
+        ?? ''
+    )
+);
+
+$isViewedMaskedMobileVerified =
+    ($isViewedMaskedMobileVerified ?? false)
+    === true;
+
+$isViewedParentMobile =
+    ($isViewedParentMobile ?? false)
+    === true;
+
 $viewedEmail = trim(
     (string) (
         $viewedEmail
@@ -1662,57 +1689,57 @@ $this->section('content');
                             </div>
 
                             <!-- =====================================================
-             BOTTOM ROW
-             Uses the FULL right-side width
-             ===================================================== -->
+     BOTTOM SUMMARY ROW
+     ===================================================== -->
                             <div
                                 class="row
-                g-3
-                mt-3
-                pt-3
-                border-top">
+        g-3
+        mt-3
+        pt-3
+        border-top">
 
                                 <!-- Profile ID -->
                                 <div
                                     class="col-12
-                    col-sm-6
-                    col-xl-4">
+            col-sm-6
+            <?= $isOtherMemberProfileView
+                ? 'col-xl-3'
+                : 'col-xl-4' ?>">
 
                                     <div
                                         class="d-flex
-                        align-items-center
-                        gap-2">
+                align-items-center
+                gap-2">
 
                                         <span
                                             class="avatar-sm
-                            flex-shrink-0">
+                    flex-shrink-0">
 
                                             <span
                                                 class="avatar-title
-                                rounded-circle
-                                bg-primary-subtle
-                                text-primary">
+                        rounded-circle
+                        bg-primary-subtle
+                        text-primary">
 
                                                 <i
                                                     class="ri-fingerprint-line
-                                    fs-18"
+                            fs-18"
                                                     aria-hidden="true">
                                                 </i>
-
                                             </span>
                                         </span>
 
-                                        <div>
-
+                                        <div class="min-w-0">
                                             <div
                                                 class="text-muted
-                                fs-12">
+                        fs-12">
 
                                                 Profile ID
                                             </div>
 
                                             <strong
-                                                class="fs-14">
+                                                class="fs-14
+                        text-break">
 
                                                 <?= esc(
                                                     $displayValue(
@@ -1720,88 +1747,137 @@ $this->section('content');
                                                     )
                                                 ) ?>
                                             </strong>
-
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Profile Completion -->
-
-
-                                <?php if (
-                                    $isOtherMemberProfileView
-                                ): ?>
+                                <?php if ($isOtherMemberProfileView): ?>
 
                                     <!-- Mobile -->
                                     <div
                                         class="col-12
-                        col-sm-6
-                        col-xl-4">
+        col-sm-6
+        col-xl-3">
 
                                         <div
                                             class="d-flex
-                            align-items-center
-                            gap-2">
+            align-items-start
+            gap-2">
 
                                             <span
                                                 class="avatar-sm
-                                flex-shrink-0">
+                flex-shrink-0">
 
                                                 <span
                                                     class="avatar-title
-                                    rounded-circle
-                                    bg-primary-subtle
-                                    text-primary">
+                    rounded-circle
+                    bg-primary-subtle
+                    text-primary">
 
                                                     <i
                                                         class="ri-phone-line
-                                        fs-18"
+                        fs-18"
                                                         aria-hidden="true">
                                                     </i>
-
                                                 </span>
                                             </span>
 
-                                            <div class="min-w-0">
+                                            <div class="min-w-0 flex-grow-1">
 
-                                                <div
-                                                    class="text-muted
-                                    fs-12">
+                                                <?php if (
+                                                    $isViewedParentMobile
+                                                    && $viewedMaskedMemberMobile !== ''
+                                                ): ?>
 
-                                                    Mobile Number
-                                                </div>
+                                                    <!-- Female member's privacy-safe verified number -->
+                                                    <div class="mb-2">
+                                                        <div
+                                                            class="text-muted
+                            fs-12">
 
-                                                <div
-                                                    class="d-flex
-                                    align-items-center
-                                    flex-wrap
-                                    gap-1">
+                                                            Member Mobile
+                                                        </div>
 
-                                                    <strong
-                                                        class="fs-14">
+                                                        <div
+                                                            class="d-flex
+                            align-items-center
+                            flex-wrap
+                            gap-1">
+
+                                                            <strong
+                                                                class="fs-13">
+
+                                                                <?= esc(
+                                                                    $viewedMaskedMemberMobile
+                                                                ) ?>
+                                                            </strong>
+
+                                                            <?php if (
+                                                                $isViewedMaskedMobileVerified
+                                                            ): ?>
+
+                                                                <span
+                                                                    class="badge
+                                    bg-success-subtle
+                                    text-success
+                                    fs-11
+                                    p-2">
+
+                                                                    Verified
+                                                                </span>
+
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+
+                                                <?php endif; ?>
+
+                                                <!-- Parent contact or normal member-mobile fallback -->
+                                                <div>
+                                                    <div
+                                                        class="text-muted
+                        fs-12">
 
                                                         <?= esc(
-                                                            $viewedMobile !== ''
-                                                                ? $viewedMobile
-                                                                : '-'
+                                                            $viewedMobileLabel
                                                         ) ?>
-                                                    </strong>
+                                                    </div>
 
-                                                    <?php if (
-                                                        $viewedMobile !== ''
-                                                        && $isViewedMobileVerified
-                                                    ): ?>
+                                                    <div
+                                                        class="d-flex
+                        align-items-center
+                        flex-wrap
+                        gap-1">
 
-                                                        <span
-                                                            class="badge bg-success-subtle text-success fs-11 p-2">
+                                                        <strong
+                                                            class="fs-14
+                            text-break">
 
+                                                            <?= esc(
+                                                                $viewedMobile !== ''
+                                                                    ? $viewedMobile
+                                                                    : '-'
+                                                            ) ?>
+                                                        </strong>
 
+                                                        <?php if (
+                                                            !$isViewedParentMobile
+                                                            && $viewedMobile !== ''
+                                                            && $isViewedMobileVerified
+                                                        ): ?>
 
-                                                            Verified
-                                                        </span>
+                                                            <span
+                                                                class="badge
+                                bg-success-subtle
+                                text-success
+                                fs-11
+                                p-2">
 
-                                                    <?php endif; ?>
+                                                                Verified
+                                                            </span>
 
+                                                        <?php endif; ?>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1810,45 +1886,43 @@ $this->section('content');
                                     <!-- Email -->
                                     <div
                                         class="col-12
-                        col-sm-6
-                        col-xl-4">
+                col-sm-6
+                col-xl-3">
 
                                         <div
                                             class="d-flex
-                            align-items-center
-                            gap-2">
+                    align-items-center
+                    gap-2">
 
                                             <span
                                                 class="avatar-sm
-                                flex-shrink-0">
+                        flex-shrink-0">
 
                                                 <span
                                                     class="avatar-title
-                                    rounded-circle
-                                    bg-primary-subtle
-                                    text-primary">
+                            rounded-circle
+                            bg-primary-subtle
+                            text-primary">
 
                                                     <i
                                                         class="ri-mail-line
-                                        fs-18"
+                                fs-18"
                                                         aria-hidden="true">
                                                     </i>
-
                                                 </span>
                                             </span>
 
                                             <div class="min-w-0">
-
                                                 <div
                                                     class="text-muted
-                                    fs-12">
+                            fs-12">
 
                                                     Email
                                                 </div>
 
                                                 <strong
                                                     class="fs-14
-                                    text-break">
+                            text-break">
 
                                                     <?= esc(
                                                         $viewedEmail !== ''
@@ -1856,13 +1930,90 @@ $this->section('content');
                                                             : '-'
                                                     ) ?>
                                                 </strong>
+                                            </div>
+                                        </div>
+                                    </div>
 
+                                    <!-- Aadhaar verification -->
+                                    <div
+                                        class="col-12
+                col-sm-6
+                col-xl-3">
+
+                                        <div
+                                            class="d-flex
+                    align-items-center
+                    gap-2">
+
+                                            <!--
+                    Use the existing avatar utility at its smaller size.
+                    No new CSS class is required.
+                -->
+                                            <span
+                                                class="avatar-xs
+                        flex-shrink-0">
+
+                                                <span
+                                                    class="avatar-title
+                            rounded-circle
+                            <?= $hasApprovedAadhaarIdentity
+                                        ? 'bg-success-subtle text-success'
+                                        : 'bg-light text-muted' ?>">
+
+                                                    <i
+                                                        class="<?= $hasApprovedAadhaarIdentity
+                                                                    ? 'ri-shield-check-line'
+                                                                    : 'ri-shield-line' ?>
+                                fs-16"
+                                                        aria-hidden="true">
+                                                    </i>
+                                                </span>
+                                            </span>
+
+                                            <div class="min-w-0">
+                                                <div
+                                                    class="text-muted
+                            fs-12">
+
+                                                    Aadhaar
+                                                </div>
+
+                                                <?php if (
+                                                    $hasApprovedAadhaarIdentity
+                                                ): ?>
+
+                                                    <span
+                                                        class="d-inline-flex
+                                align-items-center
+                                gap-1
+                                text-success
+                                fw-semibold
+                                fs-13">
+
+                                                        <i
+                                                            class="ri-checkbox-circle-fill"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                        Verified
+                                                    </span>
+
+                                                <?php else: ?>
+
+                                                    <span
+                                                        class="text-muted
+                                fw-medium
+                                fs-13">
+
+                                                        Not added
+                                                    </span>
+
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>
 
                                 <?php endif; ?>
-
                             </div>
 
                         </div>

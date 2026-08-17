@@ -10,6 +10,7 @@ use App\Models\UserContactModel;
 use App\Support\MemberNameVisibility;
 use App\Support\BooleanValue;
 use App\Services\Profile\MemberProfileSummaryService;
+use App\Support\MobileNumberMasker;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
 /**
@@ -72,8 +73,28 @@ final class MemberProfileViewService
         );
 
         /*
-        * Contacts are resolved server-side from the member's
-        * primary contact records.
+        * Load profile information without resolving an owner-context
+        * signed image.
+        *
+        * Family Details is required here because female profiles prefer
+        * the saved parent contact number.
+        */
+        $summary = $this
+            ->profileSummaryService
+            ->getForUser(
+                $targetUserId,
+                false
+            );
+
+        $familyDetails =
+            isset($summary['familyDetails'])
+            && is_array($summary['familyDetails'])
+            ? $summary['familyDetails']
+            : [];
+
+        /*
+        * Contacts are resolved server-side from the member's primary
+        * contact records.
         */
         $mobileContact = $this
             ->userContactModel
@@ -89,7 +110,8 @@ final class MemberProfileViewService
                 UserContactModel::TYPE_EMAIL
             );
 
-        $mobileNumber = is_array($mobileContact)
+        $memberMobileNumber =
+            is_array($mobileContact)
             ? trim(
                 (string) (
                     $mobileContact['contact_value']
@@ -98,7 +120,8 @@ final class MemberProfileViewService
             )
             : '';
 
-        $emailAddress = is_array($emailContact)
+        $emailAddress =
+            is_array($emailContact)
             ? trim(
                 (string) (
                     $emailContact['contact_value']
@@ -107,25 +130,92 @@ final class MemberProfileViewService
             )
             : '';
 
-        $isMobileVerified =
+        $isMemberMobileVerified =
             is_array($mobileContact)
             && BooleanValue::fromDatabase(
                 $mobileContact['is_verified']
                     ?? false
             );
 
+        $gender = mb_strtoupper(
+            trim(
+                (string) (
+                    $target['gender']
+                    ?? $summary['user']['gender']
+                    ?? ''
+                )
+            )
+        );
+
+        $parentContactNumber = trim(
+            (string) (
+                $familyDetails['parent_contact_number']
+                ?? ''
+            )
+        );
+
+        $gender = mb_strtoupper(
+            trim(
+                (string) (
+                    $target['gender']
+                    ?? $summary['user']['gender']
+                    ?? ''
+                )
+            )
+        );
+
+        $parentContactNumber = trim(
+            (string) (
+                $familyDetails['parent_contact_number']
+                ?? ''
+            )
+        );
+
         /*
-         * Point 26:
-         *
-         * Do NOT generate the normal owner-context signed medium URL.
-         * Another-member authorization has not been evaluated yet.
-         */
-        $summary = $this
-            ->profileSummaryService
-            ->getForUser(
-                $targetUserId,
-                false
-            );
+        * Female contact presentation:
+        *
+        * When a parent contact exists:
+        *
+        * - show the female member's OTP-verified mobile in masked form;
+        * - show the parent contact as the primary usable contact beneath it.
+        *
+        * When a parent contact does not exist:
+        *
+        * - fall back to the female member's normal primary mobile.
+        *
+        * Male profiles continue showing their normal primary mobile.
+        */
+        $hasParentContact =
+            $gender === 'FEMALE'
+            && $parentContactNumber !== '';
+
+        $maskedMemberMobile =
+            $hasParentContact
+            ? MobileNumberMasker::lastThree(
+                $memberMobileNumber
+            )
+            : '';
+
+        $displayMobileNumber =
+            $hasParentContact
+            ? $parentContactNumber
+            : $memberMobileNumber;
+
+        $displayMobileLabel =
+            $hasParentContact
+            ? 'Parents Mobile Number'
+            : 'Mobile Number';
+
+        /*
+        * This flag belongs only to the displayed full contact.
+        *
+        * A parent contact does not inherit the member's OTP verification.
+        * The female member's separate masked number retains its own
+        * verification status.
+        */
+        $isDisplayMobileVerified =
+            !$hasParentContact
+            && $isMemberMobileVerified;
 
         /*
         * The other-member Full Profile view must use the same female-name
@@ -153,9 +243,9 @@ final class MemberProfileViewService
         }
 
         /*
-         * INTERESTED_MEMBERS visibility is satisfied by an interest
-         * in either direction.
-         */
+        * INTERESTED_MEMBERS visibility is satisfied by an interest
+        * in either direction.
+        */
         $hasInterestRelationship =
             $this
             ->interactionService
@@ -167,7 +257,7 @@ final class MemberProfileViewService
         /*
         * Resolve the complete Interest relationship once.
         *
-        * The View should never interpret directional DB rows or
+        * The View should never interpret directional database rows or
         * derive business state itself.
         */
         $interestRelationship =
@@ -179,14 +269,15 @@ final class MemberProfileViewService
             );
 
         /*
-        * Calculate the logged-in member against the viewed
-        * member's Partner Preferences.
+        * Calculate the logged-in member against the viewed member's
+        * Partner Preferences.
         *
         * Direction:
         *
         * viewed member preferences -> logged-in member profile
         */
-        $partnerPreferenceMatch = $this
+        $partnerPreferenceMatch =
+            $this
             ->matchmakingService
             ->profilePreferenceMatch(
                 $viewerUserId,
@@ -194,17 +285,15 @@ final class MemberProfileViewService
             );
 
         /*
-         * Point 17:
-         *
-         * Profile-detail pages use the MEDIUM variant.
-         *
-         * The photo service additionally checks:
-         *
-         * - approved;
-         * - primary;
-         * - valid visibility;
-         * - PUBLIC or eligible INTERESTED_MEMBERS.
-         */
+        * Profile-detail pages use the MEDIUM variant.
+        *
+        * The photo service additionally checks:
+        *
+        * - approved;
+        * - primary;
+        * - valid visibility;
+        * - PUBLIC or eligible INTERESTED_MEMBERS.
+        */
         $authorizedProfileImage =
             $this
             ->photoUrlService
@@ -222,10 +311,10 @@ final class MemberProfileViewService
             $authorizedProfileImage;
 
         /*
-         * getForUser(..., false) produced a summary without an image.
-         * Keep downstream presentation metadata synchronized with the
-         * viewer-authorized image.
-         */
+        * getForUser(..., false) produced a summary without an image.
+        * Keep downstream presentation metadata synchronized with the
+        * viewer-authorized image.
+        */
         if (
             isset(
                 $summary['overallProfileSummary']
@@ -235,8 +324,7 @@ final class MemberProfileViewService
             )
         ) {
             $summary['overallProfileSummary']['hasProfilePhoto'] =
-                $authorizedProfileImage
-                !== '';
+                $authorizedProfileImage !== '';
 
             $summary['overallProfileSummary']['profilePhotoUrl'] =
                 $authorizedProfileImage;
@@ -253,20 +341,23 @@ final class MemberProfileViewService
         * INTERESTED_MEMBERS
         *     -> requires an interest relationship in either direction.
         *
-        * Thumbnail signed URLs only are returned in the initial profile response.
+        * Thumbnail signed URLs only are returned in the initial profile
+        * response.
         */
         $summary['approvedPhotos'] = $this
             ->photoUrlService
             ->getApprovedGalleryForViewer(
                 memberId: $targetUserId,
+
                 viewerUserId: $viewerUserId,
+
                 hasInterestRelationship: $hasInterestRelationship
             );
 
         /*
-         * Record a view only after the profile has successfully passed
-         * visibility and block authorization.
-         */
+        * Record a view only after the profile has successfully passed
+        * visibility and block authorization.
+        */
         $this
             ->interactionService
             ->recordView(
@@ -278,9 +369,9 @@ final class MemberProfileViewService
             $summary,
             [
                 /*
-                 * This value remains server-side. URLs use the public
-                 * profile reference.
-                 */
+             * This value remains server-side. URLs use the public
+             * profile reference.
+             */
                 'viewedMemberId' =>
                 $targetUserId,
 
@@ -293,18 +384,14 @@ final class MemberProfileViewService
                 ),
 
                 /*
-                * Complete Interest presentation state.
-                */
+             * Complete Interest presentation state.
+             */
                 'interestRelationship' =>
                 $interestRelationship,
 
                 /*
-                * Keep the existing boolean temporarily for backward
-                * compatibility with any code outside this View.
-                *
-                * It can be removed later once repository-wide usage
-                * has been verified.
-                */
+             * Retained temporarily for backward compatibility.
+             */
                 'hasShownInterest' => (
                     $interestRelationship['hasOutgoing']
                     ?? false
@@ -313,14 +400,31 @@ final class MemberProfileViewService
                 'hasInterestRelationship' =>
                 $hasInterestRelationship,
 
+                /*
+                * Presentation-ready contact information.
+                */
                 'viewedMobile' =>
-                $mobileNumber,
+                $displayMobileNumber,
+
+                'viewedMobileLabel' =>
+                $displayMobileLabel,
+
+                'viewedMaskedMemberMobile' =>
+                $maskedMemberMobile,
+
+                'isViewedMaskedMobileVerified' =>
+                $hasParentContact
+                    && $maskedMemberMobile !== ''
+                    && $isMemberMobileVerified,
 
                 'viewedEmail' =>
                 $emailAddress,
 
                 'isViewedMobileVerified' =>
-                $isMobileVerified,
+                $isDisplayMobileVerified,
+
+                'isViewedParentMobile' =>
+                $hasParentContact,
 
                 'isShortlisted' =>
                 $this
