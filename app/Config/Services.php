@@ -126,6 +126,7 @@ use App\Services\EmailVerification\EmailVerificationService;
 use App\Models\MemberShortlistModel;
 use App\Services\Admin\FieldOfficerDocumentService;
 use App\Services\Admin\MemberSupportService;
+use App\Models\EmailVerificationTokenModel;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
 use App\Logging\ErrorLogSanitizer;
@@ -307,6 +308,26 @@ final class Services extends BaseService
         }
 
         return new AdminCaptchaService();
+    }
+
+    /**
+     * Return the authenticated member Contact Us CAPTCHA service.
+     *
+     * The established arithmetic CAPTCHA implementation is reused with
+     * isolated session state so it cannot interfere with Admin login.
+     */
+    public static function memberContactCaptchaService(
+        bool $getShared = true
+    ): AdminCaptchaService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberContactCaptchaService'
+            );
+        }
+
+        return new AdminCaptchaService(
+            'member_contact_captcha'
+        );
     }
 
     /**

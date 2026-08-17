@@ -229,14 +229,16 @@ final class MemberSupportService
         string $status,
         string $responseNote
     ): void {
+        $allowedStatuses = [
+            MemberContactRequestModel::STATUS_IN_PROGRESS,
+            MemberContactRequestModel::STATUS_RESOLVED,
+            MemberContactRequestModel::STATUS_CLOSED,
+        ];
+
         if (
             !in_array(
                 $status,
-                [
-                    MemberContactRequestModel::STATUS_IN_PROGRESS,
-                    MemberContactRequestModel::STATUS_RESOLVED,
-                    MemberContactRequestModel::STATUS_CLOSED,
-                ],
+                $allowedStatuses,
                 true
             )
         ) {
@@ -260,16 +262,38 @@ final class MemberSupportService
                     'id',
                     $requestId
                 )
-                ->where(
+                ->whereIn(
                     'status',
-                    MemberContactRequestModel::STATUS_OPEN
+                    [
+                        MemberContactRequestModel::STATUS_OPEN,
+                        MemberContactRequestModel::STATUS_IN_PROGRESS,
+                    ]
                 )
                 ->first();
 
             if (!is_array($request)) {
                 throw new DomainException(
-                    'This request has already been reviewed '
-                        . 'or is unavailable.'
+                    'This request is already closed or unavailable.'
+                );
+            }
+
+            $currentStatus = strtoupper(
+                trim(
+                    (string) (
+                        $request['status']
+                        ?? ''
+                    )
+                )
+            );
+
+            if (
+                $currentStatus
+                === MemberContactRequestModel::STATUS_IN_PROGRESS
+                && $status
+                === MemberContactRequestModel::STATUS_IN_PROGRESS
+            ) {
+                throw new DomainException(
+                    'This request is already in progress.'
                 );
             }
 
@@ -281,7 +305,7 @@ final class MemberSupportService
                 )
                 ->where(
                     'status',
-                    MemberContactRequestModel::STATUS_OPEN
+                    $currentStatus
                 )
                 ->set([
                     'status' =>
@@ -304,7 +328,7 @@ final class MemberSupportService
                 || $this->database->affectedRows() !== 1
             ) {
                 throw new DomainException(
-                    'This request has already been reviewed.'
+                    'This request was updated by another administrator.'
                 );
             }
 

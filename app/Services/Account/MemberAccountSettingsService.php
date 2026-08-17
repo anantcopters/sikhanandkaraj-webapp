@@ -522,23 +522,10 @@ final class MemberAccountSettingsService
             );
         }
 
-        $changeAvailableAt = date(
-            'Y-m-d H:i:sP',
-            strtotime(
-                '+'
-                    . self::EMAIL_CHANGE_LOCK_HOURS
-                    . ' hours'
-            )
-        );
-
-        $this->contactModel->update(
-            $contactId,
-            [
-                'change_available_at' =>
-                $changeAvailableAt,
-            ]
-        );
-
+        /*
+     * Queue first. Do not start a new 24-hour lock unless
+     * the verification request was successfully created.
+     */
         $result = $this
             ->emailVerificationService
             ->sendForContact(
@@ -552,9 +539,31 @@ final class MemberAccountSettingsService
             );
         }
 
+        $changeAvailableAt = date(
+            'Y-m-d H:i:sP',
+            strtotime(
+                '+'
+                    . self::EMAIL_CHANGE_LOCK_HOURS
+                    . ' hours'
+            )
+        );
+
+        $updated = $this->contactModel->update(
+            $contactId,
+            [
+                'change_available_at' =>
+                $changeAvailableAt,
+            ]
+        );
+
+        if ($updated === false) {
+            throw new RuntimeException(
+                'The email verification restriction could not be updated.'
+            );
+        }
+
         return [
-            'email' =>
-            trim(
+            'email' => trim(
                 (string) (
                     $contact['contact_value']
                     ?? ''

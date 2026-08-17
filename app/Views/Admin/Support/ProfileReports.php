@@ -2,6 +2,16 @@
 
 declare(strict_types=1);
 
+/**
+ * @var list<array<string, mixed>> $reports
+ * @var mixed                      $pager
+ * @var string                     $selectedStatus
+ * @var string                     $searchTerm
+ * @var array<string, string>      $validationErrors
+ * @var array<string, mixed>       $reviewRecord
+ * @var array<string, mixed>|null  $formAlert
+ */
+
 $reports =
     isset($reports)
     && is_array($reports)
@@ -196,8 +206,7 @@ $this->section('content');
 
                                     <td>
                                         <div
-                                            class="text-break"
-                                            style="min-width:240px;">
+                                            class="text-break">
 
                                             <?= esc(
                                                 $report['description'] ?? ''

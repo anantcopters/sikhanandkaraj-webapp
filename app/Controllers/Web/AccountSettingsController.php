@@ -7,7 +7,6 @@ namespace App\Controllers\Web;
 use App\Controllers\BaseController;
 use App\Services\Account\MemberAccountSettingsService;
 use App\Services\Account\MemberContactRequestService;
-use App\Services\Admin\Authentication\AdminCaptchaService;
 use App\Validation\Member\AccountSettingsValidation;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
@@ -46,9 +45,9 @@ final class AccountSettingsController extends BaseController
         $contactCaptcha = '';
 
         if ($section === 'contact') {
-            $contactCaptcha = $this
-                ->contactCaptchaService()
-                ->generate();
+            $contactCaptcha = service(
+                'memberContactCaptchaService'
+            )->generate();
         }
 
         return view(
@@ -79,6 +78,7 @@ final class AccountSettingsController extends BaseController
                     $contactCaptcha,
 
                     'pageScripts' => [
+                        'assets/js/components/password-toggle.js',
                         'assets/js/components/submit-loader.js',
                         'assets/js/pages/account-settings.js',
                     ],
@@ -505,11 +505,11 @@ final class AccountSettingsController extends BaseController
 
         if (
             !$validation->run($input)
-            || !$this
-                ->contactCaptchaService()
-                ->verify(
-                    $input['captcha_answer']
-                )
+            || !service(
+                'memberContactCaptchaService'
+            )->verify(
+                $input['captcha_answer']
+            )
         ) {
             $errors = $validation
                 ->getErrors();
@@ -604,12 +604,5 @@ final class AccountSettingsController extends BaseController
         )
             ? $section
             : 'email';
-    }
-
-    private function contactCaptchaService(): AdminCaptchaService
-    {
-        return new AdminCaptchaService(
-            'member_contact_captcha'
-        );
     }
 }

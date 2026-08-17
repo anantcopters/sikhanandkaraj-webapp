@@ -2,25 +2,62 @@
 
 declare(strict_types=1);
 
-$activeSection = $activeSection ?? 'email';
+/**
+ * @var string                   $activeSection
+ * @var array<string, mixed>|null $primaryEmail
+ * @var array<string, mixed>|null $pendingEmail
+ * @var string                   $profileVisibility
+ * @var string                   $contactCaptcha
+ * @var array<string, string>    $validationErrors
+ * @var array<string, mixed>|null $formAlert
+ * @var array<string, mixed>|null $accountNotice
+ */
 
-$primaryEmail =
-    isset($primaryEmail)
+$activeSection = isset($activeSection)
+    && is_string($activeSection)
+    ? $activeSection
+    : 'email';
+
+$primaryEmail = isset($primaryEmail)
     && is_array($primaryEmail)
     ? $primaryEmail
     : null;
 
-$pendingEmail =
-    isset($pendingEmail)
+$pendingEmail = isset($pendingEmail)
     && is_array($pendingEmail)
     ? $pendingEmail
     : null;
 
-$errors =
-    isset($validationErrors)
+$profileVisibility = isset($profileVisibility)
+    && in_array(
+        $profileVisibility,
+        [
+            'ALL_MEMBERS',
+            'PAID_MEMBERS_ONLY',
+        ],
+        true
+    )
+    ? $profileVisibility
+    : 'ALL_MEMBERS';
+
+$contactCaptcha = isset($contactCaptcha)
+    ? trim((string) $contactCaptcha)
+    : '';
+
+$errors = isset($validationErrors)
     && is_array($validationErrors)
     ? $validationErrors
     : [];
+
+$formAlert = isset($formAlert)
+    && is_array($formAlert)
+    ? $formAlert
+    : null;
+
+$accountNotice = isset($accountNotice)
+    && is_array($accountNotice)
+    ? $accountNotice
+    : null;
 
 $menuItems = [
     'password' => [
@@ -142,85 +179,212 @@ $this->section('content');
                                 action="<?= route_to(
                                             'web.account.settings.password'
                                         ) ?>"
+                                data-validate
                                 data-account-password-form
                                 data-submit-loader
                                 novalidate>
 
                                 <?= csrf_field() ?>
 
-                                <?php foreach (
-                                    [
-                                        'current_password' =>
-                                        'Current password',
-                                        'password' =>
-                                        'New password',
-                                        'password_confirmation' =>
-                                        'Confirm new password',
-                                    ] as $name => $label
-                                ): ?>
-                                    <div class="mb-3">
-                                        <label
-                                            for="<?= esc(
-                                                        $name,
-                                                        'attr'
-                                                    ) ?>"
-                                            class="form-label">
+                                <div class="mb-3">
+                                    <label
+                                        for="currentPassword"
+                                        class="form-label">
 
-                                            <?= esc($label) ?>
-                                        </label>
+                                        Current Password
+                                    </label>
 
+                                    <div class="password-field">
                                         <input
                                             type="password"
-                                            id="<?= esc(
-                                                    $name,
-                                                    'attr'
-                                                ) ?>"
-                                            name="<?= esc(
-                                                        $name,
-                                                        'attr'
-                                                    ) ?>"
+                                            id="currentPassword"
+                                            name="current_password"
                                             class="form-control
-                                                <?= isset($errors[$name])
-                                                    ? 'is-invalid'
-                                                    : '' ?>"
+                    password-field__input
+                    <?= isset(
+                                $errors['current_password']
+                            )
+                                ? 'is-invalid'
+                                : '' ?>"
                                             maxlength="128"
+                                            autocomplete="current-password"
+                                            data-error-required="Please enter your current password."
+                                            data-error-maxlength="The current password is invalid."
                                             required>
 
-                                        <div class="invalid-feedback">
-                                            <?= esc(
-                                                $errors[$name]
-                                                    ?? 'This field is required.'
-                                            ) ?>
-                                        </div>
-                                    </div>
-                                <?php endforeach; ?>
+                                        <button
+                                            type="button"
+                                            class="password-field__toggle"
+                                            data-password-toggle="currentPassword"
+                                            aria-label="Show password">
 
-                                <div class="form-text mb-3">
-                                    Use at least 10 characters with uppercase,
-                                    lowercase, number and special character.
+                                            <span
+                                                class="mdi mdi-eye-off-outline"
+                                                aria-hidden="true">
+                                            </span>
+                                        </button>
+                                    </div>
+
+                                    <div
+                                        class="invalid-feedback
+                <?= isset($errors['current_password'])
+                                ? 'd-block'
+                                : '' ?>"
+                                        data-validation-error="current_password">
+
+                                        <?= esc(
+                                            $errors['current_password']
+                                                ?? ''
+                                        ) ?>
+                                    </div>
                                 </div>
 
-                                <button
-                                    type="submit"
-                                    class="btn btn-primary"
-                                    data-submit-button>
+                                <div class="mb-3">
+                                    <label
+                                        for="newPassword"
+                                        class="form-label">
 
-                                    <span data-submit-idle>
-                                        Change Password
-                                    </span>
+                                        New Password
+                                    </label>
 
-                                    <span
-                                        data-submit-loading
-                                        class="d-none">
+                                    <div class="password-field">
+                                        <input
+                                            type="password"
+                                            id="newPassword"
+                                            name="password"
+                                            class="form-control
+                    password-field__input
+                    <?= isset($errors['password'])
+                                ? 'is-invalid'
+                                : '' ?>"
+                                            minlength="10"
+                                            maxlength="128"
+                                            pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{10,128}"
+                                            autocomplete="new-password"
+                                            data-error-required="Please enter a new password."
+                                            data-error-minlength="Password must contain at least 10 characters."
+                                            data-error-maxlength="Password cannot exceed 128 characters."
+                                            data-error-pattern="Use uppercase, lowercase, number and special character."
+                                            required>
 
-                                        <span
-                                            class="spinner-border
-                                                spinner-border-sm">
+                                        <button
+                                            type="button"
+                                            class="password-field__toggle"
+                                            data-password-toggle="newPassword"
+                                            aria-label="Show password">
+
+                                            <span
+                                                class="mdi mdi-eye-off-outline"
+                                                aria-hidden="true">
+                                            </span>
+                                        </button>
+                                    </div>
+
+                                    <div
+                                        class="invalid-feedback
+                <?= isset($errors['password'])
+                                ? 'd-block'
+                                : '' ?>"
+                                        data-validation-error="password">
+
+                                        <?= esc(
+                                            $errors['password']
+                                                ?? ''
+                                        ) ?>
+                                    </div>
+
+                                    <div class="form-text">
+                                        Use at least 10 characters with uppercase,
+                                        lowercase, number and special character.
+                                    </div>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label
+                                        for="passwordConfirmation"
+                                        class="form-label">
+
+                                        Confirm New Password
+                                    </label>
+
+                                    <div class="password-field">
+                                        <input
+                                            type="password"
+                                            id="passwordConfirmation"
+                                            name="password_confirmation"
+                                            class="form-control
+                    password-field__input
+                    <?= isset(
+                                $errors['password_confirmation']
+                            )
+                                ? 'is-invalid'
+                                : '' ?>"
+                                            maxlength="128"
+                                            autocomplete="new-password"
+                                            data-error-required="Please confirm the new password."
+                                            data-error-password-match="The passwords do not match."
+                                            required>
+
+                                        <button
+                                            type="button"
+                                            class="password-field__toggle"
+                                            data-password-toggle="passwordConfirmation"
+                                            aria-label="Show password">
+
+                                            <span
+                                                class="mdi mdi-eye-off-outline"
+                                                aria-hidden="true">
+                                            </span>
+                                        </button>
+                                    </div>
+
+                                    <div
+                                        class="invalid-feedback
+                <?= isset(
+                                $errors['password_confirmation']
+                            )
+                                ? 'd-block'
+                                : '' ?>"
+                                        data-validation-error="password_confirmation">
+
+                                        <?= esc(
+                                            $errors['password_confirmation']
+                                                ?? ''
+                                        ) ?>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex justify-content-end">
+                                    <button
+                                        type="submit"
+                                        class="btn
+                registration-form__submit
+                fs-16
+                fw-semibold"
+                                        data-submit-button>
+
+                                        <span data-submit-idle>
+                                            <i
+                                                class="ri-save-line me-1"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            Change Password
                                         </span>
 
-                                        Saving...
-                                    </span>
-                                </button>
+                                        <span
+                                            class="registration-submit__loading d-none"
+                                            data-submit-loading>
+
+                                            <span
+                                                class="spinner-border spinner-border-sm"
+                                                aria-hidden="true">
+                                            </span>
+
+                                            Saving...
+                                        </span>
+                                    </button>
+                                </div>
                             </form>
 
                         <?php elseif (
@@ -309,64 +473,102 @@ $this->section('content');
                                     action="<?= route_to(
                                                 'web.account.settings.email'
                                             ) ?>"
+                                    data-validate
                                     data-account-email-form
                                     data-submit-loader
                                     novalidate>
 
                                     <?= csrf_field() ?>
 
-                                    <div class="mb-3">
+                                    <div class="mb-4">
                                         <label
-                                            for="email_address"
+                                            for="emailAddress"
                                             class="form-label">
 
                                             <?= $primaryEmail === null
-                                                ? 'Email address'
-                                                : 'New email address' ?>
+                                                ? 'Email Address'
+                                                : 'New Email Address' ?>
                                         </label>
 
-                                        <input
-                                            type="email"
-                                            id="email_address"
-                                            name="email_address"
-                                            class="form-control
-                                                <?= isset(
-                                                    $errors['email_address']
-                                                )
-                                                    ? 'is-invalid'
-                                                    : '' ?>"
-                                            value="<?= esc(
-                                                        old('email_address'),
-                                                        'attr'
-                                                    ) ?>"
-                                            maxlength="254"
-                                            autocomplete="email"
-                                            required>
+                                        <div class="input-group">
+                                            <span class="input-group-text">
+                                                <i
+                                                    class="ri-mail-line"
+                                                    aria-hidden="true">
+                                                </i>
+                                            </span>
 
-                                        <div class="invalid-feedback">
+                                            <input
+                                                type="email"
+                                                id="emailAddress"
+                                                name="email_address"
+                                                class="form-control
+                    <?= isset($errors['email_address'])
+                                    ? 'is-invalid'
+                                    : '' ?>"
+                                                value="<?= esc(
+                                                            old('email_address'),
+                                                            'attr'
+                                                        ) ?>"
+                                                maxlength="254"
+                                                autocomplete="email"
+                                                placeholder="Enter your email address"
+                                                data-error-required="Please enter an email address."
+                                                data-error-email="Please enter a valid email address."
+                                                data-error-maxlength="Email address cannot exceed 254 characters."
+                                                required>
+                                        </div>
+
+                                        <div
+                                            class="invalid-feedback
+                <?= isset($errors['email_address'])
+                                    ? 'd-block'
+                                    : '' ?>"
+                                            data-validation-error="email_address">
+
                                             <?= esc(
                                                 $errors['email_address']
-                                                    ?? 'Please enter a valid email address.'
+                                                    ?? ''
                                             ) ?>
+                                        </div>
+
+                                        <div class="form-text">
+                                            We will send a verification link that remains
+                                            valid for 24 hours.
                                         </div>
                                     </div>
 
-                                    <button
-                                        type="submit"
-                                        class="btn btn-primary"
-                                        data-submit-button>
+                                    <div class="d-flex justify-content-end">
+                                        <button
+                                            type="submit"
+                                            class="btn
+                registration-form__submit
+                fs-16
+                fw-semibold"
+                                            data-submit-button>
 
-                                        <span data-submit-idle>
-                                            Save and Send Verification
-                                        </span>
+                                            <span data-submit-idle>
+                                                <i
+                                                    class="ri-mail-send-line me-1"
+                                                    aria-hidden="true">
+                                                </i>
 
-                                        <span
-                                            data-submit-loading
-                                            class="d-none">
+                                                Save and Send Verification
+                                            </span>
 
-                                            Sending...
-                                        </span>
-                                    </button>
+                                            <span
+                                                class="registration-submit__loading d-none"
+                                                data-submit-loading>
+
+                                                <span
+                                                    class="spinner-border spinner-border-sm"
+                                                    aria-hidden="true">
+                                                </span>
+
+                                                Sending...
+                                            </span>
+                                        </button>
+                                    </div>
                                 </form>
                             <?php else: ?>
                                 <div
@@ -400,7 +602,7 @@ $this->section('content');
                                     action="<?= route_to(
                                                 'web.account.settings.email.resend'
                                             ) ?>"
-                                    class="mt-3"
+                                    class="d-flex justify-content-end mt-3"
                                     data-submit-loader>
 
                                     <?= csrf_field() ?>
@@ -411,12 +613,22 @@ $this->section('content');
                                         data-submit-button>
 
                                         <span data-submit-idle>
+                                            <i
+                                                class="ri-refresh-line me-1"
+                                                aria-hidden="true">
+                                            </i>
+
                                             Resend Verification Email
                                         </span>
 
                                         <span
-                                            data-submit-loading
-                                            class="d-none">
+                                            class="d-none"
+                                            data-submit-loading>
+
+                                            <span
+                                                class="spinner-border spinner-border-sm"
+                                                aria-hidden="true">
+                                            </span>
 
                                             Sending...
                                         </span>
@@ -442,22 +654,30 @@ $this->section('content');
                                 action="<?= route_to(
                                             'web.account.settings.visibility'
                                         ) ?>"
+                                data-validate
                                 data-account-visibility-form
-                                data-submit-loader>
+                                data-submit-loader
+                                novalidate>
 
                                 <?= csrf_field() ?>
 
                                 <div class="form-check border rounded p-3 ps-5 mb-3">
                                     <input
-                                        class="form-check-input"
+                                        class="form-check-input
+                <?= isset(
+                                $errors['profile_visibility']
+                            )
+                                ? 'is-invalid'
+                                : '' ?>"
                                         type="radio"
                                         name="profile_visibility"
                                         id="visibilityAll"
                                         value="ALL_MEMBERS"
-                                        <?= $profileVisibility
-                                            === 'ALL_MEMBERS'
+                                        data-error-required="Please select who can view your profile."
+                                        <?= $profileVisibility === 'ALL_MEMBERS'
                                             ? 'checked'
-                                            : '' ?>>
+                                            : '' ?>
+                                        required>
 
                                     <label
                                         class="form-check-label"
@@ -468,15 +688,20 @@ $this->section('content');
                                         </strong>
 
                                         <span class="text-muted fs-13">
-                                            Any authenticated member may open
-                                            your complete profile.
+                                            Any authenticated member can open your
+                                            complete profile.
                                         </span>
                                     </label>
                                 </div>
 
                                 <div class="form-check border rounded p-3 ps-5 mb-3">
                                     <input
-                                        class="form-check-input"
+                                        class="form-check-input
+                <?= isset(
+                                $errors['profile_visibility']
+                            )
+                                ? 'is-invalid'
+                                : '' ?>"
                                         type="radio"
                                         name="profile_visibility"
                                         id="visibilityPaid"
@@ -484,7 +709,8 @@ $this->section('content');
                                         <?= $profileVisibility
                                             === 'PAID_MEMBERS_ONLY'
                                             ? 'checked'
-                                            : '' ?>>
+                                            : '' ?>
+                                        required>
 
                                     <label
                                         class="form-check-label"
@@ -495,28 +721,59 @@ $this->section('content');
                                         </strong>
 
                                         <span class="text-muted fs-13">
-                                            Free members will see a membership
-                                            prompt instead of your details.
+                                            Free members will see a membership prompt
+                                            instead of your complete profile.
                                         </span>
                                     </label>
                                 </div>
 
-                                <button
-                                    type="submit"
-                                    class="btn btn-primary"
-                                    data-submit-button>
+                                <div
+                                    class="invalid-feedback
+            mb-3
+            <?= isset(
+                                $errors['profile_visibility']
+                            )
+                                ? 'd-block'
+                                : '' ?>"
+                                    data-validation-error="profile_visibility">
 
-                                    <span data-submit-idle>
-                                        Save Visibility
-                                    </span>
+                                    <?= esc(
+                                        $errors['profile_visibility']
+                                            ?? ''
+                                    ) ?>
+                                </div>
 
-                                    <span
-                                        data-submit-loading
-                                        class="d-none">
+                                <div class="d-flex justify-content-end">
+                                    <button
+                                        type="submit"
+                                        class="btn
+                registration-form__submit
+                fs-16
+                fw-semibold"
+                                        data-submit-button>
 
-                                        Saving...
-                                    </span>
-                                </button>
+                                        <span data-submit-idle>
+                                            <i
+                                                class="ri-save-line me-1"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            Save Visibility
+                                        </span>
+
+                                        <span
+                                            class="registration-submit__loading d-none"
+                                            data-submit-loading>
+
+                                            <span
+                                                class="spinner-border spinner-border-sm"
+                                                aria-hidden="true">
+                                            </span>
+
+                                            Saving...
+                                        </span>
+                                    </button>
+                                </div>
                             </form>
 
                         <?php elseif (
@@ -578,6 +835,7 @@ $this->section('content');
                                 action="<?= route_to(
                                             'web.account.settings.contact'
                                         ) ?>"
+                                data-validate
                                 data-account-contact-form
                                 data-submit-loader
                                 novalidate>
@@ -599,73 +857,130 @@ $this->section('content');
                                         minlength="10"
                                         maxlength="2000"
                                         class="form-control
-                                            <?= isset($errors['message'])
-                                                ? 'is-invalid'
-                                                : '' ?>"
+                <?= isset($errors['message'])
+                                ? 'is-invalid'
+                                : '' ?>"
+                                        placeholder="Tell us how we can help you"
+                                        data-error-required="Please enter your message."
+                                        data-error-minlength="Please enter at least 10 characters."
+                                        data-error-maxlength="Message cannot exceed 2000 characters."
                                         required><?= esc(
                                                         old('message')
                                                     ) ?></textarea>
 
-                                    <div class="invalid-feedback">
+                                    <div
+                                        class="invalid-feedback
+                <?= isset($errors['message'])
+                                ? 'd-block'
+                                : '' ?>"
+                                        data-validation-error="message">
+
                                         <?= esc(
                                             $errors['message']
-                                                ?? 'Please enter between 10 and 2000 characters.'
+                                                ?? ''
                                         ) ?>
                                     </div>
                                 </div>
 
-                                <div class="mb-3">
+                                <div class="mb-4">
                                     <label
-                                        for="contactCaptcha"
-                                        class="form-label">
+                                        class="form-label"
+                                        for="contactCaptchaAnswer">
 
-                                        What is
-                                        <strong>
-                                            <?= esc(
-                                                $contactCaptcha
-                                            ) ?>
-                                        </strong>
-                                        ?
+                                        Security Verification
                                     </label>
 
+                                    <div
+                                        class="border
+                rounded
+                p-2
+                mb-2
+                bg-light
+                border-primary-subtle">
+
+                                        <div
+                                            class="d-flex
+                    align-items-center
+                    justify-content-between">
+
+                                            <span class="text-muted">
+                                                Solve this question
+                                            </span>
+
+                                            <span class="fw-bold fs-18">
+                                                <?= esc($contactCaptcha) ?> = ?
+                                            </span>
+                                        </div>
+                                    </div>
+
                                     <input
-                                        type="text"
-                                        inputmode="numeric"
-                                        id="contactCaptcha"
-                                        name="captcha_answer"
                                         class="form-control
-                                            <?= isset(
-                                                $errors['captcha_answer']
-                                            )
-                                                ? 'is-invalid'
-                                                : '' ?>"
+                <?= isset($errors['captcha_answer'])
+                                ? 'is-invalid'
+                                : '' ?>"
+                                        type="text"
+                                        id="contactCaptchaAnswer"
+                                        name="captcha_answer"
+                                        value=""
+                                        placeholder="Enter answer"
+                                        inputmode="numeric"
+                                        autocomplete="off"
                                         maxlength="2"
+                                        pattern="[0-9]{1,2}"
+                                        data-error-required="Please enter the security answer."
+                                        data-error-pattern="Please enter a valid security answer."
                                         required>
 
-                                    <div class="invalid-feedback">
+                                    <div
+                                        class="invalid-feedback
+                <?= isset($errors['captcha_answer'])
+                                ? 'd-block'
+                                : '' ?>"
+                                        data-validation-error="captcha_answer">
+
                                         <?= esc(
                                             $errors['captcha_answer']
-                                                ?? 'Please enter the security answer.'
+                                                ?? ''
                                         ) ?>
+                                    </div>
+
+                                    <div class="form-text color-pink">
+                                        The security question expires after 5 minutes
+                                        and can be used only once.
                                     </div>
                                 </div>
 
-                                <button
-                                    type="submit"
-                                    class="btn btn-primary"
-                                    data-submit-button>
+                                <div class="d-flex justify-content-end">
+                                    <button
+                                        type="submit"
+                                        class="btn
+                registration-form__submit
+                fs-16
+                fw-semibold"
+                                        data-submit-button>
 
-                                    <span data-submit-idle>
-                                        Send Message
-                                    </span>
+                                        <span data-submit-idle>
+                                            <i
+                                                class="ri-send-plane-line me-1"
+                                                aria-hidden="true">
+                                            </i>
 
-                                    <span
-                                        data-submit-loading
-                                        class="d-none">
+                                            Send Message
+                                        </span>
 
-                                        Sending...
-                                    </span>
-                                </button>
+                                        <span
+                                            class="registration-submit__loading d-none"
+                                            data-submit-loading>
+
+                                            <span
+                                                class="spinner-border spinner-border-sm"
+                                                aria-hidden="true">
+                                            </span>
+
+                                            Sending...
+                                        </span>
+                                    </button>
+                                </div>
                             </form>
 
                         <?php endif; ?>

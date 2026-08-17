@@ -2,8 +2,25 @@
 
 declare(strict_types=1);
 
-$errors =
-    isset($reportValidationErrors)
+/**
+ * @var string                $viewedProfileReference
+ * @var string                $reportCaptcha
+ * @var bool                  $reopenReportModal
+ * @var array<string, string> $reportValidationErrors
+ */
+
+$viewedProfileReference = isset($viewedProfileReference)
+    ? trim((string) $viewedProfileReference)
+    : '';
+
+$reportCaptcha = isset($reportCaptcha)
+    ? trim((string) $reportCaptcha)
+    : '';
+
+$reopenReportModal =
+    ($reopenReportModal ?? false) === true;
+
+$errors = isset($reportValidationErrors)
     && is_array($reportValidationErrors)
     ? $reportValidationErrors
     : [];

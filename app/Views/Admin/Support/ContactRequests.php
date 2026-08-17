@@ -2,6 +2,16 @@
 
 declare(strict_types=1);
 
+/**
+ * @var list<array<string, mixed>> $requests
+ * @var mixed                      $pager
+ * @var string                     $selectedStatus
+ * @var string                     $searchTerm
+ * @var array<string, string>      $validationErrors
+ * @var array<string, mixed>       $reviewRecord
+ * @var array<string, mixed>|null  $formAlert
+ */
+
 $requests =
     isset($requests)
     && is_array($requests)
@@ -141,8 +151,14 @@ $this->section('content');
                                     )
                                 );
 
-                                $isOpen =
-                                    $status === 'OPEN';
+                                $isReviewable = in_array(
+                                    $status,
+                                    [
+                                        'OPEN',
+                                        'IN_PROGRESS',
+                                    ],
+                                    true
+                                );
                                 ?>
 
                                 <tr>
@@ -162,8 +178,7 @@ $this->section('content');
 
                                     <td>
                                         <div
-                                            class="text-break"
-                                            style="min-width:300px;">
+                                            class="text-break">
 
                                             <?= esc(
                                                 $request['message'] ?? ''
@@ -174,7 +189,7 @@ $this->section('content');
                                     <td>
                                         <span
                                             class="badge
-                                                <?= $isOpen
+                                                <?= $isReviewable
                                                     ? 'bg-warning-subtle text-warning'
                                                     : 'bg-success-subtle text-success' ?>
                                                 p-2">
@@ -202,7 +217,7 @@ $this->section('content');
                                     </td>
 
                                     <td class="text-end">
-                                        <?php if ($isOpen): ?>
+                                        <?php if ($isReviewable): ?>
                                             <button
                                                 type="button"
                                                 class="btn btn-sm

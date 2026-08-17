@@ -1,89 +1,91 @@
-(function () {
+(function (window, document) {
     'use strict';
 
-    function initializeValidation() {
-        document.querySelectorAll(
-            '[data-account-password-form], '
-            + '[data-account-email-form], '
-            + '[data-account-contact-form]'
-        ).forEach(function (form) {
-            form.addEventListener(
-                'submit',
-                function (event) {
-                    form.querySelectorAll(
-                        'input, textarea'
-                    ).forEach(function (field) {
-                        if (
-                            field instanceof
-                            HTMLTextAreaElement
-                        ) {
-                            field.value = field.value
-                                .replace(/\s+/g, ' ')
-                                .trim();
-                        }
+    /**
+     * Apply the password-confirmation business rule.
+     *
+     * Generic required, pattern and length validation is handled by
+     * form-validator.js through native HTML constraints.
+     */
+    function initializePasswordConfirmation() {
+        const form = document.querySelector(
+            '[data-account-password-form]'
+        );
 
-                        field.classList.toggle(
-                            'is-invalid',
-                            !field.checkValidity()
-                        );
-                    });
+        if (!(form instanceof HTMLFormElement)) {
+            return;
+        }
 
-                    const password =
-                        form.querySelector(
-                            '[name="password"]'
-                        );
+        const password = form.querySelector(
+            '[name="password"]'
+        );
 
-                    const confirmation =
-                        form.querySelector(
-                            '[name="password_confirmation"]'
-                        );
+        const confirmation = form.querySelector(
+            '[name="password_confirmation"]'
+        );
 
-                    if (
-                        password
-                        && confirmation
-                        && password.value
-                        !== confirmation.value
-                    ) {
-                        confirmation.classList.add(
-                            'is-invalid'
-                        );
+        if (
+            !(password instanceof HTMLInputElement)
+            || !(confirmation instanceof HTMLInputElement)
+        ) {
+            return;
+        }
 
-                        event.preventDefault();
+        function synchronizePasswordConfirmation() {
+            const hasConfirmation =
+                confirmation.value !== '';
 
-                        confirmation.focus();
+            const passwordsMatch =
+                password.value === confirmation.value;
 
-                        return;
-                    }
-
-                    if (!form.checkValidity()) {
-                        event.preventDefault();
-
-                        form.querySelector(
-                            '.is-invalid'
-                        )?.focus();
-                    }
-                }
+            confirmation.setCustomValidity(
+                hasConfirmation && !passwordsMatch
+                    ? (
+                        confirmation.dataset
+                            .errorPasswordMatch
+                        || 'The passwords do not match.'
+                    )
+                    : ''
             );
-        });
+
+            confirmation.dispatchEvent(
+                new CustomEvent(
+                    'app:validate-field'
+                )
+            );
+        }
+
+        password.addEventListener(
+            'input',
+            synchronizePasswordConfirmation
+        );
+
+        confirmation.addEventListener(
+            'input',
+            synchronizePasswordConfirmation
+        );
+
+        synchronizePasswordConfirmation();
     }
 
+    /**
+     * Display the server-provided completion modal.
+     */
     function showNotice() {
         const notice = document.querySelector(
             '[data-account-notice]'
         );
 
-        if (!notice) {
+        if (!(notice instanceof HTMLElement)) {
             return;
         }
 
-        const logoutForm =
-            document.getElementById(
-                'accountSettingsLogoutForm'
-            );
+        const logoutForm = document.getElementById(
+            'accountSettingsLogoutForm'
+        );
 
         const logoutAfterClose =
-            notice.dataset.logoutAfterClose
-            === '1';
+            notice.dataset.logoutAfterClose === '1';
 
         if (
             window.AppFeedbackModal
@@ -112,6 +114,7 @@
                     if (
                         logoutAfterClose
                         && logoutForm
+                        instanceof HTMLFormElement
                     ) {
                         logoutForm.submit();
                     }
@@ -128,7 +131,7 @@
 
         if (
             logoutAfterClose
-            && logoutForm
+            && logoutForm instanceof HTMLFormElement
         ) {
             logoutForm.submit();
         }
@@ -137,8 +140,8 @@
     document.addEventListener(
         'DOMContentLoaded',
         function () {
-            initializeValidation();
+            initializePasswordConfirmation();
             showNotice();
         }
     );
-})();
+})(window, document);
