@@ -1,6 +1,36 @@
 (function (window, document) {
     'use strict';
 
+    function initializeStatusFilters() {
+        document.querySelectorAll(
+            '[data-support-status-filter]'
+        ).forEach(function (select) {
+            if (
+                !(select instanceof HTMLSelectElement)
+                || select.dataset.statusFilterInitialized
+                === 'true'
+            ) {
+                return;
+            }
+
+            const form = select.form;
+
+            if (!(form instanceof HTMLFormElement)) {
+                return;
+            }
+
+            select.dataset.statusFilterInitialized =
+                'true';
+
+            select.addEventListener(
+                'change',
+                function () {
+                    form.submit();
+                }
+            );
+        });
+    }
+
     function initializeSupportReviewModal() {
         const modalElement =
             document.getElementById(
@@ -21,9 +51,6 @@
             return;
         }
 
-        modalElement.dataset.supportInitialized =
-            'true';
-
         const form = modalElement.querySelector(
             '[data-support-review-form]'
         );
@@ -31,6 +58,9 @@
         if (!(form instanceof HTMLFormElement)) {
             return;
         }
+
+        modalElement.dataset.supportInitialized =
+            'true';
 
         const modal =
             bootstrap.Modal.getOrCreateInstance(
@@ -54,8 +84,8 @@
 
         function configure(
             type,
-            id,
-            requestLabel
+            recordId,
+            recordLabel
         ) {
             const normalizedType =
                 type === 'report'
@@ -63,7 +93,7 @@
                     : 'contact';
 
             const normalizedId =
-                String(id || '').replace(
+                String(recordId || '').replace(
                     /[^0-9]/g,
                     ''
                 );
@@ -97,12 +127,12 @@
 
             if (label) {
                 label.textContent =
-                    requestLabel !== ''
+                    recordLabel !== ''
                         ? (
                             normalizedType === 'report'
                                 ? 'Profile ID: '
                                 : 'Request ID: '
-                        ) + requestLabel
+                        ) + recordLabel
                         : '';
             }
 
@@ -123,12 +153,6 @@
                         note.setCustomValidity('');
                         note.classList.remove(
                             'is-invalid'
-                        );
-
-                        note.dispatchEvent(
-                            new CustomEvent(
-                                'app:validate-field'
-                            )
                         );
                     }
 
@@ -179,16 +203,22 @@
                         .replace(/\s+/g, ' ')
                         .trim();
                 }
-            }
+            },
+            true
         );
+    }
+
+    function initialize() {
+        initializeStatusFilters();
+        initializeSupportReviewModal();
     }
 
     if (document.readyState === 'loading') {
         document.addEventListener(
             'DOMContentLoaded',
-            initializeSupportReviewModal
+            initialize
         );
     } else {
-        initializeSupportReviewModal();
+        initialize();
     }
 })(window, document);

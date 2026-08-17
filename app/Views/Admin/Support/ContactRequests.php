@@ -79,11 +79,11 @@ $this->section('content');
 
                 <div class="page-title-right mt-3 mt-sm-0">
                     <form
+                        id="contact-request-status-filter-form"
                         method="get"
                         action="<?= route_to(
                                     'admin.support.contacts'
-                                ) ?>"
-                        class="d-flex gap-2">
+                                ) ?>">
 
                         <?php if (
                             $resolvedSearch !== ''
@@ -98,19 +98,21 @@ $this->section('content');
                         <?php endif; ?>
 
                         <label
-                            for="contact-status-filter"
+                            for="contact-request-status-filter"
                             class="visually-hidden">
 
-                            Filter contact requests
+                            Filter contact requests by status
                         </label>
 
                         <select
-                            id="contact-status-filter"
+                            id="contact-request-status-filter"
                             name="status"
                             class="form-select"
+                            data-support-status-filter
                             data-choice
                             data-choice-search="false"
-                            data-choice-position="bottom">
+                            data-choice-position="bottom"
+                            data-choice-placeholder="Select status">
 
                             <?php foreach (
                                 [
@@ -129,8 +131,7 @@ $this->section('content');
                                                 $value,
                                                 'attr'
                                             ) ?>"
-                                    <?= $resolvedStatus
-                                        === $value
+                                    <?= $resolvedStatus === $value
                                         ? 'selected'
                                         : '' ?>>
 
@@ -138,13 +139,6 @@ $this->section('content');
                                 </option>
                             <?php endforeach; ?>
                         </select>
-
-                        <button
-                            type="submit"
-                            class="btn btn-primary">
-
-                            Filter
-                        </button>
                     </form>
                 </div>
             </div>

@@ -45,12 +45,15 @@ final class MemberProfileController extends BaseController
                 'memberProfileReportService'
             );
 
-            $hasReportedProfile =
+            $reportedProfileStatus =
                 $reportService
-                ->hasReportedProfile(
+                ->reportStatusForProfile(
                     $viewerUserId,
                     $profileReference
                 );
+
+            $hasReportedProfile =
+                $reportedProfileStatus !== '';
 
             return view(
                 'Pages/Profile/View',
@@ -67,6 +70,9 @@ final class MemberProfileController extends BaseController
                         route_to(
                             'web.dashboard'
                         ),
+
+                        'reportedProfileStatus' =>
+                        $reportedProfileStatus,
 
                         'hasReportedProfile' =>
                         $hasReportedProfile,

@@ -60,6 +60,7 @@ final class MemberSupportController extends BaseController
                 $this->readFormAlert(),
 
                 'pageScripts' => [
+                    'assets/js/components/form-validator.js',
                     'assets/js/components/submit-loader.js',
                     'assets/js/pages/admin-member-support.js',
                 ],
@@ -252,6 +253,7 @@ final class MemberSupportController extends BaseController
                 $this->readFormAlert(),
 
                 'pageScripts' => [
+                    'assets/js/components/form-validator.js',
                     'assets/js/components/submit-loader.js',
                     'assets/js/pages/admin-member-support.js',
                 ],

@@ -54,11 +54,22 @@ final class MemberProfileReportModel extends Model
     protected $skipValidation =
     true;
 
-    public function hasReport(
+    /**
+     * Return the existing report raised by one member against another.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findReport(
         int $reporterUserId,
         int $reportedUserId
-    ): bool {
-        return $this
+    ): ?array {
+        $record = $this
+            ->select([
+                'id',
+                'status',
+                'description',
+                'created_at',
+            ])
             ->where(
                 'reporter_user_id',
                 $reporterUserId
@@ -67,7 +78,21 @@ final class MemberProfileReportModel extends Model
                 'reported_user_id',
                 $reportedUserId
             )
-            ->countAllResults() > 0;
+            ->first();
+
+        return is_array($record)
+            ? $record
+            : null;
+    }
+
+    public function hasReport(
+        int $reporterUserId,
+        int $reportedUserId
+    ): bool {
+        return $this->findReport(
+            $reporterUserId,
+            $reportedUserId
+        ) !== null;
     }
 
     /**

@@ -23,6 +23,36 @@ use App\Support\BooleanValue;
  * - hides member editing actions;
  * - administrator media authorization remains separate.
  */
+
+$reportedProfileStatus = mb_strtoupper(
+    trim(
+        (string) (
+            $reportedProfileStatus
+            ?? ''
+        )
+    )
+);
+
+$reportedProfileStatusLabel = match ($reportedProfileStatus) {
+    'OPEN' =>
+    'Open',
+
+    'REVIEWED' =>
+    'Reviewed',
+
+    'DISMISSED' =>
+    'Dismissed',
+
+    'ACTION_TAKEN' =>
+    'Action Taken',
+
+    default =>
+    '',
+};
+
+$hasReportedProfile =
+    $reportedProfileStatusLabel !== '';
+
 $profileViewMode = mb_strtolower(
     trim(
         (string) (
@@ -1655,37 +1685,37 @@ $this->section('content');
                                                         </button>
                                                     </form>
 
-                                                    <div class="col-6">
+                                                    <div class="col-12">
                                                         <?php if ($hasReportedProfile): ?>
                                                             <button
                                                                 type="button"
                                                                 class="btn
-                btn-light
+                btn-danger
                 w-100
+                h-100
                 d-flex
                 align-items-center
                 justify-content-center
                 gap-1"
+                                                                title="This profile has already been reported"
                                                                 disabled>
 
-                                                                <i
-                                                                    class="ri-checkbox-circle-line
-                    text-success"
-                                                                    aria-hidden="true">
-                                                                </i>
+                                                                
 
-                                                                Reported
+                                                                <span>
+                                                                    Reported Status -
+                                                                    <?= esc(
+                                                                        $reportedProfileStatusLabel
+                                                                    ) ?>
+                                                                </span>
                                                             </button>
-
-                                                            <div class="small text-success text-center mt-1">
-                                                                You have reported this profile
-                                                            </div>
                                                         <?php else: ?>
                                                             <button
                                                                 type="button"
                                                                 class="btn
                 btn-outline-warning
                 w-100
+                h-100
                 d-flex
                 align-items-center
                 justify-content-center

@@ -37,12 +37,18 @@ final class MemberProfileReportService
             );
     }
 
-    public function hasReportedProfile(
+    /**
+     * Return the existing report status for the viewed profile.
+     *
+     * An empty string means the authenticated member has not reported
+     * the profile.
+     */
+    public function reportStatusForProfile(
         int $reporterUserId,
         string $profileReference
-    ): bool {
+    ): string {
         if ($reporterUserId <= 0) {
-            return false;
+            return '';
         }
 
         $reportedMember = $this
@@ -51,7 +57,7 @@ final class MemberProfileReportService
             );
 
         if (!is_array($reportedMember)) {
-            return false;
+            return '';
         }
 
         $reportedUserId = (int) (
@@ -59,13 +65,42 @@ final class MemberProfileReportService
             ?? 0
         );
 
-        return $reportedUserId > 0
-            && $this
+        if ($reportedUserId <= 0) {
+            return '';
+        }
+
+        $report = $this
             ->reportModel
-            ->hasReport(
+            ->findReport(
                 $reporterUserId,
                 $reportedUserId
             );
+
+        if (!is_array($report)) {
+            return '';
+        }
+
+        $status = mb_strtoupper(
+            trim(
+                (string) (
+                    $report['status']
+                    ?? ''
+                )
+            )
+        );
+
+        return in_array(
+            $status,
+            [
+                MemberProfileReportModel::STATUS_OPEN,
+                MemberProfileReportModel::STATUS_REVIEWED,
+                MemberProfileReportModel::STATUS_DISMISSED,
+                MemberProfileReportModel::STATUS_ACTION_TAKEN,
+            ],
+            true
+        )
+            ? $status
+            : '';
     }
 
     public function report(
