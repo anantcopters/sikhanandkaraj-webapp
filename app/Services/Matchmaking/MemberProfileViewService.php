@@ -10,6 +10,7 @@ use App\Models\UserContactModel;
 use App\Support\MemberNameVisibility;
 use App\Support\BooleanValue;
 use App\Services\Profile\MemberProfileSummaryService;
+use App\Support\EmailAddressMasker;
 use App\Exceptions\PaidMembershipRequiredException;
 use App\Support\MobileNumberMasker;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -166,6 +167,26 @@ final class MemberProfileViewService
                 )
             )
             : '';
+
+        $maskedEmailAddress =
+            EmailAddressMasker::mask(
+                $emailAddress
+            );
+
+        $isMemberEmailVerified =
+            is_array($emailContact)
+            && $emailAddress !== ''
+            && BooleanValue::fromDatabase(
+                $emailContact['is_verified']
+                    ?? false
+            );
+
+        $isMemberMobileVerified =
+            is_array($mobileContact)
+            && BooleanValue::fromDatabase(
+                $mobileContact['is_verified']
+                    ?? false
+            );
 
         $isMemberMobileVerified =
             is_array($mobileContact)
@@ -457,7 +478,11 @@ final class MemberProfileViewService
                     && $isMemberMobileVerified,
 
                 'viewedEmail' =>
-                $emailAddress,
+                $maskedEmailAddress,
+
+                'isViewedEmailVerified' =>
+                $maskedEmailAddress !== ''
+                    && $isMemberEmailVerified,
 
                 'isViewedMobileVerified' =>
                 $isDisplayMobileVerified,

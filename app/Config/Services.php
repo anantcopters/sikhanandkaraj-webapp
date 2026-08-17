@@ -987,8 +987,8 @@ final class Services extends BaseService
     /**
      * Return the shared member Trust and Verification service.
      *
-     * Dashboard and Profile Edit use this service as the single authority
-     * for contact, Aadhaar and selfie verification states.
+     * Dashboard and Profile Edit use this service. Email state comes
+     * from MemberAccountSettingsService.
      */
     public static function memberTrustVerificationService(
         bool $getShared = true
@@ -1011,6 +1011,10 @@ final class Services extends BaseService
             ),
 
             static::memberAadhaarService(
+                false
+            ),
+
+            static::memberAccountSettingsService(
                 false
             )
         );

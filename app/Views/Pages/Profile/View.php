@@ -126,6 +126,10 @@ $viewedEmail = trim(
     )
 );
 
+$isViewedEmailVerified =
+    ($isViewedEmailVerified ?? false)
+    === true;
+
 $isViewedMobileVerified =
     ($isViewedMobileVerified ?? false)
     === true;
@@ -1700,7 +1704,7 @@ $this->section('content');
                                                                 title="This profile has already been reported"
                                                                 disabled>
 
-                                                                
+
 
                                                                 <span>
                                                                     Reported Status -
@@ -1783,12 +1787,13 @@ $this->section('content');
 
                                     <div
                                         class="d-flex
-                align-items-center
-                gap-2">
+                align-items-start
+                gap-2
+                h-100">
 
                                         <span
                                             class="avatar-xs
-                        flex-shrink-0">
+                    flex-shrink-0">
 
                                             <span
                                                 class="avatar-title
@@ -1804,7 +1809,7 @@ $this->section('content');
                                             </span>
                                         </span>
 
-                                        <div class="min-w-0">
+                                        <div class="min-w-0 flex-grow-1">
                                             <div
                                                 class="text-muted
                         fs-12">
@@ -1831,14 +1836,14 @@ $this->section('content');
                                     <!-- Contact number -->
                                     <div
                                         class="col-12
-        col-sm-6
-        col-xl-3">
+                col-sm-6
+                col-xl-3">
 
                                         <div
                                             class="d-flex
-            align-items-start
-            gap-2
-            h-100">
+                    align-items-start
+                    gap-2
+                    h-100">
 
                                             <span
                                                 class="avatar-xs
@@ -1846,13 +1851,13 @@ $this->section('content');
 
                                                 <span
                                                     class="avatar-title
-                    rounded-circle
-                    bg-primary-subtle
-                    text-primary">
+                            rounded-circle
+                            bg-primary-subtle
+                            text-primary">
 
                                                     <i
                                                         class="ri-phone-line
-                        fs-16"
+                                fs-16"
                                                         aria-hidden="true">
                                                     </i>
                                                 </span>
@@ -1860,25 +1865,22 @@ $this->section('content');
 
                                             <div class="min-w-0 flex-grow-1">
 
-                                                <!-- Primary contact -->
                                                 <div
                                                     class="text-muted
-                    fs-12">
+                            fs-12">
 
-                                                    <?= $isViewedParentMobile
-                                                        ? 'Parents Mobile'
-                                                        : 'Mobile Number' ?>
+                                                    <?= esc($viewedMobileLabel) ?>
                                                 </div>
 
                                                 <div
                                                     class="d-flex
-                    align-items-center
-                    flex-wrap
-                    gap-1">
+                            align-items-center
+                            flex-wrap
+                            gap-1">
 
                                                     <strong
                                                         class="fs-14
-                        text-break">
+                                text-break">
 
                                                         <?= esc(
                                                             $viewedMobile !== ''
@@ -1895,10 +1897,10 @@ $this->section('content');
 
                                                         <span
                                                             class="badge
-                            bg-success-subtle
-                            text-success
-                            fs-11
-                            p-1">
+                                    bg-success-subtle
+                                    text-success
+                                    fs-11
+                                    p-1">
 
                                                             <i
                                                                 class="ri-checkbox-circle-fill"
@@ -1911,7 +1913,6 @@ $this->section('content');
                                                     <?php endif; ?>
                                                 </div>
 
-                                                <!-- Female member's masked verified mobile -->
                                                 <?php if (
                                                     $isViewedParentMobile
                                                     && $viewedMaskedMemberMobile !== ''
@@ -1919,12 +1920,12 @@ $this->section('content');
 
                                                     <div
                                                         class="d-flex
-                        align-items-center
-                        flex-wrap
-                        gap-1
-                        mt-1
-                        text-muted
-                        fs-12">
+                                align-items-center
+                                flex-wrap
+                                gap-1
+                                mt-1
+                                text-muted
+                                fs-12">
 
                                                         <span>
                                                             Member:
@@ -1942,9 +1943,9 @@ $this->section('content');
 
                                                             <span
                                                                 class="text-success
-                                d-inline-flex
-                                align-items-center
-                                gap-1">
+                                        d-inline-flex
+                                        align-items-center
+                                        gap-1">
 
                                                                 <i
                                                                     class="ri-checkbox-circle-fill"
@@ -1970,8 +1971,9 @@ $this->section('content');
 
                                         <div
                                             class="d-flex
-                    align-items-center
-                    gap-2">
+                    align-items-start
+                    gap-2
+                    h-100">
 
                                             <span
                                                 class="avatar-xs
@@ -1991,7 +1993,7 @@ $this->section('content');
                                                 </span>
                                             </span>
 
-                                            <div class="min-w-0">
+                                            <div class="min-w-0 flex-grow-1">
                                                 <div
                                                     class="text-muted
                             fs-12">
@@ -1999,16 +2001,44 @@ $this->section('content');
                                                     Email
                                                 </div>
 
-                                                <strong
-                                                    class="fs-14
-                            text-break">
+                                                <div
+                                                    class="d-flex
+                            align-items-center
+                            flex-wrap
+                            gap-1">
 
-                                                    <?= esc(
+                                                    <strong
+                                                        class="fs-14
+                                text-break">
+
+                                                        <?= esc(
+                                                            $viewedEmail !== ''
+                                                                ? $viewedEmail
+                                                                : '-'
+                                                        ) ?>
+                                                    </strong>
+
+                                                    <?php if (
                                                         $viewedEmail !== ''
-                                                            ? $viewedEmail
-                                                            : '-'
-                                                    ) ?>
-                                                </strong>
+                                                        && $isViewedEmailVerified
+                                                    ): ?>
+
+                                                        <span
+                                                            class="text-success
+                                        d-inline-flex
+                                        align-items-center
+                                        gap-1 fs-12">
+
+                                                            <i
+                                                                class="ri-checkbox-circle-fill"
+                                                                aria-hidden="true">
+                                                            </i>
+
+                                                            Verified
+                                                        </span>
+
+                                                    <?php endif; ?>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -2021,13 +2051,10 @@ $this->section('content');
 
                                         <div
                                             class="d-flex
-                    align-items-center
-                    gap-2">
+                    align-items-start
+                    gap-2
+                    h-100">
 
-                                            <!--
-                    Use the existing avatar utility at its smaller size.
-                    No new CSS class is required.
-                -->
                                             <span
                                                 class="avatar-xs
                         flex-shrink-0">
@@ -2049,7 +2076,7 @@ $this->section('content');
                                                 </span>
                                             </span>
 
-                                            <div class="min-w-0">
+                                            <div class="min-w-0 flex-grow-1">
                                                 <div
                                                     class="text-muted
                             fs-12">

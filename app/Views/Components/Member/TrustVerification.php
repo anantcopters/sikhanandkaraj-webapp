@@ -58,6 +58,54 @@ $emailValue = trim(
     )
 );
 
+$emailStatus = mb_strtoupper(
+    trim(
+        (string) (
+            $email['status']
+            ?? 'NOT_ADDED'
+        )
+    )
+);
+
+if (
+    !in_array(
+        $emailStatus,
+        [
+            'VERIFIED',
+            'PENDING',
+            'NOT_ADDED',
+        ],
+        true
+    )
+) {
+    $emailStatus = 'NOT_ADDED';
+}
+
+$emailStatusLabel = trim(
+    (string) (
+        $email['statusLabel']
+        ?? ''
+    )
+);
+
+if ($emailStatusLabel === '') {
+    $emailStatusLabel = match ($emailStatus) {
+        'VERIFIED' =>
+        'Verified',
+
+        'PENDING' =>
+        'Verification pending',
+
+        default =>
+        'Not added',
+    };
+}
+
+$emailSettingsUrl = route_to(
+    'web.account.settings.section',
+    'email'
+);
+
 $isMobileVerified =
     ($mobile['isVerified'] ?? false) === true;
 
@@ -173,18 +221,37 @@ $isSelfieVerified =
         </div>
 
         <!-- Email verification -->
-        <div
-            class="d-flex align-items-center
-                justify-content-between gap-3
-                py-2 border-top">
+        <!-- Email verification -->
+        <a
+            href="<?= esc(
+                        $emailSettingsUrl,
+                        'attr'
+                    ) ?>"
+            class="d-flex
+        align-items-center
+        justify-content-between
+        gap-3
+        py-2
+        border-top
+        text-body
+        text-decoration-none"
+            aria-label="<?= esc(
+                            'Manage email address. Current status: '
+                                . $emailStatusLabel,
+                            'attr'
+                        ) ?>">
 
             <span
-                class="d-flex align-items-center
-                    gap-2 min-w-0">
+                class="d-flex
+            align-items-center
+            gap-2
+            min-w-0">
 
                 <i
                     class="ri-mail-line
-                        text-info fs-18 flex-shrink-0"
+                text-info
+                fs-18
+                flex-shrink-0"
                     aria-hidden="true">
                 </i>
 
@@ -194,9 +261,13 @@ $isSelfieVerified =
                     </span>
 
                     <span
-                        class="d-block fw-medium
-                            text-truncate fs-13"
-                        <?php if ($emailValue !== ''): ?>
+                        class="d-block
+                    fw-medium
+                    text-truncate
+                    fs-13"
+                        <?php if (
+                            $emailValue !== ''
+                        ): ?>
                         title="<?= esc(
                                     $emailValue,
                                     'attr'
@@ -212,57 +283,49 @@ $isSelfieVerified =
                 </span>
             </span>
 
-            <?php if ($isEmailVerified): ?>
-                <span
-                    class="badge bg-success-subtle
-                        text-success fs-11 p-2
-                        flex-shrink-0">
+            <span
+                class="d-inline-flex
+            align-items-center
+            gap-1
+            flex-shrink-0">
 
-                    Verified
-                </span>
-            <?php elseif ($emailValue !== ''): ?>
-                <form
-                    method="post"
-                    action="<?= url_to(
-                                'web.email.verification.send'
-                            ) ?>"
-                    id="emailVerificationForm">
+                <?php if (
+                    $emailStatus === 'VERIFIED'
+                ): ?>
+                    <span
+                        class="badge
+                    bg-success-subtle
+                    text-success
+                    fs-11
+                    p-2">
 
-                    <?= csrf_field() ?>
+                        Verified
+                    </span>
+                <?php elseif (
+                    $emailStatus === 'PENDING'
+                ): ?>
+                    <span
+                        class="badge
+                    bg-warning-subtle
+                    text-warning
+                    fs-11
+                    p-2">
 
-                    <button
-                        type="submit"
-                        class="btn btn-sm btn-outline-primary"
-                        id="emailVerificationSubmit">
+                        Pending
+                    </span>
+                <?php else: ?>
+                    <span
+                        class="badge
+                    bg-secondary-subtle
+                    text-body-secondary
+                    fs-11
+                    p-2">
 
-                        <span
-                            class="email-verification-submit__label">
-
-                            Verify
-                        </span>
-
-                        <span
-                            class="registration-submit__loading
-                                d-none"
-                            aria-hidden="true">
-
-                            <span
-                                class="spinner-border
-                                    spinner-border-sm">
-                            </span>
-                        </span>
-                    </button>
-                </form>
-            <?php else: ?>
-                <span
-                    class="badge bg-secondary-subtle
-                        text-body-secondary fs-11 p-2
-                        flex-shrink-0">
-
-                    Not added
-                </span>
-            <?php endif; ?>
-        </div>
+                        Not added
+                    </span>
+                <?php endif; ?>
+            </span>
+        </a>
 
         <!-- Aadhaar verification -->
         <div

@@ -12768,33 +12768,41 @@ div.dtr-modal div.dtr-modal-close:hover {
   position: relative;
   font-size: 16px;
 }
+
 .choices:focus {
   outline: none;
 }
+
 .choices:last-child {
   margin-bottom: 0;
 }
+
 .choices.is-disabled .choices__inner,
 .choices.is-disabled .choices__input {
   background-color: rgba(var(--vz-light-rgb), 0.75);
   cursor: not-allowed;
   -webkit-user-select: none;
-     -moz-user-select: none;
-      -ms-user-select: none;
-          user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
+
 .choices.is-disabled .choices__item {
   cursor: not-allowed;
 }
+
 .choices [hidden] {
   display: none !important;
 }
+
 .choices[data-type*=select-one] {
   cursor: pointer;
 }
+
 .choices[data-type*=select-one] .choices__inner {
   padding-bottom: 0.25rem;
 }
+
 .choices[data-type*=select-one] .choices__input {
   display: block;
   width: 100%;
@@ -12806,6 +12814,7 @@ div.dtr-modal div.dtr-modal-close:hover {
   color: var(--vz-body-color);
   margin-bottom: 10px;
 }
+
 .choices[data-type*=select-one] .choices__button {
   background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjEiIGhlaWdodD0iMjEiIHZpZXdCb3g9IjAgMCAyMSAyMSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSIjMDAwIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0yLjU5Mi4wNDRsMTguMzY0IDE4LjM2NC0yLjU0OCAyLjU0OEwuMDQ0IDIuNTkyeiIvPjxwYXRoIGQ9Ik0wIDE4LjM2NEwxOC4zNjQgMGwyLjU0OCAyLjU0OEwyLjU0OCAyMC45MTJ6Ii8+PC9nPjwvc3ZnPg==);
   padding: 0;
@@ -12822,16 +12831,21 @@ div.dtr-modal div.dtr-modal-close:hover {
   border-radius: 10em;
   opacity: 0.5;
 }
-.choices[data-type*=select-one] .choices__button:hover, .choices[data-type*=select-one] .choices__button:focus {
+
+.choices[data-type*=select-one] .choices__button:hover,
+.choices[data-type*=select-one] .choices__button:focus {
   opacity: 1;
 }
+
 .choices[data-type*=select-one] .choices__button:focus {
   -webkit-box-shadow: 0px 0px 0px 2px #00bcd4;
-          box-shadow: 0px 0px 0px 2px #00bcd4;
+  box-shadow: 0px 0px 0px 2px #00bcd4;
 }
+
 .choices[data-type*=select-one] .choices__item[data-value=""] .choices__button {
   display: none;
 }
+
 .choices[data-type*=select-one]:after {
   content: "\f0140";
   position: absolute;
@@ -12845,19 +12859,24 @@ div.dtr-modal div.dtr-modal-close:hover {
   margin-top: 0;
   top: 50%;
   -webkit-transform: translateY(-50%);
-          transform: translateY(-50%);
+  transform: translateY(-50%);
   pointer-events: none;
 }
+
 .choices[data-type*=select-one].is-open:after {
   margin-top: 0;
   -webkit-transform: translateY(-50%) rotate(180deg);
-          transform: translateY(-50%) rotate(180deg);
+  transform: translateY(-50%) rotate(180deg);
 }
-.choices[data-type*=select-multiple] .choices__inner, .choices[data-type*=text] .choices__inner {
+
+.choices[data-type*=select-multiple] .choices__inner,
+.choices[data-type*=text] .choices__inner {
   cursor: text;
   padding-left: 0.9rem;
 }
-.choices[data-type*=select-multiple] .choices__button, .choices[data-type*=text] .choices__button {
+
+.choices[data-type*=select-multiple] .choices__button,
+.choices[data-type*=text] .choices__button {
   position: relative;
   display: inline-block;
   margin-top: 0;
@@ -12874,15 +12893,24 @@ div.dtr-modal div.dtr-modal-close:hover {
   opacity: 0.75;
   border-radius: 0;
 }
-.choices[data-type*=select-multiple] .choices__button:hover, .choices[data-type*=select-multiple] .choices__button:focus, .choices[data-type*=text] .choices__button:hover, .choices[data-type*=text] .choices__button:focus {
+
+.choices[data-type*=select-multiple] .choices__button:hover,
+.choices[data-type*=select-multiple] .choices__button:focus,
+.choices[data-type*=text] .choices__button:hover,
+.choices[data-type*=text] .choices__button:focus {
   opacity: 1;
 }
-.choices[data-type*=select-multiple] .choices__list--dropdown, .choices[data-type*=text] .choices__list--dropdown {
+
+.choices[data-type*=select-multiple] .choices__list--dropdown,
+.choices[data-type*=text] .choices__list--dropdown {
   padding-bottom: 10px;
 }
-.choices[data-type*=select-multiple] .choices__list--dropdown .choices__list, .choices[data-type*=text] .choices__list--dropdown .choices__list {
+
+.choices[data-type*=select-multiple] .choices__list--dropdown .choices__list,
+.choices[data-type*=text] .choices__list--dropdown .choices__list {
   margin-bottom: 0;
 }
+
 .choices[data-type*=select-multiple] .choices__input {
   padding-top: 3px;
 }
@@ -12921,6 +12949,7 @@ div.dtr-modal div.dtr-modal-close:hover {
   padding: 4px 4px 4px 16px;
   width: 100%;
 }
+
 .choices__list--single .choices__item {
   width: 100%;
 }
@@ -12928,6 +12957,7 @@ div.dtr-modal div.dtr-modal-close:hover {
 .choices__list--multiple {
   display: inline;
 }
+
 .choices__list--multiple .choices__item {
   display: inline-block;
   vertical-align: initial;
@@ -12942,14 +12972,16 @@ div.dtr-modal div.dtr-modal-close:hover {
   border: 1px solid #4b38b3;
   word-break: break-all;
   -webkit-box-sizing: border-box;
-          box-sizing: border-box;
+  box-sizing: border-box;
   color: #fff;
   -webkit-box-shadow: 0 3px 3px rgba(56, 65, 74, 0.1);
-          box-shadow: 0 3px 3px rgba(56, 65, 74, 0.1);
+  box-shadow: 0 3px 3px rgba(56, 65, 74, 0.1);
 }
+
 .choices__list--multiple .choices__item[data-deletable] {
   padding-left: 5px;
 }
+
 .choices__list--multiple .choices__item.is-highlighted {
   background-color: #4b38b3;
   border: 1px solid #4b38b3;
@@ -12968,7 +13000,7 @@ div.dtr-modal div.dtr-modal-close:hover {
   background-color: var(--vz-secondary-bg);
   border: 1px solid var(--vz-border-color);
   -webkit-box-shadow: 0 5px 10px rgba(30, 32, 37, 0.12);
-          box-shadow: 0 5px 10px rgba(30, 32, 37, 0.12);
+  box-shadow: 0 5px 10px rgba(30, 32, 37, 0.12);
   top: 100%;
   margin-top: 0;
   padding: 10px 10px 20px 10px;
@@ -12978,27 +13010,52 @@ div.dtr-modal div.dtr-modal-close:hover {
   word-break: break-all;
   will-change: visibility;
   -webkit-animation-duration: 0.3s;
-          animation-duration: 0.3s;
+  animation-duration: 0.3s;
   -webkit-animation-fill-mode: both;
-          animation-fill-mode: both;
+  animation-fill-mode: both;
   -webkit-transform: translateY(1px);
-          transform: translateY(1px);
+  transform: translateY(1px);
 }
+
 .choices__list--dropdown.is-active {
   visibility: visible;
   -webkit-animation-name: DropDownSlide;
-          animation-name: DropDownSlide;
+  animation-name: DropDownSlide;
 }
+
+/**
+ * Remove closed Choices dropdowns from document overflow.
+ *
+ * Choices normally hides closed dropdowns using visibility. An absolutely
+ * positioned long option list can still increase the document scrollable
+ * area, leaving body background visible below the footer.
+ */
+.choices__list--dropdown:not(.is-active),
+.choices__list[aria-expanded]:not(.is-active) {
+  display: none;
+}
+
+/**
+ * Restore the dropdown when Choices opens it.
+ */
+.choices__list--dropdown.is-active,
+.choices__list[aria-expanded].is-active {
+  display: block;
+}
+
 .choices__list--dropdown .choices__item--selectable.is-highlighted {
   background-color: var(--vz-tertiary-bg);
 }
+
 .choices__list--dropdown .choices__list {
   margin: 0 -16px -16px;
 }
+
 .choices__list--dropdown .has-no-results {
   font-style: italic;
   font-weight: 500;
 }
+
 .choices__list--dropdown .choices__item--selectable:after {
   display: none;
 }
@@ -13014,11 +13071,12 @@ div.dtr-modal div.dtr-modal-close:hover {
   margin-bottom: -1px;
   border-radius: 0.25rem 0.25rem 0 0;
 }
+
 .is-flipped .choices__list--dropdown.is-active {
   -webkit-animation-name: DropDownSlideDown;
-          animation-name: DropDownSlideDown;
+  animation-name: DropDownSlideDown;
   -webkit-transform: translateY(-1px);
-          transform: translateY(-1px);
+  transform: translateY(-1px);
 }
 
 .choices__list--dropdown .choices__list {
@@ -13028,6 +13086,7 @@ div.dtr-modal div.dtr-modal-close:hover {
   -webkit-overflow-scrolling: touch;
   will-change: scroll-position;
 }
+
 .choices__list--dropdown .choices__item {
   position: relative;
   font-size: 0.8125rem;
@@ -13043,12 +13102,14 @@ div.dtr-modal div.dtr-modal-close:hover {
     left: 10px;
     top: 50%;
     -webkit-transform: translateY(-50%);
-            transform: translateY(-50%);
+    transform: translateY(-50%);
   }
+
   .choices__list--dropdown .choices__item--selectable.is-highlighted:after {
     opacity: 0.5;
   }
 }
+
 .choices__item {
   cursor: default;
 }
@@ -13060,9 +13121,9 @@ div.dtr-modal div.dtr-modal-close:hover {
 .choices__item--disabled {
   cursor: not-allowed;
   -webkit-user-select: none;
-     -moz-user-select: none;
-      -ms-user-select: none;
-          user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
   opacity: 0.5;
 }
 
@@ -13077,14 +13138,15 @@ div.dtr-modal div.dtr-modal-close:hover {
 .choices__button {
   text-indent: -9999px;
   -webkit-appearance: none;
-     -moz-appearance: none;
-          appearance: none;
+  -moz-appearance: none;
+  appearance: none;
   border: 0;
   background-color: transparent;
   background-repeat: no-repeat;
   background-position: center;
   cursor: pointer;
 }
+
 .choices__button:focus {
   outline: none;
 }
@@ -13101,21 +13163,27 @@ div.dtr-modal div.dtr-modal-close:hover {
   max-width: 100%;
   padding: 2px 2px 2px 0;
 }
+
 .choices__input:focus {
   outline: 0;
 }
+
 .choices__input::-webkit-input-placeholder {
   color: var(--vz-secondary-color);
 }
+
 .choices__input::-moz-placeholder {
   color: var(--vz-secondary-color);
 }
+
 .choices__input:-ms-input-placeholder {
   color: var(--vz-secondary-color);
 }
+
 .choices__input::-ms-input-placeholder {
   color: var(--vz-secondary-color);
 }
+
 .choices__input::placeholder {
   color: var(--vz-secondary-color);
 }
@@ -13127,7 +13195,7 @@ div.dtr-modal div.dtr-modal-close:hover {
 
 [data-bs-theme=dark] .choices[data-type*=select-one] .choices__button {
   -webkit-filter: invert(1) grayscale(100%) brightness(200%);
-          filter: invert(1) grayscale(100%) brightness(200%);
+  filter: invert(1) grayscale(100%) brightness(200%);
 }
 
 /* ==========================================================================
@@ -13138,41 +13206,41 @@ div.dtr-modal div.dtr-modal-close:hover {
  * Position the clear button on the right for single-select controls.
  */
 .choices[data-type*="select-one"] .choices__button {
-    right: 0;
-    left: auto;
-    margin-right: 25px;
-    margin-left: 0;
+  right: 0;
+  left: auto;
+  margin-right: 25px;
+  margin-left: 0;
 }
 
 /**
  * Position the dropdown indicator on the right.
  */
 .choices[data-type*="select-one"]::after {
-    right: 11.5px;
-    left: auto;
+  right: 11.5px;
+  left: auto;
 }
 
 /**
  * Reserve space on the right for the dropdown indicator and clear button.
  */
 .choices__inner {
-    padding-right: 3.6rem;
-    padding-left: 0.5rem;
+  padding-right: 3.6rem;
+  padding-left: 0.5rem;
 }
 
 /**
  * Reset Choices list spacing for LTR layouts.
  */
 .choices__list {
-    padding-right: 0;
-    padding-left: 0;
+  padding-right: 0;
+  padding-left: 0;
 }
 
 /**
  * Keep the selected single value aligned like the css_master version.
  */
 .choices__list--single {
-    padding: 4px 16px 4px 4px;
+  padding: 4px 16px 4px 4px;
 }
 
 /**
@@ -13180,10 +13248,10 @@ div.dtr-modal div.dtr-modal-close:hover {
  */
 .choices__list--dropdown,
 .choices__list[aria-expanded] {
-    right: auto;
-    left: 0;
-    text-align: left;
-    padding-inline: 0.5rem;
+  right: auto;
+  left: 0;
+  text-align: left;
+  padding-inline: 0.5rem;
 }
 
 /**
@@ -13191,9 +13259,9 @@ div.dtr-modal div.dtr-modal-close:hover {
  */
 .choices__list--dropdown .choices__list,
 .choices__list[aria-expanded] .choices__list {
-    margin: 0;
-    padding-right: 0;
-    padding-left: 0;
+  margin: 0;
+  padding-right: 0;
+  padding-left: 0;
 }
 
 /**
@@ -13201,56 +13269,55 @@ div.dtr-modal div.dtr-modal-close:hover {
  */
 .choices__list--dropdown .choices__item,
 .choices__list[aria-expanded] .choices__item {
-    position: relative;
-    padding: 10px;
-    font-size: 0.8125rem;
-    text-align: left;
+  position: relative;
+  padding: 10px;
+  font-size: 0.8125rem;
+  text-align: left;
 }
 
 /**
  * Keep search input text aligned for LTR pages.
  */
 .choices__input {
-    direction: ltr;
-    text-align: left;
+  direction: ltr;
+  text-align: left;
 }
 
 /**
  * Align option-group headings.
  */
 .choices__heading {
-    text-align: left;
+  text-align: left;
 }
 
 /**
  * Position optional select-helper text on the right.
  */
 @media (min-width: 640px) {
-    .choices__list--dropdown
-    .choices__item--selectable::after,
-    .choices__list[aria-expanded]
-    .choices__item--selectable::after {
-        right: 10px;
-        left: auto;
-    }
+
+  .choices__list--dropdown .choices__item--selectable::after,
+  .choices__list[aria-expanded] .choices__item--selectable::after {
+    right: 10px;
+    left: auto;
+  }
 }
 
 /**
  * Apply server-side and client-side validation state from the original
  * select to the Choices.js visual control.
  */
-select.is-invalid + .choices .choices__inner {
-    border-color: var(--vz-form-invalid-border-color);
+select.is-invalid+.choices .choices__inner {
+  border-color: var(--vz-form-invalid-border-color);
 }
 
-select.is-invalid + .choices.is-focused .choices__inner,
-select.is-invalid + .choices.is-open .choices__inner {
-    border-color: var(--vz-form-invalid-border-color);
-    box-shadow: 0 0 0 0.25rem rgba(var(--vz-danger-rgb), 0.25);
+select.is-invalid+.choices.is-focused .choices__inner,
+select.is-invalid+.choices.is-open .choices__inner {
+  border-color: var(--vz-form-invalid-border-color);
+  box-shadow: 0 0 0 0.25rem rgba(var(--vz-danger-rgb), 0.25);
 }
 
-select.is-valid + .choices .choices__inner {
-    border-color: var(--vz-form-valid-border-color);
+select.is-valid+.choices .choices__inner {
+  border-color: var(--vz-form-valid-border-color);
 }
 
 .flatpickr-calendar {
@@ -18536,98 +18603,97 @@ span.flatpickr-weekday {
    ========================================================================== */
 
 .error-page {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background:
-        radial-gradient(circle at top right,
-            rgba(210, 166, 72, 0.14),
-            transparent 35%),
-        linear-gradient(180deg, #fffdf8 0%, #f8f5ef 100%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at top right,
+      rgba(210, 166, 72, 0.14),
+      transparent 35%),
+    linear-gradient(180deg, #fffdf8 0%, #f8f5ef 100%);
 }
 
 .error-page__main {
-    flex: 1 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem 1rem;
+  flex: 1 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
 }
 
 .error-page__card {
-    width: 100%;
-    max-width: 42rem;
-    padding: 2rem 1.25rem;
-    text-align: center;
+  width: 100%;
+  max-width: 42rem;
+  padding: 2rem 1.25rem;
+  text-align: center;
 }
 
 .error-page__visual {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 12rem;
-    height: 12rem;
-    margin-bottom: 1.5rem;
-    border-radius: 50%;
-    background-color: rgba(210, 166, 72, 0.12);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12rem;
+  height: 12rem;
+  margin-bottom: 1.5rem;
+  border-radius: 50%;
+  background-color: rgba(210, 166, 72, 0.12);
 }
 
 .error-page__icon {
-    font-size: 4rem;
-    line-height: 1;
+  font-size: 4rem;
+  line-height: 1;
 }
 
 .error-page__code {
-    margin: 0;
-    font-size: clamp(4.5rem, 18vw, 9rem);
-    font-weight: 700;
-    line-height: 0.9;
-    letter-spacing: -0.05em;
-    color: rgba(65, 50, 30, 0.14);
+  margin: 0;
+  font-size: clamp(4.5rem, 18vw, 9rem);
+  font-weight: 700;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+  color: rgba(65, 50, 30, 0.14);
 }
 
 .error-page__title {
-    margin-top: 1.5rem;
-    margin-bottom: 0.75rem;
-    font-size: clamp(1.5rem, 5vw, 2.25rem);
-    font-weight: 700;
-    color: #2f2a24;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-size: clamp(1.5rem, 5vw, 2.25rem);
+  font-weight: 700;
+  color: #2f2a24;
 }
 
 .error-page__message {
-    max-width: 34rem;
-    margin-right: auto;
-    margin-bottom: 1.75rem;
-    margin-left: auto;
-    color: #6c6862;
-    line-height: 1.7;
+  max-width: 34rem;
+  margin-right: auto;
+  margin-bottom: 1.75rem;
+  margin-left: auto;
+  color: #6c6862;
+  line-height: 1.7;
 }
 
 .error-page__actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    align-items: stretch;
-    justify-content: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: stretch;
+  justify-content: center;
 }
 
 .error-page__footer {
-    flex: 0 0 auto;
-    padding: 1.25rem;
-    text-align: center;
-    color: #77716a;
-    font-size: 0.875rem;
+  flex: 0 0 auto;
+  padding: 1.25rem;
+  text-align: center;
+  color: #77716a;
+  font-size: 0.875rem;
 }
 
 @media (min-width: 576px) {
-    .error-page__card {
-        padding: 3rem 2rem;
-    }
+  .error-page__card {
+    padding: 3rem 2rem;
+  }
 
-    .error-page__actions {
-        flex-direction: row;
-        align-items: center;
-    }
+  .error-page__actions {
+    flex-direction: row;
+    align-items: center;
+  }
 }
-
