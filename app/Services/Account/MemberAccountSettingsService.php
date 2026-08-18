@@ -86,6 +86,23 @@ final class MemberAccountSettingsService
                 $user['is_paid']
                     ?? false
             ),
+
+            /*
+            * A non-null prelaunch profile link authoritatively identifies
+            * an account created through prelaunch migration.
+            */
+            'requiresMigratedPasswordSetup' =>
+            is_numeric(
+                $user['prelaunch_profile_id']
+                    ?? null
+            )
+                && (int) $user['prelaunch_profile_id'] > 0
+                && trim(
+                    (string) (
+                        $user['password_hash']
+                        ?? ''
+                    )
+                ) === '',
         ];
     }
 

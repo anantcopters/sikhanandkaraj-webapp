@@ -248,16 +248,28 @@ $this->section('content');
                             <p class="mb-0 text-muted">
                                 Remember your password?
 
-                                <a
-                                    href="<?= esc(
+                            <form
+                                action="<?= esc(
                                             $cancelAction,
                                             'attr'
                                         ) ?>"
-                                    class="fw-semibold
-                                        text-primary
-                                        text-decoration-underline">
+                                method="post"
+                                class="mt-4 text-center">
+
+                                <?= csrf_field() ?>
+
+                                <span class="text-muted">
+                                    Remember your password?
+                                </span>
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-link p-0
+            fw-semibold text-primary
+            text-decoration-underline">
                                     Back to Login
-                                </a>
+                                </button>
+                            </form>
                             </p>
                         </div>
 

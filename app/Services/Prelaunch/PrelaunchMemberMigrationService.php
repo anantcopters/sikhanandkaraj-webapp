@@ -429,7 +429,7 @@ final class PrelaunchMemberMigrationService
                  * config password is stored
                  */
                 'password_hash' =>
-                $this->createMigratedMemberPasswordHash(),
+                null,
 
                 /*
                  * Business requirement:
@@ -467,49 +467,6 @@ final class PrelaunchMemberMigrationService
         }
 
         return (int) $memberId;
-    }
-
-    /**
-     * Create the secure password hash required for an ACTIVE migrated account.
-     *
-     * The plain password comes from environment configuration. It must never be
-     * returned, logged, added to audit metadata, or stored outside password_hash.
-     */
-    private function createMigratedMemberPasswordHash(): string
-    {
-        $plainPassword = trim(
-            $this->configuration
-                ->migratedMemberDefaultPassword
-        );
-
-        if ($plainPassword === '') {
-            throw new RuntimeException(
-                'The default migrated-member password is not configured.'
-            );
-        }
-
-        /*
-     * Keep this aligned with the normal registration password requirements.
-     */
-        if (strlen($plainPassword) < 8) {
-            throw new RuntimeException(
-                'The configured migrated-member password must '
-                    . 'contain at least 8 characters.'
-            );
-        }
-
-        $passwordHash = password_hash(
-            $plainPassword,
-            PASSWORD_DEFAULT
-        );
-
-        if (!is_string($passwordHash)) {
-            throw new RuntimeException(
-                'The migrated-member password could not be secured.'
-            );
-        }
-
-        return $passwordHash;
     }
 
     /**

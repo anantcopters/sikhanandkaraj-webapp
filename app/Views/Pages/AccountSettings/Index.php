@@ -14,6 +14,9 @@ use App\Support\DateDisplay;
  * @var array<string, mixed>|null $formAlert
  * @var array<string, mixed>|null $accountNotice
  */
+/**
+ * @var bool $isMigratedPrelaunchMember
+ */
 
 $profileReports =
     isset($profileReports)
@@ -73,9 +76,16 @@ $accountNotice = isset($accountNotice)
     ? $accountNotice
     : null;
 
+$requiresMigratedPasswordSetup =
+    ($requiresMigratedPasswordSetup ?? false)
+    === true;
+
 $menuItems = [
     'password' => [
-        'label' => 'Change Password',
+        'label' =>
+        $requiresMigratedPasswordSetup
+            ? 'Set Password'
+            : 'Change Password',
         'icon' => 'ri-lock-password-line',
     ],
     'email' => [
@@ -180,226 +190,279 @@ $this->section('content');
                         ): ?>
 
                             <h2 class="fs-18 fw-semibold">
-                                Change Password
+                                <?= $requiresMigratedPasswordSetup
+                                    ? 'Set Password'
+                                    : 'Change Password' ?>
                             </h2>
 
                             <p class="text-muted fs-13">
-                                Use your current password to protect
-                                this account change.
+                                <?= $requiresMigratedPasswordSetup
+                                    ? 'Set your first password securely using your verified mobile number.'
+                                    : 'Use your current password to protect this account change.' ?>
                             </p>
 
-                            <form
-                                method="post"
-                                action="<?= route_to(
-                                            'web.account.settings.password'
-                                        ) ?>"
-                                data-validate
-                                data-account-password-form
-                                data-submit-loader
-                                novalidate>
+                            <?php if ($requiresMigratedPasswordSetup): ?>
+                                <div class="alert alert-light border mb-4">
+                                    <h3 class="fs-16 fw-semibold mb-2 color-pink">
+                                        Created during prelaunch?
+                                    </h3>
 
-                                <?= csrf_field() ?>
+                                    <p class="fs-13 mb-2">
+                                        If you have not set a password or do not
+                                        know your current password, use Forgot
+                                        Password with your registered mobile
+                                        number or verified email address.
+                                    </p>
 
-                                <div class="mb-3">
-                                    <label
-                                        for="currentPassword"
-                                        class="form-label">
+                                    <ol class="fs-13 text-muted ps-3 mb-3">
+                                        <li class="mb-1">
+                                            Open Forgot Password.
+                                        </li>
+                                        <li class="mb-1">
+                                            Enter your registered mobile number
+                                            or verified email address.
+                                        </li>
+                                        <li class="mb-1">
+                                            Verify the OTP sent to your verified
+                                            mobile number.
+                                        </li>
+                                        <li>
+                                            Create and confirm your new password.
+                                        </li>
+                                    </ol>
 
-                                        Current Password
-                                    </label>
+                                    <a
+                                        href="<?= esc(
+                                                    route_to(
+                                                        'web.forgot-password'
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
+                                        class="btn btn-outline-danger fs-14 fw-semibold">
+                                        <i
+                                            class="ri-key-2-line me-1"
+                                            aria-hidden="true">
+                                        </i>
+                                        Set Password Using OTP
+                                    </a>
+                                </div>
+                            <?php else: ?>
+                                <!-- Existing Change Password form -->
+                                <form
+                                    method="post"
+                                    action="<?= route_to(
+                                                'web.account.settings.password'
+                                            ) ?>"
+                                    data-validate
+                                    data-account-password-form
+                                    data-submit-loader
+                                    novalidate>
 
-                                    <div class="password-field">
-                                        <input
-                                            type="password"
-                                            id="currentPassword"
-                                            name="current_password"
-                                            class="form-control
+                                    <?= csrf_field() ?>
+
+                                    <div class="mb-3">
+                                        <label
+                                            for="currentPassword"
+                                            class="form-label">
+
+                                            Current Password
+                                        </label>
+
+                                        <div class="password-field">
+                                            <input
+                                                type="password"
+                                                id="currentPassword"
+                                                name="current_password"
+                                                class="form-control
                     password-field__input
                     <?= isset(
-                                $errors['current_password']
-                            )
-                                ? 'is-invalid'
-                                : '' ?>"
-                                            maxlength="128"
-                                            autocomplete="current-password"
-                                            data-error-required="Please enter your current password."
-                                            data-error-maxlength="The current password is invalid."
-                                            required>
+                                    $errors['current_password']
+                                )
+                                    ? 'is-invalid'
+                                    : '' ?>"
+                                                maxlength="128"
+                                                autocomplete="current-password"
+                                                data-error-required="Please enter your current password."
+                                                data-error-maxlength="The current password is invalid."
+                                                required>
 
-                                        <button
-                                            type="button"
-                                            class="password-field__toggle"
-                                            data-password-toggle="currentPassword"
-                                            aria-label="Show password">
+                                            <button
+                                                type="button"
+                                                class="password-field__toggle"
+                                                data-password-toggle="currentPassword"
+                                                aria-label="Show password">
 
-                                            <span
-                                                class="mdi mdi-eye-off-outline"
-                                                aria-hidden="true">
-                                            </span>
-                                        </button>
-                                    </div>
+                                                <span
+                                                    class="mdi mdi-eye-off-outline"
+                                                    aria-hidden="true">
+                                                </span>
+                                            </button>
+                                        </div>
 
-                                    <div
-                                        class="invalid-feedback
+                                        <div
+                                            class="invalid-feedback
                 <?= isset($errors['current_password'])
-                                ? 'd-block'
-                                : '' ?>"
-                                        data-validation-error="current_password">
+                                    ? 'd-block'
+                                    : '' ?>"
+                                            data-validation-error="current_password">
 
-                                        <?= esc(
-                                            $errors['current_password']
-                                                ?? ''
-                                        ) ?>
+                                            <?= esc(
+                                                $errors['current_password']
+                                                    ?? ''
+                                            ) ?>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div class="mb-3">
-                                    <label
-                                        for="newPassword"
-                                        class="form-label">
+                                    <div class="mb-3">
+                                        <label
+                                            for="newPassword"
+                                            class="form-label">
 
-                                        New Password
-                                    </label>
+                                            New Password
+                                        </label>
 
-                                    <div class="password-field">
-                                        <input
-                                            type="password"
-                                            id="newPassword"
-                                            name="password"
-                                            class="form-control
+                                        <div class="password-field">
+                                            <input
+                                                type="password"
+                                                id="newPassword"
+                                                name="password"
+                                                class="form-control
                     password-field__input
                     <?= isset($errors['password'])
-                                ? 'is-invalid'
-                                : '' ?>"
-                                            minlength="10"
-                                            maxlength="128"
-                                            pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{10,128}"
-                                            autocomplete="new-password"
-                                            data-error-required="Please enter a new password."
-                                            data-error-minlength="Password must contain at least 10 characters."
-                                            data-error-maxlength="Password cannot exceed 128 characters."
-                                            data-error-pattern="Use uppercase, lowercase, number and special character."
-                                            required>
+                                    ? 'is-invalid'
+                                    : '' ?>"
+                                                minlength="10"
+                                                maxlength="128"
+                                                pattern="(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[^A-Za-z0-9]).{10,128}"
+                                                autocomplete="new-password"
+                                                data-error-required="Please enter a new password."
+                                                data-error-minlength="Password must contain at least 10 characters."
+                                                data-error-maxlength="Password cannot exceed 128 characters."
+                                                data-error-pattern="Use uppercase, lowercase, number and special character."
+                                                required>
 
-                                        <button
-                                            type="button"
-                                            class="password-field__toggle"
-                                            data-password-toggle="newPassword"
-                                            aria-label="Show password">
+                                            <button
+                                                type="button"
+                                                class="password-field__toggle"
+                                                data-password-toggle="newPassword"
+                                                aria-label="Show password">
 
-                                            <span
-                                                class="mdi mdi-eye-off-outline"
-                                                aria-hidden="true">
-                                            </span>
-                                        </button>
-                                    </div>
+                                                <span
+                                                    class="mdi mdi-eye-off-outline"
+                                                    aria-hidden="true">
+                                                </span>
+                                            </button>
+                                        </div>
 
-                                    <div
-                                        class="invalid-feedback
+                                        <div
+                                            class="invalid-feedback
                 <?= isset($errors['password'])
-                                ? 'd-block'
-                                : '' ?>"
-                                        data-validation-error="password">
+                                    ? 'd-block'
+                                    : '' ?>"
+                                            data-validation-error="password">
 
-                                        <?= esc(
-                                            $errors['password']
-                                                ?? ''
-                                        ) ?>
+                                            <?= esc(
+                                                $errors['password']
+                                                    ?? ''
+                                            ) ?>
+                                        </div>
+
+                                        <div class="form-text color-pink">
+                                            Use at least 10 characters with uppercase,
+                                            lowercase, number and special character.
+                                        </div>
                                     </div>
 
-                                    <div class="form-text color-pink">
-                                        Use at least 10 characters with uppercase,
-                                        lowercase, number and special character.
-                                    </div>
-                                </div>
+                                    <div class="mb-4">
+                                        <label
+                                            for="passwordConfirmation"
+                                            class="form-label">
 
-                                <div class="mb-4">
-                                    <label
-                                        for="passwordConfirmation"
-                                        class="form-label">
+                                            Confirm New Password
+                                        </label>
 
-                                        Confirm New Password
-                                    </label>
-
-                                    <div class="password-field">
-                                        <input
-                                            type="password"
-                                            id="passwordConfirmation"
-                                            name="password_confirmation"
-                                            class="form-control
+                                        <div class="password-field">
+                                            <input
+                                                type="password"
+                                                id="passwordConfirmation"
+                                                name="password_confirmation"
+                                                class="form-control
                     password-field__input
                     <?= isset(
-                                $errors['password_confirmation']
-                            )
-                                ? 'is-invalid'
-                                : '' ?>"
-                                            maxlength="128"
-                                            autocomplete="new-password"
-                                            data-error-required="Please confirm the new password."
-                                            data-error-password-match="The passwords do not match."
-                                            required>
+                                    $errors['password_confirmation']
+                                )
+                                    ? 'is-invalid'
+                                    : '' ?>"
+                                                maxlength="128"
+                                                autocomplete="new-password"
+                                                data-error-required="Please confirm the new password."
+                                                data-error-password-match="The passwords do not match."
+                                                required>
 
-                                        <button
-                                            type="button"
-                                            class="password-field__toggle"
-                                            data-password-toggle="passwordConfirmation"
-                                            aria-label="Show password">
+                                            <button
+                                                type="button"
+                                                class="password-field__toggle"
+                                                data-password-toggle="passwordConfirmation"
+                                                aria-label="Show password">
 
-                                            <span
-                                                class="mdi mdi-eye-off-outline"
-                                                aria-hidden="true">
-                                            </span>
-                                        </button>
-                                    </div>
+                                                <span
+                                                    class="mdi mdi-eye-off-outline"
+                                                    aria-hidden="true">
+                                                </span>
+                                            </button>
+                                        </div>
 
-                                    <div
-                                        class="invalid-feedback
+                                        <div
+                                            class="invalid-feedback
                 <?= isset(
-                                $errors['password_confirmation']
-                            )
-                                ? 'd-block'
-                                : '' ?>"
-                                        data-validation-error="password_confirmation">
+                                    $errors['password_confirmation']
+                                )
+                                    ? 'd-block'
+                                    : '' ?>"
+                                            data-validation-error="password_confirmation">
 
-                                        <?= esc(
-                                            $errors['password_confirmation']
-                                                ?? ''
-                                        ) ?>
+                                            <?= esc(
+                                                $errors['password_confirmation']
+                                                    ?? ''
+                                            ) ?>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div class="d-flex justify-content-end">
-                                    <button
-                                        type="submit"
-                                        class="btn
+                                    <div class="d-flex justify-content-end">
+                                        <button
+                                            type="submit"
+                                            class="btn
                 registration-form__submit
                 fs-14
                 fw-semibold w-25 text-uppercase"
-                                        data-submit-button>
+                                            data-submit-button>
 
-                                        <span data-submit-idle>
-                                            <i
-                                                class="ri-save-line me-1 fw-medium"
-                                                aria-hidden="true">
-                                            </i>
+                                            <span data-submit-idle>
+                                                <i
+                                                    class="ri-save-line me-1 fw-medium"
+                                                    aria-hidden="true">
+                                                </i>
 
-                                            Change Password
-                                        </span>
-
-                                        <span
-                                            class="registration-submit__loading d-none"
-                                            data-submit-loading>
-
-                                            <span
-                                                class="spinner-border spinner-border-sm"
-                                                aria-hidden="true">
+                                                Change Password
                                             </span>
 
-                                            Saving...
-                                        </span>
-                                    </button>
-                                </div>
-                            </form>
+                                            <span
+                                                class="registration-submit__loading d-none"
+                                                data-submit-loading>
+
+                                                <span
+                                                    class="spinner-border spinner-border-sm"
+                                                    aria-hidden="true">
+                                                </span>
+
+                                                Saving...
+                                            </span>
+                                        </button>
+                                    </div>
+                                </form>
+                            <?php endif; ?>
+
+
 
                         <?php elseif (
                             $activeSection === 'email'
