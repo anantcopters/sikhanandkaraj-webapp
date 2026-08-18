@@ -36,8 +36,10 @@ final class MemberProfilePresentationService
      *     name:string,
      *     age:int|null,
      *     height:string,
+     *     country:string,
      *     city:string,
      *     state:string,
+     *     location:string,
      *     maritalStatus:string,
      *     image:string,
      *     profileUrl:string
@@ -137,6 +139,36 @@ final class MemberProfilePresentationService
                 canViewFullName: $canViewFullName
             );
 
+        $country =
+            trim(
+                (string) (
+                    $member['country_name']
+                    ?? ''
+                )
+            );
+
+        $city =
+            trim(
+                (string) (
+                    $member['city_name']
+                    ?? ''
+                )
+            );
+
+        $locationParts =
+            array_values(
+                array_filter(
+                    [
+                        $country,
+                        $city,
+                    ],
+                    static fn(
+                        string $part
+                    ): bool =>
+                    $part !== ''
+                )
+            );
+
         return [
             'referenceId' =>
             $profileReference,
@@ -158,13 +190,12 @@ final class MemberProfilePresentationService
                 )
             ),
 
+
+            'country' =>
+            $country,
+
             'city' =>
-            trim(
-                (string) (
-                    $member['city_name']
-                    ?? ''
-                )
-            ),
+            $city,
 
             'state' =>
             trim(
@@ -172,6 +203,23 @@ final class MemberProfilePresentationService
                     $member['state_name']
                     ?? ''
                 )
+            ),
+
+            /*
+            * Shared presentation value used by Thumbnail, Search Card
+            * and Interest Card.
+            *
+            * Examples:
+            * India, Kota
+            * Canada, Toronto
+            *
+            * If either value is unavailable, the available value is shown
+            * without leaving an extra comma.
+            */
+            'location' =>
+            implode(
+                ', ',
+                $locationParts
             ),
 
             'maritalStatus' =>

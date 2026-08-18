@@ -45,6 +45,14 @@ $city = trim(
     )
 );
 
+$location =
+    trim(
+        (string) (
+            $profile['location']
+            ?? $city
+        )
+    );
+
 $image = trim(
     (string) (
         $profile['image']
@@ -142,7 +150,7 @@ $matchPercentage =
 
                 <?php if (
                     $age !== null
-                    && $city !== ''
+                    && $location !== ''
                 ): ?>
 
                     <span aria-hidden="true">
@@ -152,11 +160,11 @@ $matchPercentage =
                 <?php endif; ?>
 
                 <?php if (
-                    $city !== ''
+                    $location !== ''
                 ): ?>
 
                     <?= esc(
-                        $city
+                        $location
                     ) ?>
 
                 <?php endif; ?>

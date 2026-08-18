@@ -151,9 +151,16 @@ $canShowInterest =
     ) === true;
 
 $location =
-    $city !== ''
-    ? $city
-    : $state;
+    trim(
+        (string) (
+            $profile['location']
+            ?? (
+                $city !== ''
+                ? $city
+                : $state
+            )
+        )
+    );
 
 /*
  * Relationship status is intentionally coarse.

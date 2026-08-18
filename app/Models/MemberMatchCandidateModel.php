@@ -762,6 +762,7 @@ final class MemberMatchCandidateModel extends Model
             'bd.state_id',
             'bd.city_id',
 
+            'country.name AS country_name',
             'city.name AS city_name',
 
             'ep.highest_education_id',
@@ -787,6 +788,12 @@ final class MemberMatchCandidateModel extends Model
         $builder->join(
             'member_family_details fd',
             'fd.user_id = u.id',
+            'left'
+        );
+
+        $builder->join(
+            'master_countries country',
+            'country.id = bd.country_id',
             'left'
         );
 

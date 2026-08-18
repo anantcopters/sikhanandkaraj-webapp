@@ -64,6 +64,14 @@ $city = trim(
     )
 );
 
+$location =
+    trim(
+        (string) (
+            $profile['location']
+            ?? $city
+        )
+    );
+
 $age =
     isset($profile['age'])
     && is_numeric(
@@ -270,7 +278,7 @@ $badgeClass =
                     <?php endif; ?>
 
                     <?php if (
-                        $city !== ''
+                        $location !== ''
                     ): ?>
 
                         <span>
@@ -281,7 +289,7 @@ $badgeClass =
                             </i>
 
                             <?= esc(
-                                $city
+                                $location
                             ) ?>
 
                         </span>
