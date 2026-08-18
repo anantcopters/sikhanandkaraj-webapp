@@ -114,6 +114,29 @@ final class MemberProfileReportModel extends Model
     }
 
     /**
+     * Determine whether an administrator-confirmed report globally hides a
+     * reported member from member-facing discovery and profile access.
+     */
+    public function isGloballyHidden(
+        int $reportedUserId
+    ): bool {
+        if ($reportedUserId <= 0) {
+            return false;
+        }
+
+        return $this
+            ->where(
+                'reported_user_id',
+                $reportedUserId
+            )
+            ->where(
+                'status',
+                self::STATUS_ACTION_TAKEN
+            )
+            ->countAllResults() > 0;
+    }
+
+    /**
      * Return reports raised by one authenticated member.
      *
      * @return list<array<string, mixed>>

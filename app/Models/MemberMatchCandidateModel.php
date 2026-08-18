@@ -730,6 +730,12 @@ final class MemberMatchCandidateModel extends Model
         $viewerIdSql =
             (string) $viewerUserId;
 
+        $hiddenReportStatusSql =
+            $this->db->escape(
+                MemberProfileReportModel
+                ::STATUS_ACTION_TAKEN
+            );
+
         $builder = $this->db
             ->table(
                 'users u'
@@ -856,6 +862,24 @@ final class MemberMatchCandidateModel extends Model
             ->where(
                 'blocking_viewer.id',
                 null
+            )
+            /*
+            * An administrator-confirmed report globally hides the reported
+            * profile from every member-facing candidate collection.
+            *
+            * NOT EXISTS avoids duplicate candidates when multiple reports
+            * against the same member reach ACTION_TAKEN.
+            */
+            ->where(
+                'NOT EXISTS ('
+                    . 'SELECT 1 '
+                    . 'FROM member_profile_reports hidden_report '
+                    . 'WHERE hidden_report.reported_user_id = u.id '
+                    . 'AND hidden_report.status = '
+                    . $hiddenReportStatusSql
+                    . ')',
+                null,
+                false
             );
 
         /*

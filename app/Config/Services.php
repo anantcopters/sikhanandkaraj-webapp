@@ -1878,6 +1878,10 @@ final class Services extends BaseService
                 false
             ),
 
+            new MemberProfileReportModel(
+                $database
+            ),
+
             static::memberMatchmakingService(
                 false
             )

@@ -10,6 +10,7 @@ use App\Models\UserContactModel;
 use App\Support\MemberNameVisibility;
 use App\Support\BooleanValue;
 use App\Services\Profile\MemberProfileSummaryService;
+use App\Models\MemberProfileReportModel;
 use App\Support\EmailAddressMasker;
 use App\Exceptions\PaidMembershipRequiredException;
 use App\Support\MobileNumberMasker;
@@ -46,6 +47,9 @@ final class MemberProfileViewService
 
         private readonly MemberInteractionService
         $interactionService,
+
+        private readonly MemberProfileReportModel
+        $profileReportModel,
 
         private readonly MemberMatchmakingService
         $matchmakingService
@@ -597,6 +601,21 @@ final class MemberProfileViewService
                 $targetUserId
             )
         ) {
+            throw PageNotFoundException
+                ::forPageNotFound();
+        }
+
+        if (
+            $this
+            ->profileReportModel
+            ->isGloballyHidden(
+                $targetUserId
+            )
+        ) {
+            /*
+            * Return the same generic 404 used for blocked or unavailable profiles.
+            * Do not reveal report/moderation information to another member.
+            */
             throw PageNotFoundException
                 ::forPageNotFound();
         }
