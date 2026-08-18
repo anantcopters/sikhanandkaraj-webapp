@@ -85,6 +85,15 @@ $currentActivity = strtolower(
 );
 
 /*
+ * Match collections available from the Matches navigation and Dashboard.
+ */
+$matchActivities = [
+    'all-matches',
+    'new-profiles',
+    'shortlisted-by-you',
+];
+
+/*
  * Matches context.
  *
  * Support both:
@@ -103,7 +112,11 @@ $isMatchesContext =
             $currentPath,
             'search/'
         )
-        && $currentActivity === 'all-matches'
+        && in_array(
+            $currentActivity,
+            $matchActivities,
+            true
+        )
     );
 
 $homeActive =

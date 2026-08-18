@@ -217,6 +217,39 @@ and the member must log in using the new password.
 
 **Last result:** NOT RUN
 
+### REG-MATCH-005 - Dashboard Match View All navigation
+**Origin:** Member Dashboard and Matches navigation
+
+**Expected:** All Matches, New Matches and Profiles Shortlisted By You display a
+View All action at the top-right of their Dashboard section.
+
+All Matches opens the existing `web.matches` destination. New Matches opens
+Search Results with `activity=new-profiles`. Profiles Shortlisted By You opens
+Search Results with `activity=shortlisted-by-you`.
+
+Each destination uses the existing Match/Search service collection and does not
+create a separate profile query. The Matches header remains active for all three
+destinations. View All remains available when the Dashboard preview collection
+is empty, while carousel controls appear only when more than one preview profile
+exists.
+
+**Required cases:**
+
+1. All Matches View All opens the complete All Matches collection.
+2. New Matches View All opens only preference-qualified recent profiles.
+3. Shortlisted By You opens only profiles shortlisted by the signed-in member.
+4. Query-string manipulation is processed through the existing activity
+   allowlist.
+5. Blocked and admin-actioned reported members remain excluded.
+6. The Matches header is active for all three destinations.
+7. View All remains usable when a Dashboard section has zero profiles.
+8. Desktop and mobile section headers remain aligned.
+9. Keyboard focus and link labels are accessible.
+
+**Automation:** Integration/manual pending automation
+
+**Last result:** NOT RUN
+
 ## Retired cases
 
 Keep retired cases here or retain their original section with status `RETIRED` and the reason. Do not erase regression history without explanation.

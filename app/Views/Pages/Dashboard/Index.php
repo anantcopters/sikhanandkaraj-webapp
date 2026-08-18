@@ -203,20 +203,29 @@ $isProfileComplete =
     $completionPercentage >= 100;
 
 /*
- * Combine the separate service datasets into presentation sections.
+ * Existing Match/Search result destinations.
  *
- * The service remains responsible for retrieving records. The view only
- * controls labels, descriptions and display ordering.
+ * Dashboard sections only provide presentation links. Search and Match
+ * services remain authoritative for retrieving and filtering profiles.
  */
+$searchResultsUrl = route_to(
+    'web.search.results'
+);
+
 $matchSections = [
     [
-        'key' => 'all-matches',
+        'key' =>
+        'all-matches',
 
-        'title' => 'All Matches',
+        'title' =>
+        'All Matches',
 
         'description' =>
         'Profiles matching at least '
-            . (int) ($minimumMatchPercentage ?? 30)
+            . (int) (
+                $minimumMatchPercentage
+                ?? 30
+            )
             . '% of the partner preferences you have set.',
 
         'profiles' =>
@@ -224,16 +233,30 @@ $matchSections = [
 
         'emptyMessage' =>
         'No matching profiles are available yet.',
+
+        /*
+         * The existing Matches route redirects to the complete All Matches
+         * collection through the shared Search Results pipeline.
+         */
+        'viewAllUrl' =>
+        route_to(
+            'web.matches'
+        ),
     ],
 
     [
-        'key' => 'new-matches',
+        'key' =>
+        'new-matches',
 
-        'title' => 'New Matches',
+        'title' =>
+        'New Matches',
 
         'description' =>
         'Preference-matched members who joined within the last '
-            . (int) ($newMatchDays ?? 30)
+            . (int) (
+                $newMatchDays
+                ?? 30
+            )
             . ' days.',
 
         'profiles' =>
@@ -241,42 +264,26 @@ $matchSections = [
 
         'emptyMessage' =>
         'No new matches are available yet.',
+
+        /*
+         * MemberSearchService resolves new-profiles from the existing
+         * dashboardCollections()['newMatches'] collection.
+         */
+        'viewAllUrl' =>
+        $searchResultsUrl
+            . '?'
+            . http_build_query([
+                'activity' =>
+                'new-profiles',
+            ]),
     ],
 
-    // [
-    //     'key' => 'interest-received',
-
-    //     'title' => 'Interested in You',
-
-    //     'description' =>
-    //     'Members who have shown interest in your profile.',
-
-    //     'profiles' =>
-    //     $interestReceived ?? [],
-
-    //     'emptyMessage' =>
-    //     'No member has shown interest in your profile yet.',
-    // ],
-
-    // [
-    //     'key' => 'interest-sent',
-
-    //     'title' => 'Interests Sent',
-
-    //     'description' =>
-    //     'Members you have shown interest in.',
-
-    //     'profiles' =>
-    //     $interestSent ?? [],
-
-    //     'emptyMessage' =>
-    //     'You have not shown interest in any member yet.',
-    // ],
-
     [
-        'key' => 'profiles-shortlisted-by-you',
+        'key' =>
+        'profiles-shortlisted-by-you',
 
-        'title' => 'Profiles Shortlisted By You',
+        'title' =>
+        'Profiles Shortlisted By You',
 
         'description' =>
         'Profiles you have saved to your shortlist.',
@@ -286,12 +293,22 @@ $matchSections = [
 
         'emptyMessage' =>
         'You have not shortlisted any profile yet.',
+
+        'viewAllUrl' =>
+        $searchResultsUrl
+            . '?'
+            . http_build_query([
+                'activity' =>
+                'shortlisted-by-you',
+            ]),
     ],
 
     [
-        'key' => 'who-shortlisted-you',
+        'key' =>
+        'who-shortlisted-you',
 
-        'title' => 'Who Shortlisted You',
+        'title' =>
+        'Who Shortlisted You',
 
         'description' =>
         'Members who have added your profile to their shortlist.',
@@ -301,12 +318,20 @@ $matchSections = [
 
         'emptyMessage' =>
         'No member has shortlisted your profile yet.',
+
+        /*
+         * No View All requested for this section.
+         */
+        'viewAllUrl' =>
+        '',
     ],
 
     [
-        'key' => 'profile-visitors',
+        'key' =>
+        'profile-visitors',
 
-        'title' => 'Who Viewed Your Profile',
+        'title' =>
+        'Who Viewed Your Profile',
 
         'description' =>
         'Members who have viewed your profile.',
@@ -316,12 +341,20 @@ $matchSections = [
 
         'emptyMessage' =>
         'Your profile has not been viewed yet.',
+
+        /*
+         * No View All requested for this section.
+         */
+        'viewAllUrl' =>
+        '',
     ],
 
     [
-        'key' => 'profiles-viewed',
+        'key' =>
+        'profiles-viewed',
 
-        'title' => 'Profiles You Viewed',
+        'title' =>
+        'Profiles You Viewed',
 
         'description' =>
         'Profiles you have viewed recently.',
@@ -331,6 +364,12 @@ $matchSections = [
 
         'emptyMessage' =>
         'You have not viewed another profile yet.',
+
+        /*
+         * No View All requested for this section.
+         */
+        'viewAllUrl' =>
+        '',
     ],
 ];
 ?>
@@ -1118,6 +1157,13 @@ $matchSections = [
                             )
                         )
                     ) ?? 'profiles';
+
+                    $sectionViewAllUrl = trim(
+                        (string) (
+                            $section['viewAllUrl']
+                            ?? ''
+                        )
+                    );
                     ?>
 
                     <!--
@@ -1177,45 +1223,103 @@ $matchSections = [
                                     > 1
                                 ): ?>
 
-                                    <div
-                                        class="d-flex
-                            align-items-center
-                            gap-1 flex-shrink-0">
+                                    <?php if (
+                                        $sectionViewAllUrl !== ''
+                                        || count($sectionProfiles) > 1
+                                    ): ?>
 
-                                        <button
-                                            type="button"
-                                            class="btn btn-light
-                                btn-sm btn-icon"
-                                            aria-label="Previous profiles"
-                                            data-profile-scroll-previous
-                                            data-profile-scroll-target="<?= esc(
-                                                                            $sectionKey,
-                                                                            'attr'
-                                                                        ) ?>">
+                                        <div
+                                            class="d-flex
+            align-items-center
+            gap-2 flex-shrink-0">
 
-                                            <i
-                                                class="ri-arrow-left-s-line"
-                                                aria-hidden="true">
-                                            </i>
-                                        </button>
+                                            <?php if (
+                                                $sectionViewAllUrl !== ''
+                                            ): ?>
 
-                                        <button
-                                            type="button"
-                                            class="btn btn-light
-                                btn-sm btn-icon"
-                                            aria-label="Next profiles"
-                                            data-profile-scroll-next
-                                            data-profile-scroll-target="<?= esc(
-                                                                            $sectionKey,
-                                                                            'attr'
-                                                                        ) ?>">
+                                                <a
+                                                    href="<?= esc(
+                                                                $sectionViewAllUrl,
+                                                                'attr'
+                                                            ) ?>"
+                                                    class="btn btn-outline-primary
+                    btn-sm d-inline-flex
+                    align-items-center gap-1">
 
-                                            <i
-                                                class="ri-arrow-right-s-line"
-                                                aria-hidden="true">
-                                            </i>
-                                        </button>
-                                    </div>
+                                                    <span>
+                                                        View All
+                                                    </span>
+
+                                                    <i
+                                                        class="ri-arrow-right-line"
+                                                        aria-hidden="true">
+                                                    </i>
+                                                </a>
+
+                                            <?php endif; ?>
+
+                                            <?php if (
+                                                count($sectionProfiles) > 1
+                                            ): ?>
+
+                                                <div
+                                                    class="d-flex
+                    align-items-center gap-1">
+
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-light
+                        btn-sm btn-icon"
+                                                        aria-label="<?= esc(
+                                                                        'Previous '
+                                                                            . (
+                                                                                $section['title']
+                                                                                ?? 'profiles'
+                                                                            ),
+                                                                        'attr'
+                                                                    ) ?>"
+                                                        data-profile-scroll-previous
+                                                        data-profile-scroll-target="<?= esc(
+                                                                                        $sectionKey,
+                                                                                        'attr'
+                                                                                    ) ?>">
+
+                                                        <i
+                                                            class="ri-arrow-left-s-line"
+                                                            aria-hidden="true">
+                                                        </i>
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-light
+                        btn-sm btn-icon"
+                                                        aria-label="<?= esc(
+                                                                        'Next '
+                                                                            . (
+                                                                                $section['title']
+                                                                                ?? 'profiles'
+                                                                            ),
+                                                                        'attr'
+                                                                    ) ?>"
+                                                        data-profile-scroll-next
+                                                        data-profile-scroll-target="<?= esc(
+                                                                                        $sectionKey,
+                                                                                        'attr'
+                                                                                    ) ?>">
+
+                                                        <i
+                                                            class="ri-arrow-right-s-line"
+                                                            aria-hidden="true">
+                                                        </i>
+                                                    </button>
+                                                </div>
+
+                                            <?php endif; ?>
+
+                                        </div>
+
+                                    <?php endif; ?>
 
                                 <?php endif; ?>
                             </div>
