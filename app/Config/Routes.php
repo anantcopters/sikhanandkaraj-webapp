@@ -311,35 +311,35 @@ $routes->group(
 // Member web routes
 // -----------------------------------------------------------------------------
 
-if (env('APP_DEPLOYMENT', 'development') === 'production') {
+// if (env('APP_DEPLOYMENT', 'development') === 'production') {
 
-    $prelaunchRedirect = static function () {
-        return redirect()->to(
-            site_url('prelaunch/profile')
-        );
-    };
+//     $prelaunchRedirect = static function () {
+//         return redirect()->to(
+//             site_url('prelaunch/profile')
+//         );
+//     };
 
-    $routes->get(
-        '/',
-        $prelaunchRedirect,
-        [
-            'as' => 'web.home',
-        ]
-    );
+//     $routes->get(
+//         '/',
+//         $prelaunchRedirect,
+//         [
+//             'as' => 'web.home',
+//         ]
+//     );
 
-    $routes->get(
-        'login',
-        $prelaunchRedirect,
-        [
-            'as' => 'web.login',
-        ]
-    );
+//     $routes->get(
+//         'login',
+//         $prelaunchRedirect,
+//         [
+//             'as' => 'web.login',
+//         ]
+//     );
 
-    $routes->get(
-        'register',
-        $prelaunchRedirect
-    );
-} else {
+//     $routes->get(
+//         'register',
+//         $prelaunchRedirect
+//     );
+// } else {
 
     $routes->group('', [
         'namespace' => 'App\Controllers\Web',
@@ -1199,7 +1199,7 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
             ]
         );
     });
-}
+//}
 
 // -----------------------------------------------------------------------------
 // Administrator routes
