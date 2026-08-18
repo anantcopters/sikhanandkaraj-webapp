@@ -132,6 +132,17 @@ $accountType = trim(
 );
 
 /*
+ * The shared presentation service decides whether to use the sentence or
+ * compact professional-summary format.
+ */
+$professionalSummary = trim(
+    (string) (
+        $profile['professionalSummary']
+        ?? ''
+    )
+);
+
+/*
  * Verification values are normalized to booleans by the backend
  * presentation service.
  */
@@ -188,7 +199,7 @@ $relationshipLabel =
 ?>
 
 <article
-    class="card h-100 border border-danger
+    class="card h-95 border border-danger
         border-opacity-25 shadow-sm
         overflow-hidden">
 
@@ -198,12 +209,12 @@ $relationshipLabel =
             class="d-flex flex-column
                 flex-sm-row gap-3">
 
-            <!-- Profile photo -->
-            <!-- Profile photo and account type -->
+            <!-- Profile photo, account type and professional summary -->
             <div
                 class="d-flex flex-column
         align-items-center
-        flex-shrink-0">
+        flex-shrink-0"
+                style="width: 160px;">
 
                 <a
                     href="<?= esc(
@@ -243,7 +254,8 @@ $relationshipLabel =
                 mt-3 px-2 py-2 fs-12">
 
                         <i
-                            class="ri-vip-crown-line me-1 fs-14"
+                            class="ri-vip-crown-line
+                    me-1 fs-14"
                             aria-hidden="true">
                         </i>
 
@@ -533,8 +545,25 @@ $relationshipLabel =
                 </div>
 
             </div>
-        </div>
 
+
+        </div>
+        <?php if (
+            $professionalSummary !== ''
+        ): ?>
+
+            <p
+                class="text-body
+            fs-13
+            mt-3 mb-0">
+
+                <?= esc(
+                    $professionalSummary
+                ) ?>
+
+            </p>
+
+        <?php endif; ?>
     </div>
 
     <?= view(

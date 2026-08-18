@@ -82,7 +82,7 @@ $verifiedItems = array_values(
 
     <div
         class="border-top
-            px-3 px-md-4 py-2 bg-dark-subtle align-text-center">
+            px-3 px-md-4 py-3 bg-dark-subtle align-text-center">
 
         <div
             class="d-flex flex-nowrap

@@ -50,6 +50,7 @@ final class MemberProfilePresentationService
      *     location:string,
      *     maritalStatus:string,
      *     accountType:string,
+     *     professionalSummary:string,
      *     verification:array{
      *         mobile:bool,
      *         email:bool,
@@ -184,6 +185,34 @@ final class MemberProfilePresentationService
                 )
             );
 
+        $education = trim(
+            (string) (
+                $member['education_name']
+                ?? ''
+            )
+        );
+
+        $occupation = trim(
+            (string) (
+                $member['occupation_name']
+                ?? ''
+            )
+        );
+
+        $employedIn = $this->employmentLabel(
+            $member['employed_in']
+                ?? null
+        );
+
+        $professionalSummary =
+            $this->professionalSummary(
+                education: $education,
+
+                occupation: $occupation,
+
+                employedIn: $employedIn
+            );
+
         return [
             'referenceId' =>
             $profileReference,
@@ -295,7 +324,116 @@ final class MemberProfilePresentationService
                 'web.members.view',
                 $profileReference
             ),
+
+            /*
+            * Education, occupation and employment are formatted once so ProfileCard
+            * and ProfileInterestCard always follow the same display rules.
+            */
+            'professionalSummary' =>
+            $professionalSummary,
         ];
+    }
+
+    /**
+     * Convert the stored employment code into its existing member-facing label.
+     *
+     * Unknown values fail closed instead of exposing an internal code.
+     */
+    private function employmentLabel(
+        mixed $employedIn
+    ): string {
+        $value = mb_strtoupper(
+            trim(
+                (string) $employedIn
+            )
+        );
+
+        return match ($value) {
+            'GOVERNMENT_PSU' =>
+            'Government / PSU',
+
+            'PRIVATE' =>
+            'Private Sector',
+
+            'BUSINESS' =>
+            'Business',
+
+            'DEFENSE' =>
+            'Defense',
+
+            'SELF_EMPLOYED' =>
+            'Self Employed',
+
+            'NOT_WORKING' =>
+            'Not Working',
+
+            default =>
+            '',
+        };
+    }
+
+    /**
+     * Build a card-friendly professional summary.
+     *
+     * When all three values exist, use the sentence version. If one or more
+     * values are unavailable, join only the available values with separators.
+     * If every value is unavailable, return an empty string.
+     */
+    private function professionalSummary(
+        string $education,
+        string $occupation,
+        string $employedIn
+    ): string {
+        $education = trim(
+            $education
+        );
+
+        $occupation = trim(
+            $occupation
+        );
+
+        $employedIn = trim(
+            $employedIn
+        );
+
+        if (
+            $education !== ''
+            && $occupation !== ''
+            && $employedIn !== ''
+        ) {
+            /*
+         * A NOT_WORKING value is inconsistent with a sentence saying that
+         * the member is currently working. Use the compact representation
+         * for this legacy/inconsistent-data corner case.
+         */
+            if ($employedIn !== 'Not Working') {
+                return sprintf(
+                    '%s professional working as %s in %s.',
+                    $education,
+                    $occupation,
+                    $employedIn
+                );
+            }
+        }
+
+        $parts = array_values(
+            array_filter(
+                [
+                    $education,
+                    $occupation,
+                    $employedIn,
+                ],
+                static fn(
+                    string $part
+                ): bool =>
+                $part !== ''
+            )
+        );
+
+        return implode(
+            ' · ',
+            $parts
+        );
     }
 
     /**

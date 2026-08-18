@@ -328,6 +328,42 @@ as verified.
 
 **Last result:** NOT RUN
 
+### REG-MATCH-007 - Profile card account and verification indicators
+**Origin:** Shared member presentation, ProfileCard and ProfileInterestCard
+
+**Expected:** ProfileCard and ProfileInterestCard use the same member-summary
+hierarchy.
+
+Both cards display the backend-supplied Account Type immediately below the
+member photo. Interest status remains at the top-right of ProfileInterestCard.
+
+Both cards render the shared VerificationBadges component outside card-body so
+the verification strip occupies the complete card width. Only successfully
+verified attributes appear.
+
+ProfileInterestCard retains its Interest-specific behaviour:
+
+- Pending received Interest displays Decline and Accept Interest.
+- Sent, accepted and declined Interests display View Profile.
+- All forms retain CSRF protection and the existing submit-loader contract.
+
+**Required cases:**
+
+1. Account Type appears below the image in both card types.
+2. Missing Account Type does not leave empty badge spacing.
+3. Verification strip spans the complete card width.
+4. Verification strip is hidden when no verification is true.
+5. Mobile, Email, Aadhaar and Selfie states match backend values.
+6. Pending received Interest retains Accept and Decline actions.
+7. Non-actionable Interest retains View Profile.
+8. Status badge remains visible at the top-right.
+9. Desktop and mobile layouts remain aligned.
+10. Blocked and admin-hidden reported members remain excluded.
+
+**Automation:** Integration/manual pending automation
+
+**Last result:** NOT RUN
+
 ## Retired cases
 
 Keep retired cases here or retain their original section with status `RETIRED` and the reason. Do not erase regression history without explanation.

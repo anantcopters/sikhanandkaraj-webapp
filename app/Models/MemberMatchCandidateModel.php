@@ -785,8 +785,13 @@ final class MemberMatchCandidateModel extends Model
             'city.name AS city_name',
 
             'ep.highest_education_id',
+            'education.name AS education_name',
+
             'ep.employed_in',
+
             'ep.occupation_id',
+            'occupation.name AS occupation_name',
+
             'ep.annual_income_id',
 
             'fd.community_id',
@@ -825,6 +830,20 @@ final class MemberMatchCandidateModel extends Model
         $builder->join(
             'member_education_profession_details ep',
             'ep.user_id = u.id',
+            'left'
+        );
+
+        $builder->join(
+            'master_educations education',
+            'education.id = '
+                . 'ep.highest_education_id',
+            'left'
+        );
+
+        $builder->join(
+            'master_occupations occupation',
+            'occupation.id = '
+                . 'ep.occupation_id',
             'left'
         );
 
