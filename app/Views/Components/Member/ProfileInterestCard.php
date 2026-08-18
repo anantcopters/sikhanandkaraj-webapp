@@ -99,6 +99,24 @@ $profileUrl = trim(
     )
 );
 
+/*
+ * Both values come from MemberProfilePresentationService.
+ */
+$accountType = trim(
+    (string) (
+        $profile['accountType']
+        ?? ''
+    )
+);
+
+$verification =
+    isset($profile['verification'])
+    && is_array(
+        $profile['verification']
+    )
+    ? $profile['verification']
+    : [];
+
 if ($profileUrl === '') {
     $profileUrl = '#';
 }
@@ -298,6 +316,26 @@ $badgeClass =
 
                 </div>
 
+                <?php if (
+                    $accountType !== ''
+                ): ?>
+
+                    <p class="fs-13 mb-3">
+
+                        <span
+                            class="text-primary
+                fw-semibold">
+
+                            <?= esc(
+                                $accountType
+                            ) ?>
+
+                        </span>
+
+                    </p>
+
+                <?php endif; ?>
+
                 <!-- Interest relationship message -->
                 <p class="fs-13 mb-3">
 
@@ -478,7 +516,13 @@ $badgeClass =
             </div>
 
         </div>
-
+        <?= view(
+            'Components/Member/VerificationBadges',
+            [
+                'verification' =>
+                $verification,
+            ]
+        ) ?>
     </div>
 
 </article>

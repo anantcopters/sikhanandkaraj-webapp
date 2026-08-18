@@ -6,6 +6,7 @@ namespace App\Services\Matchmaking;
 
 use App\Services\Profile\MemberPhotoUrlService;
 use App\Support\MemberNameVisibility;
+use App\Support\BooleanValue;
 use DateTimeImmutable;
 use Throwable;
 
@@ -49,6 +50,12 @@ final class MemberProfilePresentationService
      *     location:string,
      *     maritalStatus:string,
      *     accountType:string,
+     *     verification:array{
+     *         mobile:bool,
+     *         email:bool,
+     *         aadhaar:bool,
+     *         selfie:bool
+     *     },
      *     image:string,
      *     profileUrl:string
      * }|null
@@ -238,22 +245,44 @@ final class MemberProfilePresentationService
                 )
             ),
 
-            'maritalStatus' =>
-            trim(
-                (string) (
-                    $member['marital_status_name']
-                    ?? ''
-                )
-            ),
-
             /*
- * Temporary backend-supplied account type.
- *
- * Replace this value with the member's resolved subscription entitlement
- * when the subscription module becomes authoritative.
- */
+            * Temporary backend-supplied account type.
+            *
+            * Replace this value with the member's resolved subscription entitlement
+            * when the subscription module becomes authoritative.
+            */
             'accountType' =>
             self::DEFAULT_ACCOUNT_TYPE,
+
+            /*
+            * Verification values are normalized in the backend so views never need
+            * to interpret PostgreSQL boolean representations.
+            */
+            'verification' => [
+                'mobile' =>
+                BooleanValue::fromDatabase(
+                    $member['is_mobile_verified']
+                        ?? false
+                ),
+
+                'email' =>
+                BooleanValue::fromDatabase(
+                    $member['is_email_verified']
+                        ?? false
+                ),
+
+                'aadhaar' =>
+                BooleanValue::fromDatabase(
+                    $member['is_aadhaar_verified']
+                        ?? false
+                ),
+
+                'selfie' =>
+                BooleanValue::fromDatabase(
+                    $member['is_selfie_verified']
+                        ?? false
+                ),
+            ],
 
             'image' =>
             $image,

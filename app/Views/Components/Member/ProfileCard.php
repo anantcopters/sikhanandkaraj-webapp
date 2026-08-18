@@ -5,16 +5,11 @@ declare(strict_types=1);
 /**
  * Search profile-card UI variables.
  *
- * @var array<string, mixed> $profile
- */
-
-/*
- * --------------------------------------------------------------------------
- * Normalize view-local profile variables
- * --------------------------------------------------------------------------
+ * Eligibility, blocking, reporting, privacy, Interest state, account type,
+ * verification state and photo authorization are resolved before reaching
+ * this view.
  *
- * Eligibility, blocking, privacy, Interest state and photo authorization are
- * already resolved before reaching this view.
+ * @var array<string, mixed> $profile
  */
 
 $profile =
@@ -23,55 +18,48 @@ $profile =
     ? $profile
     : [];
 
-$name =
-    trim(
-        (string) (
-            $profile['name']
-            ?? 'Member'
-        )
-    );
+$name = trim(
+    (string) (
+        $profile['name']
+        ?? 'Member'
+    )
+);
 
 if ($name === '') {
-    $name =
-        'Member';
+    $name = 'Member';
 }
 
-$reference =
-    trim(
-        (string) (
-            $profile['referenceId']
-            ?? ''
-        )
-    );
+$reference = trim(
+    (string) (
+        $profile['referenceId']
+        ?? ''
+    )
+);
 
-$image =
-    trim(
-        (string) (
-            $profile['image']
-            ?? ''
-        )
-    );
+$image = trim(
+    (string) (
+        $profile['image']
+        ?? ''
+    )
+);
 
-$profileUrl =
-    trim(
-        (string) (
-            $profile['profileUrl']
-            ?? ''
-        )
-    );
+$profileUrl = trim(
+    (string) (
+        $profile['profileUrl']
+        ?? ''
+    )
+);
 
 if ($profileUrl === '') {
-    $profileUrl =
-        '#';
+    $profileUrl = '#';
 }
 
-$interestUrl =
-    trim(
-        (string) (
-            $profile['interestUrl']
-            ?? ''
-        )
-    );
+$interestUrl = trim(
+    (string) (
+        $profile['interestUrl']
+        ?? ''
+    )
+);
 
 $age =
     is_numeric(
@@ -84,65 +72,93 @@ $age =
     )
     : null;
 
-$height =
-    trim(
-        (string) (
-            $profile['height']
-            ?? ''
-        )
-    );
+$height = trim(
+    (string) (
+        $profile['height']
+        ?? ''
+    )
+);
 
-$city =
-    trim(
-        (string) (
-            $profile['city']
-            ?? ''
-        )
-    );
+$city = trim(
+    (string) (
+        $profile['city']
+        ?? ''
+    )
+);
 
-$state =
-    trim(
-        (string) (
-            $profile['state']
-            ?? ''
-        )
-    );
+$state = trim(
+    (string) (
+        $profile['state']
+        ?? ''
+    )
+);
 
-$maritalStatus =
-    trim(
-        (string) (
-            $profile['maritalStatus']
-            ?? ''
+$location = trim(
+    (string) (
+        $profile['location']
+        ?? (
+            $city !== ''
+            ? $city
+            : $state
         )
-    );
+    )
+);
 
-$activity =
-    trim(
-        (string) (
-            $profile['activity']
-            ?? ''
-        )
-    );
+$maritalStatus = trim(
+    (string) (
+        $profile['maritalStatus']
+        ?? ''
+    )
+);
+
+$activity = trim(
+    (string) (
+        $profile['activity']
+        ?? ''
+    )
+);
+
+/*
+ * Account type comes from MemberProfilePresentationService.
+ *
+ * Do not hardcode a fallback in the view. Missing backend data should not
+ * silently display an incorrect account type.
+ */
+$accountType = trim(
+    (string) (
+        $profile['accountType']
+        ?? ''
+    )
+);
+
+/*
+ * Verification values are normalized to booleans by the backend
+ * presentation service.
+ */
+$verification =
+    isset($profile['verification'])
+    && is_array(
+        $profile['verification']
+    )
+    ? $profile['verification']
+    : [];
 
 $interestRelationship =
-    isset(
-        $profile['interestRelationship']
-    )
+    isset($profile['interestRelationship'])
     && is_array(
         $profile['interestRelationship']
     )
     ? $profile['interestRelationship']
     : [];
 
-$interestState =
-    strtoupper(
-        trim(
-            (string) (
-                $interestRelationship['state']
-                ?? 'NONE'
-            )
+$interestState = strtoupper(
+    trim(
+        (string) (
+            $interestRelationship['state']
+            ?? 'NONE'
         )
-    );
+    )
+);
 
 $canShowInterest =
     (
@@ -150,20 +166,9 @@ $canShowInterest =
         ?? false
     ) === true;
 
-$location =
-    trim(
-        (string) (
-            $profile['location']
-            ?? (
-                $city !== ''
-                ? $city
-                : $state
-            )
-        )
-    );
-
 /*
- * Relationship status is intentionally coarse.
+ * Relationship status is intentionally coarse. Internal member IDs and
+ * relationship implementation details are never exposed by the card.
  */
 $relationshipLabel =
     match ($interestState) {
@@ -184,7 +189,8 @@ $relationshipLabel =
 
 <article
     class="card h-100 border border-danger
-        border-opacity-25 shadow-sm">
+        border-opacity-25 shadow-sm
+        overflow-hidden">
 
     <div class="card-body p-3 p-md-4">
 
@@ -192,20 +198,16 @@ $relationshipLabel =
             class="d-flex flex-column
                 flex-sm-row gap-3">
 
-            <!-- =========================================================
-                 Profile photo
-                 ========================================================= -->
-
+            <!-- Profile photo -->
             <a
                 href="<?= esc(
                             $profileUrl,
                             'attr'
                         ) ?>"
                 class="text-decoration-none
-        flex-shrink-0">
+                    flex-shrink-0">
 
-                <div
-                    class="member-profile-thumbnail">
+                <div class="member-profile-thumbnail">
 
                     <img
                         src="<?= esc(
@@ -223,20 +225,22 @@ $relationshipLabel =
 
             </a>
 
-            <!-- =========================================================
-                 Profile summary
-                 ========================================================= -->
+            <!-- Profile summary -->
+            <div class="flex-grow-1 min-w-0">
 
-            <div class="flex-grow-1">
-
+                <!-- Name, reference and account type -->
                 <div
-                    class="d-flex align-items-start
-                        justify-content-between gap-2">
+                    class="d-flex
+                        align-items-start
+                        justify-content-between
+                        gap-2 mb-2">
 
-                    <div>
+                    <div class="min-w-0">
 
                         <h3
-                            class="fs-18 fw-semibold mb-1">
+                            class="fs-18
+                                fw-semibold mb-1
+                                text-truncate">
 
                             <a
                                 href="<?= esc(
@@ -259,7 +263,8 @@ $relationshipLabel =
                         ): ?>
 
                             <div
-                                class="text-muted fs-13 mb-2">
+                                class="text-muted
+                                    fs-13">
 
                                 <?= esc(
                                     $reference
@@ -272,34 +277,72 @@ $relationshipLabel =
                     </div>
 
                     <?php if (
-                        $relationshipLabel !== ''
+                        $accountType !== ''
+                        || $relationshipLabel !== ''
                     ): ?>
 
-                        <span
-                            class="badge bg-light
-                                text-body border
-                                flex-shrink-0">
+                        <div
+                            class="d-flex flex-column
+                                align-items-end
+                                gap-2 flex-shrink-0">
 
-                            <?= esc(
-                                $relationshipLabel
-                            ) ?>
+                            <?php if (
+                                $accountType !== ''
+                            ): ?>
 
-                        </span>
+                                <span
+                                    class="badge rounded-pill
+                                        bg-primary-subtle
+                                        text-primary
+                                        border border-primary
+                                        border-opacity-25
+                                        px-2 py-2">
+
+                                    <i
+                                        class="ri-vip-crown-line
+                                            me-1"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <?= esc(
+                                        $accountType
+                                    ) ?>
+
+                                </span>
+
+                            <?php endif; ?>
+
+                            <?php if (
+                                $relationshipLabel !== ''
+                            ): ?>
+
+                                <span
+                                    class="badge bg-light
+                                        text-body border
+                                        px-2 py-2">
+
+                                    <?= esc(
+                                        $relationshipLabel
+                                    ) ?>
+
+                                </span>
+
+                            <?php endif; ?>
+
+                        </div>
 
                     <?php endif; ?>
 
                 </div>
 
-                <!-- =====================================================
-                     Privacy-safe activity
-                     ===================================================== -->
-
+                <!-- Privacy-safe member activity -->
                 <?php if (
                     $activity !== ''
                 ): ?>
 
                     <div
-                        class="d-flex align-items-center
+                        class="d-flex
+                            align-items-center
                             gap-1 fs-12
                             text-success mb-2">
 
@@ -318,14 +361,12 @@ $relationshipLabel =
 
                 <?php endif; ?>
 
-                <!-- =====================================================
-                     Basic profile summary
-                     ===================================================== -->
-
+                <!-- Basic member summary -->
                 <div
                     class="d-flex flex-wrap
+                        align-items-center
                         gap-2 fs-13
-                        text-muted mb-3">
+                        text-muted mb-2">
 
                     <?php if (
                         $age !== null
@@ -345,11 +386,18 @@ $relationshipLabel =
                         $height !== ''
                     ): ?>
 
-                        <span>
-                            <?= $age !== null
-                                ? '· '
-                                : '' ?>
+                        <?php if (
+                            $age !== null
+                            && $age > 0
+                        ): ?>
 
+                            <span aria-hidden="true">
+                                ·
+                            </span>
+
+                        <?php endif; ?>
+
+                        <span>
                             <?= esc(
                                 $height
                             ) ?>
@@ -357,26 +405,34 @@ $relationshipLabel =
 
                     <?php endif; ?>
 
-                    <?php if (
-                        $location !== ''
-                    ): ?>
+                </div>
+
+                <?php if (
+                    $location !== ''
+                ): ?>
+
+                    <p
+                        class="d-flex
+                            align-items-center
+                            gap-1 text-muted
+                            fs-13 mb-2">
+
+                        <i
+                            class="ri-map-pin-line
+                                text-primary
+                                flex-shrink-0"
+                            aria-hidden="true">
+                        </i>
 
                         <span>
-                            ·
-
-                            <i
-                                class="ri-map-pin-line"
-                                aria-hidden="true">
-                            </i>
-
                             <?= esc(
                                 $location
                             ) ?>
                         </span>
 
-                    <?php endif; ?>
+                    </p>
 
-                </div>
+                <?php endif; ?>
 
                 <?php if (
                     $maritalStatus !== ''
@@ -392,10 +448,7 @@ $relationshipLabel =
 
                 <?php endif; ?>
 
-                <!-- =====================================================
-                     Profile actions
-                     ===================================================== -->
-
+                <!-- Profile actions -->
                 <div
                     class="d-flex flex-wrap
                         align-items-center gap-2">
@@ -405,7 +458,8 @@ $relationshipLabel =
                                     $profileUrl,
                                     'attr'
                                 ) ?>"
-                        class="btn btn-outline-primary
+                        class="btn
+                            btn-outline-primary
                             btn-sm
                             d-inline-flex
                             align-items-center
@@ -426,10 +480,6 @@ $relationshipLabel =
                         && $interestUrl !== ''
                     ): ?>
 
-                        <!--
-                            Use exactly the Profile View Interest route and
-                            existing loader JavaScript.
-                        -->
                         <form
                             method="post"
                             action="<?= esc(
@@ -473,6 +523,7 @@ $relationshipLabel =
                                     <span
                                         class="spinner-border
                                             spinner-border-sm"
+                                        role="status"
                                         aria-hidden="true">
                                     </span>
 
@@ -492,4 +543,13 @@ $relationshipLabel =
         </div>
 
     </div>
+
+    <?= view(
+        'Components/Member/VerificationBadges',
+        [
+            'verification' =>
+            $verification,
+        ]
+    ) ?>
+
 </article>

@@ -284,6 +284,50 @@ member displayed by the thumbnail.
 
 **Last result:** NOT RUN
 
+### REG-MATCH-007 - Profile card account and verification indicators
+**Origin:** Common member presentation, ProfileCard and ProfileInterestCard
+
+**Expected:** ProfileCard and ProfileInterestCard display the backend-supplied
+account type. Until subscription entitlement integration is implemented, the
+backend supplies `Free Account`.
+
+Both cards display one bottom verification row containing badges only for
+successfully verified profile attributes:
+
+- Mobile Verified
+- Email Verified
+- Aadhaar Verified
+- Selfie Verified
+
+Verification values are loaded by MemberMatchCandidateModel and normalized by
+MemberProfilePresentationService using the existing BooleanValue support class.
+Views do not interpret raw PostgreSQL booleans and do not determine verification
+state.
+
+Unverified, pending, rejected and missing verification values must not be shown
+as verified.
+
+**Required cases:**
+
+1. ProfileCard displays the backend-supplied account type.
+2. ProfileInterestCard displays the backend-supplied account type.
+3. A verified primary mobile displays Mobile Verified.
+4. A verified primary email displays Email Verified.
+5. A missing or unverified email does not display Email Verified.
+6. Approved Aadhaar displays Aadhaar Verified.
+7. Under-review, rejected or missing Aadhaar does not display Aadhaar Verified.
+8. Verified Selfie displays Selfie Verified.
+9. Unverified Selfie does not display Selfie Verified.
+10. All four verified badges remain in one horizontally scrollable row on
+    narrow screens.
+11. Dynamic labels and icon classes are escaped.
+12. Blocked and globally hidden reported members remain excluded.
+13. Search pagination does not duplicate candidates after contact joins.
+
+**Automation:** Integration/manual pending automation
+
+**Last result:** NOT RUN
+
 ## Retired cases
 
 Keep retired cases here or retain their original section with status `RETIRED` and the reason. Do not erase regression history without explanation.

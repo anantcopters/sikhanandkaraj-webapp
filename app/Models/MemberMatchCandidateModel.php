@@ -749,6 +749,19 @@ final class MemberMatchCandidateModel extends Model
             'u.created_at',
 
             /*
+            * Member verification indicators used by the shared member
+            * presentation contract.
+            */
+            'u.is_aadhaar_verified',
+            'u.is_selfie_verified',
+
+            'primary_mobile.is_verified '
+                . 'AS is_mobile_verified',
+
+            'primary_email.is_verified '
+                . 'AS is_email_verified',
+
+            /*
             * Used internally for Last Logged In sorting and converted to a
             * privacy-friendly activity label by MemberSearchService.
             *
@@ -778,6 +791,30 @@ final class MemberMatchCandidateModel extends Model
 
             'fd.community_id',
         ]);
+
+        /*
+        * Primary contact verification state.
+        *
+        * The database partial unique constraint permits only one primary contact
+        * for each user/contact type, so these joins cannot duplicate candidates.
+        */
+        $builder->join(
+            'user_contacts primary_mobile',
+            "primary_mobile.user_id = u.id
+    AND primary_mobile.contact_type = 'MOBILE'
+    AND primary_mobile.is_primary = TRUE",
+            'left',
+            false
+        );
+
+        $builder->join(
+            'user_contacts primary_email',
+            "primary_email.user_id = u.id
+    AND primary_email.contact_type = 'EMAIL'
+    AND primary_email.is_primary = TRUE",
+            'left',
+            false
+        );
 
         $builder->join(
             'member_basic_details bd',
