@@ -70,11 +70,8 @@ $verifiedItems = array_values(
         $verificationItems,
         static fn(
             array $item
-        ): bool =>
-        (
-            $verification[
-                $item['key']
-            ]
+        ): bool => (
+            $verification[$item['key']]
             ?? false
         ) === true
     )
@@ -85,31 +82,13 @@ $verifiedItems = array_values(
 
     <div
         class="border-top
-            bg-success-subtle
-            px-3 px-md-4 py-3">
+            px-3 px-md-4 py-2 bg-dark-subtle align-text-center">
 
         <div
             class="d-flex flex-nowrap
                 align-items-center gap-2
-                overflow-auto pb-1"
+                overflow-auto"
             aria-label="Verified profile details">
-
-            <span
-                class="d-inline-flex
-                    align-items-center gap-1
-                    text-success
-                    fw-semibold fs-12
-                    flex-shrink-0 me-1">
-
-                <i
-                    class="ri-shield-check-line
-                        fs-16"
-                    aria-hidden="true">
-                </i>
-
-                Verified profile
-
-            </span>
 
             <?php foreach (
                 $verifiedItems
@@ -117,8 +96,8 @@ $verifiedItems = array_values(
             ): ?>
 
                 <span
-                    class="badge rounded-pill
-                        bg-body text-success
+                    class="badge rounded
+                        bg-success text-success
                         border border-success
                         border-opacity-25
                         d-inline-flex
@@ -126,20 +105,12 @@ $verifiedItems = array_values(
                         gap-1 flex-shrink-0
                         px-2 py-2">
 
-                    <i
-                        class="ri-checkbox-circle-fill"
-                        aria-hidden="true">
-                    </i>
+                    <span class="avatar-title bg-success rounded-circle shadow">
+                        <i class="ri-shield-check-line
+                        fs-16 text-white"></i>
+                    </span>
 
-                    <i
-                        class="<?= esc(
-                                    $item['icon'],
-                                    'attr'
-                                ) ?>"
-                        aria-hidden="true">
-                    </i>
-
-                    <span>
+                    <span class="fs-13 fw-medium text-white">
                         <?= esc(
                             $item['label']
                         ) ?>

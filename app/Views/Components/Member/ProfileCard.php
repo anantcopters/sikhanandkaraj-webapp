@@ -199,31 +199,63 @@ $relationshipLabel =
                 flex-sm-row gap-3">
 
             <!-- Profile photo -->
-            <a
-                href="<?= esc(
-                            $profileUrl,
-                            'attr'
-                        ) ?>"
-                class="text-decoration-none
-                    flex-shrink-0">
+            <!-- Profile photo and account type -->
+            <div
+                class="d-flex flex-column
+        align-items-center
+        flex-shrink-0">
 
-                <div class="member-profile-thumbnail">
+                <a
+                    href="<?= esc(
+                                $profileUrl,
+                                'attr'
+                            ) ?>"
+                    class="text-decoration-none">
 
-                    <img
-                        src="<?= esc(
-                                    $image,
-                                    'attr'
-                                ) ?>"
-                        alt="<?= esc(
-                                    $name
-                                        . ' profile photo',
-                                    'attr'
-                                ) ?>"
-                        loading="lazy">
+                    <div class="member-profile-thumbnail">
 
-                </div>
+                        <img
+                            src="<?= esc(
+                                        $image,
+                                        'attr'
+                                    ) ?>"
+                            alt="<?= esc(
+                                        $name
+                                            . ' profile photo',
+                                        'attr'
+                                    ) ?>"
+                            loading="lazy">
 
-            </a>
+                    </div>
+
+                </a>
+
+                <?php if (
+                    $accountType !== ''
+                ): ?>
+
+                    <span
+                        class="badge rounded
+                bg-primary-subtle
+                text-primary
+                border border-primary
+                border-opacity-25
+                mt-3 px-2 py-2 fs-12">
+
+                        <i
+                            class="ri-vip-crown-line me-1 fs-14"
+                            aria-hidden="true">
+                        </i>
+
+                        <?= esc(
+                            $accountType
+                        ) ?>
+
+                    </span>
+
+                <?php endif; ?>
+
+            </div>
 
             <!-- Profile summary -->
             <div class="flex-grow-1 min-w-0">
@@ -277,59 +309,20 @@ $relationshipLabel =
                     </div>
 
                     <?php if (
-                        $accountType !== ''
-                        || $relationshipLabel !== ''
+                        $relationshipLabel !== ''
                     ): ?>
 
-                        <div
-                            class="d-flex flex-column
-                                align-items-end
-                                gap-2 flex-shrink-0">
+                        <span
+                            class="badge bg-light
+            text-body border
+            px-2 py-2
+            flex-shrink-0">
 
-                            <?php if (
-                                $accountType !== ''
-                            ): ?>
+                            <?= esc(
+                                $relationshipLabel
+                            ) ?>
 
-                                <span
-                                    class="badge rounded-pill
-                                        bg-primary-subtle
-                                        text-primary
-                                        border border-primary
-                                        border-opacity-25
-                                        px-2 py-2">
-
-                                    <i
-                                        class="ri-vip-crown-line
-                                            me-1"
-                                        aria-hidden="true">
-                                    </i>
-
-                                    <?= esc(
-                                        $accountType
-                                    ) ?>
-
-                                </span>
-
-                            <?php endif; ?>
-
-                            <?php if (
-                                $relationshipLabel !== ''
-                            ): ?>
-
-                                <span
-                                    class="badge bg-light
-                                        text-body border
-                                        px-2 py-2">
-
-                                    <?= esc(
-                                        $relationshipLabel
-                                    ) ?>
-
-                                </span>
-
-                            <?php endif; ?>
-
-                        </div>
+                        </span>
 
                     <?php endif; ?>
 

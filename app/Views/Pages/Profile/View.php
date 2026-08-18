@@ -1624,7 +1624,6 @@ $this->section('content');
                                             <?php endif; ?>
 
                                             <!-- ShortList -->
-                                            <!-- ShortList -->
                                             <!-- =================================================
      Secondary actions
      ================================================= -->
@@ -1896,11 +1895,10 @@ $this->section('content');
                                                     ): ?>
 
                                                         <span
-                                                            class="badge
-                                    bg-success-subtle
-                                    text-success
-                                    fs-11
-                                    p-1">
+                                                            class="text-success
+                                        d-inline-flex
+                                        align-items-center
+                                        gap-1 fs-12">
 
                                                             <i
                                                                 class="ri-checkbox-circle-fill"
