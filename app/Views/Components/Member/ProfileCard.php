@@ -552,16 +552,25 @@ $relationshipLabel =
             $professionalSummary !== ''
         ): ?>
 
-            <p
-                class="text-body
-            fs-13
-            mt-3 mb-0">
 
-                <?= esc(
-                    $professionalSummary
-                ) ?>
 
-            </p>
+            <div class="d-flex align-items-center mt-3">
+                <div class="flex-shrink-0 me-1">
+                    <div class="avatar-xs flex-shrink-0 me-1">
+                        <span class="avatar-title bg-dark-subtle rounded-circle shadow">
+                            <i class="ri-briefcase-4-line fs-16 align-middle text-primary"></i>
+                        </span>
+                    </div>
+
+                </div>
+                <div class="flex-grow-1">
+                    <h5 class="fs-13 mb-0 fw-semibold"><?= esc(
+                                                            $professionalSummary
+                                                        ) ?>
+                    </h5>
+                </div>
+            </div>
+
 
         <?php endif; ?>
     </div>

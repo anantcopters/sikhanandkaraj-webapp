@@ -373,55 +373,30 @@ final class MemberProfilePresentationService
     }
 
     /**
-     * Build a card-friendly professional summary.
+     * Build a compact professional summary from all available values.
      *
-     * When all three values exist, use the sentence version. If one or more
-     * values are unavailable, join only the available values with separators.
-     * If every value is unavailable, return an empty string.
+     * Empty values are removed before joining, preventing leading, trailing
+     * or repeated separators.
      */
     private function professionalSummary(
         string $education,
         string $occupation,
         string $employedIn
     ): string {
-        $education = trim(
-            $education
-        );
-
-        $occupation = trim(
-            $occupation
-        );
-
-        $employedIn = trim(
-            $employedIn
-        );
-
-        if (
-            $education !== ''
-            && $occupation !== ''
-            && $employedIn !== ''
-        ) {
-            /*
-         * A NOT_WORKING value is inconsistent with a sentence saying that
-         * the member is currently working. Use the compact representation
-         * for this legacy/inconsistent-data corner case.
-         */
-            if ($employedIn !== 'Not Working') {
-                return sprintf(
-                    '%s professional working as %s in %s.',
-                    $education,
-                    $occupation,
-                    $employedIn
-                );
-            }
-        }
-
         $parts = array_values(
             array_filter(
                 [
-                    $education,
-                    $occupation,
-                    $employedIn,
+                    trim(
+                        $education
+                    ),
+
+                    trim(
+                        $occupation
+                    ),
+
+                    trim(
+                        $employedIn
+                    ),
                 ],
                 static fn(
                     string $part
@@ -431,7 +406,7 @@ final class MemberProfilePresentationService
         );
 
         return implode(
-            ' · ',
+            ' • ',
             $parts
         );
     }
