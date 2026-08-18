@@ -75,10 +75,10 @@ final class MasterStateModel extends Model
         return $this
             ->select(
                 'master_states.id, master_states.country_id, '
-                . 'master_states.code, '
-                . 'master_states.name AS state_name, '
-                . "master_states.name || ', ' || master_countries.name AS name, "
-                . 'master_countries.name AS country_name',
+                    . 'master_states.code, '
+                    . 'master_states.name AS state_name, '
+                    . "master_states.name || ', ' || master_countries.name AS name, "
+                    . 'master_countries.name AS country_name',
                 false
             )
             ->join(
@@ -96,6 +96,92 @@ final class MasterStateModel extends Model
             ->orderBy('master_countries.name', 'ASC')
             ->orderBy('master_states.display_order', 'ASC')
             ->orderBy('master_states.name', 'ASC')
+            ->findAll();
+    }
+
+    /**
+     * Return active states belonging to one or more active countries.
+     *
+     * An empty country list returns states across every active country.
+     *
+     * @param list<int> $countryIds
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function activeForCountries(
+        array $countryIds
+    ): array {
+        $countryIds =
+            array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            'intval',
+                            $countryIds
+                        ),
+                        static fn(
+                            int $countryId
+                        ): bool =>
+                        $countryId > 0
+                    )
+                )
+            );
+
+        /*
+     * Search treats an empty Country selection as Any Country.
+     */
+        if ($countryIds === []) {
+            return $this
+                ->activeAcrossCountries();
+        }
+
+        return $this
+            ->select(
+                'master_states.id, '
+                    . 'master_states.country_id, '
+                    . 'master_states.code, '
+                    . 'master_states.name AS state_name, '
+                    . "master_states.name || ', ' "
+                    . '|| master_countries.name AS name, '
+                    . 'master_countries.name AS country_name',
+                false
+            )
+            ->join(
+                'master_countries',
+                'master_countries.id '
+                    . '= master_states.country_id',
+                'inner'
+            )
+            ->whereIn(
+                'master_states.country_id',
+                $countryIds
+            )
+            ->where(
+                'master_states.is_active',
+                true
+            )
+            ->where(
+                'master_countries.is_active',
+                true
+            )
+            ->orderBy(
+                "CASE WHEN master_countries.iso_code = 'IN' "
+                    . 'THEN 0 ELSE 1 END',
+                'ASC',
+                false
+            )
+            ->orderBy(
+                'master_countries.name',
+                'ASC'
+            )
+            ->orderBy(
+                'master_states.display_order',
+                'ASC'
+            )
+            ->orderBy(
+                'master_states.name',
+                'ASC'
+            )
             ->findAll();
     }
 }

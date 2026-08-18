@@ -528,6 +528,54 @@ final class SearchController extends BaseController
     }
 
     /**
+     * Return active states for zero, one or multiple selected countries.
+     */
+    public function states(): ResponseInterface
+    {
+        $countryIds =
+            $this->request
+            ->getGet(
+                'country_ids'
+            );
+
+        $countryIds =
+            is_array($countryIds)
+            ? $countryIds
+            : [];
+
+        $countryIds =
+            array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            'intval',
+                            $countryIds
+                        ),
+                        static fn(
+                            int $countryId
+                        ): bool =>
+                        $countryId > 0
+                    )
+                )
+            );
+
+        $states =
+            service(
+                'profileMasterDataService'
+            )->statesForCountries(
+                $countryIds
+            );
+
+        return $this->response
+            ->setJSON(
+                [
+                    'states' =>
+                    $states,
+                ]
+            );
+    }
+
+    /**
      * Return active cities for one or more selected states.
      */
     public function cities(): ResponseInterface

@@ -772,6 +772,15 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                 );
 
                 $routes->get(
+                    'search/states',
+                    'SearchController::states',
+                    [
+                        'as' =>
+                        'web.search.states',
+                    ]
+                );
+
+                $routes->get(
                     'search/cities',
                     'SearchController::cities',
                     [

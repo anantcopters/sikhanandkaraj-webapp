@@ -384,6 +384,70 @@ final class ProfileMasterDataService
     }
 
     /**
+     * Return active states for the selected Search countries.
+     *
+     * An empty country list means every active country.
+     *
+     * Browser-supplied country IDs are validated against active Country
+     * master data before the State model is queried.
+     *
+     * @param list<int> $countryIds
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function statesForCountries(
+        array $countryIds
+    ): array {
+        $countryIds =
+            array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            'intval',
+                            $countryIds
+                        ),
+                        static fn(
+                            int $countryId
+                        ): bool =>
+                        $countryId > 0
+                    )
+                )
+            );
+
+        if ($countryIds !== []) {
+            $activeCountryIds =
+                array_map(
+                    static fn(
+                        array $country
+                    ): int =>
+                    (int) $country['id'],
+                    $this
+                        ->countryModel
+                        ->activeOptions()
+                );
+
+            /*
+         * Do not partially accept manipulated requests containing a mixture
+         * of valid and invalid Country master IDs.
+         */
+            if (
+                array_diff(
+                    $countryIds,
+                    $activeCountryIds
+                ) !== []
+            ) {
+                return [];
+            }
+        }
+
+        return $this
+            ->stateModel
+            ->activeForCountries(
+                $countryIds
+            );
+    }
+
+    /**
      * Return active cities for multiple states.
      *
      * @param list<int> $stateIds

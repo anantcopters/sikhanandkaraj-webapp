@@ -88,7 +88,47 @@
 
     <?php foreach ($resolvedPageScripts as $script): ?>
         <?php if (is_string($script) && $script !== ''): ?>
-            <script src="<?= esc(base_url($script), 'attr') ?>"></script>
+            <?php
+            /*
+         * Page-specific JavaScript files can change independently of the
+         * common layout. Use the file modification time as a cache version so
+         * browsers do not continue running an older dependent-dropdown script
+         * after deployment.
+         *
+         * This does not run Git or any external command at request time.
+         */
+            $scriptPath =
+                FCPATH
+                . ltrim(
+                    $script,
+                    '/'
+                );
+
+            $scriptVersion =
+                is_file($scriptPath)
+                ? (string) filemtime(
+                    $scriptPath
+                )
+                : '';
+
+            $scriptUrl =
+                base_url($script)
+                . (
+                    $scriptVersion !== ''
+                    ? '?v='
+                    . rawurlencode(
+                        $scriptVersion
+                    )
+                    : ''
+                );
+            ?>
+
+            <script
+                src="<?= esc(
+                            $scriptUrl,
+                            'attr'
+                        ) ?>">
+            </script>
         <?php endif; ?>
     <?php endforeach; ?>
 
