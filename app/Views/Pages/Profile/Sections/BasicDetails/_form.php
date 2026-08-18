@@ -1047,7 +1047,13 @@ if ($isJourney) {
                 ]
             ) ?>
         </div>
+        <div class="col-12">
+            <hr class="my-2 mb-3">
 
+            <h2 class="fs-16 fw-semibold mb-0 mt-2 text-secondary-emphasis">
+                Current Location
+            </h2>
+        </div>
         <div class="col-12 col-sm-6 col-lg-4">
             <label
                 for="countryId"

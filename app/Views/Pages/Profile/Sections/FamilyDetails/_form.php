@@ -190,7 +190,7 @@ if ($isJourney) {
         <div class="col-12">
             <hr class="my-2 mb-3">
 
-            <h2 class="fs-16 fw-semibold mb-0 mt-2">
+            <h2 class="fs-16 fw-semibold mb-0 mt-2 text-secondary-emphasis">
                 Community Details
             </h2>
         </div>
@@ -291,7 +291,7 @@ if ($isJourney) {
         <div class="col-12">
             <hr class="my-2 mb-3">
 
-            <h2 class="fs-16 fw-semibold mb-0 mt-2">
+            <h2 class="fs-16 fw-semibold mb-0 mt-2 text-secondary-emphasis">
                 Parent Details
             </h2>
         </div>
@@ -530,7 +530,7 @@ if ($isJourney) {
         <div class="col-12">
             <hr class="my-2 mb-3">
 
-            <h2 class="fs-16 fw-semibold mb-0 mt-2">
+            <h2 class="fs-16 fw-semibold mb-0 mt-2 text-secondary-emphasis">
                 Sibling Details
             </h2>
         </div>
@@ -622,7 +622,7 @@ if ($isJourney) {
         <div class="col-12">
             <hr class="my-2 mb-3">
 
-            <h2 class="fs-16 fw-semibold mb-0 mt-2">
+            <h2 class="fs-16 fw-semibold mb-0 mt-2 text-secondary-emphasis">
                 Family Location
             </h2>
         </div>
@@ -797,7 +797,7 @@ if ($isJourney) {
         <div class="col-12">
             <hr class="my-2 mb-3">
 
-            <h2 class="fs-16 fw-semibold mb-1 mt-2">
+            <h2 class="fs-16 fw-semibold mb-1 mt-2 text-secondary-emphasis">
                 Gurudwara and References
             </h2>
 
@@ -950,7 +950,7 @@ if ($isJourney) {
         <div class="col-12">
             <hr class="my-2 mb-3">
 
-            <h2 class="fs-16 fw-semibold mb-1 mt-2">
+            <h2 class="fs-16 fw-semibold mb-1 mt-2 text-secondary-emphasis">
                 SAK Volunteer
             </h2>
 
