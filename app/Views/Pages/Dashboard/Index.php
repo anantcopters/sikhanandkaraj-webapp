@@ -234,10 +234,6 @@ $matchSections = [
         'emptyMessage' =>
         'No matching profiles are available yet.',
 
-        /*
-         * The existing Matches route redirects to the complete All Matches
-         * collection through the shared Search Results pipeline.
-         */
         'viewAllUrl' =>
         route_to(
             'web.matches'
@@ -265,10 +261,6 @@ $matchSections = [
         'emptyMessage' =>
         'No new matches are available yet.',
 
-        /*
-         * MemberSearchService resolves new-profiles from the existing
-         * dashboardCollections()['newMatches'] collection.
-         */
         'viewAllUrl' =>
         $searchResultsUrl
             . '?'
@@ -319,11 +311,13 @@ $matchSections = [
         'emptyMessage' =>
         'No member has shortlisted your profile yet.',
 
-        /*
-         * No View All requested for this section.
-         */
         'viewAllUrl' =>
-        '',
+        $searchResultsUrl
+            . '?'
+            . http_build_query([
+                'activity' =>
+                'shortlisted-you',
+            ]),
     ],
 
     [
@@ -342,11 +336,13 @@ $matchSections = [
         'emptyMessage' =>
         'Your profile has not been viewed yet.',
 
-        /*
-         * No View All requested for this section.
-         */
         'viewAllUrl' =>
-        '',
+        $searchResultsUrl
+            . '?'
+            . http_build_query([
+                'activity' =>
+                'viewed-you',
+            ]),
     ],
 
     [
@@ -365,11 +361,13 @@ $matchSections = [
         'emptyMessage' =>
         'You have not viewed another profile yet.',
 
-        /*
-         * No View All requested for this section.
-         */
         'viewAllUrl' =>
-        '',
+        $searchResultsUrl
+            . '?'
+            . http_build_query([
+                'activity' =>
+                'viewed-by-you',
+            ]),
     ],
 ];
 ?>
@@ -1224,8 +1222,8 @@ $matchSections = [
                                 ): ?>
 
                                     <?php if (
-                                        $sectionViewAllUrl !== ''
-                                        || count($sectionProfiles) > 1
+                                        $sectionProfiles !== []
+                                        && $sectionViewAllUrl !== ''
                                     ): ?>
 
                                         <div
@@ -1233,30 +1231,24 @@ $matchSections = [
             align-items-center
             gap-2 flex-shrink-0">
 
-                                            <?php if (
-                                                $sectionViewAllUrl !== ''
-                                            ): ?>
+                                            <a
+                                                href="<?= esc(
+                                                            $sectionViewAllUrl,
+                                                            'attr'
+                                                        ) ?>"
+                                                class="btn btn-outline-primary
+                btn-sm d-inline-flex
+                align-items-center gap-1">
 
-                                                <a
-                                                    href="<?= esc(
-                                                                $sectionViewAllUrl,
-                                                                'attr'
-                                                            ) ?>"
-                                                    class="btn btn-outline-primary
-                    btn-sm d-inline-flex
-                    align-items-center gap-1">
+                                                <span>
+                                                    View All
+                                                </span>
 
-                                                    <span>
-                                                        View All
-                                                    </span>
-
-                                                    <i
-                                                        class="ri-arrow-right-line"
-                                                        aria-hidden="true">
-                                                    </i>
-                                                </a>
-
-                                            <?php endif; ?>
+                                                <i
+                                                    class="ri-arrow-right-line"
+                                                    aria-hidden="true">
+                                                </i>
+                                            </a>
 
                                             <?php if (
                                                 count($sectionProfiles) > 1

@@ -91,6 +91,9 @@ $matchActivities = [
     'all-matches',
     'new-profiles',
     'shortlisted-by-you',
+    'shortlisted-you',
+    'viewed-you',
+    'viewed-by-you',
 ];
 
 /*

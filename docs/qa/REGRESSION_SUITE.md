@@ -220,31 +220,37 @@ and the member must log in using the new password.
 ### REG-MATCH-005 - Dashboard Match View All navigation
 **Origin:** Member Dashboard and Matches navigation
 
-**Expected:** All Matches, New Matches and Profiles Shortlisted By You display a
-View All action at the top-right of their Dashboard section.
+**Expected:** Every Dashboard match/activity section displays View All at the
+top-right when that section contains at least one profile.
 
-All Matches opens the existing `web.matches` destination. New Matches opens
-Search Results with `activity=new-profiles`. Profiles Shortlisted By You opens
-Search Results with `activity=shortlisted-by-you`.
+The destinations are:
+
+- All Matches → `web.matches`
+- New Matches → `activity=new-profiles`
+- Profiles Shortlisted By You → `activity=shortlisted-by-you`
+- Who Shortlisted You → `activity=shortlisted-you`
+- Who Viewed Your Profile → `activity=viewed-you`
+- Profiles You Viewed → `activity=viewed-by-you`
 
 Each destination uses the existing Match/Search service collection and does not
-create a separate profile query. The Matches header remains active for all three
-destinations. View All remains available when the Dashboard preview collection
-is empty, while carousel controls appear only when more than one preview profile
-exists.
+create a separate profile query. The Matches header remains active for every
+destination.
+
+View All is hidden when a section has no records. With one record, View All is
+shown and carousel controls are hidden. With two or more records, View All and
+carousel controls are shown.
 
 **Required cases:**
 
-1. All Matches View All opens the complete All Matches collection.
-2. New Matches View All opens only preference-qualified recent profiles.
-3. Shortlisted By You opens only profiles shortlisted by the signed-in member.
-4. Query-string manipulation is processed through the existing activity
-   allowlist.
-5. Blocked and admin-actioned reported members remain excluded.
-6. The Matches header is active for all three destinations.
-7. View All remains usable when a Dashboard section has zero profiles.
+1. A section with zero profiles does not display View All.
+2. A section with one profile displays View All without carousel controls.
+3. A section with two or more profiles displays View All and carousel controls.
+4. Every View All destination opens the corresponding complete collection.
+5. Query-string manipulation is restricted by the existing activity allowlist.
+6. Blocked and admin-actioned reported profiles remain excluded.
+7. The Matches header remains active for all six destinations.
 8. Desktop and mobile section headers remain aligned.
-9. Keyboard focus and link labels are accessible.
+9. View All links have visible keyboard focus and meaningful accessible text.
 
 **Automation:** Integration/manual pending automation
 
