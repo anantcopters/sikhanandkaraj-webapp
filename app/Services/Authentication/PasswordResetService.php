@@ -52,6 +52,16 @@ final class PasswordResetService
         UserModel::STATUS_ACTIVE,
     ];
 
+    /**
+     * OTP purposes accepted by this service.
+     *
+     * @var list<string>
+     */
+    private const PASSWORD_AUTHORIZATION_PURPOSES = [
+        ContactVerificationModel::PURPOSE_PASSWORD_RESET,
+        ContactVerificationModel::PURPOSE_PASSWORD_SETUP,
+    ];
+
     public function __construct(
         private readonly UserModel $userModel,
         private readonly UserContactModel $contactModel,
@@ -176,7 +186,8 @@ final class PasswordResetService
 
         return $this->issueOtp(
             $userId,
-            (int) $mobileContact['id']
+            (int) $mobileContact['id'],
+            ContactVerificationModel::PURPOSE_PASSWORD_RESET
         );
     }
 
@@ -273,34 +284,43 @@ final class PasswordResetService
         }
 
         /*
-     * Reuse the existing OTP issue implementation. This preserves purpose,
-     * expiry, resend cooldown, daily quota, hashing and provider behaviour.
-     */
+        * Reuse the existing OTP issue implementation. This preserves purpose,
+        * expiry, resend cooldown, daily quota, hashing and provider behaviour.
+        */
         return $this->issueOtp(
             $userId,
-            $mobileContactId
+            $mobileContactId,
+            ContactVerificationModel::PURPOSE_PASSWORD_SETUP
         );
     }
 
     /**
-     * Resend an OTP to the same password-reset mobile.
+     * Resend an OTP using the original password workflow purpose.
      */
     public function resendOtp(
         int $userId,
-        int $mobileContactId
+        int $mobileContactId,
+        string $purpose
     ): PasswordResetResult {
-        if (! $this->isValidResetContact(
+        if (!$this->isPasswordAuthorizationPurpose($purpose)) {
+            return PasswordResetResult::failure(
+                'The password authorization request is invalid.'
+            );
+        }
+
+        if (!$this->isValidResetContact(
             $userId,
             $mobileContactId
         )) {
             return PasswordResetResult::failure(
-                'The password reset request is no longer valid.'
+                'The password authorization request is no longer valid.'
             );
         }
 
         return $this->issueOtp(
             $userId,
-            $mobileContactId
+            $mobileContactId,
+            $purpose
         );
     }
 
@@ -313,8 +333,14 @@ final class PasswordResetService
     public function verifyOtp(
         int $userId,
         int $mobileContactId,
+        string $purpose,
         string $submittedOtp
     ): PasswordResetResult {
+        if (!$this->isPasswordAuthorizationPurpose($purpose)) {
+            return PasswordResetResult::failure(
+                'The password authorization request is invalid.'
+            );
+        }
         if (!preg_match('/^\d{4}$/', $submittedOtp)) {
             return PasswordResetResult::failure(
                 'Please enter a valid four-digit OTP.'
@@ -336,7 +362,7 @@ final class PasswordResetService
             $verification = $this->verificationModel
                 ->findLatestPendingForContact(
                     $mobileContactId,
-                    ContactVerificationModel::PURPOSE_PASSWORD_RESET
+                    $purpose
                 );
 
             if ($verification === null) {
@@ -445,7 +471,7 @@ final class PasswordResetService
 
             $this->verificationModel->cancelPendingForContact(
                 $mobileContactId,
-                ContactVerificationModel::PURPOSE_PASSWORD_RESET
+                $purpose
             );
 
             $this->commitOrFail();
@@ -472,8 +498,14 @@ final class PasswordResetService
     public function resetPassword(
         int $userId,
         int $mobileContactId,
+        string $purpose,
         string $password
     ): PasswordResetResult {
+        if (!$this->isPasswordAuthorizationPurpose($purpose)) {
+            return PasswordResetResult::failure(
+                'The password authorization request is invalid.'
+            );
+        }
         if (! $this->isValidResetContact(
             $userId,
             $mobileContactId
@@ -496,7 +528,7 @@ final class PasswordResetService
             )
             ->where(
                 'purpose',
-                ContactVerificationModel::PURPOSE_PASSWORD_RESET
+                $purpose
             )
             ->where(
                 'status',
@@ -560,9 +592,10 @@ final class PasswordResetService
              */
             $currentVerification =
                 $this->verificationModel
-                ->lockVerifiedPasswordReset(
+                ->lockVerifiedPasswordAuthorization(
                     $verificationId,
-                    $mobileContactId
+                    $mobileContactId,
+                    $purpose
                 );
 
             if (! is_array($currentVerification)) {
@@ -641,7 +674,7 @@ final class PasswordResetService
                 )
                 ->where(
                     'purpose',
-                    ContactVerificationModel::PURPOSE_PASSWORD_RESET
+                    $purpose
                 )
                 ->where(
                     'id !=',
@@ -672,13 +705,21 @@ final class PasswordResetService
         }
     }
 
+    /**
+     * Return the expiry of the latest pending password authorization.
+     */
     public function getPendingExpiryTimestamp(
-        int $mobileContactId
+        int $mobileContactId,
+        string $purpose
     ): ?int {
+        if (!$this->isPasswordAuthorizationPurpose($purpose)) {
+            return null;
+        }
+
         $verification = $this->verificationModel
             ->findLatestPendingForContact(
                 $mobileContactId,
-                ContactVerificationModel::PURPOSE_PASSWORD_RESET
+                $purpose
             );
 
         if ($verification === null) {
@@ -686,7 +727,10 @@ final class PasswordResetService
         }
 
         return $this->parseUtcTimestamp(
-            (string) ($verification['expires_at'] ?? '')
+            (string) (
+                $verification['expires_at']
+                ?? ''
+            )
         );
     }
 
@@ -701,8 +745,14 @@ final class PasswordResetService
      */
     private function issueOtp(
         int $userId,
-        int $mobileContactId
+        int $mobileContactId,
+        string $purpose
     ): PasswordResetResult {
+        if (!$this->isPasswordAuthorizationPurpose($purpose)) {
+            return PasswordResetResult::failure(
+                'The password authorization request is invalid.'
+            );
+        }
         if (! $this->isValidResetContact(
             $userId,
             $mobileContactId
@@ -772,7 +822,7 @@ final class PasswordResetService
             $pendingVerification = $this->verificationModel
                 ->findLatestPendingForContact(
                     $mobileContactId,
-                    ContactVerificationModel::PURPOSE_PASSWORD_RESET
+                    $purpose
                 );
 
             if (is_array($pendingVerification)) {
@@ -796,7 +846,7 @@ final class PasswordResetService
             $issuedCount = $this->verificationModel
                 ->countDeliveredOrPendingSince(
                     $mobileContactId,
-                    ContactVerificationModel::PURPOSE_PASSWORD_RESET,
+                    $purpose,
                     $since
                 );
 
@@ -819,7 +869,7 @@ final class PasswordResetService
             $pendingCancelled = $this->verificationModel
                 ->cancelPendingForContact(
                     $mobileContactId,
-                    ContactVerificationModel::PURPOSE_PASSWORD_RESET
+                    $purpose
                 );
 
             if (! $pendingCancelled) {
@@ -834,7 +884,7 @@ final class PasswordResetService
                     $mobileContactId,
 
                     'purpose' =>
-                    ContactVerificationModel::PURPOSE_PASSWORD_RESET,
+                    $purpose,
 
                     'otp_hash' =>
                     password_hash(
@@ -1093,6 +1143,20 @@ final class PasswordResetService
         return in_array(
             $accountStatus,
             self::PASSWORD_RESET_ALLOWED_STATUSES,
+            true
+        );
+    }
+
+    /**
+     * Confirm that the supplied purpose belongs to a password authorization
+     * workflow owned by this service.
+     */
+    private function isPasswordAuthorizationPurpose(
+        string $purpose
+    ): bool {
+        return in_array(
+            $purpose,
+            self::PASSWORD_AUTHORIZATION_PURPOSES,
             true
         );
     }

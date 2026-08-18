@@ -174,25 +174,46 @@ No dedicated permanent DB cases recorded yet. Prelaunch migration integrity is c
 **Automation:** Authentication integration/manual pending automation  
 **Last result:** NOT RUN
 
-### REG-SEC-003 - Migrated-member password guidance
-**Origin:** Prelaunch member migration and Account Settings
+### REG-SEC-003 - Migrated-member password setup isolation
+**Origin:** Prelaunch migration, Account Settings and Forgot Password
 
-**Expected:** A migrated member with `password_hash IS NULL` sees “Set Password”
-and OTP-based password setup instructions without an unusable current-password
-form. Starting setup from Account Settings accepts no member-supplied identifier
-and sends OTP only to the authenticated member's verified primary mobile.
+**Expected:** Public Forgot Password and authenticated migrated-member password
+setup have separate session flow identifiers and separate OTP purposes.
 
-The password-setup endpoint is POST-only, CSRF-protected and protected by the
-member authentication filter. It rejects non-migrated members, suspended or
-deleted accounts, members without a verified primary mobile, and members who
-already have a password.
+Public Forgot Password uses `PASSWORD_RESET`. Authenticated initial-password
+creation uses `PASSWORD_SETUP`. Starting either flow clears previous temporary
+password authorization state in that browser.
 
-After OTP verification and successful password creation, Account Settings shows
-the normal “Change Password” form. The Set New Password Back to Login action is
-properly aligned, has no underline and submits the existing POST cancel route
-with CSRF.
+The authenticated setup route accepts no user, mobile or email identifier. The
+member ID comes only from `auth_user_id`, and the service resolves that member's
+verified primary mobile. Every verify, resend, password-form and password-update
+step confirms that the authenticated member still matches the setup member.
 
-**Automation:** Feature/manual pending automation
+An OTP issued for `PASSWORD_RESET` cannot verify or authorize
+`PASSWORD_SETUP`, and an OTP issued for `PASSWORD_SETUP` cannot verify or
+authorize `PASSWORD_RESET`.
+
+After successful password creation or reset, the browser session is destroyed
+and the member must log in using the new password.
+
+**Required cases:**
+
+1. Public reset OTP cannot be entered in a prelaunch setup flow.
+2. Prelaunch setup OTP cannot be entered in public Forgot Password.
+3. Starting public reset does not retain authenticated setup session state.
+4. Starting authenticated setup does not retain public reset state.
+5. Direct setup POST without authentication is rejected.
+6. Setup rejects another member ID, mobile number or email input.
+7. Setup rejects a non-migrated member.
+8. Setup rejects a migrated member whose password is already set.
+9. Setup rejects an unverified or non-primary mobile contact.
+10. Logout or authenticated-user change invalidates an active setup flow.
+11. OTP expiry, resend cooldown, attempt limit and daily quota remain enforced.
+12. A consumed OTP cannot be reused during concurrent password submissions.
+13. Successful password creation destroys the authenticated session.
+14. Account Settings no longer shows setup guidance after password creation.
+
+**Automation:** Integration/manual pending automation
 
 **Last result:** NOT RUN
 

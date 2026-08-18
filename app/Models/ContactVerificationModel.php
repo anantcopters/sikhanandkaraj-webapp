@@ -17,6 +17,13 @@ final class ContactVerificationModel extends Model
     'PASSWORD_RESET';
 
     /**
+     * Initial password creation for an authenticated member migrated from
+     * a prelaunch profile.
+     */
+    public const PURPOSE_PASSWORD_SETUP =
+    'PASSWORD_SETUP';
+
+    /**
      * Passwordless member login using a verified mobile number.
      */
     public const PURPOSE_LOGIN = 'LOGIN';
@@ -204,30 +211,31 @@ final class ContactVerificationModel extends Model
     }
 
     /**
-     * Lock and return a verified password-reset authorization.
+     * Lock and return a verified password authorization.
      *
      * Must be called inside an active transaction.
      *
      * @return array<string, mixed>|null
      */
-    public function lockVerifiedPasswordReset(
+    public function lockVerifiedPasswordAuthorization(
         int $verificationId,
-        int $userContactId
+        int $userContactId,
+        string $purpose
     ): ?array {
         $query = $this->db->query(
             <<<'SQL'
-            SELECT *
-            FROM contact_verifications
-            WHERE id = ?
-              AND user_contact_id = ?
-              AND purpose = ?
-              AND status = ?
-            FOR UPDATE
+        SELECT *
+        FROM contact_verifications
+        WHERE id = ?
+          AND user_contact_id = ?
+          AND purpose = ?
+          AND status = ?
+        FOR UPDATE
         SQL,
             [
                 $verificationId,
                 $userContactId,
-                self::PURPOSE_PASSWORD_RESET,
+                $purpose,
                 self::STATUS_VERIFIED,
             ]
         );
