@@ -256,6 +256,34 @@ carousel controls are shown.
 
 **Last result:** NOT RUN
 
+### REG-MATCH-006 - Thumbnail member account type
+**Origin:** Shared member presentation and Dashboard ProfileThumbnail
+
+**Expected:** Every Dashboard ProfileThumbnail receives its account type through
+the backend `MemberProfilePresentationService` contract. The view does not
+hardcode or independently determine the account type.
+
+Until subscription entitlements are implemented, the backend supplies
+`Free Account`. ProfileThumbnail displays `Account: Free Account`.
+
+The existing logged-in-member `accountPlan` Dashboard value must not be reused
+for candidate thumbnails because it represents the viewer rather than the
+member displayed by the thumbnail.
+
+**Required cases:**
+
+1. Every Dashboard collection supplies `accountType`.
+2. ProfileThumbnail displays `Account: Free Account`.
+3. Missing or empty `accountType` does not produce an empty Account label.
+4. Dynamic output is escaped.
+5. Search ProfileCard and ProfileInterestCard remain visually unchanged.
+6. Blocked and globally hidden reported profiles remain excluded.
+7. Mobile and desktop thumbnail layouts remain aligned.
+
+**Automation:** Unit/manual pending automation
+
+**Last result:** NOT RUN
+
 ## Retired cases
 
 Keep retired cases here or retain their original section with status `RETIRED` and the reason. Do not erase regression history without explanation.

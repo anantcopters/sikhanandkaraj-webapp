@@ -45,13 +45,12 @@ $city = trim(
     )
 );
 
-$location =
-    trim(
-        (string) (
-            $profile['location']
-            ?? $city
-        )
-    );
+$location = trim(
+    (string) (
+        $profile['location']
+        ?? $city
+    )
+);
 
 $image = trim(
     (string) (
@@ -71,6 +70,20 @@ if ($profileUrl === '') {
     $profileUrl = '#';
 }
 
+/*
+ * Account type must come from the backend presentation contract.
+ *
+ * Do not provide a Free Account fallback in the view. This prevents the UI
+ * from silently displaying an incorrect plan when backend plan resolution is
+ * introduced later.
+ */
+$accountType = trim(
+    (string) (
+        $profile['accountType']
+        ?? ''
+    )
+);
+
 $matchPercentage =
     isset(
         $profile['matchPercentage']
@@ -82,8 +95,7 @@ $matchPercentage =
         0,
         min(
             100,
-            (int)
-            $profile['matchPercentage']
+            (int) $profile['matchPercentage']
         )
     )
     : null;
@@ -171,10 +183,31 @@ $matchPercentage =
 
             </p>
 
+            <!-- Backend-supplied member account type -->
+            <?php if (
+                $accountType !== ''
+            ): ?>
+
+                <p
+                    class="fs-12 text-center mb-1">
+
+                    <span
+                        class="text-primary
+                            fw-semibold">
+
+                        <?= esc(
+                            $accountType
+                        ) ?>
+
+                    </span>
+
+                </p>
+
+            <?php endif; ?>
+
             <!-- Match context appears only when supplied by matchmaking. -->
             <?php if (
-                $matchPercentage
-                !== null
+                $matchPercentage !== null
             ): ?>
 
                 <p

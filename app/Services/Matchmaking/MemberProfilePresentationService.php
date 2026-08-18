@@ -18,6 +18,13 @@ use Throwable;
  */
 final class MemberProfilePresentationService
 {
+    /**
+     * Temporary account label until member subscription plans are connected
+     * to the common profile-presentation contract.
+     */
+    private const DEFAULT_ACCOUNT_TYPE =
+    'Free Account';
+
     public function __construct(
         private readonly MemberPhotoUrlService
         $photoUrlService
@@ -41,6 +48,7 @@ final class MemberProfilePresentationService
      *     state:string,
      *     location:string,
      *     maritalStatus:string,
+     *     accountType:string,
      *     image:string,
      *     profileUrl:string
      * }|null
@@ -229,6 +237,23 @@ final class MemberProfilePresentationService
                     ?? ''
                 )
             ),
+
+            'maritalStatus' =>
+            trim(
+                (string) (
+                    $member['marital_status_name']
+                    ?? ''
+                )
+            ),
+
+            /*
+ * Temporary backend-supplied account type.
+ *
+ * Replace this value with the member's resolved subscription entitlement
+ * when the subscription module becomes authoritative.
+ */
+            'accountType' =>
+            self::DEFAULT_ACCOUNT_TYPE,
 
             'image' =>
             $image,
