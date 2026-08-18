@@ -189,6 +189,11 @@ $maritalStatuses =
     )
     : [];
 
+$countries = isset($masterData['countries'])
+    && is_array($masterData['countries'])
+    ? array_values($masterData['countries'])
+    : [];
+
 $states =
     isset(
         $masterData['states']
@@ -322,6 +327,11 @@ $lifestyleOptionsByCategory =
 $selectedMaritalStatusIds =
     $selectedIds(
         'marital_status_ids'
+    );
+
+$selectedCountryIds =
+    $selectedIds(
+        'country_ids'
     );
 
 $selectedStateIds =
@@ -1012,9 +1022,99 @@ $this->section(
                                 </div>
 
                                 <!-- =========================================
-                                     State Living In
-                                     Empty selection = Any.
-                                     ========================================= -->
+     Country Living In
+     Empty selection = Any Country.
+     ========================================= -->
+
+                                <div class="col-12 col-md-6">
+
+                                    <label
+                                        for="countryIds"
+                                        class="form-labelm">
+
+                                        Country Living In
+                                    </label>
+
+                                    <select
+                                        id="countryIds"
+                                        name="country_ids[]"
+                                        class="form-select"
+                                        data-choice
+                                        data-choice-search="true"
+                                        data-choice-remove="true"
+                                        data-choice-position="bottom"
+                                        data-choice-search-placeholder="Search country"
+                                        multiple>
+
+                                        <?php foreach (
+                                            $countries
+                                            as $country
+                                        ): ?>
+
+                                            <?php
+                                            $countryId =
+                                                max(
+                                                    0,
+                                                    (int) (
+                                                        $country['id']
+                                                        ?? 0
+                                                    )
+                                                );
+
+                                            $countryName =
+                                                trim(
+                                                    (string) (
+                                                        $country['name']
+                                                        ?? ''
+                                                    )
+                                                );
+
+                                            if (
+                                                $countryId <= 0
+                                                || $countryName === ''
+                                            ) {
+                                                continue;
+                                            }
+                                            ?>
+
+                                            <option
+                                                value="<?= esc(
+                                                            (string) $countryId,
+                                                            'attr'
+                                                        ) ?>"
+                                                <?= in_array(
+                                                    $countryId,
+                                                    $selectedCountryIds,
+                                                    true
+                                                )
+                                                    ? 'selected'
+                                                    : '' ?>>
+
+                                                <?= esc(
+                                                    $countryName
+                                                ) ?>
+
+                                            </option>
+
+                                        <?php endforeach; ?>
+
+                                    </select>
+
+                                    <input
+                                        type="hidden"
+                                        id="searchStatesUrl"
+                                        value="<?= esc(
+                                                    route_to(
+                                                        'web.search.states'
+                                                    ),
+                                                    'attr'
+                                                ) ?>">
+
+                                    <div class="form-text text-secondary">
+                                        Leave empty for any country.
+                                    </div>
+
+                                </div>
 
                                 <div class="col-12 col-md-6">
 

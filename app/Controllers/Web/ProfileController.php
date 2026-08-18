@@ -18,6 +18,7 @@ use App\Validation\Profile\AboutMeValidation;
 use App\Services\Profile\MemberPhotoService;
 use App\Services\Profile\MemberProfileSummaryService;
 use App\Support\ProfileErrorContext;
+use App\Services\Profile\MemberTrustVerificationService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -42,8 +43,13 @@ final class ProfileController extends BaseController
             'basicDetailsService'
         );
 
+        $requestedCountryId = (int) old('country_id', 0);
+        $requestedStateId = (int) old('state_id', 0);
+
         $basicProfile = $basicDetailsService->getForUser(
-            $userId
+            $userId,
+            $requestedCountryId > 0 ? $requestedCountryId : null,
+            $requestedStateId > 0 ? $requestedStateId : null
         );
 
         return view(
@@ -90,9 +96,20 @@ final class ProfileController extends BaseController
             'memberProfileSummaryService'
         );
 
-        $profileSummary = $profileSummaryService->getForUser(
-            $userId
+        $profileSummary = $profileSummaryService
+            ->getForUser(
+                $userId
+            );
+
+        /** @var MemberTrustVerificationService $trustService */
+        $trustService = service(
+            'memberTrustVerificationService'
         );
+
+        $trustVerification = $trustService
+            ->getForUser(
+                $userId
+            );
 
         return view(
             'Pages/Profile/Edit',
@@ -103,6 +120,25 @@ final class ProfileController extends BaseController
 
                     'formAlert' =>
                     $this->readFormAlert(),
+
+                    'trustVerification' =>
+                    $trustVerification,
+
+                    'aadhaarValidationErrors' =>
+                    session(
+                        'aadhaarValidationErrors'
+                    ) ?? [],
+
+                    'openAadhaarModal' =>
+                    session(
+                        'openAadhaarModal'
+                    ) === true,
+
+                    'pageScripts' => [
+                        'assets/js/components/submit-loader.js',
+                        'assets/js/pages/dashboard-security.js',
+                        'assets/js/pages/member-aadhaar.js',
+                    ],
                 ],
                 $profileSummary
             )
@@ -342,7 +378,14 @@ final class ProfileController extends BaseController
         /** @var LifestyleService $service */
         $service = service('lifestyleService');
 
-        $profile = $service->getForUser($userId);
+        $requestedCountryId = (int) old('country_id', 0);
+        $requestedStateId = (int) old('state_id', 0);
+
+        $profile = $service->getForUser(
+            $userId,
+            $requestedCountryId > 0 ? $requestedCountryId : null,
+            $requestedStateId > 0 ? $requestedStateId : null
+        );
 
         return view(
             'Pages/Profile/Sections/Lifestyle/Edit',

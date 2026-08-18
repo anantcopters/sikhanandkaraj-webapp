@@ -67,6 +67,9 @@ final class AdditionalPartnerPreferenceService
         $annualIncomeSelectionModel,
 
         private readonly PartnerPreferenceSelectionModel
+        $countrySelectionModel,
+
+        private readonly PartnerPreferenceSelectionModel
         $stateSelectionModel,
 
         private readonly PartnerPreferenceSelectionModel
@@ -132,6 +135,11 @@ final class AdditionalPartnerPreferenceService
         $annualIncomeIds = $this->selectedValues(
             $professional,
             $this->annualIncomeSelectionModel
+        );
+
+        $countryIds = $this->selectedValues(
+            $location,
+            $this->countrySelectionModel
         );
 
         $stateIds = $this->selectedValues(
@@ -216,6 +224,11 @@ final class AdditionalPartnerPreferenceService
             ),
         ];
 
+        $countryLabels = $this->masterLabelsOrAny(
+            $countryIds,
+            $masterData['countries']
+        );
+
         $stateLabels = $this->masterLabelsOrAny(
             $stateIds,
             $masterData['states']
@@ -233,7 +246,9 @@ final class AdditionalPartnerPreferenceService
             && $cityLabels !== null
         ) {
             $locationValue =
-                'States: '
+                'Countries: '
+                . $countryLabels
+                . ' | States: '
                 . $stateLabels
                 . ' | Cities: '
                 . $cityLabels;
@@ -242,8 +257,9 @@ final class AdditionalPartnerPreferenceService
         $locationItems = [
             $this->summaryItem(
                 AdditionalPreferenceItem::LOCATION,
-                $stateIds !== []
-                    && $cityIds !== [],
+                $countryIds !== []
+                    || $stateIds !== []
+                    || $cityIds !== [],
                 $locationValue,
                 $location['location_match_mode'] ?? false
             ),
@@ -351,6 +367,14 @@ final class AdditionalPartnerPreferenceService
             )
         );
 
+        $selectedCountryIds = array_map(
+            'intval',
+            $this->selectedValues(
+                $location,
+                $this->countrySelectionModel
+            )
+        );
+
         $masterData = $this
             ->masterDataService
             ->additionalPartnerPreferenceOptions();
@@ -387,6 +411,9 @@ final class AdditionalPartnerPreferenceService
             $specialRequest,
 
             'selectedValues' => [
+                'countries' =>
+                $selectedCountryIds,
+
                 'communities' =>
                 $this->selectedValues(
                     $religious,
@@ -758,6 +785,10 @@ final class AdditionalPartnerPreferenceService
         int $userId,
         array $data
     ): void {
+        $countryIds = $this->normalizeIntegerIds(
+            $data['country_ids'] ?? []
+        );
+
         $stateIds = $this->normalizeIntegerIds(
             $data['state_ids'] ?? []
         );
@@ -771,9 +802,34 @@ final class AdditionalPartnerPreferenceService
             ->additionalPartnerPreferenceOptions();
 
         $this->assertMasterIds(
+            $countryIds,
+            $masterData['countries']
+        );
+
+        $this->assertMasterIds(
             $stateIds,
             $masterData['states']
         );
+
+        if ($countryIds !== []) {
+            $allowedStateIds = array_map(
+                static fn(array $state): int => (int) $state['id'],
+                array_filter(
+                    $masterData['states'],
+                    static fn(array $state): bool => in_array(
+                        (int) ($state['country_id'] ?? 0),
+                        $countryIds,
+                        true
+                    )
+                )
+            );
+
+            if (array_diff($stateIds, $allowedStateIds) !== []) {
+                throw new DomainException(
+                    'Every selected state must belong to a selected country.'
+                );
+            }
+        }
 
         $cities = $this
             ->masterDataService
@@ -803,6 +859,14 @@ final class AdditionalPartnerPreferenceService
                     $this->strictMode($data),
                 ]
             )
+        );
+
+        $this->assertSaved(
+            $this->countrySelectionModel
+                ->replaceSelections(
+                    $parentId,
+                    $countryIds
+                )
         );
 
         $this->assertSaved(

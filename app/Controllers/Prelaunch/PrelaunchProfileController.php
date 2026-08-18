@@ -41,6 +41,7 @@ final class PrelaunchProfileController extends BaseController
         * includes this value in operational error context.
         */
         $selectedStateId = 0;
+        $selectedCountryId = 0;
 
         try {
             /** @var ProfileMasterDataService $masterService */
@@ -53,10 +54,18 @@ final class PrelaunchProfileController extends BaseController
                 0
             );
 
+            $selectedCountryId = (int) old(
+                'country_id',
+                0
+            );
+
             $basicDetails =
                 $masterService->prelaunchBasicDetailsOptions(
                     $selectedStateId > 0
                         ? $selectedStateId
+                        : null,
+                    $selectedCountryId > 0
+                        ? $selectedCountryId
                         : null
                 );
 
@@ -98,6 +107,10 @@ final class PrelaunchProfileController extends BaseController
                     'country' =>
                     $basicDetails['country']
                         ?? null,
+
+                    'countries' =>
+                    $basicDetails['countries']
+                        ?? [],
 
                     'states' =>
                     $basicDetails['states']
@@ -209,6 +222,57 @@ final class PrelaunchProfileController extends BaseController
 
             throw PageNotFoundException
                 ::forPageNotFound();
+        }
+    }
+
+    /**
+     * Return states for a country selected on the public form.
+     */
+    public function states(int $countryId): ResponseInterface
+    {
+        if ($countryId <= 0) {
+            return $this->response
+                ->setStatusCode(422)
+                ->setJSON([
+                    'successful' => false,
+                    'message' => 'Please select a valid country.',
+                    'items' => [],
+                ]);
+        }
+
+        try {
+            /** @var ProfileMasterDataService $masterService */
+            $masterService = service('profileMasterDataService');
+
+            return $this->response->setJSON([
+                'successful' => true,
+                'items' => array_values(array_map(
+                    static fn(array $state): array => [
+                        'id' => (int) ($state['id'] ?? 0),
+                        'name' => (string) ($state['name'] ?? ''),
+                    ],
+                    $masterService->statesForCountry($countryId)
+                )),
+            ]);
+        } catch (Throwable $exception) {
+            service('applicationErrorLogger')->exception(
+                $exception,
+                'error',
+                PrelaunchErrorContext::forOperation(
+                    operation: 'prelaunch_state_master_load',
+                    component: self::class,
+                    method: __FUNCTION__,
+                    additionalContext: ['country_id' => $countryId]
+                )
+            );
+
+            return $this->response
+                ->setStatusCode(500)
+                ->setJSON([
+                    'successful' => false,
+                    'message' => 'States could not be loaded.',
+                    'items' => [],
+                ]);
         }
     }
 

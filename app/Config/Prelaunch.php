@@ -17,11 +17,6 @@ final class Prelaunch extends BaseConfig
     public bool $profileEntryEnabled = true;
 
     /**
-     * Temporary password assigned to migrated prelaunch members.
-     */
-    public string $migratedMemberDefaultPassword;
-
-    /**
      * SAK Volunteer assigned to every prelaunch profile.
      *
      * This value must contain the primary-key ID of an ACTIVE,
@@ -114,13 +109,6 @@ final class Prelaunch extends BaseConfig
     public function __construct()
     {
         parent::__construct();
-
-        $this->migratedMemberDefaultPassword = trim(
-            (string) env(
-                'PRELAUNCH_MEMBER_DEFAULT_PASSWORD',
-                ''
-            )
-        );
 
         $deployment = trim(
             (string) env(

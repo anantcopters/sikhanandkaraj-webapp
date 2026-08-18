@@ -6,6 +6,7 @@ namespace App\Services\Matchmaking;
 
 use App\Services\Profile\MemberPhotoUrlService;
 use App\Support\MemberNameVisibility;
+use App\Support\BooleanValue;
 use DateTimeImmutable;
 use Throwable;
 
@@ -18,6 +19,13 @@ use Throwable;
  */
 final class MemberProfilePresentationService
 {
+    /**
+     * Temporary account label until member subscription plans are connected
+     * to the common profile-presentation contract.
+     */
+    private const DEFAULT_ACCOUNT_TYPE =
+    'Free Account';
+
     public function __construct(
         private readonly MemberPhotoUrlService
         $photoUrlService
@@ -36,9 +44,19 @@ final class MemberProfilePresentationService
      *     name:string,
      *     age:int|null,
      *     height:string,
+     *     country:string,
      *     city:string,
      *     state:string,
+     *     location:string,
      *     maritalStatus:string,
+     *     accountType:string,
+     *     professionalSummary:string,
+     *     verification:array{
+     *         mobile:bool,
+     *         email:bool,
+     *         aadhaar:bool,
+     *         selfie:bool
+     *     },
      *     image:string,
      *     profileUrl:string
      * }|null
@@ -137,6 +155,64 @@ final class MemberProfilePresentationService
                 canViewFullName: $canViewFullName
             );
 
+        $country =
+            trim(
+                (string) (
+                    $member['country_name']
+                    ?? ''
+                )
+            );
+
+        $city =
+            trim(
+                (string) (
+                    $member['city_name']
+                    ?? ''
+                )
+            );
+
+        $locationParts =
+            array_values(
+                array_filter(
+                    [
+                        $country,
+                        $city,
+                    ],
+                    static fn(
+                        string $part
+                    ): bool =>
+                    $part !== ''
+                )
+            );
+
+        $education = trim(
+            (string) (
+                $member['education_name']
+                ?? ''
+            )
+        );
+
+        $occupation = trim(
+            (string) (
+                $member['occupation_name']
+                ?? ''
+            )
+        );
+
+        $employedIn = $this->employmentLabel(
+            $member['employed_in']
+                ?? null
+        );
+
+        $professionalSummary =
+            $this->professionalSummary(
+                education: $education,
+
+                occupation: $occupation,
+
+                employedIn: $employedIn
+            );
+
         return [
             'referenceId' =>
             $profileReference,
@@ -158,13 +234,12 @@ final class MemberProfilePresentationService
                 )
             ),
 
+
+            'country' =>
+            $country,
+
             'city' =>
-            trim(
-                (string) (
-                    $member['city_name']
-                    ?? ''
-                )
-            ),
+            $city,
 
             'state' =>
             trim(
@@ -174,6 +249,23 @@ final class MemberProfilePresentationService
                 )
             ),
 
+            /*
+            * Shared presentation value used by Thumbnail, Search Card
+            * and Interest Card.
+            *
+            * Examples:
+            * India, Kota
+            * Canada, Toronto
+            *
+            * If either value is unavailable, the available value is shown
+            * without leaving an extra comma.
+            */
+            'location' =>
+            implode(
+                ', ',
+                $locationParts
+            ),
+
             'maritalStatus' =>
             trim(
                 (string) (
@@ -181,6 +273,45 @@ final class MemberProfilePresentationService
                     ?? ''
                 )
             ),
+
+            /*
+            * Temporary backend-supplied account type.
+            *
+            * Replace this value with the member's resolved subscription entitlement
+            * when the subscription module becomes authoritative.
+            */
+            'accountType' =>
+            self::DEFAULT_ACCOUNT_TYPE,
+
+            /*
+            * Verification values are normalized in the backend so views never need
+            * to interpret PostgreSQL boolean representations.
+            */
+            'verification' => [
+                'mobile' =>
+                BooleanValue::fromDatabase(
+                    $member['is_mobile_verified']
+                        ?? false
+                ),
+
+                'email' =>
+                BooleanValue::fromDatabase(
+                    $member['is_email_verified']
+                        ?? false
+                ),
+
+                'aadhaar' =>
+                BooleanValue::fromDatabase(
+                    $member['is_aadhaar_verified']
+                        ?? false
+                ),
+
+                'selfie' =>
+                BooleanValue::fromDatabase(
+                    $member['is_selfie_verified']
+                        ?? false
+                ),
+            ],
 
             'image' =>
             $image,
@@ -193,7 +324,91 @@ final class MemberProfilePresentationService
                 'web.members.view',
                 $profileReference
             ),
+
+            /*
+            * Education, occupation and employment are formatted once so ProfileCard
+            * and ProfileInterestCard always follow the same display rules.
+            */
+            'professionalSummary' =>
+            $professionalSummary,
         ];
+    }
+
+    /**
+     * Convert the stored employment code into its existing member-facing label.
+     *
+     * Unknown values fail closed instead of exposing an internal code.
+     */
+    private function employmentLabel(
+        mixed $employedIn
+    ): string {
+        $value = mb_strtoupper(
+            trim(
+                (string) $employedIn
+            )
+        );
+
+        return match ($value) {
+            'GOVERNMENT_PSU' =>
+            'Government / PSU',
+
+            'PRIVATE' =>
+            'Private Sector',
+
+            'BUSINESS' =>
+            'Business',
+
+            'DEFENSE' =>
+            'Defense',
+
+            'SELF_EMPLOYED' =>
+            'Self Employed',
+
+            'NOT_WORKING' =>
+            'Not Working',
+
+            default =>
+            '',
+        };
+    }
+
+    /**
+     * Build a compact professional summary from all available values.
+     *
+     * Empty values are removed before joining, preventing leading, trailing
+     * or repeated separators.
+     */
+    private function professionalSummary(
+        string $education,
+        string $occupation,
+        string $employedIn
+    ): string {
+        $parts = array_values(
+            array_filter(
+                [
+                    trim(
+                        $education
+                    ),
+
+                    trim(
+                        $occupation
+                    ),
+
+                    trim(
+                        $employedIn
+                    ),
+                ],
+                static fn(
+                    string $part
+                ): bool =>
+                $part !== ''
+            )
+        );
+
+        return implode(
+            ' • ',
+            $parts
+        );
     }
 
     /**

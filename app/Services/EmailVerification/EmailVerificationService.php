@@ -83,8 +83,27 @@ final class EmailVerificationService
             );
         }
 
-        $emailAddress = trim(
-            (string) ($contact['contact_value'] ?? '')
+        return $this->sendToContact(
+            $user,
+            $contact
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $user
+     * @param array<string, mixed> $contact
+     */
+    private function sendToContact(
+        array $user,
+        array $contact
+    ): VerificationResult {
+        $emailAddress = mb_strtolower(
+            trim(
+                (string) (
+                    $contact['contact_value']
+                    ?? ''
+                )
+            )
         );
 
         if (
@@ -99,18 +118,43 @@ final class EmailVerificationService
             );
         }
 
-        $latestToken = $this->tokenModel
+        $contactId = (int) (
+            $contact['id']
+            ?? 0
+        );
+
+        $userId = (int) (
+            $user['id']
+            ?? $contact['user_id']
+            ?? 0
+        );
+
+        if (
+            $contactId <= 0
+            || $userId <= 0
+        ) {
+            return VerificationResult::failure(
+                'The email verification request is invalid.'
+            );
+        }
+
+        $latestToken = $this
+            ->tokenModel
             ->findLatestForContact(
-                (int) $contact['id']
+                $contactId
             );
 
         if (is_array($latestToken)) {
             $createdTimestamp = strtotime(
-                (string) ($latestToken['created_at'] ?? '')
+                (string) (
+                    $latestToken['created_at']
+                    ?? ''
+                )
             );
 
             if ($createdTimestamp !== false) {
-                $elapsedSeconds = time() - $createdTimestamp;
+                $elapsedSeconds =
+                    time() - $createdTimestamp;
 
                 if (
                     $elapsedSeconds
@@ -124,6 +168,7 @@ final class EmailVerificationService
                         message: 'Please wait '
                             . $remainingSeconds
                             . ' seconds before requesting another email.',
+
                         retryAfter: $remainingSeconds
                     );
                 }
@@ -135,15 +180,12 @@ final class EmailVerificationService
             time() - 3600
         );
 
-        $requestCount = $this->tokenModel
-            ->countCreatedForContactSince(
-                (int) $contact['id'],
-                $oneHourAgo
-            );
-
         if (
-            $requestCount
-            >= self::MAX_REQUESTS_PER_HOUR
+            $this->tokenModel
+            ->countCreatedForContactSince(
+                $contactId,
+                $oneHourAgo
+            ) >= self::MAX_REQUESTS_PER_HOUR
         ) {
             return VerificationResult::failure(
                 'You have requested too many verification emails. '
@@ -151,38 +193,54 @@ final class EmailVerificationService
             );
         }
 
-        $rawToken = bin2hex(random_bytes(32));
-        $tokenHash = hash('sha256', $rawToken);
+        $rawToken =
+            bin2hex(
+                random_bytes(32)
+            );
+
+        $tokenHash =
+            hash(
+                'sha256',
+                $rawToken
+            );
 
         $expiresAt = date(
             'Y-m-d H:i:s',
             strtotime(
-                '+' . self::TOKEN_LIFETIME_HOURS . ' hours'
+                '+'
+                    . self::TOKEN_LIFETIME_HOURS
+                    . ' hours'
             )
         );
-
-        $contactId = (int) $contact['id'];
 
         $database = db_connect();
 
         $database->transBegin();
 
         try {
+            $this->tokenModel
+                ->invalidateForContact(
+                    $contactId
+                );
 
-            /*
-            * Invalidate earlier links and create the replacement token
-            * within the same transaction as the queue record.
-            */
-            $this->tokenModel->invalidateForContact(
-                $contactId
-            );
+            $tokenId = $this
+                ->tokenModel
+                ->insert(
+                    [
+                        'user_id' =>
+                        $userId,
 
-            $tokenId = $this->tokenModel->insert([
-                'user_id' => $userId,
-                'user_contact_id' => $contactId,
-                'token_hash' => $tokenHash,
-                'expires_at' => $expiresAt,
-            ], true);
+                        'user_contact_id' =>
+                        $contactId,
+
+                        'token_hash' =>
+                        $tokenHash,
+
+                        'expires_at' =>
+                        $expiresAt,
+                    ],
+                    true
+                );
 
             if (!is_numeric($tokenId)) {
                 throw new RuntimeException(
@@ -195,30 +253,53 @@ final class EmailVerificationService
                 $rawToken
             );
 
+            $this->emailQueueService
+                ->enqueue(
+                    recipientEmail: $emailAddress,
 
-            $this->emailQueueService->enqueue(
-                recipientEmail: $emailAddress,
-                recipientName: trim(
-                    (string) ($user['full_name'] ?? '')
-                ),
-                subject: 'Verify your Sikhanandkaraj email',
-                viewName: 'Emails/Authentication/VerifyEmail',
-                viewData: [
-                    'userName' => trim(
+                    recipientName: trim(
                         (string) (
                             $user['full_name']
-                            ?? 'Member'
+                            ?? ''
                         )
                     ),
-                    'verificationUrl' => $verificationUrl,
-                    'expiresInHours' =>
-                    self::TOKEN_LIFETIME_HOURS,
-                ],
-                priority: 10,
-                maxAttempts: 3,
-                referenceType: 'EMAIL_VERIFICATION_TOKEN',
-                referenceId: (int) $tokenId
-            );
+
+                    subject: 'Verify your Sikhanandkaraj email',
+
+                    viewName: 'Emails/Authentication/VerifyEmail',
+
+                    viewData: [
+                        'userName' =>
+                        trim(
+                            (string) (
+                                $user['full_name']
+                                ?? 'Member'
+                            )
+                        ),
+
+                        'emailAddress' =>
+                        $emailAddress,
+
+                        'verificationUrl' =>
+                        $verificationUrl,
+
+                        'expiresInHours' =>
+                        self::TOKEN_LIFETIME_HOURS,
+
+                        'isReplacement' => (
+                            $contact['replaces_contact_id']
+                            ?? null
+                        ) !== null,
+                    ],
+
+                    priority: 10,
+
+                    maxAttempts: 3,
+
+                    referenceType: 'EMAIL_VERIFICATION_TOKEN',
+
+                    referenceId: (int) $tokenId
+                );
 
             if (!$database->transStatus()) {
                 throw new RuntimeException(
@@ -238,7 +319,59 @@ final class EmailVerificationService
         }
 
         return VerificationResult::success(
-            'A verification link has been queued and will arrive shortly.'
+            'A verification link has been sent and remains valid for 24 hours.'
+        );
+    }
+
+    /**
+     * Send verification for one explicitly authorized email contact.
+     *
+     * Account Settings uses this for both:
+     *
+     * - a newly added primary unverified email;
+     * - a pending replacement email.
+     */
+    public function sendForContact(
+        int $userId,
+        int $contactId
+    ): VerificationResult {
+        $user = $this->userModel->find(
+            $userId
+        );
+
+        if (!is_array($user)) {
+            return VerificationResult::failure(
+                'User account could not be found.'
+            );
+        }
+
+        $contact = $this->contactModel
+            ->findForUser(
+                $contactId,
+                $userId,
+                UserContactModel::TYPE_EMAIL
+            );
+
+        if (!is_array($contact)) {
+            return VerificationResult::failure(
+                'The email address could not be found.'
+            );
+        }
+
+        if (
+            BooleanValue::fromDatabase(
+                $contact['is_verified']
+                    ?? false
+            )
+        ) {
+            return VerificationResult::failure(
+                'Your email address is already verified.'
+            );
+        }
+
+        return $this->sendToContact(
+            $user,
+            $contact
         );
     }
 
@@ -305,42 +438,111 @@ final class EmailVerificationService
             );
         }
 
+        $replacedContactId = max(
+            0,
+            (int) (
+                $contact['replaces_contact_id']
+                ?? 0
+            )
+        );
+
         $database = db_connect();
 
-        $database->transStart();
+        $database->transBegin();
 
-        $this->contactModel->update(
-            $contactId,
-            [
-                'is_verified' => true,
-                'verified_at' => date(
-                    'Y-m-d H:i:s'
-                ),
-            ]
-        );
+        try {
+            /*
+            * A replacement email is promoted only after successful
+            * verification. Until now, the old verified email remained active.
+            */
+            if ($replacedContactId > 0) {
+                $replacedContact = $this
+                    ->contactModel
+                    ->findForUser(
+                        $replacedContactId,
+                        $userId,
+                        UserContactModel::TYPE_EMAIL
+                    );
 
-        $this->tokenModel->update(
-            $tokenId,
-            [
-                'used_at' => date(
-                    'Y-m-d H:i:s'
-                ),
-            ]
-        );
+                if (!is_array($replacedContact)) {
+                    throw new RuntimeException(
+                        'The current verified email could not be found.'
+                    );
+                }
 
-        /*
-         * Invalidate any other outstanding verification links.
-         */
-        $this->tokenModel->invalidateForContact(
-            $contactId
-        );
+                $this->contactModel->update(
+                    $replacedContactId,
+                    [
+                        'is_primary' =>
+                        false,
+                    ]
+                );
+            }
 
-        $database->transComplete();
+            $updated = $this
+                ->contactModel
+                ->update(
+                    $contactId,
+                    [
+                        'is_primary' =>
+                        true,
 
-        if (!$database->transStatus()) {
-            throw new RuntimeException(
-                'Email verification could not be completed.'
+                        'is_verified' =>
+                        true,
+
+                        'verified_at' =>
+                        date('Y-m-d H:i:s'),
+
+                        'replaces_contact_id' =>
+                        null,
+
+                        'change_available_at' =>
+                        null,
+                    ]
+                );
+
+            if ($updated === false) {
+                throw new RuntimeException(
+                    'Email verification could not be completed.'
+                );
+            }
+
+            $this->tokenModel->update(
+                $tokenId,
+                [
+                    'used_at' =>
+                    date('Y-m-d H:i:s'),
+                ]
             );
+
+            $this->tokenModel
+                ->invalidateForContact(
+                    $contactId
+                );
+
+            /*
+     * Remove the old email after the replacement has become primary.
+     *
+     * This is required because login/contact lookup searches normalized
+     * values and the old email must no longer authenticate the account.
+     */
+            if ($replacedContactId > 0) {
+                $this->contactModel->delete(
+                    $replacedContactId
+                );
+            }
+
+            if (!$database->transStatus()) {
+                throw new RuntimeException(
+                    'Email verification could not be completed.'
+                );
+            }
+
+            $database->transCommit();
+        } catch (Throwable $exception) {
+            $database->transRollback();
+
+            throw $exception;
         }
 
         return VerificationResult::success(

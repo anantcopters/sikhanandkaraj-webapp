@@ -41,6 +41,15 @@ Current numbered increments:
 | 007 | `007_field_officer_portal.sql` | SAK Volunteer login OTPs and submitted-profile read view |
 | 008 | `008_sak_volunteer_self_registration.sql` | volunteer registration source/review workflow |
 | 009 | `009_sak_volunteer_documents.sql` | protected volunteer document filename references |
+| 010 | `010_admin_password_reset.sql` | administrator password-reset workflow persistence |
+| 011 | `011_member_identity_verification.sql` | member identity-verification persistence |
+| 012 | `012_prelaunch_optional_sak_volunteer.sql` | optional prelaunch SAK Volunteer association |
+| 013 | `013_member_aadhaar_verification.sql` | member Aadhaar verification persistence |
+| 014 | `014_member_account_settings.sql` | member account and privacy settings |
+| 015 | `015_contact_support_refinement.sql` | contact-support workflow refinement |
+| 016 | `016_profile_report_single_submission.sql` | profile-report uniqueness refinement |
+| 017 | `017_restore_reporting_after_dismissal.sql` | active report uniqueness after dismissal |
+| 018 | `018_canada_matrimonial_locations.sql` | Canada, 13 provinces/territories and curated matrimonial-ready locations |
 
 Do not edit an already-deployed numbered SQL file to represent a new change. Add the next increment.
 
@@ -175,3 +184,15 @@ Approved primary photo indexes support search/listing retrieval. Viewer authoriz
 - Prefer `RESTRICT` when deleting a referenced master/business actor would destroy historical meaning; use cascade only for genuinely owned child rows.
 
 For the detailed constraint inventory, see `docs/database-constraints.md`.
+
+## Increment 019 — Country-aware search/preferences and hierarchy integrity
+
+`database/019_country_location_integrity.sql` adds persisted country-level
+partner preferences. An empty country selection intentionally means Any country,
+so existing preference rows retain their behaviour.
+
+The increment also adds composite foreign keys for every persisted
+country/state/city tuple used by live members, family details, Sikh birth
+locations, SAK Volunteers and prelaunch profiles. A precondition block aborts
+the transaction with a table-specific count if historical rows contain a state
+from another country or a city from another state.

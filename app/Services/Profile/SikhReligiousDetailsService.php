@@ -64,11 +64,21 @@ final class SikhReligiousDetailsService
             $details['birth_state_id'] ?? null
         );
 
-        $india = $this->countryModel->findIndia();
+        $countryId = $this->existingInteger(
+            $details['birth_country_id'] ?? null
+        );
 
-        if (!is_array($india)) {
+        $country = $countryId !== null
+            ? $this->countryModel->findActive($countryId)
+            : $this->countryModel->findIndia();
+
+        if (!is_array($country)) {
+            $country = $this->countryModel->findIndia();
+        }
+
+        if (!is_array($country)) {
             throw new DomainException(
-                'India master data is not configured.'
+                'Country master data is not configured.'
             );
         }
 
@@ -78,7 +88,10 @@ final class SikhReligiousDetailsService
             'sikhReligiousDetails' => $details,
 
             'masterData' => [
-                'country' => $india,
+                'country' => $country,
+
+                'countries' =>
+                $this->countryModel->activeOptions(),
 
                 'communities' =>
                 $this->communityModel->activeOptions(),
@@ -91,10 +104,15 @@ final class SikhReligiousDetailsService
 
                 'states' =>
                 $this->stateModel->activeForCountry(
-                    (int) $india['id']
+                    (int) $country['id']
                 ),
 
                 'cities' => $stateId !== null
+                    && $this->stateModel
+                        ->where('id', $stateId)
+                        ->where('country_id', (int) $country['id'])
+                        ->where('is_active', true)
+                        ->first() !== null
                     ? $this->cityModel->activeForState(
                         $stateId
                     )
@@ -294,12 +312,7 @@ final class SikhReligiousDetailsService
         ?int $moonSignId,
         ?int $birthStarId
     ): void {
-        $india = $this->countryModel->findIndia();
-
-        if (
-            !is_array($india)
-            || (int) $india['id'] !== $countryId
-        ) {
+        if (!is_array($this->countryModel->findActive($countryId))) {
             throw new DomainException(
                 'Please select a valid country of birth.'
             );

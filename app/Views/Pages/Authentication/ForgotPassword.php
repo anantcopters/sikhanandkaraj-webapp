@@ -135,7 +135,7 @@ $this->section('content');
                                             fs-20 me-2 text-primary"
                                         aria-hidden="true"></span>
 
-                                    <p class="mb-0 fs-13 text-muted">
+                                    <p class="mb-0 fs-13 color-pink">
                                         The OTP will be sent only to your
                                         verified primary mobile number.
                                     </p>

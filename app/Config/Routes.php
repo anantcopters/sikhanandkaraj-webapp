@@ -573,6 +573,15 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
             ]
         );
 
+        $routes->post(
+            'member/aadhaar',
+            'MemberAadhaarController::upload',
+            [
+                'as' => 'web.member.aadhaar.upload',
+                'filter' => 'webAuth',
+            ]
+        );
+
         /*
  * Authenticated member navigation.
  */
@@ -759,6 +768,15 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                     [
                         'as' =>
                         'web.search.profile',
+                    ]
+                );
+
+                $routes->get(
+                    'search/states',
+                    'SearchController::states',
+                    [
+                        'as' =>
+                        'web.search.states',
                     ]
                 );
 
@@ -1065,11 +1083,86 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
         );
 
         $routes->get(
-            'account/settings',
+            'account-settings',
             'AccountSettingsController::index',
             [
-                'as' => 'web.account.settings',
-                'filter' => 'webAuth',
+                'as' =>
+                'web.account.settings',
+            ]
+        );
+
+        $routes->get(
+            'account-settings/(:segment)',
+            'AccountSettingsController::index/$1',
+            [
+                'as' =>
+                'web.account.settings.section',
+            ]
+        );
+
+        $routes->post(
+            'account-settings/password',
+            'AccountSettingsController::changePassword',
+            [
+                'as' =>
+                'web.account.settings.password',
+            ]
+        );
+
+        $routes->post(
+            'account-settings/password/setup',
+            'ForgotPasswordController::sendOtpForPasswordSetup',
+            [
+                'as' =>
+                'web.account.settings.password.setup',
+
+                'filter' =>
+                'webAuth',
+            ]
+        );
+
+        $routes->post(
+            'account-settings/email',
+            'AccountSettingsController::saveEmail',
+            [
+                'as' =>
+                'web.account.settings.email',
+            ]
+        );
+
+        $routes->post(
+            'account-settings/email/resend',
+            'AccountSettingsController::resendEmail',
+            [
+                'as' =>
+                'web.account.settings.email.resend',
+            ]
+        );
+
+        $routes->post(
+            'account-settings/visibility',
+            'AccountSettingsController::saveVisibility',
+            [
+                'as' =>
+                'web.account.settings.visibility',
+            ]
+        );
+
+        $routes->post(
+            'account-settings/contact',
+            'AccountSettingsController::contact',
+            [
+                'as' =>
+                'web.account.settings.contact',
+            ]
+        );
+
+        $routes->post(
+            'members/(:segment)/report',
+            'MemberProfileController::report/$1',
+            [
+                'as' =>
+                'web.members.report',
             ]
         );
 
@@ -1079,6 +1172,14 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
             [
                 'as' => 'web.email.verification.send',
                 'filter' => 'webAuth',
+            ]
+        );
+
+        $routes->get(
+            'profile/master/states/(:num)',
+            'ProfileMasterController::states/$1',
+            [
+                'as' => 'web.profile.master.states',
             ]
         );
 
@@ -1259,6 +1360,49 @@ $routes->group('admin', [
             [
                 'as' => 'admin.dashboard',
             ]
+        );
+
+        $routes->group(
+            'support',
+            static function (
+                \CodeIgniter\Router\RouteCollection $routes
+            ): void {
+                $routes->get(
+                    'profile-reports',
+                    'MemberSupportController::reports',
+                    [
+                        'as' =>
+                        'admin.support.reports',
+                    ]
+                );
+
+                $routes->post(
+                    'profile-reports/(:num)',
+                    'MemberSupportController::updateReport/$1',
+                    [
+                        'as' =>
+                        'admin.support.reports.update',
+                    ]
+                );
+
+                $routes->get(
+                    'contact-requests',
+                    'MemberSupportController::contacts',
+                    [
+                        'as' =>
+                        'admin.support.contacts',
+                    ]
+                );
+
+                $routes->post(
+                    'contact-requests/(:num)',
+                    'MemberSupportController::updateContact/$1',
+                    [
+                        'as' =>
+                        'admin.support.contacts.update',
+                    ]
+                );
+            }
         );
 
         /*
@@ -1568,6 +1712,55 @@ $routes->group('admin', [
                     ]
                 );
 
+                $routes->group(
+                    'aadhaar-approvals',
+                    static function (RouteCollection $routes): void {
+                        $routes->get(
+                            '',
+                            'MemberAadhaarReviewController::index',
+                            [
+                                'as' => 'admin.members.aadhaar-approvals',
+                            ]
+                        );
+
+                        $routes->get(
+                            '(:segment)/document',
+                            'MemberAadhaarReviewController::document/$1',
+                            [
+                                'as' =>
+                                'admin.members.aadhaar-approvals.document',
+                            ]
+                        );
+
+                        $routes->get(
+                            '(:segment)',
+                            'MemberAadhaarReviewController::review/$1',
+                            [
+                                'as' =>
+                                'admin.members.aadhaar-approvals.review',
+                            ]
+                        );
+
+                        $routes->post(
+                            '(:segment)/approve',
+                            'MemberAadhaarReviewController::approve/$1',
+                            [
+                                'as' =>
+                                'admin.members.aadhaar-approvals.approve',
+                            ]
+                        );
+
+                        $routes->post(
+                            '(:segment)/reject',
+                            'MemberAadhaarReviewController::reject/$1',
+                            [
+                                'as' =>
+                                'admin.members.aadhaar-approvals.reject',
+                            ]
+                        );
+                    }
+                );
+
                 /*
                 * More-specific routes are declared before members/(:num).
                 */
@@ -1749,6 +1942,15 @@ $routes->group(
         * Example:
         * GET /prelaunch/profile/master/cities/29
         */
+        $routes->get(
+            'profile/master/states/(:num)',
+            'PrelaunchProfileController::states/$1',
+            [
+                'as' =>
+                'prelaunch.master.states',
+            ]
+        );
+
         $routes->get(
             'profile/master/cities/(:num)',
             'PrelaunchProfileController::cities/$1',

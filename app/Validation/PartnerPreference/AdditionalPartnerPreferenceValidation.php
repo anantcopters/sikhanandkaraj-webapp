@@ -110,10 +110,18 @@ final class AdditionalPartnerPreferenceValidation
             ],
 
             AdditionalPreferenceItem::LOCATION => [
-                'state_ids' =>
-                self::requiredSelection(
-                    'states'
+                'country_ids' => [
+                    'label' => 'Countries',
+                    'rules' => ['permit_empty'],
+                ],
+
+                'country_ids.*' =>
+                self::positiveIdRule(
+                    'country'
                 ),
+
+                'state_ids' =>
+                ['label' => 'States', 'rules' => ['permit_empty']],
 
                 'state_ids.*' =>
                 self::positiveIdRule(
@@ -121,9 +129,7 @@ final class AdditionalPartnerPreferenceValidation
                 ),
 
                 'city_ids' =>
-                self::requiredSelection(
-                    'cities'
-                ),
+                ['label' => 'Cities', 'rules' => ['permit_empty']],
 
                 'city_ids.*' =>
                 self::positiveIdRule(

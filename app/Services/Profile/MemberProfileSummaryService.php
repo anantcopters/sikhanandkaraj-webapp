@@ -18,14 +18,33 @@ namespace App\Services\Profile;
 final class MemberProfileSummaryService
 {
     public function __construct(
-        private readonly BasicDetailsService $basicDetailsService,
-        private readonly EducationProfessionService $educationProfessionService,
-        private readonly FamilyDetailsService $familyDetailsService,
-        private readonly LifestyleService $lifestyleService,
-        private readonly AboutMeService $aboutMeService,
-        private readonly MemberPhotoService $memberPhotoService,
-        private readonly MemberPhotoUrlService $memberPhotoUrlService,
-        private readonly ProfileCompletionService $profileCompletionService
+        private readonly BasicDetailsService
+        $basicDetailsService,
+
+        private readonly EducationProfessionService
+        $educationProfessionService,
+
+        private readonly FamilyDetailsService
+        $familyDetailsService,
+
+        private readonly LifestyleService
+        $lifestyleService,
+
+        private readonly AboutMeService
+        $aboutMeService,
+
+        private readonly MemberPhotoService
+        $memberPhotoService,
+
+        private readonly MemberPhotoUrlService
+        $memberPhotoUrlService,
+
+        private readonly ProfileCompletionService
+        $profileCompletionService,
+
+        private readonly
+        \App\Models\MemberAadhaarSubmissionModel
+        $aadhaarSubmissionModel
     ) {}
 
     /**
@@ -71,6 +90,18 @@ final class MemberProfileSummaryService
         $aboutMeProfile = $this
             ->aboutMeService
             ->getForUser(
+                $userId
+            );
+
+        /*
+        * Return only the approved Aadhaar name and DOB.
+        *
+        * No document metadata, review history or administrator data enters
+        * the shared profile presentation contract.
+        */
+        $aadhaarVerification = $this
+            ->aadhaarSubmissionModel
+            ->approvedIdentityForMember(
                 $userId
             );
 
@@ -170,6 +201,13 @@ final class MemberProfileSummaryService
 
             'aboutMe' =>
             $aboutMeProfile['aboutMe'],
+
+            /*
+            * Read-only identity verified from the approved Aadhaar
+            * submission. Null means no approved Aadhaar identity exists.
+            */
+            'aadhaarVerification' =>
+            $aadhaarVerification,
 
             'aboutMeCompletion' =>
             $aboutMeProfile['completion'],

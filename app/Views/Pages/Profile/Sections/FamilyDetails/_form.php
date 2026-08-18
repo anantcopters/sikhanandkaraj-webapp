@@ -27,6 +27,7 @@ $communities = $options['communities'] ?? [];
 $familyOccupations = $options['familyOccupations'] ?? [];
 $siblingCounts = $options['siblingCounts'] ?? range(0, 10);
 $country = $options['country'] ?? [];
+$countries = $options['countries'] ?? [];
 $states = $options['states'] ?? [];
 $cities = $options['cities'] ?? [];
 
@@ -60,6 +61,11 @@ $isSelected = static function (
 $selectedStateId = $fieldValue(
     'state_id',
     $details['state_id'] ?? ''
+);
+
+$selectedCountryId = $fieldValue(
+    'country_id',
+    $details['country_id'] ?? ($country['id'] ?? '')
 );
 
 $selectedCityId = $fieldValue(
@@ -184,7 +190,7 @@ if ($isJourney) {
         <div class="col-12">
             <hr class="my-2 mb-3">
 
-            <h2 class="fs-16 fw-semibold mb-0 mt-2">
+            <h2 class="fs-16 fw-semibold mb-0 mt-2 text-secondary-emphasis">
                 Community Details
             </h2>
         </div>
@@ -285,7 +291,7 @@ if ($isJourney) {
         <div class="col-12">
             <hr class="my-2 mb-3">
 
-            <h2 class="fs-16 fw-semibold mb-0 mt-2">
+            <h2 class="fs-16 fw-semibold mb-0 mt-2 text-secondary-emphasis">
                 Parent Details
             </h2>
         </div>
@@ -524,7 +530,7 @@ if ($isJourney) {
         <div class="col-12">
             <hr class="my-2 mb-3">
 
-            <h2 class="fs-16 fw-semibold mb-0 mt-2">
+            <h2 class="fs-16 fw-semibold mb-0 mt-2 text-secondary-emphasis">
                 Sibling Details
             </h2>
         </div>
@@ -616,35 +622,49 @@ if ($isJourney) {
         <div class="col-12">
             <hr class="my-2 mb-3">
 
-            <h2 class="fs-16 fw-semibold mb-0 mt-2">
+            <h2 class="fs-16 fw-semibold mb-0 mt-2 text-secondary-emphasis">
                 Family Location
             </h2>
         </div>
 
         <div class="col-12 col-md-4">
             <label
-                for="familyCountryName"
+                for="familyCountryId"
                 class="form-label">
                 Country
+                <span class="text-danger">*</span>
             </label>
 
-            <input
-                type="text"
-                id="familyCountryName"
-                class="form-control bg-light"
-                value="<?= esc(
-                            (string) ($country['name'] ?? 'India'),
-                            'attr'
-                        ) ?>"
-                readonly>
-
-            <input
-                type="hidden"
+            <select
+                id="familyCountryId"
                 name="country_id"
-                value="<?= esc(
-                            (string) ($country['id'] ?? ''),
-                            'attr'
-                        ) ?>">
+                class="form-select"
+                data-choice
+                data-choice-search="false"
+                data-dependent-url-template="<?= esc(
+                                                    site_url(
+                                                        'profile/master/states/__PARENT_ID__'
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
+                data-error-required="Please select your family country."
+                required>
+                <option value="">Select country</option>
+                <?php foreach ($countries as $countryOption): ?>
+                    <?php $optionId = (string) ($countryOption['id'] ?? ''); ?>
+                    <option
+                        value="<?= esc($optionId, 'attr') ?>"
+                        <?= $selectedCountryId === $optionId ? 'selected' : '' ?>>
+                        <?= esc((string) ($countryOption['name'] ?? '')) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <?= view('Components/Forms/FieldError', [
+                'field' => 'country_id',
+                'errorId' => 'familyCountryIdError',
+                'errors' => $errors,
+            ]) ?>
         </div>
 
         <div class="col-12 col-md-4">
@@ -671,6 +691,7 @@ if ($isJourney) {
                                                     'attr'
                                                 ) ?>"
                 data-error-required="Please select your family state."
+                <?= $selectedCountryId === '' ? 'disabled' : '' ?>
                 required>
 
                 <option value="">
@@ -776,7 +797,7 @@ if ($isJourney) {
         <div class="col-12">
             <hr class="my-2 mb-3">
 
-            <h2 class="fs-16 fw-semibold mb-1 mt-2">
+            <h2 class="fs-16 fw-semibold mb-1 mt-2 text-secondary-emphasis">
                 Gurudwara and References
             </h2>
 
@@ -929,7 +950,7 @@ if ($isJourney) {
         <div class="col-12">
             <hr class="my-2 mb-3">
 
-            <h2 class="fs-16 fw-semibold mb-1 mt-2">
+            <h2 class="fs-16 fw-semibold mb-1 mt-2 text-secondary-emphasis">
                 SAK Volunteer
             </h2>
 

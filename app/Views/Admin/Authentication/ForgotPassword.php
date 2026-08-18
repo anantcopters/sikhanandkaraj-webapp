@@ -178,7 +178,7 @@ $this->section(
                                                 aria-hidden="true">
                                             </i>
 
-                                            <div class="fs-13 text-muted">
+                                            <div class="fs-13 color-pink">
 
                                                 The OTP will be sent only
                                                 to your verified primary

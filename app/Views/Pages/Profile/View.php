@@ -23,6 +23,36 @@ use App\Support\BooleanValue;
  * - hides member editing actions;
  * - administrator media authorization remains separate.
  */
+
+$reportedProfileStatus = mb_strtoupper(
+    trim(
+        (string) (
+            $reportedProfileStatus
+            ?? ''
+        )
+    )
+);
+
+$reportedProfileStatusLabel = match ($reportedProfileStatus) {
+    'OPEN' =>
+    'Open',
+
+    'REVIEWED' =>
+    'Reviewed',
+
+    'DISMISSED' =>
+    'Dismissed',
+
+    'ACTION_TAKEN' =>
+    'Action Taken',
+
+    default =>
+    '',
+};
+
+$hasReportedProfile =
+    $reportedProfileStatusLabel !== '';
+
 $profileViewMode = mb_strtolower(
     trim(
         (string) (
@@ -62,12 +92,43 @@ $viewedMobile = trim(
     )
 );
 
+$viewedMobileLabel = trim(
+    (string) (
+        $viewedMobileLabel
+        ?? 'Mobile Number'
+    )
+);
+
+if ($viewedMobileLabel === '') {
+    $viewedMobileLabel =
+        'Mobile Number';
+}
+
+$viewedMaskedMemberMobile = trim(
+    (string) (
+        $viewedMaskedMemberMobile
+        ?? ''
+    )
+);
+
+$isViewedMaskedMobileVerified =
+    ($isViewedMaskedMobileVerified ?? false)
+    === true;
+
+$isViewedParentMobile =
+    ($isViewedParentMobile ?? false)
+    === true;
+
 $viewedEmail = trim(
     (string) (
         $viewedEmail
         ?? ''
     )
 );
+
+$isViewedEmailVerified =
+    ($isViewedEmailVerified ?? false)
+    === true;
 
 $isViewedMobileVerified =
     ($isViewedMobileVerified ?? false)
@@ -249,11 +310,17 @@ $profileNoticeMessage = trim(
  * @var string                     $aboutMe
  * @var string                     $profileImage
  * @var array<string, mixed>       $overallProfileSummary
+ *
+ * @var array{
+ *     aadhaar_name:string,
+ *     aadhaar_date_of_birth:string
+ * }|null $aadhaarVerification
+ *
  * @var list<array{
  *     id:int,
  *     thumbnailUrl:string,
  *     isPrimary:bool
- * }>                              $approvedPhotos
+ * }> $approvedPhotos
  */
 
 $user = isset($user) && is_array($user)
@@ -274,6 +341,78 @@ $familyDetails = isset($familyDetails)
     && is_array($familyDetails)
     ? $familyDetails
     : [];
+
+$aadhaarVerification =
+    isset($aadhaarVerification)
+    && is_array($aadhaarVerification)
+    ? $aadhaarVerification
+    : [];
+
+$aadhaarVerifiedName = preg_replace(
+    '/\s+/u',
+    ' ',
+    trim(
+        (string) (
+            $aadhaarVerification['aadhaar_name']
+            ?? ''
+        )
+    )
+) ?? '';
+
+$aadhaarDateOfBirth = trim(
+    (string) (
+        $aadhaarVerification['aadhaar_date_of_birth']
+        ?? ''
+    )
+);
+
+$formattedAadhaarDateOfBirth = '';
+
+if ($aadhaarDateOfBirth !== '') {
+    try {
+        $parsedAadhaarDate =
+            DateTimeImmutable::createFromFormat(
+                '!Y-m-d',
+                $aadhaarDateOfBirth
+            );
+
+        $parseErrors =
+            DateTimeImmutable::getLastErrors();
+
+        $hasDateErrors =
+            is_array($parseErrors)
+            && (
+                (
+                    $parseErrors['warning_count']
+                    ?? 0
+                ) > 0
+                || (
+                    $parseErrors['error_count']
+                    ?? 0
+                ) > 0
+            );
+
+        if (
+            $parsedAadhaarDate
+            instanceof DateTimeImmutable
+            && !$hasDateErrors
+            && $parsedAadhaarDate->format(
+                'Y-m-d'
+            ) === $aadhaarDateOfBirth
+        ) {
+            $formattedAadhaarDateOfBirth =
+                $parsedAadhaarDate->format(
+                    'd M Y'
+                );
+        }
+    } catch (Throwable) {
+        $formattedAadhaarDateOfBirth = '';
+    }
+}
+
+$hasApprovedAadhaarIdentity =
+    $aadhaarVerifiedName !== ''
+    && $formattedAadhaarDateOfBirth !== '';
 
 $lifestyleDetails = isset($lifestyleDetails)
     && is_array($lifestyleDetails)
@@ -782,6 +921,10 @@ foreach ($approvedPhotos as $photo) {
     ];
 }
 
+$hasReportedProfile =
+    ($hasReportedProfile ?? false)
+    === true;
+
 $this->extend(
     $profileLayout
 );
@@ -855,7 +998,6 @@ $this->section('content');
             </div>
         <?php endif; ?>
 
-        <!-- Main profile summary card. -->
         <!-- Main profile summary card. -->
         <article
             class="card border border-danger
@@ -1482,7 +1624,6 @@ $this->section('content');
                                             <?php endif; ?>
 
                                             <!-- ShortList -->
-                                            <!-- ShortList -->
                                             <!-- =================================================
      Secondary actions
      ================================================= -->
@@ -1492,18 +1633,14 @@ $this->section('content');
         pt-3
         mt-1">
 
-                                                <div
-                                                    class="d-flex
-            gap-2">
+                                                <div class="d-grid gap-2">
 
-                                                    <!-- ShortList -->
                                                     <form
                                                         method="post"
                                                         action="<?= route_to(
                                                                     'web.members.shortlist',
                                                                     $viewedProfileReference
                                                                 ) ?>"
-                                                        class="flex-fill"
                                                         data-member-shortlist-form>
 
                                                         <?= csrf_field() ?>
@@ -1511,16 +1648,18 @@ $this->section('content');
                                                         <button
                                                             type="submit"
                                                             class="btn
-                    <?= $isShortlisted
-                                        ? 'btn-success'
-                                        : 'btn-outline-primary' ?>
-                    w-100
-                    d-flex
-                    align-items-center
-                    justify-content-center
-                    gap-1">
+                btn-outline-primary
+                w-100
+                d-inline-flex
+                align-items-center
+                justify-content-center
+                gap-1"
+                                                            data-member-shortlist-submit>
 
                                                             <span
+                                                                class="d-inline-flex
+                    align-items-center
+                    gap-1"
                                                                 data-member-shortlist-label>
 
                                                                 <i
@@ -1533,46 +1672,89 @@ $this->section('content');
                                                                 <?= $isShortlisted
                                                                     ? 'Shortlisted'
                                                                     : 'ShortList' ?>
-
                                                             </span>
 
                                                             <span
-                                                                class="d-none
-                        align-items-center"
+                                                                class="d-none align-items-center gap-1"
                                                                 data-member-shortlist-loading>
 
                                                                 <span
-                                                                    class="spinner-border
-                            spinner-border-sm"
+                                                                    class="spinner-border spinner-border-sm"
                                                                     aria-hidden="true">
                                                                 </span>
 
+                                                                Saving...
                                                             </span>
-
                                                         </button>
-
                                                     </form>
 
-                                                    <!-- Block -->
-                                                    <button
-                                                        type="button"
-                                                        class="btn
-                btn-outline-danger
-                flex-fill
+                                                    <div class="col-12">
+                                                        <?php if ($hasReportedProfile): ?>
+                                                            <button
+                                                                type="button"
+                                                                class="btn
+                btn-danger
+                w-100
+                h-100
                 d-flex
                 align-items-center
                 justify-content-center
                 gap-1"
-                                                        data-member-block-open>
+                                                                title="This profile has already been reported"
+                                                                disabled>
+
+
+
+                                                                <span>
+                                                                    Reported Status -
+                                                                    <?= esc(
+                                                                        $reportedProfileStatusLabel
+                                                                    ) ?>
+                                                                </span>
+                                                            </button>
+                                                        <?php else: ?>
+                                                            <button
+                                                                type="button"
+                                                                class="btn
+                btn-outline-warning
+                w-100
+                h-100
+                d-flex
+                align-items-center
+                justify-content-center
+                gap-1"
+                                                                data-bs-toggle="modal"
+                                                                data-bs-target="#memberReportModal">
+
+                                                                <i
+                                                                    class="ri-flag-line"
+                                                                    aria-hidden="true">
+                                                                </i>
+
+                                                                Report
+                                                            </button>
+                                                        <?php endif; ?>
+                                                    </div>
+
+                                                    <button
+                                                        type="button"
+                                                        class="btn
+            btn-outline-danger
+            w-100
+            d-inline-flex
+            align-items-center
+            justify-content-center
+            gap-1"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#memberBlockModal">
 
                                                         <i
                                                             class="ri-forbid-line"
                                                             aria-hidden="true">
                                                         </i>
 
-                                                        Block
+                                                        Block Profile
                                                     </button>
-
                                                 </div>
 
                                             </div>
@@ -1585,57 +1767,58 @@ $this->section('content');
                             </div>
 
                             <!-- =====================================================
-             BOTTOM ROW
-             Uses the FULL right-side width
-             ===================================================== -->
+     BOTTOM SUMMARY ROW
+     ===================================================== -->
                             <div
                                 class="row
-                g-3
-                mt-3
-                pt-3
-                border-top">
+        g-3
+        mt-3
+        pt-3
+        border-top">
 
                                 <!-- Profile ID -->
                                 <div
                                     class="col-12
-                    col-sm-6
-                    col-xl-4">
+            col-sm-6
+            <?= $isOtherMemberProfileView
+                ? 'col-xl-3'
+                : 'col-xl-4' ?>">
 
                                     <div
                                         class="d-flex
-                        align-items-center
-                        gap-2">
+                align-items-start
+                gap-2
+                h-100">
 
                                         <span
-                                            class="avatar-sm
-                            flex-shrink-0">
+                                            class="avatar-xs
+                    flex-shrink-0">
 
                                             <span
                                                 class="avatar-title
-                                rounded-circle
-                                bg-primary-subtle
-                                text-primary">
+                        rounded-circle
+                        bg-primary-subtle
+                        text-primary">
 
                                                 <i
                                                     class="ri-fingerprint-line
-                                    fs-18"
+                            fs-16"
                                                     aria-hidden="true">
                                                 </i>
-
                                             </span>
                                         </span>
 
-                                        <div>
-
+                                        <div class="min-w-0 flex-grow-1">
                                             <div
                                                 class="text-muted
-                                fs-12">
+                        fs-12">
 
                                                 Profile ID
                                             </div>
 
                                             <strong
-                                                class="fs-14">
+                                                class="fs-14
+                        text-break">
 
                                                 <?= esc(
                                                     $displayValue(
@@ -1643,65 +1826,60 @@ $this->section('content');
                                                     )
                                                 ) ?>
                                             </strong>
-
                                         </div>
                                     </div>
                                 </div>
 
-                                <!-- Profile Completion -->
+                                <?php if ($isOtherMemberProfileView): ?>
 
-
-                                <?php if (
-                                    $isOtherMemberProfileView
-                                ): ?>
-
-                                    <!-- Mobile -->
+                                    <!-- Contact number -->
                                     <div
                                         class="col-12
-                        col-sm-6
-                        col-xl-4">
+                col-sm-6
+                col-xl-3">
 
                                         <div
                                             class="d-flex
-                            align-items-center
-                            gap-2">
+                    align-items-start
+                    gap-2
+                    h-100">
 
                                             <span
-                                                class="avatar-sm
-                                flex-shrink-0">
+                                                class="avatar-xs
+                        flex-shrink-0">
 
                                                 <span
                                                     class="avatar-title
-                                    rounded-circle
-                                    bg-primary-subtle
-                                    text-primary">
+                            rounded-circle
+                            bg-primary-subtle
+                            text-primary">
 
                                                     <i
                                                         class="ri-phone-line
-                                        fs-18"
+                                fs-16"
                                                         aria-hidden="true">
                                                     </i>
-
                                                 </span>
                                             </span>
 
-                                            <div class="min-w-0">
+                                            <div class="min-w-0 flex-grow-1">
 
                                                 <div
                                                     class="text-muted
-                                    fs-12">
+                            fs-12">
 
-                                                    Mobile Number
+                                                    <?= esc($viewedMobileLabel) ?>
                                                 </div>
 
                                                 <div
                                                     class="d-flex
-                                    align-items-center
-                                    flex-wrap
-                                    gap-1">
+                            align-items-center
+                            flex-wrap
+                            gap-1">
 
                                                     <strong
-                                                        class="fs-14">
+                                                        class="fs-14
+                                text-break">
 
                                                         <?= esc(
                                                             $viewedMobile !== ''
@@ -1711,21 +1889,74 @@ $this->section('content');
                                                     </strong>
 
                                                     <?php if (
-                                                        $viewedMobile !== ''
+                                                        !$isViewedParentMobile
+                                                        && $viewedMobile !== ''
                                                         && $isViewedMobileVerified
                                                     ): ?>
 
                                                         <span
-                                                            class="badge bg-success-subtle text-success fs-11 p-2">
+                                                            class="text-success
+                                        d-inline-flex
+                                        align-items-center
+                                        gap-1 fs-12">
 
-
+                                                            <i
+                                                                class="ri-checkbox-circle-fill"
+                                                                aria-hidden="true">
+                                                            </i>
 
                                                             Verified
                                                         </span>
 
                                                     <?php endif; ?>
-
                                                 </div>
+
+                                                <?php if (
+                                                    $isViewedParentMobile
+                                                    && $viewedMaskedMemberMobile !== ''
+                                                ): ?>
+
+                                                    <div
+                                                        class="d-flex
+                                align-items-center
+                                flex-wrap
+                                gap-1
+                                mt-1
+                                text-muted
+                                fs-12">
+
+                                                        <span>
+                                                            Member:
+                                                        </span>
+
+                                                        <span class="fw-medium text-body">
+                                                            <?= esc(
+                                                                $viewedMaskedMemberMobile
+                                                            ) ?>
+                                                        </span>
+
+                                                        <?php if (
+                                                            $isViewedMaskedMobileVerified
+                                                        ): ?>
+
+                                                            <span
+                                                                class="text-success
+                                        d-inline-flex
+                                        align-items-center
+                                        gap-1">
+
+                                                                <i
+                                                                    class="ri-checkbox-circle-fill"
+                                                                    aria-hidden="true">
+                                                                </i>
+
+                                                                Verified
+                                                            </span>
+
+                                                        <?php endif; ?>
+                                                    </div>
+
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>
@@ -1733,59 +1964,160 @@ $this->section('content');
                                     <!-- Email -->
                                     <div
                                         class="col-12
-                        col-sm-6
-                        col-xl-4">
+                col-sm-6
+                col-xl-3">
 
                                         <div
                                             class="d-flex
-                            align-items-center
-                            gap-2">
+                    align-items-start
+                    gap-2
+                    h-100">
 
                                             <span
-                                                class="avatar-sm
-                                flex-shrink-0">
+                                                class="avatar-xs
+                        flex-shrink-0">
 
                                                 <span
                                                     class="avatar-title
-                                    rounded-circle
-                                    bg-primary-subtle
-                                    text-primary">
+                            rounded-circle
+                            bg-primary-subtle
+                            text-primary">
 
                                                     <i
                                                         class="ri-mail-line
-                                        fs-18"
+                                fs-16"
                                                         aria-hidden="true">
                                                     </i>
-
                                                 </span>
                                             </span>
 
-                                            <div class="min-w-0">
-
+                                            <div class="min-w-0 flex-grow-1">
                                                 <div
                                                     class="text-muted
-                                    fs-12">
+                            fs-12">
 
                                                     Email
                                                 </div>
 
-                                                <strong
-                                                    class="fs-14
-                                    text-break">
+                                                <div
+                                                    class="d-flex
+                            align-items-center
+                            flex-wrap
+                            gap-1">
 
-                                                    <?= esc(
+                                                    <strong
+                                                        class="fs-14
+                                text-break">
+
+                                                        <?= esc(
+                                                            $viewedEmail !== ''
+                                                                ? $viewedEmail
+                                                                : '-'
+                                                        ) ?>
+                                                    </strong>
+
+                                                    <?php if (
                                                         $viewedEmail !== ''
-                                                            ? $viewedEmail
-                                                            : '-'
-                                                    ) ?>
-                                                </strong>
+                                                        && $isViewedEmailVerified
+                                                    ): ?>
 
+                                                        <span
+                                                            class="text-success
+                                        d-inline-flex
+                                        align-items-center
+                                        gap-1 fs-12">
+
+                                                            <i
+                                                                class="ri-checkbox-circle-fill"
+                                                                aria-hidden="true">
+                                                            </i>
+
+                                                            Verified
+                                                        </span>
+
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Aadhaar verification -->
+                                    <div
+                                        class="col-12
+                col-sm-6
+                col-xl-3">
+
+                                        <div
+                                            class="d-flex
+                    align-items-start
+                    gap-2
+                    h-100">
+
+                                            <span
+                                                class="avatar-xs
+                        flex-shrink-0">
+
+                                                <span
+                                                    class="avatar-title
+                            rounded-circle
+                            <?= $hasApprovedAadhaarIdentity
+                                        ? 'bg-success-subtle text-success'
+                                        : 'bg-light text-muted' ?>">
+
+                                                    <i
+                                                        class="<?= $hasApprovedAadhaarIdentity
+                                                                    ? 'ri-shield-check-line'
+                                                                    : 'ri-shield-line' ?>
+                                fs-16"
+                                                        aria-hidden="true">
+                                                    </i>
+                                                </span>
+                                            </span>
+
+                                            <div class="min-w-0 flex-grow-1">
+                                                <div
+                                                    class="text-muted
+                            fs-12">
+
+                                                    Aadhaar
+                                                </div>
+
+                                                <?php if (
+                                                    $hasApprovedAadhaarIdentity
+                                                ): ?>
+
+                                                    <span
+                                                        class="d-inline-flex
+                                align-items-center
+                                gap-1
+                                text-success
+                                fw-semibold
+                                fs-13">
+
+                                                        <i
+                                                            class="ri-checkbox-circle-fill"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                        Verified
+                                                    </span>
+
+                                                <?php else: ?>
+
+                                                    <span
+                                                        class="text-muted
+                                fw-medium
+                                fs-13">
+
+                                                        Not added
+                                                    </span>
+
+                                                <?php endif; ?>
                                             </div>
                                         </div>
                                     </div>
 
                                 <?php endif; ?>
-
                             </div>
 
                         </div>
@@ -1794,6 +2126,129 @@ $this->section('content');
                 </div>
             </div>
         </article>
+        <?php if (
+            $hasApprovedAadhaarIdentity
+        ): ?>
+            <section
+                class="card
+            border
+            border-success
+            border-opacity-25
+            shadow-sm
+            rounded-3
+            mb-4"
+                aria-labelledby="aadhaarVerifiedDetailsTitle">
+
+                <div
+                    class="card-header
+                bg-success-subtle
+                d-flex
+                align-items-center
+                justify-content-between
+                gap-2">
+
+                    <div
+                        class="d-flex
+                    align-items-center
+                    gap-2">
+
+                        <i
+                            class="ri-shield-check-line
+                        text-success
+                        fs-18"
+                            aria-hidden="true"></i>
+
+                        <h2
+                            id="aadhaarVerifiedDetailsTitle"
+                            class="card-title
+                        fs-16
+                        fw-semibold
+                        mb-0">
+
+                            Aadhaar Verified Details
+                        </h2>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <div class="row g-3">
+
+                        <div class="col-12 col-md-6">
+                            <div
+                                class="border-bottom
+                            pb-2
+                            h-100">
+
+                                <div
+                                    class="text-muted
+                                fs-12
+                                mb-1">
+
+                                    Name on Aadhaar
+                                </div>
+
+                                <div
+                                    class="fw-medium
+                                fs-14
+                                d-flex
+                                align-items-center
+                                gap-1">
+
+                                    <?= esc(
+                                        $aadhaarVerifiedName
+                                    ) ?>
+
+                                    <i
+                                        class="ri-checkbox-circle-fill
+                                    text-success"
+                                        aria-label="Aadhaar name verified">
+                                    </i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div
+                                class="border-bottom
+                            pb-2
+                            h-100">
+
+                                <div
+                                    class="text-muted
+                                fs-12
+                                mb-1">
+
+                                    Date of Birth on Aadhaar
+                                </div>
+
+                                <div
+                                    class="fw-medium
+                                fs-14
+                                d-flex
+                                align-items-center
+                                gap-1">
+
+                                    <?= esc(
+                                        $formattedAadhaarDateOfBirth
+                                    ) ?>
+
+                                    <i
+                                        class="ri-checkbox-circle-fill
+                                    text-success"
+                                        aria-label="Aadhaar date of birth verified">
+                                    </i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-muted fs-12 mb-0 mt-3">
+                        These details were recorded during Aadhaar verification
+                        and cannot be edited from the matrimonial profile.
+                    </p>
+                </div>
+            </section>
+        <?php endif; ?>
         <div class="row mb-0">
             <div class="col-12">
                 <section
@@ -2927,12 +3382,9 @@ $this->section('content');
 
                     <?= csrf_field() ?>
 
-                    <div
-                        class="modal-header bg-info-subtle py-2">
-
+                    <div class="modal-header bg-info-subtle py-2">
                         <h2
-                            class="modal-title
-                                fs-18"
+                            class="modal-title fs-18"
                             id="memberBlockModalTitle">
 
                             Block the Member
@@ -3077,5 +3529,27 @@ $this->section('content');
         </span>
 
     <?php endif; ?>
+<?php endif; ?>
+<?php if (
+    $isOtherMemberProfileView
+    && $viewedProfileReference !== ''
+    && !$hasReportedProfile
+): ?>
+    <?= view(
+        'Pages/Profile/_ReportProfileModal',
+        [
+            'viewedProfileReference' =>
+            $viewedProfileReference,
+
+            'reportCaptcha' =>
+            $reportCaptcha ?? '',
+
+            'reportValidationErrors' =>
+            $reportValidationErrors ?? [],
+
+            'reopenReportModal' =>
+            $reopenReportModal ?? false,
+        ]
+    ) ?>
 <?php endif; ?>
 <?php $this->endSection(); ?>
