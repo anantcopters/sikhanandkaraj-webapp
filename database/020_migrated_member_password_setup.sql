@@ -8,4 +8,8 @@ BEGIN;
 ALTER TABLE users
     ALTER COLUMN password_hash DROP NOT NULL;
 
+UPDATE users
+    SET password_hash = NULL
+        WHERE prelaunch_profile_id IS NOT NULL;
+
 COMMIT;

@@ -1110,6 +1110,18 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
         );
 
         $routes->post(
+            'account-settings/password/setup',
+            'ForgotPasswordController::sendOtpForPasswordSetup',
+            [
+                'as' =>
+                'web.account.settings.password.setup',
+
+                'filter' =>
+                'webAuth',
+            ]
+        );
+
+        $routes->post(
             'account-settings/email',
             'AccountSettingsController::saveEmail',
             [

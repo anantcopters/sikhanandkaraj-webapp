@@ -174,6 +174,28 @@ No dedicated permanent DB cases recorded yet. Prelaunch migration integrity is c
 **Automation:** Authentication integration/manual pending automation  
 **Last result:** NOT RUN
 
+### REG-SEC-003 - Migrated-member password guidance
+**Origin:** Prelaunch member migration and Account Settings
+
+**Expected:** A migrated member with `password_hash IS NULL` sees “Set Password”
+and OTP-based password setup instructions without an unusable current-password
+form. Starting setup from Account Settings accepts no member-supplied identifier
+and sends OTP only to the authenticated member's verified primary mobile.
+
+The password-setup endpoint is POST-only, CSRF-protected and protected by the
+member authentication filter. It rejects non-migrated members, suspended or
+deleted accounts, members without a verified primary mobile, and members who
+already have a password.
+
+After OTP verification and successful password creation, Account Settings shows
+the normal “Change Password” form. The Set New Password Back to Login action is
+properly aligned, has no underline and submits the existing POST cancel route
+with CSRF.
+
+**Automation:** Feature/manual pending automation
+
+**Last result:** NOT RUN
+
 ## Retired cases
 
 Keep retired cases here or retain their original section with status `RETIRED` and the reason. Do not erase regression history without explanation.

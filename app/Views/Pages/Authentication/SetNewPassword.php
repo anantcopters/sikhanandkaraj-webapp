@@ -245,8 +245,6 @@ $this->section('content');
                             </div>
                         </form>
                         <div class="mt-4 text-center">
-                            <p class="mb-0 text-muted">
-                                Remember your password?
 
                             <form
                                 action="<?= esc(
@@ -254,7 +252,8 @@ $this->section('content');
                                             'attr'
                                         ) ?>"
                                 method="post"
-                                class="mt-4 text-center">
+                                class="mt-4 d-flex align-items-baseline
+        justify-content-center gap-1">
 
                                 <?= csrf_field() ?>
 
@@ -264,13 +263,11 @@ $this->section('content');
 
                                 <button
                                     type="submit"
-                                    class="btn btn-link p-0
-            fw-semibold text-primary
-            text-decoration-underline">
+                                    class="p-0 border-0 bg-transparent
+            align-baseline fw-semibold text-primary text-decoration-underline">
                                     Back to Login
                                 </button>
                             </form>
-                            </p>
                         </div>
 
                     </div>

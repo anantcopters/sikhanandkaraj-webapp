@@ -243,6 +243,162 @@ final class ForgotPasswordController extends BaseController
     }
 
     /**
+     * Start password setup for the authenticated migrated member.
+     *
+     * No mobile number or email address is read from the request. The member
+     * identity comes exclusively from the authenticated session.
+     */
+    public function sendOtpForPasswordSetup(): RedirectResponse
+    {
+        $userId = $this->authenticatedUserId();
+
+        try {
+            /** @var PasswordResetService $service */
+            $service = service(
+                'passwordResetService'
+            );
+
+            $result = $service
+                ->requestPasswordSetupOtpForUser(
+                    $userId
+                );
+
+            if (!$result->successful) {
+                return redirect()
+                    ->to(
+                        route_to(
+                            'web.account.settings.section',
+                            'password'
+                        )
+                    )
+                    ->with('formAlert', [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Unable to send OTP',
+
+                        'message' =>
+                        $result->message,
+                    ]);
+            }
+
+            /*
+         * Defensively verify that the service result still belongs to the
+         * currently authenticated member.
+         */
+            if (
+                $result->userId !== $userId
+                || $result->mobileContactId === null
+                || $result->mobileContactId <= 0
+            ) {
+                log_message(
+                    'error',
+                    'Authenticated password setup returned invalid '
+                        . 'identifiers. Member: {memberId}',
+                    [
+                        'memberId' =>
+                        $userId,
+                    ]
+                );
+
+                return redirect()
+                    ->to(
+                        route_to(
+                            'web.account.settings.section',
+                            'password'
+                        )
+                    )
+                    ->with('formAlert', [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Unable to send OTP',
+
+                        'message' =>
+                        'We could not start password setup. '
+                            . 'Please try again.',
+                    ]);
+            }
+
+            /*
+         * Regenerate before storing password-reset authorization state.
+         * The authenticated session values are retained by CodeIgniter.
+         */
+            session()->regenerate(true);
+
+            session()->set([
+                self::SESSION_USER_ID =>
+                $userId,
+
+                self::SESSION_MOBILE_CONTACT_ID =>
+                $result->mobileContactId,
+
+                self::SESSION_OTP_VERIFIED =>
+                false,
+
+                self::SESSION_STARTED_AT =>
+                time(),
+            ]);
+
+            session()->remove(
+                self::SESSION_VERIFIED_AT
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.forgot-password.verify'
+                    )
+                )
+                ->with('formAlert', [
+                    'type' =>
+                    'success',
+
+                    'title' =>
+                    'OTP sent',
+
+                    'message' =>
+                    'An OTP has been sent to your '
+                        . 'verified mobile number.',
+                ]);
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Authenticated password setup OTP request failed. '
+                    . 'Member: {memberId}; reason: {message}',
+                [
+                    'memberId' =>
+                    $userId,
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.account.settings.section',
+                        'password'
+                    )
+                )
+                ->with('formAlert', [
+                    'type' =>
+                    'danger',
+
+                    'title' =>
+                    'Unable to send OTP',
+
+                    'message' =>
+                    'We could not send the OTP. '
+                        . 'Please try again after a few moments.',
+                ]);
+        }
+    }
+
+    /**
      * Display the password-reset OTP verification screen.
      *
      * Refreshing this page reads the existing database expiry and does not

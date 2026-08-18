@@ -181,6 +181,108 @@ final class PasswordResetService
     }
 
     /**
+     * Send a password-setup OTP for an authenticated migrated member.
+     *
+     * The member ID must come from the authenticated session. This flow does not
+     * accept a submitted email address or mobile number, preventing one member
+     * from starting password setup for another member.
+     */
+    public function requestPasswordSetupOtpForUser(
+        int $userId
+    ): PasswordResetResult {
+        if ($userId <= 0) {
+            return PasswordResetResult::failure(
+                'The member account could not be found.'
+            );
+        }
+
+        /*
+     * UserModel applies soft-delete filtering, so deleted accounts are
+     * automatically excluded.
+     */
+        $user = $this->userModel->find(
+            $userId
+        );
+
+        if (!is_array($user)) {
+            return PasswordResetResult::failure(
+                'The member account could not be found.'
+            );
+        }
+
+        $prelaunchProfileId = $user['prelaunch_profile_id'] ?? null;
+
+        $passwordHash = trim(
+            (string) (
+                $user['password_hash']
+                ?? ''
+            )
+        );
+
+        /*
+     * This authenticated shortcut is only for migrated prelaunch members
+     * who have not yet established a password.
+     */
+        if (
+            !is_numeric($prelaunchProfileId)
+            || (int) $prelaunchProfileId <= 0
+            || $passwordHash !== ''
+        ) {
+            return PasswordResetResult::failure(
+                'Password setup is no longer required for this account.'
+            );
+        }
+
+        if (!$this->isPasswordResetAllowedForUser($user)) {
+            return PasswordResetResult::failure(
+                'Password setup is not available for this account.'
+            );
+        }
+
+        /*
+     * Never accept a mobile contact from the request. Resolve the verified
+     * primary mobile belonging to the authenticated member.
+     */
+        $mobileContact = $this->contactModel
+            ->findPrimaryForUser(
+                $userId,
+                UserContactModel::TYPE_MOBILE
+            );
+
+        if (
+            !is_array($mobileContact)
+            || !BooleanValue::fromDatabase(
+                $mobileContact['is_verified']
+                    ?? false
+            )
+        ) {
+            return PasswordResetResult::failure(
+                'Password setup is available only after mobile verification.'
+            );
+        }
+
+        $mobileContactId = (int) (
+            $mobileContact['id']
+            ?? 0
+        );
+
+        if ($mobileContactId <= 0) {
+            return PasswordResetResult::failure(
+                'The verified mobile contact could not be found.'
+            );
+        }
+
+        /*
+     * Reuse the existing OTP issue implementation. This preserves purpose,
+     * expiry, resend cooldown, daily quota, hashing and provider behaviour.
+     */
+        return $this->issueOtp(
+            $userId,
+            $mobileContactId
+        );
+    }
+
+    /**
      * Resend an OTP to the same password-reset mobile.
      */
     public function resendOtp(

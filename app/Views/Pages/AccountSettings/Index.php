@@ -207,44 +207,67 @@ $this->section('content');
                                         Created during prelaunch?
                                     </h3>
 
-                                    <p class="fs-13 mb-2">
-                                        If you have not set a password or do not
-                                        know your current password, use Forgot
-                                        Password with your registered mobile
-                                        number or verified email address.
+                                    <p class="fs-13 mb-2 text-body">
+                                        Create your password using the verified mobile
+                                        number already registered with your account.
                                     </p>
 
-                                    <ol class="fs-13 text-muted ps-3 mb-3">
+                                    <ol class="fs-13 text-body ps-3 mb-3">
                                         <li class="mb-1">
-                                            Open Forgot Password.
+                                            Select Set Password Using OTP.
                                         </li>
+
                                         <li class="mb-1">
-                                            Enter your registered mobile number
-                                            or verified email address.
-                                        </li>
-                                        <li class="mb-1">
-                                            Verify the OTP sent to your verified
+                                            Verify the OTP sent to your registered
                                             mobile number.
                                         </li>
+
                                         <li>
                                             Create and confirm your new password.
                                         </li>
                                     </ol>
-
-                                    <a
-                                        href="<?= esc(
+                                    <form
+                                        method="post"
+                                        action="<?= esc(
                                                     route_to(
-                                                        'web.forgot-password'
+                                                        'web.account.settings.password.setup'
                                                     ),
                                                     'attr'
                                                 ) ?>"
-                                        class="btn btn-outline-danger fs-14 fw-semibold">
-                                        <i
-                                            class="ri-key-2-line me-1"
-                                            aria-hidden="true">
-                                        </i>
-                                        Set Password Using OTP
-                                    </a>
+                                        data-submit-loader>
+
+                                        <?= csrf_field() ?>
+                                        <button
+                                            type="submit"
+                                            class="btn btn-outline-danger
+                fs-14 fw-semibold"
+                                            data-submit-button>
+
+                                            <span data-submit-idle>
+                                                <i
+                                                    class="ri-key-2-line me-1"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                Set Password Using OTP
+                                            </span>
+
+                                            <span
+                                                class="d-none"
+                                                data-submit-loading
+                                                aria-hidden="true">
+
+                                                <span
+                                                    class="spinner-border
+                        spinner-border-sm me-1"
+                                                    role="status"
+                                                    aria-hidden="true">
+                                                </span>
+
+                                                Sending OTP...
+                                            </span>
+                                        </button>
+                                    </form>
                                 </div>
                             <?php else: ?>
                                 <!-- Existing Change Password form -->
