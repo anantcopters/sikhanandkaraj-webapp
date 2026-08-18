@@ -1216,10 +1216,7 @@ $matchSections = [
                                     </p>
                                 </div>
 
-                                <?php if (
-                                    count($sectionProfiles)
-                                    > 1
-                                ): ?>
+                                
 
                                     <?php if (
                                         $sectionProfiles !== []
@@ -1313,7 +1310,7 @@ $matchSections = [
 
                                     <?php endif; ?>
 
-                                <?php endif; ?>
+                                
                             </div>
 
                             <?php if (
