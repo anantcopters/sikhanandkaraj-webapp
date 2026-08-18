@@ -64,22 +64,6 @@ if (
         );
 }
 
-$kundaliCompleted = (bool) (
-    $summary['kundaliCompleted'] ?? false
-);
-
-$isMobileVerified = (bool) (
-    $summary['isMobileVerified'] ?? false
-);
-
-$isEmailVerified = (bool) (
-    $summary['isEmailVerified'] ?? false
-);
-
-$isIdentityVerified = (bool) (
-    $summary['isIdentityVerified'] ?? false
-);
-
 $hasUploadedPhoto = (bool) (
     $summary['hasUploadedPhoto'] ?? false
 );
@@ -330,140 +314,15 @@ $approvedPhotoCount = max(
 
 
     <!-- Trust and verification -->
-    <section
-        class="card border border-danger border-opacity-25 shadow-none mb-0"
-        aria-labelledby="trustVerificationTitle">
+    <?= view(
+        'Components/Member/TrustVerification',
+        [
+            'trustVerification' =>
+            $trustVerification ?? [],
 
-        <div class="card-body p-3">
-            <div class="d-flex align-items-start gap-3 mb-3">
-
-                <div class="avatar-sm flex-shrink-0">
-                    <span
-                        class="avatar-title rounded-circle
-                             bg-primary-subtle text-primary fs-20"
-                        aria-hidden="true">
-                        <i class="ri-shield-check-line"></i>
-                    </span>
-                </div>
-
-                <div>
-                    <h2
-                        class="fs-15 fw-semibold mb-1"
-                        id="trustVerificationTitle">
-                        Trust and verification
-                    </h2>
-
-                    <p class="text-muted fs-13 mb-0">
-                        Verified details help other members
-                        trust your profile.
-                    </p>
-                </div>
-            </div>
-
-            <div
-                class="d-flex align-items-center
-                    justify-content-between gap-3
-                    py-2 border-top">
-
-                <div class="d-flex align-items-center gap-2">
-                    <i
-                        class="ri-smartphone-line
-                            text-muted fs-18"
-                        aria-hidden="true"></i>
-
-                    <span class="fs-13 fw-medium">
-                        Mobile number
-                    </span>
-                </div>
-
-                <?php if ($isMobileVerified): ?>
-                    <span
-                        class="badge bg-success-subtle
-                            text-body p-2">
-                        <i
-                            class="ri-checkbox-circle-line me-1"
-                            aria-hidden="true"></i>
-                        Verified
-                    </span>
-                <?php else: ?>
-                    <a
-                        href="#"
-                        class="fs-12 fw-semibold text-primary">
-                        Verify
-                    </a>
-                <?php endif; ?>
-            </div>
-
-            <div
-                class="d-flex align-items-center
-                    justify-content-between gap-3
-                    py-2 border-top">
-
-                <div class="d-flex align-items-center gap-2">
-                    <i
-                        class="ri-mail-line
-                            text-muted fs-18"
-                        aria-hidden="true"></i>
-
-                    <span class="fs-13 fw-medium">
-                        Email address
-                    </span>
-                </div>
-
-                <?php if ($isEmailVerified): ?>
-                    <span
-                        class="badge bg-success-subtle
-                            text-body p-2">
-                        <i
-                            class="ri-checkbox-circle-line me-1"
-                            aria-hidden="true"></i>
-                        Verified
-                    </span>
-                <?php else: ?>
-                    <a
-                        href="#"
-                        class="fs-12 fw-semibold text-primary">
-                        Verify
-                    </a>
-                <?php endif; ?>
-            </div>
-
-            <div
-                class="d-flex align-items-center
-                    justify-content-between gap-3
-                    pt-2 border-top">
-
-                <div class="d-flex align-items-center gap-2">
-                    <i
-                        class="ri-id-card-line
-                            text-muted fs-18"
-                        aria-hidden="true"></i>
-
-                    <span class="fs-13 fw-medium">
-                        Identity proof
-                    </span>
-                </div>
-
-                <?php if ($isIdentityVerified): ?>
-                    <span
-                        class="badge bg-success-subtle
-                            text-body p-2">
-                        <i
-                            class="ri-checkbox-circle-line me-1"
-                            aria-hidden="true"></i>
-                        Verified
-                    </span>
-                <?php else: ?>
-                    <button
-                        type="button"
-                        class="btn btn-link
-                            text-primary fs-12 fw-semibold
-                            p-0 text-decoration-none">
-                        Add
-                    </button>
-                <?php endif; ?>
-            </div>
-        </div>
-    </section>
+            'showCard' =>
+            true,
+        ]
+    ) ?>
 
 </div>

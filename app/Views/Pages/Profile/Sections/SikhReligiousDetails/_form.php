@@ -33,6 +33,7 @@ $birthHours = $options['birthHours'] ?? range(1, 12);
 $birthMinutes = $options['birthMinutes'] ?? range(0, 59);
 $doshOptions = $options['doshOptions'] ?? [];
 $country = $options['country'] ?? [];
+$countries = $options['countries'] ?? [];
 $states = $options['states'] ?? [];
 $cities = $options['cities'] ?? [];
 
@@ -82,6 +83,11 @@ $selectedSubcommunity = $value(
 $selectedBirthState = $value(
     'birth_state_id',
     $details['birth_state_id'] ?? ''
+);
+
+$selectedBirthCountry = $value(
+    'birth_country_id',
+    $details['birth_country_id'] ?? ($country['id'] ?? '')
 );
 
 $selectedBirthCity = $value(
@@ -435,6 +441,7 @@ if ($isJourney) {
                 data-choice-search="true"
                 data-choice-position="bottom"
                 data-error-required="Please select the state of birth."
+                <?= $selectedBirthCountry === '' ? 'disabled' : '' ?>
                 required>
 
                 <option value="">Select state</option>
@@ -544,30 +551,40 @@ if ($isJourney) {
 
         <div class="col-12 col-md-4">
             <label
-                for="birthCountry"
+                for="birthCountryId"
                 class="form-labelm">
                 Country of birth
+                <span class="text-danger">*</span>
             </label>
 
-            <input
-                type="text"
-                id="birthCountry"
-                class="form-control bg-light"
-                value="<?= esc(
-                            (string) (
-                                $country['name'] ?? 'India'
-                            ),
-                            'attr'
-                        ) ?>"
-                readonly>
-
-            <input
-                type="hidden"
+            <select
+                id="birthCountryId"
                 name="birth_country_id"
-                value="<?= esc(
-                            (string) ($country['id'] ?? ''),
-                            'attr'
-                        ) ?>">
+                class="form-select"
+                data-choice
+                data-choice-search="false"
+                data-states-url="<?= esc(
+                                        site_url('profile/master/states'),
+                                        'attr'
+                                    ) ?>"
+                data-error-required="Please select the country of birth."
+                required>
+                <option value="">Select country</option>
+                <?php foreach ($countries as $countryOption): ?>
+                    <?php $optionId = (string) ($countryOption['id'] ?? ''); ?>
+                    <option
+                        value="<?= esc($optionId, 'attr') ?>"
+                        <?= $selectedBirthCountry === $optionId ? 'selected' : '' ?>>
+                        <?= esc((string) ($countryOption['name'] ?? '')) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+
+            <?= view('Components/Forms/FieldError', [
+                'field' => 'birth_country_id',
+                'errorId' => 'birthCountryIdError',
+                'errors' => $errors,
+            ]) ?>
         </div>
 
         <div class="col-12">

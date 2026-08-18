@@ -139,7 +139,7 @@ if ($isJourney) {
     <div class="row g-3">
 
         <div class="col-12">
-            <h2 class="fs-18 fw-semibold mb-0">
+            <h2 class="fs-18 fw-semibold mb-0 text-secondary-emphasis">
                 Education
             </h2>
         </div>
@@ -328,7 +328,7 @@ if ($isJourney) {
         </div>
 
         <div class="col-12">
-            <h2 class="fs-18 fw-semibold mb-0">
+            <h2 class="fs-18 fw-semibold mb-0 text-secondary-emphasis">
                 Profession
             </h2>
         </div>

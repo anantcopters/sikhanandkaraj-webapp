@@ -30,7 +30,8 @@ final class S3Service
         string $localPath,
         string $objectKey,
         string $mimeType,
-        array $metadata = []
+        array $metadata = [],
+        ?string $contentDisposition = null
     ): string {
         if (
             !is_file($localPath)
@@ -53,7 +54,7 @@ final class S3Service
         }
 
         try {
-            $this->client->putObject([
+            $request = [
                 'Bucket' =>
                 $this->config->s3Bucket,
 
@@ -66,30 +67,30 @@ final class S3Service
                 'ContentType' =>
                 $mimeType,
 
-                /*
-                 * Objects use UUID names and are immutable.
-                 */
                 'CacheControl' =>
                 'public, max-age=31536000, immutable',
 
                 /*
-                 * Do not use public-read ACL.
-                 * Bucket policy/OAC keeps direct S3 access private.
-                 */
+                * No public-read ACL is used. Existing bucket
+                * policy/OAC continues to keep the object private.
+                */
                 'Metadata' =>
-                $this->sanitizeMetadata(
-                    $metadata
-                ),
-            ]);
+                $this->sanitizeMetadata($metadata),
+            ];
+
+            $resolvedContentDisposition = trim(
+                (string) $contentDisposition
+            );
+
+            if ($resolvedContentDisposition !== '') {
+                $request['ContentDisposition'] =
+                    $resolvedContentDisposition;
+            }
+
+            $this->client->putObject($request);
 
             return $objectKey;
         } catch (AwsException $exception) {
-            /*
-             * Upload propagates the error to the workflow owner.
-             *
-             * Do not log here because MemberPhotoController or the relevant
-             * migration/controller will log the final failed operation once.
-             */
             throw new RuntimeException(
                 'The photo could not be stored.',
                 0,

@@ -362,6 +362,12 @@ final class MemberMatchCandidateModel extends Model
 
         $this->applyIntegerArrayFilter(
             $builder,
+            'bd.country_id',
+            $filters['country_ids'] ?? []
+        );
+
+        $this->applyIntegerArrayFilter(
+            $builder,
             'bd.state_id',
             $filters['state_ids'] ?? []
         );
@@ -724,6 +730,12 @@ final class MemberMatchCandidateModel extends Model
         $viewerIdSql =
             (string) $viewerUserId;
 
+        $hiddenReportStatusSql =
+            $this->db->escape(
+                MemberProfileReportModel
+                ::STATUS_ACTION_TAKEN
+            );
+
         $builder = $this->db
             ->table(
                 'users u'
@@ -735,6 +747,19 @@ final class MemberMatchCandidateModel extends Model
             'u.full_name',
             'u.gender',
             'u.created_at',
+
+            /*
+            * Member verification indicators used by the shared member
+            * presentation contract.
+            */
+            'u.is_aadhaar_verified',
+            'u.is_selfie_verified',
+
+            'primary_mobile.is_verified '
+                . 'AS is_mobile_verified',
+
+            'primary_email.is_verified '
+                . 'AS is_email_verified',
 
             /*
             * Used internally for Last Logged In sorting and converted to a
@@ -752,18 +777,49 @@ final class MemberMatchCandidateModel extends Model
             'bd.eating_habit_id',
             'bd.physical_status_id',
             'bd.number_of_children',
+            'bd.country_id',
             'bd.state_id',
             'bd.city_id',
 
+            'country.name AS country_name',
             'city.name AS city_name',
 
             'ep.highest_education_id',
+            'education.name AS education_name',
+
             'ep.employed_in',
+
             'ep.occupation_id',
+            'occupation.name AS occupation_name',
+
             'ep.annual_income_id',
 
             'fd.community_id',
         ]);
+
+        /*
+        * Primary contact verification state.
+        *
+        * The database partial unique constraint permits only one primary contact
+        * for each user/contact type, so these joins cannot duplicate candidates.
+        */
+        $builder->join(
+            'user_contacts primary_mobile',
+            "primary_mobile.user_id = u.id
+    AND primary_mobile.contact_type = 'MOBILE'
+    AND primary_mobile.is_primary = TRUE",
+            'left',
+            false
+        );
+
+        $builder->join(
+            'user_contacts primary_email',
+            "primary_email.user_id = u.id
+    AND primary_email.contact_type = 'EMAIL'
+    AND primary_email.is_primary = TRUE",
+            'left',
+            false
+        );
 
         $builder->join(
             'member_basic_details bd',
@@ -778,8 +834,28 @@ final class MemberMatchCandidateModel extends Model
         );
 
         $builder->join(
+            'master_educations education',
+            'education.id = '
+                . 'ep.highest_education_id',
+            'left'
+        );
+
+        $builder->join(
+            'master_occupations occupation',
+            'occupation.id = '
+                . 'ep.occupation_id',
+            'left'
+        );
+
+        $builder->join(
             'member_family_details fd',
             'fd.user_id = u.id',
+            'left'
+        );
+
+        $builder->join(
+            'master_countries country',
+            'country.id = bd.country_id',
             'left'
         );
 
@@ -842,6 +918,24 @@ final class MemberMatchCandidateModel extends Model
             ->where(
                 'blocking_viewer.id',
                 null
+            )
+            /*
+            * An administrator-confirmed report globally hides the reported
+            * profile from every member-facing candidate collection.
+            *
+            * NOT EXISTS avoids duplicate candidates when multiple reports
+            * against the same member reach ACTION_TAKEN.
+            */
+            ->where(
+                'NOT EXISTS ('
+                    . 'SELECT 1 '
+                    . 'FROM member_profile_reports hidden_report '
+                    . 'WHERE hidden_report.reported_user_id = u.id '
+                    . 'AND hidden_report.status = '
+                    . $hiddenReportStatusSql
+                    . ')',
+                null,
+                false
             );
 
         /*

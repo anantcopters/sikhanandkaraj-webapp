@@ -796,6 +796,16 @@ final class MemberSearchService
 
         $this->appendMultiMasterChips(
             $chips,
+            'Country',
+            $filters['country_ids']
+                ?? [],
+            $masterData['countries']
+                ?? [],
+            'name'
+        );
+
+        $this->appendMultiMasterChips(
+            $chips,
             'State',
             $filters['state_ids']
                 ?? [],
@@ -1152,6 +1162,14 @@ final class MemberSearchService
                     ?? []
             ),
 
+            'country_ids' =>
+            $this->validatedMasterIds(
+                $input['country_ids']
+                    ?? [],
+                $masterData['countries']
+                    ?? []
+            ),
+
             'state_ids' =>
             $this->validatedMasterIds(
                 $input['state_ids']
@@ -1166,6 +1184,34 @@ final class MemberSearchService
                     ?? []
             ),
         ];
+
+        /*
+         * Country is the parent filter. Ignore browser-supplied states that do
+         * not belong to a selected country; an empty country list means Any.
+         */
+        if ($filters['country_ids'] !== []) {
+            $filters['state_ids'] = array_values(
+                array_filter(
+                    $filters['state_ids'],
+                    static function (int $stateId) use ($masterData, $filters): bool {
+                        foreach ($masterData['states'] ?? [] as $state) {
+                            if (
+                                (int) ($state['id'] ?? 0) === $stateId
+                                && in_array(
+                                    (int) ($state['country_id'] ?? 0),
+                                    $filters['country_ids'],
+                                    true
+                                )
+                            ) {
+                                return true;
+                            }
+                        }
+
+                        return false;
+                    }
+                )
+            );
+        }
 
         if ($mode !== 'advanced') {
             return $filters;

@@ -97,6 +97,7 @@ final class MasterCityModel extends Model
                 'state_id',
                 $stateIds
             )
+            ->where('name !=', 'Other')
             ->where(
                 'is_active',
                 true

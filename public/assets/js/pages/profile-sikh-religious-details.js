@@ -176,6 +176,10 @@ document.addEventListener('DOMContentLoaded', () => {
  * Load cities for the selected birth state.
  */
 document.addEventListener('DOMContentLoaded', () => {
+    const country = document.getElementById(
+        'birthCountryId'
+    );
+
     const state = document.getElementById(
         'birthStateId'
     );
@@ -185,16 +189,43 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
     if (
-        !(state instanceof HTMLSelectElement)
+        !(country instanceof HTMLSelectElement)
+        || !(state instanceof HTMLSelectElement)
         || !(city instanceof HTMLSelectElement)
     ) {
         return;
     }
 
     const baseUrl = city.dataset.citiesUrl ?? '';
+    const statesBaseUrl = country.dataset.statesUrl ?? '';
 
-    if (baseUrl === '') {
+    if (baseUrl === '' || statesBaseUrl === '') {
         return;
+    }
+
+    let stateRequestController = null;
+    let cityRequestController = null;
+
+    function replaceStates(rows) {
+        window.SelectChoice?.destroy(state);
+        state.replaceChildren();
+
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = rows.length > 0
+            ? 'Select state'
+            : 'No states available';
+        state.appendChild(placeholder);
+
+        rows.forEach((row) => {
+            const option = document.createElement('option');
+            option.value = String(row.value ?? '');
+            option.textContent = String(row.label ?? '');
+            state.appendChild(option);
+        });
+
+        state.disabled = rows.length === 0;
+        window.SelectChoice?.create(state);
     }
 
     function replaceCities(
@@ -244,6 +275,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        cityRequestController?.abort();
+        cityRequestController = new AbortController();
+
         try {
             const response = await fetch(
                 `${baseUrl}/${encodeURIComponent(
@@ -255,7 +289,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         'X-Requested-With':
                             'XMLHttpRequest'
                     },
-                    credentials: 'same-origin'
+                    credentials: 'same-origin',
+                    signal: cityRequestController.signal
                 }
             );
 
@@ -274,12 +309,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 selectedValue
             );
         } catch (error) {
+            if (error?.name === 'AbortError') {
+                return;
+            }
+
             console.error(error);
             replaceCities([], '');
         }
     }
 
+    async function loadStates(countryId) {
+        replaceCities([], '');
+
+        if (countryId === '') {
+            replaceStates([]);
+            return;
+        }
+
+        stateRequestController?.abort();
+        stateRequestController = new AbortController();
+
+        try {
+            const response = await fetch(
+                `${statesBaseUrl}/${encodeURIComponent(countryId)}`,
+                {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin',
+                    signal: stateRequestController.signal
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error('Unable to load states.');
+            }
+
+            const payload = await response.json();
+            replaceStates(
+                Array.isArray(payload.data) ? payload.data : []
+            );
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                return;
+            }
+
+            console.error(error);
+            replaceStates([]);
+        }
+    }
+
+    country.addEventListener('change', () => {
+        void loadStates(country.value);
+    });
+
     state.addEventListener('change', () => {
-        loadCities(state.value);
+        void loadCities(state.value);
     });
 });

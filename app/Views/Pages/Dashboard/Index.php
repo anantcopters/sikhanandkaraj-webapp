@@ -13,7 +13,11 @@ declare(strict_types=1);
  * @var bool        $isMobileVerified
  * @var string|null $primaryEmail
  * @var bool        $isEmailVerified
- * @var bool        $isAadhaarVerified
+ * @var string      $aadhaarStatus
+ * @var string      $aadhaarRejectionReason
+ * @var array<string, string> $aadhaarValidationErrors
+ * @var bool        $openAadhaarModal
+ * @var array<string, string>|null $formAlert
  * @var bool        $isSelfieVerified
  *
  * Dashboard-specific variables.
@@ -199,20 +203,29 @@ $isProfileComplete =
     $completionPercentage >= 100;
 
 /*
- * Combine the separate service datasets into presentation sections.
+ * Existing Match/Search result destinations.
  *
- * The service remains responsible for retrieving records. The view only
- * controls labels, descriptions and display ordering.
+ * Dashboard sections only provide presentation links. Search and Match
+ * services remain authoritative for retrieving and filtering profiles.
  */
+$searchResultsUrl = route_to(
+    'web.search.results'
+);
+
 $matchSections = [
     [
-        'key' => 'all-matches',
+        'key' =>
+        'all-matches',
 
-        'title' => 'All Matches',
+        'title' =>
+        'All Matches',
 
         'description' =>
         'Profiles matching at least '
-            . (int) ($minimumMatchPercentage ?? 30)
+            . (int) (
+                $minimumMatchPercentage
+                ?? 30
+            )
             . '% of the partner preferences you have set.',
 
         'profiles' =>
@@ -220,16 +233,26 @@ $matchSections = [
 
         'emptyMessage' =>
         'No matching profiles are available yet.',
+
+        'viewAllUrl' =>
+        route_to(
+            'web.matches'
+        ),
     ],
 
     [
-        'key' => 'new-matches',
+        'key' =>
+        'new-matches',
 
-        'title' => 'New Matches',
+        'title' =>
+        'New Matches',
 
         'description' =>
         'Preference-matched members who joined within the last '
-            . (int) ($newMatchDays ?? 30)
+            . (int) (
+                $newMatchDays
+                ?? 30
+            )
             . ' days.',
 
         'profiles' =>
@@ -237,42 +260,22 @@ $matchSections = [
 
         'emptyMessage' =>
         'No new matches are available yet.',
+
+        'viewAllUrl' =>
+        $searchResultsUrl
+            . '?'
+            . http_build_query([
+                'activity' =>
+                'new-profiles',
+            ]),
     ],
 
-    // [
-    //     'key' => 'interest-received',
-
-    //     'title' => 'Interested in You',
-
-    //     'description' =>
-    //     'Members who have shown interest in your profile.',
-
-    //     'profiles' =>
-    //     $interestReceived ?? [],
-
-    //     'emptyMessage' =>
-    //     'No member has shown interest in your profile yet.',
-    // ],
-
-    // [
-    //     'key' => 'interest-sent',
-
-    //     'title' => 'Interests Sent',
-
-    //     'description' =>
-    //     'Members you have shown interest in.',
-
-    //     'profiles' =>
-    //     $interestSent ?? [],
-
-    //     'emptyMessage' =>
-    //     'You have not shown interest in any member yet.',
-    // ],
-
     [
-        'key' => 'profiles-shortlisted-by-you',
+        'key' =>
+        'profiles-shortlisted-by-you',
 
-        'title' => 'Profiles Shortlisted By You',
+        'title' =>
+        'Profiles Shortlisted By You',
 
         'description' =>
         'Profiles you have saved to your shortlist.',
@@ -282,12 +285,22 @@ $matchSections = [
 
         'emptyMessage' =>
         'You have not shortlisted any profile yet.',
+
+        'viewAllUrl' =>
+        $searchResultsUrl
+            . '?'
+            . http_build_query([
+                'activity' =>
+                'shortlisted-by-you',
+            ]),
     ],
 
     [
-        'key' => 'who-shortlisted-you',
+        'key' =>
+        'who-shortlisted-you',
 
-        'title' => 'Who Shortlisted You',
+        'title' =>
+        'Who Shortlisted You',
 
         'description' =>
         'Members who have added your profile to their shortlist.',
@@ -297,12 +310,22 @@ $matchSections = [
 
         'emptyMessage' =>
         'No member has shortlisted your profile yet.',
+
+        'viewAllUrl' =>
+        $searchResultsUrl
+            . '?'
+            . http_build_query([
+                'activity' =>
+                'shortlisted-you',
+            ]),
     ],
 
     [
-        'key' => 'profile-visitors',
+        'key' =>
+        'profile-visitors',
 
-        'title' => 'Who Viewed Your Profile',
+        'title' =>
+        'Who Viewed Your Profile',
 
         'description' =>
         'Members who have viewed your profile.',
@@ -312,12 +335,22 @@ $matchSections = [
 
         'emptyMessage' =>
         'Your profile has not been viewed yet.',
+
+        'viewAllUrl' =>
+        $searchResultsUrl
+            . '?'
+            . http_build_query([
+                'activity' =>
+                'viewed-you',
+            ]),
     ],
 
     [
-        'key' => 'profiles-viewed',
+        'key' =>
+        'profiles-viewed',
 
-        'title' => 'Profiles You Viewed',
+        'title' =>
+        'Profiles You Viewed',
 
         'description' =>
         'Profiles you have viewed recently.',
@@ -327,6 +360,14 @@ $matchSections = [
 
         'emptyMessage' =>
         'You have not viewed another profile yet.',
+
+        'viewAllUrl' =>
+        $searchResultsUrl
+            . '?'
+            . http_build_query([
+                'activity' =>
+                'viewed-by-you',
+            ]),
     ],
 ];
 ?>
@@ -334,11 +375,16 @@ $matchSections = [
 <section class="py-3 py-lg-4">
     <div class="container">
 
+        <?= view(
+            'Components/Alerts/FormAlert',
+            ['alert' => $formAlert ?? null]
+        ) ?>
+
         <div class="row g-4">
             <aside class="col-12 col-lg-4 col-xl-3">
                 <div class="dashboard-sidebar">
                     <div class="card border border-danger border-opacity-25 shadow-sm">
-                        <div class="card-body p-4 pb-1 text-center">
+                        <div class="card-body p-3 pb-1 text-center">
 
                             <div class="member-profile-thumbnail mx-auto mb-2">
 
@@ -371,370 +417,21 @@ $matchSections = [
                             <p class="text-primary fs-12 mb-4">
                                 <?= esc($resolvedPlanName) ?>
                             </p>
-
-                            <div class="border-top pt-3 text-start">
-
-                                <!-- =====================================================
-         Mobile verification
-         ===================================================== -->
-                                <div
-                                    class="d-flex
-            align-items-center
-            justify-content-between
-            gap-3
-            pb-2
-            mb-2
-            border-bottom">
-
-                                    <span
-                                        class="d-flex
-                align-items-center
-                gap-2
-                min-w-0">
-
-                                        <i
-                                            class="ri-smartphone-line
-                    fs-18
-                    text-primary
-                    flex-shrink-0"
-                                            aria-hidden="true">
-                                        </i>
-
-                                        <span class="min-w-0">
-
-                                            <span
-                                                class="d-block
-                        fs-12
-                        text-muted">
-
-                                                Mobile
-                                            </span>
-
-                                            <?php if (
-                                                is_string($primaryMobile)
-                                                && $primaryMobile !== ''
-                                            ): ?>
-
-                                                <span
-                                                    class="d-block
-                            fw-medium
-                            text-truncate">
-
-                                                    <?= esc($primaryMobile) ?>
-
-                                                </span>
-
-                                            <?php else: ?>
-
-                                                <span
-                                                    class="d-block
-                            text-muted
-                            fs-13">
-
-                                                    Not added
-
-                                                </span>
-
-                                            <?php endif; ?>
-
-                                        </span>
-
-                                    </span>
-
-                                    <?php if ($isMobileVerified): ?>
-
-                                        <span
-                                            class="badge
-                    bg-success-subtle
-                    text-success
-                    fs-11
-                    p-2
-                    flex-shrink-0">
-
-
-
-                                            Verified
-
-                                        </span>
-
-                                    <?php else: ?>
-
-                                        <span
-                                            class="badge
-                    bg-warning-subtle
-                    text-warning
-                    fs-11
-                    p-2
-                    flex-shrink-0">
-
-
-
-                                            Pending
-
-                                        </span>
-
-                                    <?php endif; ?>
-
-                                </div>
-
-
-                                <!-- =====================================================
-         Email verification
-         ===================================================== -->
-                                <div
-                                    class="d-flex
-            align-items-center
-            justify-content-between
-            gap-3
-            pb-2
-            mb-2
-            border-bottom">
-
-                                    <span
-                                        class="d-flex
-                align-items-center
-                gap-2
-                min-w-0">
-
-                                        <i
-                                            class="ri-mail-line
-                    fs-18
-                    text-info
-                    flex-shrink-0"
-                                            aria-hidden="true">
-                                        </i>
-
-                                        <span class="min-w-0">
-
-                                            <span
-                                                class="d-block
-                        fs-12
-                        text-muted">
-
-                                                Email
-
-                                            </span>
-
-                                            <?php if (
-                                                is_string($primaryEmail)
-                                                && $primaryEmail !== ''
-                                            ): ?>
-
-                                                <span
-                                                    class="d-block
-                            fw-medium
-                            text-truncate"
-                                                    title="<?= esc(
-                                                                $primaryEmail,
-                                                                'attr'
-                                                            ) ?>">
-
-                                                    <?= esc($primaryEmail) ?>
-
-                                                </span>
-
-                                            <?php else: ?>
-
-                                                <span
-                                                    class="d-block
-                            text-muted
-                            fs-13">
-
-                                                    Not added
-
-                                                </span>
-
-                                            <?php endif; ?>
-
-                                        </span>
-
-                                    </span>
-
-                                    <?php if (
-                                        is_string($primaryEmail)
-                                        && $primaryEmail !== ''
-                                    ): ?>
-
-                                        <?php if ($isEmailVerified): ?>
-
-                                            <span
-                                                class="badge
-                        bg-success-subtle
-                        text-success
-                        fs-11
-                        p-2
-                        flex-shrink-0">
-
-
-
-                                                Verified
-
-                                            </span>
-
-                                        <?php else: ?>
-
-                                            <span
-                                                class="badge
-                        bg-warning-subtle
-                        text-warning
-                        fs-11
-                        p-2
-                        flex-shrink-0">
-
-
-
-                                                Pending
-
-                                            </span>
-
-                                        <?php endif; ?>
-
-                                    <?php else: ?>
-
-                                        <span
-                                            class="badge
-                    bg-secondary-subtle
-                    text-body-secondary
-                    fs-11
-                    p-2
-                    flex-shrink-0">
-
-                                            Not added
-
-                                        </span>
-
-                                    <?php endif; ?>
-
-                                </div>
-
-
-                                <!-- =====================================================
-         Aadhaar verification
-         ===================================================== -->
-                                <div
-                                    class="d-flex
-            align-items-center
-            justify-content-between
-            gap-3
-            pb-2
-            mb-2
-            border-bottom">
-
-                                    <span
-                                        class="d-flex
-                align-items-center
-                gap-2">
-
-                                        <i
-                                            class="ri-fingerprint-line
-                    fs-18
-                    text-warning"
-                                            aria-hidden="true">
-                                        </i>
-
-                                        <span class="fw-medium">
-                                            Aadhaar
-                                        </span>
-
-                                    </span>
-
-                                    <?php if ($isAadhaarVerified): ?>
-
-                                        <span
-                                            class="badge
-                    bg-success-subtle
-                    text-success
-                    fs-11
-                    p-2">
-
-
-
-                                            Verified
-
-                                        </span>
-
-                                    <?php else: ?>
-
-                                        <span
-                                            class="badge
-                    bg-warning-subtle
-                    text-warning
-                    fs-11
-                    p-2">
-
-
-
-                                            Pending
-
-                                        </span>
-
-                                    <?php endif; ?>
-
-                                </div>
-
-
-                                <!-- =====================================================
-         Selfie verification
-         ===================================================== -->
-                                <div
-                                    class="d-flex
-            align-items-center
-            justify-content-between
-            gap-3
-            pb-2">
-
-                                    <span
-                                        class="d-flex
-                align-items-center
-                gap-2">
-
-                                        <i
-                                            class="ri-camera-lens-line
-                    fs-18
-                    text-danger"
-                                            aria-hidden="true">
-                                        </i>
-
-                                        <span class="fw-medium">
-                                            Selfie
-                                        </span>
-
-                                    </span>
-
-                                    <?php if ($isSelfieVerified): ?>
-
-                                        <span
-                                            class="badge
-                    bg-success-subtle
-                    text-success
-                    fs-11
-                    p-2">
-
-
-
-                                            Verified
-
-                                        </span>
-
-                                    <?php else: ?>
-
-                                        <span
-                                            class="badge
-                    bg-warning-subtle
-                    text-warning
-                    fs-11
-                    p-2">
-
-
-                                            Pending
-
-                                        </span>
-
-                                    <?php endif; ?>
-
-                                </div>
+                            <div class="pt-3 text-start">
+
+                                <?= view(
+                                    'Components/Member/TrustVerification',
+                                    [
+                                        'trustVerification' =>
+                                        $trustVerification ?? [],
+
+                                        'showCard' =>
+                                        false,
+                                    ]
+                                ) ?>
 
                             </div>
+
                         </div>
 
                         <nav
@@ -770,9 +467,9 @@ $matchSections = [
                                 <span
                                     class="badge
             bg-<?= esc(
-                $visibilityClass,
-                'attr'
-            ) ?>-subtle
+                    $visibilityClass,
+                    'attr'
+                ) ?>-subtle
             fs-11
             p-2
             fw-medium
@@ -1458,6 +1155,13 @@ $matchSections = [
                             )
                         )
                     ) ?? 'profiles';
+
+                    $sectionViewAllUrl = trim(
+                        (string) (
+                            $section['viewAllUrl']
+                            ?? ''
+                        )
+                    );
                     ?>
 
                     <!--
@@ -1512,52 +1216,101 @@ $matchSections = [
                                     </p>
                                 </div>
 
-                                <?php if (
-                                    count($sectionProfiles)
-                                    > 1
-                                ): ?>
+                                
 
-                                    <div
-                                        class="d-flex
-                            align-items-center
-                            gap-1 flex-shrink-0">
+                                    <?php if (
+                                        $sectionProfiles !== []
+                                        && $sectionViewAllUrl !== ''
+                                    ): ?>
 
-                                        <button
-                                            type="button"
-                                            class="btn btn-light
-                                btn-sm btn-icon"
-                                            aria-label="Previous profiles"
-                                            data-profile-scroll-previous
-                                            data-profile-scroll-target="<?= esc(
-                                                                            $sectionKey,
-                                                                            'attr'
-                                                                        ) ?>">
+                                        <div
+                                            class="d-flex
+            align-items-center
+            gap-2 flex-shrink-0">
 
-                                            <i
-                                                class="ri-arrow-left-s-line"
-                                                aria-hidden="true">
-                                            </i>
-                                        </button>
+                                            <a
+                                                href="<?= esc(
+                                                            $sectionViewAllUrl,
+                                                            'attr'
+                                                        ) ?>"
+                                                class="btn btn-outline-primary
+                btn-sm d-inline-flex
+                align-items-center gap-1">
 
-                                        <button
-                                            type="button"
-                                            class="btn btn-light
-                                btn-sm btn-icon"
-                                            aria-label="Next profiles"
-                                            data-profile-scroll-next
-                                            data-profile-scroll-target="<?= esc(
-                                                                            $sectionKey,
-                                                                            'attr'
-                                                                        ) ?>">
+                                                <span>
+                                                    View All
+                                                </span>
 
-                                            <i
-                                                class="ri-arrow-right-s-line"
-                                                aria-hidden="true">
-                                            </i>
-                                        </button>
-                                    </div>
+                                                <i
+                                                    class="ri-arrow-right-line"
+                                                    aria-hidden="true">
+                                                </i>
+                                            </a>
 
-                                <?php endif; ?>
+                                            <?php if (
+                                                count($sectionProfiles) > 1
+                                            ): ?>
+
+                                                <div
+                                                    class="d-flex
+                    align-items-center gap-1">
+
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-light
+                        btn-sm btn-icon"
+                                                        aria-label="<?= esc(
+                                                                        'Previous '
+                                                                            . (
+                                                                                $section['title']
+                                                                                ?? 'profiles'
+                                                                            ),
+                                                                        'attr'
+                                                                    ) ?>"
+                                                        data-profile-scroll-previous
+                                                        data-profile-scroll-target="<?= esc(
+                                                                                        $sectionKey,
+                                                                                        'attr'
+                                                                                    ) ?>">
+
+                                                        <i
+                                                            class="ri-arrow-left-s-line"
+                                                            aria-hidden="true">
+                                                        </i>
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        class="btn btn-light
+                        btn-sm btn-icon"
+                                                        aria-label="<?= esc(
+                                                                        'Next '
+                                                                            . (
+                                                                                $section['title']
+                                                                                ?? 'profiles'
+                                                                            ),
+                                                                        'attr'
+                                                                    ) ?>"
+                                                        data-profile-scroll-next
+                                                        data-profile-scroll-target="<?= esc(
+                                                                                        $sectionKey,
+                                                                                        'attr'
+                                                                                    ) ?>">
+
+                                                        <i
+                                                            class="ri-arrow-right-s-line"
+                                                            aria-hidden="true">
+                                                        </i>
+                                                    </button>
+                                                </div>
+
+                                            <?php endif; ?>
+
+                                        </div>
+
+                                    <?php endif; ?>
+
+                                
                             </div>
 
                             <?php if (
@@ -1629,5 +1382,47 @@ $matchSections = [
         </form>
     </div>
 </section>
+
+<?php
+$dashboardTrustVerification =
+    isset($trustVerification)
+    && is_array($trustVerification)
+    ? $trustVerification
+    : [];
+
+$dashboardAadhaar =
+    isset($dashboardTrustVerification['aadhaar'])
+    && is_array($dashboardTrustVerification['aadhaar'])
+    ? $dashboardTrustVerification['aadhaar']
+    : [];
+?>
+
+<?= view(
+    'Pages/Dashboard/_AadhaarUploadModal',
+    [
+        'memberName' =>
+        $dashboardTrustVerification['memberName']
+            ?? $resolvedName,
+
+        'profileReference' =>
+        $dashboardTrustVerification['profileReference']
+            ?? $resolvedReference,
+
+        'validationErrors' =>
+        $aadhaarValidationErrors
+            ?? [],
+
+        'openModal' =>
+        $openAadhaarModal
+            ?? false,
+
+        'rejectionReason' =>
+        $dashboardAadhaar['rejectionReason']
+            ?? '',
+
+        'returnContext' =>
+        'DASHBOARD',
+    ]
+) ?>
 
 <?php $this->endSection(); ?>

@@ -9,6 +9,9 @@ use App\Services\Matchmaking\MemberInteractionService;
 use App\Services\Matchmaking\MemberProfileViewService;
 use App\Validation\Member\MemberBlockValidation;
 use App\Services\Matchmaking\MemberInterestService;
+use App\Exceptions\PaidMembershipRequiredException;
+use App\Services\Account\MemberProfileReportService;
+use App\Validation\Member\MemberProfileReportValidation;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
@@ -19,68 +22,225 @@ use Throwable;
  */
 final class MemberProfileController extends BaseController
 {
-    /**
-     * Display one authorized other-member profile.
-     */
     public function view(
         string $profileReference
     ): string {
-        /** @var MemberProfileViewService $service */
-        $service = service(
-            'memberProfileViewService'
-        );
-
-        $profile = $service
-            ->profileForViewer(
-                $this->authenticatedUserId(),
-                $profileReference
+        try {
+            /** @var MemberProfileViewService $service */
+            $service = service(
+                'memberProfileViewService'
             );
 
-        return view(
-            'Pages/Profile/View',
-            array_merge(
-                $profile,
+            $profile = $service
+                ->profileForViewer(
+                    $this->authenticatedUserId(),
+                    $profileReference
+                );
+
+            $viewerUserId =
+                $this->authenticatedUserId();
+
+            /** @var MemberProfileReportService $reportService */
+            $reportService = service(
+                'memberProfileReportService'
+            );
+
+            $reportedProfileStatus =
+                $reportService
+                ->reportStatusForProfile(
+                    $viewerUserId,
+                    $profileReference
+                );
+
+            $hasReportedProfile =
+                $reportedProfileStatus !== '';
+
+            return view(
+                'Pages/Profile/View',
+                array_merge(
+                    $profile,
+                    [
+                        'pageTitle' =>
+                        'Member Profile',
+
+                        'profileViewMode' =>
+                        'other-member',
+
+                        'profileBackUrl' =>
+                        route_to(
+                            'web.dashboard'
+                        ),
+
+                        'reportedProfileStatus' =>
+                        $reportedProfileStatus,
+
+                        'hasReportedProfile' =>
+                        $hasReportedProfile,
+
+                        'reportCaptcha' =>
+                        $hasReportedProfile
+                            ? ''
+                            : service(
+                                'memberProfileReportCaptchaService'
+                            )->generate(),
+
+                        'reportValidationErrors' =>
+                        session(
+                            'reportValidationErrors'
+                        ) ?? [],
+
+                        'reopenReportModal' =>
+                        !$hasReportedProfile
+                            && session(
+                                'reopenReportModal'
+                            ) === true,
+
+                        'memberActionNotice' =>
+                        session(
+                            'memberActionNotice'
+                        ),
+
+                        'pageScripts' => [
+                            'assets/js/components/submit-loader.js',
+                            'assets/js/pages/profile-view.js',
+                            'assets/js/pages/member-profile-actions.js',
+                        ],
+                    ]
+                )
+            );
+        } catch (
+            PaidMembershipRequiredException) {
+            return view(
+                'Pages/Profile/PaidMembershipRequired',
                 [
                     'pageTitle' =>
-                    'Member Profile',
-
-                    'profileViewMode' =>
-                    'other-member',
-
-                    'profileBackUrl' =>
-                    route_to(
-                        'web.dashboard'
-                    ),
-
-                    'profileBackLabel' =>
-                    'Back to Dashboard',
-
-                    'profileNoticeTitle' =>
-                    'Member Profile',
-
-                    'profileNoticeMessage' =>
-                    'Review this member\'s profile and '
-                        . 'choose whether you would like '
-                        . 'to show interest.',
-
-                    /*
-                     * Server-side block validation.
-                     */
-                    'validationErrors' =>
-                    $this->readValidationErrors(),
-
-                    'memberActionNotice' =>
-                    session(
-                        'memberActionNotice'
-                    ),
-
-                    'pageScripts' => [
-                        'assets/js/pages/profile-view.js',
-                        'assets/js/pages/member-profile-actions.js',
-                    ],
+                    'Paid Membership Required',
                 ]
-            )
+            );
+        }
+    }
+
+    public function report(
+        string $profileReference
+    ): RedirectResponse {
+        $input = [
+            'description' =>
+            preg_replace(
+                '/\s+/u',
+                ' ',
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'description'
+                        )
+                )
+            ) ?? '',
+
+            'captcha_answer' =>
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'captcha_answer'
+                    )
+            ),
+        ];
+
+        $validation = service(
+            'validation'
         );
+
+        $validation->setRules(
+            MemberProfileReportValidation::rules()
+        );
+
+        if (
+            !$validation->run($input)
+            || !service(
+                'memberProfileReportCaptchaService'
+            )->verify(
+                $input['captcha_answer']
+            )
+        ) {
+            $errors = $validation
+                ->getErrors();
+
+            if (
+                !isset(
+                    $errors['captcha_answer']
+                )
+            ) {
+                $errors['captcha_answer'] =
+                    'The security answer is incorrect or expired.';
+            }
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.members.view',
+                        $profileReference
+                    )
+                )
+                ->withInput()
+                ->with(
+                    'reportValidationErrors',
+                    $errors
+                )
+                ->with(
+                    'reopenReportModal',
+                    true
+                );
+        }
+
+        try {
+            /** @var MemberProfileReportService $service */
+            $service = service(
+                'memberProfileReportService'
+            );
+
+            $service->report(
+                $this->authenticatedUserId(),
+                $profileReference,
+                (string) $validation
+                    ->getValidated()['description']
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.members.view',
+                        $profileReference
+                    )
+                )
+                ->with(
+                    'memberActionNotice',
+                    [
+                        'title' =>
+                        'Profile reported',
+
+                        'message' =>
+                        'Your report has been sent for '
+                            . 'administrator review.',
+                    ]
+                );
+        } catch (DomainException $exception) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.members.view',
+                        $profileReference
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' => 'warning',
+                        'title' =>
+                        'Report not submitted',
+                        'message' =>
+                        $exception->getMessage(),
+                    ]
+                );
+        }
     }
 
     /**

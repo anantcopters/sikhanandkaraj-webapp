@@ -443,6 +443,11 @@ final class PartnerPreferenceController extends BaseController
             ],
 
             AdditionalPreferenceItem::LOCATION => [
+                'country_ids' =>
+                $this->arrayInput(
+                    'country_ids'
+                ),
+
                 'state_ids' =>
                 $this->arrayInput(
                     'state_ids'

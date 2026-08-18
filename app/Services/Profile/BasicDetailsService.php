@@ -39,7 +39,11 @@ final class BasicDetailsService
      *     }
      * }
      */
-    public function getForUser(int $userId): array
+    public function getForUser(
+        int $userId,
+        ?int $requestedCountryId = null,
+        ?int $requestedStateId = null
+    ): array
     {
         $user = $this->userModel->find($userId);
 
@@ -58,13 +62,27 @@ final class BasicDetailsService
             ? (int) $basicDetails['state_id']
             : null;
 
+        $selectedCountryId = is_array($basicDetails)
+            && is_numeric($basicDetails['country_id'] ?? null)
+            ? (int) $basicDetails['country_id']
+            : null;
+
+        if ($requestedCountryId !== null && $requestedCountryId > 0) {
+            $selectedCountryId = $requestedCountryId;
+        }
+
+        if ($requestedStateId !== null && $requestedStateId > 0) {
+            $selectedStateId = $requestedStateId;
+        }
+
         return [
             'user' => $user,
             'basicDetails' => $basicDetails,
 
             'masterData' =>
             $this->masterDataService->basicDetailsOptions(
-                $selectedStateId
+                $selectedStateId,
+                $selectedCountryId
             ),
 
             'completion' => $this->calculateCompletion(

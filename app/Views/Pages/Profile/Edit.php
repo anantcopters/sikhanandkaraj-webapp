@@ -189,15 +189,20 @@ $this->section('content');
                 <?= view(
                     'Pages/Profile/Partials/_profile_sidebar',
                     [
-                        'user' => $user,
+                        'user' =>
+                        $user,
 
                         'overallProfileSummary' =>
                         $overallProfileSummary,
 
-                        'aboutMe' => $aboutMe,
+                        'aboutMe' =>
+                        $aboutMe,
 
                         'aboutMeCompletion' =>
                         $aboutMeCompletion,
+
+                        'trustVerification' =>
+                        $trustVerification ?? [],
                     ]
                 ) ?>
             </div>
@@ -205,5 +210,46 @@ $this->section('content');
         </div>
     </div>
 </section>
+<?php
+$profileTrustVerification =
+    isset($trustVerification)
+    && is_array($trustVerification)
+    ? $trustVerification
+    : [];
+
+$profileAadhaar =
+    isset($profileTrustVerification['aadhaar'])
+    && is_array($profileTrustVerification['aadhaar'])
+    ? $profileTrustVerification['aadhaar']
+    : [];
+?>
+
+<?= view(
+    'Pages/Dashboard/_AadhaarUploadModal',
+    [
+        'memberName' =>
+        $profileTrustVerification['memberName']
+            ?? 'Member',
+
+        'profileReference' =>
+        $profileTrustVerification['profileReference']
+            ?? '',
+
+        'validationErrors' =>
+        $aadhaarValidationErrors
+            ?? [],
+
+        'openModal' =>
+        $openAadhaarModal
+            ?? false,
+
+        'rejectionReason' =>
+        $profileAadhaar['rejectionReason']
+            ?? '',
+
+        'returnContext' =>
+        'PROFILE_EDIT',
+    ]
+) ?>
 
 <?php $this->endSection(); ?>

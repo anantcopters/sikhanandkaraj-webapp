@@ -4,8 +4,8 @@
  * Responsibilities:
  *
  * 1. Client-side validation for Search field relationships.
- * 2. State → City dependent master loading.
- * 3. Choices.js refresh after City options change.
+ * 2. Country → State → City dependent master loading.
+ * 3. Choices.js refresh after dependent options change.
  *
  * Important:
  *
@@ -52,6 +52,11 @@
                     'heightTo'
                 );
 
+            const countrySelect =
+                document.getElementById(
+                    'countryIds'
+                );
+
             const stateSelect =
                 document.getElementById(
                     'stateIds'
@@ -60,6 +65,11 @@
             const citySelect =
                 document.getElementById(
                     'cityIds'
+                );
+
+            const stateUrlInput =
+                document.getElementById(
+                    'searchStatesUrl'
                 );
 
             const cityUrlInput =
@@ -717,6 +727,287 @@
                         validateHeightRange(
                             false
                         );
+                    }
+                );
+            }
+
+            /*
+ * ------------------------------------------------------------------
+ * Country → State dynamic master
+ * ------------------------------------------------------------------
+ */
+
+            if (
+                countrySelect
+                instanceof HTMLSelectElement
+                && stateSelect
+                instanceof HTMLSelectElement
+                && stateUrlInput
+                instanceof HTMLInputElement
+            ) {
+                const stateBaseUrl =
+                    String(
+                        stateUrlInput.value
+                        || ''
+                    ).trim();
+
+                let stateRequestController =
+                    null;
+
+                /**
+                 * Replace Search State options and rebuild Choices.js.
+                 *
+                 * Previously selected States are retained only when they still
+                 * belong to one of the currently selected Countries.
+                 *
+                 * @param {Array<Object>} rows
+                 * @param {string[]} previousSelections
+                 *
+                 * @returns {void}
+                 */
+                function replaceStates(
+                    rows,
+                    previousSelections
+                ) {
+                    window.SelectChoice
+                        ?.destroy(
+                            stateSelect
+                        );
+
+                    stateSelect
+                        .replaceChildren();
+
+                    const validStateIds =
+                        new Set(
+                            rows
+                                .map(
+                                    function (
+                                        state
+                                    ) {
+                                        return String(
+                                            state.id
+                                            ?? ''
+                                        ).trim();
+                                    }
+                                )
+                                .filter(
+                                    Boolean
+                                )
+                        );
+
+                    const retainedStateIds =
+                        previousSelections
+                            .filter(
+                                function (
+                                    stateId
+                                ) {
+                                    return validStateIds
+                                        .has(
+                                            stateId
+                                        );
+                                }
+                            );
+
+                    rows.forEach(
+                        function (
+                            state
+                        ) {
+                            const stateId =
+                                String(
+                                    state.id
+                                    ?? ''
+                                ).trim();
+
+                            const stateName =
+                                String(
+                                    state.name
+                                    ?? ''
+                                ).trim();
+
+                            if (
+                                stateId === ''
+                                || stateName === ''
+                            ) {
+                                return;
+                            }
+
+                            const option =
+                                document
+                                    .createElement(
+                                        'option'
+                                    );
+
+                            option.value =
+                                stateId;
+
+                            option.textContent =
+                                stateName;
+
+                            option.selected =
+                                retainedStateIds
+                                    .includes(
+                                        stateId
+                                    );
+
+                            stateSelect
+                                .appendChild(
+                                    option
+                                );
+                        }
+                    );
+
+                    stateSelect.disabled =
+                        rows.length === 0;
+
+                    window.SelectChoice
+                        ?.create(
+                            stateSelect
+                        );
+
+                    /*
+                     * The existing State → City listener now revalidates the City list.
+                     *
+                     * If a previously selected State was removed, Cities belonging to
+                     * that State are also removed by the existing City endpoint result.
+                     */
+                    stateSelect.dispatchEvent(
+                        new Event(
+                            'change'
+                        )
+                    );
+                }
+
+                /**
+                 * Load States for all currently selected Countries.
+                 *
+                 * Empty Country selection intentionally sends no country_ids values.
+                 * The server interprets this as Any Country and returns all active States.
+                 *
+                 * @returns {Promise<void>}
+                 */
+                async function loadStates() {
+                    const countryIds =
+                        selectedValues(
+                            countrySelect
+                        );
+
+                    const previousStateIds =
+                        selectedValues(
+                            stateSelect
+                        );
+
+                    if (stateBaseUrl === '') {
+                        replaceStates(
+                            [],
+                            []
+                        );
+
+                        return;
+                    }
+
+                    /*
+                     * A rapid Country change must not allow an older response to
+                     * overwrite a newer State list.
+                     */
+                    stateRequestController
+                        ?.abort();
+
+                    stateRequestController =
+                        new AbortController();
+
+                    const query =
+                        new URLSearchParams();
+
+                    countryIds.forEach(
+                        function (
+                            countryId
+                        ) {
+                            query.append(
+                                'country_ids[]',
+                                countryId
+                            );
+                        }
+                    );
+
+                    try {
+                        const response =
+                            await window.fetch(
+                                stateBaseUrl
+                                + (
+                                    query.toString()
+                                        !== ''
+                                        ? '?'
+                                        + query
+                                            .toString()
+                                        : ''
+                                ),
+                                {
+                                    method:
+                                        'GET',
+
+                                    headers: {
+                                        Accept:
+                                            'application/json',
+
+                                        'X-Requested-With':
+                                            'XMLHttpRequest'
+                                    },
+
+                                    credentials:
+                                        'same-origin',
+
+                                    signal:
+                                        stateRequestController
+                                            .signal
+                                }
+                            );
+
+                        if (!response.ok) {
+                            throw new Error(
+                                'State master request failed.'
+                            );
+                        }
+
+                        const payload =
+                            await response.json();
+
+                        replaceStates(
+                            Array.isArray(
+                                payload.states
+                            )
+                                ? payload.states
+                                : [],
+                            previousStateIds
+                        );
+                    } catch (error) {
+                        if (
+                            error
+                            instanceof DOMException
+                            && error.name
+                            === 'AbortError'
+                        ) {
+                            return;
+                        }
+
+                        console.error(
+                            'Unable to load Search states.'
+                        );
+
+                        /*
+                         * Fail closed. Do not leave stale States from a previously
+                         * selected Country available after an endpoint failure.
+                         */
+                        replaceStates(
+                            [],
+                            []
+                        );
+                    }
+                }
+
+                countrySelect.addEventListener(
+                    'change',
+                    function () {
+                        void loadStates();
                     }
                 );
             }

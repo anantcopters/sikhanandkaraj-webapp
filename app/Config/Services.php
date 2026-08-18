@@ -33,6 +33,7 @@ use App\Models\MasterPhysicalStatusModel;
 use App\Models\MasterSikhCommunityModel;
 use App\Models\MasterStateModel;
 use App\Models\MemberBasicDetailModel;
+use App\Models\MemberAadhaarSubmissionModel;
 use App\Models\MemberEducationProfessionDetailModel;
 use App\Models\MemberFamilyDetailModel;
 use App\Models\MemberLifestyleOptionModel;
@@ -76,6 +77,7 @@ use App\Services\Profile\EducationProfessionService;
 use App\Services\Profile\FamilyDetailsService;
 use App\Services\Profile\LifestyleService;
 use App\Services\Profile\MemberPhotoService;
+use App\Services\Profile\MemberAadhaarService;
 use App\Services\Profile\MemberPhotoUrlService;
 use App\Services\Profile\MemberProfileSummaryService;
 use App\Services\Profile\ProfileCompletionService;
@@ -114,8 +116,17 @@ use App\Services\FieldOfficer\FieldOfficerLoginService;
 use App\Services\FieldOfficer\FieldOfficerProfileService;
 use App\Services\Matchmaking\MemberProfilePresentationService;
 use App\Services\Admin\Authentication\AdminPasswordResetService;
+use App\Services\Profile\MemberTrustVerificationService;
+use App\Models\MemberContactRequestModel;
+use App\Models\MemberProfileReportModel;
+use App\Services\Account\MemberAccountSettingsService;
+use App\Services\Account\MemberContactRequestService;
+use App\Services\Account\MemberProfileReportService;
+use App\Services\EmailVerification\EmailVerificationService;
 use App\Models\MemberShortlistModel;
 use App\Services\Admin\FieldOfficerDocumentService;
+use App\Services\Admin\MemberSupportService;
+use App\Models\EmailVerificationTokenModel;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
 use App\Logging\ErrorLogSanitizer;
@@ -297,6 +308,46 @@ final class Services extends BaseService
         }
 
         return new AdminCaptchaService();
+    }
+
+    /**
+     * Return the authenticated member Contact Us CAPTCHA service.
+     *
+     * The established arithmetic CAPTCHA implementation is reused with
+     * isolated session state so it cannot interfere with Admin login.
+     */
+    public static function memberContactCaptchaService(
+        bool $getShared = true
+    ): AdminCaptchaService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberContactCaptchaService'
+            );
+        }
+
+        return new AdminCaptchaService(
+            'member_contact_captcha'
+        );
+    }
+
+    /**
+     * Return the member profile-report CAPTCHA service.
+     *
+     * Reuses the established arithmetic CAPTCHA implementation with
+     * isolated session state.
+     */
+    public static function memberProfileReportCaptchaService(
+        bool $getShared = true
+    ): AdminCaptchaService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfileReportCaptchaService'
+            );
+        }
+
+        return new AdminCaptchaService(
+            'member_profile_report_captcha'
+        );
     }
 
     /**
@@ -884,6 +935,92 @@ final class Services extends BaseService
     }
 
     /**
+     * Return the member Aadhaar upload and review service.
+     */
+    public static function memberAadhaarService(
+        bool $getShared = true
+    ): MemberAadhaarService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberAadhaarService'
+            );
+        }
+
+        $database = db_connect();
+
+        /** @var MemberMedia $configuration */
+        $configuration = config(
+            MemberMedia::class
+        );
+
+        return new MemberAadhaarService(
+            new UserModel(
+                $database
+            ),
+
+            new MemberAadhaarSubmissionModel(
+                $database
+            ),
+
+            static::s3Service(
+                false
+            ),
+
+            static::cloudFrontService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            static::adminAuditService(
+                false
+            ),
+
+            $database,
+
+            $configuration
+        );
+    }
+
+    /**
+     * Return the shared member Trust and Verification service.
+     *
+     * Dashboard and Profile Edit use this service. Email state comes
+     * from MemberAccountSettingsService.
+     */
+    public static function memberTrustVerificationService(
+        bool $getShared = true
+    ): MemberTrustVerificationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberTrustVerificationService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberTrustVerificationService(
+            new UserModel(
+                $database
+            ),
+
+            new UserContactModel(
+                $database
+            ),
+
+            static::memberAadhaarService(
+                false
+            ),
+
+            static::memberAccountSettingsService(
+                false
+            )
+        );
+    }
+
+    /**
      * Return the member notification service.
      */
     public static function memberNotificationService(
@@ -1176,15 +1313,44 @@ final class Services extends BaseService
             );
         }
 
+        $database = db_connect();
+
         return new MemberProfileSummaryService(
-            static::basicDetailsService(false),
-            static::educationProfessionService(false),
-            static::familyDetailsService(false),
-            static::lifestyleService(false),
-            static::aboutMeService(false),
-            static::memberPhotoService(false),
-            static::memberPhotoUrlService(false),
-            static::profileCompletionService(false)
+            static::basicDetailsService(
+                false
+            ),
+
+            static::educationProfessionService(
+                false
+            ),
+
+            static::familyDetailsService(
+                false
+            ),
+
+            static::lifestyleService(
+                false
+            ),
+
+            static::aboutMeService(
+                false
+            ),
+
+            static::memberPhotoService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            static::profileCompletionService(
+                false
+            ),
+
+            new MemberAadhaarSubmissionModel(
+                $database
+            )
         );
     }
 
@@ -1323,6 +1489,11 @@ final class Services extends BaseService
 
             new PartnerPreferenceSelectionModel(
                 'annual_income',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
+                'country',
                 $database
             ),
 
@@ -1582,6 +1753,11 @@ final class Services extends BaseService
             ),
 
             new PartnerPreferenceSelectionModel(
+                'country',
+                $database
+            ),
+
+            new PartnerPreferenceSelectionModel(
                 'state',
                 $database
             ),
@@ -1700,6 +1876,10 @@ final class Services extends BaseService
 
             static::memberInteractionService(
                 false
+            ),
+
+            new MemberProfileReportModel(
+                $database
             ),
 
             static::memberMatchmakingService(
@@ -1948,6 +2128,90 @@ final class Services extends BaseService
             $database,
 
             static::smsProvider(false)
+        );
+    }
+
+    public static function memberAccountSettingsService(
+        bool $getShared = true
+    ): MemberAccountSettingsService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberAccountSettingsService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberAccountSettingsService(
+            new UserModel($database),
+            new UserContactModel($database),
+            new EmailVerificationTokenModel($database),
+            new EmailVerificationService(
+                new UserModel($database),
+                new UserContactModel($database),
+                new EmailVerificationTokenModel($database),
+                static::emailQueueService(false)
+            ),
+            $database
+        );
+    }
+
+    public static function memberContactRequestService(
+        bool $getShared = true
+    ): MemberContactRequestService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberContactRequestService'
+            );
+        }
+
+        return new MemberContactRequestService(
+            new MemberContactRequestModel(
+                db_connect()
+            )
+        );
+    }
+
+    public static function memberProfileReportService(
+        bool $getShared = true
+    ): MemberProfileReportService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfileReportService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberProfileReportService(
+            new UserModel($database),
+            new MemberProfileReportModel(
+                $database
+            )
+        );
+    }
+
+    public static function memberSupportService(
+        bool $getShared = true
+    ): MemberSupportService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberSupportService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberSupportService(
+            new MemberProfileReportModel(
+                $database
+            ),
+
+            new MemberContactRequestModel(
+                $database
+            ),
+
+            $database
         );
     }
 }

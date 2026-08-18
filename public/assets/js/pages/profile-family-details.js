@@ -27,6 +27,11 @@ document.addEventListener(
                 'familyStateId'
             );
 
+        const countrySelect =
+            document.getElementById(
+                'familyCountryId'
+            );
+
         const citySelect =
             document.getElementById(
                 'familyCityId'
@@ -63,6 +68,9 @@ document.addEventListener(
                     ?? ''
                 ).trim()
                 : '';
+
+        const dependentControllers =
+            new WeakMap();
 
         /**
          * Normalize one API master record.
@@ -293,6 +301,18 @@ document.addEventListener(
                         )
                     );
 
+                dependentControllers
+                    .get(childSelect)
+                    ?.abort();
+
+                const controller =
+                    new AbortController();
+
+                dependentControllers.set(
+                    childSelect,
+                    controller
+                );
+
                 childSelect.disabled = true;
 
                 try {
@@ -312,6 +332,9 @@ document.addEventListener(
 
                                 credentials:
                                     'same-origin',
+
+                                signal:
+                                    controller.signal,
                             }
                         );
 
@@ -341,6 +364,13 @@ document.addEventListener(
                         selectedValue
                     );
                 } catch (error) {
+                    if (
+                        error?.name
+                        === 'AbortError'
+                    ) {
+                        return;
+                    }
+
                     console.error(
                         'Unable to load '
                         + 'dependent master data.',
@@ -355,8 +385,30 @@ document.addEventListener(
             };
 
         /**
-         * Bind State to City.
+         * Bind Country → State → City.
          */
+        if (
+            countrySelect
+            && stateSelect
+            && citySelect
+        ) {
+            countrySelect.addEventListener(
+                'change',
+                () => {
+                    resetDependentSelect(
+                        citySelect,
+                        'Select state first'
+                    );
+
+                    void loadDependentOptions(
+                        countrySelect,
+                        stateSelect,
+                        'Select state'
+                    );
+                }
+            );
+        }
+
         if (
             stateSelect
             && citySelect

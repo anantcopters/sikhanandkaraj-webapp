@@ -5,8 +5,9 @@ declare(strict_types=1);
 /**
  * Interest-context member card.
  *
- * Business decisions such as Interest visibility/status have already been
- * resolved by MemberInterestService.
+ * Business decisions such as member visibility, blocking, reporting,
+ * Interest status, account type, verification state and photo authorization
+ * have already been resolved by backend services.
  *
  * This component owns only UI presentation and the existing action forms.
  *
@@ -64,6 +65,13 @@ $city = trim(
     )
 );
 
+$location = trim(
+    (string) (
+        $profile['location']
+        ?? $city
+    )
+);
+
 $age =
     isset($profile['age'])
     && is_numeric(
@@ -95,6 +103,36 @@ if ($profileUrl === '') {
     $profileUrl = '#';
 }
 
+/*
+ * Account type and professional summary come from the shared
+ * MemberProfilePresentationService contract.
+ */
+$accountType = trim(
+    (string) (
+        $profile['accountType']
+        ?? ''
+    )
+);
+
+$professionalSummary = trim(
+    (string) (
+        $profile['professionalSummary']
+        ?? ''
+    )
+);
+
+/*
+ * Verification values are normalized to booleans by
+ * MemberProfilePresentationService.
+ */
+$verification =
+    isset($profile['verification'])
+    && is_array(
+        $profile['verification']
+    )
+    ? $profile['verification']
+    : [];
+
 $isReceived =
     $activeDirection
     === 'received';
@@ -105,9 +143,9 @@ $canRespond =
     === 'PENDING';
 
 /*
- * Format Interest date for presentation only.
+ * Format the Interest date for presentation only.
  *
- * No business decision depends upon this formatted value.
+ * No business decision depends on this formatted value.
  */
 $interestDate = '';
 
@@ -132,70 +170,124 @@ if ($createdAt !== '') {
     }
 }
 
+/*
+ * The displayed status is intentionally restricted to the existing
+ * Interest states.
+ */
 $badgeClass =
     match ($status) {
         'ACCEPTED' =>
-        'bg-success-subtle text-success p-2',
+        'bg-success-subtle text-success',
 
         'DECLINED' =>
-        'bg-danger-subtle text-danger p-2',
+        'bg-danger-subtle text-danger',
 
         default =>
-        'bg-warning-subtle text-body p-2',
+        'bg-warning-subtle text-body',
+    };
+
+$statusLabel =
+    match ($status) {
+        'ACCEPTED' =>
+        'Accepted',
+
+        'DECLINED' =>
+        'Declined',
+
+        default =>
+        'Pending',
     };
 ?>
 
 <article
-    class="card border border-danger
-        border-opacity-25 shadow-sm">
+    class="card h-95 border border-danger
+        border-opacity-25 shadow-sm
+        overflow-hidden">
 
-    <div class="card-body p-4">
+    <div class="card-body p-3 p-md-4">
 
         <div
             class="d-flex flex-column
                 flex-sm-row gap-3">
 
-            <!-- Member photo -->
-            <a
-                href="<?= esc(
-                            $profileUrl,
-                            'attr'
-                        ) ?>"
-                class="text-decoration-none
-                    flex-shrink-0">
+            <!-- Member photo, account type and professional summary -->
+            <div
+                class="d-flex flex-column
+        align-items-center
+        flex-shrink-0"
+                style="width: 160px;">
 
-                <div class="member-profile-thumbnail">
+                <a
+                    href="<?= esc(
+                                $profileUrl,
+                                'attr'
+                            ) ?>"
+                    class="text-decoration-none">
 
-                    <img
-                        src="<?= esc(
-                                    $image,
-                                    'attr'
-                                ) ?>"
-                        alt="<?= esc(
-                                    $name
-                                        . ' profile photo',
-                                    'attr'
-                                ) ?>"
-                        loading="lazy">
+                    <div class="member-profile-thumbnail">
 
-                </div>
+                        <img
+                            src="<?= esc(
+                                        $image,
+                                        'attr'
+                                    ) ?>"
+                            alt="<?= esc(
+                                        $name
+                                            . ' profile photo',
+                                        'attr'
+                                    ) ?>"
+                            loading="lazy">
 
-            </a>
+                    </div>
 
-            <div class="flex-grow-1">
+                </a>
+
+                <?php if (
+                    $accountType !== ''
+                ): ?>
+
+                    <span
+                        class="badge rounded
+                bg-primary-subtle
+                text-primary
+                border border-primary
+                border-opacity-25
+                mt-3 px-2 py-2 fs-12">
+
+                        <i
+                            class="ri-vip-crown-line
+                    me-1 fs-14"
+                            aria-hidden="true">
+                        </i>
+
+                        <?= esc(
+                            $accountType
+                        ) ?>
+
+                    </span>
+
+                <?php endif; ?>
+
+
+
+            </div>
+
+            <!-- Member details and Interest actions -->
+            <div class="flex-grow-1 min-w-0">
 
                 <!-- Member identity and Interest status -->
                 <div
                     class="d-flex
                         align-items-start
                         justify-content-between
-                        gap-2">
+                        gap-2 mb-2">
 
-                    <div>
+                    <div class="min-w-0">
 
                         <h2
                             class="fs-18
-                                fw-semibold mb-1">
+                                fw-semibold mb-1
+                                text-truncate">
 
                             <a
                                 href="<?= esc(
@@ -219,7 +311,7 @@ $badgeClass =
 
                             <p
                                 class="text-muted
-                                    fs-13 mb-2">
+                                    fs-13 mb-0">
 
                                 <?= esc(
                                     $reference
@@ -235,14 +327,12 @@ $badgeClass =
                         class="badge <?= esc(
                                             $badgeClass,
                                             'attr'
-                                        ) ?>">
+                                        ) ?>
+                            border px-2 py-2
+                            flex-shrink-0">
 
                         <?= esc(
-                            ucfirst(
-                                strtolower(
-                                    $status
-                                )
-                            )
+                            $statusLabel
                         ) ?>
 
                     </span>
@@ -254,10 +344,11 @@ $badgeClass =
                     class="d-flex flex-wrap
                         align-items-center
                         gap-2 text-muted
-                        fs-13 mb-3">
+                        fs-13 mb-2">
 
                     <?php if (
                         $age !== null
+                        && $age > 0
                     ): ?>
 
                         <span>
@@ -269,26 +360,34 @@ $badgeClass =
 
                     <?php endif; ?>
 
-                    <?php if (
-                        $city !== ''
-                    ): ?>
+                </div>
+
+                <?php if (
+                    $location !== ''
+                ): ?>
+
+                    <p
+                        class="d-flex
+                            align-items-center
+                            gap-1 text-muted
+                            fs-13 mb-2">
+
+                        <i
+                            class="ri-map-pin-line
+                                text-primary
+                                flex-shrink-0"
+                            aria-hidden="true">
+                        </i>
 
                         <span>
-
-                            <i
-                                class="ri-map-pin-line"
-                                aria-hidden="true">
-                            </i>
-
                             <?= esc(
-                                $city
+                                $location
                             ) ?>
-
                         </span>
 
-                    <?php endif; ?>
+                    </p>
 
-                </div>
+                <?php endif; ?>
 
                 <!-- Interest relationship message -->
                 <p class="fs-13 mb-3">
@@ -332,7 +431,7 @@ $badgeClass =
 
                 </p>
 
-                <!-- Pending received Interests can be actioned here. -->
+                <!-- Pending received Interests can be actioned here -->
                 <?php if (
                     $canRespond
                 ): ?>
@@ -343,9 +442,12 @@ $badgeClass =
 
                         <form
                             method="post"
-                            action="<?= url_to(
-                                        'web.interests.received.decline',
-                                        $reference
+                            action="<?= esc(
+                                        url_to(
+                                            'web.interests.received.decline',
+                                            $reference
+                                        ),
+                                        'attr'
                                     ) ?>"
                             data-interest-action-form>
 
@@ -353,7 +455,7 @@ $badgeClass =
 
                             <button
                                 type="submit"
-                                class="btn
+                                class="btn btn-sm
                                     btn-outline-secondary
                                     d-inline-flex
                                     align-items-center
@@ -380,6 +482,7 @@ $badgeClass =
                                     <span
                                         class="spinner-border
                                             spinner-border-sm"
+                                        role="status"
                                         aria-hidden="true">
                                     </span>
 
@@ -393,9 +496,12 @@ $badgeClass =
 
                         <form
                             method="post"
-                            action="<?= url_to(
-                                        'web.interests.received.accept',
-                                        $reference
+                            action="<?= esc(
+                                        url_to(
+                                            'web.interests.received.accept',
+                                            $reference
+                                        ),
+                                        'attr'
                                     ) ?>"
                             data-interest-action-form>
 
@@ -404,6 +510,7 @@ $badgeClass =
                             <button
                                 type="submit"
                                 class="btn btn-danger
+                                    btn-sm
                                     d-inline-flex
                                     align-items-center
                                     justify-content-center
@@ -429,6 +536,7 @@ $badgeClass =
                                     <span
                                         class="spinner-border
                                             spinner-border-sm"
+                                        role="status"
                                         aria-hidden="true">
                                     </span>
 
@@ -470,7 +578,40 @@ $badgeClass =
             </div>
 
         </div>
+        <?php if (
+            $professionalSummary !== ''
+        ): ?>
 
+
+
+            <div class="d-flex align-items-center mt-3">
+                <div class="flex-shrink-0 me-1">
+                    <div class="avatar-xs flex-shrink-0 me-1">
+                        <span class="avatar-title bg-dark-subtle rounded-circle shadow">
+                            <i class="ri-briefcase-4-line fs-16 align-middle text-primary"></i>
+                        </span>
+                    </div>
+
+                </div>
+                <div class="flex-grow-1">
+                    <h5 class="fs-13 mb-0 fw-semibold"><?= esc(
+                                                            $professionalSummary
+                                                        ) ?>
+                    </h5>
+                </div>
+            </div>
+
+
+        <?php endif; ?>
     </div>
+
+    <!-- Full-width shared verification strip -->
+    <?= view(
+        'Components/Member/VerificationBadges',
+        [
+            'verification' =>
+            $verification,
+        ]
+    ) ?>
 
 </article>

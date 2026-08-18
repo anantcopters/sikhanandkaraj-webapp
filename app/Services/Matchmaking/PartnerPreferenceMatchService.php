@@ -60,6 +60,9 @@ final class PartnerPreferenceMatchService
         $annualIncomeSelectionModel,
 
         private readonly PartnerPreferenceSelectionModel
+        $countrySelectionModel,
+
+        private readonly PartnerPreferenceSelectionModel
         $stateSelectionModel,
 
         private readonly PartnerPreferenceSelectionModel
@@ -559,12 +562,14 @@ final class PartnerPreferenceMatchService
          * City is the more precise criterion when cities are configured.
          * If no city is configured, state is used.
          */
+        $countryIds = $snapshot['countries'];
         $cityIds = $snapshot['cities'];
         $stateIds = $snapshot['states'];
 
         $locationConfigured =
             $cityIds !== []
-            || $stateIds !== [];
+            || $stateIds !== []
+            || $countryIds !== [];
 
         $locationMatched = false;
 
@@ -584,6 +589,15 @@ final class PartnerPreferenceMatchService
                     ?? 0
                 ),
                 $stateIds,
+                true
+            );
+        } elseif ($countryIds !== []) {
+            $locationMatched = in_array(
+                (int) (
+                    $candidate['country_id']
+                    ?? 0
+                ),
+                $countryIds,
                 true
             );
         }
@@ -857,6 +871,18 @@ final class PartnerPreferenceMatchService
                     'intval',
                     $this
                         ->stateSelectionModel
+                        ->selectedValues(
+                            $locationId
+                        )
+                )
+                : [],
+
+            'countries' =>
+            $locationId > 0
+                ? array_map(
+                    'intval',
+                    $this
+                        ->countrySelectionModel
                         ->selectedValues(
                             $locationId
                         )

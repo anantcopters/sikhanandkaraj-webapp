@@ -315,6 +315,37 @@ final class PrelaunchProfileService
             ?? 0
         );
 
+        $countryId = (int) ($input['country_id'] ?? 0);
+        $stateId = (int) ($input['state_id'] ?? 0);
+        $cityId = (int) ($input['city_id'] ?? 0);
+
+        if (!$this->profileMasterDataService->countryExists($countryId)) {
+            return PrelaunchProfileResult::fieldFailure(
+                'country_id',
+                'Please select a valid country.'
+            );
+        }
+
+        if (!$this->profileMasterDataService->stateBelongsToCountry(
+            $stateId,
+            $countryId
+        )) {
+            return PrelaunchProfileResult::fieldFailure(
+                'state_id',
+                'Please select a valid state for the selected country.'
+            );
+        }
+
+        if (!$this->profileMasterDataService->cityBelongsToState(
+            $cityId,
+            $stateId
+        )) {
+            return PrelaunchProfileResult::fieldFailure(
+                'city_id',
+                'Please select a valid city for the selected state.'
+            );
+        }
+
         /*
         * Prelaunch does not collect annual income, so NULL is
         * passed for that optional selection.

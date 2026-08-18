@@ -48,6 +48,12 @@ final class AdminAuditAction
     public const MEMBER_PHOTOS_BULK_APPROVED =
     'MEMBER_PHOTOS_BULK_APPROVED';
 
+    public const MEMBER_AADHAAR_APPROVED =
+    'MEMBER_AADHAAR_APPROVED';
+
+    public const MEMBER_AADHAAR_REJECTED =
+    'MEMBER_AADHAAR_REJECTED';
+
     public const MEMBER_BLOCKED =
     'MEMBER_BLOCKED';
 

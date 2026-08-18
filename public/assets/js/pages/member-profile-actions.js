@@ -1,6 +1,32 @@
 (function () {
     'use strict';
 
+    function initializeReportModal() {
+        const modalElement = document.getElementById(
+            'memberReportModal'
+        );
+
+        if (
+            !(modalElement instanceof HTMLElement)
+            || typeof bootstrap === 'undefined'
+        ) {
+            return;
+        }
+
+        if (
+            modalElement.dataset.reopenReport !== '1'
+        ) {
+            return;
+        }
+
+        const modal =
+            bootstrap.Modal.getOrCreateInstance(
+                modalElement
+            );
+
+        modal.show();
+    }
+
     function initializeBlockModal() {
         const modalElement =
             document.getElementById(
@@ -360,6 +386,7 @@
         '[data-member-shortlist-label]',
         '[data-member-shortlist-loading]'
     );
+    initializeReportModal();
 
     showMemberActionConfirmation();
 })();
