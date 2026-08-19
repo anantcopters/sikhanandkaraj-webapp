@@ -14,10 +14,70 @@ final class MemberVideoIntroductionReviewController extends BaseController
 {
     public function index(): string
     {
+        $search = mb_substr(
+            preg_replace(
+                '/\s+/u',
+                ' ',
+                trim(
+                    (string) $this->request->getGet(
+                        'search'
+                    )
+                )
+            ) ?? '',
+            0,
+            100
+        );
+
         /** @var MemberVideoModerationService $service */
         $service = service(
             'memberVideoModerationService'
         );
+
+        $videos = $service->queue();
+
+        if ($search !== '') {
+            $searchValue = mb_strtolower(
+                $search
+            );
+
+            $videos = array_values(
+                array_filter(
+                    $videos,
+                    static function (
+                        array $video
+                    ) use (
+                        $searchValue
+                    ): bool {
+                        $memberName = mb_strtolower(
+                            trim(
+                                (string) (
+                                    $video['full_name']
+                                    ?? ''
+                                )
+                            )
+                        );
+
+                        $referenceNumber = mb_strtolower(
+                            trim(
+                                (string) (
+                                    $video['profile_ref_number']
+                                    ?? ''
+                                )
+                            )
+                        );
+
+                        return str_contains(
+                            $memberName,
+                            $searchValue
+                        )
+                            || str_contains(
+                                $referenceNumber,
+                                $searchValue
+                            );
+                    }
+                )
+            );
+        }
 
         return view(
             'Admin/Members/PendingVideoIntroductionApproval',
@@ -26,7 +86,10 @@ final class MemberVideoIntroductionReviewController extends BaseController
                 'Video Introduction Approvals',
 
                 'videos' =>
-                $service->queue(),
+                $videos,
+
+                'search' =>
+                $search,
 
                 'formAlert' =>
                 $this->readFormAlert(),

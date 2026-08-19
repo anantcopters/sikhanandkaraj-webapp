@@ -57,6 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
         '[data-video-form] [data-submit-button]'
     );
 
+    const submitReview = document.querySelector(
+        '[data-submit-review]'
+    );
+
     const minSeconds = Number(
         config.dataset.minSeconds
         || 15
@@ -119,10 +123,33 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     };
 
+    const setRecorderStatus = (
+        message,
+        colorClass
+    ) => {
+        status.textContent = message;
+
+        status.classList.remove(
+            'text-muted',
+            'text-danger',
+            'text-success',
+            'text-primary'
+        );
+
+        status.classList.add(
+            colorClass
+        );
+    };
+
     const updateSubmit = () => {
         submit.disabled = !(
             validRecording
             && consent.checked
+        );
+
+        submitReview.classList.toggle(
+            'd-none',
+            !validRecording
         );
 
         if (!stream) {
@@ -192,11 +219,14 @@ document.addEventListener('DOMContentLoaded', () => {
                                     facingMode: 'user',
 
                                     width: {
-                                        ideal: 720,
+                                        ideal: 1280,
                                     },
 
                                     height: {
                                         ideal: 720,
+                                    },
+                                    aspectRatio: {
+                                        ideal: 16 / 9,
                                     },
                                 },
 
@@ -228,8 +258,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     'd-none'
                 );
 
-                status.textContent =
-                    'Camera and microphone ready';
+                setRecorderStatus(
+                    'Camera and microphone ready',
+                    'text-success'
+                );
             } catch (exception) {
                 releaseCamera();
 
@@ -252,6 +284,10 @@ document.addEventListener('DOMContentLoaded', () => {
             elapsed = 0;
 
             validRecording = false;
+
+            submitReview.classList.add(
+                'd-none'
+            );
 
             updateSubmit();
 
@@ -311,7 +347,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             stop.disabled = true;
 
-            status.textContent = 'Recording';
+            setRecorderStatus(
+                'Recording...',
+                'text-primary'
+            );
 
             timer = window.setInterval(
                 () => {
@@ -452,8 +491,10 @@ document.addEventListener('DOMContentLoaded', () => {
             'd-none'
         );
 
-        status.textContent =
-            'Preview your recording before submitting';
+        setRecorderStatus(
+            'Preview your recording before submitting',
+            'text-primary'
+        );
 
         validRecording = true;
 

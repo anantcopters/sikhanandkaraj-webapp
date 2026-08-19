@@ -452,12 +452,12 @@ $videoIntroductionSettingsUrl = route_to(
                     Approved
                 </span>
             <?php else: ?>
-                <span
-                    class="badge bg-warning-subtle
-                text-warning fs-11 p-2">
+                <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary">
 
                     Add
-                </span>
+                </button>
             <?php endif; ?>
         </a>
 

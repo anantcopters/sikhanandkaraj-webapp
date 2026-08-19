@@ -160,7 +160,7 @@ $this->section('content');
                                 d-flex
                                 align-items-center
                                 gap-2
-                                py-3
+                                py-3 fs-14
                                 <?= $activeSection === $key
                                     ? 'active'
                                     : '' ?>"

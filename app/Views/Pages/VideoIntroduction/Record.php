@@ -55,7 +55,11 @@ $this->section('content');
 
                 <p class="text-muted mb-0">
                     Record a clear
-                    <?= esc((string) $minimumDurationSeconds) ?>–<?= esc((string) $maximumDurationSeconds) ?>
+                    <?= esc(
+                        (string) $minimumDurationSeconds
+                    ) ?>–<?= esc(
+                                (string) $maximumDurationSeconds
+                            ) ?>
                     second personal introduction.
                 </p>
             </div>
@@ -67,222 +71,185 @@ $this->section('content');
                         ) ?>"
                 class="btn btn-outline-secondary">
 
+                <i
+                    class="ri-arrow-left-line me-1"
+                    aria-hidden="true">
+                </i>
+
                 Back
             </a>
         </div>
 
-        <div class="row g-4">
-            <div class="col-12 col-xl-7">
-                <div
-                    class="card border border-danger
-                        border-opacity-25 shadow-sm">
+        <form
+            method="post"
+            enctype="multipart/form-data"
+            action="<?= route_to(
+                        'web.video-introduction.submit'
+                    ) ?>"
+            data-video-form
+            data-submit-loader>
 
-                    <div class="card-body p-3 p-lg-4">
+            <?= csrf_field() ?>
+
+            <input
+                type="file"
+                name="video_introduction"
+                class="d-none"
+                accept="video/webm,video/mp4,video/quicktime"
+                data-recorded-file
+                required>
+
+            <input
+                type="hidden"
+                name="consent_version"
+                value="<?= esc(
+                            $consentVersion,
+                            'attr'
+                        ) ?>">
+
+            <div class="row g-4">
+                <div class="col-12 col-xl-5">
+                    <div class="card border border-warning
+                            border-opacity-50 shadow-sm mb-3">
                         <div
-                            class="ratio ratio-4x3 bg-dark
-                                rounded overflow-hidden mb-3">
-
-                            <video
-                                class="w-100 h-100"
-                                muted
-                                playsinline
-                                data-camera-preview>
-                            </video>
-
-                            <video
-                                class="w-100 h-100 d-none"
-                                controls
-                                playsinline
-                                preload="metadata"
-                                data-recording-preview>
-                            </video>
-                        </div>
-
-                        <div
-                            class="d-flex align-items-center
-                                justify-content-between gap-3 mb-3">
+                            class="card-header bg-transparent
+                                d-flex align-items-center gap-2">
 
                             <span
-                                class="badge bg-light text-body
-                                    border fs-14 p-2"
-                                data-countdown>
+                                class="avatar-sm flex-shrink-0">
 
-                                <?= esc(
-                                    (string) $maximumDurationSeconds
-                                ) ?>
-                                seconds remaining
+                                <span
+                                    class="avatar-title rounded-circle
+                                        bg-primary-subtle text-primary fs-20">
+
+                                    <i
+                                        class="ri-question-answer-line"
+                                        aria-hidden="true">
+                                    </i>
+                                </span>
                             </span>
 
-                            <span
-                                class="text-muted fs-13"
-                                data-recorder-status>
-
-                                Camera not started
-                            </span>
+                            <h2 class="fs-16 fw-semibold mb-0">
+                                Optional prompts
+                            </h2>
                         </div>
 
-                        <div
-                            class="alert alert-danger d-none"
-                            role="alert"
-                            data-recorder-error>
-                        </div>
+                        <div class="card-body p-3">
+                            <p class="fs-13 color-pink mb-3">
+                                Use these ideas to help structure your
+                                introduction. Speak naturally—you do not
+                                need to cover every prompt.
+                            </p>
 
-                        <div
-                            class="d-flex flex-wrap
-                                justify-content-end gap-2">
+                            <ul class="fs-13 mb-0 ps-3">
+                                <li class="mb-2">
+                                    First name and city
+                                </li>
 
-                            <button
-                                type="button"
-                                class="btn btn-outline-primary"
-                                data-enable-camera
-                                disabled>
+                                <li class="mb-2">
+                                    Education or profession
+                                </li>
 
-                                <i
-                                    class="ri-camera-line me-1"
-                                    aria-hidden="true">
-                                </i>
+                                <li class="mb-2">
+                                    Hobbies and interests
+                                </li>
 
-                                Enable Camera
-                            </button>
+                                <li class="mb-2">
+                                    A few words about family values
+                                </li>
 
-                            <button
-                                type="button"
-                                class="btn btn-danger d-none"
-                                data-start-recording>
-
-                                <i
-                                    class="ri-record-circle-line me-1"
-                                    aria-hidden="true">
-                                </i>
-
-                                Start Recording
-                            </button>
-
-                            <button
-                                type="button"
-                                class="btn btn-danger d-none"
-                                data-stop-recording
-                                disabled>
-
-                                <i
-                                    class="ri-stop-circle-line me-1"
-                                    aria-hidden="true">
-                                </i>
-
-                                Stop Recording
-                            </button>
-
-                            <button
-                                type="button"
-                                class="btn btn-outline-danger d-none"
-                                data-retake>
-
-                                <i
-                                    class="ri-restart-line me-1"
-                                    aria-hidden="true">
-                                </i>
-
-                                Retake
-                            </button>
+                                <li>
+                                    Qualities expected in a life partner
+                                </li>
+                            </ul>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <div class="col-12 col-xl-5">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-body p-3">
-                        <h2 class="fs-16 fw-semibold">
-                            Optional prompts
-                        </h2>
-
-                        <ul class="fs-13 mb-0 ps-3">
-                            <li>First name and city</li>
-                            <li>Education or profession</li>
-                            <li>Hobbies and interests</li>
-                            <li>
-                                A few words about family values
-                            </li>
-                            <li>
-                                Qualities expected in a life partner
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-
-                <form
-                    method="post"
-                    enctype="multipart/form-data"
-                    action="<?= route_to(
-                                'web.video-introduction.submit'
-                            ) ?>"
-                    data-video-form
-                    data-submit-loader>
-
-                    <?= csrf_field() ?>
-
-                    <input
-                        type="file"
-                        name="video_introduction"
-                        class="d-none"
-                        accept="video/webm,video/mp4,video/quicktime"
-                        data-recorded-file
-                        required>
 
                     <div
                         class="card border border-warning
                             border-opacity-50 shadow-sm">
 
-                        <div class="card-body p-3">
-                            <h2 class="fs-16 fw-semibold">
+                        <div
+                            class="card-header bg-transparent
+                                d-flex align-items-center gap-2">
+
+                            <span
+                                class="avatar-sm flex-shrink-0">
+
+                                <span
+                                    class="avatar-title rounded-circle
+                                        bg-warning-subtle text-warning fs-20">
+
+                                    <i
+                                        class="ri-shield-check-line"
+                                        aria-hidden="true">
+                                    </i>
+                                </span>
+                            </span>
+
+                            <h2 class="fs-16 fw-semibold mb-0">
                                 Instructions and privacy consent
                             </h2>
+                        </div>
+
+                        <div class="card-body p-3">
+                            <p class="fs-13 text-danger mb-3">
+                                Please read these instructions carefully.
+                                Your consent confirms that your recording
+                                follows the privacy and moderation rules.
+                            </p>
 
                             <p class="fs-13">
                                 Introduce yourself, your interests,
-                                education/profession and what you seek
-                                in a life partner. Do not share phone,
-                                email, address or social-media details.
+                                education or profession and what you are
+                                looking for in a life partner. Do not
+                                share your phone number, email, address
+                                or social-media details.
                             </p>
 
                             <ul class="fs-12 text-muted ps-3">
-                                <li>
-                                    Only one person should be clearly
-                                    visible and audible.
+                                <li class="mb-2">
+                                    The video must be an original,
+                                    respectful and relevant personal
+                                    introduction.
                                 </li>
 
-                                <li>
-                                    Content must be original,
-                                    respectful and relevant.
+                                <li class="mb-2">
+                                    Do not speak or display a phone
+                                    number, email, address or
+                                    social-media handle.
                                 </li>
 
-                                <li>
-                                    No offensive, misleading or
-                                    promotional content.
+                                <li class="mb-2">
+                                    Do not include offensive, misleading
+                                    or promotional content.
                                 </li>
 
-                                <li>
-                                    No other person's private
-                                    information.
+                                <li class="mb-2">
+                                    Do not disclose another person's
+                                    private information.
                                 </li>
 
-                                <li>
-                                    No copyrighted background music.
+                                <li class="mb-2">
+                                    Do not use copyrighted background
+                                    music.
                                 </li>
 
-                                <li>
-                                    Do not claim Sikhanandkaraj
+                                <li class="mb-2">
+                                    Do not claim that Sikhanandkaraj
                                     guarantees your identity.
                                 </li>
 
                                 <li>
                                     The video cannot be deleted or
-                                    replaced for seven days, but it
-                                    may be hidden.
+                                    replaced for seven days, but it may
+                                    be hidden.
                                 </li>
                             </ul>
 
-                            <div class="form-check mb-3">
+                            <hr>
+
+                            <div class="form-check mb-2">
                                 <input
                                     class="form-check-input"
                                     type="checkbox"
@@ -302,62 +269,243 @@ $this->section('content');
                                 </label>
                             </div>
 
-                            <p class="text-muted fs-12">
+                            <p class="color-pink fs-12 mb-0">
                                 Accept the consent before enabling the
                                 camera and microphone.
                             </p>
+                        </div>
+                    </div>
+                </div>
 
-                            <input
-                                type="hidden"
-                                name="consent_version"
-                                value="<?= esc(
-                                            $consentVersion,
-                                            'attr'
-                                        ) ?>">
+                <div class="col-12 col-xl-7">
+                    <div
+                        class="card border border-danger
+                            border-opacity-25 shadow-sm">
 
-                            <button
-                                type="submit"
-                                class="btn btn-danger w-100"
-                                data-submit-button
-                                disabled>
+                        <div
+                            class="card-header bg-transparent
+                                d-flex align-items-center gap-2">
 
-                                <span data-submit-idle>
+                            <span
+                                class="avatar-sm flex-shrink-0">
+
+                                <span
+                                    class="avatar-title rounded-circle
+                                        bg-danger-subtle text-danger fs-20">
+
                                     <i
-                                        class="ri-upload-cloud-line me-1"
+                                        class="ri-video-line"
                                         aria-hidden="true">
                                     </i>
+                                </span>
+                            </span>
 
-                                    Submit for Review
+                            <div>
+                                <h2 class="fs-16 fw-semibold mb-0">
+                                    Video recorder
+                                </h2>
+
+                                <p class="text-muted fs-12 mb-0">
+                                    Keep your face visible and speak
+                                    clearly in a quiet place.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="card-body p-3 p-lg-4">
+                            <div
+                                class="ratio ratio-16x9 bg-dark
+        rounded overflow-hidden mb-3">
+
+                                <video
+                                    class="w-100 h-100 object-fit-cover"
+                                    muted
+                                    playsinline
+                                    data-camera-preview>
+                                </video>
+
+                                <video
+                                    class="w-100 h-100 object-fit-cover d-none"
+                                    controls
+                                    playsinline
+                                    preload="metadata"
+                                    data-recording-preview>
+                                </video>
+                            </div>
+
+                            <div
+                                class="d-flex align-items-center
+                                    justify-content-between gap-3 mb-3">
+
+                                <span
+                                    class="badge bg-light text-body
+                                        border fs-14 p-2"
+                                    data-countdown>
+
+                                    <?= esc(
+                                        (string) $maximumDurationSeconds
+                                    ) ?>
+                                    seconds remaining
                                 </span>
 
                                 <span
-                                    class="d-none"
-                                    data-submit-loading>
+                                    class="text-danger fs-14"
+                                    data-recorder-status>
 
-                                    <span
-                                        class="spinner-border
-                                            spinner-border-sm me-1">
-                                    </span>
-
-                                    Uploading...
+                                    Camera not started
                                 </span>
-                            </button>
+                            </div>
 
-                            <p class="text-muted fs-11 mt-2 mb-0">
-                                Maximum upload size:
-                                <?= esc(
-                                    number_format(
-                                        $maximumUploadSizeKb / 1024,
-                                        0
-                                    )
-                                ) ?>
-                                MB. Processing continues after upload.
-                            </p>
+                            <div
+                                class="alert alert-danger d-none"
+                                role="alert"
+                                data-recorder-error>
+                            </div>
+
+                            <div
+                                class="d-flex flex-wrap
+                                    justify-content-end gap-2">
+
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-primary"
+                                    data-enable-camera
+                                    disabled>
+
+                                    <i
+                                        class="ri-camera-line me-1"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    Enable Camera
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-primary d-none"
+                                    data-start-recording>
+
+                                    <i
+                                        class="ri-record-circle-line me-1"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    Start Recording
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-danger d-none"
+                                    data-stop-recording
+                                    disabled>
+
+                                    <i
+                                        class="ri-stop-circle-line me-1"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    Stop Recording
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-outline-danger d-none"
+                                    data-retake>
+
+                                    <i
+                                        class="ri-restart-line me-1"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    Retake
+                                </button>
+                            </div>
+
+                            <div
+                                class="d-none mt-4"
+                                data-submit-review>
+
+                                <div
+                                    class="alert alert-success
+                                        d-flex align-items-start gap-2">
+
+                                    <i
+                                        class="ri-checkbox-circle-line
+                                            fs-18"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <div>
+                                        <h3
+                                            class="fs-14 fw-semibold
+                                                text-success mb-1">
+
+                                            Recording ready
+                                        </h3>
+
+                                        <p class="fs-12 mb-0">
+                                            Preview the complete recording.
+                                            You can retake it or submit it
+                                            for admin review.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div class="text-end">
+                                    <button
+                                        type="submit"
+                                        class="btn registration-form__submit
+            fs-14 fw-semibold text-uppercase w-50"
+                                        data-submit-button
+                                        disabled>
+
+                                        <span
+                                            class="registration-submit__label"
+                                            data-submit-idle>
+
+                                            <i
+                                                class="ri-upload-cloud-line me-1"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            Submit for Review
+                                        </span>
+
+                                        <span
+                                            class="registration-submit__loading d-none"
+                                            data-submit-loading
+                                            aria-hidden="true">
+
+                                            <span
+                                                class="spinner-border spinner-border-sm"
+                                                role="status"
+                                                aria-hidden="true">
+                                            </span>
+
+                                            Submitting...
+                                        </span>
+                                    </button>
+                                </div>
+
+                                <p
+                                    class="color-pink fs-12
+                                        text-center mt-3 mb-0">
+
+                                    Maximum upload size:
+                                    <?= esc(
+                                        number_format(
+                                            $maximumUploadSizeKb / 1024,
+                                            0
+                                        )
+                                    ) ?>
+                                    MB. Processing continues after upload.
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </form>
+                </div>
             </div>
-        </div>
+        </form>
     </div>
 </section>
 
@@ -372,7 +520,9 @@ $this->section('content');
                             'attr'
                         ) ?>"
     data-max-size-bytes="<?= esc(
-                                (string) ($maximumUploadSizeKb * 1024),
+                                (string) (
+                                    $maximumUploadSizeKb * 1024
+                                ),
                                 'attr'
                             ) ?>">
 </div>

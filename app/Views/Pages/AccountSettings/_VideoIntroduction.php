@@ -312,7 +312,7 @@ $reason = is_array($videoIntroduction)
         </form>
     <?php elseif ($lockRemainingSeconds > 0): ?>
         <span
-            class="text-muted fs-13 align-self-center">
+            class="color-pink fs-13 align-self-center">
 
             Delete/replace unlocks after the
             seven-day lock. You may hide it now.
