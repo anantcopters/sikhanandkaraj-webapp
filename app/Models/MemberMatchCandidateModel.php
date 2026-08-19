@@ -753,7 +753,6 @@ final class MemberMatchCandidateModel extends Model
             * presentation contract.
             */
             'u.is_aadhaar_verified',
-            'video_intro.id IS NOT NULL AS has_video_introduction',
 
             'primary_mobile.is_verified '
                 . 'AS is_mobile_verified',
@@ -798,10 +797,20 @@ final class MemberMatchCandidateModel extends Model
         ]);
 
         /*
-        * Primary contact verification state.
+        * This is a PostgreSQL boolean expression rather than a database
+        * column. Escaping must be disabled; otherwise CodeIgniter converts it
+        * into an invalid quoted column name:
         *
-        * The database partial unique constraint permits only one primary contact
-        * for each user/contact type, so these joins cannot duplicate candidates.
+        *     "video_intro"."id IS NOT NULL"
+        */
+        $builder->select(
+            'video_intro.id IS NOT NULL AS has_video_introduction',
+            false
+        );
+
+        /*
+        * Only an active and approved video introduction should produce the
+        * video introduction badge.
         */
         $builder->join(
             'member_video_introductions video_intro',

@@ -271,7 +271,7 @@ $this->section('content');
                                 </li>
 
                                 <li>
-                                    Do not claim SikhanAndKaraj
+                                    Do not claim Sikhanandkaraj
                                     guarantees your identity.
                                 </li>
 

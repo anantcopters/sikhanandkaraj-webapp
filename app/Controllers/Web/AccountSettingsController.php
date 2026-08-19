@@ -650,7 +650,7 @@ final class AccountSettingsController extends BaseController
 
         return in_array(
             $section,
-            self::SECTIONS,
+            self::ALLOWED_SECTIONS,
             true
         )
             ? $section

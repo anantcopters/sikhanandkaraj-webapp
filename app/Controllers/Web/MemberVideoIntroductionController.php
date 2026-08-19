@@ -44,39 +44,106 @@ final class MemberVideoIntroductionController extends BaseController
 
     public function submit(): RedirectResponse
     {
-        $config = config(
-            VideoIntroduction::class
-        );
-
-        $input = [
-            'privacy_consent' =>
+        $privacyConsent = trim(
             (string) $this->request->getPost(
                 'privacy_consent'
-            ),
+            )
+        );
 
-            'video_introduction' =>
-            $this->request->getFile(
-                'video_introduction'
-            ),
-        ];
+        /** @var \Config\VideoIntroduction $videoConfig */
+        $videoConfig = config(
+            'VideoIntroduction'
+        );
+
+        $allowedMimeTypes = array_keys(
+            $videoConfig->allowedMimeTypes
+        );
 
         $validation = service(
             'validation'
         );
 
-        $validation->setRules(
-            VideoIntroductionValidation::submissionRules(
-                $config->maximumUploadSizeKb
-            )
-        );
+        $validation->setRules([
+            'video_introduction' => [
+                'label' => 'Video Introduction',
 
-        if (! $validation->run($input)) {
+                /*
+                * CI4 file rules read video_introduction directly from
+                * the current HTTP request. Do not pass UploadedFile to
+                * Validation::run().
+                */
+                'rules' => [
+                    'uploaded[video_introduction]',
+
+                    'max_size[video_introduction,'
+                        . $videoConfig->maximumUploadSizeKb
+                        . ']',
+
+                    'mime_in[video_introduction,'
+                        . implode(
+                            ',',
+                            $allowedMimeTypes
+                        )
+                        . ']',
+                ],
+
+                'errors' => [
+                    'uploaded' =>
+                    'Please record your Video Introduction.',
+
+                    'max_size' =>
+                    'The Video Introduction exceeds the '
+                        . 'maximum allowed file size.',
+
+                    'mime_in' =>
+                    'This browser video format is not supported.',
+                ],
+            ],
+
+            'privacy_consent' => [
+                'label' => 'Privacy consent',
+                'rules' => [
+                    'required',
+                    'in_list[1]',
+                ],
+                'errors' => [
+                    'required' =>
+                    'You must accept the Video Introduction '
+                        . 'guidelines and privacy conditions.',
+
+                    'in_list' =>
+                    'You must accept the Video Introduction '
+                        . 'guidelines and privacy conditions.',
+                ],
+            ],
+        ]);
+
+        /*
+        * Pass only scalar POST data. FileRules reads the uploaded video
+        * directly from the request's uploaded-file collection.
+        */
+        if (
+            !$validation->run([
+                'privacy_consent' =>
+                $privacyConsent,
+            ])
+        ) {
+            $validationErrors =
+                $validation->getErrors();
+
+            $validationMessage =
+                $validationErrors !== []
+                ? (string) reset(
+                    $validationErrors
+                )
+                : 'Please check the recording and try again.';
+
             return redirect()
                 ->back()
                 ->withInput()
                 ->with(
                     'validationErrors',
-                    $validation->getErrors()
+                    $validationErrors
                 )
                 ->with(
                     'formAlert',
@@ -88,8 +155,39 @@ final class MemberVideoIntroductionController extends BaseController
                         'Video not submitted',
 
                         'message' =>
-                        'Please correct the highlighted '
-                            . 'Video Introduction details.',
+                        $validationMessage,
+                    ]
+                );
+        }
+
+        $uploadedFile = $this->request->getFile(
+            'video_introduction'
+        );
+
+        /*
+        * This remains necessary even after validation so an invalid or
+        * unexpectedly missing upload can never reach the service.
+        */
+        if (
+            $uploadedFile === null
+            || !$uploadedFile->isValid()
+            || $uploadedFile->hasMoved()
+        ) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with(
+                    'formAlert',
+                    [
+                        'type' => 'warning',
+
+                        'title' =>
+                        'Video not submitted',
+
+                        'message' =>
+                        $uploadedFile?->getErrorString()
+                            ?: 'Please record your Video '
+                            . 'Introduction again.',
                     ]
                 );
         }
@@ -102,8 +200,8 @@ final class MemberVideoIntroductionController extends BaseController
 
             $service->submit(
                 $this->authenticatedUserId(),
-                $input['video_introduction'],
-                $input['privacy_consent'] === '1'
+                $uploadedFile,
+                $privacyConsent === '1'
             );
 
             return redirect()
@@ -116,17 +214,15 @@ final class MemberVideoIntroductionController extends BaseController
                 ->with(
                     'accountNotice',
                     [
-                        'type' =>
-                        'success',
+                        'type' => 'success',
 
                         'title' =>
                         'Video Introduction saved',
 
                         'message' =>
-                        'Your Video Introduction has been saved. '
-                            . 'Processing and moderation will continue '
-                            . 'in the background. You can safely leave '
-                            . 'this page.',
+                        'Processing and moderation will '
+                            . 'continue in the background. '
+                            . 'You can safely leave this page.',
 
                         'logoutAfterClose' =>
                         false,
@@ -139,8 +235,7 @@ final class MemberVideoIntroductionController extends BaseController
                 ->with(
                     'formAlert',
                     [
-                        'type' =>
-                        'warning',
+                        'type' => 'warning',
 
                         'title' =>
                         'Video not submitted',
@@ -168,15 +263,14 @@ final class MemberVideoIntroductionController extends BaseController
                 ->with(
                     'formAlert',
                     [
-                        'type' =>
-                        'danger',
+                        'type' => 'danger',
 
                         'title' =>
                         'Video not submitted',
 
                         'message' =>
-                        'We could not save your '
-                            . 'Video Introduction. Please try again.',
+                        'We could not save your Video '
+                            . 'Introduction. Please try again.',
                     ]
                 );
         }

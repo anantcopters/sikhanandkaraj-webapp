@@ -86,15 +86,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let validRecording = false;
 
-    const mimeType = [
+    const supportedMimeTypes = [
         'video/webm;codecs=vp9,opus',
         'video/webm;codecs=vp8,opus',
+        'video/webm;codecs=vp8',
         'video/webm',
+        'video/mp4;codecs=h264,aac',
+        'video/mp4;codecs=avc1,mp4a.40.2',
         'video/mp4',
-    ].find((type) => (
-        window.MediaRecorder
-        && MediaRecorder.isTypeSupported(type)
-    ));
+    ];
+
+    const mimeType = window.MediaRecorder
+        ? supportedMimeTypes.find((type) => (
+            typeof MediaRecorder.isTypeSupported !== 'function'
+            || MediaRecorder.isTypeSupported(type)
+        )) || ''
+        : '';
 
     const showError = (message) => {
         error.textContent = message;
@@ -137,17 +144,35 @@ document.addEventListener('DOMContentLoaded', () => {
         live.srcObject = null;
     };
 
-    if (
-        !navigator.mediaDevices?.getUserMedia
-        || !window.MediaRecorder
-        || !mimeType
-    ) {
+    if (!window.isSecureContext) {
         enable.disabled = true;
 
         showError(
-            'This browser cannot record a supported '
-            + 'Video Introduction. Please use the latest '
-            + 'Chrome, Edge, Firefox or Safari.'
+            'Camera and microphone access requires a secure HTTPS '
+            + 'connection. Please open this page using HTTPS.'
+        );
+
+        return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+        enable.disabled = true;
+
+        showError(
+            'Camera and microphone access is unavailable. '
+            + 'Check your browser permissions and ensure that '
+            + 'camera access is allowed for this website.'
+        );
+
+        return;
+    }
+
+    if (!window.MediaRecorder) {
+        enable.disabled = true;
+
+        showError(
+            'Video recording is not supported by this browser. '
+            + 'Please use the latest Chrome, Edge, Firefox or Safari.'
         );
 
         return;
@@ -230,18 +255,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
             updateSubmit();
 
-            recorder = new MediaRecorder(
-                stream,
-                {
-                    mimeType,
+            const recorderOptions = {
+                videoBitsPerSecond: 1800000,
+                audioBitsPerSecond: 96000,
+            };
 
-                    videoBitsPerSecond:
-                        1800000,
+            if (mimeType !== '') {
+                recorderOptions.mimeType = mimeType;
+            }
 
-                    audioBitsPerSecond:
-                        96000,
-                }
-            );
+            try {
+                recorder = new MediaRecorder(
+                    stream,
+                    recorderOptions
+                );
+            } catch (exception) {
+                releaseCamera();
+
+                showError(
+                    'The browser could not start video recording. '
+                    + 'Please close other applications using the camera '
+                    + 'and try again.'
+                );
+
+                return;
+            }
 
             recorder.addEventListener(
                 'dataavailable',
@@ -353,11 +391,16 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        const recordedMimeType =
+            recorder?.mimeType
+            || mimeType
+            || chunks[0]?.type
+            || 'video/webm';
+
         const blob = new Blob(
             chunks,
             {
-                type:
-                    mimeType.split(';')[0],
+                type: recordedMimeType.split(';')[0],
             }
         );
 
