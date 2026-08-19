@@ -18,7 +18,6 @@ declare(strict_types=1);
  * @var array<string, string> $aadhaarValidationErrors
  * @var bool        $openAadhaarModal
  * @var array<string, string>|null $formAlert
- * @var bool        $isSelfieVerified
  *
  * Dashboard-specific variables.
  *

@@ -77,6 +77,12 @@ $pageScripts = $pageScripts ?? [];
                 'admin/members/aadhaar-approvals'
             );
 
+        $videoIntroductionApprovalsActive =
+            str_starts_with(
+                $currentPath,
+                'admin/members/video-introductions'
+            );
+
         $prelaunchProfilesActive =
             str_starts_with(
                 $currentPath,
@@ -89,7 +95,8 @@ $pageScripts = $pageScripts ?? [];
                 'admin/members'
             )
             && !$photoApprovalsActive
-            && !$aadhaarApprovalsActive;
+            && !$aadhaarApprovalsActive
+            && !$videoIntroductionApprovalsActive;
 
         $administratorsActive =
             str_starts_with(
@@ -104,15 +111,16 @@ $pageScripts = $pageScripts ?? [];
             );
 
         /*
-     * Parent dropdown states.
-     */
+        * Parent dropdown states.
+        */
         $memberGroupActive =
             $membersActive
             || $prelaunchProfilesActive;
 
         $approvalGroupActive =
             $photoApprovalsActive
-            || $aadhaarApprovalsActive;
+            || $aadhaarApprovalsActive
+            || $videoIntroductionApprovalsActive;
 
         $administrationGroupActive =
             $administratorsActive
@@ -419,6 +427,28 @@ $pageScripts = $pageScripts ?? [];
                                                 aria-hidden="true"></i>
 
                                             Aadhaar Approvals
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a
+                                            href="<?= route_to(
+                                                        'admin.members.video-introductions'
+                                                    ) ?>"
+                                            class="dropdown-item d-flex
+            align-items-center gap-2
+            <?= $videoIntroductionApprovalsActive
+                ? 'active'
+                : '' ?>"
+                                            <?= $videoIntroductionApprovalsActive
+                                                ? 'aria-current="page"'
+                                                : '' ?>>
+
+                                            <i
+                                                class="ri-video-line"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            Video Introductions
                                         </a>
                                     </li>
                                 </ul>

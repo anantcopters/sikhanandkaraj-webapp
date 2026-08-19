@@ -1,0 +1,703 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services\Video;
+
+use App\Models\MemberNotificationModel;
+use App\Models\MemberVideoIntroductionModel;
+use App\Models\MemberVideoProcessingJobModel;
+use App\Services\Aws\S3Service;
+use App\Services\Notification\MemberNotificationService;
+use CodeIgniter\Database\BaseConnection;
+use Config\VideoIntroduction;
+use RuntimeException;
+use Throwable;
+
+final class VideoIntroductionProcessingService
+{
+    public function __construct(
+        private readonly MemberVideoIntroductionModel $videoModel,
+        private readonly MemberVideoProcessingJobModel $jobModel,
+        private readonly S3Service $s3Service,
+        private readonly MemberNotificationService $notificationService,
+        private readonly BaseConnection $database,
+        private readonly VideoIntroduction $config
+    ) {}
+
+    public function processNext(
+        string $workerId
+    ): bool {
+        $job = $this->claimNext(
+            $workerId
+        );
+
+        if (! is_array($job)) {
+            return false;
+        }
+
+        $videoId = (int) (
+            $job['video_introduction_id']
+            ?? 0
+        );
+
+        $video = $this->videoModel->find(
+            $videoId
+        );
+
+        if (! is_array($video)) {
+            $this->failJob(
+                (int) $job['id'],
+                $videoId,
+                'Video record not found.',
+                true
+            );
+
+            return true;
+        }
+
+        $workDirectory =
+            rtrim(
+                WRITEPATH,
+                DIRECTORY_SEPARATOR
+            )
+            . DIRECTORY_SEPARATOR
+            . 'video-introduction'
+            . DIRECTORY_SEPARATOR
+            . (string) $video['public_id'];
+
+        $sourcePath =
+            $workDirectory
+            . DIRECTORY_SEPARATOR
+            . 'source';
+
+        $playbackPath =
+            $workDirectory
+            . DIRECTORY_SEPARATOR
+            . 'playback.mp4';
+
+        $posterPath =
+            $workDirectory
+            . DIRECTORY_SEPARATOR
+            . 'poster.jpg';
+
+        try {
+            $this->s3Service->download(
+                (string) $video['original_object_key'],
+                $sourcePath
+            );
+
+            $metadata = $this->probe(
+                $sourcePath
+            );
+
+            $duration = (float) (
+                $metadata['duration']
+                ?? 0.0
+            );
+
+            if (
+                $duration
+                < $this->config->minimumDurationSeconds
+                || $duration
+                > ($this->config->maximumDurationSeconds + 0.5)
+            ) {
+                throw new RuntimeException(
+                    'Recorded duration must be between '
+                        . '15 and 30 seconds.'
+                );
+            }
+
+            if (
+                ($metadata['videoCodec'] ?? '') === ''
+                || ($metadata['audioCodec'] ?? '') === ''
+            ) {
+                throw new RuntimeException(
+                    'Both video and audio tracks are required.'
+                );
+            }
+
+            $this->transcode(
+                $sourcePath,
+                $playbackPath,
+                $posterPath
+            );
+
+            $publicId =
+                (string) $video['public_id'];
+
+            $playbackKey =
+                'members/video-introduction/playback/'
+                . $publicId
+                . '.mp4';
+
+            $posterKey =
+                'members/video-introduction/poster/'
+                . $publicId
+                . '.jpg';
+
+            $this->s3Service->upload(
+                $playbackPath,
+                $playbackKey,
+                'video/mp4',
+                [
+                    'media-type' =>
+                    'member-video-introduction-playback',
+                    'public-id' => $publicId,
+                ],
+                'inline; filename="video-introduction.mp4"'
+            );
+
+            try {
+                $this->s3Service->upload(
+                    $posterPath,
+                    $posterKey,
+                    'image/jpeg',
+                    [
+                        'media-type' =>
+                        'member-video-introduction-poster',
+                        'public-id' => $publicId,
+                    ],
+                    'inline; filename="video-introduction-poster.jpg"'
+                );
+            } catch (Throwable $exception) {
+                $this->s3Service->delete(
+                    $playbackKey
+                );
+
+                throw $exception;
+            }
+
+            $this->database->transBegin();
+
+            try {
+                $this->videoModel->update(
+                    $videoId,
+                    [
+                        'moderation_status' =>
+                        MemberVideoIntroductionModel::STATUS_PENDING_REVIEW,
+
+                        'playback_object_key' =>
+                        $playbackKey,
+
+                        'poster_object_key' =>
+                        $posterKey,
+
+                        'duration_seconds' =>
+                        $duration,
+
+                        'video_codec' =>
+                        (string) $metadata['videoCodec'],
+
+                        'audio_codec' =>
+                        (string) $metadata['audioCodec'],
+
+                        'width' =>
+                        (int) $metadata['width'],
+
+                        'height' =>
+                        (int) $metadata['height'],
+
+                        'processing_error' =>
+                        null,
+
+                        'processed_at' =>
+                        date('Y-m-d H:i:sP'),
+                    ]
+                );
+
+                $this->jobModel->update(
+                    (int) $job['id'],
+                    [
+                        'status' =>
+                        'COMPLETED',
+
+                        'completed_at' =>
+                        date('Y-m-d H:i:sP'),
+
+                        'locked_at' =>
+                        null,
+
+                        'locked_by' =>
+                        null,
+
+                        'last_error' =>
+                        null,
+                    ]
+                );
+
+                $this->notificationService->create(
+                    [
+                        'recipientUserId' =>
+                        (int) $video['member_user_id'],
+
+                        'type' =>
+                        MemberNotificationModel::TYPE_SYSTEM,
+
+                        'title' =>
+                        'Video Introduction submitted',
+
+                        'message' =>
+                        'Your Video Introduction is ready '
+                            . 'for moderation.',
+
+                        'entityType' =>
+                        'VIDEO_INTRODUCTION',
+
+                        'entityId' =>
+                        $videoId,
+
+                        'targetUrl' =>
+                        '/account-settings/video-introduction',
+                    ]
+                );
+
+                $this->database->transCommit();
+            } catch (Throwable $exception) {
+                $this->database->transRollback();
+
+                $this->s3Service->deleteMany(
+                    [
+                        $playbackKey,
+                        $posterKey,
+                    ]
+                );
+
+                throw $exception;
+            }
+        } catch (Throwable $exception) {
+            $permanent =
+                ((int) ($job['attempt_count'] ?? 1))
+                >= $this->config->maximumProcessingAttempts;
+
+            $this->failJob(
+                (int) $job['id'],
+                $videoId,
+                $exception->getMessage(),
+                $permanent
+            );
+        } finally {
+            $this->removeDirectory(
+                $workDirectory
+            );
+        }
+
+        return true;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function claimNext(
+        string $workerId
+    ): ?array {
+        $this->database->transBegin();
+
+        try {
+            $row = $this->database
+                ->query(
+                    "SELECT *
+                     FROM member_video_processing_jobs
+                     WHERE (
+                         (
+                             status IN ('PENDING', 'FAILED')
+                             AND available_at <= CURRENT_TIMESTAMP
+                         )
+                         OR
+                         (
+                             status = 'PROCESSING'
+                             AND locked_at <=
+                                 CURRENT_TIMESTAMP
+                                 - INTERVAL '15 minutes'
+                         )
+                     )
+                     AND attempt_count < ?
+                     ORDER BY available_at, id
+                     FOR UPDATE SKIP LOCKED
+                     LIMIT 1",
+                    [
+                        $this->config
+                            ->maximumProcessingAttempts,
+                    ]
+                )
+                ->getRowArray();
+
+            if (! is_array($row)) {
+                $this->database->transCommit();
+
+                return null;
+            }
+
+            $attempt =
+                ((int) $row['attempt_count'])
+                + 1;
+
+            $this->jobModel->update(
+                (int) $row['id'],
+                [
+                    'status' =>
+                    'PROCESSING',
+
+                    'attempt_count' =>
+                    $attempt,
+
+                    'locked_at' =>
+                    date('Y-m-d H:i:sP'),
+
+                    'locked_by' =>
+                    mb_substr(
+                        trim($workerId),
+                        0,
+                        100
+                    ),
+
+                    'last_error' =>
+                    null,
+                ]
+            );
+
+            $this->videoModel->update(
+                (int) $row['video_introduction_id'],
+                [
+                    'processing_attempts' =>
+                    $attempt,
+
+                    'processing_started_at' =>
+                    date('Y-m-d H:i:sP'),
+                ]
+            );
+
+            $this->database->transCommit();
+
+            $row['attempt_count'] = $attempt;
+
+            return $row;
+        } catch (Throwable $exception) {
+            $this->database->transRollback();
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * @return array{
+     *     duration:float,
+     *     videoCodec:string,
+     *     audioCodec:string,
+     *     width:int,
+     *     height:int
+     * }
+     */
+    private function probe(
+        string $sourcePath
+    ): array {
+        $command =
+            escapeshellarg(
+                $this->config->ffprobeBinary
+            )
+            . ' -v error'
+            . ' -show_streams'
+            . ' -show_format'
+            . ' -of json '
+            . escapeshellarg($sourcePath)
+            . ' 2>&1';
+
+        $output = [];
+        $exitCode = 0;
+
+        exec(
+            $command,
+            $output,
+            $exitCode
+        );
+
+        if ($exitCode !== 0) {
+            throw new RuntimeException(
+                'The recorded video could not be decoded.'
+            );
+        }
+
+        $data = json_decode(
+            implode(
+                "\n",
+                $output
+            ),
+            true
+        );
+
+        if (! is_array($data)) {
+            throw new RuntimeException(
+                'The recorded video metadata is invalid.'
+            );
+        }
+
+        $video = [];
+        $audio = [];
+
+        foreach (
+            ($data['streams'] ?? [])
+            as $stream
+        ) {
+            if (
+                ($stream['codec_type'] ?? '') === 'video'
+                && $video === []
+            ) {
+                $video = $stream;
+            }
+
+            if (
+                ($stream['codec_type'] ?? '') === 'audio'
+                && $audio === []
+            ) {
+                $audio = $stream;
+            }
+        }
+
+        return [
+            'duration' => (float) (
+                $data['format']['duration']
+                ?? $video['duration']
+                ?? 0
+            ),
+
+            'videoCodec' => trim(
+                (string) (
+                    $video['codec_name']
+                    ?? ''
+                )
+            ),
+
+            'audioCodec' => trim(
+                (string) (
+                    $audio['codec_name']
+                    ?? ''
+                )
+            ),
+
+            'width' => (int) (
+                $video['width']
+                ?? 0
+            ),
+
+            'height' => (int) (
+                $video['height']
+                ?? 0
+            ),
+        ];
+    }
+
+    private function transcode(
+        string $sourcePath,
+        string $playbackPath,
+        string $posterPath
+    ): void {
+        $scale =
+            "scale='min(720,iw)':-2:"
+            . 'force_original_aspect_ratio=decrease';
+
+        $command =
+            escapeshellarg(
+                $this->config->ffmpegBinary
+            )
+            . ' -hide_banner'
+            . ' -loglevel error'
+            . ' -y'
+            . ' -i '
+            . escapeshellarg($sourcePath)
+            . ' -map 0:v:0'
+            . ' -map 0:a:0'
+            . ' -vf '
+            . escapeshellarg($scale)
+            . ' -c:v libx264'
+            . ' -preset fast'
+            . ' -crf 24'
+            . ' -pix_fmt yuv420p'
+            . ' -c:a aac'
+            . ' -b:a 96k'
+            . ' -movflags +faststart'
+            . ' -t 30.5 '
+            . escapeshellarg($playbackPath)
+            . ' 2>&1';
+
+        $output = [];
+        $exitCode = 0;
+
+        exec(
+            $command,
+            $output,
+            $exitCode
+        );
+
+        if (
+            $exitCode !== 0
+            || ! is_file($playbackPath)
+        ) {
+            throw new RuntimeException(
+                'The web playback video could not be created.'
+            );
+        }
+
+        $posterCommand =
+            escapeshellarg(
+                $this->config->ffmpegBinary
+            )
+            . ' -hide_banner'
+            . ' -loglevel error'
+            . ' -y'
+            . ' -ss 1'
+            . ' -i '
+            . escapeshellarg($playbackPath)
+            . ' -frames:v 1'
+            . ' -q:v 3 '
+            . escapeshellarg($posterPath)
+            . ' 2>&1';
+
+        $posterOutput = [];
+        $posterExitCode = 0;
+
+        exec(
+            $posterCommand,
+            $posterOutput,
+            $posterExitCode
+        );
+
+        if (
+            $posterExitCode !== 0
+            || ! is_file($posterPath)
+        ) {
+            throw new RuntimeException(
+                'The Video Introduction poster '
+                    . 'could not be created.'
+            );
+        }
+    }
+
+    private function failJob(
+        int $jobId,
+        int $videoId,
+        string $error,
+        bool $permanent
+    ): void {
+        $safeError = mb_substr(
+            preg_replace(
+                '/\s+/u',
+                ' ',
+                trim($error)
+            ) ?? 'Processing failed.',
+            0,
+            500
+        );
+
+        $this->jobModel->update(
+            $jobId,
+            [
+                'status' =>
+                'FAILED',
+
+                'available_at' =>
+                date(
+                    'Y-m-d H:i:sP',
+                    strtotime('+10 minutes')
+                ),
+
+                'locked_at' =>
+                null,
+
+                'locked_by' =>
+                null,
+
+                'last_error' =>
+                $safeError,
+            ]
+        );
+
+        $this->videoModel->update(
+            $videoId,
+            [
+                'moderation_status' =>
+                $permanent
+                    ? MemberVideoIntroductionModel::STATUS_PROCESSING_FAILED
+                    : MemberVideoIntroductionModel::STATUS_PROCESSING,
+
+                'processing_error' =>
+                $permanent
+                    ? $safeError
+                    : null,
+            ]
+        );
+
+        if (! $permanent) {
+            return;
+        }
+
+        $video = $this->videoModel->find(
+            $videoId
+        );
+
+        if (! is_array($video)) {
+            return;
+        }
+
+        try {
+            $this->notificationService->create(
+                [
+                    'recipientUserId' =>
+                    (int) $video['member_user_id'],
+
+                    'type' =>
+                    MemberNotificationModel::TYPE_SYSTEM,
+
+                    'title' =>
+                    'Video Introduction processing failed',
+
+                    'message' =>
+                    'We could not process your recording. '
+                        . 'Please record and submit it again.',
+
+                    'entityType' =>
+                    'VIDEO_INTRODUCTION',
+
+                    'entityId' =>
+                    $videoId,
+
+                    'targetUrl' =>
+                    '/account-settings/video-introduction',
+                ]
+            );
+        } catch (Throwable $notificationException) {
+            log_message(
+                'error',
+                'Video processing failure notification '
+                    . 'could not be created: {message}',
+                [
+                    'message' =>
+                    $notificationException
+                        ->getMessage(),
+                ]
+            );
+        }
+    }
+
+    private function removeDirectory(
+        string $directory
+    ): void {
+        if (! is_dir($directory)) {
+            return;
+        }
+
+        foreach (
+            glob(
+                $directory
+                    . DIRECTORY_SEPARATOR
+                    . '*'
+            ) ?: []
+            as $path
+        ) {
+            if (is_file($path)) {
+                @unlink($path);
+            }
+        }
+
+        @rmdir($directory);
+    }
+}

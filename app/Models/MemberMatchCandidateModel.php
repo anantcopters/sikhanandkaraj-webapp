@@ -753,7 +753,7 @@ final class MemberMatchCandidateModel extends Model
             * presentation contract.
             */
             'u.is_aadhaar_verified',
-            'u.is_selfie_verified',
+            'video_intro.id IS NOT NULL AS has_video_introduction',
 
             'primary_mobile.is_verified '
                 . 'AS is_mobile_verified',
@@ -803,6 +803,16 @@ final class MemberMatchCandidateModel extends Model
         * The database partial unique constraint permits only one primary contact
         * for each user/contact type, so these joins cannot duplicate candidates.
         */
+        $builder->join(
+            'member_video_introductions video_intro',
+            "video_intro.member_user_id = u.id
+    AND video_intro.is_active = TRUE
+    AND video_intro.moderation_status = 'APPROVED'
+    AND video_intro.deleted_at IS NULL",
+            'left',
+            false
+        );
+
         $builder->join(
             'user_contacts primary_mobile',
             "primary_mobile.user_id = u.id

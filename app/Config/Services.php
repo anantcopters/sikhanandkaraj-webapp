@@ -127,6 +127,12 @@ use App\Models\MemberShortlistModel;
 use App\Services\Admin\FieldOfficerDocumentService;
 use App\Services\Admin\MemberSupportService;
 use App\Models\EmailVerificationTokenModel;
+use App\Models\MemberVideoIntroductionModel;
+use App\Models\MemberVideoModerationHistoryModel;
+use App\Models\MemberVideoProcessingJobModel;
+use App\Services\Admin\MemberVideoModerationService;
+use App\Services\Video\MemberVideoIntroductionService;
+use App\Services\Video\VideoIntroductionProcessingService;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
 use App\Logging\ErrorLogSanitizer;
@@ -1788,7 +1794,12 @@ final class Services extends BaseService
         return new MemberProfilePresentationService(
             static::memberPhotoUrlService(
                 false
-            )
+            ),
+            static::memberAccountSettingsService(
+                false
+            ),
+
+            new MemberVideoIntroductionModel($database)
         );
     }
 
@@ -2212,6 +2223,74 @@ final class Services extends BaseService
             ),
 
             $database
+        );
+    }
+
+    public static function memberVideoIntroductionService(
+        bool $getShared = true
+    ): MemberVideoIntroductionService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberVideoIntroductionService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberVideoIntroductionService(
+            new MemberVideoIntroductionModel($database),
+            new MemberVideoProcessingJobModel($database),
+            new UserModel($database),
+            new MemberInterestModel($database),
+            new MemberBlockModel($database),
+            new MemberProfileReportModel($database),
+            static::s3Service(false),
+            static::cloudFrontService(false),
+            static::memberNotificationService(false),
+            $database,
+            config(VideoIntroduction::class)
+        );
+    }
+
+    public static function videoIntroductionProcessingService(
+        bool $getShared = true
+    ): VideoIntroductionProcessingService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'videoIntroductionProcessingService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new VideoIntroductionProcessingService(
+            new MemberVideoIntroductionModel($database),
+            new MemberVideoProcessingJobModel($database),
+            static::s3Service(false),
+            static::memberNotificationService(false),
+            $database,
+            config(VideoIntroduction::class)
+        );
+    }
+
+    public static function memberVideoModerationService(
+        bool $getShared = true
+    ): MemberVideoModerationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberVideoModerationService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberVideoModerationService(
+            new MemberVideoIntroductionModel($database),
+            new MemberVideoModerationHistoryModel($database),
+            static::cloudFrontService(false),
+            static::memberNotificationService(false),
+            $database,
+            config(VideoIntroduction::class)
         );
     }
 }

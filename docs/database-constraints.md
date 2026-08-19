@@ -286,6 +286,23 @@ The current media flow stores original, medium, and thumbnail object keys/metada
 | status/active flag | Application/master constrained | Database/update SQL | Only active SAK Volunteers may be used by the prelaunch flow. |
 | role access | Service/filter rule | Application-enforced | Management is restricted to `SUPER_ADMIN`. |
 
+## Member Video Introduction tables
+
+`member_video_introductions` stores immutable versions and private S3 object keys. `member_video_processing_jobs` is the asynchronous FFmpeg queue and `member_video_moderation_history` is the immutable administrator decision history.
+
+| Column(s) | Constraint | Enforcement | Allowed values / rule |
+|---|---|---|---|
+| `public_id` | Unique UUID | Database | Browser-safe non-sequential reference. |
+| member/version | Foreign key + unique | Database | Version number is positive and unique per member. |
+| active version | Partial unique | Database | At most one non-deleted active approved version per member. |
+| open submission | Partial unique | Database | At most one processing/pending-review submission per member. |
+| moderation status | Check | Database | Processing, failed, pending review, approved, rejected, resubmission requested, replaced or deleted. |
+| visibility | Check | Database | Pro viewers, accepted Interest or hidden. |
+| duration | Check plus worker validation | Database/application | Processed duration is 15–30.5 seconds; product limit is 30 seconds. |
+| object keys | Required/nullable by lifecycle | Database/application | Persist private object keys, never signed URLs. |
+| processing job | One-to-one foreign key | Database | One retryable queue record per video version. |
+| moderation history | Foreign keys | Database | References the video and acting administrator. |
+
 ## `prelaunch_profiles`
 
 | Column(s) | Constraint | Enforcement | Allowed values / rule |

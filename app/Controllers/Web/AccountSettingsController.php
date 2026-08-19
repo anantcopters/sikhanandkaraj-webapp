@@ -15,10 +15,11 @@ use Throwable;
 
 final class AccountSettingsController extends BaseController
 {
-    private const SECTIONS = [
+    private const ALLOWED_SECTIONS = [
         'password',
         'email',
         'visibility',
+        'video-introduction',
         'report-profile',
         'plans',
         'contact',
@@ -44,6 +45,17 @@ final class AccountSettingsController extends BaseController
             ->settingsForUser(
                 $userId
             );
+
+        if ($section === 'video-introduction') {
+            $settings = array_merge(
+                $settings,
+                service(
+                    'memberVideoIntroductionService'
+                )->settingsForMember(
+                    $userId
+                )
+            );
+        }
 
         $contactCaptcha = '';
 
@@ -111,9 +123,11 @@ final class AccountSettingsController extends BaseController
                     $profileReports,
 
                     'pageScripts' => [
+                        'assets/js/components/form-validator.js',
                         'assets/js/components/password-toggle.js',
                         'assets/js/components/submit-loader.js',
                         'assets/js/pages/account-settings.js',
+                        'assets/js/pages/video-introduction-playback.js',
                     ],
                 ]
             )

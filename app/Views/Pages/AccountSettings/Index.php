@@ -96,6 +96,10 @@ $menuItems = [
         'label' => 'Profile Visibility',
         'icon' => 'ri-eye-line',
     ],
+    'video-introduction' => [
+        'label' => 'Video Introduction',
+        'icon' => 'ri-video-line',
+    ],
     'report-profile' => [
         'label' => 'Report Profile',
         'icon' => 'ri-flag-line',
@@ -186,6 +190,62 @@ $this->section('content');
                     <div class="card-body p-3 p-lg-4">
 
                         <?php if (
+                            $activeSection === 'video-introduction'
+                        ): ?>
+                            <?= view(
+                                'Pages/AccountSettings/_VideoIntroduction',
+                                [
+                                    'videoIntroduction' =>
+                                    $videoIntroduction
+                                        ?? null,
+
+                                    'activeVideoIntroduction' =>
+                                    $activeVideoIntroduction
+                                        ?? null,
+
+                                    'videoStatus' =>
+                                    $videoStatus
+                                        ?? 'NOT_SUBMITTED',
+
+                                    'videoStatusLabel' =>
+                                    $videoStatusLabel
+                                        ?? 'Not submitted',
+
+                                    'isFemaleMember' =>
+                                    $isFemaleMember
+                                        ?? false,
+
+                                    'isProMember' =>
+                                    $isProMember
+                                        ?? false,
+
+                                    'canRecord' =>
+                                    $canRecord
+                                        ?? false,
+
+                                    'canDelete' =>
+                                    $canDelete
+                                        ?? false,
+
+                                    'canHide' =>
+                                    $canHide
+                                        ?? false,
+
+                                    'isHidden' =>
+                                    $isHidden
+                                        ?? false,
+
+                                    'lockRemainingSeconds' =>
+                                    $lockRemainingSeconds
+                                        ?? 0,
+
+                                    'allowedVisibilities' =>
+                                    $allowedVisibilities
+                                        ?? [],
+                                ]
+                            ) ?>
+
+                        <?php elseif (
                             $activeSection === 'password'
                         ): ?>
 

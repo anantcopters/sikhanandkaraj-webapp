@@ -50,6 +50,10 @@ Current numbered increments:
 | 016 | `016_profile_report_single_submission.sql` | profile-report uniqueness refinement |
 | 017 | `017_restore_reporting_after_dismissal.sql` | active report uniqueness after dismissal |
 | 018 | `018_canada_matrimonial_locations.sql` | Canada, 13 provinces/territories and curated matrimonial-ready locations |
+| 019 | `019_country_location_integrity.sql` | country/state/city integrity constraints |
+| 020 | `020_migrated_member_password_setup.sql` | migrated-member password setup |
+| 021 | `021_prelaunch_password_setup_otp.sql` | prelaunch password-setup OTP refinement |
+| 022 | `022_member_video_introductions.sql` | versioned Video Introductions, processing jobs and moderation history |
 
 Do not edit an already-deployed numbered SQL file to represent a new change. Add the next increment.
 

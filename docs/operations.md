@@ -144,3 +144,13 @@ After infrastructure or application deployment verify at minimum:
 - PostgreSQL, session, SMS/email provider, S3 and CloudFront connectivity.
 
 Health responses/logs must not expose internal secrets.
+
+## Video Introduction workers
+
+Install FFmpeg and verify both binaries are available to the CLI worker:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y ffmpeg
+/usr/bin/ffmpeg -version
+/usr/bin/ffprobe -version

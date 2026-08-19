@@ -85,6 +85,20 @@ $viewedProfileReference = trim(
     )
 );
 
+$videoIntroductionState =
+    isset($videoIntroductionState)
+    && is_array($videoIntroductionState)
+    ? $videoIntroductionState
+    : [];
+
+$hasVideoIntroductionBadge =
+    ($videoIntroductionState['hasBadge'] ?? false)
+    === true;
+
+$isVideoIntroductionHidden =
+    ($videoIntroductionState['isHidden'] ?? false)
+    === true;
+
 $viewedMobile = trim(
     (string) (
         $viewedMobile
@@ -1098,7 +1112,41 @@ $this->section('content');
                                                         $fullName
                                                     ) ?>
                                                 </h2>
+                                                <?php if (
+                                                    $isOtherMemberProfileView
+                                                    && $hasVideoIntroductionBadge
+                                                ): ?>
+                                                    <button
+                                                        type="button"
+                                                        class="badge rounded bg-success-subtle
+            text-success border border-success
+            border-opacity-25 d-inline-flex
+            align-items-center gap-1 px-2 py-2"
+                                                        data-video-introduction-open
+                                                        data-playback-url="<?= esc(
+                                                                                route_to(
+                                                                                    'web.video-introduction.viewer-playback',
+                                                                                    $viewedProfileReference
+                                                                                ),
+                                                                                'attr'
+                                                                            ) ?>"
+                                                        data-hidden="<?= $isVideoIntroductionHidden
+                                                                            ? '1'
+                                                                            : '0' ?>">
 
+                                                        <i
+                                                            class="ri-video-line"
+                                                            aria-hidden="true">
+                                                        </i>
+
+                                                        Video Introduction
+
+                                                        <i
+                                                            class="ri-checkbox-circle-fill"
+                                                            aria-hidden="true">
+                                                        </i>
+                                                    </button>
+                                                <?php endif; ?>
                                                 <?php if (
                                                     strtoupper(
                                                         trim(

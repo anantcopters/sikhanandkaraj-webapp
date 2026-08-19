@@ -37,6 +37,16 @@ final class MemberProfileController extends BaseController
                     $profileReference
                 );
 
+            $profile['videoIntroductionState'] = service(
+                'memberVideoIntroductionService'
+            )->profileState(
+                (int) (
+                    $profile['viewedMemberId']
+                    ?? 0
+                )
+            );
+
+
             $viewerUserId =
                 $this->authenticatedUserId();
 
@@ -101,9 +111,11 @@ final class MemberProfileController extends BaseController
                         ),
 
                         'pageScripts' => [
+                            'assets/js/components/form-validator.js',
                             'assets/js/components/submit-loader.js',
                             'assets/js/pages/profile-view.js',
                             'assets/js/pages/member-profile-actions.js',
+                            'assets/js/pages/video-introduction-playback.js',
                         ],
                     ]
                 )

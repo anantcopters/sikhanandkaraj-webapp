@@ -55,13 +55,13 @@ $verificationItems = [
 
     [
         'key' =>
-        'selfie',
+        'videoIntroduction',
 
         'label' =>
-        'Selfie',
+        'Video Introduction',
 
         'icon' =>
-        'ri-camera-line',
+        'ri-video-line',
     ],
 ];
 

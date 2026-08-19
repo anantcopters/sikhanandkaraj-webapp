@@ -39,9 +39,14 @@ $aadhaar = isset($trustVerification['aadhaar'])
     ? $trustVerification['aadhaar']
     : [];
 
-$selfie = isset($trustVerification['selfie'])
-    && is_array($trustVerification['selfie'])
-    ? $trustVerification['selfie']
+$videoIntroduction =
+    isset(
+        $trustVerification['videoIntroduction']
+    )
+    && is_array(
+        $trustVerification['videoIntroduction']
+    )
+    ? $trustVerification['videoIntroduction']
     : [];
 
 $mobileValue = trim(
@@ -128,8 +133,16 @@ $aadhaarRejectionReason = trim(
     )
 );
 
-$isSelfieVerified =
-    ($selfie['isVerified'] ?? false) === true;
+$isVideoIntroductionApproved =
+    (
+        $videoIntroduction['isApproved']
+        ?? false
+    ) === true;
+
+$videoIntroductionSettingsUrl = route_to(
+    'web.account.settings.section',
+    'video-introduction'
+);
 ?>
 
 <?php if ($showCard): ?>
@@ -404,42 +417,50 @@ $isSelfieVerified =
             <?php endif; ?>
         </div>
 
-        <!-- Selfie verification -->
-        <div
+        <!-- Video Introduction -->
+        <a
+            href="<?= esc(
+                        $videoIntroductionSettingsUrl,
+                        'attr'
+                    ) ?>"
             class="d-flex align-items-center
-                justify-content-between gap-3
-                pt-2 border-top">
+        justify-content-between gap-3
+        pt-2 border-top text-body
+        text-decoration-none">
 
             <span
                 class="d-flex align-items-center gap-2">
 
                 <i
-                    class="ri-camera-lens-line
-                        text-danger fs-18"
+                    class="ri-video-line
+                text-danger fs-18"
                     aria-hidden="true">
                 </i>
 
                 <span class="fw-medium fs-13">
-                    Selfie
+                    Video Introduction
                 </span>
             </span>
 
-            <?php if ($isSelfieVerified): ?>
+            <?php if (
+                $isVideoIntroductionApproved
+            ): ?>
                 <span
                     class="badge bg-success-subtle
-                        text-success fs-11 p-2">
+                text-success fs-11 p-2">
 
-                    Verified
+                    Approved
                 </span>
             <?php else: ?>
                 <span
                     class="badge bg-warning-subtle
-                        text-warning fs-11 p-2">
+                text-warning fs-11 p-2">
 
-                    Pending
+                    Add
                 </span>
             <?php endif; ?>
-        </div>
+        </a>
+
 
         <?php if ($showCard): ?>
         </div>

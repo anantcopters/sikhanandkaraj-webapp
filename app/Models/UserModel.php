@@ -65,8 +65,6 @@ final class UserModel extends Model
         */
         'is_aadhaar_verified',
         'aadhaar_verified_at',
-        'is_selfie_verified',
-        'selfie_verified_at',
 
         'last_login_at',
     ];
