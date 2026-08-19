@@ -1,4 +1,4 @@
-# QA-0002 — Member Video Introduction
+# QA-0003 — Member Video Introduction
 
 **Requirement:** `docs/video-introduction.md`
 
@@ -16,12 +16,14 @@
 
 ## Code QA
 
-- Controllers delegate lifecycle rules to services.
+- Controllers delegate most lifecycle rules to services.
 - Models own persistence; S3 and CloudFront use existing wrappers.
 - External S3/FFmpeg work is outside long database transactions.
 - Processing claims use `FOR UPDATE SKIP LOCKED` and bounded retries.
+- `Config\Services` contains two runtime-breaking constructor mismatches.
+- Processing completion does not yet prove current worker ownership before final update.
 
-**Result:** STATIC REVIEW ONLY.
+**Result:** FAILED STATIC REVIEW.
 
 ## UI QA
 

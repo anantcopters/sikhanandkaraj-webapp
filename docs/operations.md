@@ -154,3 +154,36 @@ sudo apt-get update
 sudo apt-get install -y ffmpeg
 /usr/bin/ffmpeg -version
 /usr/bin/ffprobe -version
+```
+
+Create the private worker directory:
+
+```bash
+cd /var/www/sikhanandkaraj
+
+sudo mkdir -p writable/video-introduction
+sudo chown -R www-data:www-data writable/video-introduction
+sudo chmod 750 writable/video-introduction
+```
+
+Run processing every minute using a non-overlapping lock:
+
+```cron
+* * * * * cd /var/www/sikhanandkaraj && /usr/bin/flock -n /var/lock/sikhanandkaraj/video-introduction-worker.lock /usr/bin/php scripts/video_introduction_worker.php 20 >> writable/logs/video-introduction-worker.log 2>&1
+```
+
+Run retention cleanup daily:
+
+```cron
+20 3 * * * cd /var/www/sikhanandkaraj && /usr/bin/flock -n /var/lock/sikhanandkaraj/video-introduction-cleanup.lock /usr/bin/php scripts/video_introduction_cleanup.php >> writable/logs/video-introduction-cleanup.log 2>&1
+```
+
+The CLI worker requires:
+
+- PostgreSQL access;
+- private S3 read/write/delete access;
+- read access to the CloudFront private signing key;
+- write access to `writable/video-introduction`;
+- write access to the configured log files.
+
+Keep `writable/video-introduction` outside the Apache document root. Do not fix permission failures using `chmod 777`.

@@ -991,10 +991,7 @@ final class Services extends BaseService
     }
 
     /**
-     * Return the shared member Trust and Verification service.
-     *
-     * Dashboard and Profile Edit use this service. Email state comes
-     * from MemberAccountSettingsService.
+     * Return shared Trust and Verification presentation data.
      */
     public static function memberTrustVerificationService(
         bool $getShared = true
@@ -1022,6 +1019,10 @@ final class Services extends BaseService
 
             static::memberAccountSettingsService(
                 false
+            ),
+
+            new MemberVideoIntroductionModel(
+                $database
             )
         );
     }
@@ -1794,12 +1795,7 @@ final class Services extends BaseService
         return new MemberProfilePresentationService(
             static::memberPhotoUrlService(
                 false
-            ),
-            static::memberAccountSettingsService(
-                false
-            ),
-
-            new MemberVideoIntroductionModel($database)
+            )
         );
     }
 

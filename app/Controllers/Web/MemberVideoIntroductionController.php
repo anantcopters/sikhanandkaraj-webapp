@@ -6,6 +6,8 @@ namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
 use App\Services\Video\MemberVideoIntroductionService;
+use App\Validation\Member\VideoIntroductionValidation;
+use Config\VideoIntroduction;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
 use DomainException;
@@ -42,6 +44,56 @@ final class MemberVideoIntroductionController extends BaseController
 
     public function submit(): RedirectResponse
     {
+        $config = config(
+            VideoIntroduction::class
+        );
+
+        $input = [
+            'privacy_consent' =>
+            (string) $this->request->getPost(
+                'privacy_consent'
+            ),
+
+            'video_introduction' =>
+            $this->request->getFile(
+                'video_introduction'
+            ),
+        ];
+
+        $validation = service(
+            'validation'
+        );
+
+        $validation->setRules(
+            VideoIntroductionValidation::submissionRules(
+                $config->maximumUploadSizeKb
+            )
+        );
+
+        if (! $validation->run($input)) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with(
+                    'validationErrors',
+                    $validation->getErrors()
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'warning',
+
+                        'title' =>
+                        'Video not submitted',
+
+                        'message' =>
+                        'Please correct the highlighted '
+                            . 'Video Introduction details.',
+                    ]
+                );
+        }
+
         try {
             /** @var MemberVideoIntroductionService $service */
             $service = service(
@@ -50,12 +102,8 @@ final class MemberVideoIntroductionController extends BaseController
 
             $service->submit(
                 $this->authenticatedUserId(),
-                $this->request->getFile(
-                    'video_introduction'
-                ),
-                $this->request->getPost(
-                    'privacy_consent'
-                ) === '1'
+                $input['video_introduction'],
+                $input['privacy_consent'] === '1'
             );
 
             return redirect()
@@ -68,17 +116,20 @@ final class MemberVideoIntroductionController extends BaseController
                 ->with(
                     'accountNotice',
                     [
-                        'type' => 'success',
+                        'type' =>
+                        'success',
 
                         'title' =>
                         'Video Introduction saved',
 
                         'message' =>
-                        'Processing and moderation will '
-                            . 'continue in the background. '
-                            . 'You can safely leave this page.',
+                        'Your Video Introduction has been saved. '
+                            . 'Processing and moderation will continue '
+                            . 'in the background. You can safely leave '
+                            . 'this page.',
 
-                        'logoutAfterClose' => false,
+                        'logoutAfterClose' =>
+                        false,
                     ]
                 );
         } catch (DomainException $exception) {
@@ -88,7 +139,8 @@ final class MemberVideoIntroductionController extends BaseController
                 ->with(
                     'formAlert',
                     [
-                        'type' => 'warning',
+                        'type' =>
+                        'warning',
 
                         'title' =>
                         'Video not submitted',
@@ -116,15 +168,15 @@ final class MemberVideoIntroductionController extends BaseController
                 ->with(
                     'formAlert',
                     [
-                        'type' => 'danger',
+                        'type' =>
+                        'danger',
 
                         'title' =>
                         'Video not submitted',
 
                         'message' =>
                         'We could not save your '
-                            . 'Video Introduction. '
-                            . 'Please try again.',
+                            . 'Video Introduction. Please try again.',
                     ]
                 );
         }
@@ -132,17 +184,63 @@ final class MemberVideoIntroductionController extends BaseController
 
     public function visibility(): RedirectResponse
     {
+        $input = [
+            'video_visibility' =>
+            mb_strtoupper(
+                trim(
+                    (string) $this->request->getPost(
+                        'video_visibility'
+                    )
+                )
+            ),
+        ];
+
+        $validation = service(
+            'validation'
+        );
+
+        $validation->setRules(
+            VideoIntroductionValidation::visibilityRules()
+        );
+
+        if (! $validation->run($input)) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.account.settings.section',
+                        'video-introduction'
+                    )
+                )
+                ->with(
+                    'validationErrors',
+                    $validation->getErrors()
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'warning',
+
+                        'title' =>
+                        'Privacy not updated',
+
+                        'message' =>
+                        'Please select a valid video privacy setting.',
+                    ]
+                );
+        }
+
         try {
             /** @var MemberVideoIntroductionService $service */
             $service = service(
                 'memberVideoIntroductionService'
             );
 
+            $validated = $validation->getValidated();
+
             $service->updateVisibility(
                 $this->authenticatedUserId(),
-                (string) $this->request->getPost(
-                    'video_visibility'
-                )
+                (string) $validated['video_visibility']
             );
 
             return redirect()
@@ -155,7 +253,8 @@ final class MemberVideoIntroductionController extends BaseController
                 ->with(
                     'accountNotice',
                     [
-                        'type' => 'success',
+                        'type' =>
+                        'success',
 
                         'title' =>
                         'Video privacy updated',
@@ -164,16 +263,23 @@ final class MemberVideoIntroductionController extends BaseController
                         'Your Video Introduction privacy '
                             . 'has been updated.',
 
-                        'logoutAfterClose' => false,
+                        'logoutAfterClose' =>
+                        false,
                     ]
                 );
         } catch (DomainException $exception) {
             return redirect()
-                ->back()
+                ->to(
+                    route_to(
+                        'web.account.settings.section',
+                        'video-introduction'
+                    )
+                )
                 ->with(
                     'formAlert',
                     [
-                        'type' => 'warning',
+                        'type' =>
+                        'warning',
 
                         'title' =>
                         'Privacy not updated',
@@ -197,11 +303,17 @@ final class MemberVideoIntroductionController extends BaseController
             );
 
             return redirect()
-                ->back()
+                ->to(
+                    route_to(
+                        'web.account.settings.section',
+                        'video-introduction'
+                    )
+                )
                 ->with(
                     'formAlert',
                     [
-                        'type' => 'danger',
+                        'type' =>
+                        'danger',
 
                         'title' =>
                         'Privacy not updated',

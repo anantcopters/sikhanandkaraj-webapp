@@ -98,7 +98,8 @@ final class MemberVideoIntroductionService
                 $member['is_paid'] ?? false
             ),
 
-            'canRecord' => ! is_array($current)
+            'canRecord' =>
+            ! is_array($current)
                 || in_array(
                     $status,
                     [
@@ -109,9 +110,20 @@ final class MemberVideoIntroductionService
                     ],
                     true
                 )
-                || ! $isLocked,
+                || (
+                    ! $isLocked
+                    && ! in_array(
+                        $status,
+                        [
+                            MemberVideoIntroductionModel::STATUS_PROCESSING,
+                            MemberVideoIntroductionModel::STATUS_PENDING_REVIEW,
+                        ],
+                        true
+                    )
+                ),
 
-            'canDelete' => is_array($current)
+            'canDelete' =>
+            is_array($current)
                 && ! $isLocked
                 && ! in_array(
                     $status,

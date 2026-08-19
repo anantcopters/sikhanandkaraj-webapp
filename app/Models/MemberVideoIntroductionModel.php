@@ -88,6 +88,11 @@ final class MemberVideoIntroductionModel extends Model
     }
 
     /**
+     * Return the latest submitted version, including a logically deleted version.
+     *
+     * Deleted versions remain the authoritative latest lifecycle state. Excluding
+     * them could expose or display an older replaced version after deletion.
+     *
      * @return array<string, mixed>|null
      */
     public function currentForMember(
@@ -97,10 +102,6 @@ final class MemberVideoIntroductionModel extends Model
             ->where(
                 'member_user_id',
                 $memberUserId
-            )
-            ->where(
-                'deleted_at',
-                null
             )
             ->orderBy(
                 'version_number',

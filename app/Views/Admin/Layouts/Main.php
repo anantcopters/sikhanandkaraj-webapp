@@ -80,7 +80,7 @@ $pageScripts = $pageScripts ?? [];
         $videoIntroductionApprovalsActive =
             str_starts_with(
                 $currentPath,
-                'admin/members/video-introductions'
+                'admin/video-introductions'
             );
 
         $prelaunchProfilesActive =
