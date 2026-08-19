@@ -138,6 +138,13 @@ final class DashboardController extends BaseController
                         'assets/js/components/submit-loader.js',
                         'assets/js/pages/dashboard-security.js',
                         'assets/js/pages/dashboard-matches.js',
+
+                        /*
+                         * ProfileCard uses the existing Interest action
+                         * loader from this shared member action script.
+                         */
+                        'assets/js/pages/member-profile-actions.js',
+
                         'assets/js/pages/member-aadhaar.js',
                     ],
                 ],

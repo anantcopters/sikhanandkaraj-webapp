@@ -1133,7 +1133,15 @@ $matchSections = [
 
                     </div>
                 </section>
-
+                <?php
+                /*
+                * A dashboard profile can appear in more than one collection.
+                *
+                * Use a render counter so every Bootstrap modal has a unique DOM ID,
+                * even when the same profile appears in multiple sections.
+                */
+                $dashboardProfileModalIndex = 0;
+                ?>
                 <?php foreach ($matchSections as $section): ?>
                     <?php
                     $sectionProfiles = isset(
@@ -1216,101 +1224,101 @@ $matchSections = [
                                     </p>
                                 </div>
 
-                                
 
-                                    <?php if (
-                                        $sectionProfiles !== []
-                                        && $sectionViewAllUrl !== ''
-                                    ): ?>
 
-                                        <div
-                                            class="d-flex
+                                <?php if (
+                                    $sectionProfiles !== []
+                                    && $sectionViewAllUrl !== ''
+                                ): ?>
+
+                                    <div
+                                        class="d-flex
             align-items-center
             gap-2 flex-shrink-0">
 
-                                            <a
-                                                href="<?= esc(
-                                                            $sectionViewAllUrl,
-                                                            'attr'
-                                                        ) ?>"
-                                                class="btn btn-outline-primary
+                                        <a
+                                            href="<?= esc(
+                                                        $sectionViewAllUrl,
+                                                        'attr'
+                                                    ) ?>"
+                                            class="btn btn-outline-primary
                 btn-sm d-inline-flex
                 align-items-center gap-1">
 
-                                                <span>
-                                                    View All
-                                                </span>
+                                            <span>
+                                                View All
+                                            </span>
 
-                                                <i
-                                                    class="ri-arrow-right-line"
-                                                    aria-hidden="true">
-                                                </i>
-                                            </a>
+                                            <i
+                                                class="ri-arrow-right-line"
+                                                aria-hidden="true">
+                                            </i>
+                                        </a>
 
-                                            <?php if (
-                                                count($sectionProfiles) > 1
-                                            ): ?>
+                                        <?php if (
+                                            count($sectionProfiles) > 1
+                                        ): ?>
 
-                                                <div
-                                                    class="d-flex
+                                            <div
+                                                class="d-flex
                     align-items-center gap-1">
 
-                                                    <button
-                                                        type="button"
-                                                        class="btn btn-light
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-light
                         btn-sm btn-icon"
-                                                        aria-label="<?= esc(
-                                                                        'Previous '
-                                                                            . (
-                                                                                $section['title']
-                                                                                ?? 'profiles'
-                                                                            ),
-                                                                        'attr'
-                                                                    ) ?>"
-                                                        data-profile-scroll-previous
-                                                        data-profile-scroll-target="<?= esc(
-                                                                                        $sectionKey,
-                                                                                        'attr'
-                                                                                    ) ?>">
+                                                    aria-label="<?= esc(
+                                                                    'Previous '
+                                                                        . (
+                                                                            $section['title']
+                                                                            ?? 'profiles'
+                                                                        ),
+                                                                    'attr'
+                                                                ) ?>"
+                                                    data-profile-scroll-previous
+                                                    data-profile-scroll-target="<?= esc(
+                                                                                    $sectionKey,
+                                                                                    'attr'
+                                                                                ) ?>">
 
-                                                        <i
-                                                            class="ri-arrow-left-s-line"
-                                                            aria-hidden="true">
-                                                        </i>
-                                                    </button>
+                                                    <i
+                                                        class="ri-arrow-left-s-line"
+                                                        aria-hidden="true">
+                                                    </i>
+                                                </button>
 
-                                                    <button
-                                                        type="button"
-                                                        class="btn btn-light
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-light
                         btn-sm btn-icon"
-                                                        aria-label="<?= esc(
-                                                                        'Next '
-                                                                            . (
-                                                                                $section['title']
-                                                                                ?? 'profiles'
-                                                                            ),
-                                                                        'attr'
-                                                                    ) ?>"
-                                                        data-profile-scroll-next
-                                                        data-profile-scroll-target="<?= esc(
-                                                                                        $sectionKey,
-                                                                                        'attr'
-                                                                                    ) ?>">
+                                                    aria-label="<?= esc(
+                                                                    'Next '
+                                                                        . (
+                                                                            $section['title']
+                                                                            ?? 'profiles'
+                                                                        ),
+                                                                    'attr'
+                                                                ) ?>"
+                                                    data-profile-scroll-next
+                                                    data-profile-scroll-target="<?= esc(
+                                                                                    $sectionKey,
+                                                                                    'attr'
+                                                                                ) ?>">
 
-                                                        <i
-                                                            class="ri-arrow-right-s-line"
-                                                            aria-hidden="true">
-                                                        </i>
-                                                    </button>
-                                                </div>
+                                                    <i
+                                                        class="ri-arrow-right-s-line"
+                                                        aria-hidden="true">
+                                                    </i>
+                                                </button>
+                                            </div>
 
-                                            <?php endif; ?>
+                                        <?php endif; ?>
 
-                                        </div>
+                                    </div>
 
-                                    <?php endif; ?>
+                                <?php endif; ?>
 
-                                
+
                             </div>
 
                             <?php if (
@@ -1329,11 +1337,26 @@ $matchSections = [
                                         as $profile
                                     ): ?>
 
+                                        <?php
+                                        $dashboardProfileModalIndex++;
+
+                                        $dashboardProfileModalId =
+                                            'dashboard-profile-modal-'
+                                            . $dashboardProfileModalIndex;
+                                        ?>
+
                                         <?= view(
                                             'Components/Member/ProfileThumbnail',
                                             [
                                                 'profile' =>
                                                 $profile,
+
+                                                'modalId' =>
+                                                $dashboardProfileModalId,
+                                            ],
+                                            [
+                                                'saveData' =>
+                                                false,
                                             ]
                                         ) ?>
 
