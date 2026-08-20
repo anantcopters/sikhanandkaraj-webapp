@@ -6,14 +6,15 @@ namespace App\Services\Video;
 
 use App\Models\MemberBlockModel;
 use App\Models\MemberInterestModel;
-use App\Models\MemberNotificationModel;
+
 use App\Models\MemberProfileReportModel;
 use App\Models\MemberVideoIntroductionModel;
 use App\Models\MemberVideoProcessingJobModel;
 use App\Models\UserModel;
 use App\Services\Aws\CloudFrontService;
 use App\Services\Aws\S3Service;
-use App\Services\Notification\MemberNotificationService;
+
+use App\Models\MemberPhotoModel;
 use App\Support\BooleanValue;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\Files\UploadedFile;
@@ -27,13 +28,13 @@ final class MemberVideoIntroductionService
     public function __construct(
         private readonly MemberVideoIntroductionModel $videoModel,
         private readonly MemberVideoProcessingJobModel $jobModel,
+        private readonly MemberPhotoModel $photoModel,
         private readonly UserModel $userModel,
         private readonly MemberInterestModel $interestModel,
         private readonly MemberBlockModel $blockModel,
         private readonly MemberProfileReportModel $profileReportModel,
         private readonly S3Service $s3Service,
         private readonly CloudFrontService $cloudFrontService,
-        private readonly MemberNotificationService $notificationService,
         private readonly BaseConnection $database,
         private readonly VideoIntroduction $config
     ) {}
@@ -83,6 +84,35 @@ final class MemberVideoIntroductionService
         $isLocked = $lockedUntil !== false
             && $lockedUntil > time();
 
+        $hasApprovedProfilePhoto =
+            $this->photoModel->countApprovedForMember(
+                $memberUserId
+            ) > 0;
+
+        $canRecordForStatus =
+            !is_array($current)
+            || in_array(
+                $status,
+                [
+                    MemberVideoIntroductionModel::STATUS_PROCESSING_FAILED,
+                    MemberVideoIntroductionModel::STATUS_REJECTED,
+                    MemberVideoIntroductionModel::STATUS_RESUBMISSION_REQUESTED,
+                    MemberVideoIntroductionModel::STATUS_DELETED,
+                ],
+                true
+            )
+            || (
+                !$isLocked
+                && !in_array(
+                    $status,
+                    [
+                        MemberVideoIntroductionModel::STATUS_PROCESSING,
+                        MemberVideoIntroductionModel::STATUS_PENDING_REVIEW,
+                    ],
+                    true
+                )
+            );
+
         return [
             'videoIntroduction' => $current,
             'activeVideoIntroduction' => $active,
@@ -98,29 +128,28 @@ final class MemberVideoIntroductionService
                 $member['is_paid'] ?? false
             ),
 
-            'canRecord' =>
-            ! is_array($current)
-                || in_array(
-                    $status,
-                    [
-                        MemberVideoIntroductionModel::STATUS_PROCESSING_FAILED,
-                        MemberVideoIntroductionModel::STATUS_REJECTED,
-                        MemberVideoIntroductionModel::STATUS_RESUBMISSION_REQUESTED,
-                        MemberVideoIntroductionModel::STATUS_DELETED,
-                    ],
-                    true
+            'videoMemberName' =>
+            trim(
+                (string) (
+                    $member['full_name']
+                    ?? 'Member'
                 )
-                || (
-                    ! $isLocked
-                    && ! in_array(
-                        $status,
-                        [
-                            MemberVideoIntroductionModel::STATUS_PROCESSING,
-                            MemberVideoIntroductionModel::STATUS_PENDING_REVIEW,
-                        ],
-                        true
-                    )
-                ),
+            ),
+
+            'videoProfileReference' =>
+            trim(
+                (string) (
+                    $member['profile_ref_number']
+                    ?? ''
+                )
+            ),
+
+            'hasApprovedProfilePhoto' =>
+            $hasApprovedProfilePhoto,
+
+            'canRecord' =>
+            $hasApprovedProfilePhoto
+                && $canRecordForStatus,
 
             'canDelete' =>
             is_array($current)
@@ -181,6 +210,18 @@ final class MemberVideoIntroductionService
         $member = $this->requireActiveMember(
             $memberUserId
         );
+
+        if (
+            $this->photoModel->countApprovedForMember(
+                $memberUserId
+            ) < 1
+        ) {
+            throw new DomainException(
+                'At least one approved profile photo '
+                    . 'is required before recording a '
+                    . 'Video Introduction.'
+            );
+        }
 
         if (! $consentAccepted) {
             throw new DomainException(
@@ -384,26 +425,7 @@ final class MemberVideoIntroductionService
                     'The Video Introduction processing '
                         . 'job could not be queued.'
                 );
-            }
-
-            $this->notificationService->create(
-                [
-                    'recipientUserId' => $memberUserId,
-                    'type' =>
-                    MemberNotificationModel::TYPE_SYSTEM,
-                    'title' =>
-                    'Video Introduction saved',
-                    'message' =>
-                    'Your Video Introduction was saved '
-                        . 'and will continue processing '
-                        . 'in the background.',
-                    'entityType' =>
-                    'VIDEO_INTRODUCTION',
-                    'entityId' => $videoId,
-                    'targetUrl' =>
-                    '/account-settings/video-introduction',
-                ]
-            );
+            }            
 
             $this->database->transCommit();
         } catch (Throwable $exception) {

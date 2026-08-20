@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Video;
 
-use App\Models\MemberNotificationModel;
+
 use App\Models\MemberVideoIntroductionModel;
 use App\Models\MemberVideoProcessingJobModel;
 use App\Services\Aws\S3Service;
-use App\Services\Notification\MemberNotificationService;
+
 use CodeIgniter\Database\BaseConnection;
 use Config\VideoIntroduction;
 use RuntimeException;
@@ -20,7 +20,6 @@ final class VideoIntroductionProcessingService
         private readonly MemberVideoIntroductionModel $videoModel,
         private readonly MemberVideoProcessingJobModel $jobModel,
         private readonly S3Service $s3Service,
-        private readonly MemberNotificationService $notificationService,
         private readonly BaseConnection $database,
         private readonly VideoIntroduction $config
     ) {}
@@ -209,32 +208,6 @@ final class VideoIntroductionProcessingService
 
                         'last_error' =>
                         null,
-                    ]
-                );
-
-                $this->notificationService->create(
-                    [
-                        'recipientUserId' =>
-                        (int) $video['member_user_id'],
-
-                        'type' =>
-                        MemberNotificationModel::TYPE_SYSTEM,
-
-                        'title' =>
-                        'Video Introduction submitted',
-
-                        'message' =>
-                        'Your Video Introduction is ready '
-                            . 'for moderation.',
-
-                        'entityType' =>
-                        'VIDEO_INTRODUCTION',
-
-                        'entityId' =>
-                        $videoId,
-
-                        'targetUrl' =>
-                        '/account-settings/video-introduction',
                     ]
                 );
 
@@ -863,46 +836,7 @@ final class VideoIntroductionProcessingService
 
         if (! is_array($video)) {
             return;
-        }
-
-        try {
-            $this->notificationService->create(
-                [
-                    'recipientUserId' =>
-                    (int) $video['member_user_id'],
-
-                    'type' =>
-                    MemberNotificationModel::TYPE_SYSTEM,
-
-                    'title' =>
-                    'Video Introduction processing failed',
-
-                    'message' =>
-                    'We could not process your recording. '
-                        . 'Please record and submit it again.',
-
-                    'entityType' =>
-                    'VIDEO_INTRODUCTION',
-
-                    'entityId' =>
-                    $videoId,
-
-                    'targetUrl' =>
-                    '/account-settings/video-introduction',
-                ]
-            );
-        } catch (Throwable $notificationException) {
-            log_message(
-                'error',
-                'Video processing failure notification '
-                    . 'could not be created: {message}',
-                [
-                    'message' =>
-                    $notificationException
-                        ->getMessage(),
-                ]
-            );
-        }
+        }        
     }
 
     private function removeDirectory(

@@ -18,6 +18,9 @@ use App\Support\DateDisplay;
  * @var bool $isHidden
  * @var int $lockRemainingSeconds
  * @var list<string> $allowedVisibilities
+ * @var bool $hasApprovedProfilePhoto
+ * @var string $videoMemberName
+ * @var string $videoProfileReference
  */
 
 $videoIntroduction =
@@ -199,7 +202,7 @@ $statusClass = match ($videoStatus) {
     <div class="mb-4">
         <button
             type="button"
-            class="btn btn-outline-primary"
+            class="btn btn-primary"
             data-video-introduction-open
             data-playback-url="<?= esc(
                                     route_to(
@@ -207,6 +210,20 @@ $statusClass = match ($videoStatus) {
                                     ),
                                     'attr'
                                 ) ?>"
+            data-member-name="<?= esc(
+                                    (string) (
+                                        $videoMemberName
+                                        ?? 'Video Introduction'
+                                    ),
+                                    'attr'
+                                ) ?>"
+            data-profile-reference="<?= esc(
+                                        (string) (
+                                            $videoProfileReference
+                                            ?? ''
+                                        ),
+                                        'attr'
+                                    ) ?>"
             data-hidden="0">
 
             <i
@@ -239,6 +256,8 @@ $statusClass = match ($videoStatus) {
             id="videoVisibility"
             name="video_visibility"
             class="form-select"
+            data-choice
+            data-choice-search="false"
             required>
 
             <?php if (
@@ -321,6 +340,32 @@ $statusClass = match ($videoStatus) {
             </button>
         </div>
     </form>
+<?php endif; ?>
+
+<?php if (!$hasApprovedProfilePhoto): ?>
+    <div
+        class="alert alert-warning fs-13"
+        role="alert">
+
+        <div class="d-flex align-items-start gap-2">
+            <i
+                class="ri-image-add-line fs-18"
+                aria-hidden="true">
+            </i>
+
+            <div>
+                <strong>
+                    An approved profile photo is required
+                </strong>
+
+                <p class="mb-0 mt-1">
+                    Add a profile photo and wait for its
+                    approval before recording your Video
+                    Introduction.
+                </p>
+            </div>
+        </div>
+    </div>
 <?php endif; ?>
 
 <div class="border-top pt-3">

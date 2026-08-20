@@ -2236,13 +2236,13 @@ final class Services extends BaseService
         return new MemberVideoIntroductionService(
             new MemberVideoIntroductionModel($database),
             new MemberVideoProcessingJobModel($database),
+            new MemberPhotoModel($database),
             new UserModel($database),
             new MemberInterestModel($database),
             new MemberBlockModel($database),
             new MemberProfileReportModel($database),
             static::s3Service(false),
             static::cloudFrontService(false),
-            static::memberNotificationService(false),
             $database,
             config(VideoIntroduction::class)
         );
@@ -2263,7 +2263,6 @@ final class Services extends BaseService
             new MemberVideoIntroductionModel($database),
             new MemberVideoProcessingJobModel($database),
             static::s3Service(false),
-            static::memberNotificationService(false),
             $database,
             config(VideoIntroduction::class)
         );
@@ -2285,6 +2284,7 @@ final class Services extends BaseService
             new MemberVideoModerationHistoryModel($database),
             static::cloudFrontService(false),
             static::memberNotificationService(false),
+            static::memberPhotoUrlService(false),
             $database,
             config(VideoIntroduction::class)
         );

@@ -10,6 +10,7 @@ use App\Support\DateDisplay;
  * @var list<array<string, mixed>> $videoHistory
  * @var array<string, string>|null $formAlert
  * @var array<string, string> $validationErrors
+ * @var list<array<string, mixed>> $memberPhotos
  */
 
 $video =
@@ -143,6 +144,12 @@ $reasonValue = trim(
     )
 );
 
+$memberPhotos =
+    isset($memberPhotos)
+    && is_array($memberPhotos)
+    ? $memberPhotos
+    : [];
+
 $this->extend('Admin/Layouts/Main');
 
 $this->section('content');
@@ -270,6 +277,150 @@ $this->section('content');
                                     : '—' ?>
                             </strong>
                         </div>
+                    </div>
+
+                    <div class="border-bottom pb-3 mb-3">
+                        <div
+                            class="d-flex align-items-center
+            justify-content-between gap-2 mb-3">
+
+                            <div>
+                                <h3 class="fs-14 fw-semibold mb-1">
+                                    Member Photos
+                                </h3>
+
+                                <p class="text-muted fs-12 mb-0">
+                                    Compare the member with their submitted
+                                    Video Introduction.
+                                </p>
+                            </div>
+
+                            <span class="badge bg-light text-body">
+                                <?= count($memberPhotos) ?>
+                            </span>
+                        </div>
+
+                        <?php if ($memberPhotos === []): ?>
+                            <div
+                                class="alert alert-warning fs-13 mb-0"
+                                role="alert">
+
+                                No retained member photos are available.
+                            </div>
+                        <?php else: ?>
+                            <div
+                                class="d-flex flex-nowrap
+                overflow-auto gap-3 pb-2">
+
+                                <?php foreach ($memberPhotos as $photo): ?>
+                                    <?php
+                                    $photoStatus = mb_strtoupper(
+                                        trim(
+                                            (string) (
+                                                $photo['status']
+                                                ?? ''
+                                            )
+                                        )
+                                    );
+
+                                    $photoStatusClass = match ($photoStatus) {
+                                        'APPROVED' =>
+                                        'bg-success',
+
+                                        'REJECTED' =>
+                                        'bg-danger',
+
+                                        default =>
+                                        'bg-warning text-dark',
+                                    };
+
+                                    $thumbnailUrl = trim(
+                                        (string) (
+                                            $photo['thumbnailUrl']
+                                            ?? ''
+                                        )
+                                    );
+                                    ?>
+
+                                    <div
+                                        class="card ribbon-box
+                        border shadow-none mb-0
+                        flex-shrink-0"
+                                        style="width: 150px;">
+
+                                        <div
+                                            class="ribbon ribbon-<?= esc(
+                                                                        str_replace(
+                                                                            [
+                                                                                'bg-',
+                                                                                ' text-dark',
+                                                                            ],
+                                                                            '',
+                                                                            $photoStatusClass
+                                                                        ),
+                                                                        'attr'
+                                                                    ) ?>">
+
+                                            <?= esc(
+                                                $photoStatus !== ''
+                                                    ? ucfirst(
+                                                        mb_strtolower(
+                                                            $photoStatus
+                                                        )
+                                                    )
+                                                    : 'Unknown'
+                                            ) ?>
+                                        </div>
+
+                                        <div class="card-body p-2 pt-4">
+                                            <?php if ($thumbnailUrl !== ''): ?>
+                                                <img
+                                                    src="<?= esc(
+                                                                $thumbnailUrl,
+                                                                'attr'
+                                                            ) ?>"
+                                                    alt="Member profile photo"
+                                                    class="img-thumbnail
+                                    w-100 object-fit-cover"
+                                                    style="
+                                    height: 145px;
+                                    object-position: center;
+                                "
+                                                    loading="lazy">
+                                            <?php else: ?>
+                                                <div
+                                                    class="bg-light rounded
+                                    d-flex align-items-center
+                                    justify-content-center"
+                                                    style="height: 145px;">
+
+                                                    <i
+                                                        class="ri-image-line
+                                        fs-24 text-muted"
+                                                        aria-hidden="true">
+                                                    </i>
+                                                </div>
+                                            <?php endif; ?>
+
+                                            <?php if (
+                                                ($photo['isPrimary'] ?? false)
+                                                === true
+                                            ): ?>
+                                                <div class="text-center mt-2">
+                                                    <span
+                                                        class="badge
+                                        bg-primary-subtle
+                                        text-primary">
+
+                                                        Primary
+                                                    </span>
+                                                </div>
+                                            <?php endif; ?>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
 
                     <div

@@ -15,17 +15,51 @@ use Throwable;
 
 final class MemberVideoIntroductionController extends BaseController
 {
-    public function record(): string
+    public function record(): string|RedirectResponse
     {
         /** @var MemberVideoIntroductionService $service */
-        $service = service('memberVideoIntroductionService');
+        $service = service(
+            'memberVideoIntroductionService'
+        );
+
+        $settings = $service->settingsForMember(
+            $this->authenticatedUserId()
+        );
+
+        if (
+            ($settings['hasApprovedProfilePhoto'] ?? false)
+            !== true
+        ) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.account.settings.section',
+                        'video-introduction'
+                    )
+                )
+                ->with(
+                    'accountNotice',
+                    [
+                        'type' => 'warning',
+
+                        'title' =>
+                        'Approved profile photo required',
+
+                        'message' =>
+                        'Add a profile photo and wait for '
+                            . 'approval before recording your '
+                            . 'Video Introduction.',
+
+                        'logoutAfterClose' =>
+                        false,
+                    ]
+                );
+        }
 
         return view(
             'Pages/VideoIntroduction/Record',
             array_merge(
-                $service->settingsForMember(
-                    $this->authenticatedUserId()
-                ),
+                $settings,
                 [
                     'pageTitle' =>
                     'Record Video Introduction',
