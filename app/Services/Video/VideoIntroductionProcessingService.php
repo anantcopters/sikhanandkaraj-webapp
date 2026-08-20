@@ -266,9 +266,47 @@ final class VideoIntroductionProcessingService
                 throw $exception;
             }
         } catch (Throwable $exception) {
+            $attemptCount = (int) (
+                $job['attempt_count']
+                ?? 1
+            );
+
             $permanent =
-                ((int) ($job['attempt_count'] ?? 1))
-                >= $this->config->maximumProcessingAttempts;
+                $attemptCount
+                >= $this->config
+                ->maximumProcessingAttempts;
+
+            log_message(
+                $permanent
+                    ? 'error'
+                    : 'warning',
+                'Video Introduction processing failed. '
+                    . 'VideoId={videoId}, JobId={jobId}, '
+                    . 'Attempt={attempt}, Permanent={permanent}, '
+                    . 'Message={message}',
+                [
+                    'videoId' =>
+                    $videoId,
+
+                    'jobId' =>
+                    (int) $job['id'],
+
+                    'attempt' =>
+                    $attemptCount,
+
+                    'permanent' =>
+                    $permanent
+                        ? 'true'
+                        : 'false',
+
+                    'message' =>
+                    mb_substr(
+                        $exception->getMessage(),
+                        0,
+                        500
+                    ),
+                ]
+            );
 
             $this->failJob(
                 (int) $job['id'],
