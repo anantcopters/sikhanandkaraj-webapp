@@ -418,6 +418,13 @@ final class VideoIntroductionProcessingService
     }
 
     /**
+     * Read and validate the media stream metadata.
+     *
+     * Browser-created WebM recordings, particularly Firefox
+     * MediaRecorder output, may not contain format-level duration
+     * metadata. In that situation duration is calculated from packet
+     * timestamps instead.
+     *
      * @return array{
      *     duration:float,
      *     videoCodec:string,
@@ -437,10 +444,13 @@ final class VideoIntroductionProcessingService
             . ' -show_streams'
             . ' -show_format'
             . ' -of json '
-            . escapeshellarg($sourcePath)
+            . escapeshellarg(
+                $sourcePath
+            )
             . ' 2>&1';
 
         $output = [];
+
         $exitCode = 0;
 
         exec(
@@ -463,19 +473,24 @@ final class VideoIntroductionProcessingService
             true
         );
 
-        if (! is_array($data)) {
+        if (!is_array($data)) {
             throw new RuntimeException(
                 'The recorded video metadata is invalid.'
             );
         }
 
         $video = [];
+
         $audio = [];
 
         foreach (
             ($data['streams'] ?? [])
             as $stream
         ) {
+            if (!is_array($stream)) {
+                continue;
+            }
+
             if (
                 ($stream['codec_type'] ?? '') === 'video'
                 && $video === []
@@ -491,37 +506,212 @@ final class VideoIntroductionProcessingService
             }
         }
 
-        return [
-            'duration' => (float) (
-                $data['format']['duration']
-                ?? $video['duration']
-                ?? 0
-            ),
+        if (
+            $video === []
+            || $audio === []
+        ) {
+            throw new RuntimeException(
+                'Both video and audio tracks are required.'
+            );
+        }
 
-            'videoCodec' => trim(
+        $duration = $this->numericDuration(
+            $data['format']['duration']
+                ?? null
+        );
+
+        if ($duration <= 0.0) {
+            $duration = $this->numericDuration(
+                $video['duration']
+                    ?? null
+            );
+        }
+
+        if ($duration <= 0.0) {
+            $duration = $this->numericDuration(
+                $audio['duration']
+                    ?? null
+            );
+        }
+
+        /*
+     * Firefox MediaRecorder WebM output commonly reports N/A for
+     * container and stream duration. Packet timestamps remain
+     * available and provide the authoritative fallback.
+     */
+        if ($duration <= 0.0) {
+            $duration =
+                $this->durationFromPackets(
+                    $sourcePath
+                );
+        }
+
+        if ($duration <= 0.0) {
+            throw new RuntimeException(
+                'The recorded video duration could not be determined.'
+            );
+        }
+
+        return [
+            'duration' =>
+            $duration,
+
+            'videoCodec' =>
+            trim(
                 (string) (
                     $video['codec_name']
                     ?? ''
                 )
             ),
 
-            'audioCodec' => trim(
+            'audioCodec' =>
+            trim(
                 (string) (
                     $audio['codec_name']
                     ?? ''
                 )
             ),
 
-            'width' => (int) (
+            'width' =>
+            (int) (
                 $video['width']
                 ?? 0
             ),
 
-            'height' => (int) (
+            'height' =>
+            (int) (
                 $video['height']
                 ?? 0
             ),
         ];
+    }
+
+    /**
+     * Return a positive numeric duration or zero when FFprobe reports
+     * an unavailable value such as N/A.
+     */
+    private function numericDuration(
+        mixed $value
+    ): float {
+        if (!is_numeric($value)) {
+            return 0.0;
+        }
+
+        $duration = (float) $value;
+
+        return is_finite($duration)
+            && $duration > 0.0
+            ? $duration
+            : 0.0;
+    }
+
+    /**
+     * Calculate duration from the last timestamp of all audio and video
+     * packets.
+     *
+     * This is required for browser-recorded WebM files that do not contain
+     * format-level duration metadata.
+     */
+    private function durationFromPackets(
+        string $sourcePath
+    ): float {
+        $command =
+            escapeshellarg(
+                $this->config->ffprobeBinary
+            )
+            . ' -v error'
+            . ' -show_packets'
+            . ' -show_entries '
+            . escapeshellarg(
+                'packet=pts_time,dts_time,duration_time'
+            )
+            . ' -of json '
+            . escapeshellarg(
+                $sourcePath
+            )
+            . ' 2>&1';
+
+        $output = [];
+
+        $exitCode = 0;
+
+        exec(
+            $command,
+            $output,
+            $exitCode
+        );
+
+        if ($exitCode !== 0) {
+            throw new RuntimeException(
+                'The recorded video duration could not be inspected.'
+            );
+        }
+
+        $data = json_decode(
+            implode(
+                "\n",
+                $output
+            ),
+            true
+        );
+
+        if (
+            !is_array($data)
+            || !is_array(
+                $data['packets']
+                    ?? null
+            )
+        ) {
+            throw new RuntimeException(
+                'The recorded video packet metadata is invalid.'
+            );
+        }
+
+        $maximumEndTime = 0.0;
+
+        foreach (
+            $data['packets']
+            as $packet
+        ) {
+            if (!is_array($packet)) {
+                continue;
+            }
+
+            $timestamp =
+                $this->numericDuration(
+                    $packet['pts_time']
+                        ?? null
+                );
+
+            if ($timestamp <= 0.0) {
+                $timestamp =
+                    $this->numericDuration(
+                        $packet['dts_time']
+                            ?? null
+                    );
+            }
+
+            $packetDuration =
+                $this->numericDuration(
+                    $packet['duration_time']
+                        ?? null
+                );
+
+            $packetEndTime =
+                $timestamp
+                + $packetDuration;
+
+            if (
+                is_finite($packetEndTime)
+                && $packetEndTime
+                > $maximumEndTime
+            ) {
+                $maximumEndTime =
+                    $packetEndTime;
+            }
+        }
+
+        return $maximumEndTime;
     }
 
     private function transcode(
