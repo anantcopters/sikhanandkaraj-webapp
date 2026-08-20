@@ -719,9 +719,18 @@ final class VideoIntroductionProcessingService
         string $playbackPath,
         string $posterPath
     ): void {
+        /*
+        * First preserve the original aspect ratio while limiting the width.
+        *
+        * force_original_aspect_ratio can calculate an odd output dimension,
+        * for example 720x405. H.264 with yuv420p requires both dimensions to
+        * be divisible by two, so the second filter normalises the final width
+        * and height to even values.
+        */
         $scale =
             "scale='min(720,iw)':-2:"
-            . 'force_original_aspect_ratio=decrease';
+            . 'force_original_aspect_ratio=decrease,'
+            . "scale='trunc(iw/2)*2':'trunc(ih/2)*2'";
 
         $command =
             escapeshellarg(
@@ -765,6 +774,11 @@ final class VideoIntroductionProcessingService
             );
         }
 
+        /*
+        * The image2 muxer normally expects a filename sequence pattern.
+        * -update 1 explicitly tells FFmpeg to write one still image to the
+        * provided poster filename.
+        */
         $posterCommand =
             escapeshellarg(
                 $this->config->ffmpegBinary
@@ -776,6 +790,7 @@ final class VideoIntroductionProcessingService
             . ' -i '
             . escapeshellarg($playbackPath)
             . ' -frames:v 1'
+            . ' -update 1'
             . ' -q:v 3 '
             . escapeshellarg($posterPath)
             . ' 2>&1';
