@@ -9,6 +9,7 @@ use App\Models\MemberVideoIntroductionModel;
 use App\Models\MemberVideoModerationHistoryModel;
 use App\Services\Aws\CloudFrontService;
 use App\Services\Notification\MemberNotificationService;
+use App\Services\Profile\MemberTrustVerificationService;
 use App\Services\Profile\MemberPhotoUrlService;
 use CodeIgniter\Database\BaseConnection;
 use Config\VideoIntroduction;
@@ -24,17 +25,23 @@ final class MemberVideoModerationService
         private readonly CloudFrontService $cloudFrontService,
         private readonly MemberNotificationService $notificationService,
         private readonly MemberPhotoUrlService $photoUrlService,
+        private readonly MemberTrustVerificationService $trustService,
         private readonly BaseConnection $database,
         private readonly VideoIntroduction $config
     ) {}
 
     /**
+     * Return Video Introduction submissions for the Admin listing.
+     *
      * @return list<array<string, mixed>>
      */
-    public function queue(): array
-    {
+    public function listing(
+        string $status = 'ALL'
+    ): array {
         return $this->videoModel
-            ->pendingModeration();
+            ->adminListing(
+                $status
+            );
     }
 
     /**
@@ -61,11 +68,15 @@ final class MemberVideoModerationService
             )
         );
 
-        if ($playbackKey === '') {
-            throw new DomainException(
-                'The processed Video Introduction '
-                    . 'is unavailable.'
-            );
+        $playbackUrl = '';
+
+        if ($playbackKey !== '') {
+            $playbackUrl =
+                $this->cloudFrontService->signedUrl(
+                    $playbackKey,
+                    $this->config
+                        ->playbackUrlTtlSeconds
+                );
         }
 
         $videoHistory = $this->videoModel
@@ -128,27 +139,45 @@ final class MemberVideoModerationService
             unset($historyVideo);
         }
 
+        $memberUserId = (int) (
+            $video['member_user_id']
+            ?? 0
+        );
+
+        $status = mb_strtoupper(
+            trim(
+                (string) (
+                    $video['moderation_status']
+                    ?? ''
+                )
+            )
+        );
+
         return [
             'video' =>
             $video,
 
             'playbackUrl' =>
-            $this->cloudFrontService->signedUrl(
-                $playbackKey,
-                $this->config
-                    ->playbackUrlTtlSeconds
-            ),
+            $playbackUrl,
+
+            'canModerate' =>
+            $status
+                === MemberVideoIntroductionModel::STATUS_PENDING_REVIEW,
 
             'videoHistory' =>
             $videoHistory,
 
             'memberPhotos' =>
-            $this->photoUrlService->getAdminThumbnailPhotos(
-                (int) (
-                    $video['member_user_id']
-                    ?? 0
-                )
-            ),
+            $this->photoUrlService
+                ->getAdminThumbnailPhotos(
+                    $memberUserId
+                ),
+
+            'trustVerification' =>
+            $this->trustService
+                ->getForUser(
+                    $memberUserId
+                ),
         ];
     }
 

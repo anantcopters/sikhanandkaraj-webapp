@@ -1,6 +1,64 @@
 'use strict';
 
 document.addEventListener('DOMContentLoaded', () => {
+
+    const memberMobileField =
+        document.querySelector(
+            '[name="mobile_number"]'
+        );
+
+    const parentMobileField =
+        document.querySelector(
+            '[name="parent_contact_number"]'
+        );
+
+    const validateDifferentMobileNumbers = () => {
+        if (
+            !memberMobileField
+            || !parentMobileField
+        ) {
+            return;
+        }
+
+        const memberMobile = String(
+            memberMobileField.value || ''
+        ).replace(/\D+/g, '');
+
+        const parentMobile = String(
+            parentMobileField.value || ''
+        ).replace(/\D+/g, '');
+
+        if (
+            memberMobile !== ''
+            && parentMobile !== ''
+            && memberMobile === parentMobile
+        ) {
+            parentMobileField.setCustomValidity(
+                'Parent/Guardian mobile number cannot '
+                + 'be the same as the member mobile number.'
+            );
+
+            return;
+        }
+
+        parentMobileField.setCustomValidity('');
+    };
+
+    memberMobileField?.addEventListener(
+        'input',
+        validateDifferentMobileNumbers
+    );
+
+    parentMobileField?.addEventListener(
+        'input',
+        validateDifferentMobileNumbers
+    );
+
+    parentMobileField?.form?.addEventListener(
+        'submit',
+        validateDifferentMobileNumbers
+    );
+    
     /**
      * Determine whether a field currently contains an error rendered
      * by the server after a validation redirect.

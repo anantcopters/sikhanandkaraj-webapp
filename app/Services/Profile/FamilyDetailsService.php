@@ -8,6 +8,7 @@ use App\Models\MemberFamilyDetailModel;
 use App\Models\UserModel;
 use App\Support\IndianMobileNormalizer;
 use CodeIgniter\Database\BaseConnection;
+use App\Models\UserContactModel;
 use App\Models\FieldOfficerModel;
 use DomainException;
 use RuntimeException;
@@ -28,6 +29,7 @@ final class FamilyDetailsService
 
     public function __construct(
         private readonly UserModel $userModel,
+        private readonly UserContactModel $contactModel,
         private readonly MemberFamilyDetailModel $detailModel,
         private readonly ProfileMasterDataService $masterDataService,
         private readonly FieldOfficerModel $fieldOfficerModel,
@@ -43,8 +45,7 @@ final class FamilyDetailsService
         int $userId,
         ?int $requestedCountryId = null,
         ?int $requestedStateId = null
-    ): array
-    {
+    ): array {
         $user = $this->userModel->find($userId);
 
         if (!is_array($user)) {
@@ -237,6 +238,38 @@ final class FamilyDetailsService
                 $data['parent_contact_number']
                     ?? null
             );
+
+        $memberMobileContact =
+            $this->contactModel
+            ->findPrimaryForUser(
+                $userId,
+                UserContactModel::TYPE_MOBILE
+            );
+
+        $memberMobile = is_array(
+            $memberMobileContact
+        )
+            ? IndianMobileNormalizer::normalize(
+                (string) (
+                    $memberMobileContact['normalized_value']
+                    ?? $memberMobileContact['contact_value']
+                    ?? ''
+                )
+            )
+            : null;
+
+        if (
+            $memberMobile !== null
+            && hash_equals(
+                $memberMobile,
+                $parentContactNumber
+            )
+        ) {
+            throw new DomainException(
+                'Parent/Guardian mobile number cannot '
+                    . 'be the same as the member mobile number.'
+            );
+        }
 
         $fatherOccupationId = $this->nullableInteger(
             $data['father_occupation_id'] ?? null,

@@ -19,21 +19,56 @@ final class MemberVideoIntroductionReviewController extends BaseController
                 '/\s+/u',
                 ' ',
                 trim(
-                    (string) $this->request->getGet(
-                        'search'
-                    )
+                    (string) $this->request
+                        ->getGet(
+                            'search'
+                        )
                 )
             ) ?? '',
             0,
             100
         );
 
+        $selectedStatus = mb_strtoupper(
+            trim(
+                (string) $this->request
+                    ->getGet(
+                        'status'
+                    )
+            )
+        );
+
+        $allowedStatuses = [
+            'ALL',
+            'PROCESSING',
+            'PROCESSING_FAILED',
+            'PENDING_REVIEW',
+            'APPROVED',
+            'REJECTED',
+            'RESUBMISSION_REQUESTED',
+            'REPLACED',
+            'DELETED',
+        ];
+
+        if (
+            !in_array(
+                $selectedStatus,
+                $allowedStatuses,
+                true
+            )
+        ) {
+            $selectedStatus =
+                'PENDING_REVIEW';
+        }
+
         /** @var MemberVideoModerationService $service */
         $service = service(
             'memberVideoModerationService'
         );
 
-        $videos = $service->queue();
+        $videos = $service->listing(
+            $selectedStatus
+        );
 
         if ($search !== '') {
             $searchValue = mb_strtolower(
@@ -57,14 +92,14 @@ final class MemberVideoIntroductionReviewController extends BaseController
                             )
                         );
 
-                        $referenceNumber = mb_strtolower(
-                            trim(
-                                (string) (
-                                    $video['profile_ref_number']
-                                    ?? ''
+                        $referenceNumber =
+                            mb_strtolower(
+                                trim(
+                                    (string) (
+                                        $video['profile_ref_number'] ?? ''
+                                    )
                                 )
-                            )
-                        );
+                            );
 
                         return str_contains(
                             $memberName,
@@ -90,6 +125,9 @@ final class MemberVideoIntroductionReviewController extends BaseController
 
                 'search' =>
                 $search,
+
+                'selectedStatus' =>
+                $selectedStatus,
 
                 'formAlert' =>
                 $this->readFormAlert(),

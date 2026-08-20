@@ -1365,23 +1365,53 @@ $matchSections = [
 
                             <?php else: ?>
 
-                                <div
-                                    class="text-center py-4">
-
+                                <div class="text-center py-4">
                                     <i
                                         class="ri-user-search-line
-                            fs-32 text-danger fs-16"
+            fs-32 text-danger"
                                         aria-hidden="true">
                                     </i>
 
-                                    <p
-                                        class="text-danger
-                            mb-0 mt-2">
-
+                                    <p class="text-danger mb-1 mt-2">
                                         <?= esc(
                                             $section['emptyMessage']
                                         ) ?>
                                     </p>
+
+                                    <a
+                                        href="<?= esc(
+                                                    (string) (
+                                                        $section['viewAllUrl']
+                                                        ?? route_to(
+                                                            'web.matches'
+                                                        )
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
+                                        class="d-inline-flex
+            align-items-center gap-1
+            text-primary fw-medium fs-13">
+
+                                        <?php if (
+                                            ($section['key'] ?? '')
+                                            === 'all-matches'
+                                        ): ?>
+                                            Open Match Menu
+                                        <?php else: ?>
+                                            View
+                                            <?= esc(
+                                                (string) (
+                                                    $section['title']
+                                                    ?? 'Profiles'
+                                                )
+                                            ) ?>
+                                        <?php endif; ?>
+
+                                        <i
+                                            class="ri-arrow-right-line"
+                                            aria-hidden="true">
+                                        </i>
+                                    </a>
                                 </div>
 
                             <?php endif; ?>
