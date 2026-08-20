@@ -2171,8 +2171,8 @@ $this->section('content');
                                                         <span
                                                             class="d-inline-flex
                             align-items-center gap-1
-                            text-success fw-semibold
-                            fs-13">
+                            text-success
+                            fs-12">
 
                                                             <i
                                                                 class="

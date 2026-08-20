@@ -18,7 +18,7 @@ declare(strict_types=1);
         <div class="modal-content">
             <div
                 class="modal-header
-                    bg-info-subtle">
+                    bg-info-subtle py-2">
 
                 <div>
                     <h2
@@ -81,7 +81,7 @@ declare(strict_types=1);
                 </div>
 
                 <p
-                    class="color-pink fs-13 mt-2 mb-0"
+                    class="color-pink fs-13 fw-medium mt-2 mb-0"
                     data-video-modal-message>
 
                     Do not copy, record, share or misuse

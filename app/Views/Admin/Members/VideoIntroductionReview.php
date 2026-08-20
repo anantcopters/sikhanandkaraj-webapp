@@ -845,7 +845,7 @@ $this->section('content');
                         <div class="text-end">
                             <button
                                 type="submit"
-                                class="btn btn-danger"
+                                class="btn registration-form__submit w-auto text-uppercase fw-medium"
                                 data-submit-button>
 
                                 <span
