@@ -733,21 +733,33 @@ final class VideoIntroductionProcessingService
         $videoFilter = implode(
             ',',
             [
+                /*
+                * Preserve aspect ratio and limit playback width.
+                */
                 "scale='min(720,iw)':-2:"
                     . 'force_original_aspect_ratio=decrease',
 
+                /*
+                * H.264/yuv420p requires even width and height.
+                */
                 "scale='trunc(iw/2)*2':"
                     . "'trunc(ih/2)*2'",
 
+                /*
+                * Permanently embed the watermark.
+                *
+                * A fixed font size avoids FFmpeg expression-parser
+                * differences between development, QA and production.
+                */
                 "drawtext="
                     . "text='Sikhanandkaraj':"
-                    . "fontcolor=white@0.70:"
-                    . "fontsize='max(14,min(22,iw/32))':"
-                    . "x=w-text_w-16:"
-                    . "y=16:"
-                    . "box=1:"
-                    . "boxcolor=black@0.35:"
-                    . "boxborderw=6",
+                    . 'fontcolor=white@0.70:'
+                    . 'fontsize=18:'
+                    . 'x=w-text_w-16:'
+                    . 'y=16:'
+                    . 'box=1:'
+                    . 'boxcolor=black@0.35:'
+                    . 'boxborderw=6',
             ]
         );
 
