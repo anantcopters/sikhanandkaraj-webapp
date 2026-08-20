@@ -8,8 +8,9 @@ use App\Support\DateDisplay;
  * @var array<string, mixed> $video
  * @var string $playbackUrl
  * @var string $posterUrl
- * @var list<array<string, mixed>> $history
+ * @var list<array<string, mixed>> $videoHistory
  * @var array<string, string>|null $formAlert
+ * @var array<string, string> $validationErrors
  */
 
 $video =
@@ -18,10 +19,16 @@ $video =
     ? $video
     : [];
 
-$history =
-    isset($history)
-    && is_array($history)
-    ? $history
+$videoHistory =
+    isset($videoHistory)
+    && is_array($videoHistory)
+    ? $videoHistory
+    : [];
+
+$validationErrors =
+    isset($validationErrors)
+    && is_array($validationErrors)
+    ? $validationErrors
     : [];
 
 $publicId = trim(
@@ -45,6 +52,83 @@ $memberName = trim(
     )
 );
 
+$mobileNumber = trim(
+    (string) (
+        $video['mobile_number']
+        ?? ''
+    )
+);
+
+$gender = trim(
+    (string) (
+        $video['gender']
+        ?? ''
+    )
+);
+
+$location = implode(
+    ', ',
+    array_filter([
+        trim(
+            (string) (
+                $video['city_name']
+                ?? ''
+            )
+        ),
+
+        trim(
+            (string) (
+                $video['state_name']
+                ?? ''
+            )
+        ),
+
+        trim(
+            (string) (
+                $video['country_name']
+                ?? ''
+            )
+        ),
+    ])
+);
+
+$duration = is_numeric(
+    $video['duration_seconds']
+        ?? null
+)
+    ? (float) $video['duration_seconds']
+    : null;
+
+$width = is_numeric(
+    $video['width']
+        ?? null
+)
+    ? (int) $video['width']
+    : null;
+
+$height = is_numeric(
+    $video['height']
+        ?? null
+)
+    ? (int) $video['height']
+    : null;
+
+$selectedDecision = mb_strtoupper(
+    trim(
+        (string) old(
+            'decision',
+            ''
+        )
+    )
+);
+
+$reasonValue = trim(
+    (string) old(
+        'reason',
+        ''
+    )
+);
+
 $this->extend('Admin/Layouts/Main');
 
 $this->section('content');
@@ -64,8 +148,9 @@ $this->section('content');
                     </h1>
 
                     <p class="text-muted mb-0">
-                        Review the complete recording and moderation
-                        checklist before saving a decision.
+                        Review the complete recording and
+                        moderation checklist before saving
+                        a decision.
                     </p>
                 </div>
 
@@ -89,7 +174,8 @@ $this->section('content');
     <?= view(
         'Components/Alerts/FormAlert',
         [
-            'alert' => $formAlert ?? null,
+            'alert' =>
+            $formAlert ?? null,
         ]
     ) ?>
 
@@ -97,7 +183,7 @@ $this->section('content');
         <div class="col-12 col-xl-7">
             <div
                 class="card border border-danger
-                    border-opacity-25">
+                    border-opacity-25 h-100">
 
                 <div
                     class="card-header bg-transparent
@@ -125,9 +211,68 @@ $this->section('content');
                 </div>
 
                 <div class="card-body">
+                    <div
+                        class="row g-3 fs-13
+                            border-bottom pb-3 mb-3">
+
+                        <div class="col-12 col-sm-6">
+                            <span class="text-muted d-block">
+                                Member ID
+                            </span>
+
+                            <strong>
+                                <?= $reference !== ''
+                                    ? esc($reference)
+                                    : '—' ?>
+                            </strong>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <span class="text-muted d-block">
+                                Mobile
+                            </span>
+
+                            <strong>
+                                <?= $mobileNumber !== ''
+                                    ? esc($mobileNumber)
+                                    : '—' ?>
+                            </strong>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <span class="text-muted d-block">
+                                Gender
+                            </span>
+
+                            <strong>
+                                <?= $gender !== ''
+                                    ? esc($gender)
+                                    : '—' ?>
+                            </strong>
+                        </div>
+
+                        <div class="col-12 col-sm-6">
+                            <span class="text-muted d-block">
+                                Location
+                            </span>
+
+                            <strong>
+                                <?= $location !== ''
+                                    ? esc($location)
+                                    : '—' ?>
+                            </strong>
+                        </div>
+                    </div>
+
                     <video
-                        class="w-100 rounded border"
+                        class="w-100 rounded border bg-dark"
                         controls
+                        controlsList="
+                            nodownload
+                            noplaybackrate
+                            noremoteplayback
+                        "
+                        disablePictureInPicture
                         playsinline
                         preload="metadata"
                         poster="<?= esc(
@@ -141,6 +286,8 @@ $this->section('content');
                                         'attr'
                                     ) ?>"
                             type="video/mp4">
+
+                        Your browser cannot play this video.
                     </video>
 
                     <div class="table-responsive mt-3">
@@ -155,16 +302,20 @@ $this->section('content');
                                     </th>
 
                                     <td>
-                                        <?= esc(
-                                            number_format(
-                                                (float) (
-                                                    $video['duration_seconds']
-                                                    ?? 0
-                                                ),
-                                                1
-                                            )
-                                        ) ?>
-                                        seconds
+                                        <?php if (
+                                            $duration !== null
+                                            && $duration > 0
+                                        ): ?>
+                                            <?= esc(
+                                                number_format(
+                                                    $duration,
+                                                    1
+                                                )
+                                            ) ?>
+                                            seconds
+                                        <?php else: ?>
+                                            —
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
 
@@ -174,12 +325,16 @@ $this->section('content');
                                     </th>
 
                                     <td>
-                                        <?= esc(
+                                        <?= trim(
                                             (string) (
                                                 $video['video_codec']
-                                                ?? '—'
+                                                ?? ''
                                             )
-                                        ) ?>
+                                        ) !== ''
+                                            ? esc(
+                                                (string) $video['video_codec']
+                                            )
+                                            : '—' ?>
                                     </td>
                                 </tr>
 
@@ -189,12 +344,16 @@ $this->section('content');
                                     </th>
 
                                     <td>
-                                        <?= esc(
+                                        <?= trim(
                                             (string) (
                                                 $video['audio_codec']
-                                                ?? '—'
+                                                ?? ''
                                             )
-                                        ) ?>
+                                        ) !== ''
+                                            ? esc(
+                                                (string) $video['audio_codec']
+                                            )
+                                            : '—' ?>
                                     </td>
                                 </tr>
 
@@ -204,19 +363,22 @@ $this->section('content');
                                     </th>
 
                                     <td>
-                                        <?= esc(
-                                            (string) (
-                                                $video['width']
-                                                ?? '—'
-                                            )
-                                        ) ?>
-                                        ×
-                                        <?= esc(
-                                            (string) (
-                                                $video['height']
-                                                ?? '—'
-                                            )
-                                        ) ?>
+                                        <?php if (
+                                            $width !== null
+                                            && $height !== null
+                                            && $width > 0
+                                            && $height > 0
+                                        ): ?>
+                                            <?= esc(
+                                                (string) $width
+                                            ) ?>
+                                            ×
+                                            <?= esc(
+                                                (string) $height
+                                            ) ?>
+                                        <?php else: ?>
+                                            —
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
 
@@ -228,9 +390,9 @@ $this->section('content');
                                     <td>
                                         <?= esc(
                                             DateDisplay::formatUtcDateTime(
-                                                $video['submitted_at']
-                                                    ?? null
-                                            )
+                                                    $video['submitted_at']
+                                                        ?? null
+                                                )
                                         ) ?>
                                     </td>
                                 </tr>
@@ -241,12 +403,16 @@ $this->section('content');
                                     </th>
 
                                     <td>
-                                        <?= esc(
+                                        <?= trim(
                                             (string) (
                                                 $video['consent_version']
-                                                ?? '—'
+                                                ?? ''
                                             )
-                                        ) ?>
+                                        ) !== ''
+                                            ? esc(
+                                                (string) $video['consent_version']
+                                            )
+                                            : '—' ?>
                                     </td>
                                 </tr>
                             </tbody>
@@ -268,7 +434,8 @@ $this->section('content');
                     <span class="avatar-xs">
                         <span
                             class="avatar-title rounded-circle
-                                bg-warning-subtle text-warning">
+                                bg-warning-subtle
+                                text-warning">
 
                             <i
                                 class="ri-shield-check-line"
@@ -284,43 +451,48 @@ $this->section('content');
 
                 <div class="card-body">
                     <p class="fs-13 text-muted">
-                        Confirm every applicable requirement before
-                        approving the member's Video Introduction.
+                        Confirm every applicable requirement
+                        before approving the member's Video
+                        Introduction.
                     </p>
 
                     <ul class="fs-12 ps-3 mb-0">
                         <li class="mb-2">
-                            One person is clearly visible and audible.
+                            One person is clearly visible
+                            and audible.
                         </li>
 
                         <li class="mb-2">
-                            The video is an original, respectful and
-                            relevant personal introduction.
+                            The video is an original,
+                            respectful and relevant personal
+                            introduction.
                         </li>
 
                         <li class="mb-2">
-                            No phone number, email, address or
-                            social-media handle is spoken or displayed.
+                            No phone number, email, address
+                            or social-media handle is spoken
+                            or displayed.
                         </li>
 
                         <li class="mb-2">
-                            No offensive, misleading or promotional
-                            content exists.
+                            No offensive, misleading or
+                            promotional content exists.
                         </li>
 
                         <li class="mb-2">
-                            No other person's private information is
-                            disclosed.
+                            No other person's private
+                            information is disclosed.
                         </li>
 
                         <li class="mb-2">
-                            The video does not contain copyrighted
-                            background music.
+                            The video does not contain
+                            copyrighted background music.
                         </li>
 
                         <li>
-                            The member does not claim SikhanAndKaraj
-                            guarantees their identity.
+                            The member does not claim that
+                            SikhanAndKaraj guarantees their
+                            identity.
                         </li>
                     </ul>
                 </div>
@@ -328,7 +500,7 @@ $this->section('content');
 
             <div
                 class="card border border-danger
-                    border-opacity-25">
+                    border-opacity-25 mb-0">
 
                 <div class="card-header bg-transparent">
                     <h2 class="fs-16 fw-semibold mb-0">
@@ -345,6 +517,7 @@ $this->section('content');
                                         . '.moderate',
                                     $publicId
                                 ) ?>"
+                        data-video-moderation-form
                         data-validate
                         data-submit-loader
                         novalidate>
@@ -363,21 +536,41 @@ $this->section('content');
                                 id="decision"
                                 name="decision"
                                 class="form-select"
+                                data-choice
+                                data-choice-search="false"
                                 required>
 
                                 <option value="">
                                     Select a decision
                                 </option>
 
-                                <option value="APPROVE">
+                                <option
+                                    value="APPROVE"
+                                    <?= $selectedDecision
+                                        === 'APPROVE'
+                                        ? 'selected'
+                                        : '' ?>>
+
                                     Approve
                                 </option>
 
-                                <option value="RESUBMIT">
+                                <option
+                                    value="RESUBMIT"
+                                    <?= $selectedDecision
+                                        === 'RESUBMIT'
+                                        ? 'selected'
+                                        : '' ?>>
+
                                     Request resubmission
                                 </option>
 
-                                <option value="REJECT">
+                                <option
+                                    value="REJECT"
+                                    <?= $selectedDecision
+                                        === 'REJECT'
+                                        ? 'selected'
+                                        : '' ?>>
+
                                     Reject
                                 </option>
                             </select>
@@ -385,6 +578,21 @@ $this->section('content');
                             <div class="invalid-feedback">
                                 Please select a decision.
                             </div>
+
+                            <?php if (
+                                isset(
+                                    $validationErrors['decision']
+                                )
+                            ): ?>
+                                <div
+                                    class="text-danger
+                                        fs-12 mt-1">
+
+                                    <?= esc(
+                                        $validationErrors['decision']
+                                    ) ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
 
                         <div class="mb-3">
@@ -404,14 +612,32 @@ $this->section('content');
                                 id="reason"
                                 name="reason"
                                 class="form-control"
-                                minlength="10"
                                 maxlength="500"
                                 rows="4"
-                                placeholder="Provide a clear moderation reason"></textarea>
+                                placeholder="Provide a clear moderation reason"><?= esc(
+                                                                                    $reasonValue
+                                                                                ) ?></textarea>
 
                             <div class="invalid-feedback">
-                                Use between 10 and 500 characters.
+                                Provide a clear reason of at
+                                least 10 characters for rejection
+                                or resubmission.
                             </div>
+
+                            <?php if (
+                                isset(
+                                    $validationErrors['reason']
+                                )
+                            ): ?>
+                                <div
+                                    class="text-danger
+                                        fs-12 mt-1">
+
+                                    <?= esc(
+                                        $validationErrors['reason']
+                                    ) ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
 
                         <div class="text-end">
@@ -420,7 +646,12 @@ $this->section('content');
                                 class="btn btn-danger"
                                 data-submit-button>
 
-                                <span data-submit-idle>
+                                <span
+                                    class="
+                                        registration-submit__label
+                                    "
+                                    data-submit-idle>
+
                                     <i
                                         class="ri-save-line me-1"
                                         aria-hidden="true">
@@ -430,12 +661,16 @@ $this->section('content');
                                 </span>
 
                                 <span
-                                    class="d-none"
+                                    class="
+                                        registration-submit__loading
+                                        d-none
+                                    "
                                     data-submit-loading>
 
                                     <span
                                         class="spinner-border
-                                            spinner-border-sm me-1">
+                                            spinner-border-sm me-1"
+                                        aria-hidden="true">
                                     </span>
 
                                     Saving...
@@ -445,6 +680,21 @@ $this->section('content');
                     </form>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <?= view(
+                'Components/VideoIntroduction/History',
+                [
+                    'videoHistory' =>
+                    $videoHistory,
+
+                    'showTechnicalErrors' =>
+                    true,
+                ]
+            ) ?>
         </div>
     </div>
 </div>

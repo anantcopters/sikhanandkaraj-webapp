@@ -10,7 +10,7 @@ declare(strict_types=1);
                 <div class="text-center mb-5">
                     <h3 class="mb-3 fw-semibold">Our Work Process</h3>
 
-                    <p class=""><span class="text-primary fw-semibold fs-16 mx-3">SIMPLE</span> | <span class="text-danger fw-semibold fs-16 mx-3">RESPECTFUL</span> | <span class="text-success fw-semibold fs-16 mx-3">TRANSAPARENT</span></p>
+                    <p class=""><span class="text-primary fw-semibold fs-16 mx-3">SIMPLE</span> | <span class="text-danger fw-semibold fs-16 mx-3">RESPECTFUL</span> | <span class="text-success fw-semibold fs-16 mx-3">TRANSPARENT</span></p>
                 </div>
             </div>
         </div>

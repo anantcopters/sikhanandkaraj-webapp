@@ -122,6 +122,7 @@ final class MemberVideoIntroductionReviewController extends BaseController
 
                     'pageScripts' => [
                         'assets/js/components/form-validator.js',
+                        'assets/js/pages/admin-video-introduction-review.js',
                         'assets/js/components/submit-loader.js',
                     ],
                 ]
@@ -138,15 +139,93 @@ final class MemberVideoIntroductionReviewController extends BaseController
                 'memberVideoModerationService'
             );
 
-            $service->moderate(
-                $publicId,
-                (int) session('admin_user_id'),
-                (string) $this->request->getPost(
-                    'decision'
-                ),
+            $decision = mb_strtoupper(
+                trim(
+                    (string) $this->request->getPost(
+                        'decision'
+                    )
+                )
+            );
+
+            $reason = trim(
                 (string) $this->request->getPost(
                     'reason'
                 )
+            );
+
+            $rules = [
+                'decision' => [
+                    'label' => 'Decision',
+                    'rules' => [
+                        'required',
+                        'in_list[APPROVE,REJECT,RESUBMIT]',
+                    ],
+                    'errors' => [
+                        'required' =>
+                        'Please select a decision.',
+
+                        'in_list' =>
+                        'Please select a valid decision.',
+                    ],
+                ],
+
+                'reason' => [
+                    'label' => 'Reason',
+                    'rules' => [
+                        'permit_empty',
+                        'max_length[500]',
+                    ],
+                    'errors' => [
+                        'max_length' =>
+                        'The reason cannot exceed 500 characters.',
+                    ],
+                ],
+            ];
+
+            if (
+                in_array(
+                    $decision,
+                    [
+                        'REJECT',
+                        'RESUBMIT',
+                    ],
+                    true
+                )
+            ) {
+                $rules['reason']['rules'] = [
+                    'required',
+                    'min_length[10]',
+                    'max_length[500]',
+                ];
+
+                $rules['reason']['errors'] = [
+                    'required' =>
+                    'Please provide a reason.',
+
+                    'min_length' =>
+                    'The reason must contain at least '
+                        . '10 characters.',
+
+                    'max_length' =>
+                    'The reason cannot exceed 500 characters.',
+                ];
+            }
+
+            if (! $this->validate($rules)) {
+                return redirect()
+                    ->back()
+                    ->withInput()
+                    ->with(
+                        'validationErrors',
+                        $this->validator->getErrors()
+                    );
+            }
+
+            $service->moderate(
+                $publicId,
+                (int) session('admin_user_id'),
+                $decision,
+                $reason
             );
 
             return redirect()

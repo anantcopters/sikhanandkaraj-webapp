@@ -215,4 +215,97 @@ final class MemberVideoIntroductionModel extends Model
                 )
             );
     }
+
+    /**
+     * Return every Video Introduction submitted by a member.
+     *
+     * Logically deleted and replaced versions are intentionally included
+     * because this method is used for lifecycle history.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function historyForMember(
+        int $memberUserId
+    ): array {
+        return $this
+            ->where(
+                'member_user_id',
+                $memberUserId
+            )
+            ->orderBy(
+                'version_number',
+                'DESC'
+            )
+            ->orderBy(
+                'submitted_at',
+                'DESC'
+            )
+            ->findAll();
+    }
+
+    /**
+     * Return the Video Introduction with basic member information.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findForAdminReview(
+        string $publicId
+    ): ?array {
+        $row = $this
+            ->select(
+                'member_video_introductions.*, '
+                    . 'users.profile_ref_number, '
+                    . 'users.full_name, '
+                    . 'users.gender, '
+                    . 'mobile.contact_value AS mobile_number, '
+                    . 'master_cities.name AS city_name, '
+                    . 'master_states.name AS state_name, '
+                    . 'master_countries.name AS country_name'
+            )
+            ->join(
+                'users',
+                'users.id = '
+                    . 'member_video_introductions.member_user_id'
+            )
+            ->join(
+                'user_contacts AS mobile',
+                "mobile.user_id = users.id
+            AND mobile.contact_type = 'MOBILE'
+            AND mobile.is_primary = TRUE",
+                'left',
+                false
+            )
+            ->join(
+                'member_basic_details',
+                'member_basic_details.user_id = users.id',
+                'left'
+            )
+            ->join(
+                'master_cities',
+                'master_cities.id = '
+                    . 'member_basic_details.city_id',
+                'left'
+            )
+            ->join(
+                'master_states',
+                'master_states.id = '
+                    . 'member_basic_details.state_id',
+                'left'
+            )
+            ->join(
+                'master_countries',
+                'master_countries.id = '
+                    . 'member_basic_details.country_id',
+                'left'
+            )
+            ->where(
+                'member_video_introductions.public_id',
+                trim($publicId)
+            )
+            ->first();
+
+        return is_array($row)
+            ? $row
+            : null;
+    }
 }

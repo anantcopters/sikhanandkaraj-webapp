@@ -42,11 +42,9 @@ final class MemberVideoModerationService
         string $publicId
     ): array {
         $video = $this->videoModel
-            ->where(
-                'public_id',
+            ->findForAdminReview(
                 trim($publicId)
-            )
-            ->first();
+            );
 
         if (! is_array($video)) {
             throw new DomainException(
@@ -78,19 +76,63 @@ final class MemberVideoModerationService
             );
         }
 
-        $history = $this->historyModel
-            ->where(
-                'video_introduction_id',
-                (int) $video['id']
-            )
-            ->orderBy(
-                'created_at',
-                'DESC'
-            )
-            ->findAll();
+        $videoHistory = $this->videoModel
+            ->historyForMember(
+                (int) $video['member_user_id']
+            );
+
+        if ($videoHistory !== []) {
+            $videoIds = array_values(
+                array_filter(
+                    array_map(
+                        static fn(array $item): int =>
+                        (int) ($item['id'] ?? 0),
+                        $videoHistory
+                    )
+                )
+            );
+
+            $moderationRows = $videoIds !== []
+                ? $this->historyModel
+                ->whereIn(
+                    'video_introduction_id',
+                    $videoIds
+                )
+                ->orderBy(
+                    'created_at',
+                    'DESC'
+                )
+                ->findAll()
+                : [];
+
+            $historyByVideo = [];
+
+            foreach ($moderationRows as $row) {
+                $videoId = (int) (
+                    $row['video_introduction_id']
+                    ?? 0
+                );
+
+                $historyByVideo[$videoId][] = $row;
+            }
+
+            foreach ($videoHistory as &$historyVideo) {
+                $historyVideoId = (int) (
+                    $historyVideo['id']
+                    ?? 0
+                );
+
+                $historyVideo['moderation_history'] =
+                    $historyByVideo[$historyVideoId]
+                    ?? [];
+            }
+
+            unset($historyVideo);
+        }
 
         return [
-            'video' => $video,
+            'video' =>
+            $video,
 
             'playbackUrl' =>
             $this->cloudFrontService->signedUrl(
@@ -104,7 +146,8 @@ final class MemberVideoModerationService
                 $this->config->playbackUrlTtlSeconds
             ),
 
-            'history' => $history,
+            'videoHistory' =>
+            $videoHistory,
         ];
     }
 
