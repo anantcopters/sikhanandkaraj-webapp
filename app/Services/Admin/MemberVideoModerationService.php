@@ -59,17 +59,7 @@ final class MemberVideoModerationService
             )
         );
 
-        $posterKey = trim(
-            (string) (
-                $video['poster_object_key']
-                ?? ''
-            )
-        );
-
-        if (
-            $playbackKey === ''
-            || $posterKey === ''
-        ) {
+        if ($playbackKey === '') {
             throw new DomainException(
                 'The processed Video Introduction '
                     . 'is unavailable.'
@@ -86,7 +76,10 @@ final class MemberVideoModerationService
                 array_filter(
                     array_map(
                         static fn(array $item): int =>
-                        (int) ($item['id'] ?? 0),
+                        (int) (
+                            $item['id']
+                            ?? 0
+                        ),
                         $videoHistory
                     )
                 )
@@ -113,10 +106,13 @@ final class MemberVideoModerationService
                     ?? 0
                 );
 
-                $historyByVideo[$videoId][] = $row;
+                $historyByVideo[$videoId][] =
+                    $row;
             }
 
-            foreach ($videoHistory as &$historyVideo) {
+            foreach (
+                $videoHistory as &$historyVideo
+            ) {
                 $historyVideoId = (int) (
                     $historyVideo['id']
                     ?? 0
@@ -137,13 +133,8 @@ final class MemberVideoModerationService
             'playbackUrl' =>
             $this->cloudFrontService->signedUrl(
                 $playbackKey,
-                $this->config->playbackUrlTtlSeconds
-            ),
-
-            'posterUrl' =>
-            $this->cloudFrontService->signedUrl(
-                $posterKey,
-                $this->config->playbackUrlTtlSeconds
+                $this->config
+                    ->playbackUrlTtlSeconds
             ),
 
             'videoHistory' =>
