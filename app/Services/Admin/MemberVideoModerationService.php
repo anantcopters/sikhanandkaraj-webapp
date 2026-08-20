@@ -9,6 +9,7 @@ use App\Models\MemberVideoIntroductionModel;
 use App\Models\MemberVideoModerationHistoryModel;
 use App\Services\Aws\CloudFrontService;
 use App\Services\Notification\MemberNotificationService;
+use App\Services\Profile\MemberPhotoUrlService;
 use CodeIgniter\Database\BaseConnection;
 use Config\VideoIntroduction;
 use DomainException;
@@ -22,6 +23,7 @@ final class MemberVideoModerationService
         private readonly MemberVideoModerationHistoryModel $historyModel,
         private readonly CloudFrontService $cloudFrontService,
         private readonly MemberNotificationService $notificationService,
+        private readonly MemberPhotoUrlService $photoUrlService,
         private readonly BaseConnection $database,
         private readonly VideoIntroduction $config
     ) {}
@@ -139,6 +141,14 @@ final class MemberVideoModerationService
 
             'videoHistory' =>
             $videoHistory,
+
+            'memberPhotos' =>
+            $this->photoUrlService->getAdminThumbnailPhotos(
+                (int) (
+                    $video['member_user_id']
+                    ?? 0
+                )
+            ),
         ];
     }
 

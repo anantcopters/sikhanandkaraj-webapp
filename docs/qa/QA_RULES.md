@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This is the mandatory QA process for SikhanAndKaraj. The developer implements features. QA reviews the implementation, reports defects, maintains QA knowledge, and decides the QA Gate. QA does not modify application code unless explicitly requested.
+This is the mandatory QA process for Sikhanandkaraj. The developer implements features. QA reviews the implementation, reports defects, maintains QA knowledge, and decides the QA Gate. QA does not modify application code unless explicitly requested.
 
 ## Source of truth
 

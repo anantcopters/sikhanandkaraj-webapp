@@ -720,6 +720,9 @@ $pageScripts = $pageScripts ?? [];
         <?= $this->renderSection('content') ?>
     </main>
     <?= view('Components/FeedbackModal') ?>
+    <?= view(
+        'Components/VideoIntroduction/PlaybackModal'
+    ) ?>
     <?= view('Components/ConfirmationModal') ?>
 
     <footer class="mt-5 pt-4 border-top border-secondary-subtle bg-light">
@@ -862,6 +865,9 @@ $pageScripts = $pageScripts ?? [];
                 ) ?>">
     </script>
     <script src="<?= base_url('assets/js/components/feedback-modal.js') ?>"></script>
+    <script src="<?= base_url(
+                        'assets/js/components/video-introduction-modal.js'
+                    ) ?>"></script>
     <script src="<?= base_url('assets/js/app.js') ?>"></script>
     <script
         src="<?= base_url(

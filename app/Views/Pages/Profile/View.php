@@ -85,6 +85,35 @@ $viewedProfileReference = trim(
     )
 );
 
+$videoIntroductionPlaybackUrl =
+    $isOtherMemberProfileView
+    ? (
+        $viewedProfileReference !== ''
+        ? route_to(
+            'web.video-introduction.viewer-playback',
+            $viewedProfileReference
+        )
+        : ''
+    )
+    : route_to(
+        'web.video-introduction.owner-playback'
+    );
+
+$videoMemberName = trim(
+    (string) (
+        $user['full_name']
+        ?? $fullName
+        ?? ''
+    )
+);
+
+$videoMemberGender = trim(
+    (string) (
+        $user['gender']
+        ?? ''
+    )
+);
+
 $videoIntroductionState =
     isset($videoIntroductionState)
     && is_array($videoIntroductionState)
@@ -1816,7 +1845,10 @@ $this->section('content');
                                 <!-- Profile ID -->
 
 
-                                <?php if ($isOtherMemberProfileView): ?>
+                                <?php if (
+                                    !$isAdminProfileView
+                                    && !$isFieldOfficerProfileView
+                                ): ?>
 
                                     <!-- Contact number -->
                                     <div
@@ -2353,19 +2385,20 @@ $this->section('content');
                                         class="btn btn-primary"
                                         data-video-introduction-open
                                         data-playback-url="<?= esc(
-                                                                route_to(
-                                                                    'web.video-introduction'
-                                                                        . '.viewer-playback',
-                                                                    $viewedProfileReference
-                                                                ),
+                                                                $videoIntroductionPlaybackUrl,
                                                                 'attr'
                                                             ) ?>"
                                         data-hidden="0"
+                                        data-member-name="<?= esc(
+                                                                $videoMemberName,
+                                                                'attr'
+                                                            ) ?>"
+                                        data-profile-reference="<?= esc(
+                                                                    $viewedProfileReference,
+                                                                    'attr'
+                                                                ) ?>"
                                         data-member-gender="<?= esc(
-                                                                (string) (
-                                                                    $user['gender']
-                                                                    ?? ''
-                                                                ),
+                                                                $videoMemberGender,
                                                                 'attr'
                                                             ) ?>">
 

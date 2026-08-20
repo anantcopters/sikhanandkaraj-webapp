@@ -12,138 +12,21 @@ document.addEventListener(
             memberName,
             profileReference
         ) => {
-            const modalElement =
-                document.createElement('div');
+            if (
+                !window.AppVideoIntroductionModal
+                || typeof window.AppVideoIntroductionModal.show
+                !== 'function'
+            ) {
+                return;
+            }
 
-            modalElement.className =
-                'modal fade';
-
-            modalElement.tabIndex = -1;
-
-            modalElement.setAttribute(
-                'aria-hidden',
-                'true'
-            );
-
-            modalElement.innerHTML = `
-                <div
-                    class="modal-dialog
-                        modal-dialog-centered
-                        modal-lg">
-
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <div>
-                                <h2
-                                    class="modal-title
-                                        fs-18 mb-1"
-                                    data-video-member-name>
-                                </h2>
-
-                                <p
-                                    class="text-muted
-                                        fs-12 mb-0">
-
-                                    Profile ID:
-                                    <strong
-                                        class="text-body"
-                                        data-video-profile-id>
-                                    </strong>
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                class="btn-close"
-                                data-bs-dismiss="modal"
-                                aria-label="Close">
-                            </button>
-                        </div>
-
-                        <div class="modal-body">
-                            <video
-                                class="w-100 d-block
-                                    rounded bg-dark"
-                                controls
-                                controlsList="
-                                    nodownload
-                                    noplaybackrate
-                                    noremoteplayback
-                                "
-                                disablePictureInPicture
-                                playsinline
-                                preload="metadata">
-                            </video>
-
-                            <p
-                                class="text-muted
-                                    fs-12 mt-2 mb-0">
-
-                                Review the complete recording
-                                before saving a moderation
-                                decision.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            const memberNameElement =
-                modalElement.querySelector(
-                    '[data-video-member-name]'
-                );
-
-            const profileIdElement =
-                modalElement.querySelector(
-                    '[data-video-profile-id]'
-                );
-
-            const video =
-                modalElement.querySelector(
-                    'video'
-                );
-
-            memberNameElement.textContent =
-                memberName !== ''
-                    ? memberName
-                    : 'Member';
-
-            profileIdElement.textContent =
-                profileReference !== ''
-                    ? profileReference
-                    : '—';
-
-            video.src = videoUrl;
-
-            video.addEventListener(
-                'contextmenu',
-                (event) => {
-                    event.preventDefault();
-                }
-            );
-
-            document.body.appendChild(
-                modalElement
-            );
-
-            const modal =
-                new bootstrap.Modal(
-                    modalElement
-                );
-
-            modalElement.addEventListener(
-                'hidden.bs.modal',
-                () => {
-                    video.pause();
-                    video.removeAttribute('src');
-                    video.load();
-
-                    modal.dispose();
-                    modalElement.remove();
-                }
-            );
-
-            modal.show();
+            window.AppVideoIntroductionModal.show({
+                videoUrl: videoUrl,
+                memberName: memberName,
+                profileReference: profileReference,
+                isFemaleMember: false,
+                isAdminReview: true
+            });
         };
 
         document.addEventListener(

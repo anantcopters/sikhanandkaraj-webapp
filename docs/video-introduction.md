@@ -4,7 +4,7 @@
 
 Replace the current member selfie feature with a moderated **Video Introduction** recorded directly through the website.
 
-The feature gives members a short personal introduction for trust and profile engagement. It is not formal identity verification and must never be described as a guarantee that SikhanAndKaraj has verified the member's identity.
+The feature gives members a short personal introduction for trust and profile engagement. It is not formal identity verification and must never be described as a guarantee that Sikhanandkaraj has verified the member's identity.
 
 All member/admin UI references to selfie recording, selfie verification and selfie status must be removed or replaced. Existing selfie data must not automatically become a Video Introduction.
 
@@ -94,7 +94,7 @@ The member must be told that:
 - offensive, misleading or promotional content is prohibited;
 - another person's private information must not be disclosed;
 - copyrighted background music must not be used;
-- the member must not claim that SikhanAndKaraj guarantees or certifies their identity;
+- the member must not claim that Sikhanandkaraj guarantees or certifies their identity;
 - the video will be processed and reviewed before it is shown;
 - an approved Video Introduction is not formal identity verification;
 - the video cannot be deleted or replaced during the seven-day lock;

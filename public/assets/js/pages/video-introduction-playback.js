@@ -4,275 +4,42 @@ document.addEventListener(
     'DOMContentLoaded',
     () => {
         /**
-         * Display an application-styled information modal.
-         *
          * @param {string} message
-         * @param {string} title
-         *
          * @returns {void}
          */
-        const showInformationModal = (
-            message,
-            title = 'Video Introduction'
-        ) => {
-            const modalElement =
-                document.createElement('div');
+        const showInformationModal = (message) => {
+            if (
+                window.AppFeedbackModal
+                && typeof window.AppFeedbackModal.show
+                === 'function'
+            ) {
+                window.AppFeedbackModal.show({
+                    type: 'info',
+                    title: 'Video Introduction',
+                    message: String(message || ''),
+                    buttonText: 'Okay'
+                });
 
-            modalElement.className =
-                'modal fade';
+                return;
+            }
 
-            modalElement.tabIndex = -1;
-
-            modalElement.setAttribute(
-                'aria-hidden',
-                'true'
-            );
-
-            modalElement.innerHTML = `
-                <div
-                    class="modal-dialog
-                        modal-dialog-centered">
-
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h2
-                                class="modal-title fs-18">
-
-                                ${title}
-                            </h2>
-
-                            <button
-                                type="button"
-                                class="btn-close"
-                                data-bs-dismiss="modal"
-                                aria-label="Close">
-                            </button>
-                        </div>
-
-                        <div class="modal-body">
-                            <div
-                                class="d-flex
-                                    align-items-start gap-3">
-
-                                <span
-                                    class="avatar-sm
-                                        flex-shrink-0">
-
-                                    <span
-                                        class="avatar-title
-                                            rounded-circle
-                                            bg-primary-subtle
-                                            text-primary">
-
-                                        <i
-                                            class="ri-information-line
-                                                fs-20"
-                                            aria-hidden="true">
-                                        </i>
-                                    </span>
-                                </span>
-
-                                <p
-                                    class="text-muted
-                                        fs-13 mb-0"
-                                    data-information-message>
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="modal-footer">
-                            <button
-                                type="button"
-                                class="btn btn-primary"
-                                data-bs-dismiss="modal">
-
-                                OK
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            const messageElement =
-                modalElement.querySelector(
-                    '[data-information-message]'
-                );
-
-            messageElement.textContent =
-                String(message || '');
-
-            document.body.appendChild(
-                modalElement
-            );
-
-            const modal =
-                new bootstrap.Modal(
-                    modalElement
-                );
-
-            modalElement.addEventListener(
-                'hidden.bs.modal',
-                () => {
-                    modal.dispose();
-                    modalElement.remove();
-                }
-            );
-
-            modal.show();
-        };
-
-        /**
-         * Display the authenticated video.
-         *
-         * The permanent watermark is already embedded by FFmpeg.
-         * No HTML watermark is added here.
-         *
-         * @param {string} videoUrl
-         * @param {boolean} isFemaleMember
-         *
-         * @returns {void}
-         */
-        const showVideoModal = (
-            videoUrl,
-            isFemaleMember
-        ) => {
-            const modalElement =
-                document.createElement('div');
-
-            modalElement.className =
-                'modal fade';
-
-            modalElement.tabIndex = -1;
-
-            modalElement.setAttribute(
-                'aria-hidden',
-                'true'
-            );
-
-            modalElement.innerHTML = `
-                <div
-                    class="modal-dialog
-                        modal-dialog-centered
-                        modal-lg">
-
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h2
-                                class="modal-title fs-18">
-
-                                Video Introduction
-                            </h2>
-
-                            <button
-                                type="button"
-                                class="btn-close"
-                                data-bs-dismiss="modal"
-                                aria-label="Close">
-                            </button>
-                        </div>
-
-                        <div class="modal-body">
-                            ${isFemaleMember
-                    ? `
-                                        <div
-                                            class="alert
-                                                alert-warning
-                                                fs-13">
-
-                                            This video belongs to a
-                                            female member. Please
-                                            respect her privacy and
-                                            do not record, copy or
-                                            share it.
-                                        </div>
-                                    `
-                    : ''
-                }
-
-                            <div
-                                class="overflow-hidden
-                                    rounded bg-dark">
-
-                                <video
-                                    class="w-100 d-block"
-                                    controls
-                                    controlsList="
-                                        nodownload
-                                        noplaybackrate
-                                        noremoteplayback
-                                    "
-                                    disablePictureInPicture
-                                    playsinline
-                                    preload="metadata">
-                                </video>
-                            </div>
-
-                            <p
-                                class="color-pink
-                                    fs-12 mt-2 mb-0">
-
-                                Do not copy, record, share or
-                                misuse this member's personal
-                                video.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            document.body.appendChild(
-                modalElement
-            );
-
-            const video =
-                modalElement.querySelector(
-                    'video'
-                );
-
-            video.src = videoUrl;
-
-            video.addEventListener(
-                'contextmenu',
-                (event) => {
-                    event.preventDefault();
-                }
-            );
-
-            const modal =
-                new bootstrap.Modal(
-                    modalElement
-                );
-
-            modalElement.addEventListener(
-                'hidden.bs.modal',
-                () => {
-                    video.pause();
-                    video.removeAttribute('src');
-                    video.load();
-
-                    modal.dispose();
-                    modalElement.remove();
-                }
-            );
-
-            modal.show();
+            console.error(message);
         };
 
         document.addEventListener(
             'click',
             async (event) => {
-                const trigger =
-                    event.target.closest(
-                        '[data-video-introduction-open]'
-                    );
+                const trigger = event.target.closest(
+                    '[data-video-introduction-open]'
+                );
 
                 if (!trigger) {
                     return;
                 }
 
-                if (
-                    trigger.dataset.hidden === '1'
-                ) {
+                event.preventDefault();
+
+                if (trigger.dataset.hidden === '1') {
                     showInformationModal(
                         'This member has an approved '
                         + 'Video Introduction but has '
@@ -283,8 +50,7 @@ document.addEventListener(
                 }
 
                 const playbackUrl = String(
-                    trigger.dataset.playbackUrl
-                    || ''
+                    trigger.dataset.playbackUrl || ''
                 ).trim();
 
                 if (playbackUrl === '') {
@@ -296,17 +62,31 @@ document.addEventListener(
                     return;
                 }
 
+                if (
+                    !window.AppVideoIntroductionModal
+                    || typeof window.AppVideoIntroductionModal
+                        .show !== 'function'
+                ) {
+                    showInformationModal(
+                        'The video player could not be opened.'
+                    );
+
+                    return;
+                }
+
                 const gender = String(
-                    trigger.dataset.memberGender
-                    || ''
+                    trigger.dataset.memberGender || ''
                 )
                     .trim()
                     .toUpperCase();
 
                 const isFemaleMember = [
                     'F',
-                    'FEMALE',
+                    'FEMALE'
                 ].includes(gender);
+
+                const originalDisabled =
+                    trigger.disabled === true;
 
                 trigger.disabled = true;
 
@@ -316,19 +96,16 @@ document.addEventListener(
                         {
                             headers: {
                                 'X-Requested-With':
-                                    'XMLHttpRequest',
+                                    'XMLHttpRequest'
                             },
-
-                            credentials:
-                                'same-origin',
+                            credentials: 'same-origin'
                         }
                     );
 
                     let data = {};
 
                     try {
-                        data =
-                            await response.json();
+                        data = await response.json();
                     } catch (exception) {
                         data = {};
                     }
@@ -344,10 +121,21 @@ document.addEventListener(
                         );
                     }
 
-                    showVideoModal(
-                        data.url,
-                        isFemaleMember
-                    );
+                    window.AppVideoIntroductionModal.show({
+                        videoUrl: data.url,
+
+                        memberName: String(
+                            trigger.dataset.memberName || ''
+                        ).trim(),
+
+                        profileReference: String(
+                            trigger.dataset
+                                .profileReference || ''
+                        ).trim(),
+
+                        isFemaleMember: isFemaleMember,
+                        isAdminReview: false
+                    });
                 } catch (exception) {
                     showInformationModal(
                         exception instanceof Error
@@ -356,7 +144,7 @@ document.addEventListener(
                             + 'is currently unavailable.'
                     );
                 } finally {
-                    trigger.disabled = false;
+                    trigger.disabled = originalDisabled;
                 }
             }
         );

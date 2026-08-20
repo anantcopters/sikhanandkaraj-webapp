@@ -17,6 +17,7 @@ use App\Services\Profile\AboutMeService;
 use App\Validation\Profile\AboutMeValidation;
 use App\Services\Profile\MemberPhotoService;
 use App\Services\Profile\MemberProfileSummaryService;
+use App\Services\Profile\MemberPhotoUrlService;
 use App\Support\ProfileErrorContext;
 use App\Services\Profile\MemberTrustVerificationService;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -147,12 +148,6 @@ final class ProfileController extends BaseController
 
     /**
      * Display the authenticated member's public-profile preview.
-     *
-     * Initial image signing:
-     *
-     * - main approved photo: medium;
-     * - approved gallery photos: thumbnail;
-     * - original photos: not generated during initial rendering.
      */
     public function view(): string
     {
@@ -168,22 +163,41 @@ final class ProfileController extends BaseController
             'memberPhotoUrlService'
         );
 
-        /*
-     * MemberProfileSummaryService already requests the approved primary
-     * image using the medium variant.
-     */
+        /** @var MemberTrustVerificationService $trustService */
+        $trustService = service(
+            'memberTrustVerificationService'
+        );
+
         $profileSummary = $profileSummaryService
             ->getForUser(
                 $userId
             );
 
-        /*
-     * Gallery data contains thumbnail URLs only.
-     */
         $approvedPhotos = $photoUrlService
             ->getApprovedThumbnailPhotos(
                 $userId
             );
+
+        $trustVerification = $trustService
+            ->getForUser(
+                $userId
+            );
+
+        $mobile = isset($trustVerification['mobile'])
+            && is_array($trustVerification['mobile'])
+            ? $trustVerification['mobile']
+            : [];
+
+        $email = isset($trustVerification['email'])
+            && is_array($trustVerification['email'])
+            ? $trustVerification['email']
+            : [];
+
+        $videoIntroductionState = service(
+            'memberVideoIntroductionService'
+        )->profileState(
+            $userId
+        );
 
         return view(
             'Pages/Profile/View',
@@ -192,11 +206,53 @@ final class ProfileController extends BaseController
                     'pageTitle' =>
                     'View Profile',
 
+                    'profileViewMode' =>
+                    'member',
+
                     'approvedPhotos' =>
                     $approvedPhotos,
 
+                    'viewedProfileReference' =>
+                    (string) (
+                        $trustVerification['profileReference'] ?? ''
+                    ),
+
+                    'viewedMobile' =>
+                    (string) (
+                        $mobile['value']
+                        ?? ''
+                    ),
+
+                    'viewedMobileLabel' =>
+                    'Mobile Number',
+
+                    'isViewedMobileVerified' => ($mobile['isVerified'] ?? false)
+                        === true,
+
+                    'isViewedParentMobile' =>
+                    false,
+
+                    'viewedMaskedMemberMobile' =>
+                    '',
+
+                    'isViewedMaskedMobileVerified' =>
+                    false,
+
+                    'viewedEmail' =>
+                    (string) (
+                        $email['value']
+                        ?? ''
+                    ),
+
+                    'isViewedEmailVerified' => ($email['isVerified'] ?? false)
+                        === true,
+
+                    'videoIntroductionState' =>
+                    $videoIntroductionState,
+
                     'pageScripts' => [
                         'assets/js/pages/profile-view.js',
+                        'assets/js/pages/video-introduction-playback.js',
                     ],
                 ],
                 $profileSummary
