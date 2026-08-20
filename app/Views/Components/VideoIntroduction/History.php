@@ -84,8 +84,8 @@ $statusClasses = [
                 </h3>
 
                 <p class="text-muted fs-12 mb-0">
-                    Previous submissions and moderation
-                    decisions are shown here.
+                    Previous submissions, processing updates
+                    and moderation decisions are shown here.
                 </p>
             </div>
 
@@ -100,8 +100,7 @@ $statusClasses = [
     <div class="card-body">
         <?php if ($videoHistory === []): ?>
             <p class="text-muted fs-13 mb-0">
-                No Video Introduction history is
-                available.
+                No Video Introduction history is available.
             </p>
         <?php else: ?>
             <div class="table-responsive">
@@ -112,9 +111,18 @@ $statusClasses = [
                     <thead>
                         <tr>
                             <th>Version/event</th>
-                            <th>Date</th>
-                            <th>Status</th>
-                            <th>Reason/details</th>
+
+                            <th>
+                                Date
+                            </th>
+
+                            <th>
+                                Status
+                            </th>
+
+                            <th>
+                                Reason/details
+                            </th>
                         </tr>
                     </thead>
 
@@ -153,6 +161,7 @@ $statusClasses = [
                                 $moderationHistory !== [];
                             ?>
 
+                            <!-- Submission event -->
                             <tr>
                                 <td>
                                     <strong>
@@ -185,16 +194,16 @@ $statusClasses = [
                                     </span>
                                 </td>
 
-                                <td>
+                                <td class="text-wrap">
                                     Video Introduction submitted.
                                 </td>
                             </tr>
 
                             <?php if (
-                                $status
-                                === 'PROCESSING_FAILED'
+                                $status === 'PROCESSING_FAILED'
                                 && ! $hasModerationHistory
                             ): ?>
+                                <!-- Processing-failure event -->
                                 <tr class="table-light">
                                     <td>
                                         <span
@@ -240,6 +249,7 @@ $statusClasses = [
                             <?php elseif (
                                 ! $hasModerationHistory
                             ): ?>
+                                <!-- Current non-moderated status -->
                                 <tr class="table-light">
                                     <td>
                                         <span
@@ -273,7 +283,18 @@ $statusClasses = [
                                         </span>
                                     </td>
 
-                                    <td>—</td>
+                                    <td class="text-wrap">
+                                        <?php if (
+                                            $showTechnicalErrors
+                                            && $processingError !== ''
+                                        ): ?>
+                                            <?= esc(
+                                                $processingError
+                                            ) ?>
+                                        <?php else: ?>
+                                            —
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endif; ?>
 
@@ -299,6 +320,7 @@ $statusClasses = [
                                 );
                                 ?>
 
+                                <!-- Moderation event -->
                                 <tr class="table-light">
                                     <td>
                                         <span
@@ -342,8 +364,8 @@ $statusClasses = [
 
                             <?php if (
                                 $status === 'REPLACED'
-                                && $moderationHistory !== []
                             ): ?>
+                                <!-- Replacement event -->
                                 <tr class="table-light">
                                     <td>
                                         <span
@@ -372,7 +394,7 @@ $statusClasses = [
                                         </span>
                                     </td>
 
-                                    <td>
+                                    <td class="text-wrap">
                                         Replaced by a newer approved
                                         Video Introduction.
                                     </td>
@@ -382,6 +404,7 @@ $statusClasses = [
                             <?php if (
                                 $status === 'DELETED'
                             ): ?>
+                                <!-- Deletion event -->
                                 <tr class="table-light">
                                     <td>
                                         <span
@@ -411,7 +434,7 @@ $statusClasses = [
                                         </span>
                                     </td>
 
-                                    <td>
+                                    <td class="text-wrap">
                                         Video Introduction deleted
                                         by the member.
                                     </td>

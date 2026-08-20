@@ -80,6 +80,29 @@ $duration = is_array($videoIntroduction)
     )
     ? (float) $videoIntroduction['duration_seconds']
     : null;
+
+$statusClass = match ($videoStatus) {
+    'APPROVED' =>
+    'bg-success-subtle text-success',
+
+    'REJECTED',
+    'PROCESSING_FAILED' =>
+    'bg-danger-subtle text-danger',
+
+    'PENDING_REVIEW',
+    'RESUBMISSION_REQUESTED' =>
+    'bg-warning-subtle text-warning',
+
+    'PROCESSING' =>
+    'bg-primary-subtle text-primary',
+
+    'DELETED',
+    'REPLACED' =>
+    'bg-secondary-subtle text-secondary',
+
+    default =>
+    'bg-light text-body',
+};
 ?>
 
 <div
@@ -97,14 +120,23 @@ $duration = is_array($videoIntroduction)
         </p>
     </div>
 
-    <span class="badge bg-light text-body border p-2">
+    <span
+        class="badge <?= esc(
+                            $statusClass,
+                            'attr'
+                        ) ?> p-2">
+
         <?= esc($videoStatusLabel) ?>
     </span>
 </div>
 
 <?php if ($reason !== ''): ?>
-    <div class="alert alert-warning" role="alert">
+    <div
+        class="alert alert-warning"
+        role="alert">
+
         <strong>Moderator feedback:</strong>
+
         <?= esc($reason) ?>
     </div>
 <?php endif; ?>
@@ -233,7 +265,6 @@ $duration = is_array($videoIntroduction)
                     === 'VISIBLE_AFTER_ACCEPTED_INTEREST'
                     ? 'selected'
                     : '' ?>>
-
                 Only after Interest is accepted
             </option>
 
@@ -273,12 +304,16 @@ $duration = is_array($videoIntroduction)
                 </span>
 
                 <span
-                    class="registration-submit__loading d-none"
+                    class="
+                        registration-submit__loading
+                        d-none
+                    "
                     data-submit-loading>
 
                     <span
                         class="spinner-border
-                            spinner-border-sm me-1">
+                            spinner-border-sm me-1"
+                        aria-hidden="true">
                     </span>
 
                     Saving...
@@ -338,7 +373,9 @@ $duration = is_array($videoIntroduction)
                     data-submit-button>
 
                     <span
-                        class="registration-submit__label"
+                        class="
+                            registration-submit__label
+                        "
                         data-submit-idle>
 
                         <i
@@ -350,12 +387,16 @@ $duration = is_array($videoIntroduction)
                     </span>
 
                     <span
-                        class="registration-submit__loading d-none"
+                        class="
+                            registration-submit__loading
+                            d-none
+                        "
                         data-submit-loading>
 
                         <span
                             class="spinner-border
-                                spinner-border-sm me-1">
+                                spinner-border-sm me-1"
+                            aria-hidden="true">
                         </span>
 
                         Deleting...
@@ -373,6 +414,11 @@ $duration = is_array($videoIntroduction)
             'videoHistory' =>
             $videoIntroductionHistory,
 
+            /*
+             * Members should receive understandable moderation
+             * feedback, but internal FFmpeg/S3 processing details
+             * must only be available to administrators.
+             */
             'showTechnicalErrors' =>
             false,
         ]
