@@ -184,7 +184,7 @@ $statusClass = match ($videoStatus) {
             ): ?>
                 <span class="text-primary">
                     Duration will appear after the
-                    video has finished processing.
+                    video is approved.
                 </span>
             <?php else: ?>
                 <span class="text-muted">
