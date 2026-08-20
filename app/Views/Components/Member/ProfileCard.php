@@ -193,8 +193,37 @@ $relationshipLabel =
         'ACCEPTED_RECEIVED' =>
         'Interest Accepted',
 
+        'DECLINED_SENT',
+        'DECLINED_RECEIVED' =>
+        'Interest Declined',
+
         default =>
         '',
+    };
+
+/*
+ * Keep Interest badge colours consistent with ProfileInterestCard.
+ *
+ * Pending  = warning
+ * Accepted = success
+ * Declined = danger
+ */
+$relationshipBadgeClass =
+    match ($interestState) {
+        'ACCEPTED_SENT',
+        'ACCEPTED_RECEIVED' =>
+        'bg-success-subtle text-success',
+
+        'DECLINED_SENT',
+        'DECLINED_RECEIVED' =>
+        'bg-danger-subtle text-danger',
+
+        'PENDING_SENT',
+        'PENDING_RECEIVED' =>
+        'bg-warning-subtle text-body',
+
+        default =>
+        'bg-light text-body',
     };
 ?>
 
@@ -325,9 +354,11 @@ $relationshipLabel =
                     ): ?>
 
                         <span
-                            class="badge bg-light
-            text-body border
-            px-2 py-2
+                            class="badge <?= esc(
+                                                $relationshipBadgeClass,
+                                                'attr'
+                                            ) ?>
+            border px-2 py-2
             flex-shrink-0">
 
                             <?= esc(

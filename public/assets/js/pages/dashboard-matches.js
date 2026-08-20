@@ -2,10 +2,44 @@
     'use strict';
 
     /**
+     * Move profile modals outside dashboard scroll containers.
+     *
+     * ProfileThumbnail is rendered inside a horizontal overflow container.
+     * Bootstrap modals must be direct body children so they are not clipped
+     * by that container.
+     *
+     * @returns {void}
+     */
+    function moveProfileModalsToBody() {
+        document
+            .querySelectorAll(
+                '[data-dashboard-profile-modal]'
+            )
+            .forEach(function (modalElement) {
+                if (
+                    !(
+                        modalElement
+                        instanceof HTMLElement
+                    )
+                    || modalElement.parentElement
+                    === document.body
+                ) {
+                    return;
+                }
+
+                document.body.appendChild(
+                    modalElement
+                );
+            });
+    }
+
+    /**
      * Scroll one member collection.
      *
      * @param {HTMLElement} container
      * @param {number} direction
+     *
+     * @returns {void}
      */
     function scrollProfiles(
         container,
@@ -26,6 +60,13 @@
             behavior: 'smooth'
         });
     }
+
+    document.addEventListener(
+        'DOMContentLoaded',
+        function () {
+            moveProfileModalsToBody();
+        }
+    );
 
     document.addEventListener(
         'click',
