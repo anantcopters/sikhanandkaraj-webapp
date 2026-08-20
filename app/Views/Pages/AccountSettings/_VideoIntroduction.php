@@ -185,7 +185,7 @@ $statusClass = match ($videoStatus) {
                     true
                 )
             ): ?>
-                <span class="text-primary">
+                <span class="text-danger">
                     Duration will appear after the
                     video is approved.
                 </span>
@@ -297,17 +297,10 @@ $statusClass = match ($videoStatus) {
             </option>
         </select>
 
-        <?php if ($isFemaleMember): ?>
-            <div class="form-text color-pink">
-                For female profiles, public Pro
-                visibility is unavailable.
-            </div>
-        <?php endif; ?>
-
         <div class="text-end mt-3">
             <button
                 type="submit"
-                class="btn btn-danger"
+                class="btn registration-form__submit w-auto text-uppercase fw-medium"
                 data-submit-button>
 
                 <span

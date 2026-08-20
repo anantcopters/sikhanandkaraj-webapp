@@ -570,7 +570,13 @@ final class Services extends BaseService
         $database = db_connect();
 
         return new FamilyDetailsService(
-            new UserModel($database),
+            new UserModel(
+                $database
+            ),
+
+            new UserContactModel(
+                $database
+            ),
 
             new MemberFamilyDetailModel(
                 $database
@@ -2280,13 +2286,35 @@ final class Services extends BaseService
         $database = db_connect();
 
         return new MemberVideoModerationService(
-            new MemberVideoIntroductionModel($database),
-            new MemberVideoModerationHistoryModel($database),
-            static::cloudFrontService(false),
-            static::memberNotificationService(false),
-            static::memberPhotoUrlService(false),
+            new MemberVideoIntroductionModel(
+                $database
+            ),
+
+            new MemberVideoModerationHistoryModel(
+                $database
+            ),
+
+            static::cloudFrontService(
+                false
+            ),
+
+            static::memberNotificationService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            static::memberTrustVerificationService(
+                false
+            ),
+
             $database,
-            config(VideoIntroduction::class)
+
+            config(
+                VideoIntroduction::class
+            )
         );
     }
 }

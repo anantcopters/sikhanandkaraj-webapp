@@ -126,6 +126,26 @@ final class PrelaunchProfileService
             )
         ) ?? '';
 
+        $parentContactNumber = preg_replace(
+            '/\D+/',
+            '',
+            (string) (
+                $input['parent_contact_number']
+                ?? ''
+            )
+        ) ?? '';
+
+        if (
+            $parentContactNumber !== ''
+            && $parentContactNumber === $mobileNumber
+        ) {
+            return PrelaunchProfileResult::fieldFailure(
+                'parent_contact_number',
+                'Parent/Guardian mobile number cannot '
+                    . 'be the same as the member mobile number.'
+            );
+        }
+
         /*
      * Duplicate values are user-correctable business failures.
      *

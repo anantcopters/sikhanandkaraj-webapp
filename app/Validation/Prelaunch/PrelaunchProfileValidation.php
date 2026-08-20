@@ -191,14 +191,21 @@ final class PrelaunchProfileValidation
                     'rules' => [
                         'required',
                         'regex_match[/^[6-9][0-9]{9}$/]',
+                        'differs[mobile_number]',
                     ],
 
                     'errors' => [
                         'required' =>
-                        'Please enter a contact number for either parent/guardian.',
+                        'Please enter a contact number '
+                            . 'for either parent/guardian.',
 
                         'regex_match' =>
-                        'Please enter a valid 10-digit Indian parent/guardian contact number.',
+                        'Please enter a valid 10-digit Indian '
+                            . 'parent/guardian contact number.',
+
+                        'differs' =>
+                        'Parent/Guardian mobile number cannot '
+                            . 'be the same as the member mobile number.',
                     ],
                 ],
 

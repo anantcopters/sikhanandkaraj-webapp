@@ -7,6 +7,7 @@ use App\Support\DateDisplay;
 /**
  * @var list<array<string, mixed>> $videos
  * @var string $search
+ * @var string $selectedStatus
  * @var array<string, string>|null $formAlert
  */
 
@@ -17,12 +18,57 @@ $videos =
     : [];
 
 $search = trim(
-    (string) ($search ?? '')
+    (string) (
+        $search
+        ?? ''
+    )
 );
 
-$this->extend('Admin/Layouts/Main');
+$selectedStatus = mb_strtoupper(
+    trim(
+        (string) (
+            $selectedStatus
+            ?? 'PENDING_REVIEW'
+        )
+    )
+);
 
-$this->section('content');
+$statusOptions = [
+    'ALL' =>
+    'All Statuses',
+
+    'PROCESSING' =>
+    'Processing',
+
+    'PROCESSING_FAILED' =>
+    'Processing Failed',
+
+    'PENDING_REVIEW' =>
+    'Pending Review',
+
+    'APPROVED' =>
+    'Approved',
+
+    'REJECTED' =>
+    'Rejected',
+
+    'RESUBMISSION_REQUESTED' =>
+    'Resubmission Requested',
+
+    'REPLACED' =>
+    'Replaced',
+
+    'DELETED' =>
+    'Deleted',
+];
+
+$this->extend(
+    'Admin/Layouts/Main'
+);
+
+$this->section(
+    'content'
+);
 ?>
 
 <div class="container-fluid">
@@ -30,8 +76,10 @@ $this->section('content');
         <div class="col-12">
             <div
                 class="page-title-box
-                    d-sm-flex align-items-sm-center
-                    justify-content-between gap-3">
+                    d-sm-flex
+                    align-items-sm-center
+                    justify-content-between
+                    gap-3">
 
                 <div>
                     <h1 class="fs-18 fw-semibold mb-1">
@@ -39,8 +87,8 @@ $this->section('content');
                     </h1>
 
                     <p class="text-muted mb-0">
-                        Review processed member introductions
-                        before they become visible on profiles.
+                        Search and review member Video
+                        Introduction submissions.
                     </p>
                 </div>
             </div>
@@ -50,7 +98,8 @@ $this->section('content');
     <?= view(
         'Components/Alerts/FormAlert',
         [
-            'alert' => $formAlert ?? null,
+            'alert' =>
+            $formAlert ?? null,
         ]
     ) ?>
 
@@ -62,11 +111,12 @@ $this->section('content');
             <form
                 method="get"
                 action="<?= route_to(
-                            'admin.members.video-introductions'
+                            'admin.members'
+                                . '.video-introductions'
                         ) ?>">
 
                 <div class="row g-2 align-items-end">
-                    <div class="col-12 col-md-6 col-xl-4">
+                    <div class="col-12 col-md-5 col-xl-4">
                         <label
                             for="videoMemberSearch"
                             class="form-label">
@@ -92,8 +142,46 @@ $this->section('content');
                                             'attr'
                                         ) ?>"
                                 maxlength="100"
-                                placeholder="Name or reference number">
+                                placeholder="Name or profile ID">
                         </div>
+                    </div>
+
+                    <div class="col-12 col-md-4 col-xl-3">
+                        <label
+                            for="videoStatus"
+                            class="form-label">
+
+                            Status
+                        </label>
+
+                        <select
+                            id="videoStatus"
+                            name="status"
+                            class="form-select"
+                            data-choice
+                            data-choice-search="false">
+
+                            <?php foreach (
+                                $statusOptions
+                                as $statusValue =>
+                                $statusLabel
+                            ): ?>
+                                <option
+                                    value="<?= esc(
+                                                $statusValue,
+                                                'attr'
+                                            ) ?>"
+                                    <?= $selectedStatus
+                                        === $statusValue
+                                        ? 'selected'
+                                        : '' ?>>
+
+                                    <?= esc(
+                                        $statusLabel
+                                    ) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
 
                     <div class="col-6 col-md-auto">
@@ -128,12 +216,12 @@ $this->section('content');
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table
-                    class="table table-hover table-nowrap
-                        align-middle mb-0">
+                    class="table table-hover
+                        table-nowrap align-middle mb-0">
 
                     <thead class="bg-info-subtle">
                         <tr>
-                            <th>Reference</th>
+                            <th>Profile ID</th>
                             <th>Member</th>
                             <th>Gender</th>
                             <th>Duration</th>
@@ -157,26 +245,23 @@ $this->section('content');
                                             <span
                                                 class="avatar-title
                                                     rounded-circle
-                                                    bg-success-subtle
-                                                    text-success fs-24">
+                                                    bg-light
+                                                    text-muted fs-24">
 
                                                 <i
-                                                    class="ri-checkbox-circle-line"
+                                                    class="ri-video-line"
                                                     aria-hidden="true">
                                                 </i>
                                             </span>
                                         </div>
 
                                         <h2 class="fs-16 mb-1">
-                                            <?= $search !== ''
-                                                ? 'No matching submissions'
-                                                : 'No videos pending approval' ?>
+                                            No submissions found
                                         </h2>
 
                                         <p class="text-muted mb-0">
-                                            <?= $search !== ''
-                                                ? 'No pending Video Introduction matches your search.'
-                                                : 'There are currently no Video Introductions waiting for review.' ?>
+                                            No Video Introductions
+                                            match the selected filters.
                                         </p>
                                     </div>
                                 </td>
@@ -208,14 +293,24 @@ $this->section('content');
                                 )
                             );
 
+                            $genderLabel = match ($gender) {
+                                'M',
+                                'MALE' =>
+                                'Male',
+
+                                'F',
+                                'FEMALE' =>
+                                'Female',
+
+                                default =>
+                                '—',
+                            };
+
                             $duration = is_numeric(
                                 $video['duration_seconds']
                                     ?? null
                             )
-                                ? number_format(
-                                    (float) $video['duration_seconds'],
-                                    1
-                                )
+                                ? (float) $video['duration_seconds']
                                 : null;
 
                             $publicId = trim(
@@ -224,6 +319,61 @@ $this->section('content');
                                     ?? ''
                                 )
                             );
+
+                            $status = mb_strtoupper(
+                                trim(
+                                    (string) (
+                                        $video['moderation_status'] ?? ''
+                                    )
+                                )
+                            );
+
+                            $statusPresentation = match ($status) {
+                                'APPROVED' => [
+                                    'Approved',
+                                    'bg-success-subtle text-success',
+                                ],
+
+                                'REJECTED' => [
+                                    'Rejected',
+                                    'bg-danger-subtle text-danger',
+                                ],
+
+                                'PROCESSING_FAILED' => [
+                                    'Processing Failed',
+                                    'bg-danger-subtle text-danger',
+                                ],
+
+                                'RESUBMISSION_REQUESTED' => [
+                                    'Resubmission Requested',
+                                    'bg-warning-subtle text-warning',
+                                ],
+
+                                'PENDING_REVIEW' => [
+                                    'Pending Review',
+                                    'bg-warning-subtle text-warning',
+                                ],
+
+                                'PROCESSING' => [
+                                    'Processing',
+                                    'bg-primary-subtle text-primary',
+                                ],
+
+                                'REPLACED' => [
+                                    'Replaced',
+                                    'bg-secondary-subtle text-secondary',
+                                ],
+
+                                'DELETED' => [
+                                    'Deleted',
+                                    'bg-secondary-subtle text-secondary',
+                                ],
+
+                                default => [
+                                    'Unknown',
+                                    'bg-light text-muted',
+                                ],
+                            };
                             ?>
 
                             <tr>
@@ -242,19 +392,24 @@ $this->section('content');
                                 </td>
 
                                 <td>
-                                    <?= $gender === 'M'
-                                        ? 'Male'
-                                        : (
-                                            $gender === 'F'
-                                            ? 'Female'
-                                            : '—'
-                                        ) ?>
+                                    <?= esc($genderLabel) ?>
                                 </td>
 
                                 <td>
-                                    <?= $duration !== null
-                                        ? esc($duration) . ' seconds'
-                                        : '—' ?>
+                                    <?php if (
+                                        $duration !== null
+                                        && $duration > 0
+                                    ): ?>
+                                        <?= esc(
+                                            number_format(
+                                                $duration,
+                                                1
+                                            )
+                                        ) ?>
+                                        seconds
+                                    <?php else: ?>
+                                        —
+                                    <?php endif; ?>
                                 </td>
 
                                 <td>
@@ -268,10 +423,14 @@ $this->section('content');
 
                                 <td>
                                     <span
-                                        class="badge bg-warning-subtle
-                                            text-warning">
+                                        class="badge <?= esc(
+                                                            $statusPresentation[1],
+                                                            'attr'
+                                                        ) ?>">
 
-                                        Under Review
+                                        <?= esc(
+                                            $statusPresentation[0]
+                                        ) ?>
                                     </span>
                                 </td>
 
@@ -285,11 +444,12 @@ $this->section('content');
                                                         . '.review',
                                                     $publicId
                                                 ) ?>"
-                                        title="Review Video Introduction"
-                                        aria-label="Review Video Introduction for <?= esc(
-                                                                                        $reference,
-                                                                                        'attr'
-                                                                                    ) ?>">
+                                        title="View Video Introduction"
+                                        aria-label="<?= esc(
+                                                        'View Video Introduction for '
+                                                            . $reference,
+                                                        'attr'
+                                                    ) ?>">
 
                                         <i
                                             class="ri-eye-line"

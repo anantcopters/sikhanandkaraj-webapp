@@ -987,7 +987,10 @@ $this->section('content');
 <section class="py-3 py-lg-4">
     <div class="container">
 
-        <div class="mb-2">
+        <div
+            class="d-flex align-items-center
+        justify-content-between gap-3 mb-2">
+
             <a
                 href="<?= esc(
                             $profileBackUrl,
@@ -996,7 +999,7 @@ $this->section('content');
                 class="d-inline-flex
             align-items-center
             gap-1 text-primary
-            fw-medium mb-2">
+            fw-medium">
 
                 <i
                     class="ri-arrow-left-line"
@@ -1007,6 +1010,134 @@ $this->section('content');
                     $profileBackLabel
                 ) ?>
             </a>
+
+            <?php if ($isOtherMemberProfileView): ?>
+                <div class="dropdown">
+                    <button
+                        type="button"
+                        class="btn btn-info btn-icon"
+                        data-bs-toggle="dropdown"
+                        data-bs-auto-close="outside"
+                        aria-expanded="false"
+                        aria-label="Profile actions">
+
+                        <i
+                            class="ri-more-2-fill fs-18"
+                            aria-hidden="true">
+                        </i>
+                    </button>
+
+                    <div
+                        class="dropdown-menu dropdown-menu-end
+                    p-2 border border-danger
+        border-opacity-50 shadow-md"
+                        style="min-width: 220px;">
+
+                        <form
+                            method="post"
+                            action="<?= route_to(
+                                        'web.members.shortlist',
+                                        $viewedProfileReference
+                                    ) ?>"
+                            data-member-shortlist-form>
+
+                            <?= csrf_field() ?>
+
+                            <button
+                                type="submit"
+                                class="dropdown-item rounded
+                            d-flex align-items-center gap-2"
+                                data-member-shortlist-submit>
+
+                                <span
+                                    class="d-inline-flex
+                                align-items-center gap-2"
+                                    data-member-shortlist-label>
+
+                                    <i
+                                        class="<?= $isShortlisted
+                                                    ? 'ri-bookmark-fill'
+                                                    : 'ri-bookmark-line' ?>"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <?= $isShortlisted
+                                        ? 'Remove from Shortlist'
+                                        : 'Shortlist Profile' ?>
+                                </span>
+
+                                <span
+                                    class="d-none align-items-center
+                                gap-1"
+                                    data-member-shortlist-loading>
+
+                                    <span
+                                        class="spinner-border
+                                    spinner-border-sm"
+                                        aria-hidden="true">
+                                    </span>
+
+                                    Saving...
+                                </span>
+                            </button>
+                        </form>
+
+                        <?php if ($hasReportedProfile): ?>
+                            <button
+                                type="button"
+                                class="dropdown-item rounded
+                            d-flex align-items-center gap-2
+                            text-muted"
+                                disabled>
+
+                                <i
+                                    class="ri-flag-fill"
+                                    aria-hidden="true">
+                                </i>
+
+                                Reported:
+                                <?= esc(
+                                    $reportedProfileStatusLabel
+                                ) ?>
+                            </button>
+                        <?php else: ?>
+                            <button
+                                type="button"
+                                class="dropdown-item rounded
+                            d-flex align-items-center gap-2"
+                                data-bs-toggle="modal"
+                                data-bs-target="#memberReportModal">
+
+                                <i
+                                    class="ri-flag-line
+                                text-warning"
+                                    aria-hidden="true">
+                                </i>
+
+                                Report Profile
+                            </button>
+                        <?php endif; ?>
+
+                        <div class="dropdown-divider"></div>
+
+                        <button
+                            type="button"
+                            class="dropdown-item rounded
+                        d-flex align-items-center gap-2
+                        text-danger"
+                            data-bs-toggle="modal"
+                            data-bs-target="#memberBlockModal">
+
+                            <i
+                                class="ri-forbid-line"
+                                aria-hidden="true">
+                            </i>
+
+                            Block Profile
+                        </button>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
         <?php if (
             !$isOtherMemberProfileView
@@ -1689,142 +1820,6 @@ $this->section('content');
 
                                             <?php endif; ?>
 
-                                            <!-- ShortList -->
-                                            <!-- =================================================
-     Secondary actions
-     ================================================= -->
-
-                                            <div
-                                                class="border-top
-        pt-3
-        mt-1">
-
-                                                <div class="d-grid gap-2">
-
-                                                    <form
-                                                        method="post"
-                                                        action="<?= route_to(
-                                                                    'web.members.shortlist',
-                                                                    $viewedProfileReference
-                                                                ) ?>"
-                                                        data-member-shortlist-form>
-
-                                                        <?= csrf_field() ?>
-
-                                                        <button
-                                                            type="submit"
-                                                            class="btn
-                btn-outline-primary
-                w-100
-                d-inline-flex
-                align-items-center
-                justify-content-center
-                gap-1"
-                                                            data-member-shortlist-submit>
-
-                                                            <span
-                                                                class="d-inline-flex
-                    align-items-center
-                    gap-1"
-                                                                data-member-shortlist-label>
-
-                                                                <i
-                                                                    class="<?= $isShortlisted
-                                                                                ? 'ri-bookmark-fill'
-                                                                                : 'ri-bookmark-line' ?>"
-                                                                    aria-hidden="true">
-                                                                </i>
-
-                                                                <?= $isShortlisted
-                                                                    ? 'Shortlisted'
-                                                                    : 'ShortList' ?>
-                                                            </span>
-
-                                                            <span
-                                                                class="d-none align-items-center gap-1"
-                                                                data-member-shortlist-loading>
-
-                                                                <span
-                                                                    class="spinner-border spinner-border-sm"
-                                                                    aria-hidden="true">
-                                                                </span>
-
-                                                                Saving...
-                                                            </span>
-                                                        </button>
-                                                    </form>
-
-                                                    <div class="col-12">
-                                                        <?php if ($hasReportedProfile): ?>
-                                                            <button
-                                                                type="button"
-                                                                class="btn
-                btn-danger
-                w-100
-                h-100
-                d-flex
-                align-items-center
-                justify-content-center
-                gap-1"
-                                                                title="This profile has already been reported"
-                                                                disabled>
-
-
-
-                                                                <span>
-                                                                    Reported Status -
-                                                                    <?= esc(
-                                                                        $reportedProfileStatusLabel
-                                                                    ) ?>
-                                                                </span>
-                                                            </button>
-                                                        <?php else: ?>
-                                                            <button
-                                                                type="button"
-                                                                class="btn
-                btn-outline-warning
-                w-100
-                h-100
-                d-flex
-                align-items-center
-                justify-content-center
-                gap-1"
-                                                                data-bs-toggle="modal"
-                                                                data-bs-target="#memberReportModal">
-
-                                                                <i
-                                                                    class="ri-flag-line"
-                                                                    aria-hidden="true">
-                                                                </i>
-
-                                                                Report
-                                                            </button>
-                                                        <?php endif; ?>
-                                                    </div>
-
-                                                    <button
-                                                        type="button"
-                                                        class="btn
-            btn-outline-danger
-            w-100
-            d-inline-flex
-            align-items-center
-            justify-content-center
-            gap-1"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#memberBlockModal">
-
-                                                        <i
-                                                            class="ri-forbid-line"
-                                                            aria-hidden="true">
-                                                        </i>
-
-                                                        Block Profile
-                                                    </button>
-                                                </div>
-
-                                            </div>
-
                                         </div>
                                     </div>
 
@@ -2171,8 +2166,8 @@ $this->section('content');
                                                         <span
                                                             class="d-inline-flex
                             align-items-center gap-1
-                            text-success fw-semibold
-                            fs-13">
+                            text-success
+                            fs-12">
 
                                                             <i
                                                                 class="

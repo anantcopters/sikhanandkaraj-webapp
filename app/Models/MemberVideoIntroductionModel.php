@@ -217,6 +217,74 @@ final class MemberVideoIntroductionModel extends Model
     }
 
     /**
+     * Return Video Introduction submissions for the administrator listing.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function adminListing(
+        string $status = 'ALL',
+        int $limit = 100
+    ): array {
+        $normalizedStatus = mb_strtoupper(
+            trim($status)
+        );
+
+        $allowedStatuses = [
+            'ALL',
+            self::STATUS_PROCESSING,
+            self::STATUS_PROCESSING_FAILED,
+            self::STATUS_PENDING_REVIEW,
+            self::STATUS_APPROVED,
+            self::STATUS_REJECTED,
+            self::STATUS_RESUBMISSION_REQUESTED,
+            self::STATUS_REPLACED,
+            self::STATUS_DELETED,
+        ];
+
+        if (
+            !in_array(
+                $normalizedStatus,
+                $allowedStatuses,
+                true
+            )
+        ) {
+            $normalizedStatus = 'ALL';
+        }
+
+        $builder = $this
+            ->select(
+                'member_video_introductions.*, '
+                    . 'users.profile_ref_number, '
+                    . 'users.full_name, '
+                    . 'users.gender'
+            )
+            ->join(
+                'users',
+                'users.id = '
+                    . 'member_video_introductions.member_user_id'
+            );
+
+        if ($normalizedStatus !== 'ALL') {
+            $builder->where(
+                'member_video_introductions.moderation_status',
+                $normalizedStatus
+            );
+        }
+
+        return $builder
+            ->orderBy(
+                'member_video_introductions.submitted_at',
+                'DESC'
+            )
+            ->findAll(
+                max(
+                    1,
+                    min($limit, 200)
+                )
+            );
+    }
+
+    /**
      * Return every Video Introduction submitted by a member.
      *
      * Logically deleted and replaced versions are intentionally included

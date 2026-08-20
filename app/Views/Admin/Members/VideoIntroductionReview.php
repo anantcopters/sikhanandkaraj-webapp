@@ -11,6 +11,8 @@ use App\Support\DateDisplay;
  * @var array<string, string>|null $formAlert
  * @var array<string, string> $validationErrors
  * @var list<array<string, mixed>> $memberPhotos
+ * @var array<string, mixed> $trustVerification
+ * @var bool $canModerate
  */
 
 $video =
@@ -149,6 +151,25 @@ $memberPhotos =
     && is_array($memberPhotos)
     ? $memberPhotos
     : [];
+
+$trustVerification =
+    isset($trustVerification)
+    && is_array($trustVerification)
+    ? $trustVerification
+    : [];
+
+$canModerate =
+    ($canModerate ?? false)
+    === true;
+
+$moderationStatus = mb_strtoupper(
+    trim(
+        (string) (
+            $video['moderation_status']
+            ?? ''
+        )
+    )
+);
 
 $this->extend('Admin/Layouts/Main');
 
@@ -323,15 +344,32 @@ $this->section('content');
                                         )
                                     );
 
-                                    $photoStatusClass = match ($photoStatus) {
+                                    $ribbonClass = match ($photoStatus) {
                                         'APPROVED' =>
-                                        'bg-success',
+                                        'ribbon-success',
 
                                         'REJECTED' =>
-                                        'bg-danger',
+                                        'ribbon-danger',
+
+                                        'PENDING' =>
+                                        'ribbon-warning',
 
                                         default =>
-                                        'bg-warning text-dark',
+                                        'ribbon-secondary',
+                                    };
+
+                                    $ribbonLabel = match ($photoStatus) {
+                                        'APPROVED' =>
+                                        'Approved',
+
+                                        'REJECTED' =>
+                                        'Rejected',
+
+                                        'PENDING' =>
+                                        'Pending',
+
+                                        default =>
+                                        'Unknown',
                                     };
 
                                     $thumbnailUrl = trim(
@@ -349,556 +387,607 @@ $this->section('content');
                                         style="width: 150px;">
 
                                         <div
-                                            class="ribbon ribbon-<?= esc(
-                                                                        str_replace(
-                                                                            [
-                                                                                'bg-',
-                                                                                ' text-dark',
-                                                                            ],
-                                                                            '',
-                                                                            $photoStatusClass
-                                                                        ),
-                                                                        'attr'
-                                                                    ) ?>">
+                                            class="card ribbon-box
+        border shadow-none mb-0
+        flex-shrink-0"
+                                            style="width: 150px;">
 
-                                            <?= esc(
-                                                $photoStatus !== ''
-                                                    ? ucfirst(
-                                                        mb_strtolower(
-                                                            $photoStatus
-                                                        )
-                                                    )
-                                                    : 'Unknown'
-                                            ) ?>
-                                        </div>
+                                            <div
+                                                class="ribbon ribbon-shape
+            <?= esc(
+                                        $ribbonClass,
+                                        'attr'
+                                    ) ?>">
 
-                                        <div class="card-body p-2 pt-4">
-                                            <?php if ($thumbnailUrl !== ''): ?>
-                                                <img
-                                                    src="<?= esc(
-                                                                $thumbnailUrl,
-                                                                'attr'
-                                                            ) ?>"
-                                                    alt="Member profile photo"
-                                                    class="img-thumbnail
+                                                <?= esc($ribbonLabel) ?>
+                                            </div>
+
+                                            <div class="card-body p-2 pt-5">
+                                                <?php if ($thumbnailUrl !== ''): ?>
+                                                    <img
+                                                        src="<?= esc(
+                                                                    $thumbnailUrl,
+                                                                    'attr'
+                                                                ) ?>"
+                                                        alt="Member profile photo"
+                                                        class="img-thumbnail
                                     w-100 object-fit-cover"
-                                                    style="
+                                                        style="
                                     height: 145px;
                                     object-position: center;
                                 "
-                                                    loading="lazy">
-                                            <?php else: ?>
-                                                <div
-                                                    class="bg-light rounded
+                                                        loading="lazy">
+                                                <?php else: ?>
+                                                    <div
+                                                        class="bg-light rounded
                                     d-flex align-items-center
                                     justify-content-center"
-                                                    style="height: 145px;">
+                                                        style="height: 145px;">
 
-                                                    <i
-                                                        class="ri-image-line
+                                                        <i
+                                                            class="ri-image-line
                                         fs-24 text-muted"
-                                                        aria-hidden="true">
-                                                    </i>
-                                                </div>
-                                            <?php endif; ?>
+                                                            aria-hidden="true">
+                                                        </i>
+                                                    </div>
+                                                <?php endif; ?>
 
-                                            <?php if (
-                                                ($photo['isPrimary'] ?? false)
-                                                === true
-                                            ): ?>
-                                                <div class="text-center mt-2">
-                                                    <span
-                                                        class="badge
+                                                <?php if (
+                                                    ($photo['isPrimary'] ?? false)
+                                                    === true
+                                                ): ?>
+                                                    <div class="text-center mt-2">
+                                                        <span
+                                                            class="badge
                                         bg-primary-subtle
                                         text-primary">
 
-                                                        Primary
-                                                    </span>
-                                                </div>
-                                            <?php endif; ?>
+                                                            Primary
+                                                        </span>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
+                                    <?php endforeach; ?>
                                     </div>
-                                <?php endforeach; ?>
+                                <?php endif; ?>
                             </div>
-                        <?php endif; ?>
-                    </div>
 
-                    <div
-                        class="border rounded p-4
+                            <div
+                                class="border rounded p-4
         text-center bg-light">
 
-                        <span
-                            class="avatar-lg d-inline-block mb-3">
+                                <span
+                                    class="avatar-lg d-inline-block mb-3">
 
-                            <span
-                                class="avatar-title rounded-circle
+                                    <span
+                                        class="avatar-title rounded-circle
                 bg-primary-subtle
                 text-primary">
 
+                                        <i
+                                            class="ri-video-line fs-24"
+                                            aria-hidden="true">
+                                        </i>
+                                    </span>
+                                </span>
+
+                                <h3 class="fs-16 fw-semibold mb-1">
+                                    Video Introduction
+                                </h3>
+
+                                <p class="text-muted fs-13 mb-3">
+                                    Play the complete recording before
+                                    saving the moderation decision.
+                                </p>
+
+                                <?php if ($playbackUrl !== ''): ?>
+                                    <button
+                                        type="button"
+                                        class="btn btn-primary"
+                                        data-admin-video-open
+                                        data-video-url="<?= esc(
+                                                            $playbackUrl,
+                                                            'attr'
+                                                        ) ?>"
+                                        data-member-name="<?= esc(
+                                                                $memberName,
+                                                                'attr'
+                                                            ) ?>"
+                                        data-profile-reference="<?= esc(
+                                                                    $reference,
+                                                                    'attr'
+                                                                ) ?>">
+
+                                        <i
+                                            class="ri-play-circle-line me-1"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        Play Video
+                                    </button>
+                                <?php else: ?>
+                                    <div
+                                        class="alert alert-warning fs-13 mb-0"
+                                        role="alert">
+
+                                        The processed playback video is not
+                                        currently available.
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+
+                            <div class="table-responsive mt-3">
+                                <table
+                                    class="table table-sm
+                                table-nowrap mb-0">
+
+                                    <tbody>
+                                        <tr>
+                                            <th class="text-muted">
+                                                Duration
+                                            </th>
+
+                                            <td>
+                                                <?php if (
+                                                    $duration !== null
+                                                    && $duration > 0
+                                                ): ?>
+                                                    <?= esc(
+                                                        number_format(
+                                                            $duration,
+                                                            1
+                                                        )
+                                                    ) ?>
+                                                    seconds
+                                                <?php else: ?>
+                                                    —
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th class="text-muted">
+                                                Video codec
+                                            </th>
+
+                                            <td>
+                                                <?= trim(
+                                                    (string) (
+                                                        $video['video_codec']
+                                                        ?? ''
+                                                    )
+                                                ) !== ''
+                                                    ? esc(
+                                                        (string) $video['video_codec']
+                                                    )
+                                                    : '—' ?>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th class="text-muted">
+                                                Audio codec
+                                            </th>
+
+                                            <td>
+                                                <?= trim(
+                                                    (string) (
+                                                        $video['audio_codec']
+                                                        ?? ''
+                                                    )
+                                                ) !== ''
+                                                    ? esc(
+                                                        (string) $video['audio_codec']
+                                                    )
+                                                    : '—' ?>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th class="text-muted">
+                                                Resolution
+                                            </th>
+
+                                            <td>
+                                                <?php if (
+                                                    $width !== null
+                                                    && $height !== null
+                                                    && $width > 0
+                                                    && $height > 0
+                                                ): ?>
+                                                    <?= esc(
+                                                        (string) $width
+                                                    ) ?>
+                                                    ×
+                                                    <?= esc(
+                                                        (string) $height
+                                                    ) ?>
+                                                <?php else: ?>
+                                                    —
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th class="text-muted">
+                                                Submitted
+                                            </th>
+
+                                            <td>
+                                                <?= esc(
+                                                    DateDisplay::formatUtcDateTime(
+                                                        $video['submitted_at']
+                                                            ?? null
+                                                    )
+                                                ) ?>
+                                            </td>
+                                        </tr>
+
+                                        <tr>
+                                            <th class="text-muted">
+                                                Consent version
+                                            </th>
+
+                                            <td>
+                                                <?= trim(
+                                                    (string) (
+                                                        $video['consent_version']
+                                                        ?? ''
+                                                    )
+                                                ) !== ''
+                                                    ? esc(
+                                                        (string) $video['consent_version']
+                                                    )
+                                                    : '—' ?>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-5">
+                <?= view(
+                    'Components/Member/AdminTrustVerification',
+                    [
+                        'trustVerification' =>
+                        $trustVerification,
+                    ]
+                ) ?>
+                <div
+                    class="card border border-warning
+                    border-opacity-50 mb-4">
+
+                    <div
+                        class="card-header bg-transparent
+                        d-flex align-items-center gap-2">
+
+                        <span class="avatar-sm">
+                            <span
+                                class="avatar-title rounded-circle
+                                bg-warning-subtle
+                                text-warning">
+
                                 <i
-                                    class="ri-video-line fs-24"
+                                    class="ri-shield-check-line fs-20"
                                     aria-hidden="true">
                                 </i>
                             </span>
                         </span>
 
-                        <h3 class="fs-16 fw-semibold mb-1">
-                            Video Introduction
-                        </h3>
+                        <h2 class="fs-16 fw-semibold mb-0">
+                            Moderation checklist
+                        </h2>
+                    </div>
 
-                        <p class="text-muted fs-13 mb-3">
-                            Play the complete recording before
-                            saving the moderation decision.
+                    <div class="card-body">
+                        <p class="fs-13 text-muted">
+                            Confirm every applicable requirement
+                            before approving the member's Video
+                            Introduction.
                         </p>
 
-                        <button
-                            type="button"
-                            class="btn btn-primary"
-                            data-admin-video-open
-                            data-video-url="<?= esc(
-                                                $playbackUrl,
-                                                'attr'
-                                            ) ?>"
-                            data-member-name="<?= esc(
-                                                    $memberName,
-                                                    'attr'
-                                                ) ?>"
-                            data-profile-reference="<?= esc(
-                                                        $reference,
-                                                        'attr'
-                                                    ) ?>">
+                        <ul class="fs-12 ps-3 mb-0">
+                            <li class="mb-2">
+                                One person is clearly visible
+                                and audible.
+                            </li>
 
-                            <i
-                                class="ri-play-circle-line me-1"
-                                aria-hidden="true">
-                            </i>
+                            <li class="mb-2">
+                                The video is an original,
+                                respectful and relevant personal
+                                introduction.
+                            </li>
 
-                            Play Video
-                        </button>
-                    </div>
+                            <li class="mb-2">
+                                No phone number, email, address
+                                or social-media handle is spoken
+                                or displayed.
+                            </li>
 
-                    <div class="table-responsive mt-3">
-                        <table
-                            class="table table-sm
-                                table-nowrap mb-0">
+                            <li class="mb-2">
+                                No offensive, misleading or
+                                promotional content exists.
+                            </li>
 
-                            <tbody>
-                                <tr>
-                                    <th class="text-muted">
-                                        Duration
-                                    </th>
+                            <li class="mb-2">
+                                No other person's private
+                                information is disclosed.
+                            </li>
 
-                                    <td>
-                                        <?php if (
-                                            $duration !== null
-                                            && $duration > 0
-                                        ): ?>
-                                            <?= esc(
-                                                number_format(
-                                                    $duration,
-                                                    1
-                                                )
-                                            ) ?>
-                                            seconds
-                                        <?php else: ?>
-                                            —
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
+                            <li class="mb-2">
+                                The video does not contain
+                                copyrighted background music.
+                            </li>
 
-                                <tr>
-                                    <th class="text-muted">
-                                        Video codec
-                                    </th>
-
-                                    <td>
-                                        <?= trim(
-                                            (string) (
-                                                $video['video_codec']
-                                                ?? ''
-                                            )
-                                        ) !== ''
-                                            ? esc(
-                                                (string) $video['video_codec']
-                                            )
-                                            : '—' ?>
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <th class="text-muted">
-                                        Audio codec
-                                    </th>
-
-                                    <td>
-                                        <?= trim(
-                                            (string) (
-                                                $video['audio_codec']
-                                                ?? ''
-                                            )
-                                        ) !== ''
-                                            ? esc(
-                                                (string) $video['audio_codec']
-                                            )
-                                            : '—' ?>
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <th class="text-muted">
-                                        Resolution
-                                    </th>
-
-                                    <td>
-                                        <?php if (
-                                            $width !== null
-                                            && $height !== null
-                                            && $width > 0
-                                            && $height > 0
-                                        ): ?>
-                                            <?= esc(
-                                                (string) $width
-                                            ) ?>
-                                            ×
-                                            <?= esc(
-                                                (string) $height
-                                            ) ?>
-                                        <?php else: ?>
-                                            —
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <th class="text-muted">
-                                        Submitted
-                                    </th>
-
-                                    <td>
-                                        <?= esc(
-                                            DateDisplay::formatUtcDateTime(
-                                                $video['submitted_at']
-                                                    ?? null
-                                            )
-                                        ) ?>
-                                    </td>
-                                </tr>
-
-                                <tr>
-                                    <th class="text-muted">
-                                        Consent version
-                                    </th>
-
-                                    <td>
-                                        <?= trim(
-                                            (string) (
-                                                $video['consent_version']
-                                                ?? ''
-                                            )
-                                        ) !== ''
-                                            ? esc(
-                                                (string) $video['consent_version']
-                                            )
-                                            : '—' ?>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                            <li>
+                                The member does not claim that
+                                Sikhanandkaraj.com guarantees their
+                                identity.
+                            </li>
+                        </ul>
                     </div>
                 </div>
-            </div>
-        </div>
 
-        <div class="col-12 col-xl-5">
-            <div
-                class="card border border-warning
-                    border-opacity-50 mb-4">
-
-                <div
-                    class="card-header bg-transparent
-                        d-flex align-items-center gap-2">
-
-                    <span class="avatar-sm">
-                        <span
-                            class="avatar-title rounded-circle
-                                bg-warning-subtle
-                                text-warning">
-
-                            <i
-                                class="ri-shield-check-line fs-20"
-                                aria-hidden="true">
-                            </i>
-                        </span>
-                    </span>
-
-                    <h2 class="fs-16 fw-semibold mb-0">
-                        Moderation checklist
-                    </h2>
-                </div>
-
-                <div class="card-body">
-                    <p class="fs-13 text-muted">
-                        Confirm every applicable requirement
-                        before approving the member's Video
-                        Introduction.
-                    </p>
-
-                    <ul class="fs-12 ps-3 mb-0">
-                        <li class="mb-2">
-                            One person is clearly visible
-                            and audible.
-                        </li>
-
-                        <li class="mb-2">
-                            The video is an original,
-                            respectful and relevant personal
-                            introduction.
-                        </li>
-
-                        <li class="mb-2">
-                            No phone number, email, address
-                            or social-media handle is spoken
-                            or displayed.
-                        </li>
-
-                        <li class="mb-2">
-                            No offensive, misleading or
-                            promotional content exists.
-                        </li>
-
-                        <li class="mb-2">
-                            No other person's private
-                            information is disclosed.
-                        </li>
-
-                        <li class="mb-2">
-                            The video does not contain
-                            copyrighted background music.
-                        </li>
-
-                        <li>
-                            The member does not claim that
-                            Sikhanandkaraj.com guarantees their
-                            identity.
-                        </li>
-                    </ul>
-                </div>
-            </div>
-
-            <div
-                class="card border border-danger
+                <?php if ($canModerate): ?>
+                    <div
+                        class="card border border-danger
                     border-opacity-25 mb-0">
 
-                <div class="card-header bg-transparent">
-                    <h2 class="fs-16 fw-semibold mb-0">
-                        Moderation decision
-                    </h2>
-                </div>
-
-                <div class="card-body">
-                    <form
-                        method="post"
-                        action="<?= route_to(
-                                    'admin.members'
-                                        . '.video-introductions'
-                                        . '.moderate',
-                                    $publicId
-                                ) ?>"
-                        data-video-moderation-form
-                        data-validate
-                        data-submit-loader
-                        novalidate>
-
-                        <?= csrf_field() ?>
-
-                        <div class="mb-3">
-                            <label
-                                for="decision"
-                                class="form-label">
-
-                                Decision
-                            </label>
-
-                            <select
-                                id="decision"
-                                name="decision"
-                                class="form-select <?= isset(
-                                                        $validationErrors['decision']
-                                                    )
-                                                        ? 'is-invalid'
-                                                        : '' ?>"
-                                data-choice
-                                data-choice-search="false"
-                                data-error-required="
-            Please select a decision.
-        "
-                                required>
-
-                                <option value="">
-                                    Select a decision
-                                </option>
-
-                                <option
-                                    value="APPROVE"
-                                    <?= $selectedDecision === 'APPROVE'
-                                        ? 'selected'
-                                        : '' ?>>
-
-                                    Approve
-                                </option>
-
-                                <option
-                                    value="RESUBMIT"
-                                    <?= $selectedDecision === 'RESUBMIT'
-                                        ? 'selected'
-                                        : '' ?>>
-
-                                    Request resubmission
-                                </option>
-
-                                <option
-                                    value="REJECT"
-                                    <?= $selectedDecision === 'REJECT'
-                                        ? 'selected'
-                                        : '' ?>>
-
-                                    Reject
-                                </option>
-                            </select>
-
-                            <div
-                                id="decisionError"
-                                class="invalid-feedback <?= isset(
-                                                            $validationErrors['decision']
-                                                        )
-                                                            ? 'd-block'
-                                                            : '' ?>"
-                                data-validation-error="decision">
-
-                                <?= isset(
-                                    $validationErrors['decision']
-                                )
-                                    ? esc(
-                                        $validationErrors['decision']
-                                    )
-                                    : '' ?>
-                            </div>
+                        <div class="card-header bg-transparent">
+                            <h2 class="fs-16 fw-semibold mb-0">
+                                Moderation decision
+                            </h2>
                         </div>
 
-                        <div class="mb-3">
-                            <label
-                                for="reason"
-                                class="form-label">
+                        <div class="card-body">
+                            <form
+                                method="post"
+                                action="<?= route_to(
+                                            'admin.members'
+                                                . '.video-introductions'
+                                                . '.moderate',
+                                            $publicId
+                                        ) ?>"
+                                data-video-moderation-form
+                                data-validate
+                                data-submit-loader
+                                novalidate>
 
-                                Reason
+                                <?= csrf_field() ?>
 
-                                <span class="text-muted fs-12">
-                                    (required for rejection or
-                                    resubmission)
-                                </span>
-                            </label>
+                                <div class="mb-3">
+                                    <label
+                                        for="decision"
+                                        class="form-label">
 
-                            <textarea
-                                id="reason"
-                                name="reason"
-                                class="form-control <?= isset(
-                                                        $validationErrors['reason']
-                                                    )
-                                                        ? 'is-invalid'
-                                                        : '' ?>"
-                                maxlength="500"
-                                rows="4"
-                                data-error-required="
+                                        Decision
+                                    </label>
+
+                                    <select
+                                        id="decision"
+                                        name="decision"
+                                        class="form-select <?= isset(
+                                                                $validationErrors['decision']
+                                                            )
+                                                                ? 'is-invalid'
+                                                                : '' ?>"
+                                        data-choice
+                                        data-choice-search="false"
+                                        data-error-required="
+            Please select a decision.
+        "
+                                        required>
+
+                                        <option value="">
+                                            Select a decision
+                                        </option>
+
+                                        <option
+                                            value="APPROVE"
+                                            <?= $selectedDecision === 'APPROVE'
+                                                ? 'selected'
+                                                : '' ?>>
+
+                                            Approve
+                                        </option>
+
+                                        <option
+                                            value="RESUBMIT"
+                                            <?= $selectedDecision === 'RESUBMIT'
+                                                ? 'selected'
+                                                : '' ?>>
+
+                                            Request resubmission
+                                        </option>
+
+                                        <option
+                                            value="REJECT"
+                                            <?= $selectedDecision === 'REJECT'
+                                                ? 'selected'
+                                                : '' ?>>
+
+                                            Reject
+                                        </option>
+                                    </select>
+
+                                    <div
+                                        id="decisionError"
+                                        class="invalid-feedback <?= isset(
+                                                                    $validationErrors['decision']
+                                                                )
+                                                                    ? 'd-block'
+                                                                    : '' ?>"
+                                        data-validation-error="decision">
+
+                                        <?= isset(
+                                            $validationErrors['decision']
+                                        )
+                                            ? esc(
+                                                $validationErrors['decision']
+                                            )
+                                            : '' ?>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label
+                                        for="reason"
+                                        class="form-label">
+
+                                        Reason
+
+                                        <span class="text-muted fs-12">
+                                            (required for rejection or
+                                            resubmission)
+                                        </span>
+                                    </label>
+
+                                    <textarea
+                                        id="reason"
+                                        name="reason"
+                                        class="form-control <?= isset(
+                                                                $validationErrors['reason']
+                                                            )
+                                                                ? 'is-invalid'
+                                                                : '' ?>"
+                                        maxlength="500"
+                                        rows="4"
+                                        data-error-required="
             Please provide a reason.
         "
-                                data-error-minlength="
+                                        data-error-minlength="
             Provide a clear reason of at least
             10 characters.
         "
-                                data-error-maxlength="
+                                        data-error-maxlength="
             The reason cannot exceed
             500 characters.
         "
-                                placeholder="Provide a clear moderation reason"><?= esc(
-                                                                                    $reasonValue
-                                                                                ) ?></textarea>
+                                        placeholder="Provide a clear moderation reason"><?= esc(
+                                                                                            $reasonValue
+                                                                                        ) ?></textarea>
 
-                            <div
-                                id="reasonError"
-                                class="invalid-feedback <?= isset(
-                                                            $validationErrors['reason']
-                                                        )
-                                                            ? 'd-block'
-                                                            : '' ?>"
-                                data-validation-error="reason">
+                                    <div
+                                        id="reasonError"
+                                        class="invalid-feedback <?= isset(
+                                                                    $validationErrors['reason']
+                                                                )
+                                                                    ? 'd-block'
+                                                                    : '' ?>"
+                                        data-validation-error="reason">
 
-                                <?= isset(
-                                    $validationErrors['reason']
-                                )
-                                    ? esc(
-                                        $validationErrors['reason']
-                                    )
-                                    : '' ?>
-                            </div>
-                        </div>
+                                        <?= isset(
+                                            $validationErrors['reason']
+                                        )
+                                            ? esc(
+                                                $validationErrors['reason']
+                                            )
+                                            : '' ?>
+                                    </div>
+                                </div>
 
-                        <div class="text-end">
-                            <button
-                                type="submit"
-                                class="btn btn-danger"
-                                data-submit-button>
+                                <div class="text-end">
+                                    <button
+                                        type="submit"
+                                        class="btn registration-form__submit w-auto text-uppercase fw-medium"
+                                        data-submit-button>
 
-                                <span
-                                    class="
+                                        <span
+                                            class="
                                         registration-submit__label
                                     "
-                                    data-submit-idle>
+                                            data-submit-idle>
 
-                                    <i
-                                        class="ri-save-line me-1"
-                                        aria-hidden="true">
-                                    </i>
+                                            <i
+                                                class="ri-save-line me-1"
+                                                aria-hidden="true">
+                                            </i>
 
-                                    Save Decision
-                                </span>
+                                            Save Decision
+                                        </span>
 
-                                <span
-                                    class="
+                                        <span
+                                            class="
                                         registration-submit__loading
                                         d-none
                                     "
-                                    data-submit-loading>
+                                            data-submit-loading>
 
-                                    <span
-                                        class="spinner-border
+                                            <span
+                                                class="spinner-border
                                             spinner-border-sm me-1"
-                                        aria-hidden="true">
-                                    </span>
+                                                aria-hidden="true">
+                                            </span>
 
-                                    Saving...
-                                </span>
-                            </button>
+                                            Saving...
+                                        </span>
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                    </form>
-                </div>
+                    </div>
+                <?php else: ?>
+                    <div
+                        class="card border border-secondary
+            border-opacity-25 mb-0">
+
+                        <div class="card-header bg-transparent">
+                            <h2 class="fs-16 fw-semibold mb-0">
+                                Moderation Decision
+                            </h2>
+                        </div>
+
+                        <div class="card-body">
+                            <div
+                                class="alert alert-light border
+                    fs-13 mb-0">
+
+                                This submission is no longer pending
+                                review. Its current status is
+
+                                <strong>
+                                    <?= esc(
+                                        ucwords(
+                                            mb_strtolower(
+                                                str_replace(
+                                                    '_',
+                                                    ' ',
+                                                    $moderationStatus
+                                                )
+                                            )
+                                        )
+                                    ) ?>.
+                                </strong>
+
+                                The previous decision and reasons are
+                                available in the submission history.
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <?= view(
+                    'Components/VideoIntroduction/History',
+                    [
+                        'videoHistory' =>
+                        $videoHistory,
+
+                        'showTechnicalErrors' =>
+                        true,
+                    ]
+                ) ?>
             </div>
         </div>
     </div>
 
-    <div class="row mt-4">
-        <div class="col-12">
-            <?= view(
-                'Components/VideoIntroduction/History',
-                [
-                    'videoHistory' =>
-                    $videoHistory,
-
-                    'showTechnicalErrors' =>
-                    true,
-                ]
-            ) ?>
-        </div>
-    </div>
-</div>
-
-<?php $this->endSection(); ?>
+    <?php $this->endSection(); ?>
