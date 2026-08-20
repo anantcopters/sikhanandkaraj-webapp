@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document is the mandatory engineering rule set for SikhanAndKaraj. All implementation and QA work must read this file together with the current application architecture and `docs/qa/QA_RULES.md`.
+This document is the mandatory engineering rule set for Sikhanandkaraj. All implementation and QA work must read this file together with the current application architecture and `docs/qa/QA_RULES.md`.
 
 ## Responsibility boundary
 

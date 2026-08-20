@@ -32,7 +32,7 @@ document.addEventListener(
                         modal-lg">
 
                     <div class="modal-content">
-                        <div class="modal-header">
+                        <div class="modal-header bg-info-subtle py-2">
                             <div>
                                 <h2
                                     class="modal-title
@@ -76,8 +76,8 @@ document.addEventListener(
                             </video>
 
                             <p
-                                class="text-muted
-                                    fs-12 mt-2 mb-0">
+                                class="color-pink
+                                    fs-14 mt-2 mb-0">
 
                                 Review the complete recording
                                 before saving a moderation

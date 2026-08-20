@@ -723,7 +723,7 @@ final class VideoIntroductionProcessingService
                     . "'trunc(ih/2)*2'",
 
                 "drawtext="
-                    . "text='SikhanAndKaraj':"
+                    . "text='Sikhanandkaraj.com':"
                     . 'fontcolor=white@0.70:'
                     . 'fontsize=18:'
                     . 'x=w-text_w-16:'

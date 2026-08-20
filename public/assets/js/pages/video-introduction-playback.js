@@ -34,7 +34,7 @@ document.addEventListener(
                         modal-dialog-centered">
 
                     <div class="modal-content">
-                        <div class="modal-header">
+                        <div class="modal-header bg-info-subtle py-2">
                             <h2
                                 class="modal-title fs-18">
 
@@ -209,7 +209,7 @@ document.addEventListener(
 
                             <p
                                 class="color-pink
-                                    fs-12 mt-2 mb-0">
+                                    fs-14 mt-2 mb-0">
 
                                 Do not copy, record, share or
                                 misuse this member's personal

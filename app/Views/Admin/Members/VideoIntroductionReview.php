@@ -161,7 +161,7 @@ $this->section('content');
                         Review Video Introduction
                     </h1>
 
-                    <p class="text-muted mb-0">
+                    <p class="color-pink mb-0">
                         Review the complete recording and
                         moderation checklist before saving
                         a decision.
@@ -200,7 +200,7 @@ $this->section('content');
                     border-opacity-25 h-100">
 
                 <div
-                    class="card-header bg-transparent
+                    class="card-header bg-info-subtle
         d-flex align-items-center
         justify-content-between gap-3">
 
@@ -218,13 +218,6 @@ $this->section('content');
                             </strong>
                         </p>
                     </div>
-
-                    <span
-                        class="badge bg-warning-subtle
-            text-warning">
-
-                        Under Review
-                    </span>
                 </div>
 
                 <div class="card-body">
@@ -534,7 +527,7 @@ $this->section('content');
 
                         <li>
                             The member does not claim that
-                            SikhanAndKaraj guarantees their
+                            Sikhanandkaraj.com guarantees their
                             identity.
                         </li>
                     </ul>
