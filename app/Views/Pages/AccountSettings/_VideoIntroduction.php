@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Support\DateDisplay;
+
 /**
  * @var array<string, mixed>|null $videoIntroduction
  * @var array<string, mixed>|null $activeVideoIntroduction
+ * @var list<array<string, mixed>> $videoIntroductionHistory
  * @var string $videoStatus
  * @var string $videoStatusLabel
  * @var bool $isFemaleMember
@@ -28,6 +31,12 @@ $activeVideoIntroduction =
     && is_array($activeVideoIntroduction)
     ? $activeVideoIntroduction
     : null;
+
+$videoIntroductionHistory =
+    isset($videoIntroductionHistory)
+    && is_array($videoIntroductionHistory)
+    ? $videoIntroductionHistory
+    : [];
 
 $videoStatus = mb_strtoupper(
     trim(
@@ -63,6 +72,14 @@ $reason = is_array($videoIntroduction)
         )
     )
     : '';
+
+$duration = is_array($videoIntroduction)
+    && is_numeric(
+        $videoIntroduction['duration_seconds']
+            ?? null
+    )
+    ? (float) $videoIntroduction['duration_seconds']
+    : null;
 ?>
 
 <div
@@ -100,9 +117,9 @@ $reason = is_array($videoIntroduction)
 
         <dd class="col-sm-8">
             <?= esc(
-                (string) (
+                DateDisplay::formatUtcDateTime(
                     $videoIntroduction['submitted_at']
-                    ?? ''
+                        ?? null
                 )
             ) ?>
         </dd>
@@ -112,16 +129,36 @@ $reason = is_array($videoIntroduction)
         </dt>
 
         <dd class="col-sm-8">
-            <?= esc(
-                number_format(
-                    (float) (
-                        $videoIntroduction['duration_seconds']
-                        ?? 0
-                    ),
-                    1
+            <?php if (
+                $duration !== null
+                && $duration > 0
+            ): ?>
+                <?= esc(
+                    number_format(
+                        $duration,
+                        1
+                    )
+                ) ?>
+                seconds
+            <?php elseif (
+                in_array(
+                    $videoStatus,
+                    [
+                        'PROCESSING',
+                        'PENDING_REVIEW',
+                    ],
+                    true
                 )
-            ) ?>
-            seconds
+            ): ?>
+                <span class="text-primary">
+                    Duration will appear after the
+                    video has finished processing.
+                </span>
+            <?php else: ?>
+                <span class="text-muted">
+                    Duration unavailable
+                </span>
+            <?php endif; ?>
         </dd>
     </dl>
 <?php endif; ?>
@@ -138,7 +175,13 @@ $reason = is_array($videoIntroduction)
                                     ),
                                     'attr'
                                 ) ?>"
-            data-hidden="0">
+            data-hidden="0"
+            data-member-gender="<?= esc(
+                                    $isFemaleMember
+                                        ? 'F'
+                                        : '',
+                                    'attr'
+                                ) ?>">
 
             <i
                 class="ri-play-circle-line me-1"
@@ -181,7 +224,8 @@ $reason = is_array($videoIntroduction)
             ): ?>
                 <option
                     value="VISIBLE_PRO"
-                    <?= $selectedVisibility === 'VISIBLE_PRO'
+                    <?= $selectedVisibility
+                        === 'VISIBLE_PRO'
                         ? 'selected'
                         : '' ?>>
 
@@ -210,9 +254,9 @@ $reason = is_array($videoIntroduction)
         </select>
 
         <?php if ($isFemaleMember): ?>
-            <div class="form-text">
-                For female profiles, public Pro visibility
-                is unavailable.
+            <div class="form-text color-pink">
+                For female profiles, public Pro
+                visibility is unavailable.
             </div>
         <?php endif; ?>
 
@@ -222,7 +266,10 @@ $reason = is_array($videoIntroduction)
                 class="btn btn-danger"
                 data-submit-button>
 
-                <span data-submit-idle>
+                <span
+                    class="registration-submit__label"
+                    data-submit-idle>
+
                     <i
                         class="ri-save-line me-1"
                         aria-hidden="true">
@@ -232,7 +279,7 @@ $reason = is_array($videoIntroduction)
                 </span>
 
                 <span
-                    class="d-none"
+                    class="registration-submit__loading d-none"
                     data-submit-loading>
 
                     <span
@@ -247,75 +294,93 @@ $reason = is_array($videoIntroduction)
     </form>
 <?php endif; ?>
 
-<div
-    class="d-flex flex-wrap justify-content-end
-        gap-2 border-top pt-3">
-
-    <?php if ($canRecord): ?>
-        <a
-            href="<?= route_to(
-                        'web.video-introduction.record'
-                    ) ?>"
-            class="btn btn-outline-danger">
-
-            <i
-                class="ri-video-add-line me-1"
-                aria-hidden="true">
-            </i>
-
-            <?= is_array($videoIntroduction)
-                ? 'Record Replacement'
-                : 'Record Video' ?>
-        </a>
-    <?php endif; ?>
-
-    <?php if ($canDelete): ?>
-        <form
-            method="post"
-            action="<?= route_to(
-                        'web.video-introduction.delete'
-                    ) ?>"
-            onsubmit="return confirm(
-                'Delete this Video Introduction? '
-                + 'Its badge will be removed.'
-            );"
-            data-submit-loader>
-
-            <?= csrf_field() ?>
-
-            <button
-                type="submit"
-                class="btn btn-outline-danger"
-                data-submit-button>
-
-                <span data-submit-idle>
-                    <i
-                        class="ri-delete-bin-line me-1"
-                        aria-hidden="true">
-                    </i>
-
-                    Delete
-                </span>
-
-                <span
-                    class="d-none"
-                    data-submit-loading>
-
-                    <span
-                        class="spinner-border
-                            spinner-border-sm me-1">
-                    </span>
-
-                    Deleting...
-                </span>
-            </button>
-        </form>
-    <?php elseif ($lockRemainingSeconds > 0): ?>
-        <span
-            class="color-pink fs-13 align-self-center">
-
+<div class="border-top pt-3">
+    <?php if ($lockRemainingSeconds > 0): ?>
+        <p class="color-pink fs-13 mb-3">
             Delete/replace unlocks after the
             seven-day lock. You may hide it now.
-        </span>
+        </p>
     <?php endif; ?>
+
+    <div
+        class="d-flex flex-wrap
+            justify-content-end gap-2">
+
+        <?php if ($canRecord): ?>
+            <a
+                href="<?= route_to(
+                            'web.video-introduction.record'
+                        ) ?>"
+                class="btn btn-outline-danger">
+
+                <i
+                    class="ri-video-add-line me-1"
+                    aria-hidden="true">
+                </i>
+
+                <?= is_array($videoIntroduction)
+                    ? 'Record Replacement'
+                    : 'Record Video' ?>
+            </a>
+        <?php endif; ?>
+
+        <?php if ($canDelete): ?>
+            <form
+                method="post"
+                action="<?= route_to(
+                            'web.video-introduction.delete'
+                        ) ?>"
+                onsubmit="return confirm(
+                    'Delete this Video Introduction? '
+                    + 'Its badge will be removed.'
+                );"
+                data-submit-loader>
+
+                <?= csrf_field() ?>
+
+                <button
+                    type="submit"
+                    class="btn btn-outline-danger"
+                    data-submit-button>
+
+                    <span
+                        class="registration-submit__label"
+                        data-submit-idle>
+
+                        <i
+                            class="ri-delete-bin-line me-1"
+                            aria-hidden="true">
+                        </i>
+
+                        Delete
+                    </span>
+
+                    <span
+                        class="registration-submit__loading d-none"
+                        data-submit-loading>
+
+                        <span
+                            class="spinner-border
+                                spinner-border-sm me-1">
+                        </span>
+
+                        Deleting...
+                    </span>
+                </button>
+            </form>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div class="mt-4">
+    <?= view(
+        'Components/VideoIntroduction/History',
+        [
+            'videoHistory' =>
+            $videoIntroductionHistory,
+
+            'showTechnicalErrors' =>
+            false,
+        ]
+    ) ?>
 </div>

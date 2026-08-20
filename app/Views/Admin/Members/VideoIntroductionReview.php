@@ -116,6 +116,94 @@ $this->section('content');
                         </p>
                     </div>
 
+                    <?php
+                    $location = implode(
+                        ', ',
+                        array_filter([
+                            trim(
+                                (string) (
+                                    $video['city_name']
+                                    ?? ''
+                                )
+                            ),
+
+                            trim(
+                                (string) (
+                                    $video['state_name']
+                                    ?? ''
+                                )
+                            ),
+
+                            trim(
+                                (string) (
+                                    $video['country_name']
+                                    ?? ''
+                                )
+                            ),
+                        ])
+                    );
+                    ?>
+
+                    <div class="row g-3 mt-1 fs-13">
+                        <div class="col-6">
+                            <span class="text-muted d-block">
+                                Member ID
+                            </span>
+
+                            <strong>
+                                <?= esc(
+                                    $reference !== ''
+                                        ? $reference
+                                        : '—'
+                                ) ?>
+                            </strong>
+                        </div>
+
+                        <div class="col-6">
+                            <span class="text-muted d-block">
+                                Mobile
+                            </span>
+
+                            <strong>
+                                <?= esc(
+                                    (string) (
+                                        $video['mobile_number']
+                                        ?? '—'
+                                    )
+                                ) ?>
+                            </strong>
+                        </div>
+
+                        <div class="col-6">
+                            <span class="text-muted d-block">
+                                Gender
+                            </span>
+
+                            <strong>
+                                <?= esc(
+                                    (string) (
+                                        $video['gender']
+                                        ?? '—'
+                                    )
+                                ) ?>
+                            </strong>
+                        </div>
+
+                        <div class="col-6">
+                            <span class="text-muted d-block">
+                                Location
+                            </span>
+
+                            <strong>
+                                <?= esc(
+                                    $location !== ''
+                                        ? $location
+                                        : '—'
+                                ) ?>
+                            </strong>
+                        </div>
+                    </div>
+
                     <span
                         class="badge bg-warning-subtle
                             text-warning">
@@ -326,6 +414,21 @@ $this->section('content');
                 </div>
             </div>
 
+            <div class="row mt-4">
+                <div class="col-12">
+                    <?= view(
+                        'Components/VideoIntroduction/History',
+                        [
+                            'videoHistory' =>
+                            $videoHistory ?? [],
+
+                            'showTechnicalErrors' =>
+                            true,
+                        ]
+                    ) ?>
+                </div>
+            </div>
+
             <div
                 class="card border border-danger
                     border-opacity-25">
@@ -363,6 +466,8 @@ $this->section('content');
                                 id="decision"
                                 name="decision"
                                 class="form-select"
+                                data-choice
+                                data-choice-search="false"
                                 required>
 
                                 <option value="">
@@ -381,6 +486,10 @@ $this->section('content');
                                     Reject
                                 </option>
                             </select>
+
+                            <div class="invalid-feedback">
+                                Please select a decision.
+                            </div>
 
                             <div class="invalid-feedback">
                                 Please select a decision.

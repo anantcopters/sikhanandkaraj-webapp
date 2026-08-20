@@ -720,17 +720,36 @@ final class VideoIntroductionProcessingService
         string $posterPath
     ): void {
         /*
-        * First preserve the original aspect ratio while limiting the width.
+        * Preserve the source aspect ratio and limit the maximum width
+        * to 720 pixels.
         *
-        * force_original_aspect_ratio can calculate an odd output dimension,
-        * for example 720x405. H.264 with yuv420p requires both dimensions to
-        * be divisible by two, so the second filter normalises the final width
-        * and height to even values.
+        * H.264 with yuv420p requires both output dimensions to be
+        * divisible by two. The second scale filter ensures that an
+        * input such as 720x405 becomes a valid even-sized output.
+        *
+        * drawtext permanently embeds the SikhanAndKaraj watermark
+        * into every frame of the web playback video.
         */
-        $scale =
-            "scale='min(720,iw)':-2:"
-            . 'force_original_aspect_ratio=decrease,'
-            . "scale='trunc(iw/2)*2':'trunc(ih/2)*2'";
+        $videoFilter = implode(
+            ',',
+            [
+                "scale='min(720,iw)':-2:"
+                    . 'force_original_aspect_ratio=decrease',
+
+                "scale='trunc(iw/2)*2':"
+                    . "'trunc(ih/2)*2'",
+
+                "drawtext="
+                    . "text='Sikhanandkaraj':"
+                    . "fontcolor=white@0.70:"
+                    . "fontsize='max(14,min(22,iw/32))':"
+                    . "x=w-text_w-16:"
+                    . "y=16:"
+                    . "box=1:"
+                    . "boxcolor=black@0.35:"
+                    . "boxborderw=6",
+            ]
+        );
 
         $command =
             escapeshellarg(
@@ -744,7 +763,7 @@ final class VideoIntroductionProcessingService
             . ' -map 0:v:0'
             . ' -map 0:a:0'
             . ' -vf '
-            . escapeshellarg($scale)
+            . escapeshellarg($videoFilter)
             . ' -c:v libx264'
             . ' -preset fast'
             . ' -crf 24'
@@ -757,6 +776,7 @@ final class VideoIntroductionProcessingService
             . ' 2>&1';
 
         $output = [];
+
         $exitCode = 0;
 
         exec(
@@ -768,16 +788,38 @@ final class VideoIntroductionProcessingService
         if (
             $exitCode !== 0
             || ! is_file($playbackPath)
+            || filesize($playbackPath) === 0
         ) {
+            log_message(
+                'error',
+                'Video Introduction FFmpeg transcoding failed. '
+                    . 'ExitCode={exitCode}, Output={output}',
+                [
+                    'exitCode' =>
+                    $exitCode,
+
+                    'output' =>
+                    mb_substr(
+                        implode(
+                            PHP_EOL,
+                            $output
+                        ),
+                        0,
+                        4000
+                    ),
+                ]
+            );
+
             throw new RuntimeException(
                 'The web playback video could not be created.'
             );
         }
 
         /*
-        * The image2 muxer normally expects a filename sequence pattern.
-        * -update 1 explicitly tells FFmpeg to write one still image to the
-        * provided poster filename.
+        * The poster is generated from the watermarked playback video.
+        * Therefore, the poster image will contain the same watermark.
+        *
+        * -update 1 prevents the image2 muxer sequence-pattern warning.
         */
         $posterCommand =
             escapeshellarg(
@@ -796,6 +838,7 @@ final class VideoIntroductionProcessingService
             . ' 2>&1';
 
         $posterOutput = [];
+
         $posterExitCode = 0;
 
         exec(
@@ -807,7 +850,28 @@ final class VideoIntroductionProcessingService
         if (
             $posterExitCode !== 0
             || ! is_file($posterPath)
+            || filesize($posterPath) === 0
         ) {
+            log_message(
+                'error',
+                'Video Introduction poster generation failed. '
+                    . 'ExitCode={exitCode}, Output={output}',
+                [
+                    'exitCode' =>
+                    $posterExitCode,
+
+                    'output' =>
+                    mb_substr(
+                        implode(
+                            PHP_EOL,
+                            $posterOutput
+                        ),
+                        0,
+                        4000
+                    ),
+                ]
+            );
+
             throw new RuntimeException(
                 'The Video Introduction poster '
                     . 'could not be created.'

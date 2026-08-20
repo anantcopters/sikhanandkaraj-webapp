@@ -163,6 +163,10 @@ final class MemberVideoIntroductionService
             $this->config->maximumDurationSeconds,
             'maximumUploadSizeKb' =>
             $this->config->maximumUploadSizeKb,
+            'videoIntroductionHistory' =>
+            $this->videoHistoryForMember(
+                $memberUserId
+            ),
         ];
     }
 
@@ -829,21 +833,42 @@ final class MemberVideoIntroductionService
     }
 
     /**
-     * @return array{hasBadge:bool,isHidden:bool}
+     * @return array{
+     *     hasBadge:bool,
+     *     isHidden:bool,
+     *     durationSeconds:?float
+     * }
      */
     public function profileState(
         int $ownerUserId
     ): array {
-        $video = $this->videoModel->activeForMember(
-            $ownerUserId
-        );
+        $video = $this->videoModel
+            ->activeForMember(
+                $ownerUserId
+            );
+
+        $duration = is_array($video)
+            && is_numeric(
+                $video['duration_seconds']
+                    ?? null
+            )
+            ? (float) $video['duration_seconds']
+            : null;
 
         return [
-            'hasBadge' => is_array($video),
+            'hasBadge' =>
+            is_array($video),
 
-            'isHidden' => is_array($video)
+            'isHidden' =>
+            is_array($video)
                 && ($video['visibility'] ?? '')
                 === MemberVideoIntroductionModel::VISIBILITY_HIDDEN,
+
+            'durationSeconds' =>
+            $duration !== null
+                && $duration > 0
+                ? $duration
+                : null,
         ];
     }
 
@@ -921,6 +946,79 @@ final class MemberVideoIntroductionService
             default =>
             'Not submitted',
         };
+    }
+
+    /**
+     * Return every submitted video version with its moderation history.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function videoHistoryForMember(
+        int $memberUserId
+    ): array {
+        $videos = $this->videoModel
+            ->historyForMember(
+                $memberUserId
+            );
+
+        if ($videos === []) {
+            return [];
+        }
+
+        $videoIds = array_values(
+            array_filter(
+                array_map(
+                    static fn(array $video): int =>
+                    (int) ($video['id'] ?? 0),
+                    $videos
+                )
+            )
+        );
+
+        $moderationHistory = [];
+
+        if ($videoIds !== []) {
+            $moderationHistory = $this->database
+                ->table(
+                    'member_video_moderation_history'
+                )
+                ->whereIn(
+                    'video_introduction_id',
+                    $videoIds
+                )
+                ->orderBy(
+                    'created_at',
+                    'DESC'
+                )
+                ->get()
+                ->getResultArray();
+        }
+
+        $historyByVideo = [];
+
+        foreach ($moderationHistory as $history) {
+            $videoId = (int) (
+                $history['video_introduction_id']
+                ?? 0
+            );
+
+            $historyByVideo[$videoId][] = $history;
+        }
+
+        foreach ($videos as &$video) {
+            $videoId = (int) (
+                $video['id']
+                ?? 0
+            );
+
+            $video['moderation_history'] =
+                $historyByVideo[$videoId]
+                ?? [];
+        }
+
+        unset($video);
+
+        return $videos;
     }
 
     private function uuidV4(): string
