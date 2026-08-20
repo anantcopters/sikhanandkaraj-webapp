@@ -175,13 +175,7 @@ $duration = is_array($videoIntroduction)
                                     ),
                                     'attr'
                                 ) ?>"
-            data-hidden="0"
-            data-member-gender="<?= esc(
-                                    $isFemaleMember
-                                        ? 'F'
-                                        : '',
-                                    'attr'
-                                ) ?>">
+            data-hidden="0">
 
             <i
                 class="ri-play-circle-line me-1"

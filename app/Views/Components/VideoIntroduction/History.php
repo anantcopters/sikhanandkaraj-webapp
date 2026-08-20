@@ -90,7 +90,8 @@ $statusClasses = [
             </div>
 
             <i
-                class="ri-history-line fs-20 text-muted"
+                class="ri-history-line
+                    fs-20 text-muted"
                 aria-hidden="true">
             </i>
         </div>
@@ -99,7 +100,8 @@ $statusClasses = [
     <div class="card-body">
         <?php if ($videoHistory === []): ?>
             <p class="text-muted fs-13 mb-0">
-                No Video Introduction history is available.
+                No Video Introduction history is
+                available.
             </p>
         <?php else: ?>
             <div class="table-responsive">
@@ -109,8 +111,8 @@ $statusClasses = [
 
                     <thead>
                         <tr>
-                            <th>Version</th>
-                            <th>Submitted</th>
+                            <th>Version/event</th>
+                            <th>Date</th>
                             <th>Status</th>
                             <th>Reason/details</th>
                         </tr>
@@ -130,13 +132,6 @@ $statusClasses = [
                                 )
                             );
 
-                            $rejectionReason = trim(
-                                (string) (
-                                    $video['rejection_reason']
-                                    ?? ''
-                                )
-                            );
-
                             $processingError = trim(
                                 (string) (
                                     $video['processing_error']
@@ -153,61 +148,134 @@ $statusClasses = [
                                 )
                                 ? $video['moderation_history']
                                 : [];
+
+                            $hasModerationHistory =
+                                $moderationHistory !== [];
                             ?>
 
                             <tr>
                                 <td>
-                                    <?= esc(
-                                        (string) (
-                                            $video['version_number']
-                                            ?? '—'
-                                        )
-                                    ) ?>
+                                    <strong>
+                                        Version
+                                        <?= esc(
+                                            (string) (
+                                                $video['version_number']
+                                                ?? '—'
+                                            )
+                                        ) ?>
+                                    </strong>
                                 </td>
 
                                 <td class="text-nowrap">
                                     <?= esc(
                                         DateDisplay::formatUtcDateTime(
-                                            $video['submitted_at']
-                                                ?? null
-                                        )
+                                                $video['submitted_at']
+                                                    ?? null
+                                            )
                                     ) ?>
                                 </td>
 
                                 <td>
                                     <span
-                                        class="badge <?= esc(
-                                                            $statusClasses[$status]
-                                                                ?? 'bg-light text-body',
-                                                            'attr'
-                                                        ) ?>">
+                                        class="badge
+                                            bg-primary-subtle
+                                            text-primary">
 
-                                        <?= esc(
-                                            $statusLabels[$status]
-                                                ?? 'Unknown'
-                                        ) ?>
+                                        Submitted
                                     </span>
                                 </td>
 
-                                <td class="text-wrap">
-                                    <?php if (
-                                        $rejectionReason !== ''
-                                    ): ?>
-                                        <?= esc(
-                                            $rejectionReason
-                                        ) ?>
-                                    <?php elseif (
-                                        $showTechnicalErrors
-                                        && $processingError !== ''
-                                    ): ?>
-                                        <?= esc(
-                                            $processingError
-                                        ) ?>
-                                    <?php else: ?>
-                                        —
-                                    <?php endif; ?>
+                                <td>
+                                    Video Introduction submitted.
                                 </td>
                             </tr>
+
+                            <?php if (
+                                $status
+                                === 'PROCESSING_FAILED'
+                                && ! $hasModerationHistory
+                            ): ?>
+                                <tr class="table-light">
+                                    <td>
+                                        <span
+                                            class="text-muted fs-12">
+
+                                            Processing
+                                        </span>
+                                    </td>
+
+                                    <td class="text-nowrap">
+                                        <?= esc(
+                                            DateDisplay::formatUtcDateTime(
+                                                    $video['updated_at']
+                                                        ?? null
+                                                )
+                                        ) ?>
+                                    </td>
+
+                                    <td>
+                                        <span
+                                            class="badge
+                                                bg-danger-subtle
+                                                text-danger">
+
+                                            Processing failed
+                                        </span>
+                                    </td>
+
+                                    <td class="text-wrap">
+                                        <?php if (
+                                            $showTechnicalErrors
+                                            && $processingError !== ''
+                                        ): ?>
+                                            <?= esc(
+                                                $processingError
+                                            ) ?>
+                                        <?php else: ?>
+                                            Video processing could
+                                            not be completed.
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php elseif (
+                                ! $hasModerationHistory
+                            ): ?>
+                                <tr class="table-light">
+                                    <td>
+                                        <span
+                                            class="text-muted fs-12">
+
+                                            Current status
+                                        </span>
+                                    </td>
+
+                                    <td class="text-nowrap">
+                                        <?= esc(
+                                            DateDisplay::formatUtcDateTime(
+                                                    $video['updated_at']
+                                                        ?? null
+                                                )
+                                        ) ?>
+                                    </td>
+
+                                    <td>
+                                        <span
+                                            class="badge <?= esc(
+                                                                $statusClasses[$status]
+                                                                    ?? 'bg-light text-body',
+                                                                'attr'
+                                                            ) ?>">
+
+                                            <?= esc(
+                                                $statusLabels[$status]
+                                                    ?? 'Unknown'
+                                            ) ?>
+                                        </span>
+                                    </td>
+
+                                    <td>—</td>
+                                </tr>
+                            <?php endif; ?>
 
                             <?php foreach (
                                 $moderationHistory as $decision
@@ -236,7 +304,7 @@ $statusClasses = [
                                         <span
                                             class="text-muted fs-12">
 
-                                            Decision
+                                            Moderation decision
                                         </span>
                                     </td>
 
@@ -271,6 +339,84 @@ $statusClasses = [
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
+
+                            <?php if (
+                                $status === 'REPLACED'
+                                && $moderationHistory !== []
+                            ): ?>
+                                <tr class="table-light">
+                                    <td>
+                                        <span
+                                            class="text-muted fs-12">
+
+                                            Lifecycle
+                                        </span>
+                                    </td>
+
+                                    <td class="text-nowrap">
+                                        <?= esc(
+                                            DateDisplay::formatUtcDateTime(
+                                                    $video['updated_at']
+                                                        ?? null
+                                                )
+                                        ) ?>
+                                    </td>
+
+                                    <td>
+                                        <span
+                                            class="badge
+                                                bg-secondary-subtle
+                                                text-secondary">
+
+                                            Replaced
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        Replaced by a newer approved
+                                        Video Introduction.
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
+
+                            <?php if (
+                                $status === 'DELETED'
+                            ): ?>
+                                <tr class="table-light">
+                                    <td>
+                                        <span
+                                            class="text-muted fs-12">
+
+                                            Lifecycle
+                                        </span>
+                                    </td>
+
+                                    <td class="text-nowrap">
+                                        <?= esc(
+                                            DateDisplay::formatUtcDateTime(
+                                                    $video['deleted_at']
+                                                        ?? $video['updated_at']
+                                                        ?? null
+                                                )
+                                        ) ?>
+                                    </td>
+
+                                    <td>
+                                        <span
+                                            class="badge
+                                                bg-dark-subtle
+                                                text-dark">
+
+                                            Deleted
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        Video Introduction deleted
+                                        by the member.
+                                    </td>
+                                </tr>
+                            <?php endif; ?>
                         <?php endforeach; ?>
                     </tbody>
                 </table>

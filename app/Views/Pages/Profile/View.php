@@ -1107,21 +1107,35 @@ $this->section('content');
     gap-2
     mb-2">
 
-                                            <div
-                                                class="d-flex
-        align-items-center
-        flex-wrap
-        gap-2">
+                                            <div>
+                                                <div
+                                                    class="d-flex align-items-center
+            flex-wrap gap-2">
 
-                                                <h2
-                                                    class="fs-24
-            fw-bold
-            mb-0">
+                                                    <h2
+                                                        class="fs-24 fw-bold mb-0">
 
-                                                    <?= esc(
-                                                        $fullName
-                                                    ) ?>
-                                                </h2>
+                                                        <?= esc($fullName) ?>
+                                                    </h2>
+
+                                                    <?php if (
+                                                        strtoupper(
+                                                            trim(
+                                                                (string) (
+                                                                    $user['account_status']
+                                                                    ?? ''
+                                                                )
+                                                            )
+                                                        ) === 'APPROVED'
+                                                    ): ?>
+                                                        <i
+                                                            class="ri-checkbox-circle-fill
+                    text-success fs-18"
+                                                            aria-label="Approved profile">
+                                                        </i>
+                                                    <?php endif; ?>
+                                                </div>
+
                                                 <div class="text-muted fs-13 mt-1">
                                                     Profile ID:
 
@@ -1133,26 +1147,6 @@ $this->section('content');
                                                         ) ?>
                                                     </strong>
                                                 </div>
-                                                <?php if (
-                                                    strtoupper(
-                                                        trim(
-                                                            (string) (
-                                                                $user['account_status']
-                                                                ?? ''
-                                                            )
-                                                        )
-                                                    ) === 'APPROVED'
-                                                ): ?>
-
-                                                    <i
-                                                        class="ri-checkbox-circle-fill
-                text-success
-                fs-18"
-                                                        aria-label="Approved profile">
-                                                    </i>
-
-                                                <?php endif; ?>
-
                                             </div>
 
                                             <?php if ($showMemberActions): ?>
@@ -2102,10 +2096,14 @@ $this->section('content');
                                             <span class="avatar-xs flex-shrink-0">
                                                 <span
                                                     class="avatar-title rounded-circle
-                    bg-success-subtle text-success">
+                    <?= $hasVideoIntroductionBadge
+                                        ? 'bg-success-subtle text-success'
+                                        : 'bg-light text-muted' ?>">
 
                                                     <i
-                                                        class="ri-video-line fs-16"
+                                                        class="<?= $hasVideoIntroductionBadge
+                                                                    ? 'ri-video-line'
+                                                                    : 'ri-video-off-line' ?> fs-16"
                                                         aria-hidden="true">
                                                     </i>
                                                 </span>
@@ -2153,7 +2151,8 @@ $this->section('content');
                                                                                 ) ?>">
 
                                                             <i
-                                                                class="ri-checkbox-circle-fill me-1"
+                                                                class="ri-checkbox-circle-fill
+                                me-1"
                                                                 aria-hidden="true">
                                                             </i>
 
@@ -2186,548 +2185,573 @@ $this->section('content');
             || $hasVideoIntroductionBadge
         ): ?>
             <div class="row g-4 mb-4">
-                <div class="col-12 col-lg-6">
-                    <section
-                        class="card border border-success
-            border-opacity-25 shadow-sm
-            rounded-3 h-100"
-                        aria-labelledby="
-            aadhaarVerifiedDetailsTitle
-        ">
-                        <div
-                            class="card-header
-                bg-success-subtle
-                d-flex
-                align-items-center
-                justify-content-between
-                gap-2">
+                <?php if (
+                    $hasApprovedAadhaarIdentity
+                ): ?>
+                    <div class="col-12 col-lg-6">
+                        <section
+                            class="card border border-success
+                        border-opacity-25 shadow-sm
+                        rounded-3 h-100"
+                            aria-labelledby="
+                        aadhaarVerifiedDetailsTitle
+                    ">
 
                             <div
-                                class="d-flex
-                    align-items-center
-                    gap-2">
+                                class="card-header
+                            bg-success-subtle
+                            d-flex align-items-center
+                            justify-content-between
+                            gap-2">
 
-                                <i
-                                    class="ri-shield-check-line
-                        text-success
-                        fs-18"
-                                    aria-hidden="true"></i>
-
-                                <h2
-                                    id="aadhaarVerifiedDetailsTitle"
-                                    class="card-title
-                        fs-16
-                        fw-semibold
-                        mb-0">
-
-                                    Aadhaar Verified Details
-                                </h2>
-                            </div>
-                        </div>
-
-                        <div class="card-body">
-                            <div class="row g-3">
-
-                                <div class="col-12 col-md-6">
-                                    <div
-                                        class="border-bottom
-                            pb-2
-                            h-100">
-
-                                        <div
-                                            class="text-muted
-                                fs-12
-                                mb-1">
-
-                                            Name on Aadhaar
-                                        </div>
-
-                                        <div
-                                            class="fw-medium
-                                fs-14
-                                d-flex
-                                align-items-center
-                                gap-1">
-
-                                            <?= esc(
-                                                $aadhaarVerifiedName
-                                            ) ?>
-
-                                            <i
-                                                class="ri-checkbox-circle-fill
-                                    text-success"
-                                                aria-label="Aadhaar name verified">
-                                            </i>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-12 col-md-6">
-                                    <div
-                                        class="border-bottom
-                            pb-2
-                            h-100">
-
-                                        <div
-                                            class="text-muted
-                                fs-12
-                                mb-1">
-
-                                            Date of Birth on Aadhaar
-                                        </div>
-
-                                        <div
-                                            class="fw-medium
-                                fs-14
-                                d-flex
-                                align-items-center
-                                gap-1">
-
-                                            <?= esc(
-                                                $formattedAadhaarDateOfBirth
-                                            ) ?>
-
-                                            <i
-                                                class="ri-checkbox-circle-fill
-                                    text-success"
-                                                aria-label="Aadhaar date of birth verified">
-                                            </i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <p class="text-muted fs-12 mb-0 mt-3">
-                                These details were recorded during Aadhaar verification
-                                and cannot be edited from the matrimonial profile.
-                            </p>
-                        </div>
-                    </section>
-                </div>
-            </div>
-            <?php if ($hasVideoIntroductionBadge): ?>
-                <div class="col-12 col-lg-6">
-                    <section
-                        class="card border border-success
-                border-opacity-25 shadow-sm
-                rounded-3 h-100"
-                        aria-labelledby="
-                liveIntroductionVerifiedTitle
-            ">
-
-                        <div
-                            class="card-header
-                    bg-success-subtle
-                    d-flex align-items-center
-                    gap-2">
-
-                            <i
-                                class="ri-video-line
-                        text-success fs-18"
-                                aria-hidden="true">
-                            </i>
-
-                            <h2
-                                id="liveIntroductionVerifiedTitle"
-                                class="card-title fs-16
-                        fw-semibold mb-0">
-
-                                Live Introduction Video
-                            </h2>
-                        </div>
-
-                        <div class="card-body">
-                            <?php if (
-                                $isVideoIntroductionHidden
-                            ): ?>
                                 <div
-                                    class="alert alert-light
-                            border fs-13 mb-0">
-
-                                    This member has an approved
-                                    Video Introduction but has
-                                    currently hidden it.
-                                </div>
-                            <?php else: ?>
-                                <p class="text-muted fs-13 mb-2">
-                                    This member has recorded an
-                                    approved personal Video Introduction.
-                                </p>
-
-                                <?php if (
-                                    $videoIntroductionDuration !== null
-                                ): ?>
-                                    <p class="fs-13 mb-3">
-                                        <strong>Duration:</strong>
-
-                                        <?= esc(
-                                            number_format(
-                                                $videoIntroductionDuration,
-                                                1
-                                            )
-                                        ) ?>
-                                        seconds
-                                    </p>
-                                <?php endif; ?>
-
-                                <button
-                                    type="button"
-                                    class="btn btn-sm
-                            btn-outline-success"
-                                    data-video-introduction-open
-                                    data-playback-url="<?= esc(
-                                                            route_to(
-                                                                'web.video-introduction'
-                                                                    . '.viewer-playback',
-                                                                $viewedProfileReference
-                                                            ),
-                                                            'attr'
-                                                        ) ?>"
-                                    data-hidden="0"
-                                    data-member-gender="<?= esc(
-                                                            (string) (
-                                                                $user['gender']
-                                                                ?? ''
-                                                            ),
-                                                            'attr'
-                                                        ) ?>">
+                                    class="d-flex align-items-center
+                                gap-2">
 
                                     <i
-                                        class="ri-play-circle-line me-1"
+                                        class="ri-shield-check-line
+                                    text-success fs-18"
                                         aria-hidden="true">
                                     </i>
 
-                                    Play Video
-                                </button>
-                            <?php endif; ?>
-                        </div>
-                    </section>
-                </div>
-            <?php endif; ?>
+                                    <h2
+                                        id="aadhaarVerifiedDetailsTitle"
+                                        class="card-title fs-16
+                                    fw-semibold mb-0">
+
+                                        Aadhaar Verified Details
+                                    </h2>
+                                </div>
+                            </div>
+
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <div
+                                            class="border-bottom
+                                        pb-2 h-100">
+
+                                            <div
+                                                class="text-muted
+                                            fs-12 mb-1">
+
+                                                Name on Aadhaar
+                                            </div>
+
+                                            <div
+                                                class="fw-medium fs-14
+                                            d-flex align-items-center
+                                            gap-1">
+
+                                                <?= esc(
+                                                    $aadhaarVerifiedName
+                                                ) ?>
+
+                                                <i
+                                                    class="
+                                                ri-checkbox-circle-fill
+                                                text-success"
+                                                    aria-label="
+                                                Aadhaar name verified
+                                            ">
+                                                </i>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <div
+                                            class="border-bottom
+                                        pb-2 h-100">
+
+                                            <div
+                                                class="text-muted
+                                            fs-12 mb-1">
+
+                                                Date of Birth on Aadhaar
+                                            </div>
+
+                                            <div
+                                                class="fw-medium fs-14
+                                            d-flex align-items-center
+                                            gap-1">
+
+                                                <?= esc(
+                                                    $formattedAadhaarDateOfBirth
+                                                ) ?>
+
+                                                <i
+                                                    class="
+                                                ri-checkbox-circle-fill
+                                                text-success"
+                                                    aria-label="
+                                                Aadhaar date of birth
+                                                verified
+                                            ">
+                                                </i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p
+                                    class="text-muted
+                                fs-12 mb-0 mt-3">
+
+                                    These details were recorded during
+                                    Aadhaar verification and cannot be
+                                    edited from the matrimonial profile.
+                                </p>
+                            </div>
+                        </section>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (
+                    $hasVideoIntroductionBadge
+                ): ?>
+                    <div class="col-12 col-lg-6">
+                        <section
+                            class="card border border-success
+                        border-opacity-25 shadow-sm
+                        rounded-3 h-100"
+                            aria-labelledby="
+                        liveIntroductionVerifiedTitle
+                    ">
+
+                            <div
+                                class="card-header
+                            bg-success-subtle
+                            d-flex align-items-center
+                            justify-content-between
+                            gap-2">
+
+                                <div
+                                    class="d-flex align-items-center
+                                gap-2">
+
+                                    <i
+                                        class="ri-video-line
+                                    text-success fs-18"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <h2
+                                        id="
+                                    liveIntroductionVerifiedTitle
+                                "
+                                        class="card-title fs-16
+                                    fw-semibold mb-0">
+
+                                        Live Introduction Video
+                                    </h2>
+                                </div>
+
+                                <span
+                                    class="badge bg-success-subtle
+                                text-success border
+                                border-success
+                                border-opacity-25">
+
+                                    Verified
+                                </span>
+                            </div>
+
+                            <div class="card-body">
+                                <?php if (
+                                    $isVideoIntroductionHidden
+                                ): ?>
+                                    <div
+                                        class="alert alert-light
+                                    border fs-13 mb-0">
+
+                                        This member has an approved
+                                        Video Introduction but has
+                                        currently hidden it.
+                                    </div>
+                                <?php else: ?>
+                                    <p class="text-muted fs-13 mb-2">
+                                        This member has recorded an
+                                        approved personal Video
+                                        Introduction.
+                                    </p>
+
+                                    <?php if (
+                                        $videoIntroductionDuration
+                                        !== null
+                                    ): ?>
+                                        <p class="fs-13 mb-3">
+                                            <strong>Duration:</strong>
+
+                                            <?= esc(
+                                                number_format(
+                                                    $videoIntroductionDuration,
+                                                    1
+                                                )
+                                            ) ?>
+                                            seconds
+                                        </p>
+                                    <?php endif; ?>
+
+                                    <button
+                                        type="button"
+                                        class="btn btn-sm
+                                    btn-outline-success"
+                                        data-video-introduction-open
+                                        data-playback-url="<?= esc(
+                                                                route_to(
+                                                                    'web.video-introduction'
+                                                                        . '.viewer-playback',
+                                                                    $viewedProfileReference
+                                                                ),
+                                                                'attr'
+                                                            ) ?>"
+                                        data-hidden="0"
+                                        data-member-gender="<?= esc(
+                                                                (string) (
+                                                                    $user['gender']
+                                                                    ?? ''
+                                                                ),
+                                                                'attr'
+                                                            ) ?>">
+
+                                        <i
+                                            class="
+                                        ri-play-circle-line me-1"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        Play Video
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        </section>
+                    </div>
+                <?php endif; ?>
+            </div>
         <?php endif; ?>
-        <div class="row mb-0">
-            <div class="col-12">
-                <section
-                    class="card border border-danger
+        <div class="col-12">
+            <section
+                class="card border border-danger
         border-opacity-25 shadow-sm
         rounded-3 mb-4">
 
-                    <div class="card-body p-3 p-lg-4">
+                <div class="card-body p-3 p-lg-4">
 
-                        <div
-                            class="d-flex align-items-center
+                    <div
+                        class="d-flex align-items-center
                 justify-content-between gap-2 mb-3">
 
-                            <div>
-                                <h2 class="fs-17 fw-semibold mb-1">
-                                    Profile Photos
-                                </h2>
+                        <div>
+                            <h2 class="fs-17 fw-semibold mb-1">
+                                Profile Photos
+                            </h2>
 
-                                <p class="text-muted fs-13 mb-0">
-                                    Select a photo to view the enlarged gallery.
-                                </p>
-                            </div>
-
-                            <span class="badge bg-primary p-2 text-white fs-12">
-                                <?= esc(
-                                    (string) count($galleryPhotos)
-                                ) ?>
-                            </span>
+                            <p class="text-muted fs-13 mb-0">
+                                Select a photo to view the enlarged gallery.
+                            </p>
                         </div>
 
-                        <?php if ($galleryPhotos === []): ?>
+                        <span class="badge bg-primary p-2 text-white fs-12">
+                            <?= esc(
+                                (string) count($galleryPhotos)
+                            ) ?>
+                        </span>
+                    </div>
 
-                            <div
-                                class="border rounded-3
+                    <?php if ($galleryPhotos === []): ?>
+
+                        <div
+                            class="border rounded-3
                     text-center p-4 text-muted">
 
-                                <i
-                                    class="ri-image-line fs-24"
-                                    aria-hidden="true">
-                                </i>
+                            <i
+                                class="ri-image-line fs-24"
+                                aria-hidden="true">
+                            </i>
 
-                                <p class="fs-13 mb-0 mt-2">
-                                    No approved photos are available.
-                                </p>
-                            </div>
+                            <p class="fs-13 mb-0 mt-2">
+                                No approved photos are available.
+                            </p>
+                        </div>
 
-                        <?php else: ?>
+                    <?php else: ?>
 
-                            <div class="row g-2 g-md-3">
+                        <div class="row g-2 g-md-3">
 
-                                <?php foreach (
-                                    $galleryPhotos as $index => $photo
-                                ): ?>
+                            <?php foreach (
+                                $galleryPhotos as $index => $photo
+                            ): ?>
 
-                                    <div
-                                        class="col-6 col-md-4 col-lg-3">
+                                <div
+                                    class="col-6 col-md-4 col-lg-3">
 
-                                        <button
-                                            type="button"
-                                            class="d-block w-100 p-0
+                                    <button
+                                        type="button"
+                                        class="d-block w-100 p-0
                                 border rounded-3
                                 overflow-hidden bg-light
                                 position-relative"
-                                            data-profile-gallery-trigger
-                                            data-slide-index="<?= esc(
-                                                                    (string) $index,
-                                                                    'attr'
-                                                                ) ?>"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#profilePhotoGalleryModal"
-                                            aria-label="<?= esc(
-                                                            'Open profile photo '
+                                        data-profile-gallery-trigger
+                                        data-slide-index="<?= esc(
+                                                                (string) $index,
+                                                                'attr'
+                                                            ) ?>"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#profilePhotoGalleryModal"
+                                        aria-label="<?= esc(
+                                                        'Open profile photo '
+                                                            . ($index + 1),
+                                                        'attr'
+                                                    ) ?>">
+
+                                        <span
+                                            class="ratio ratio-16x9 d-block">
+
+                                            <img
+                                                src="<?= esc(
+                                                            $photo['thumbnailUrl'],
+                                                            'attr'
+                                                        ) ?>"
+                                                alt="<?= esc(
+                                                            $fullName
+                                                                . ' profile photo '
                                                                 . ($index + 1),
                                                             'attr'
-                                                        ) ?>">
+                                                        ) ?>"
+                                                class="profile-preview-gallery-photo"
+                                                loading="lazy">
+
+                                        </span>
+
+                                        <?php if (
+                                            $photo['isPrimary'] === true
+                                        ): ?>
 
                                             <span
-                                                class="ratio ratio-16x9 d-block">
-
-                                                <img
-                                                    src="<?= esc(
-                                                                $photo['thumbnailUrl'],
-                                                                'attr'
-                                                            ) ?>"
-                                                    alt="<?= esc(
-                                                                $fullName
-                                                                    . ' profile photo '
-                                                                    . ($index + 1),
-                                                                'attr'
-                                                            ) ?>"
-                                                    class="profile-preview-gallery-photo"
-                                                    loading="lazy">
-
-                                            </span>
-
-                                            <?php if (
-                                                $photo['isPrimary'] === true
-                                            ): ?>
-
-                                                <span
-                                                    class="badge bg-primary
+                                                class="badge bg-primary
                                         position-absolute
                                         top-0 start-0 m-2">
 
-                                                    <i
-                                                        class="ri-star-fill me-1"
-                                                        aria-hidden="true">
-                                                    </i>
+                                                <i
+                                                    class="ri-star-fill me-1"
+                                                    aria-hidden="true">
+                                                </i>
 
-                                                    Main
-                                                </span>
+                                                Main
+                                            </span>
 
-                                            <?php endif; ?>
+                                        <?php endif; ?>
 
-                                        </button>
-                                    </div>
-
-                                <?php endforeach; ?>
-
-                            </div>
-
-                        <?php endif; ?>
-
-                    </div>
-                </section>
-            </div>
-        </div>
-        <div class="row g-4 align-items-start">
-
-            <!-- One single card for every section in the left column. -->
-            <div class="col-12 col-lg-7">
-                <div
-                    class="card border border-danger border-opacity-25 shadow-sm
-                        rounded-3 overflow-hidden">
-
-                    <section
-                        class="card-body p-3 p-lg-4
-                            border-bottom">
-
-
-
-                        <div
-                            class="d-flex
-                                align-items-center gap-2 mb-3">
-
-                            <span
-                                class="d-inline-flex
-                                    align-items-center
-                                    justify-content-center
-                                    rounded-circle
-                                    bg-primary-subtle
-                                    text-primary"
-                                style="
-                                    width: 34px;
-                                    height: 34px;
-                                ">
-
-                                <i
-                                    class=" fs-18
-                                        ri-user-smile-line"
-                                    aria-hidden="true"></i>
-                            </span>
-
-                            <h2
-                                class="fs-16
-                                    fw-semibold mb-0">
-                                About Me
-                            </h2>
-                        </div>
-
-                        <?php if ($aboutMe !== ''): ?>
-                            <p
-                                class="text-body-secondary
-                                    lh-lg mb-0">
-                                <?= nl2br(
-                                    esc($aboutMe)
-                                ) ?>
-                            </p>
-                        <?php else: ?>
-                            <p class="text-muted mb-0">
-                                About Me has not been added yet.
-                            </p>
-                        <?php endif; ?>
-                    </section>
-
-                    <section
-                        class="card-body p-3 p-lg-4
-                            border-bottom">
-
-                        <div
-                            class="d-flex
-                                align-items-center gap-2 mb-3">
-
-                            <span
-                                class="d-inline-flex
-                                    align-items-center
-                                    justify-content-center
-                                    rounded-circle
-                                    bg-primary-subtle
-                                    text-primary"
-                                style="
-                                    width: 34px;
-                                    height: 34px;
-                                ">
-
-                                <i
-                                    class="fs-18 ri-id-card-line"
-                                    aria-hidden="true"></i>
-                            </span>
-
-                            <h2
-                                class="fs-16
-                                    fw-semibold mb-0">
-                                Basic Details
-                            </h2>
-                        </div>
-
-                        <div class="row g-3">
-                            <?php foreach (
-                                $personalDetails
-                                as $label => $value
-                            ): ?>
-                                <div class="col-12 col-sm-6">
-                                    <div
-                                        class="border-bottom
-                                            pb-2 h-100">
-
-                                        <div
-                                            class="text-muted
-                                                fs-12 mb-1">
-                                            <?= esc($label) ?>
-                                        </div>
-
-                                        <div
-                                            class="fw-medium fs-14">
-                                            <?= esc(
-                                                $displayValue(
-                                                    $value
-                                                )
-                                            ) ?>
-                                        </div>
-                                    </div>
+                                    </button>
                                 </div>
+
                             <?php endforeach; ?>
-                        </div>
-                    </section>
 
-                    <section
-                        class="card-body p-3 p-lg-4
-                            border-bottom">
-
-                        <div
-                            class="d-flex
-                                align-items-center gap-2 mb-3">
-
-                            <span
-                                class="d-inline-flex
-                                    align-items-center
-                                    justify-content-center
-                                    rounded-circle
-                                    bg-primary-subtle
-                                    text-primary"
-                                style="
-                                    width: 34px;
-                                    height: 34px;
-                                ">
-
-                                <i
-                                    class=" fs-18
-                                        ri-briefcase-line"
-                                    aria-hidden="true"></i>
-                            </span>
-
-                            <h2
-                                class="fs-16
-                                    fw-semibold mb-0">
-                                Education & Profession
-                            </h2>
                         </div>
 
-                        <div class="row g-3">
-                            <?php foreach (
-                                $professionDetails
-                                as $label => $value
-                            ): ?>
-                                <div class="col-12 col-sm-6">
-                                    <div
-                                        class="border-bottom
-                                            pb-2 h-100">
-
-                                        <div
-                                            class="text-muted
-                                                fs-12 mb-1">
-                                            <?= esc($label) ?>
-                                        </div>
-
-                                        <div
-                                            class="fw-medium fs-14">
-                                            <?= esc(
-                                                $displayValue(
-                                                    $value
-                                                )
-                                            ) ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                    </section>
-
-
+                    <?php endif; ?>
 
                 </div>
+            </section>
+        </div>
+    </div>
+    <div class="row g-4 align-items-start">
+
+        <!-- One single card for every section in the left column. -->
+        <div class="col-12 col-lg-7">
+            <div
+                class="card border border-danger border-opacity-25 shadow-sm
+                        rounded-3 overflow-hidden">
+
+                <section
+                    class="card-body p-3 p-lg-4
+                            border-bottom">
+
+
+
+                    <div
+                        class="d-flex
+                                align-items-center gap-2 mb-3">
+
+                        <span
+                            class="d-inline-flex
+                                    align-items-center
+                                    justify-content-center
+                                    rounded-circle
+                                    bg-primary-subtle
+                                    text-primary"
+                            style="
+                                    width: 34px;
+                                    height: 34px;
+                                ">
+
+                            <i
+                                class=" fs-18
+                                        ri-user-smile-line"
+                                aria-hidden="true"></i>
+                        </span>
+
+                        <h2
+                            class="fs-16
+                                    fw-semibold mb-0">
+                            About Me
+                        </h2>
+                    </div>
+
+                    <?php if ($aboutMe !== ''): ?>
+                        <p
+                            class="text-body-secondary
+                                    lh-lg mb-0">
+                            <?= nl2br(
+                                esc($aboutMe)
+                            ) ?>
+                        </p>
+                    <?php else: ?>
+                        <p class="text-muted mb-0">
+                            About Me has not been added yet.
+                        </p>
+                    <?php endif; ?>
+                </section>
+
+                <section
+                    class="card-body p-3 p-lg-4
+                            border-bottom">
+
+                    <div
+                        class="d-flex
+                                align-items-center gap-2 mb-3">
+
+                        <span
+                            class="d-inline-flex
+                                    align-items-center
+                                    justify-content-center
+                                    rounded-circle
+                                    bg-primary-subtle
+                                    text-primary"
+                            style="
+                                    width: 34px;
+                                    height: 34px;
+                                ">
+
+                            <i
+                                class="fs-18 ri-id-card-line"
+                                aria-hidden="true"></i>
+                        </span>
+
+                        <h2
+                            class="fs-16
+                                    fw-semibold mb-0">
+                            Basic Details
+                        </h2>
+                    </div>
+
+                    <div class="row g-3">
+                        <?php foreach (
+                            $personalDetails
+                            as $label => $value
+                        ): ?>
+                            <div class="col-12 col-sm-6">
+                                <div
+                                    class="border-bottom
+                                            pb-2 h-100">
+
+                                    <div
+                                        class="text-muted
+                                                fs-12 mb-1">
+                                        <?= esc($label) ?>
+                                    </div>
+
+                                    <div
+                                        class="fw-medium fs-14">
+                                        <?= esc(
+                                            $displayValue(
+                                                $value
+                                            )
+                                        ) ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
+
+                <section
+                    class="card-body p-3 p-lg-4
+                            border-bottom">
+
+                    <div
+                        class="d-flex
+                                align-items-center gap-2 mb-3">
+
+                        <span
+                            class="d-inline-flex
+                                    align-items-center
+                                    justify-content-center
+                                    rounded-circle
+                                    bg-primary-subtle
+                                    text-primary"
+                            style="
+                                    width: 34px;
+                                    height: 34px;
+                                ">
+
+                            <i
+                                class=" fs-18
+                                        ri-briefcase-line"
+                                aria-hidden="true"></i>
+                        </span>
+
+                        <h2
+                            class="fs-16
+                                    fw-semibold mb-0">
+                            Education & Profession
+                        </h2>
+                    </div>
+
+                    <div class="row g-3">
+                        <?php foreach (
+                            $professionDetails
+                            as $label => $value
+                        ): ?>
+                            <div class="col-12 col-sm-6">
+                                <div
+                                    class="border-bottom
+                                            pb-2 h-100">
+
+                                    <div
+                                        class="text-muted
+                                                fs-12 mb-1">
+                                        <?= esc($label) ?>
+                                    </div>
+
+                                    <div
+                                        class="fw-medium fs-14">
+                                        <?= esc(
+                                            $displayValue(
+                                                $value
+                                            )
+                                        ) ?>
+                                    </div>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
+
+
+
             </div>
+        </div>
 
-            <!-- One single card for every section in the right column. -->
-            <div class="col-12 col-lg-5">
-                <?php if (
-                    $isOtherMemberProfileView
-                ): ?>
+        <!-- One single card for every section in the right column. -->
+        <div class="col-12 col-lg-5">
+            <?php if (
+                $isOtherMemberProfileView
+            ): ?>
 
-                    <section
-                        class="card
+                <section
+                    class="card
                         bg-marketplace
                         bg-primary-subtle
             border
@@ -2737,14 +2761,14 @@ $this->section('content');
             rounded-3
             mb-4">
 
-                        <div
-                            class="card-body 
+                    <div
+                        class="card-body 
                 p-3
                 p-lg-4">
 
-                            <!-- Header -->
-                            <div
-                                class="d-flex
+                        <!-- Header -->
+                        <div
+                            class="d-flex
                     flex-column
                     flex-md-row
                     align-items-md-center
@@ -2752,89 +2776,89 @@ $this->section('content');
                     gap-3
                     mb-4">
 
-                                <div
-                                    class="d-flex
+                            <div
+                                class="d-flex
                         align-items-center
                         gap-3">
 
-                                    <span
-                                        class="avatar-sm
+                                <span
+                                    class="avatar-sm
                             flex-shrink-0">
 
-                                        <span
-                                            class="avatar-title
+                                    <span
+                                        class="avatar-title
                                 rounded-circle
                                 bg-light
                                 text-primary">
 
-                                            <i
-                                                class="ri-hearts-line
+                                        <i
+                                            class="ri-hearts-line
                                     fs-20"
-                                                aria-hidden="true">
-                                            </i>
+                                            aria-hidden="true">
+                                        </i>
 
-                                        </span>
                                     </span>
+                                </span>
 
-                                    <div>
+                                <div>
 
-                                        <h2
-                                            class="fs-16
+                                    <h2
+                                        class="fs-16
                                 fw-semibold
                                 mb-1">
 
-                                            Partner Preference Match
-                                        </h2>
+                                        Partner Preference Match
+                                    </h2>
 
-                                        <p
-                                            class="text-muted
+                                    <p
+                                        class="text-muted
                                 fs-13
                                 mb-0">
 
-                                            See how
-                                            <?= esc($fullName) ?>
-                                            matches your partner preferences.
-                                        </p>
+                                        See how
+                                        <?= esc($fullName) ?>
+                                        matches your partner preferences.
+                                    </p>
 
-                                    </div>
                                 </div>
-
-                                <?php if (
-                                    $totalPreferenceCount > 0
-                                ): ?>
-
-                                    <span
-                                        class="badge
-                            bg-primary-subtle
-                            text-primary
-                            fs-14
-                            p-2">
-
-                                        <?= esc(
-                                            (string)
-                                            $preferenceMatchPercentage
-                                        ) ?>% Match
-                                    </span>
-
-                                <?php endif; ?>
-
                             </div>
 
                             <?php if (
                                 $totalPreferenceCount > 0
                             ): ?>
 
-                                <!-- Match statement -->
-                                <div
-                                    class="border
+                                <span
+                                    class="badge
+                            bg-primary-subtle
+                            text-primary
+                            fs-14
+                            p-2">
+
+                                    <?= esc(
+                                        (string)
+                                        $preferenceMatchPercentage
+                                    ) ?>% Match
+                                </span>
+
+                            <?php endif; ?>
+
+                        </div>
+
+                        <?php if (
+                            $totalPreferenceCount > 0
+                        ): ?>
+
+                            <!-- Match statement -->
+                            <div
+                                class="border
                         rounded-3
                         bg-light
                         p-3
                         p-lg-4
                         mb-3">
 
-                                    <div
-                                        class="d-flex
+                                <div
+                                    class="d-flex
                             flex-column
                             flex-md-row
                             align-items-md-center
@@ -2842,460 +2866,460 @@ $this->section('content');
                             gap-3
                             mb-3">
 
-                                        <div>
+                                    <div>
 
-                                            <div
-                                                class="fs-16
+                                        <div
+                                            class="fs-16
                                     fw-semibold">
 
-                                                <?= esc($fullName) ?>
-                                                matches
+                                            <?= esc($fullName) ?>
+                                            matches
 
-                                                <span class="text-primary">
-                                                    <?= esc(
-                                                        (string)
-                                                        $matchedPreferenceCount
-                                                    ) ?>/<?= esc(
+                                            <span class="text-primary">
+                                                <?= esc(
+                                                    (string)
+                                                    $matchedPreferenceCount
+                                                ) ?>/<?= esc(
                                                                 (string)
                                                                 $totalPreferenceCount
                                                             ) ?>
-                                                </span>
+                                            </span>
 
-                                                of your partner preferences
-                                            </div>
+                                            of your partner preferences
+                                        </div>
 
-                                            <p
-                                                class="text-muted
+                                        <p
+                                            class="text-muted
                                     fs-13
                                     mb-0
                                     mt-1">
 
-                                                Based on the structured
-                                                Partner Preferences currently set.
-                                            </p>
-
-                                        </div>
-
-                                        <div
-                                            class="text-md-end">
-
-                                            <div
-                                                class="fs-24
-                                    fw-bold
-                                    text-primary">
-
-                                                <?= esc(
-                                                    (string)
-                                                    $preferenceMatchPercentage
-                                                ) ?>%
-                                            </div>
-
-                                            <span
-                                                class="text-muted
-                                    fs-12">
-
-                                                overall match
-                                            </span>
-
-                                        </div>
+                                            Based on the structured
+                                            Partner Preferences currently set.
+                                        </p>
 
                                     </div>
 
-                                    <!-- Existing Bootstrap progress -->
                                     <div
-                                        class="progress"
-                                        role="progressbar"
-                                        aria-label="Partner preference match"
-                                        aria-valuenow="<?= esc(
-                                                            (string)
-                                                            $preferenceMatchPercentage,
-                                                            'attr'
-                                                        ) ?>"
-                                        aria-valuemin="0"
-                                        aria-valuemax="100">
+                                        class="text-md-end">
 
                                         <div
-                                            class="progress-bar"
-                                            style="<?= esc(
-                                                        'width: '
-                                                            . $preferenceMatchPercentage
-                                                            . '%;',
-                                                        'attr'
-                                                    ) ?>">
+                                            class="fs-24
+                                    fw-bold
+                                    text-primary">
+
+                                            <?= esc(
+                                                (string)
+                                                $preferenceMatchPercentage
+                                            ) ?>%
                                         </div>
+
+                                        <span
+                                            class="text-muted
+                                    fs-12">
+
+                                            overall match
+                                        </span>
 
                                     </div>
 
                                 </div>
 
-                                <!-- Summary -->
-                                <div class="row g-3">
+                                <!-- Existing Bootstrap progress -->
+                                <div
+                                    class="progress"
+                                    role="progressbar"
+                                    aria-label="Partner preference match"
+                                    aria-valuenow="<?= esc(
+                                                        (string)
+                                                        $preferenceMatchPercentage,
+                                                        'attr'
+                                                    ) ?>"
+                                    aria-valuemin="0"
+                                    aria-valuemax="100">
 
                                     <div
-                                        class="col-12
+                                        class="progress-bar"
+                                        style="<?= esc(
+                                                    'width: '
+                                                        . $preferenceMatchPercentage
+                                                        . '%;',
+                                                    'attr'
+                                                ) ?>">
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <!-- Summary -->
+                            <div class="row g-3">
+
+                                <div
+                                    class="col-12
                             col-sm-6">
 
-                                        <div
-                                            class="border
+                                    <div
+                                        class="border
                                 border border-danger
         border-opacity-25
         rounded-3
                                 p-3
                                 h-100 bg-dark-subtle">
 
-                                            <div
-                                                class="d-flex
+                                        <div
+                                            class="d-flex
                                     align-items-center
                                     gap-3">
 
-                                                <span
-                                                    class="avatar-sm
+                                            <span
+                                                class="avatar-sm
                                         flex-shrink-0">
 
-                                                    <span
-                                                        class="avatar-title
+                                                <span
+                                                    class="avatar-title
                                             rounded-circle
                                             bg-success-subtle
                                             text-success">
 
-                                                        <i
-                                                            class="ri-thumb-up-fill
+                                                    <i
+                                                        class="ri-thumb-up-fill
                                                 fs-20"
-                                                            aria-hidden="true">
-                                                        </i>
+                                                        aria-hidden="true">
+                                                    </i>
 
-                                                    </span>
                                                 </span>
+                                            </span>
 
-                                                <div>
+                                            <div>
 
-                                                    <div
-                                                        class="fs-18
+                                                <div
+                                                    class="fs-18
                                             fw-semibold
                                             text-success">
 
-                                                        <?= esc(
-                                                            (string)
-                                                            $matchedPreferenceCount
-                                                        ) ?>
-                                                    </div>
+                                                    <?= esc(
+                                                        (string)
+                                                        $matchedPreferenceCount
+                                                    ) ?>
+                                                </div>
 
-                                                    <div
-                                                        class="text-muted
+                                                <div
+                                                    class="text-muted
                                             fs-13">
 
-                                                        Preferences matched
-                                                    </div>
-
+                                                    Preferences matched
                                                 </div>
 
                                             </div>
 
                                         </div>
-                                    </div>
 
-                                    <div
-                                        class="col-12
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="col-12
                             col-sm-6">
 
-                                        <div
-                                            class="border
+                                    <div
+                                        class="border
                                 border border-danger
         border-opacity-25
         rounded-3
                                 p-3
                                 h-100 bg-dark-subtle">
 
-                                            <div
-                                                class="d-flex
+                                        <div
+                                            class="d-flex
                                     align-items-center
                                     gap-3">
 
-                                                <span
-                                                    class="avatar-sm
+                                            <span
+                                                class="avatar-sm
                                         flex-shrink-0">
 
-                                                    <span
-                                                        class="avatar-title
+                                                <span
+                                                    class="avatar-title
                                             rounded-circle
                                             bg-warning-subtle
                                             text-warning">
 
-                                                        <i
-                                                            class="ri-information-line
+                                                    <i
+                                                        class="ri-information-line
                                                 fs-20"
-                                                            aria-hidden="true">
-                                                        </i>
+                                                        aria-hidden="true">
+                                                    </i>
 
-                                                    </span>
                                                 </span>
+                                            </span>
 
-                                                <div>
+                                            <div>
 
-                                                    <div
-                                                        class="fs-18
+                                                <div
+                                                    class="fs-18
                                             fw-semibold">
 
-                                                        <?= esc(
-                                                            (string)
-                                                            $unmatchedPreferenceCount
-                                                        ) ?>
-                                                    </div>
+                                                    <?= esc(
+                                                        (string)
+                                                        $unmatchedPreferenceCount
+                                                    ) ?>
+                                                </div>
 
-                                                    <div
-                                                        class="text-muted
+                                                <div
+                                                    class="text-muted
                                             fs-13">
 
-                                                        Preferences differ
-                                                    </div>
-
+                                                    Preferences differ
                                                 </div>
 
                                             </div>
 
                                         </div>
-                                    </div>
 
+                                    </div>
                                 </div>
 
-                            <?php else: ?>
+                            </div>
 
-                                <div
-                                    class="alert
+                        <?php else: ?>
+
+                            <div
+                                class="alert
                         alert-light
                         border
                         mb-0"
-                                    role="status">
+                                role="status">
 
-                                    <div
-                                        class="d-flex
+                                <div
+                                    class="d-flex
                             align-items-start
                             gap-2">
 
-                                        <i
-                                            class="ri-information-line
+                                    <i
+                                        class="ri-information-line
                                 fs-18
                                 text-muted"
-                                            aria-hidden="true">
-                                        </i>
+                                        aria-hidden="true">
+                                    </i>
 
-                                        <div>
+                                    <div>
 
-                                            <strong>
-                                                Partner Preferences not available
-                                            </strong>
+                                        <strong>
+                                            Partner Preferences not available
+                                        </strong>
 
-                                            <p
-                                                class="text-muted
+                                        <p
+                                            class="text-muted
                                     fs-13
                                     mb-0
                                     mt-1">
 
-                                                <?= esc(
-                                                    $fullName
-                                                ) ?>
-                                                has not configured enough
-                                                structured Partner Preferences
-                                                to calculate a match yet.
-                                            </p>
-
-                                        </div>
+                                            <?= esc(
+                                                $fullName
+                                            ) ?>
+                                            has not configured enough
+                                            structured Partner Preferences
+                                            to calculate a match yet.
+                                        </p>
 
                                     </div>
+
                                 </div>
+                            </div>
 
-                            <?php endif; ?>
+                        <?php endif; ?>
 
-                        </div>
-                    </section>
-                <?php endif; ?>
-                <div
-                    class="card border border-danger border-opacity-25 shadow-sm
+                    </div>
+                </section>
+            <?php endif; ?>
+            <div
+                class="card border border-danger border-opacity-25 shadow-sm
                         rounded-3 overflow-hidden">
 
-                    <section
-                        class="card-body p-3 p-lg-4
+                <section
+                    class="card-body p-3 p-lg-4
                             border-bottom">
 
-                        <div
-                            class="d-flex
+                    <div
+                        class="d-flex
                                 align-items-center gap-2 mb-3">
 
-                            <span
-                                class="d-inline-flex
+                        <span
+                            class="d-inline-flex
                                     align-items-center
                                     justify-content-center
                                     rounded-circle
                                     bg-warning-subtle
                                     text-warning"
-                                style="
+                            style="
                                     width: 34px;
                                     height: 34px;
                                 ">
 
-                                <i
-                                    class="fs-18 ri-group-line"
-                                    aria-hidden="true"></i>
-                            </span>
+                            <i
+                                class="fs-18 ri-group-line"
+                                aria-hidden="true"></i>
+                        </span>
 
-                            <h2
-                                class="fs-16
+                        <h2
+                            class="fs-16
                                     fw-semibold mb-0">
-                                Family Details
-                            </h2>
-                        </div>
+                            Family Details
+                        </h2>
+                    </div>
 
-                        <?php foreach (
-                            $familyDetailList
-                            as $label => $value
-                        ): ?>
-                            <div
-                                class="d-flex
+                    <?php foreach (
+                        $familyDetailList
+                        as $label => $value
+                    ): ?>
+                        <div
+                            class="d-flex
                                     justify-content-between
                                     align-items-start
                                     gap-3 py-2
                                     border-bottom">
 
-                                <span
-                                    class="text-muted
+                            <span
+                                class="text-muted
                                         fs-13">
-                                    <?= esc($label) ?>
-                                </span>
-
-                                <span
-                                    class="fw-medium fs-13
-                                        text-end">
-                                    <?= esc(
-                                        $displayValue($value)
-                                    ) ?>
-                                </span>
-                            </div>
-                        <?php endforeach; ?>
-                    </section>
-
-                    <section
-                        class="card-body p-3 p-lg-4
-                            border-bottom">
-
-                        <div
-                            class="d-flex
-                                align-items-center gap-2 mb-3">
+                                <?= esc($label) ?>
+                            </span>
 
                             <span
-                                class="d-inline-flex
+                                class="fw-medium fs-13
+                                        text-end">
+                                <?= esc(
+                                    $displayValue($value)
+                                ) ?>
+                            </span>
+                        </div>
+                    <?php endforeach; ?>
+                </section>
+
+                <section
+                    class="card-body p-3 p-lg-4
+                            border-bottom">
+
+                    <div
+                        class="d-flex
+                                align-items-center gap-2 mb-3">
+
+                        <span
+                            class="d-inline-flex
                                     align-items-center
                                     justify-content-center
                                     rounded-circle
                                     bg-primary-subtle
                                     text-primary"
-                                style="
+                            style="
                                     width: 34px;
                                     height: 34px;
                                 ">
 
-                                <i
-                                    class="fs-18 
+                            <i
+                                class="fs-18 
                                         ri-heart-pulse-line"
-                                    aria-hidden="true"></i>
-                            </span>
+                                aria-hidden="true"></i>
+                        </span>
 
-                            <h2
-                                class="fs-16
+                        <h2
+                            class="fs-16
                                     fw-semibold mb-0">
-                                Lifestyle
-                            </h2>
-                        </div>
+                            Lifestyle
+                        </h2>
+                    </div>
 
-                        <?php if (
-                            $lifestyleDetails !== []
-                        ): ?>
-                            <div
-                                class="d-flex
+                    <?php if (
+                        $lifestyleDetails !== []
+                    ): ?>
+                        <div
+                            class="d-flex
                                     flex-wrap gap-2">
 
-                                <?php foreach (
-                                    $lifestyleDetails
-                                    as $detail
-                                ): ?>
-                                    <?php
-                                    if (!is_array($detail)) {
-                                        continue;
-                                    }
+                            <?php foreach (
+                                $lifestyleDetails
+                                as $detail
+                            ): ?>
+                                <?php
+                                if (!is_array($detail)) {
+                                    continue;
+                                }
 
-                                    $label = trim(
-                                        (string) (
-                                            $detail['option_name']
-                                            ?? $detail['name']
-                                            ?? ''
-                                        )
-                                    );
+                                $label = trim(
+                                    (string) (
+                                        $detail['option_name']
+                                        ?? $detail['name']
+                                        ?? ''
+                                    )
+                                );
 
-                                    if ($label === '') {
-                                        continue;
-                                    }
-                                    ?>
+                                if ($label === '') {
+                                    continue;
+                                }
+                                ?>
 
-                                    <span
-                                        class="
+                                <span
+                                    class="
                                             badge rounded-pill
                                             bg-primary-subtle
                                             text-black
                                             fw-medium p-2">
-                                        <?= esc($label) ?>
-                                    </span>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php else: ?>
-                            <p class="text-muted mb-0">
-                                Lifestyle preferences have not
-                                been added.
-                            </p>
-                        <?php endif; ?>
-                    </section>
+                                    <?= esc($label) ?>
+                                </span>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <p class="text-muted mb-0">
+                            Lifestyle preferences have not
+                            been added.
+                        </p>
+                    <?php endif; ?>
+                </section>
 
-                    <section class="card-body p-3 p-lg-4">
-                        <div
-                            class="d-flex
+                <section class="card-body p-3 p-lg-4">
+                    <div
+                        class="d-flex
                                 align-items-center gap-2 mb-3">
 
-                            <span
-                                class="d-inline-flex
+                        <span
+                            class="d-inline-flex
                                     align-items-center
                                     justify-content-center
                                     rounded-circle
                                     bg-primary-subtle
                                     text-primary"
-                                style="
+                            style="
                                     width: 34px;
                                     height: 34px;
                                 ">
 
-                                <i
-                                    class="fs-18 ri-lock-2-line"
-                                    aria-hidden="true"></i>
-                            </span>
+                            <i
+                                class="fs-18 ri-lock-2-line"
+                                aria-hidden="true"></i>
+                        </span>
 
-                            <h2
-                                class="fs-16
+                        <h2
+                            class="fs-16
                                     fw-semibold mb-0">
-                                Privacy
-                            </h2>
-                        </div>
+                            Privacy
+                        </h2>
+                    </div>
 
-                        <p class="text-muted fs-13 mb-0">
-                            This profile information is visible
-                            only to authenticated members according
-                            to the applicable privacy rules.
-                        </p>
-                    </section>
-
-                </div>
-
-
+                    <p class="text-muted fs-13 mb-0">
+                        This profile information is visible
+                        only to authenticated members according
+                        to the applicable privacy rules.
+                    </p>
+                </section>
 
             </div>
 
+
+
         </div>
+
+    </div>
     </div>
 </section>
 <?php if ($galleryPhotos !== []): ?>
