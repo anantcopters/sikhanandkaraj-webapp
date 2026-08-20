@@ -76,11 +76,6 @@ final class VideoIntroductionProcessingService
             . DIRECTORY_SEPARATOR
             . 'playback.mp4';
 
-        $posterPath =
-            $workDirectory
-            . DIRECTORY_SEPARATOR
-            . 'poster.jpg';
-
         try {
             $this->s3Service->download(
                 (string) $video['original_object_key'],
@@ -119,22 +114,27 @@ final class VideoIntroductionProcessingService
 
             $this->transcode(
                 $sourcePath,
-                $playbackPath,
-                $posterPath
+                $playbackPath
             );
 
-            $publicId =
-                (string) $video['public_id'];
+            $publicId = trim(
+                (string) (
+                    $video['public_id']
+                    ?? ''
+                )
+            );
+
+            if ($publicId === '') {
+                throw new RuntimeException(
+                    'The Video Introduction identifier '
+                        . 'is unavailable.'
+                );
+            }
 
             $playbackKey =
                 'members/video-introduction/playback/'
                 . $publicId
                 . '.mp4';
-
-            $posterKey =
-                'members/video-introduction/poster/'
-                . $publicId
-                . '.jpg';
 
             $this->s3Service->upload(
                 $playbackPath,
@@ -143,30 +143,12 @@ final class VideoIntroductionProcessingService
                 [
                     'media-type' =>
                     'member-video-introduction-playback',
-                    'public-id' => $publicId,
+
+                    'public-id' =>
+                    $publicId,
                 ],
                 'inline; filename="video-introduction.mp4"'
             );
-
-            try {
-                $this->s3Service->upload(
-                    $posterPath,
-                    $posterKey,
-                    'image/jpeg',
-                    [
-                        'media-type' =>
-                        'member-video-introduction-poster',
-                        'public-id' => $publicId,
-                    ],
-                    'inline; filename="video-introduction-poster.jpg"'
-                );
-            } catch (Throwable $exception) {
-                $this->s3Service->delete(
-                    $playbackKey
-                );
-
-                throw $exception;
-            }
 
             $this->database->transBegin();
 
@@ -180,8 +162,12 @@ final class VideoIntroductionProcessingService
                         'playback_object_key' =>
                         $playbackKey,
 
+                        /*
+                        * New submissions do not generate a poster.
+                        * The nullable column remains for legacy records.
+                        */
                         'poster_object_key' =>
-                        $posterKey,
+                        null,
 
                         'duration_seconds' =>
                         $duration,
@@ -258,8 +244,7 @@ final class VideoIntroductionProcessingService
 
                 $this->s3Service->deleteMany(
                     [
-                        $playbackKey,
-                        $posterKey,
+                        $playbackKey
                     ]
                 );
 
@@ -716,43 +701,29 @@ final class VideoIntroductionProcessingService
 
     private function transcode(
         string $sourcePath,
-        string $playbackPath,
-        string $posterPath
+        string $playbackPath
     ): void {
         /*
-        * Preserve the source aspect ratio and limit the maximum width
-        * to 720 pixels.
-        *
-        * H.264 with yuv420p requires both output dimensions to be
-        * divisible by two. The second scale filter ensures that an
-        * input such as 720x405 becomes a valid even-sized output.
-        *
-        * drawtext permanently embeds the SikhanAndKaraj watermark
-        * into every frame of the web playback video.
-        */
+     * The first scale keeps the original aspect ratio and limits
+     * playback width to 720 pixels.
+     *
+     * The second scale guarantees even dimensions because H.264
+     * with yuv420p cannot encode odd dimensions such as 720x405.
+     *
+     * The permanent watermark is embedded in the MP4. No separate
+     * HTML or poster watermark is required.
+     */
         $videoFilter = implode(
             ',',
             [
-                /*
-                * Preserve aspect ratio and limit playback width.
-                */
                 "scale='min(720,iw)':-2:"
                     . 'force_original_aspect_ratio=decrease',
 
-                /*
-                * H.264/yuv420p requires even width and height.
-                */
                 "scale='trunc(iw/2)*2':"
                     . "'trunc(ih/2)*2'",
 
-                /*
-                * Permanently embed the watermark.
-                *
-                * A fixed font size avoids FFmpeg expression-parser
-                * differences between development, QA and production.
-                */
                 "drawtext="
-                    . "text='Sikhanandkaraj':"
+                    . "text='SikhanAndKaraj':"
                     . 'fontcolor=white@0.70:'
                     . 'fontsize=18:'
                     . 'x=w-text_w-16:'
@@ -777,7 +748,7 @@ final class VideoIntroductionProcessingService
             . ' -vf '
             . escapeshellarg($videoFilter)
             . ' -c:v libx264'
-            . ' -preset fast'
+            . ' -preset veryfast'
             . ' -crf 24'
             . ' -pix_fmt yuv420p'
             . ' -c:a aac'
@@ -824,69 +795,6 @@ final class VideoIntroductionProcessingService
 
             throw new RuntimeException(
                 'The web playback video could not be created.'
-            );
-        }
-
-        /*
-        * The poster is generated from the watermarked playback video.
-        * Therefore, the poster image will contain the same watermark.
-        *
-        * -update 1 prevents the image2 muxer sequence-pattern warning.
-        */
-        $posterCommand =
-            escapeshellarg(
-                $this->config->ffmpegBinary
-            )
-            . ' -hide_banner'
-            . ' -loglevel error'
-            . ' -y'
-            . ' -ss 1'
-            . ' -i '
-            . escapeshellarg($playbackPath)
-            . ' -frames:v 1'
-            . ' -update 1'
-            . ' -q:v 3 '
-            . escapeshellarg($posterPath)
-            . ' 2>&1';
-
-        $posterOutput = [];
-
-        $posterExitCode = 0;
-
-        exec(
-            $posterCommand,
-            $posterOutput,
-            $posterExitCode
-        );
-
-        if (
-            $posterExitCode !== 0
-            || ! is_file($posterPath)
-            || filesize($posterPath) === 0
-        ) {
-            log_message(
-                'error',
-                'Video Introduction poster generation failed. '
-                    . 'ExitCode={exitCode}, Output={output}',
-                [
-                    'exitCode' =>
-                    $posterExitCode,
-
-                    'output' =>
-                    mb_substr(
-                        implode(
-                            PHP_EOL,
-                            $posterOutput
-                        ),
-                        0,
-                        4000
-                    ),
-                ]
-            );
-
-            throw new RuntimeException(
-                'The Video Introduction poster '
-                    . 'could not be created.'
             );
         }
     }

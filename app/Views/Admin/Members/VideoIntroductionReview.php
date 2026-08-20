@@ -7,7 +7,6 @@ use App\Support\DateDisplay;
 /**
  * @var array<string, mixed> $video
  * @var string $playbackUrl
- * @var string $posterUrl
  * @var list<array<string, mixed>> $videoHistory
  * @var array<string, string>|null $formAlert
  * @var array<string, string> $validationErrors
@@ -59,12 +58,27 @@ $mobileNumber = trim(
     )
 );
 
-$gender = trim(
-    (string) (
-        $video['gender']
-        ?? ''
+$genderValue = mb_strtoupper(
+    trim(
+        (string) (
+            $video['gender']
+            ?? ''
+        )
     )
 );
+
+$genderLabel = match ($genderValue) {
+    'M',
+    'MALE' =>
+    'Male',
+
+    'F',
+    'FEMALE' =>
+    'Female',
+
+    default =>
+    '—',
+};
 
 $location = implode(
     ', ',
@@ -187,8 +201,8 @@ $this->section('content');
 
                 <div
                     class="card-header bg-transparent
-                        d-flex align-items-center
-                        justify-content-between gap-3">
+        d-flex align-items-center
+        justify-content-between gap-3">
 
                     <div>
                         <h2 class="fs-16 fw-semibold mb-1">
@@ -196,15 +210,18 @@ $this->section('content');
                         </h2>
 
                         <p class="text-muted fs-12 mb-0">
-                            <?= $reference !== ''
-                                ? esc($reference)
-                                : 'Reference unavailable' ?>
+                            Profile ID:
+                            <strong class="text-body">
+                                <?= $reference !== ''
+                                    ? esc($reference)
+                                    : '—' ?>
+                            </strong>
                         </p>
                     </div>
 
                     <span
                         class="badge bg-warning-subtle
-                            text-warning">
+            text-warning">
 
                         Under Review
                     </span>
@@ -245,9 +262,7 @@ $this->section('content');
                             </span>
 
                             <strong>
-                                <?= $gender !== ''
-                                    ? esc($gender)
-                                    : '—' ?>
+                                <?= esc($genderLabel) ?>
                             </strong>
                         </div>
 
@@ -264,31 +279,59 @@ $this->section('content');
                         </div>
                     </div>
 
-                    <video
-                        class="w-100 rounded border bg-dark"
-                        controls
-                        controlsList="
-                            nodownload
-                            noplaybackrate
-                            noremoteplayback
-                        "
-                        disablePictureInPicture
-                        playsinline
-                        preload="metadata"
-                        poster="<?= esc(
-                                    $posterUrl,
-                                    'attr'
-                                ) ?>">
+                    <div
+                        class="border rounded p-4
+        text-center bg-light">
 
-                        <source
-                            src="<?= esc(
-                                        $playbackUrl,
-                                        'attr'
-                                    ) ?>"
-                            type="video/mp4">
+                        <span
+                            class="avatar-lg d-inline-block mb-3">
 
-                        Your browser cannot play this video.
-                    </video>
+                            <span
+                                class="avatar-title rounded-circle
+                bg-primary-subtle
+                text-primary">
+
+                                <i
+                                    class="ri-video-line fs-24"
+                                    aria-hidden="true">
+                                </i>
+                            </span>
+                        </span>
+
+                        <h3 class="fs-16 fw-semibold mb-1">
+                            Video Introduction
+                        </h3>
+
+                        <p class="text-muted fs-13 mb-3">
+                            Play the complete recording before
+                            saving the moderation decision.
+                        </p>
+
+                        <button
+                            type="button"
+                            class="btn btn-primary"
+                            data-admin-video-open
+                            data-video-url="<?= esc(
+                                                $playbackUrl,
+                                                'attr'
+                                            ) ?>"
+                            data-member-name="<?= esc(
+                                                    $memberName,
+                                                    'attr'
+                                                ) ?>"
+                            data-profile-reference="<?= esc(
+                                                        $reference,
+                                                        'attr'
+                                                    ) ?>">
+
+                            <i
+                                class="ri-play-circle-line me-1"
+                                aria-hidden="true">
+                            </i>
+
+                            Play Video
+                        </button>
+                    </div>
 
                     <div class="table-responsive mt-3">
                         <table
@@ -390,9 +433,9 @@ $this->section('content');
                                     <td>
                                         <?= esc(
                                             DateDisplay::formatUtcDateTime(
-                                                    $video['submitted_at']
-                                                        ?? null
-                                                )
+                                                $video['submitted_at']
+                                                    ?? null
+                                            )
                                         ) ?>
                                     </td>
                                 </tr>
@@ -431,14 +474,14 @@ $this->section('content');
                     class="card-header bg-transparent
                         d-flex align-items-center gap-2">
 
-                    <span class="avatar-xs">
+                    <span class="avatar-sm">
                         <span
                             class="avatar-title rounded-circle
                                 bg-warning-subtle
                                 text-warning">
 
                             <i
-                                class="ri-shield-check-line"
+                                class="ri-shield-check-line fs-20"
                                 aria-hidden="true">
                             </i>
                         </span>
@@ -535,9 +578,16 @@ $this->section('content');
                             <select
                                 id="decision"
                                 name="decision"
-                                class="form-select"
+                                class="form-select <?= isset(
+                                                        $validationErrors['decision']
+                                                    )
+                                                        ? 'is-invalid'
+                                                        : '' ?>"
                                 data-choice
                                 data-choice-search="false"
+                                data-error-required="
+            Please select a decision.
+        "
                                 required>
 
                                 <option value="">
@@ -546,8 +596,7 @@ $this->section('content');
 
                                 <option
                                     value="APPROVE"
-                                    <?= $selectedDecision
-                                        === 'APPROVE'
+                                    <?= $selectedDecision === 'APPROVE'
                                         ? 'selected'
                                         : '' ?>>
 
@@ -556,8 +605,7 @@ $this->section('content');
 
                                 <option
                                     value="RESUBMIT"
-                                    <?= $selectedDecision
-                                        === 'RESUBMIT'
+                                    <?= $selectedDecision === 'RESUBMIT'
                                         ? 'selected'
                                         : '' ?>>
 
@@ -566,8 +614,7 @@ $this->section('content');
 
                                 <option
                                     value="REJECT"
-                                    <?= $selectedDecision
-                                        === 'REJECT'
+                                    <?= $selectedDecision === 'REJECT'
                                         ? 'selected'
                                         : '' ?>>
 
@@ -575,24 +622,23 @@ $this->section('content');
                                 </option>
                             </select>
 
-                            <div class="invalid-feedback">
-                                Please select a decision.
-                            </div>
+                            <div
+                                id="decisionError"
+                                class="invalid-feedback <?= isset(
+                                                            $validationErrors['decision']
+                                                        )
+                                                            ? 'd-block'
+                                                            : '' ?>"
+                                data-validation-error="decision">
 
-                            <?php if (
-                                isset(
+                                <?= isset(
                                     $validationErrors['decision']
                                 )
-                            ): ?>
-                                <div
-                                    class="text-danger
-                                        fs-12 mt-1">
-
-                                    <?= esc(
+                                    ? esc(
                                         $validationErrors['decision']
-                                    ) ?>
-                                </div>
-                            <?php endif; ?>
+                                    )
+                                    : '' ?>
+                            </div>
                         </div>
 
                         <div class="mb-3">
@@ -611,33 +657,45 @@ $this->section('content');
                             <textarea
                                 id="reason"
                                 name="reason"
-                                class="form-control"
+                                class="form-control <?= isset(
+                                                        $validationErrors['reason']
+                                                    )
+                                                        ? 'is-invalid'
+                                                        : '' ?>"
                                 maxlength="500"
                                 rows="4"
+                                data-error-required="
+            Please provide a reason.
+        "
+                                data-error-minlength="
+            Provide a clear reason of at least
+            10 characters.
+        "
+                                data-error-maxlength="
+            The reason cannot exceed
+            500 characters.
+        "
                                 placeholder="Provide a clear moderation reason"><?= esc(
                                                                                     $reasonValue
                                                                                 ) ?></textarea>
 
-                            <div class="invalid-feedback">
-                                Provide a clear reason of at
-                                least 10 characters for rejection
-                                or resubmission.
-                            </div>
+                            <div
+                                id="reasonError"
+                                class="invalid-feedback <?= isset(
+                                                            $validationErrors['reason']
+                                                        )
+                                                            ? 'd-block'
+                                                            : '' ?>"
+                                data-validation-error="reason">
 
-                            <?php if (
-                                isset(
+                                <?= isset(
                                     $validationErrors['reason']
                                 )
-                            ): ?>
-                                <div
-                                    class="text-danger
-                                        fs-12 mt-1">
-
-                                    <?= esc(
+                                    ? esc(
                                         $validationErrors['reason']
-                                    ) ?>
-                                </div>
-                            <?php endif; ?>
+                                    )
+                                    : '' ?>
+                            </div>
                         </div>
 
                         <div class="text-end">

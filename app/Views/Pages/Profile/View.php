@@ -2136,36 +2136,20 @@ $this->section('content');
                                                             Currently hidden
                                                         </span>
                                                     <?php else: ?>
-                                                        <button
-                                                            type="button"
-                                                            class="btn btn-link
-                            text-success fw-medium
-                            fs-13 p-0 text-start"
-                                                            data-video-introduction-open
-                                                            data-playback-url="<?= esc(
-                                                                                    route_to(
-                                                                                        'web.video-introduction'
-                                                                                            . '.viewer-playback',
-                                                                                        $viewedProfileReference
-                                                                                    ),
-                                                                                    'attr'
-                                                                                ) ?>"
-                                                            data-hidden="0"
-                                                            data-member-gender="<?= esc(
-                                                                                    (string) (
-                                                                                        $user['gender']
-                                                                                        ?? ''
-                                                                                    ),
-                                                                                    'attr'
-                                                                                ) ?>">
+                                                        <span
+                                                            class="d-inline-flex
+                            align-items-center gap-1
+                            text-success fw-semibold
+                            fs-13">
 
                                                             <i
-                                                                class="ri-checkbox-circle-fill me-1"
+                                                                class="
+                                ri-checkbox-circle-fill"
                                                                 aria-hidden="true">
                                                             </i>
 
-                                                            Verified — Play Video
-                                                        </button>
+                                                            Verified
+                                                        </span>
                                                     <?php endif; ?>
                                                 <?php else: ?>
                                                     <span
@@ -2366,8 +2350,7 @@ $this->section('content');
 
                                     <button
                                         type="button"
-                                        class="btn btn-sm
-                            btn-outline-success"
+                                        class="btn btn-primary"
                                         data-video-introduction-open
                                         data-playback-url="<?= esc(
                                                                 route_to(
