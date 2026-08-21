@@ -31,6 +31,7 @@ $plans = [
     [
         'name' => 'Sikhanandkaraj Go',
         'positioning' => 'Start Connecting',
+        'image' => 'plan_go_short_removebg.png',
         'price' => '1,499',
         'duration' => '3 months',
         'monthly' => '₹500/month',
@@ -39,11 +40,11 @@ $plans = [
         'introductions' => '10',
         'manager' => false,
         'popular' => false,
-        'icon' => 'ri-heart-3-line',
     ],
     [
         'name' => 'Sikhanandkaraj Plus',
         'positioning' => 'Best Value',
+        'image' => 'plan_plus_short_removebg.png',
         'price' => '2,499',
         'duration' => '6 months',
         'monthly' => 'Just ₹417/month',
@@ -52,11 +53,11 @@ $plans = [
         'introductions' => '30',
         'manager' => false,
         'popular' => true,
-        'icon' => 'ri-vip-crown-line',
     ],
     [
         'name' => 'Sikhanandkaraj Pro',
         'positioning' => 'Personalised Assistance',
+        'image' => 'plan_pro_short_removebg.png',
         'price' => '9,999',
         'duration' => '12 months',
         'monthly' => null,
@@ -65,7 +66,6 @@ $plans = [
         'introductions' => '80',
         'manager' => true,
         'popular' => false,
-        'icon' => 'ri-customer-service-2-line',
     ],
 ];
 ?>
@@ -117,71 +117,35 @@ $plans = [
 
                     <?php endif; ?>
 
-                    <div
-                        class="
-                            d-flex
-                            align-items-start
-                            gap-3
-                            mb-3
-                        ">
+                    <div class="text-center mb-0">
 
-                        <div class="flex-grow-1">
-
-                            <p
-                                class="
-                                    fs-12
-                                    fw-semibold
-                                    text-danger
-                                    text-uppercase
-                                    mb-1
-                                ">
-
-                                <?= esc(
-                                    $plan['positioning']
-                                ) ?>
-                            </p>
-
-                            <h3
-                                class="
-                                    fs-20
-                                    fw-semibold
-                                    mb-0
-                                ">
-
-                                <?= esc(
-                                    $plan['name']
-                                ) ?>
-                            </h3>
-
-                        </div>
-
-                        <div
+                        <p
                             class="
-                                avatar-sm
-                                flex-shrink-0
-                            ">
+            fs-12
+            fw-semibold
+            text-danger
+            text-uppercase
+            mb-3
+        ">
 
-                            <div
-                                class="
-                                    avatar-title
-                                    bg-light
-                                    rounded-circle
-                                    text-danger
-                                ">
+                            <?= esc(
+                                $plan['positioning']
+                            ) ?>
+                        </p>
 
-                                <i
-                                    class="
-                                        <?= esc(
-                                            $plan['icon'],
-                                            'attr'
-                                        ) ?>
-                                        fs-20
-                                    "
-                                    aria-hidden="true">
-                                </i>
-
-                            </div>
-                        </div>
+                        <img
+                            src="<?= base_url(
+                                        'assets/images/'
+                                            . $plan['image']
+                                    ) ?>"
+                            alt="<?= esc(
+                                        $plan['name'],
+                                        'attr'
+                                    ) ?>"
+                            class="img-fluid"
+                            width="200"
+                            height="90"
+                            loading="lazy">
 
                     </div>
 

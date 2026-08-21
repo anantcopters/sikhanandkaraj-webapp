@@ -150,18 +150,24 @@ $verificationFeatures = [
 
                             <p
                                 class="
-                                    fs-13
-                                    fw-semibold
-                                    text-danger
-                                    text-uppercase
-                                    mb-2
-                                ">
+        fs-13
+        fw-semibold
+        text-danger
+        text-uppercase
+        mb-3
+    ">
                                 Start Connecting
                             </p>
 
-                            <h2 class="fs-24 fw-bold mb-3">
-                                Sikhanandkaraj Go
-                            </h2>
+                            <img
+                                src="<?= base_url(
+                                            'assets/images/plan_go_short_removebg.png'
+                                        ) ?>"
+                                alt="Sikhanandkaraj Go"
+                                class="img-fluid mb-3"
+                                width="200"
+                                height="90"
+                                loading="lazy">
 
                             <div class="mb-1">
                                 <span class="fs-36 fw-bold">
@@ -328,18 +334,24 @@ $verificationFeatures = [
 
                             <p
                                 class="
-                                    fs-13
-                                    fw-semibold
-                                    text-danger
-                                    text-uppercase
-                                    mb-2
-                                ">
+        fs-13
+        fw-semibold
+        text-danger
+        text-uppercase
+        mb-3
+    ">
                                 Best Value
                             </p>
 
-                            <h2 class="fs-24 fw-bold mb-3">
-                                Sikhanandkaraj Plus
-                            </h2>
+                            <img
+                                src="<?= base_url(
+                                            'assets/images/plan_plus_short_removebg.png'
+                                        ) ?>"
+                                alt="Sikhanandkaraj Plus"
+                                class="img-fluid mb-3"
+                                width="200"
+                                height="90"
+                                loading="lazy">
 
                             <div class="mb-1">
                                 <span class="fs-36 fw-bold">
@@ -495,18 +507,24 @@ $verificationFeatures = [
 
                             <p
                                 class="
-                                    fs-13
-                                    fw-semibold
-                                    text-danger
-                                    text-uppercase
-                                    mb-2
-                                ">
+        fs-13
+        fw-semibold
+        text-danger
+        text-uppercase
+        mb-3
+    ">
                                 Personalised Assistance
                             </p>
 
-                            <h2 class="fs-24 fw-bold mb-3">
-                                Sikhanandkaraj Pro
-                            </h2>
+                            <img
+                                src="<?= base_url(
+                                            'assets/images/plan_pro_short_removebg.png'
+                                        ) ?>"
+                                alt="Sikhanandkaraj Pro"
+                                class="img-fluid mb-3"
+                                width="200"
+                                height="90"
+                                loading="lazy">
 
                             <div class="mb-1">
                                 <span class="fs-36 fw-bold">
@@ -918,7 +936,21 @@ $verificationFeatures = [
                                         <th
                                             scope="col"
                                             class="text-center">
-                                            Plus
+
+                                            <span class="d-block">
+                                                Plus
+                                            </span>
+
+                                            <span
+                                                class="
+                    badge
+                    bg-danger
+                    fs-10
+                    mt-1
+                ">
+                                                Most Popular
+                                            </span>
+
                                         </th>
 
                                         <th
