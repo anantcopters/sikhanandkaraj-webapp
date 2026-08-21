@@ -55,13 +55,13 @@ $verificationItems = [
 
     [
         'key' =>
-        'selfie',
+        'videoIntroduction',
 
         'label' =>
-        'Selfie',
+        'Video Introduction',
 
         'icon' =>
-        'ri-camera-line',
+        'ri-video-line',
     ],
 ];
 
@@ -76,19 +76,88 @@ $verifiedItems = array_values(
         ) === true
     )
 );
+
+$verifiedCount =
+    count(
+        $verifiedItems
+    );
+
+$verificationSummary =
+    $verifiedCount === 1
+    ? '1 profile detail verified'
+    : $verifiedCount
+    . ' profile details verified';
 ?>
 
 <?php if ($verifiedItems !== []): ?>
 
     <div
         class="border-top
-            px-3 px-md-4 py-3 bg-dark-subtle align-text-center">
+            bg-light-subtle
+            px-3 px-md-4 py-3">
 
+        <!-- Verification heading -->
         <div
-            class="d-flex flex-nowrap
-                align-items-center gap-2
-                overflow-auto"
-            aria-label="Verified profile details">
+            class="d-flex
+                align-items-center
+                gap-2 mb-3">
+
+            <span
+                class="avatar-xs
+                    flex-shrink-0">
+
+                <span
+                    class="avatar-title
+                        rounded-circle
+                        bg-success-subtle
+                        text-success">
+
+                    <i
+                        class="ri-shield-check-fill
+                            fs-18"
+                        aria-hidden="true">
+                    </i>
+
+                </span>
+
+            </span>
+
+            <div class="min-w-0">
+
+                <p
+                    class="fs-13
+                        fw-semibold
+                        text-body mb-0">
+
+                    Profile Verification
+
+                </p>
+
+                <p
+                    class="fs-11
+                        text-muted mb-0">
+
+                    <?= esc(
+                        $verificationSummary
+                    ) ?>
+
+                </p>
+
+            </div>
+
+        </div>
+
+        <!-- Successfully verified profile attributes -->
+        <div
+            class="d-flex
+                flex-wrap
+                align-items-center
+                gap-2"
+            role="list"
+            aria-label="<?= esc(
+                            $verificationSummary,
+                            'attr'
+                        ) ?>">
 
             <?php foreach (
                 $verifiedItems
@@ -97,24 +166,44 @@ $verifiedItems = array_values(
 
                 <span
                     class="badge rounded
-                        bg-success text-success
+                        bg-success-subtle
+                        text-success
                         border border-success
                         border-opacity-25
                         d-inline-flex
                         align-items-center
-                        gap-1 flex-shrink-0
-                        px-2 py-2">
+                        gap-2
+                        px-2 py-2"
+                    role="listitem"
+                    aria-label="<?= esc(
+                                    $item['label'],
+                                    'attr'
+                                ) ?>">
 
-                    <span class="avatar-title bg-success rounded-circle shadow">
-                        <i class="ri-shield-check-line
-                        fs-16 text-white"></i>
-                    </span>
+                    <i
+                        class="<?= esc(
+                                    $item['icon'],
+                                    'attr'
+                                ) ?>
+                            fs-15 text-black fw-medium"
+                        aria-hidden="true">
+                    </i>
 
-                    <span class="fs-13 fw-medium text-white">
+                    <span
+                        class="fs-13
+                            fw-normal text-black">
+
                         <?= esc(
                             $item['label']
                         ) ?>
+
                     </span>
+
+                    <i
+                        class="ri-checkbox-circle-fill
+                            fs-15"
+                        aria-hidden="true">
+                    </i>
 
                 </span>
 

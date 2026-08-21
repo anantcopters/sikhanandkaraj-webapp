@@ -7,6 +7,7 @@ namespace App\Services\Profile;
 use App\Models\UserContactModel;
 use App\Models\UserModel;
 use App\Services\Account\MemberAccountSettingsService;
+use App\Models\MemberVideoIntroductionModel;
 use App\Support\BooleanValue;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
@@ -17,7 +18,8 @@ final class MemberTrustVerificationService
         private readonly UserContactModel $contactModel,
         private readonly MemberAadhaarService $aadhaarService,
         private readonly MemberAccountSettingsService
-        $accountSettingsService
+        $accountSettingsService,
+        private readonly MemberVideoIntroductionModel $videoModel
     ) {}
 
     /**
@@ -163,11 +165,11 @@ final class MemberTrustVerificationService
                 ),
             ],
 
-            'selfie' => [
-                'isVerified' =>
-                BooleanValue::fromDatabase(
-                    $user['is_selfie_verified']
-                        ?? false
+            'videoIntroduction' => [
+                'isApproved' => is_array(
+                    $this->videoModel->activeForMember(
+                        $userId
+                    )
                 ),
             ],
         ];

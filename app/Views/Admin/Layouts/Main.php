@@ -77,6 +77,12 @@ $pageScripts = $pageScripts ?? [];
                 'admin/members/aadhaar-approvals'
             );
 
+        $videoIntroductionApprovalsActive =
+            str_starts_with(
+                $currentPath,
+                'admin/video-introductions'
+            );
+
         $prelaunchProfilesActive =
             str_starts_with(
                 $currentPath,
@@ -89,7 +95,8 @@ $pageScripts = $pageScripts ?? [];
                 'admin/members'
             )
             && !$photoApprovalsActive
-            && !$aadhaarApprovalsActive;
+            && !$aadhaarApprovalsActive
+            && !$videoIntroductionApprovalsActive;
 
         $administratorsActive =
             str_starts_with(
@@ -104,19 +111,20 @@ $pageScripts = $pageScripts ?? [];
             );
 
         /*
-     * Parent dropdown states.
-     */
+        * Parent dropdown states.
+        */
         $memberGroupActive =
             $membersActive
-            || $prelaunchProfilesActive;
+            || $prelaunchProfilesActive
+            || $sakVolunteersActive;
 
         $approvalGroupActive =
             $photoApprovalsActive
-            || $aadhaarApprovalsActive;
+            || $aadhaarApprovalsActive
+            || $videoIntroductionApprovalsActive;
 
         $administrationGroupActive =
-            $administratorsActive
-            || $sakVolunteersActive;
+            $administratorsActive;
 
         $profileReportsActive =
             str_starts_with(
@@ -335,6 +343,30 @@ $pageScripts = $pageScripts ?? [];
                                             Pre-launch Profiles
                                         </a>
                                     </li>
+                                    <li>
+                                        <a
+                                            href="<?= route_to(
+                                                        'admin.'
+                                                            . 'field-officers.index'
+                                                    ) ?>"
+                                            class="dropdown-item
+                                                d-flex
+                                                align-items-center
+                                                gap-2
+                                                <?= $sakVolunteersActive
+                                                    ? 'active'
+                                                    : '' ?>"
+                                            <?= $sakVolunteersActive
+                                                ? 'aria-current="page"'
+                                                : '' ?>>
+
+                                            <i
+                                                class="ri-user-location-line"
+                                                aria-hidden="true"></i>
+
+                                            SAK Volunteers
+                                        </a>
+                                    </li>
                                 </ul>
                             </li>
 
@@ -419,6 +451,28 @@ $pageScripts = $pageScripts ?? [];
                                                 aria-hidden="true"></i>
 
                                             Aadhaar Approvals
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a
+                                            href="<?= route_to(
+                                                        'admin.members.video-introductions'
+                                                    ) ?>"
+                                            class="dropdown-item d-flex
+            align-items-center gap-2
+            <?= $videoIntroductionApprovalsActive
+                ? 'active'
+                : '' ?>"
+                                            <?= $videoIntroductionApprovalsActive
+                                                ? 'aria-current="page"'
+                                                : '' ?>>
+
+                                            <i
+                                                class="ri-video-line"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            Video Introductions
                                         </a>
                                     </li>
                                 </ul>
@@ -563,31 +617,6 @@ $pageScripts = $pageScripts ?? [];
                                                 Administrators
                                             </a>
                                         </li>
-
-                                        <li>
-                                            <a
-                                                href="<?= route_to(
-                                                            'admin.'
-                                                                . 'field-officers.index'
-                                                        ) ?>"
-                                                class="dropdown-item
-                                                d-flex
-                                                align-items-center
-                                                gap-2
-                                                <?= $sakVolunteersActive
-                                                    ? 'active'
-                                                    : '' ?>"
-                                                <?= $sakVolunteersActive
-                                                    ? 'aria-current="page"'
-                                                    : '' ?>>
-
-                                                <i
-                                                    class="ri-user-location-line"
-                                                    aria-hidden="true"></i>
-
-                                                SAK Volunteers
-                                            </a>
-                                        </li>
                                     </ul>
                                 </li>
                             <?php endif; ?>
@@ -690,9 +719,12 @@ $pageScripts = $pageScripts ?? [];
         <?= $this->renderSection('content') ?>
     </main>
     <?= view('Components/FeedbackModal') ?>
+    <?= view(
+        'Components/VideoIntroduction/PlaybackModal'
+    ) ?>
     <?= view('Components/ConfirmationModal') ?>
 
-    <footer class="mt-5 pt-4 border-top border-secondary-subtle bg-light">
+    <footer class="mt-5 pt-4 border-top border-secondary-subtle light-yellowish">
 
         <div class="container py-3 pt-0">
 
@@ -700,10 +732,12 @@ $pageScripts = $pageScripts ?? [];
 
                 <div class="col-12 col-md-6 col-xl-3">
 
-                    <div class="d-flex
-    align-items-center
-    justify-content-center
-    gap-3">
+                    <div class="
+                        d-flex
+                        trust-feature
+                        align-items-center
+                        gap-3
+                    ">
 
                         <i class="ri-shield-check-line fs-3"></i>
 
@@ -832,6 +866,9 @@ $pageScripts = $pageScripts ?? [];
                 ) ?>">
     </script>
     <script src="<?= base_url('assets/js/components/feedback-modal.js') ?>"></script>
+    <script src="<?= base_url(
+                        'assets/js/components/video-introduction-modal.js'
+                    ) ?>"></script>
     <script src="<?= base_url('assets/js/app.js') ?>"></script>
     <script
         src="<?= base_url(

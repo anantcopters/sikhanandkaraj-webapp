@@ -85,6 +85,59 @@ $viewedProfileReference = trim(
     )
 );
 
+$videoIntroductionPlaybackUrl =
+    $isOtherMemberProfileView
+    ? (
+        $viewedProfileReference !== ''
+        ? route_to(
+            'web.video-introduction.viewer-playback',
+            $viewedProfileReference
+        )
+        : ''
+    )
+    : route_to(
+        'web.video-introduction.owner-playback'
+    );
+
+$videoMemberName = trim(
+    (string) (
+        $user['full_name']
+        ?? $fullName
+        ?? ''
+    )
+);
+
+$videoMemberGender = trim(
+    (string) (
+        $user['gender']
+        ?? ''
+    )
+);
+
+$videoIntroductionState =
+    isset($videoIntroductionState)
+    && is_array($videoIntroductionState)
+    ? $videoIntroductionState
+    : [];
+
+$hasVideoIntroductionBadge =
+    ($videoIntroductionState['hasBadge'] ?? false)
+    === true;
+
+$isVideoIntroductionHidden =
+    ($videoIntroductionState['isHidden'] ?? false)
+    === true;
+
+$videoIntroductionDuration =
+    isset(
+        $videoIntroductionState['durationSeconds']
+    )
+    && is_numeric(
+        $videoIntroductionState['durationSeconds']
+    )
+    ? (float) $videoIntroductionState['durationSeconds']
+    : null;
+
 $viewedMobile = trim(
     (string) (
         $viewedMobile
@@ -934,7 +987,10 @@ $this->section('content');
 <section class="py-3 py-lg-4">
     <div class="container">
 
-        <div class="mb-2">
+        <div
+            class="d-flex align-items-center
+        justify-content-between gap-3 mb-2">
+
             <a
                 href="<?= esc(
                             $profileBackUrl,
@@ -943,7 +999,7 @@ $this->section('content');
                 class="d-inline-flex
             align-items-center
             gap-1 text-primary
-            fw-medium mb-2">
+            fw-medium">
 
                 <i
                     class="ri-arrow-left-line"
@@ -954,6 +1010,134 @@ $this->section('content');
                     $profileBackLabel
                 ) ?>
             </a>
+
+            <?php if ($isOtherMemberProfileView): ?>
+                <div class="dropdown">
+                    <button
+                        type="button"
+                        class="btn btn-info btn-icon"
+                        data-bs-toggle="dropdown"
+                        data-bs-auto-close="outside"
+                        aria-expanded="false"
+                        aria-label="Profile actions">
+
+                        <i
+                            class="ri-more-2-fill fs-18"
+                            aria-hidden="true">
+                        </i>
+                    </button>
+
+                    <div
+                        class="dropdown-menu dropdown-menu-end
+                    p-2 border border-danger
+        border-opacity-50 shadow-md"
+                        style="min-width: 220px;">
+
+                        <form
+                            method="post"
+                            action="<?= route_to(
+                                        'web.members.shortlist',
+                                        $viewedProfileReference
+                                    ) ?>"
+                            data-member-shortlist-form>
+
+                            <?= csrf_field() ?>
+
+                            <button
+                                type="submit"
+                                class="dropdown-item rounded
+                            d-flex align-items-center gap-2"
+                                data-member-shortlist-submit>
+
+                                <span
+                                    class="d-inline-flex
+                                align-items-center gap-2"
+                                    data-member-shortlist-label>
+
+                                    <i
+                                        class="<?= $isShortlisted
+                                                    ? 'ri-bookmark-fill'
+                                                    : 'ri-bookmark-line' ?>"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <?= $isShortlisted
+                                        ? 'Remove from Shortlist'
+                                        : 'Shortlist Profile' ?>
+                                </span>
+
+                                <span
+                                    class="d-none align-items-center
+                                gap-1"
+                                    data-member-shortlist-loading>
+
+                                    <span
+                                        class="spinner-border
+                                    spinner-border-sm"
+                                        aria-hidden="true">
+                                    </span>
+
+                                    Saving...
+                                </span>
+                            </button>
+                        </form>
+
+                        <?php if ($hasReportedProfile): ?>
+                            <button
+                                type="button"
+                                class="dropdown-item rounded
+                            d-flex align-items-center gap-2
+                            text-muted"
+                                disabled>
+
+                                <i
+                                    class="ri-flag-fill"
+                                    aria-hidden="true">
+                                </i>
+
+                                Reported:
+                                <?= esc(
+                                    $reportedProfileStatusLabel
+                                ) ?>
+                            </button>
+                        <?php else: ?>
+                            <button
+                                type="button"
+                                class="dropdown-item rounded
+                            d-flex align-items-center gap-2"
+                                data-bs-toggle="modal"
+                                data-bs-target="#memberReportModal">
+
+                                <i
+                                    class="ri-flag-line
+                                text-warning"
+                                    aria-hidden="true">
+                                </i>
+
+                                Report Profile
+                            </button>
+                        <?php endif; ?>
+
+                        <div class="dropdown-divider"></div>
+
+                        <button
+                            type="button"
+                            class="dropdown-item rounded
+                        d-flex align-items-center gap-2
+                        text-danger"
+                            data-bs-toggle="modal"
+                            data-bs-target="#memberBlockModal">
+
+                            <i
+                                class="ri-forbid-line"
+                                aria-hidden="true">
+                            </i>
+
+                            Block Profile
+                        </button>
+                    </div>
+                </div>
+            <?php endif; ?>
         </div>
         <?php if (
             !$isOtherMemberProfileView
@@ -1083,42 +1267,55 @@ $this->section('content');
     gap-2
     mb-2">
 
-                                            <div
-                                                class="d-flex
+                                            <div>
+                                                <div
+                                                    class="d-flex
         align-items-center
         flex-wrap
         gap-2">
 
-                                                <h2
-                                                    class="fs-24
+                                                    <h2
+                                                        class="fs-24
             fw-bold
             mb-0">
 
-                                                    <?= esc(
-                                                        $fullName
-                                                    ) ?>
-                                                </h2>
+                                                        <?= esc(
+                                                            $fullName
+                                                        ) ?>
+                                                    </h2>
 
-                                                <?php if (
-                                                    strtoupper(
-                                                        trim(
-                                                            (string) (
-                                                                $user['account_status']
-                                                                ?? ''
+                                                    <?php if (
+                                                        strtoupper(
+                                                            trim(
+                                                                (string) (
+                                                                    $user['account_status']
+                                                                    ?? ''
+                                                                )
                                                             )
-                                                        )
-                                                    ) === 'APPROVED'
-                                                ): ?>
+                                                        ) === 'APPROVED'
+                                                    ): ?>
 
-                                                    <i
-                                                        class="ri-checkbox-circle-fill
+                                                        <i
+                                                            class="ri-checkbox-circle-fill
                 text-success
                 fs-18"
-                                                        aria-label="Approved profile">
-                                                    </i>
+                                                            aria-label="Approved profile">
+                                                        </i>
 
-                                                <?php endif; ?>
+                                                    <?php endif; ?>
+                                                </div>
 
+                                                <div class="text-muted fs-13 mt-1">
+                                                    Profile ID:
+
+                                                    <strong class="text-body">
+                                                        <?= esc(
+                                                            $displayValue(
+                                                                $profileReference
+                                                            )
+                                                        ) ?>
+                                                    </strong>
+                                                </div>
                                             </div>
 
                                             <?php if ($showMemberActions): ?>
@@ -1623,142 +1820,6 @@ $this->section('content');
 
                                             <?php endif; ?>
 
-                                            <!-- ShortList -->
-                                            <!-- =================================================
-     Secondary actions
-     ================================================= -->
-
-                                            <div
-                                                class="border-top
-        pt-3
-        mt-1">
-
-                                                <div class="d-grid gap-2">
-
-                                                    <form
-                                                        method="post"
-                                                        action="<?= route_to(
-                                                                    'web.members.shortlist',
-                                                                    $viewedProfileReference
-                                                                ) ?>"
-                                                        data-member-shortlist-form>
-
-                                                        <?= csrf_field() ?>
-
-                                                        <button
-                                                            type="submit"
-                                                            class="btn
-                btn-outline-primary
-                w-100
-                d-inline-flex
-                align-items-center
-                justify-content-center
-                gap-1"
-                                                            data-member-shortlist-submit>
-
-                                                            <span
-                                                                class="d-inline-flex
-                    align-items-center
-                    gap-1"
-                                                                data-member-shortlist-label>
-
-                                                                <i
-                                                                    class="<?= $isShortlisted
-                                                                                ? 'ri-bookmark-fill'
-                                                                                : 'ri-bookmark-line' ?>"
-                                                                    aria-hidden="true">
-                                                                </i>
-
-                                                                <?= $isShortlisted
-                                                                    ? 'Shortlisted'
-                                                                    : 'ShortList' ?>
-                                                            </span>
-
-                                                            <span
-                                                                class="d-none align-items-center gap-1"
-                                                                data-member-shortlist-loading>
-
-                                                                <span
-                                                                    class="spinner-border spinner-border-sm"
-                                                                    aria-hidden="true">
-                                                                </span>
-
-                                                                Saving...
-                                                            </span>
-                                                        </button>
-                                                    </form>
-
-                                                    <div class="col-12">
-                                                        <?php if ($hasReportedProfile): ?>
-                                                            <button
-                                                                type="button"
-                                                                class="btn
-                btn-danger
-                w-100
-                h-100
-                d-flex
-                align-items-center
-                justify-content-center
-                gap-1"
-                                                                title="This profile has already been reported"
-                                                                disabled>
-
-
-
-                                                                <span>
-                                                                    Reported Status -
-                                                                    <?= esc(
-                                                                        $reportedProfileStatusLabel
-                                                                    ) ?>
-                                                                </span>
-                                                            </button>
-                                                        <?php else: ?>
-                                                            <button
-                                                                type="button"
-                                                                class="btn
-                btn-outline-warning
-                w-100
-                h-100
-                d-flex
-                align-items-center
-                justify-content-center
-                gap-1"
-                                                                data-bs-toggle="modal"
-                                                                data-bs-target="#memberReportModal">
-
-                                                                <i
-                                                                    class="ri-flag-line"
-                                                                    aria-hidden="true">
-                                                                </i>
-
-                                                                Report
-                                                            </button>
-                                                        <?php endif; ?>
-                                                    </div>
-
-                                                    <button
-                                                        type="button"
-                                                        class="btn
-            btn-outline-danger
-            w-100
-            d-inline-flex
-            align-items-center
-            justify-content-center
-            gap-1"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#memberBlockModal">
-
-                                                        <i
-                                                            class="ri-forbid-line"
-                                                            aria-hidden="true">
-                                                        </i>
-
-                                                        Block Profile
-                                                    </button>
-                                                </div>
-
-                                            </div>
-
                                         </div>
                                     </div>
 
@@ -1777,66 +1838,16 @@ $this->section('content');
         border-top">
 
                                 <!-- Profile ID -->
-                                <div
-                                    class="col-12
-            col-sm-6
-            <?= $isOtherMemberProfileView
-                ? 'col-xl-3'
-                : 'col-xl-4' ?>">
 
-                                    <div
-                                        class="d-flex
-                align-items-start
-                gap-2
-                h-100">
 
-                                        <span
-                                            class="avatar-xs
-                    flex-shrink-0">
-
-                                            <span
-                                                class="avatar-title
-                        rounded-circle
-                        bg-primary-subtle
-                        text-primary">
-
-                                                <i
-                                                    class="ri-fingerprint-line
-                            fs-16"
-                                                    aria-hidden="true">
-                                                </i>
-                                            </span>
-                                        </span>
-
-                                        <div class="min-w-0 flex-grow-1">
-                                            <div
-                                                class="text-muted
-                        fs-12">
-
-                                                Profile ID
-                                            </div>
-
-                                            <strong
-                                                class="fs-14
-                        text-break">
-
-                                                <?= esc(
-                                                    $displayValue(
-                                                        $profileReference
-                                                    )
-                                                ) ?>
-                                            </strong>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <?php if ($isOtherMemberProfileView): ?>
+                                <?php if (
+                                    !$isAdminProfileView
+                                    && !$isFieldOfficerProfileView
+                                ): ?>
 
                                     <!-- Contact number -->
                                     <div
-                                        class="col-12
-                col-sm-6
-                col-xl-3">
+                                        class="col-12 col-sm-6 col-xl-3">
 
                                         <div
                                             class="d-flex
@@ -1963,9 +1974,7 @@ $this->section('content');
 
                                     <!-- Email -->
                                     <div
-                                        class="col-12
-                col-sm-6
-                col-xl-3">
+                                        class="col-12 col-sm-6 col-xl-3">
 
                                         <div
                                             class="d-flex
@@ -2043,9 +2052,7 @@ $this->section('content');
 
                                     <!-- Aadhaar verification -->
                                     <div
-                                        class="col-12
-                col-sm-6
-                col-xl-3">
+                                        class="col-12 col-sm-6 col-xl-3">
 
                                         <div
                                             class="d-flex
@@ -2117,6 +2124,72 @@ $this->section('content');
                                         </div>
                                     </div>
 
+                                    <div class="col-12 col-sm-6 col-xl-3">
+                                        <div
+                                            class="d-flex align-items-start
+            gap-2 h-100">
+
+                                            <span class="avatar-xs flex-shrink-0">
+                                                <span
+                                                    class="avatar-title rounded-circle
+                    <?= $hasVideoIntroductionBadge
+                                        ? 'bg-success-subtle text-success'
+                                        : 'bg-light text-muted' ?>">
+
+                                                    <i
+                                                        class="<?= $hasVideoIntroductionBadge
+                                                                    ? 'ri-video-line'
+                                                                    : 'ri-video-off-line' ?> fs-16"
+                                                        aria-hidden="true">
+                                                    </i>
+                                                </span>
+                                            </span>
+
+                                            <div class="min-w-0 flex-grow-1">
+                                                <div class="text-muted fs-12">
+                                                    Live Introduction
+                                                </div>
+
+                                                <?php if (
+                                                    $hasVideoIntroductionBadge
+                                                ): ?>
+                                                    <?php if (
+                                                        $isVideoIntroductionHidden
+                                                    ): ?>
+                                                        <span
+                                                            class="text-muted
+                            fw-medium fs-13">
+
+                                                            Currently hidden
+                                                        </span>
+                                                    <?php else: ?>
+                                                        <span
+                                                            class="d-inline-flex
+                            align-items-center gap-1
+                            text-success
+                            fs-12">
+
+                                                            <i
+                                                                class="
+                                ri-checkbox-circle-fill"
+                                                                aria-hidden="true">
+                                                            </i>
+
+                                                            Verified
+                                                        </span>
+                                                    <?php endif; ?>
+                                                <?php else: ?>
+                                                    <span
+                                                        class="text-muted
+                        fw-medium fs-13">
+
+                                                        Not available
+                                                    </span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 <?php endif; ?>
                             </div>
 
@@ -2128,126 +2201,215 @@ $this->section('content');
         </article>
         <?php if (
             $hasApprovedAadhaarIdentity
+            || $hasVideoIntroductionBadge
         ): ?>
-            <section
-                class="card
-            border
-            border-success
-            border-opacity-25
-            shadow-sm
-            rounded-3
-            mb-4"
-                aria-labelledby="aadhaarVerifiedDetailsTitle">
+            <div class="row g-4 mb-4">
+                <?php if ($hasApprovedAadhaarIdentity): ?>
+                    <div class="col-12 col-lg-6">
+                        <section
+                            class="card border border-success
+                border-opacity-25 shadow-sm
+                rounded-3 h-100"
+                            aria-labelledby="aadhaarVerifiedDetailsTitle">
 
-                <div
-                    class="card-header
-                bg-success-subtle
-                d-flex
-                align-items-center
-                justify-content-between
-                gap-2">
+                            <div
+                                class="card-header bg-success-subtle
+                    d-flex align-items-center
+                    justify-content-between gap-2">
 
-                    <div
-                        class="d-flex
-                    align-items-center
+                                <div
+                                    class="d-flex align-items-center
+                        gap-2">
+
+                                    <i
+                                        class="ri-shield-check-line
+                            text-success fs-18"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <h2
+                                        id="aadhaarVerifiedDetailsTitle"
+                                        class="card-title fs-16
+                            fw-semibold mb-0">
+
+                                        Aadhaar Verified Details
+                                    </h2>
+                                </div>
+                            </div>
+
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-6">
+                                        <div
+                                            class="border-bottom
+                                pb-2 h-100">
+
+                                            <div
+                                                class="text-muted
+                                    fs-12 mb-1">
+
+                                                Name on Aadhaar
+                                            </div>
+
+                                            <div
+                                                class="fw-medium fs-14
+                                    d-flex align-items-center
+                                    gap-1">
+
+                                                <?= esc(
+                                                    $aadhaarVerifiedName
+                                                ) ?>
+
+                                                <i
+                                                    class="ri-checkbox-circle-fill
+                                        text-success"
+                                                    aria-label="Aadhaar name verified">
+                                                </i>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+                                        <div
+                                            class="border-bottom
+                                pb-2 h-100">
+
+                                            <div
+                                                class="text-muted
+                                    fs-12 mb-1">
+
+                                                Date of Birth on Aadhaar
+                                            </div>
+
+                                            <div
+                                                class="fw-medium fs-14
+                                    d-flex align-items-center
+                                    gap-1">
+
+                                                <?= esc(
+                                                    $formattedAadhaarDateOfBirth
+                                                ) ?>
+
+                                                <i
+                                                    class="ri-checkbox-circle-fill
+                                        text-success"
+                                                    aria-label="Aadhaar date of birth verified">
+                                                </i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p class="text-muted fs-12 mb-0 mt-3">
+                                    These details were recorded during Aadhaar
+                                    verification and cannot be edited from the
+                                    matrimonial profile.
+                                </p>
+                            </div>
+                        </section>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($hasVideoIntroductionBadge): ?>
+                    <div class="col-12 col-lg-6">
+                        <section
+                            class="card border border-success
+                border-opacity-25 shadow-sm
+                rounded-3 h-100"
+                            aria-labelledby="
+                liveIntroductionVerifiedTitle
+            ">
+
+                            <div
+                                class="card-header
+                    bg-success-subtle
+                    d-flex align-items-center
                     gap-2">
 
-                        <i
-                            class="ri-shield-check-line
-                        text-success
-                        fs-18"
-                            aria-hidden="true"></i>
+                                <i
+                                    class="ri-video-line
+                        text-success fs-18"
+                                    aria-hidden="true">
+                                </i>
 
-                        <h2
-                            id="aadhaarVerifiedDetailsTitle"
-                            class="card-title
-                        fs-16
-                        fw-semibold
-                        mb-0">
+                                <h2
+                                    id="liveIntroductionVerifiedTitle"
+                                    class="card-title fs-16
+                        fw-semibold mb-0">
 
-                            Aadhaar Verified Details
-                        </h2>
-                    </div>
-                </div>
-
-                <div class="card-body">
-                    <div class="row g-3">
-
-                        <div class="col-12 col-md-6">
-                            <div
-                                class="border-bottom
-                            pb-2
-                            h-100">
-
-                                <div
-                                    class="text-muted
-                                fs-12
-                                mb-1">
-
-                                    Name on Aadhaar
-                                </div>
-
-                                <div
-                                    class="fw-medium
-                                fs-14
-                                d-flex
-                                align-items-center
-                                gap-1">
-
-                                    <?= esc(
-                                        $aadhaarVerifiedName
-                                    ) ?>
-
-                                    <i
-                                        class="ri-checkbox-circle-fill
-                                    text-success"
-                                        aria-label="Aadhaar name verified">
-                                    </i>
-                                </div>
+                                    Live Introduction Video
+                                </h2>
                             </div>
-                        </div>
 
-                        <div class="col-12 col-md-6">
-                            <div
-                                class="border-bottom
-                            pb-2
-                            h-100">
+                            <div class="card-body">
+                                <?php if (
+                                    $isVideoIntroductionHidden
+                                ): ?>
+                                    <div
+                                        class="alert alert-light
+                            border fs-13 mb-0">
 
-                                <div
-                                    class="text-muted
-                                fs-12
-                                mb-1">
+                                        This member has an approved
+                                        Video Introduction but has
+                                        currently hidden it.
+                                    </div>
+                                <?php else: ?>
+                                    <p class="text-muted fs-13 mb-2">
+                                        This member has recorded an
+                                        approved personal Video Introduction.
+                                    </p>
 
-                                    Date of Birth on Aadhaar
-                                </div>
+                                    <?php if (
+                                        $videoIntroductionDuration !== null
+                                    ): ?>
+                                        <p class="fs-13 mb-3">
+                                            <strong>Duration:</strong>
 
-                                <div
-                                    class="fw-medium
-                                fs-14
-                                d-flex
-                                align-items-center
-                                gap-1">
+                                            <?= esc(
+                                                number_format(
+                                                    $videoIntroductionDuration,
+                                                    1
+                                                )
+                                            ) ?>
+                                            seconds
+                                        </p>
+                                    <?php endif; ?>
 
-                                    <?= esc(
-                                        $formattedAadhaarDateOfBirth
-                                    ) ?>
+                                    <button
+                                        type="button"
+                                        class="btn btn-primary"
+                                        data-video-introduction-open
+                                        data-playback-url="<?= esc(
+                                                                $videoIntroductionPlaybackUrl,
+                                                                'attr'
+                                                            ) ?>"
+                                        data-hidden="0"
+                                        data-member-name="<?= esc(
+                                                                $videoMemberName,
+                                                                'attr'
+                                                            ) ?>"
+                                        data-profile-reference="<?= esc(
+                                                                    $viewedProfileReference,
+                                                                    'attr'
+                                                                ) ?>"
+                                        data-member-gender="<?= esc(
+                                                                $videoMemberGender,
+                                                                'attr'
+                                                            ) ?>">
 
-                                    <i
-                                        class="ri-checkbox-circle-fill
-                                    text-success"
-                                        aria-label="Aadhaar date of birth verified">
-                                    </i>
-                                </div>
+                                        <i
+                                            class="ri-play-circle-line me-1"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        Play Video
+                                    </button>
+                                <?php endif; ?>
                             </div>
-                        </div>
+                        </section>
                     </div>
-
-                    <p class="text-muted fs-12 mb-0 mt-3">
-                        These details were recorded during Aadhaar verification
-                        and cannot be edited from the matrimonial profile.
-                    </p>
-                </div>
-            </section>
+                <?php endif; ?>
+            </div>
         <?php endif; ?>
         <div class="row mb-0">
             <div class="col-12">

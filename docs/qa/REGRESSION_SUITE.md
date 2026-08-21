@@ -297,7 +297,7 @@ successfully verified profile attributes:
 - Mobile Verified
 - Email Verified
 - Aadhaar Verified
-- Selfie Verified
+- Video Introduction
 
 Verification values are loaded by MemberMatchCandidateModel and normalized by
 MemberProfilePresentationService using the existing BooleanValue support class.
@@ -313,11 +313,11 @@ as verified.
 2. ProfileInterestCard displays the backend-supplied account type.
 3. A verified primary mobile displays Mobile Verified.
 4. A verified primary email displays Email Verified.
-5. A missing or unverified email does not display Email Verified.
+5. Mobile, Email, Aadhaar and Video Introduction states match backend values.
 6. Approved Aadhaar displays Aadhaar Verified.
 7. Under-review, rejected or missing Aadhaar does not display Aadhaar Verified.
-8. Verified Selfie displays Selfie Verified.
-9. Unverified Selfie does not display Selfie Verified.
+8. An active approved Video Introduction displays the Video Introduction badge.
+9. Processing, pending-review, rejected, resubmission-requested, replaced and deleted videos do not display the badge.
 10. All four verified badges remain in one horizontally scrollable row on
     narrow screens.
 11. Dynamic labels and icon classes are escaped.
@@ -347,6 +347,36 @@ ProfileInterestCard retains its Interest-specific behaviour:
 - Sent, accepted and declined Interests display View Profile.
 - All forms retain CSRF protection and the existing submit-loader contract.
 
+## Video Introduction regression
+
+1. Consent is unchecked by default.
+2. Camera and microphone permissions are not requested before consent.
+3. Recording cannot be submitted before 15 seconds.
+4. Recording automatically stops at 30 seconds.
+5. Preview does not autoplay.
+6. Member can retake before submission.
+7. Processing and pending-review versions do not display a badge.
+8. An approved visible version displays the badge.
+9. An approved hidden version retains the badge but denies playback.
+10. Female members cannot select `VISIBLE_PRO`.
+11. A forged female `VISIBLE_PRO` request is rejected server-side.
+12. Non-Pro viewers cannot play a `VISIBLE_PRO` video.
+13. Accepted-interest visibility requires a currently accepted Interest.
+14. Blocking either member prevents new playback authorization.
+15. A globally hidden reported profile prevents playback.
+16. Seven-day replacement and deletion restrictions are enforced server-side.
+17. Rejection and resubmission permit a corrective recording.
+18. A replacement does not retire the previous approved video before approval.
+19. Deleting the active video removes the badge and does not expose an older replaced version.
+20. Two Admin decisions cannot update the same pending version.
+21. Reject and Resubmit require a 10–500 character reason on client and server.
+22. Corrupt, missing-audio, missing-video and out-of-range recordings do not enter moderation.
+23. Processing retries do not create duplicate notifications.
+24. Raw S3 URLs are never returned.
+25. Playback uses short-lived authenticated CloudFront URLs.
+26. Videos never autoplay.
+27. Cleanup does not delete active approved assets.
+
 **Required cases:**
 
 1. Account Type appears below the image in both card types.
@@ -367,3 +397,6 @@ ProfileInterestCard retains its Interest-specific behaviour:
 ## Retired cases
 
 Keep retired cases here or retain their original section with status `RETIRED` and the reason. Do not erase regression history without explanation.
+
+
+---

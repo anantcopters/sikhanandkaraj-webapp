@@ -96,12 +96,16 @@ $menuItems = [
         'label' => 'Profile Visibility',
         'icon' => 'ri-eye-line',
     ],
+    'video-introduction' => [
+        'label' => 'Video Introduction',
+        'icon' => 'ri-video-line',
+    ],
     'report-profile' => [
         'label' => 'Report Profile',
         'icon' => 'ri-flag-line',
     ],
     'plans' => [
-        'label' => 'View Plans',
+        'label' => 'Membership Plans',
         'icon' => 'ri-vip-crown-line',
     ],
     'contact' => [
@@ -156,7 +160,7 @@ $this->section('content');
                                 d-flex
                                 align-items-center
                                 gap-2
-                                py-3
+                                py-3 fs-14
                                 <?= $activeSection === $key
                                     ? 'active'
                                     : '' ?>"
@@ -186,6 +190,62 @@ $this->section('content');
                     <div class="card-body p-3 p-lg-4">
 
                         <?php if (
+                            $activeSection === 'video-introduction'
+                        ): ?>
+                            <?= view(
+                                'Pages/AccountSettings/_VideoIntroduction',
+                                [
+                                    'videoIntroduction' =>
+                                    $videoIntroduction
+                                        ?? null,
+
+                                    'activeVideoIntroduction' =>
+                                    $activeVideoIntroduction
+                                        ?? null,
+
+                                    'videoStatus' =>
+                                    $videoStatus
+                                        ?? 'NOT_SUBMITTED',
+
+                                    'videoStatusLabel' =>
+                                    $videoStatusLabel
+                                        ?? 'Not submitted',
+
+                                    'isFemaleMember' =>
+                                    $isFemaleMember
+                                        ?? false,
+
+                                    'isProMember' =>
+                                    $isProMember
+                                        ?? false,
+
+                                    'canRecord' =>
+                                    $canRecord
+                                        ?? false,
+
+                                    'canDelete' =>
+                                    $canDelete
+                                        ?? false,
+
+                                    'canHide' =>
+                                    $canHide
+                                        ?? false,
+
+                                    'isHidden' =>
+                                    $isHidden
+                                        ?? false,
+
+                                    'lockRemainingSeconds' =>
+                                    $lockRemainingSeconds
+                                        ?? 0,
+
+                                    'allowedVisibilities' =>
+                                    $allowedVisibilities
+                                        ?? [],
+                                ]
+                            ) ?>
+
+                        <?php elseif (
                             $activeSection === 'password'
                         ): ?>
 
@@ -1072,20 +1132,36 @@ $this->section('content');
                             $activeSection === 'plans'
                         ): ?>
 
-                            <h2 class="fs-18 fw-semibold">
-                                Membership Plans
-                            </h2>
+                            <div class="text-center mb-4">
 
-                            <div class="text-center py-5">
-                                <i
-                                    class="ri-vip-crown-line
-                                        fs-36 text-primary">
-                                </i>
-
-                                <p class="mt-3 mb-0">
-                                    Membership plans will be available soon.
+                                <p
+                                    class="
+                fs-13
+                fw-semibold
+                text-danger
+                text-uppercase
+                mb-2
+            ">
+                                    Membership Plans
                                 </p>
+
+                                <h2 class="fs-22 fw-semibold mb-2">
+                                    Choose Your Membership
+                                </h2>
+
+                                <p class="text-muted mb-0">
+                                    Find the plan that best fits
+                                    your matrimonial search.
+                                </p>
+
                             </div>
+
+                            <?= view(
+                                'Components/Membership/PlanCards',
+                                [
+                                    'context' => 'member',
+                                ]
+                            ) ?>
 
                         <?php else: ?>
 

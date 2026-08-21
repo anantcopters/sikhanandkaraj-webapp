@@ -108,6 +108,65 @@ final class S3Service
     }
 
     /**
+     * Download one private object to a worker-owned local path.
+     */
+    public function download(
+        string $objectKey,
+        string $localPath
+    ): void {
+        $directory = dirname(
+            $localPath
+        );
+
+        if (
+            ! is_dir($directory)
+            && ! mkdir(
+                $directory,
+                0700,
+                true
+            )
+            && ! is_dir($directory)
+        ) {
+            throw new RuntimeException(
+                'The media work directory could not be created.'
+            );
+        }
+
+        try {
+            $this->client->getObject(
+                [
+                    'Bucket' =>
+                    $this->config->s3Bucket,
+
+                    'Key' =>
+                    ltrim(
+                        trim($objectKey),
+                        '/'
+                    ),
+
+                    'SaveAs' =>
+                    $localPath,
+                ]
+            );
+        } catch (Throwable $exception) {
+            throw new RuntimeException(
+                'The private media object could not be downloaded.',
+                0,
+                $exception
+            );
+        }
+
+        if (
+            ! is_file($localPath)
+            || filesize($localPath) === 0
+        ) {
+            throw new RuntimeException(
+                'The downloaded media object is empty.'
+            );
+        }
+    }
+
+    /**
      * Delete one private object.
      *
      * This method returns false instead of throwing, so it owns failure

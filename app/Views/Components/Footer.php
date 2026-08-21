@@ -6,10 +6,12 @@
 
             <div class="col-12 col-md-6 col-xl-3">
 
-                <div class="d-flex
-    align-items-center
-    justify-content-center
-    gap-3">
+                <div class="
+                        d-flex
+                        trust-feature
+                        align-items-center
+                        gap-3
+                    ">
 
                     <i class="ri-shield-check-line fs-3"></i>
 

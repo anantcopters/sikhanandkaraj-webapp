@@ -145,6 +145,40 @@ final class MemberInterestModel extends Model
             : null;
     }
 
+    public function acceptedBetween(
+        int $firstUserId,
+        int $secondUserId
+    ): bool {
+        return $this
+            ->groupStart()
+            ->groupStart()
+            ->where(
+                'from_user_id',
+                $firstUserId
+            )
+            ->where(
+                'to_user_id',
+                $secondUserId
+            )
+            ->groupEnd()
+            ->orGroupStart()
+            ->where(
+                'from_user_id',
+                $secondUserId
+            )
+            ->where(
+                'to_user_id',
+                $firstUserId
+            )
+            ->groupEnd()
+            ->groupEnd()
+            ->where(
+                'status',
+                self::STATUS_ACCEPTED
+            )
+            ->countAllResults() > 0;
+    }
+
     /**
      * @return list<array<string, mixed>>
      */

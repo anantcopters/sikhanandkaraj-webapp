@@ -298,6 +298,14 @@ $routes->group(
         );
 
         $routes->get(
+            'membership-plans',
+            'InformationController::membershipPlans',
+            [
+                'as' => 'web.information.membership-plans',
+            ]
+        );
+
+        $routes->get(
             'careers',
             'InformationController::career',
             [
@@ -1083,6 +1091,42 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
         );
 
         $routes->get(
+            'profile/video-introduction/record',
+            'MemberVideoIntroductionController::record',
+            ['as' => 'web.video-introduction.record']
+        );
+
+        $routes->post(
+            'profile/video-introduction',
+            'MemberVideoIntroductionController::submit',
+            ['as' => 'web.video-introduction.submit']
+        );
+
+        $routes->post(
+            'account-settings/video-introduction/visibility',
+            'MemberVideoIntroductionController::visibility',
+            ['as' => 'web.video-introduction.visibility']
+        );
+
+        $routes->post(
+            'account-settings/video-introduction/delete',
+            'MemberVideoIntroductionController::delete',
+            ['as' => 'web.video-introduction.delete']
+        );
+
+        $routes->get(
+            'account-settings/video-introduction/playback-url',
+            'MemberVideoIntroductionController::ownerPlayback',
+            ['as' => 'web.video-introduction.owner-playback']
+        );
+
+        $routes->get(
+            'members/(:segment)/video-introduction/playback-url',
+            'MemberVideoIntroductionController::viewerPlayback/$1',
+            ['as' => 'web.video-introduction.viewer-playback']
+        );
+
+        $routes->get(
             'account-settings',
             'AccountSettingsController::index',
             [
@@ -1400,6 +1444,35 @@ $routes->group('admin', [
                     [
                         'as' =>
                         'admin.support.contacts.update',
+                    ]
+                );
+            }
+        );
+
+        $routes->group(
+            'video-introductions',
+            static function (RouteCollection $routes): void {
+                $routes->get(
+                    '',
+                    'MemberVideoIntroductionReviewController::index',
+                    [
+                        'as' => 'admin.members.video-introductions',
+                    ]
+                );
+
+                $routes->get(
+                    '(:segment)',
+                    'MemberVideoIntroductionReviewController::review/$1',
+                    [
+                        'as' => 'admin.members.video-introductions.review',
+                    ]
+                );
+
+                $routes->post(
+                    '(:segment)',
+                    'MemberVideoIntroductionReviewController::moderate/$1',
+                    [
+                        'as' => 'admin.members.video-introductions.moderate',
                     ]
                 );
             }

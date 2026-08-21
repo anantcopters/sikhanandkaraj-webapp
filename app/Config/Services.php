@@ -127,6 +127,12 @@ use App\Models\MemberShortlistModel;
 use App\Services\Admin\FieldOfficerDocumentService;
 use App\Services\Admin\MemberSupportService;
 use App\Models\EmailVerificationTokenModel;
+use App\Models\MemberVideoIntroductionModel;
+use App\Models\MemberVideoModerationHistoryModel;
+use App\Models\MemberVideoProcessingJobModel;
+use App\Services\Admin\MemberVideoModerationService;
+use App\Services\Video\MemberVideoIntroductionService;
+use App\Services\Video\VideoIntroductionProcessingService;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
 use App\Logging\ErrorLogSanitizer;
@@ -564,7 +570,13 @@ final class Services extends BaseService
         $database = db_connect();
 
         return new FamilyDetailsService(
-            new UserModel($database),
+            new UserModel(
+                $database
+            ),
+
+            new UserContactModel(
+                $database
+            ),
 
             new MemberFamilyDetailModel(
                 $database
@@ -985,10 +997,7 @@ final class Services extends BaseService
     }
 
     /**
-     * Return the shared member Trust and Verification service.
-     *
-     * Dashboard and Profile Edit use this service. Email state comes
-     * from MemberAccountSettingsService.
+     * Return shared Trust and Verification presentation data.
      */
     public static function memberTrustVerificationService(
         bool $getShared = true
@@ -1016,6 +1025,10 @@ final class Services extends BaseService
 
             static::memberAccountSettingsService(
                 false
+            ),
+
+            new MemberVideoIntroductionModel(
+                $database
             )
         );
     }
@@ -1514,7 +1527,8 @@ final class Services extends BaseService
     }
 
     /**
-     * Administrator member listing and account-status management.
+     * Administrator member listing, complete profile display and
+     * account-status management.
      */
     public static function memberManagementService(
         bool $getShared = true
@@ -1529,22 +1543,53 @@ final class Services extends BaseService
 
         return new MemberManagementService(
             $database,
-            new UserModel($database),
+
+            new UserModel(
+                $database
+            ),
+
             new MemberAccountStatusHistoryModel(
                 $database
             ),
+
             static::memberProfileSummaryService(
                 false
             ),
+
             static::memberPhotoUrlService(
                 false
             ),
+
             static::adminAuditService(
                 false
             ),
 
             static::memberInteractionService(
                 false
+            ),
+
+            static::basicPartnerPreferenceService(
+                false
+            ),
+
+            static::additionalPartnerPreferenceService(
+                false
+            ),
+
+            new MemberAadhaarSubmissionModel(
+                $database
+            ),
+
+            new MemberVideoIntroductionModel(
+                $database
+            ),
+
+            static::cloudFrontService(
+                false
+            ),
+
+            config(
+                VideoIntroduction::class
             )
         );
     }
@@ -2212,6 +2257,96 @@ final class Services extends BaseService
             ),
 
             $database
+        );
+    }
+
+    public static function memberVideoIntroductionService(
+        bool $getShared = true
+    ): MemberVideoIntroductionService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberVideoIntroductionService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberVideoIntroductionService(
+            new MemberVideoIntroductionModel($database),
+            new MemberVideoProcessingJobModel($database),
+            new MemberPhotoModel($database),
+            new UserModel($database),
+            new MemberInterestModel($database),
+            new MemberBlockModel($database),
+            new MemberProfileReportModel($database),
+            static::s3Service(false),
+            static::cloudFrontService(false),
+            $database,
+            config(VideoIntroduction::class)
+        );
+    }
+
+    public static function videoIntroductionProcessingService(
+        bool $getShared = true
+    ): VideoIntroductionProcessingService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'videoIntroductionProcessingService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new VideoIntroductionProcessingService(
+            new MemberVideoIntroductionModel($database),
+            new MemberVideoProcessingJobModel($database),
+            static::s3Service(false),
+            $database,
+            config(VideoIntroduction::class)
+        );
+    }
+
+    public static function memberVideoModerationService(
+        bool $getShared = true
+    ): MemberVideoModerationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberVideoModerationService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberVideoModerationService(
+            new MemberVideoIntroductionModel(
+                $database
+            ),
+
+            new MemberVideoModerationHistoryModel(
+                $database
+            ),
+
+            static::cloudFrontService(
+                false
+            ),
+
+            static::memberNotificationService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            static::memberTrustVerificationService(
+                false
+            ),
+
+            $database,
+
+            config(
+                VideoIntroduction::class
+            )
         );
     }
 }

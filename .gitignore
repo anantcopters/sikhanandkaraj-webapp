@@ -26,6 +26,9 @@
 /writable/release-version
 /writable/.release-version.*
 
+/writable/video-introduction
+!/writable/video-introduction/index.html
+
 # Testing and quality reports
 .phpunit.cache/
 coverage/

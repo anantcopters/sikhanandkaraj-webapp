@@ -649,8 +649,11 @@ final class MemberMatchmakingService
      * Convert visible candidate rows into the common member presentation
      * contract consumed by Dashboard.
      *
-     * Dashboard adds only its own match-percentage context to the shared
-     * member-summary contract.
+     * Dashboard adds:
+     *
+     * - match-percentage context;
+     * - existing Interest relationship state;
+     * - existing Send Interest route.
      *
      * @param list<array<string, mixed>> $rows
      *
@@ -683,16 +686,31 @@ final class MemberMatchmakingService
             }
 
             /*
-         * INTERESTED_MEMBERS photo visibility is satisfied by an
-         * Interest relationship in either direction.
-         */
-            $hasInterestRelationship =
+            * Use the same Interest relationship resolver used by
+            * Search and Member Profile View.
+            *
+            * This keeps:
+            *
+            * - Send Interest eligibility;
+            * - pending sent/received state;
+            * - accepted state;
+            * - Interest-based photo authorization
+            *
+            * consistent across all member-facing screens.
+            */
+            $interestRelationship =
                 $this
                 ->interactionService
-                ->hasInterestBetween(
+                ->interestRelationshipFor(
                     $viewerUserId,
                     $memberId
                 );
+
+            $hasInterestRelationship =
+                (
+                    $interestRelationship['hasRelationship']
+                    ?? false
+                ) === true;
 
             $profile =
                 $this
@@ -706,6 +724,31 @@ final class MemberMatchmakingService
             if ($profile === null) {
                 continue;
             }
+
+            $profileReference = trim(
+                (string) (
+                    $profile['referenceId']
+                    ?? ''
+                )
+            );
+
+            if ($profileReference === '') {
+                continue;
+            }
+
+            /*
+         * Use the existing member Interest endpoint.
+         *
+         * Numeric database member IDs are never exposed to the browser.
+         */
+            $profile['interestUrl'] =
+                route_to(
+                    'web.members.interest',
+                    $profileReference
+                );
+
+            $profile['interestRelationship'] =
+                $interestRelationship;
 
             /*
          * Match percentage belongs specifically to matchmaking context,

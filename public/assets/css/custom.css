@@ -2217,3 +2217,18 @@ form[aria-busy="true"] {
 .w-35 {
   width: 35% !important;
 }
+
+/* Preserve the standard footer layout above the mobile breakpoint. */
+.trust-feature {
+    justify-content: center;
+}
+
+/* Align every public trust item to one centred column on mobile. */
+@media (max-width: 767.98px) {
+    .trust-feature {
+        justify-content: flex-start;
+        width: 100%;
+        max-width: 18rem;
+        margin-inline: auto;
+    }
+}

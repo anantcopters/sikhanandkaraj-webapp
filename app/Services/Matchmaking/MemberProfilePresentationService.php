@@ -55,7 +55,7 @@ final class MemberProfilePresentationService
      *         mobile:bool,
      *         email:bool,
      *         aadhaar:bool,
-     *         selfie:bool
+     *         videoIntroduction:bool
      *     },
      *     image:string,
      *     profileUrl:string
@@ -306,9 +306,9 @@ final class MemberProfilePresentationService
                         ?? false
                 ),
 
-                'selfie' =>
+                'videoIntroduction' =>
                 BooleanValue::fromDatabase(
-                    $member['is_selfie_verified']
+                    $member['has_video_introduction']
                         ?? false
                 ),
             ],

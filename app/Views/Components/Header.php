@@ -801,49 +801,229 @@ $hidePublicLoginAction =
 
             <?php else: ?>
 
-                <!-- Existing public header actions -->
+                <!-- Public header actions -->
                 <div class="public-navbar__actions">
+
                     <?php if (
                         !$hidePublicLoginAction
                     ): ?>
+
+                        <!-- Quick profile registration -->
+                        <button
+                            type="button"
+                            class="btn btn-danger
+                    fs-14 text-nowrap
+                    d-inline-flex
+                    align-items-center
+                    justify-content-center
+                    gap-1"
+                            data-bs-toggle="modal"
+                            data-bs-target="#quickProfileRegistrationModal"
+                            aria-haspopup="dialog">
+
+                            <i
+                                class="ri-user-add-line"
+                                aria-hidden="true">
+                            </i>
+
+                            Quick Register Profile
+
+                        </button>
+
                         <span
                             class="fs-16
-                        fw-semibold
-                        lh-base
-                        text-dark
-                        text-nowrap
-                        hide-on-mobile-tablet">
+                    fw-semibold
+                    lh-base
+                    text-dark
+                    text-nowrap
+                    hide-on-mobile-tablet">
+
                             Already a member?
+
                         </span>
 
                         <a
-                            href="<?= site_url('login') ?>"
+                            href="<?= esc(
+                                        url_to(
+                                            'web.login'
+                                        ),
+                                        'attr'
+                                    ) ?>"
                             class="btn
-                        public-navbar__login
-                        fs-14">
+                    public-navbar__login
+                    fs-14">
+
                             Login
+
                         </a>
+
                     <?php endif; ?>
+
                     <a
-                        href="tel:+919887005392"
+                        href="tel:+919887711226"
                         class="public-navbar__phone
-                        hide-on-mobile"
-                        aria-label="Call Sikhanandkaraj at +91 98870 05392">
+                hide-on-mobile"
+                        aria-label="Call Sikhanandkaraj at +91 98877 11226">
 
                         <span
                             class="mdi
-                            mdi-phone-outline
-                            public-navbar__phone-icon"
+                    mdi-phone-outline
+                    public-navbar__phone-icon"
                             aria-hidden="true">
                         </span>
 
                         <span class="public-navbar__phone-number">
-                            +91 98870 05392
+                            +91 98877 11226
                         </span>
+
                     </a>
+
                 </div>
 
             <?php endif; ?>
         </div>
     </nav>
 </header>
+<?php if (
+    !$isAuthenticated
+    && !$hidePublicLoginAction
+): ?>
+
+    <!-- Quick profile registration information modal -->
+    <div
+        class="modal fade"
+        id="quickProfileRegistrationModal"
+        tabindex="-1"
+        aria-labelledby="quickProfileRegistrationModalTitle"
+        aria-describedby="quickProfileRegistrationModalDescription"
+        aria-hidden="true">
+
+        <div
+            class="modal-dialog
+                modal-dialog-centered
+                modal-md">
+
+            <div class="modal-content border-0 shadow">
+
+                <div class="modal-body p-4 text-center">
+
+                    <div
+                        class="avatar-md
+                            rounded-circle
+                            bg-primary-subtle
+                            text-primary
+                            d-inline-flex
+                            align-items-center
+                            justify-content-center
+                            mb-3"
+                        aria-hidden="true">
+
+                        <i
+                            class="ri-profile-line fs-30">
+                        </i>
+
+                    </div>
+
+                    <h2
+                        class="fs-18
+                            fw-semibold
+                            mb-2"
+                        id="quickProfileRegistrationModalTitle">
+
+                        Quick Profile Registration
+
+                    </h2>
+
+                    <p
+                        class="text-muted
+                            fs-13 mb-3"
+                        id="quickProfileRegistrationModalDescription">
+
+                        Submit your basic profile details for review.
+                        Our team will verify your profile and contact
+                        you if any clarification or additional
+                        information is required.
+
+                    </p>
+
+                    <div
+                        class="alert
+                            alert-info
+                            text-start
+                            fs-13 mb-4"
+                        role="note">
+
+                        <div
+                            class="d-flex
+                                align-items-start
+                                gap-2">
+
+                            <i
+                                class="ri-information-line
+                                    fs-18
+                                    flex-shrink-0"
+                                aria-hidden="true">
+                            </i>
+
+                            <span>
+                                Please provide an active mobile number
+                                so our team can contact you when needed.
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="d-flex
+                            flex-column-reverse
+                            flex-sm-row
+                            justify-content-center
+                            gap-2">
+
+                        <button
+                            type="button"
+                            class="btn btn-light
+                                flex-fill"
+                            data-bs-dismiss="modal">
+
+                            Not Now
+
+                        </button>
+
+                        <a
+                            href="<?= esc(
+                                        url_to(
+                                            'prelaunch.profile.index'
+                                        ),
+                                        'attr'
+                                    ) ?>"
+                            class="btn btn-danger
+                                flex-fill
+                                d-inline-flex
+                                align-items-center
+                                justify-content-center
+                                gap-1">
+
+                            <span>
+                                Continue
+                            </span>
+
+                            <i
+                                class="ri-arrow-right-line"
+                                aria-hidden="true">
+                            </i>
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+<?php endif; ?>
