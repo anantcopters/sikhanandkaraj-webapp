@@ -860,10 +860,10 @@ $hidePublicLoginAction =
                     <?php endif; ?>
 
                     <a
-                        href="tel:+919887005392"
+                        href="tel:+919887711226"
                         class="public-navbar__phone
                 hide-on-mobile"
-                        aria-label="Call Sikhanandkaraj at +91 98870 05392">
+                        aria-label="Call Sikhanandkaraj at +91 98877 11226">
 
                         <span
                             class="mdi
@@ -873,7 +873,7 @@ $hidePublicLoginAction =
                         </span>
 
                         <span class="public-navbar__phone-number">
-                            +91 98870 05392
+                            +91 98877 11226
                         </span>
 
                     </a>

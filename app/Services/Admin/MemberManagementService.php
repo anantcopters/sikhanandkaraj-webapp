@@ -14,6 +14,13 @@ use App\Services\Profile\MemberProfileSummaryService;
 use App\Services\Matchmaking\MemberInteractionService;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use App\Models\MemberAadhaarSubmissionModel;
+use App\Models\MemberVideoIntroductionModel;
+use App\Services\Aws\CloudFrontService;
+use App\Services\PartnerPreference\AdditionalPartnerPreferenceService;
+use App\Services\PartnerPreference\BasicPartnerPreferenceService;
+use App\Support\BooleanValue;
+use Config\VideoIntroduction;
 use DomainException;
 use RuntimeException;
 use Throwable;
@@ -30,7 +37,17 @@ final class MemberManagementService
         private readonly MemberProfileSummaryService $profileSummaryService,
         private readonly MemberPhotoUrlService $photoUrlService,
         private readonly AdminAuditService $auditService,
-        private readonly MemberInteractionService $interactionService
+        private readonly MemberInteractionService $interactionService,
+        private readonly BasicPartnerPreferenceService
+        $basicPreferenceService,
+        private readonly AdditionalPartnerPreferenceService
+        $additionalPreferenceService,
+        private readonly MemberAadhaarSubmissionModel
+        $aadhaarSubmissionModel,
+        private readonly MemberVideoIntroductionModel
+        $videoIntroductionModel,
+        private readonly CloudFrontService $cloudFrontService,
+        private readonly VideoIntroduction $videoConfig
     ) {}
 
     /**
@@ -140,7 +157,7 @@ final class MemberManagementService
     }
 
     /**
-     * Return the Admin profile-view contract.
+     * Return the complete Admin profile-view contract.
      *
      * @return array<string, mixed>
      */
@@ -171,13 +188,367 @@ final class MemberManagementService
                 $adminPhotos,
 
                 'memberInteractionStats' =>
-                $this
-                    ->interactionService
+                $this->interactionService
                     ->statsForMember(
                         $userId
                     ),
+
+                'partnerPreferenceSections' =>
+                $this->partnerPreferenceSections(
+                    $userId
+                ),
+
+                'aadhaarDetails' =>
+                $this->aadhaarDetails(
+                    $userId
+                ),
+
+                'videoIntroductionDetails' =>
+                $this->videoIntroductionDetails(
+                    $userId
+                ),
             ]
         );
+    }
+
+    /**
+     * Return the complete read-only partner-preference presentation.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function partnerPreferenceSections(
+        int $userId
+    ): array {
+        $basic = $this->basicPreferenceService
+            ->getSummaryForUser(
+                $userId
+            );
+
+        $basicSections = is_array(
+            $basic['sections'] ?? null
+        )
+            ? $basic['sections']
+            : [];
+
+        $additionalSections =
+            $this->additionalPreferenceService
+            ->getSummarySections(
+                $userId
+            );
+
+        return array_values(
+            array_merge(
+                $basicSections,
+                $additionalSections
+            )
+        );
+    }
+
+    /**
+     * Return safe Aadhaar lifecycle details.
+     *
+     * Storage keys, document checksums and permanent URLs are deliberately
+     * excluded from the Admin member profile contract.
+     *
+     * @return array{
+     *     latest:array<string, mixed>|null,
+     *     history:list<array<string, mixed>>
+     * }
+     */
+    private function aadhaarDetails(
+        int $userId
+    ): array {
+        $history = $this->aadhaarSubmissionModel
+            ->historyForMember(
+                $userId
+            );
+
+        $safeHistory = array_values(
+            array_map(
+                static fn(array $submission): array => [
+                    'uploadReference' => trim(
+                        (string) (
+                            $submission['upload_reference']
+                            ?? ''
+                        )
+                    ),
+
+                    'status' => mb_strtoupper(
+                        trim(
+                            (string) (
+                                $submission['status']
+                                ?? ''
+                            )
+                        )
+                    ),
+
+                    'aadhaarName' => trim(
+                        (string) (
+                            $submission['aadhaar_name']
+                            ?? ''
+                        )
+                    ),
+
+                    'aadhaarDateOfBirth' => trim(
+                        (string) (
+                            $submission['aadhaar_date_of_birth']
+                            ?? ''
+                        )
+                    ),
+
+                    'mimeType' => trim(
+                        (string) (
+                            $submission['mime_type']
+                            ?? ''
+                        )
+                    ),
+
+                    'fileSizeBytes' => max(
+                        0,
+                        (int) (
+                            $submission['file_size_bytes']
+                            ?? 0
+                        )
+                    ),
+
+                    'rejectionReason' => trim(
+                        (string) (
+                            $submission['rejection_reason']
+                            ?? ''
+                        )
+                    ),
+
+                    'uploadedAt' => trim(
+                        (string) (
+                            $submission['uploaded_at']
+                            ?? ''
+                        )
+                    ),
+
+                    'reviewedAt' => trim(
+                        (string) (
+                            $submission['reviewed_at']
+                            ?? ''
+                        )
+                    ),
+                ],
+                $history
+            )
+        );
+
+        return [
+            'latest' =>
+            $safeHistory[0] ?? null,
+
+            'history' =>
+            $safeHistory,
+        ];
+    }
+
+    /**
+     * Return safe Video Introduction lifecycle details and a short-lived
+     * administrator playback URL.
+     *
+     * @return array{
+     *     current:array<string, mixed>|null,
+     *     history:list<array<string, mixed>>,
+     *     playbackUrl:string
+     * }
+     */
+    private function videoIntroductionDetails(
+        int $userId
+    ): array {
+        $history = $this->videoIntroductionModel
+            ->historyForMember(
+                $userId
+            );
+
+        $safeHistory = array_values(
+            array_map(
+                static fn(array $video): array => [
+                    'publicId' => trim(
+                        (string) (
+                            $video['public_id']
+                            ?? ''
+                        )
+                    ),
+
+                    'versionNumber' => max(
+                        0,
+                        (int) (
+                            $video['version_number']
+                            ?? 0
+                        )
+                    ),
+
+                    'status' => mb_strtoupper(
+                        trim(
+                            (string) (
+                                $video['moderation_status']
+                                ?? ''
+                            )
+                        )
+                    ),
+
+                    'visibility' => mb_strtoupper(
+                        trim(
+                            (string) (
+                                $video['visibility']
+                                ?? ''
+                            )
+                        )
+                    ),
+
+                    'durationSeconds' => is_numeric(
+                        $video['duration_seconds']
+                            ?? null
+                    )
+                        ? (float) $video['duration_seconds']
+                        : null,
+
+                    'sourceMimeType' => trim(
+                        (string) (
+                            $video['source_mime_type']
+                            ?? ''
+                        )
+                    ),
+
+                    'sourceSizeBytes' => max(
+                        0,
+                        (int) (
+                            $video['source_size_bytes']
+                            ?? 0
+                        )
+                    ),
+
+                    'videoCodec' => trim(
+                        (string) (
+                            $video['video_codec']
+                            ?? ''
+                        )
+                    ),
+
+                    'audioCodec' => trim(
+                        (string) (
+                            $video['audio_codec']
+                            ?? ''
+                        )
+                    ),
+
+                    'width' => max(
+                        0,
+                        (int) (
+                            $video['width']
+                            ?? 0
+                        )
+                    ),
+
+                    'height' => max(
+                        0,
+                        (int) (
+                            $video['height']
+                            ?? 0
+                        )
+                    ),
+
+                    'rejectionReason' => trim(
+                        (string) (
+                            $video['rejection_reason']
+                            ?? ''
+                        )
+                    ),
+
+                    'submittedAt' => trim(
+                        (string) (
+                            $video['submitted_at']
+                            ?? ''
+                        )
+                    ),
+
+                    'processedAt' => trim(
+                        (string) (
+                            $video['processed_at']
+                            ?? ''
+                        )
+                    ),
+
+                    'moderatedAt' => trim(
+                        (string) (
+                            $video['moderated_at']
+                            ?? ''
+                        )
+                    ),
+
+                    'approvedAt' => trim(
+                        (string) (
+                            $video['approved_at']
+                            ?? ''
+                        )
+                    ),
+
+                    'isActive' =>
+                    BooleanValue::fromDatabase(
+                        $video['is_active']
+                            ?? false
+                    ),
+
+                    /*
+                 * This temporary internal value is removed before the
+                 * result leaves the service.
+                 */
+                    'playbackObjectKey' => trim(
+                        (string) (
+                            $video['playback_object_key']
+                            ?? ''
+                        )
+                    ),
+                ],
+                $history
+            )
+        );
+
+        $current = $safeHistory[0] ?? null;
+
+        $playbackKey = is_array($current)
+            ? (string) (
+                $current['playbackObjectKey']
+                ?? ''
+            )
+            : '';
+
+        $playbackUrl = $playbackKey !== ''
+            ? $this->cloudFrontService
+            ->signedUrl(
+                $playbackKey,
+                $this->videoConfig
+                    ->playbackUrlTtlSeconds
+            )
+            : '';
+
+        foreach ($safeHistory as &$video) {
+            unset(
+                $video['playbackObjectKey']
+            );
+        }
+
+        unset($video);
+
+        if (is_array($current)) {
+            unset(
+                $current['playbackObjectKey']
+            );
+        }
+
+        return [
+            'current' =>
+            $current,
+
+            'history' =>
+            $safeHistory,
+
+            'playbackUrl' =>
+            $playbackUrl,
+        ];
     }
 
     /**

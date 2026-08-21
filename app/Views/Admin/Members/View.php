@@ -37,6 +37,11 @@ use App\Support\DateDisplay;
  *
  * @var array<string, string>|null $formAlert
  */
+/**
+ * @var list<array<string, mixed>> $partnerPreferenceSections
+ * @var array<string, mixed>       $aadhaarDetails
+ * @var array<string, mixed>       $videoIntroductionDetails
+ */
 
 helper(
     'member_profile'
@@ -89,6 +94,45 @@ $resolvedOverallSummary = isset($overallProfileSummary)
     && is_array($overallProfileSummary)
     ? $overallProfileSummary
     : [];
+
+$resolvedPreferenceSections = isset(
+    $partnerPreferenceSections
+)
+    && is_array(
+        $partnerPreferenceSections
+    )
+    ? $partnerPreferenceSections
+    : [];
+
+$resolvedAadhaarDetails = isset(
+    $aadhaarDetails
+)
+    && is_array(
+        $aadhaarDetails
+    )
+    ? $aadhaarDetails
+    : [];
+
+$resolvedVideoIntroductionDetails = isset(
+    $videoIntroductionDetails
+)
+    && is_array(
+        $videoIntroductionDetails
+    )
+    ? $videoIntroductionDetails
+    : [];
+
+$completionPercentage = max(
+    0,
+    min(
+        100,
+        (int) (
+            $resolvedOverallSummary['percentage']
+            ?? $resolvedOverallSummary['completionPercentage']
+            ?? 0
+        )
+    )
+);
 
 $resolvedAboutMe = trim(
     (string) (
@@ -939,485 +983,86 @@ $this->section('content');
     ) ?>
 
     <!-- Member account summary -->
-    <div
-        class="card
-            border
-            border-danger
-            border-opacity-25
-            mb-4">
-
-        <div class="card-body p-3 p-lg-4">
-            <div class="row g-4 align-items-center">
-
-                <div class="col-12 col-md-auto">
-
-                    <div class="member-profile-thumbnail">
-
-                        <img
-                            src="<?= esc(
-                                        $adminProfileImage,
-                                        'attr'
-                                    ) ?>"
-                            alt="<?= esc(
-                                        $fullName
-                                            . ' profile photo',
-                                        'attr'
-                                    ) ?>">
-
-                    </div>
-
-                </div>
-
-                <div class="col-12 col-md">
-                    <div
-                        class="d-flex
-                            flex-column
-                            flex-lg-row
-                            align-items-lg-center
-                            justify-content-between
-                            gap-3">
-
-                        <div>
-                            <div
-                                class="d-flex
-                                    align-items-center
-                                    flex-wrap
-                                    gap-2
-                                    mb-2">
-
-                                <h2 class="fs-22 fw-semibold mb-0">
-                                    <?= esc($fullName) ?>
-                                </h2>
-
-                                <span
-                                    class="badge
-                                        <?= esc(
-                                            $statusBadgeClass,
-                                            'attr'
-                                        ) ?>">
-
-                                    <?= esc(
-                                        $accountStatus !== ''
-                                            ? $accountStatus
-                                            : 'UNKNOWN'
-                                    ) ?>
-                                </span>
-                            </div>
-
-                            <div
-                                class="d-flex
-                                    flex-wrap
-                                    align-items-center
-                                    gap-2
-                                    text-muted">
-
-                                <span
-                                    class="badge
-                                        bg-primary-subtle
-                                        text-primary p-2">
-
-                                    <?= esc(
-                                        $profileReference !== ''
-                                            ? $profileReference
-                                            : 'No Reference'
-                                    ) ?>
-                                </span>
-
-                                <span>
-                                    <?= esc($genderLabel) ?>
-                                </span>
-
-                                <span aria-hidden="true">
-                                    •
-                                </span>
-
-                                <span>
-                                    Created for
-                                    <?= esc($profileCreatedFor) ?>
-                                </span>
-
-                                <?php if (
-                                    $age !== null
-                                ): ?>
-                                    <span aria-hidden="true">
-                                        •
-                                    </span>
-
-                                    <span>
-                                        <?= esc(
-                                            (string) $age
-                                        ) ?>
-                                        Years
-                                    </span>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-
-                        <div
-                            class="d-flex
-        flex-wrap
-        align-items-center
-        gap-2">
-
-                            <button
-                                type="button"
-                                class="btn
-            btn-soft-info
-            d-inline-flex
-            align-items-center
-            gap-1"
-                                data-member-history
-                                data-history-url="<?= esc(
-                                                        route_to(
-                                                            'admin.members.history',
-                                                            $resolvedMemberId
-                                                        ),
-                                                        'attr'
-                                                    ) ?>">
-
-                                <i
-                                    class="ri-history-line"
-                                    aria-hidden="true"></i>
-
-                                History
-                            </button>
-
-                            <?php if ($canBlock): ?>
-                                <button
-                                    type="button"
-                                    class="btn
-                btn-danger
-                d-inline-flex
-                align-items-center
-                gap-1"
-                                    data-member-status
-                                    data-action="BLOCK"
-                                    data-member-name="<?= esc(
-                                                            $fullName,
-                                                            'attr'
-                                                        ) ?>"
-                                    data-member-code="<?= esc(
-                                                            $profileReference,
-                                                            'attr'
-                                                        ) ?>"
-                                    data-form-action="<?= esc(
-                                                            route_to(
-                                                                'admin.members.block',
-                                                                $resolvedMemberId
-                                                            ),
-                                                            'attr'
-                                                        ) ?>">
-
-                                    <i
-                                        class="ri-forbid-line"
-                                        aria-hidden="true"></i>
-
-                                    Block Member
-                                </button>
-                            <?php elseif ($canUnblock): ?>
-                                <button
-                                    type="button"
-                                    class="btn
-                btn-success
-                d-inline-flex
-                align-items-center
-                gap-1"
-                                    data-member-status
-                                    data-action="UNBLOCK"
-                                    data-member-name="<?= esc(
-                                                            $fullName,
-                                                            'attr'
-                                                        ) ?>"
-                                    data-member-code="<?= esc(
-                                                            $profileReference,
-                                                            'attr'
-                                                        ) ?>"
-                                    data-form-action="<?= esc(
-                                                            route_to(
-                                                                'admin.members.unblock',
-                                                                $resolvedMemberId
-                                                            ),
-                                                            'attr'
-                                                        ) ?>">
-
-                                    <i
-                                        class="ri-checkbox-circle-line"
-                                        aria-hidden="true"></i>
-
-                                    Unblock Member
-                                </button>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Contact and profile completion -->
-    <!-- Contact and profile completion -->
-    <div class="row g-4 mb-4">
-
-        <div class="col-12 col-lg-7">
-            <div
-                class="card
-                border
-                border-danger
-                border-opacity-25
-                h-100">
-
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i
-                            class="ri-contacts-line me-1"
-                            aria-hidden="true">
-                        </i>
-
-                        Contact Information
-                    </h5>
-                </div>
-
-                <div class="card-body">
-                    <div class="row g-3">
-
-                        <div class="col-12 col-md-6">
-                            <div
-                                class="border-bottom
-                                pb-2 h-100">
-
-                                <div
-                                    class="text-muted
-                                    fs-12 mb-1">
-
-                                    Mobile Number
-                                </div>
-
-                                <div
-                                    class="d-flex
-                                    align-items-center
-                                    gap-2
-                                    fw-medium">
-
-                                    <span>
-                                        <?= esc(
-                                            $mobileNumber !== ''
-                                                ? $mobileNumber
-                                                : '—'
-                                        ) ?>
-                                    </span>
-
-                                    <i
-                                        class="<?= $isMobileVerified
-                                                    ? 'ri-checkbox-circle-fill text-success'
-                                                    : 'ri-close-circle-fill text-danger' ?>"
-                                        aria-label="<?= $isMobileVerified
-                                                        ? 'Mobile verified'
-                                                        : 'Mobile not verified' ?>">
-                                    </i>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-md-6">
-                            <div
-                                class="border-bottom
-                                pb-2 h-100">
-
-                                <div
-                                    class="text-muted
-                                    fs-12 mb-1">
-
-                                    Email Address
-                                </div>
-
-                                <div
-                                    class="d-flex
-                                    align-items-center
-                                    gap-2
-                                    fw-medium">
-
-                                    <span>
-                                        <?= esc(
-                                            $emailAddress !== ''
-                                                ? $emailAddress
-                                                : 'Not added'
-                                        ) ?>
-                                    </span>
-
-                                    <?php if (
-                                        $emailAddress !== ''
-                                    ): ?>
-
-                                        <i
-                                            class="<?= $isEmailVerified
-                                                        ? 'ri-checkbox-circle-fill text-success'
-                                                        : 'ri-close-circle-fill text-danger' ?>"
-                                            aria-label="<?= $isEmailVerified
-                                                            ? 'Email verified'
-                                                            : 'Email not verified' ?>">
-                                        </i>
-
-                                    <?php endif; ?>
-
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-md-6">
-                            <div
-                                class="border-bottom
-                                pb-2 h-100">
-
-                                <div
-                                    class="text-muted
-                                    fs-12 mb-1">
-
-                                    Current Location
-                                </div>
-
-                                <div class="fw-medium">
-                                    <?= esc(
-                                        $displayValue(
-                                            $currentLocation
-                                        )
-                                    ) ?>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-md-6">
-                            <div
-                                class="border-bottom
-                                pb-2 h-100">
-
-                                <div
-                                    class="text-muted
-                                    fs-12 mb-1">
-
-                                    Account Created
-                                </div>
-
-                                <div class="fw-medium">
-
-                                    <?php if (
-                                        $accountCreatedIso !== ''
-                                    ): ?>
-
-                                        <time
-                                            datetime="<?= esc(
-                                                            $accountCreatedIso,
-                                                            'attr'
-                                                        ) ?>">
-
-                                            <?= esc(
-                                                $displayAccountCreated
-                                            ) ?>
-                                        </time>
-
-                                    <?php else: ?>
-
-                                        <?= esc(
-                                            $displayAccountCreated
-                                        ) ?>
-
-                                    <?php endif; ?>
-
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-12 col-lg-5">
-            <div
-                class="card
-                border
-                border-danger
-                border-opacity-25
-                h-100">
-
-                <div class="card-header">
-                    <h5 class="card-title mb-0">
-                        <i
-                            class="ri-pie-chart-line me-1"
-                            aria-hidden="true">
-                        </i>
-
-                        Profile Completion
-                    </h5>
-                </div>
-
-                <div class="card-body">
-
-                    <?php
-                    $completionPercentage = max(
-                        0,
-                        min(
-                            100,
-                            (int) (
-                                $resolvedOverallSummary['percentage']
-                                ?? $resolvedOverallSummary['completionPercentage']
-                                ?? 0
-                            )
-                        )
-                    );
-                    ?>
-
-                    <div
-                        class="d-flex
-                        align-items-center
-                        justify-content-between
-                        mb-2">
-
-                        <span class="text-muted">
-                            Completion
-                        </span>
-
-                        <span class="fw-semibold">
-                            <?= esc(
-                                (string)
-                                $completionPercentage
-                            ) ?>%
-                        </span>
-                    </div>
-
-                    <div
-                        class="progress mb-3"
-                        role="progressbar"
-                        aria-label="Profile completion"
-                        aria-valuenow="<?= esc(
-                                            (string)
-                                            $completionPercentage,
-                                            'attr'
-                                        ) ?>"
-                        aria-valuemin="0"
-                        aria-valuemax="100">
-
-                        <div
-                            class="progress-bar"
-                            style="<?= esc(
-                                        'width: '
-                                            . $completionPercentage
-                                            . '%;',
-                                        'attr'
-                                    ) ?>">
-                        </div>
-                    </div>
-
-                    <p class="text-muted mb-0">
-                        Completion is calculated through the
-                        existing member-profile summary service.
-                    </p>
-
-                </div>
-            </div>
-        </div>
-
-    </div>
+    <!-- Compact member overview and contact information -->
+    <?= view(
+        'Admin/Members/Partials/Overview',
+        [
+            'memberId' =>
+            $resolvedMemberId,
 
+            'profileImage' =>
+            $adminProfileImage,
+
+            'fullName' =>
+            $fullName,
+
+            'profileReference' =>
+            $profileReference,
+
+            'accountStatus' =>
+            $accountStatus,
+
+            'statusBadgeClass' =>
+            $statusBadgeClass,
+
+            'genderLabel' =>
+            $genderLabel,
+
+            'profileCreatedFor' =>
+            $profileCreatedFor,
+
+            'age' =>
+            $age,
+
+            'completionPercentage' =>
+            $completionPercentage,
+
+            'mobileNumber' =>
+            $mobileNumber,
+
+            'isMobileVerified' =>
+            $isMobileVerified,
+
+            'emailAddress' =>
+            $emailAddress,
+
+            'isEmailVerified' =>
+            $isEmailVerified,
+
+            'currentLocation' =>
+            $currentLocation,
+
+            'displayAccountCreated' =>
+            $displayAccountCreated,
+
+            'accountCreatedIso' =>
+            $accountCreatedIso,
+
+            'canBlock' =>
+            $canBlock,
+
+            'canUnblock' =>
+            $canUnblock,
+        ]
+    ) ?>
+
+    <!-- Identity and Live Introduction verification details -->
+    <?= view(
+        'Admin/Members/Partials/VerificationDetails',
+        [
+            'aadhaarDetails' =>
+            $resolvedAadhaarDetails,
+
+            'videoIntroductionDetails' =>
+            $resolvedVideoIntroductionDetails,
+
+            'fullName' =>
+            $fullName,
+
+            'profileReference' =>
+            $profileReference,
+        ]
+    ) ?>
     <?php
     $interactionStats = isset(
         $memberInteractionStats
@@ -1894,7 +1539,7 @@ $this->section('content');
                                     text-primary">
 
                                 <i
-                                    class="ri-user-smile-line"
+                                    class="ri-user-smile-line fs-20"
                                     aria-hidden="true"></i>
                             </span>
                         </span>
@@ -1946,7 +1591,7 @@ $this->section('content');
                                     text-primary">
 
                                 <i
-                                    class="ri-id-card-line"
+                                    class="ri-id-card-line fs-20"
                                     aria-hidden="true"></i>
                             </span>
                         </span>
@@ -2008,7 +1653,7 @@ $this->section('content');
                                     text-primary">
 
                                 <i
-                                    class="ri-graduation-cap-line"
+                                    class="ri-graduation-cap-line fs-20"
                                     aria-hidden="true"></i>
                             </span>
                         </span>
@@ -2082,7 +1727,7 @@ $this->section('content');
                                     text-primary">
 
                                 <i
-                                    class="ri-group-line"
+                                    class="ri-group-line fs-20"
                                     aria-hidden="true"></i>
                             </span>
                         </span>
@@ -2140,7 +1785,7 @@ $this->section('content');
                                     text-primary">
 
                                 <i
-                                    class="ri-heart-pulse-line"
+                                    class="ri-heart-pulse-line fs-20"
                                     aria-hidden="true"></i>
                             </span>
                         </span>
@@ -2201,7 +1846,14 @@ $this->section('content');
         </div>
     </div>
 </div>
-
+<!-- Complete read-only partner preferences -->
+<?= view(
+    'Admin/Members/Partials/Preferences',
+    [
+        'partnerPreferenceSections' =>
+        $resolvedPreferenceSections,
+    ]
+) ?>
 <!-- Block/unblock modal -->
 <div
     class="modal fade"

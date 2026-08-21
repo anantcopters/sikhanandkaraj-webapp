@@ -1527,7 +1527,8 @@ final class Services extends BaseService
     }
 
     /**
-     * Administrator member listing and account-status management.
+     * Administrator member listing, complete profile display and
+     * account-status management.
      */
     public static function memberManagementService(
         bool $getShared = true
@@ -1542,22 +1543,53 @@ final class Services extends BaseService
 
         return new MemberManagementService(
             $database,
-            new UserModel($database),
+
+            new UserModel(
+                $database
+            ),
+
             new MemberAccountStatusHistoryModel(
                 $database
             ),
+
             static::memberProfileSummaryService(
                 false
             ),
+
             static::memberPhotoUrlService(
                 false
             ),
+
             static::adminAuditService(
                 false
             ),
 
             static::memberInteractionService(
                 false
+            ),
+
+            static::basicPartnerPreferenceService(
+                false
+            ),
+
+            static::additionalPartnerPreferenceService(
+                false
+            ),
+
+            new MemberAadhaarSubmissionModel(
+                $database
+            ),
+
+            new MemberVideoIntroductionModel(
+                $database
+            ),
+
+            static::cloudFrontService(
+                false
+            ),
+
+            config(
+                VideoIntroduction::class
             )
         );
     }

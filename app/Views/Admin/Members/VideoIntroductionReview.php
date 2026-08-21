@@ -199,7 +199,7 @@ $moderationStatusPresentation = match ($moderationStatus) {
         'Approved',
 
         'class' =>
-        'bg-success-subtle text-success',
+        'bg-success-subtle text-black p-2',
     ],
 
     MemberVideoIntroductionModel::STATUS_REJECTED => [
@@ -207,7 +207,7 @@ $moderationStatusPresentation = match ($moderationStatus) {
         'Rejected',
 
         'class' =>
-        'bg-danger-subtle text-danger',
+        'bg-danger-subtle text-black p-2',
     ],
 
     MemberVideoIntroductionModel::STATUS_PROCESSING_FAILED => [
@@ -215,7 +215,7 @@ $moderationStatusPresentation = match ($moderationStatus) {
         'Processing Failed',
 
         'class' =>
-        'bg-danger-subtle text-danger',
+        'bg-danger-subtle text-black p-2',
     ],
 
     MemberVideoIntroductionModel::STATUS_RESUBMISSION_REQUESTED => [
@@ -223,7 +223,7 @@ $moderationStatusPresentation = match ($moderationStatus) {
         'Resubmission Requested',
 
         'class' =>
-        'bg-warning-subtle text-warning',
+        'bg-warning-subtle text-black p-2',
     ],
 
     MemberVideoIntroductionModel::STATUS_PENDING_REVIEW => [
@@ -231,7 +231,7 @@ $moderationStatusPresentation = match ($moderationStatus) {
         'Pending Review',
 
         'class' =>
-        'bg-warning-subtle text-warning',
+        'bg-warning-subtle text-black p-2',
     ],
 
     MemberVideoIntroductionModel::STATUS_PROCESSING => [
@@ -239,7 +239,7 @@ $moderationStatusPresentation = match ($moderationStatus) {
         'Processing',
 
         'class' =>
-        'bg-primary-subtle text-primary',
+        'bg-primary-subtle text-black p-2',
     ],
 
     MemberVideoIntroductionModel::STATUS_REPLACED => [
@@ -247,7 +247,7 @@ $moderationStatusPresentation = match ($moderationStatus) {
         'Replaced',
 
         'class' =>
-        'bg-secondary-subtle text-secondary',
+        'bg-secondary-subtle text-black p-2',
     ],
 
     MemberVideoIntroductionModel::STATUS_DELETED => [
@@ -255,7 +255,7 @@ $moderationStatusPresentation = match ($moderationStatus) {
         'Deleted',
 
         'class' =>
-        'bg-secondary-subtle text-secondary',
+        'bg-secondary-subtle text-black p-2',
     ],
 
     default => [
@@ -373,17 +373,6 @@ $this->section(
                             </strong>
                         </p>
                     </div>
-
-                    <span
-                        class="badge <?= esc(
-                                            $moderationStatusPresentation['class'],
-                                            'attr'
-                                        ) ?>">
-
-                        <?= esc(
-                            $moderationStatusPresentation['label']
-                        ) ?>
-                    </span>
                 </div>
 
                 <div class="card-body">
