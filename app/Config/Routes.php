@@ -298,6 +298,14 @@ $routes->group(
         );
 
         $routes->get(
+            'membership-plans',
+            'InformationController::membershipPlans',
+            [
+                'as' => 'web.information.membership-plans',
+            ]
+        );
+
+        $routes->get(
             'careers',
             'InformationController::career',
             [

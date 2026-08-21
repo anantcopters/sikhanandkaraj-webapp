@@ -5,7 +5,7 @@ declare(strict_types=1);
 $currentYear = date('Y');
 ?>
 
-<footer class="section py-5">
+<footer class="section py-3 border-top border-secondary-subtle">
     <div class="container">
         <div class="row g-4 pb-4">
             <!-- Brand and platform information -->
@@ -70,6 +70,16 @@ $currentYear = date('Y');
                             href="<?= site_url('/') ?>#how-it-works"
                             class="text-decoration-none">
                             How It Works
+                        </a>
+                    </li>
+
+                    <li class="mb-2">
+                        <a
+                            href="<?= route_to(
+                                        'web.information.membership-plans'
+                                    ) ?>"
+                            class="text-decoration-none">
+                            Membership Plans
                         </a>
                     </li>
 

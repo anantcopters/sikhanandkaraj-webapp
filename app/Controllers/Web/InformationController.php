@@ -45,6 +45,17 @@ final class InformationController extends BaseController
     }
 
     /**
+     * Display Sikhanandkaraj membership plans.
+     */
+    public function membershipPlans(): string
+    {
+        return $this->renderInformationPage(
+            'Pages/Information/MembershipPlans',
+            'Membership Plans | Sikhanandkaraj'
+        );
+    }
+
+    /**
      * Display career and employment information.
      */
     public function career(): string
