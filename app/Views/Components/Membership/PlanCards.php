@@ -405,7 +405,7 @@ $plans = [
                                     <div
                                         class="
                                             d-flex
-                                            align-items-start
+                                            align-items-center
                                             gap-2
                                         ">
 
@@ -550,23 +550,27 @@ $plans = [
         No hidden charges.
     </p>
 
-    <a
-        href="<?= route_to(
-                    'web.information.membership-plans'
-                ) ?>"
-        class="
+    <?php if (!$isMemberContext): ?>
+
+        <a
+            href="<?= route_to(
+                        'web.information.membership-plans'
+                    ) ?>"
+            class="
             text-danger
             fw-semibold
             text-decoration-none
         ">
 
-        View full plan details
+            View full plan details
 
-        <i
-            class="ri-arrow-right-line ms-1"
-            aria-hidden="true">
-        </i>
+            <i
+                class="ri-arrow-right-line ms-1"
+                aria-hidden="true">
+            </i>
 
-    </a>
+        </a>
+
+    <?php endif; ?>
 
 </div>

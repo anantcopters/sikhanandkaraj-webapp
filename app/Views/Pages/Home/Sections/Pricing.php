@@ -8,8 +8,6 @@ declare(strict_types=1);
     id="plans"
     aria-labelledby="home-membership-plans-title">
 
-    <div class="bg-overlay bg-overlay-pattern"></div>
-
     <div class="container">
 
         <div class="row justify-content-center">
@@ -41,12 +39,7 @@ declare(strict_types=1);
                         Your Search
                     </h2>
 
-                    <p
-                        class="
-                            text-muted
-                            mb-0
-                        ">
-
+                    <p class="text-muted mb-0">
                         More connections. More possibilities.
                         Choose what works for you.
                     </p>
