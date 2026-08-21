@@ -1539,7 +1539,7 @@ $this->section('content');
                                     text-primary">
 
                                 <i
-                                    class="ri-user-smile-line"
+                                    class="ri-user-smile-line fs-20"
                                     aria-hidden="true"></i>
                             </span>
                         </span>
@@ -1591,7 +1591,7 @@ $this->section('content');
                                     text-primary">
 
                                 <i
-                                    class="ri-id-card-line"
+                                    class="ri-id-card-line fs-20"
                                     aria-hidden="true"></i>
                             </span>
                         </span>
@@ -1653,7 +1653,7 @@ $this->section('content');
                                     text-primary">
 
                                 <i
-                                    class="ri-graduation-cap-line"
+                                    class="ri-graduation-cap-line fs-20"
                                     aria-hidden="true"></i>
                             </span>
                         </span>
@@ -1727,7 +1727,7 @@ $this->section('content');
                                     text-primary">
 
                                 <i
-                                    class="ri-group-line"
+                                    class="ri-group-line fs-20"
                                     aria-hidden="true"></i>
                             </span>
                         </span>
@@ -1785,7 +1785,7 @@ $this->section('content');
                                     text-primary">
 
                                 <i
-                                    class="ri-heart-pulse-line"
+                                    class="ri-heart-pulse-line fs-20"
                                     aria-hidden="true"></i>
                             </span>
                         </span>

@@ -725,7 +725,7 @@ $pageScripts = $pageScripts ?? [];
     ) ?>
     <?= view('Components/ConfirmationModal') ?>
 
-    <footer class="mt-5 pt-4 border-top border-secondary-subtle bg-light">
+    <footer class="mt-5 pt-4 border-top border-secondary-subtle light-yellowish">
 
         <div class="container py-3 pt-0">
 

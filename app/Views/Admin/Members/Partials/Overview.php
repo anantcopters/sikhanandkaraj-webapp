@@ -225,26 +225,31 @@ $resolvedCanUnblock =
                             <?php endif; ?>
                         </div>
 
-                        <div
-                            class="d-flex align-items-center
-                                justify-content-between gap-3
-                                border-top border-bottom
-                                py-2 mb-3">
+                        <p
+                            class="text-success
+                                fs-14
+                                mb-3">
 
-                            <span class="text-muted fs-13">
-                                Profile Completion
-                            </span>
+                            <i
+                                class="ri-pie-chart-line
+                                    me-1
+                                    text-muted"
+                                aria-hidden="true">
+                            </i>
 
                             <span
-                                class="fw-semibold
-                                    text-primary fs-18">
+                                class="text-muted">
 
+                                Profile Completion :
+                            </span>
+                            <span class="fw-medium fs-16">
                                 <?= esc(
                                     (string)
                                     $resolvedCompletionPercentage
                                 ) ?>%
                             </span>
-                        </div>
+                        </p>
+
 
                         <div class="d-flex flex-wrap gap-2">
 
