@@ -10,9 +10,14 @@ declare(strict_types=1);
         <div class="row justify-content-center">
             <div class="col-lg-8">
                 <div class="text-center mb-5">
-                    <h3 class="mb-3 fw-semibold">Why Families Trust Sikhanandkaraj</h3>
+                    <h3 class="mb-3 fw-semibold">
+                        Why Families Trust Sikhanandkaraj
+                    </h3>
+
                     <p class="text-muted fs-14">
-                        Our platform brings family expectations, privacy, and long-term responsibility into the journey instead of treating compatibility as a simple profile match.
+                        Our platform brings family expectations, privacy, and
+                        long-term responsibility into the journey instead of
+                        treating compatibility as a simple profile match.
                     </p>
                 </div>
             </div>
@@ -22,12 +27,18 @@ declare(strict_types=1);
 
             <div class="col-12 col-md-6 col-xl-3">
 
-                <div class="d-flex
-    align-items-center
-    justify-content-center
-    gap-3">
+                <div class="
+                    d-flex
+                    trust-feature
+                    align-items-center
+                    gap-3
+                ">
 
-                    <i class="ri-shield-check-line fs-2 text-success"></i>
+                    <i class="
+                        ri-shield-check-line
+                        fs-2
+                        text-success
+                    "></i>
 
                     <div>
 
@@ -47,12 +58,18 @@ declare(strict_types=1);
 
             <div class="col-12 col-md-6 col-xl-3">
 
-                <div class="d-flex
-    align-items-center
-    justify-content-center
-    gap-3">
+                <div class="
+                    d-flex
+                    trust-feature
+                    align-items-center
+                    gap-3
+                ">
 
-                    <i class="ri-group-line fs-2 text-primary"></i>
+                    <i class="
+                        ri-group-line
+                        fs-2
+                        text-primary
+                    "></i>
 
                     <div>
 
@@ -72,12 +89,18 @@ declare(strict_types=1);
 
             <div class="col-12 col-md-6 col-xl-3">
 
-                <div class="d-flex
-    align-items-center
-    justify-content-center
-    gap-3">
+                <div class="
+                    d-flex
+                    trust-feature
+                    align-items-center
+                    gap-3
+                ">
 
-                    <i class="ri-heart-line fs-2 text-danger"></i>
+                    <i class="
+                        ri-heart-line
+                        fs-2
+                        text-danger
+                    "></i>
 
                     <div>
 
@@ -97,12 +120,18 @@ declare(strict_types=1);
 
             <div class="col-12 col-md-6 col-xl-3">
 
-                <div class="d-flex
-    align-items-center
-    justify-content-center
-    gap-3">
+                <div class="
+                    d-flex
+                    trust-feature
+                    align-items-center
+                    gap-3
+                ">
 
-                    <i class="ri-shield-check-line fs-2 text-warning"></i>
+                    <i class="
+                        ri-shield-check-line
+                        fs-2
+                        text-warning
+                    "></i>
 
                     <div>
 
@@ -121,5 +150,7 @@ declare(strict_types=1);
             </div>
 
         </div>
+
     </div>
+
 </section>

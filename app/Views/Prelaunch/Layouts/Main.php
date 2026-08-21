@@ -36,8 +36,8 @@ $logoUrl = base_url(
 /*
  * Replace these values with the actual business contact number.
  */
-$phoneDisplay = '+91 98870 05392';
-$phoneDialValue = '+919887005392';
+$phoneDisplay = '+91 98877 11226';
+$phoneDialValue = '+919887711226';
 $phoneUrl = 'tel:' . $phoneDialValue;
 ?>
 
@@ -45,16 +45,41 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 <html lang="en">
 
 <head>
+
     <meta charset="utf-8">
-    <link rel="apple-touch-icon" sizes="180x180" href="<?= base_url('assets/images/favicon/apple-touch-icon.png') ?>">
-    <link rel="icon" type="image/png" sizes="32x32" href="<?= base_url('assets/images/favicon/favicon-32x32.png') ?>">
-    <link rel="icon" type="image/png" sizes="16x16" href="<?= base_url('assets/images/favicon/favicon-16x16.png') ?>">
-    <link rel="manifest" href="<?= base_url('assets/images/favicon/site.webmanifest') ?>">
+
+    <link
+        rel="apple-touch-icon"
+        sizes="180x180"
+        href="<?= base_url(
+                    'assets/images/favicon/apple-touch-icon.png'
+                ) ?>">
+
+    <link
+        rel="icon"
+        type="image/png"
+        sizes="32x32"
+        href="<?= base_url(
+                    'assets/images/favicon/favicon-32x32.png'
+                ) ?>">
+
+    <link
+        rel="icon"
+        type="image/png"
+        sizes="16x16"
+        href="<?= base_url(
+                    'assets/images/favicon/favicon-16x16.png'
+                ) ?>">
+
+    <link
+        rel="manifest"
+        href="<?= base_url(
+                    'assets/images/favicon/site.webmanifest'
+                ) ?>">
 
     <meta
         name="viewport"
         content="width=device-width, initial-scale=1">
-
 
     <title>
         <?= esc($documentTitle) ?>
@@ -62,12 +87,15 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 
     <link
         rel="stylesheet"
-        href="<?= base_url('assets/css/bootstrap.css') ?>">
-
+        href="<?= base_url(
+                    'assets/css/bootstrap.css'
+                ) ?>">
 
     <link
         rel="stylesheet"
-        href="<?= base_url('assets/css/icons.css') ?>">
+        href="<?= base_url(
+                    'assets/css/icons.css'
+                ) ?>">
 
     <link
         rel="stylesheet"
@@ -77,28 +105,45 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 
     <link
         rel="stylesheet"
-        href="<?= base_url('assets/css/app.css') ?>">
+        href="<?= base_url(
+                    'assets/css/app.css'
+                ) ?>">
 
     <link
         rel="stylesheet"
-        href="<?= base_url('assets/css/custom.css') ?>">
+        href="<?= base_url(
+                    'assets/css/custom.css'
+                ) ?>">
 
     <?= $this->renderSection('pageStyles') ?>
+
 </head>
 
 <body>
+
     <header class="public-header">
+
         <nav
             class="navbar public-navbar"
             aria-label="Prelaunch profile header">
+
             <div
-                class="container d-flex align-items-center justify-content-between">
+                class="
+                    container
+                    d-flex
+                    align-items-center
+                    justify-content-between
+                ">
+
                 <a
-                    class="navbar-brand
-                d-inline-flex
-                align-items-center
-                flex-shrink-0
-                m-0 p-0"
+                    class="
+                        navbar-brand
+                        d-inline-flex
+                        align-items-center
+                        flex-shrink-0
+                        m-0
+                        p-0
+                    "
                     href="<?= esc(
                                 $homeUrl,
                                 'attr'
@@ -118,36 +163,51 @@ $phoneUrl = 'tel:' . $phoneDialValue;
                                     'attr'
                                 ) ?>"
                         class="public-navbar__logo">
+
                 </a>
+
                 <a
                     href="<?= esc(
                                 $phoneUrl,
                                 'attr'
                             ) ?>"
-                    class="public-navbar__phone
-                        "
-                    aria-label="Call Sikhanandkaraj at <?= esc($phoneDisplay) ?>">
+                    class="public-navbar__phone"
+                    aria-label="Call Sikhanandkaraj at <?= esc(
+                                                            $phoneDisplay
+                                                        ) ?>">
 
                     <span
-                        class="mdi
+                        class="
+                            mdi
                             mdi-phone-outline
-                            public-navbar__phone-icon"
+                            public-navbar__phone-icon
+                        "
                         aria-hidden="true">
                     </span>
 
                     <span class="public-navbar__phone-number">
                         <?= esc($phoneDisplay) ?>
                     </span>
+
                 </a>
 
             </div>
+
         </nav>
+
     </header>
 
     <main class="light-yellowish">
         <?= $this->renderSection('content') ?>
     </main>
-    <footer class="pt-4 border-top border-secondary-subtle bg-light">
+
+    <footer
+        class="
+            pt-4
+            border-top
+            border-secondary-subtle
+            bg-light
+        ">
 
         <div class="container py-3 pt-0">
 
@@ -155,12 +215,17 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 
                 <div class="col-12 col-md-6 col-xl-3">
 
-                    <div class="d-flex
-    align-items-center
-    justify-content-center
-    gap-3">
+                    <div class="
+                        d-flex
+                        trust-feature
+                        align-items-center
+                        gap-3
+                    ">
 
-                        <i class="ri-shield-check-line fs-3"></i>
+                        <i class="
+                            ri-shield-check-line
+                            fs-3
+                        "></i>
 
                         <div>
 
@@ -180,12 +245,17 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 
                 <div class="col-12 col-md-6 col-xl-3">
 
-                    <div class="d-flex
-    align-items-center
-    justify-content-center
-    gap-3">
+                    <div class="
+                        d-flex
+                        trust-feature
+                        align-items-center
+                        gap-3
+                    ">
 
-                        <i class="ri-group-line fs-3"></i>
+                        <i class="
+                            ri-group-line
+                            fs-3
+                        "></i>
 
                         <div>
 
@@ -205,12 +275,17 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 
                 <div class="col-12 col-md-6 col-xl-3">
 
-                    <div class="d-flex
-    align-items-center
-    justify-content-center
-    gap-3">
+                    <div class="
+                        d-flex
+                        trust-feature
+                        align-items-center
+                        gap-3
+                    ">
 
-                        <i class="ri-heart-line fs-3"></i>
+                        <i class="
+                            ri-heart-line
+                            fs-3
+                        "></i>
 
                         <div>
 
@@ -230,12 +305,17 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 
                 <div class="col-12 col-md-6 col-xl-3">
 
-                    <div class="d-flex
-    align-items-center
-    justify-content-center
-    gap-3">
+                    <div class="
+                        d-flex
+                        trust-feature
+                        align-items-center
+                        gap-3
+                    ">
 
-                        <i class="ri-shield-check-line fs-3"></i>
+                        <i class="
+                            ri-shield-check-line
+                            fs-3
+                        "></i>
 
                         <div>
 
@@ -257,18 +337,17 @@ $phoneUrl = 'tel:' . $phoneDialValue;
 
             <hr class="my-4">
 
-            <div
-                class="d-flex
-    flex-column
-    flex-md-row
-    align-items-center
-    justify-content-center
-    gap-2">
+            <div class="
+                d-flex
+                flex-column
+                flex-md-row
+                align-items-center
+                justify-content-center
+                gap-2
+            ">
 
                 <small class="text-muted">
-                    © <?= esc(
-                            date('Y')
-                        ) ?>
+                    © <?= esc(date('Y')) ?>
                     Sikhanandkaraj. All rights reserved.
                 </small>
 
@@ -281,7 +360,12 @@ $phoneUrl = 'tel:' . $phoneDialValue;
         </div>
 
     </footer>
-    <script src="<?= base_url('assets/js/jquery.js') ?>"></script>
+
+    <script
+        src="<?= base_url(
+                    'assets/js/jquery.js'
+                ) ?>">
+    </script>
 
     <script
         src="<?= base_url(
@@ -295,16 +379,36 @@ $phoneUrl = 'tel:' . $phoneDialValue;
                 ) ?>">
     </script>
 
-    <script src="<?= base_url('assets/js/choices.min.js') ?>"></script>
+    <script
+        src="<?= base_url(
+                    'assets/js/choices.min.js'
+                ) ?>">
+    </script>
 
-    <script src="<?= base_url(
-                        'assets/js/components/select-choice.js'
-                    ) ?>"></script>
-    <script src="<?= base_url(
-                        'assets/js/components/form-validator.js'
-                    ) ?>"></script>
-    <script src="<?= base_url('assets/js/app.js') ?>"></script>
-    <script src="<?= base_url('assets/js/components/feedback-modal.js') ?>"></script>
+    <script
+        src="<?= base_url(
+                    'assets/js/components/select-choice.js'
+                ) ?>">
+    </script>
+
+    <script
+        src="<?= base_url(
+                    'assets/js/components/form-validator.js'
+                ) ?>">
+    </script>
+
+    <script
+        src="<?= base_url(
+                    'assets/js/app.js'
+                ) ?>">
+    </script>
+
+    <script
+        src="<?= base_url(
+                    'assets/js/components/feedback-modal.js'
+                ) ?>">
+    </script>
+
     <script
         src="<?= base_url(
                     'assets/js/components/confirmation-modal.js'
@@ -330,10 +434,13 @@ $phoneUrl = 'tel:' . $phoneDialValue;
             src="<?= esc(
                         $scriptUrl,
                         'attr'
-                    ) ?>"></script>
+                    ) ?>">
+        </script>
+
     <?php endforeach ?>
 
     <?= $this->renderSection('pageScripts') ?>
+
 </body>
 
 </html>
