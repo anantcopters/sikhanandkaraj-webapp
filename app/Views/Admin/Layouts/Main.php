@@ -115,7 +115,8 @@ $pageScripts = $pageScripts ?? [];
         */
         $memberGroupActive =
             $membersActive
-            || $prelaunchProfilesActive;
+            || $prelaunchProfilesActive
+            || $sakVolunteersActive;
 
         $approvalGroupActive =
             $photoApprovalsActive
@@ -123,8 +124,7 @@ $pageScripts = $pageScripts ?? [];
             || $videoIntroductionApprovalsActive;
 
         $administrationGroupActive =
-            $administratorsActive
-            || $sakVolunteersActive;
+            $administratorsActive;
 
         $profileReportsActive =
             str_starts_with(
@@ -341,6 +341,30 @@ $pageScripts = $pageScripts ?? [];
                                                 aria-hidden="true"></i>
 
                                             Pre-launch Profiles
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a
+                                            href="<?= route_to(
+                                                        'admin.'
+                                                            . 'field-officers.index'
+                                                    ) ?>"
+                                            class="dropdown-item
+                                                d-flex
+                                                align-items-center
+                                                gap-2
+                                                <?= $sakVolunteersActive
+                                                    ? 'active'
+                                                    : '' ?>"
+                                            <?= $sakVolunteersActive
+                                                ? 'aria-current="page"'
+                                                : '' ?>>
+
+                                            <i
+                                                class="ri-user-location-line"
+                                                aria-hidden="true"></i>
+
+                                            SAK Volunteers
                                         </a>
                                     </li>
                                 </ul>
@@ -591,31 +615,6 @@ $pageScripts = $pageScripts ?? [];
                                                     aria-hidden="true"></i>
 
                                                 Administrators
-                                            </a>
-                                        </li>
-
-                                        <li>
-                                            <a
-                                                href="<?= route_to(
-                                                            'admin.'
-                                                                . 'field-officers.index'
-                                                        ) ?>"
-                                                class="dropdown-item
-                                                d-flex
-                                                align-items-center
-                                                gap-2
-                                                <?= $sakVolunteersActive
-                                                    ? 'active'
-                                                    : '' ?>"
-                                                <?= $sakVolunteersActive
-                                                    ? 'aria-current="page"'
-                                                    : '' ?>>
-
-                                                <i
-                                                    class="ri-user-location-line"
-                                                    aria-hidden="true"></i>
-
-                                                SAK Volunteers
                                             </a>
                                         </li>
                                     </ul>
