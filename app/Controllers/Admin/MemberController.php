@@ -118,7 +118,7 @@ final class MemberController extends BaseController
     }
 
     /**
-     * Display one member profile for administrator review.
+     * Display one complete member profile for administrator review.
      */
     public function view(
         int $userId
@@ -145,13 +145,18 @@ final class MemberController extends BaseController
                         ) ?? [],
 
                         'statusModal' =>
-                        session('statusModal'),
+                        session(
+                            'statusModal'
+                        ),
 
                         'formAlert' =>
-                        session('formAlert'),
+                        session(
+                            'formAlert'
+                        ),
 
                         'pageScripts' => [
                             'assets/js/pages/admin-member-view.js',
+                            'assets/js/pages/admin-video-introduction-review.js',
                         ],
                     ],
                     $service->profilePreview(
