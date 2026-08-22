@@ -270,6 +270,57 @@ $unmatchedPreferenceCount = max(
     )
 );
 
+/*
+ * Human-readable Partner Preference values are prepared by the
+ * existing Partner Preference services before reaching this View.
+ */
+$partnerPreferenceDisplayItems =
+    isset($partnerPreferenceDisplayItems)
+    && is_array(
+        $partnerPreferenceDisplayItems
+    )
+    ? $partnerPreferenceDisplayItems
+    : [];
+
+$preferenceMatchCriteria =
+    isset(
+        $partnerPreferenceMatch['criteria']
+    )
+    && is_array(
+        $partnerPreferenceMatch['criteria']
+    )
+    ? $partnerPreferenceMatch['criteria']
+    : [];
+
+/*
+ * Build a keyed lookup only for presentation.
+ *
+ * No matching decision is made in the View.
+ */
+$preferenceMatchByKey = [];
+
+foreach (
+    $preferenceMatchCriteria
+    as $criterion
+) {
+    if (!is_array($criterion)) {
+        continue;
+    }
+
+    $criterionKey = trim(
+        (string) (
+            $criterion['key']
+            ?? ''
+        )
+    );
+
+    if ($criterionKey === '') {
+        continue;
+    }
+
+    $preferenceMatchByKey[$criterionKey] = $criterion;
+}
+
 $profileLayout = match (true) {
     $isAdminProfileView =>
     'Admin/Layouts/Main',
@@ -2882,26 +2933,52 @@ $this->section('content');
 
                                         </div>
 
-                                        <div
-                                            class="text-md-end">
+                                        <div class="text-md-end">
 
                                             <div
                                                 class="fs-24
-                                    fw-bold
-                                    text-primary">
+            fw-bold
+            text-primary">
 
                                                 <?= esc(
                                                     (string)
                                                     $preferenceMatchPercentage
                                                 ) ?>%
+
                                             </div>
 
-                                            <span
+                                            <div
                                                 class="text-muted
-                                    fs-12">
+            fs-12
+            mb-2">
 
                                                 overall match
-                                            </span>
+
+                                            </div>
+
+                                            <?php if (
+                                                $partnerPreferenceDisplayItems !== []
+                                                && $preferenceMatchByKey !== []
+                                            ): ?>
+
+                                                <button
+                                                    type="button"
+                                                    class="btn
+                btn-sm
+                btn-outline-primary"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#partnerPreferenceMatchModal">
+
+                                                    <i
+                                                        class="ri-list-check-3 me-1"
+                                                        aria-hidden="true">
+                                                    </i>
+
+                                                    View Details
+
+                                                </button>
+
+                                            <?php endif; ?>
 
                                         </div>
 
@@ -3304,6 +3381,446 @@ $this->section('content');
         </div>
     </div>
 </section>
+<?php if (
+    $isOtherMemberProfileView
+    && $totalPreferenceCount > 0
+    && $partnerPreferenceDisplayItems !== []
+    && $preferenceMatchByKey !== []
+): ?>
+
+    <div
+        class="modal fade"
+        id="partnerPreferenceMatchModal"
+        tabindex="-1"
+        aria-labelledby="partnerPreferenceMatchModalLabel"
+        aria-hidden="true">
+
+        <div
+            class="modal-dialog
+                modal-dialog-centered
+                modal-lg">
+
+            <div class="modal-content">
+
+                <!-- =====================================================
+                     MODAL HEADER
+                     ===================================================== -->
+                <div
+                    class="modal-header
+                        bg-info-subtle
+                        py-2">
+
+                    <div>
+
+                        <h2
+                            class="modal-title fs-17"
+                            id="partnerPreferenceMatchModalLabel">
+
+                            Partner Preference Match
+
+                        </h2>
+
+                        <p
+                            class="text-muted
+                                fs-12
+                                mb-0">
+
+                            See how this profile matches
+                            your Partner Preferences.
+
+                        </p>
+
+                    </div>
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                    </button>
+
+                </div>
+
+                <!-- =====================================================
+                     FIXED MEMBER / MATCH SUMMARY
+                     This block does NOT scroll.
+                     ===================================================== -->
+                <div class="p-3 pb-0">
+
+                    <!-- Member identity -->
+                    <div
+                        class="border
+                            rounded-3
+                            bg-light
+                            p-3
+                            mb-3">
+
+                        <div
+                            class="d-flex
+                                align-items-center
+                                justify-content-between
+                                flex-wrap
+                                gap-3">
+
+                            <div>
+
+                                <div
+                                    class="fs-16
+                                        fw-semibold">
+
+                                    <?= esc($fullName) ?>
+
+                                </div>
+
+                                <div
+                                    class="text-muted
+                                        fs-12
+                                        mt-1">
+
+                                    Profile ID:
+
+                                    <strong class="text-body">
+
+                                        <?= esc(
+                                            $viewedProfileReference
+                                                !== ''
+                                                ? $viewedProfileReference
+                                                : '-'
+                                        ) ?>
+
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                            <div class="text-end">
+
+                                <div
+                                    class="fs-20
+                                        fw-bold
+                                        text-primary">
+
+                                    <?= esc(
+                                        (string)
+                                        $matchedPreferenceCount
+                                    ) ?>/<?= esc(
+                                        (string)
+                                        $totalPreferenceCount
+                                    ) ?>
+
+                                </div>
+
+                                <div
+                                    class="text-muted
+                                        fs-12">
+
+                                    preferences matched
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Overall match -->
+                    <div
+                        class="d-flex
+                            align-items-center
+                            justify-content-between
+                            flex-wrap
+                            gap-2
+                            mb-2">
+
+                        <div class="fw-semibold">
+
+                            Overall Match
+
+                            <span
+                                class="text-primary
+                                    ms-1">
+
+                                <?= esc(
+                                    (string)
+                                    $preferenceMatchPercentage
+                                ) ?>%
+
+                            </span>
+
+                        </div>
+
+                        <div
+                            class="d-flex
+                                align-items-center
+                                gap-1
+                                text-success
+                                fs-13">
+
+                            <i
+                                class="ri-checkbox-circle-fill"
+                                aria-hidden="true">
+                            </i>
+
+                            <?= esc(
+                                (string)
+                                $matchedPreferenceCount
+                            ) ?>
+
+                            matched
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="progress mb-3"
+                        role="progressbar"
+                        aria-label="Partner preference match"
+                        aria-valuenow="<?= esc(
+                            (string)
+                            $preferenceMatchPercentage,
+                            'attr'
+                        ) ?>"
+                        aria-valuemin="0"
+                        aria-valuemax="100">
+
+                        <div
+                            class="progress-bar"
+                            style="<?= esc(
+                                'width: '
+                                . $preferenceMatchPercentage
+                                . '%;',
+                                'attr'
+                            ) ?>">
+                        </div>
+
+                    </div>
+
+                    <!-- Preference table heading -->
+                    <div
+                        class="d-flex
+                            align-items-center
+                            justify-content-between
+                            gap-2
+                            bg-primary-subtle
+                            rounded-3
+                            p-3">
+
+                        <span class="fw-semibold">
+
+                            Your Partner Preferences
+
+                        </span>
+
+                        <span
+                            class="text-muted
+                                fs-12">
+
+                            Match
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <!-- =====================================================
+                     SCROLLABLE PREFERENCE LIST ONLY
+                     Name / ID / overall summary remain fixed above.
+                     ===================================================== -->
+                <div
+                    class="overflow-y-auto
+                        p-3
+                        pt-0"
+                    style="max-height: 45vh;">
+
+                    <?php foreach (
+                        $partnerPreferenceDisplayItems
+                        as $preferenceItem
+                    ): ?>
+
+                        <?php
+                        if (!is_array($preferenceItem)) {
+                            continue;
+                        }
+
+                        $preferenceKey = trim(
+                            (string) (
+                                $preferenceItem['key']
+                                ?? ''
+                            )
+                        );
+
+                        $preferenceTitle = trim(
+                            (string) (
+                                $preferenceItem['title']
+                                ?? ''
+                            )
+                        );
+
+                        $preferenceValue = trim(
+                            (string) (
+                                $preferenceItem['value']
+                                ?? ''
+                            )
+                        );
+
+                        $matchCriterion =
+                            $preferenceMatchByKey[
+                                $preferenceKey
+                            ]
+                            ?? null;
+
+                        /*
+                         * Display only criteria that are:
+                         *
+                         * - configured;
+                         * - part of the matching engine;
+                         * - supplied with a readable value.
+                         */
+                        if (
+                            $preferenceKey === ''
+                            || $preferenceTitle === ''
+                            || $preferenceValue === ''
+                            || !is_array(
+                                $matchCriterion
+                            )
+                        ) {
+                            continue;
+                        }
+
+                        $isMatched = (
+                            $matchCriterion['matched']
+                            ?? false
+                        ) === true;
+
+                        $isCompulsory = (
+                            $matchCriterion['compulsory']
+                            ?? false
+                        ) === true;
+                        ?>
+
+                        <div
+                            class="row
+                                g-2
+                                align-items-center
+                                py-3
+                                border-bottom">
+
+                            <!-- Preference name -->
+                            <div
+                                class="col-12
+                                    col-md-4">
+
+                                <div
+                                    class="text-muted
+                                        fs-13">
+
+                                    <?= esc(
+                                        $preferenceTitle
+                                    ) ?>
+
+                                </div>
+
+                                <?php if (
+                                    $isCompulsory
+                                ): ?>
+
+                                    <span
+                                        class="badge
+                                            bg-danger-subtle
+                                            text-danger
+                                            mt-1">
+
+                                        Must Match
+
+                                    </span>
+
+                                <?php endif; ?>
+
+                            </div>
+
+                            <!-- Actual configured preference -->
+                            <div
+                                class="col-10
+                                    col-md-6">
+
+                                <div
+                                    class="fw-medium
+                                        fs-13">
+
+                                    <?= esc(
+                                        $preferenceValue
+                                    ) ?>
+
+                                </div>
+
+                            </div>
+
+                            <!-- Match state -->
+                            <div
+                                class="col-2
+                                    text-end">
+
+                                <?php if (
+                                    $isMatched
+                                ): ?>
+
+                                    <i
+                                        class="ri-checkbox-circle-fill
+                                            text-success
+                                            fs-20"
+                                        aria-label="Matched"
+                                        title="Matched">
+                                    </i>
+
+                                <?php else: ?>
+
+                                    <i
+                                        class="ri-close-circle-line
+                                            text-warning
+                                            fs-20"
+                                        aria-label="Does not match"
+                                        title="Does not match">
+                                    </i>
+
+                                <?php endif; ?>
+
+                            </div>
+
+                        </div>
+
+                    <?php endforeach; ?>
+
+                </div>
+
+                <!-- =====================================================
+                     FIXED FOOTER
+                     ===================================================== -->
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-light"
+                        data-bs-dismiss="modal">
+
+                        Close
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+<?php endif; ?>
+<!-- EXISTING PROFILE PHOTO MODAL CONTINUES HERE -->
+    
 <?php if ($galleryPhotos !== []): ?>
 
     <div

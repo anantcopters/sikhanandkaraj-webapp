@@ -443,7 +443,12 @@ final class MemberMatchmakingService
      *     matched:int,
      *     total:int,
      *     unmatched:int,
-     *     passesCompulsory:bool
+     *     passesCompulsory:bool,
+     *     criteria:list<array{
+     *         key:string,
+     *         matched:bool,
+     *         compulsory:bool
+     *     }>
      * }
      */
     public function profilePreferenceMatch(
@@ -456,6 +461,7 @@ final class MemberMatchmakingService
             'total' => 0,
             'unmatched' => 0,
             'passesCompulsory' => true,
+            'criteria' => [],
         ];
 
         if (
@@ -553,6 +559,18 @@ final class MemberMatchmakingService
             )
         );
 
+        $criteria =
+            isset($score['criteria'])
+            && is_array($score['criteria'])
+            ? array_values(
+                array_filter(
+                    $score['criteria'],
+                    static fn(mixed $criterion): bool =>
+                    is_array($criterion)
+                )
+            )
+            : [];
+
         return [
             'percentage' =>
             max(
@@ -582,6 +600,9 @@ final class MemberMatchmakingService
                 $score['passesCompulsory']
                 ?? false
             ) === true,
+
+            'criteria' =>
+            $criteria,
         ];
     }
 

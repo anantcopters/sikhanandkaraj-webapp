@@ -11,6 +11,8 @@ use App\Support\MemberNameVisibility;
 use App\Support\BooleanValue;
 use App\Services\Profile\MemberProfileSummaryService;
 use App\Models\MemberProfileReportModel;
+use App\Services\PartnerPreference\BasicPartnerPreferenceService;
+use App\Services\PartnerPreference\AdditionalPartnerPreferenceService;
 use App\Support\EmailAddressMasker;
 use App\Exceptions\PaidMembershipRequiredException;
 use App\Support\MobileNumberMasker;
@@ -52,7 +54,13 @@ final class MemberProfileViewService
         $profileReportModel,
 
         private readonly MemberMatchmakingService
-        $matchmakingService
+        $matchmakingService,
+
+        private readonly BasicPartnerPreferenceService
+        $basicPartnerPreferenceService,
+
+        private readonly AdditionalPartnerPreferenceService
+        $additionalPartnerPreferenceService
     ) {}
 
     /**
@@ -349,6 +357,180 @@ final class MemberProfileViewService
             );
 
         /*
+ * Resolve the logged-in member's Partner Preferences into the
+ * same human-readable presentation already used by the normal
+ * Partner Preference screens.
+ *
+ * IMPORTANT:
+ *
+ * - PartnerPreferenceMatchService remains responsible for matching.
+ * - Existing Partner Preference services remain responsible for labels.
+ * - The View does not query master tables or interpret IDs.
+ */
+        $basicPreferenceSummary =
+            $this
+            ->basicPartnerPreferenceService
+            ->getSummaryForUser(
+                $viewerUserId
+            );
+
+        $additionalPreferenceSections =
+            $this
+            ->additionalPartnerPreferenceService
+            ->getSummarySections(
+                $viewerUserId
+            );
+
+        $partnerPreferenceDisplayItems = [];
+
+        $basicItems =
+            isset($basicPreferenceSummary['items'])
+            && is_array($basicPreferenceSummary['items'])
+            ? $basicPreferenceSummary['items']
+            : [];
+
+        foreach ($basicItems as $item) {
+            if (
+                !is_array($item)
+                || (
+                    $item['isCompleted']
+                    ?? false
+                ) !== true
+            ) {
+                continue;
+            }
+
+            $key = trim(
+                (string) (
+                    $item['key']
+                    ?? ''
+                )
+            );
+
+            $title = trim(
+                (string) (
+                    $item['title']
+                    ?? ''
+                )
+            );
+
+            $value = trim(
+                (string) (
+                    $item['value']
+                    ?? ''
+                )
+            );
+
+            if (
+                $key === ''
+                || $title === ''
+                || $value === ''
+                || $value === 'Not added'
+            ) {
+                continue;
+            }
+
+            $partnerPreferenceDisplayItems[] = [
+                'key' =>
+                $key,
+
+                'title' =>
+                $title,
+
+                'value' =>
+                $value,
+
+                'isCompulsory' => (
+                    $item['isCompulsory']
+                    ?? false
+                ) === true,
+            ];
+        }
+
+        foreach (
+            $additionalPreferenceSections
+            as $section
+        ) {
+            if (!is_array($section)) {
+                continue;
+            }
+
+            $sectionItems =
+                isset($section['items'])
+                && is_array($section['items'])
+                ? $section['items']
+                : [];
+
+            foreach ($sectionItems as $item) {
+                if (
+                    !is_array($item)
+                    || (
+                        $item['isCompleted']
+                        ?? false
+                    ) !== true
+                ) {
+                    continue;
+                }
+
+                $key = trim(
+                    (string) (
+                        $item['key']
+                        ?? ''
+                    )
+                );
+
+                /*
+         * Special Request is intentionally excluded because
+         * PartnerPreferenceMatchService does not score it.
+         */
+                if (
+                    $key === ''
+                    || $key === 'special-request'
+                ) {
+                    continue;
+                }
+
+                $title = trim(
+                    (string) (
+                        $item['title']
+                        ?? ''
+                    )
+                );
+
+                $value = trim(
+                    (string) (
+                        $item['value']
+                        ?? ''
+                    )
+                );
+
+                if (
+                    $title === ''
+                    || $value === ''
+                    || $value === 'Not added'
+                ) {
+                    continue;
+                }
+
+                $partnerPreferenceDisplayItems[] = [
+                    'key' =>
+                    $key,
+
+                    'title' =>
+                    $title,
+
+                    'value' =>
+                    $value,
+
+                    'isCompulsory' => (
+                        $item['isCompulsory']
+                        ?? false
+                    ) === true,
+                ];
+            }
+        }
+
+        /*
         * Profile-detail pages use the MEDIUM variant.
         *
         * The photo service additionally checks:
@@ -504,6 +686,9 @@ final class MemberProfileViewService
 
                 'partnerPreferenceMatch' =>
                 $partnerPreferenceMatch,
+
+                'partnerPreferenceDisplayItems' =>
+                $partnerPreferenceDisplayItems,
             ]
         );
     }
