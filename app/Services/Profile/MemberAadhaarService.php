@@ -356,23 +356,91 @@ final class MemberAadhaarService
     }
 
     /**
-     * Return the searchable administrator queue.
+     * Return the searchable and filterable administrator
+     * Aadhaar submission listing.
      *
-     * @return array{members:list<array<string,mixed>>,pager:\CodeIgniter\Pager\Pager,search:string}
+     * @return array{
+     *     members:list<array<string,mixed>>,
+     *     pager:\CodeIgniter\Pager\Pager,
+     *     search:string,
+     *     status:string
+     * }
      */
-    public function pendingPage(string $search, int $perPage): array
-    {
-        $normalizedSearch = mb_substr(trim($search), 0, 100);
-        $this->submissionModel->preparePendingListing($normalizedSearch);
-        $members = $this->submissionModel->paginate(
-            max(5, min($perPage, 50)),
-            'pendingAadhaarMembers'
-        );
+    public function adminPage(
+        string $search,
+        string $status,
+        int $perPage
+    ): array {
+        $normalizedSearch =
+            mb_substr(
+                trim($search),
+                0,
+                100
+            );
+
+        $normalizedStatus =
+            mb_strtoupper(
+                trim($status)
+            );
+
+        $allowedStatuses = [
+            'ALL',
+            MemberAadhaarSubmissionModel
+            ::STATUS_UNDER_REVIEW,
+
+            MemberAadhaarSubmissionModel
+            ::STATUS_APPROVED,
+
+            MemberAadhaarSubmissionModel
+            ::STATUS_REJECTED,
+        ];
+
+        if (
+            !in_array(
+                $normalizedStatus,
+                $allowedStatuses,
+                true
+            )
+        ) {
+            $normalizedStatus =
+                MemberAadhaarSubmissionModel
+                ::STATUS_UNDER_REVIEW;
+        }
+
+        $this->submissionModel
+            ->prepareAdminListing(
+                $normalizedSearch,
+                $normalizedStatus
+            );
+
+        $members =
+            $this->submissionModel
+            ->paginate(
+                max(
+                    5,
+                    min(
+                        $perPage,
+                        50
+                    )
+                ),
+                'pendingAadhaarMembers'
+            );
 
         return [
-            'members' => is_array($members) ? $members : [],
-            'pager' => $this->submissionModel->pager,
-            'search' => $normalizedSearch,
+            'members' =>
+            is_array($members)
+                ? $members
+                : [],
+
+            'pager' =>
+            $this->submissionModel
+                ->pager,
+
+            'search' =>
+            $normalizedSearch,
+
+            'status' =>
+            $normalizedStatus,
         ];
     }
 
