@@ -420,6 +420,10 @@ final class MemberAadhaarService
     /**
      * Return a short-lived private URL for downloading one pending
      * Aadhaar document.
+     *
+     * Aadhaar is sensitive identity documentation, therefore its
+     * signed URL lifetime is deliberately independent from profile
+     * media configuration.
      */
     public function documentDownloadUrl(
         string $profileReference
@@ -436,7 +440,10 @@ final class MemberAadhaarService
         }
 
         $objectKey = trim(
-            (string) ($submission['object_key'] ?? '')
+            (string) (
+                $submission['object_key']
+                ?? ''
+            )
         );
 
         if ($objectKey === '') {
@@ -445,10 +452,12 @@ final class MemberAadhaarService
             );
         }
 
-        return $this->cloudFrontService->signedUrl(
-            $objectKey,
-            $this->mediaConfig->profileUrlTtlSeconds
-        );
+        return $this->cloudFrontService
+            ->signedUrl(
+                $objectKey,
+                $this->mediaConfig
+                    ->privateDocumentUrlTtlSeconds
+            );
     }
 
     /**

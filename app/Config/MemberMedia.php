@@ -58,6 +58,12 @@ final class MemberMedia extends BaseConfig
      */
     public int $adminOriginalUrlTtlSeconds;
 
+    /**
+     * Signed URL lifetime for sensitive private documents,
+     * including Aadhaar.
+     */
+    public int $privateDocumentUrlTtlSeconds;
+
     public int $profileMaxFiles;
 
     public int $profileMaxSizeKb;
@@ -178,6 +184,14 @@ final class MemberMedia extends BaseConfig
             60,
             (int) env(
                 'memberMedia.adminOriginalUrlTtlSeconds',
+                120
+            )
+        );
+
+        $this->privateDocumentUrlTtlSeconds = max(
+            60,
+            (int) env(
+                'memberMedia.privateDocumentUrlTtlSeconds',
                 120
             )
         );

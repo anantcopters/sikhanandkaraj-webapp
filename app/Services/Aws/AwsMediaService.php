@@ -84,6 +84,14 @@ final class AwsMediaService
     }
 
     /**
+     * Return short-lived signed URLs for every profile-photo variant.
+     *
+     * Each variant deliberately has its own URL lifetime:
+     *
+     * - thumbnail: 10 minutes
+     * - medium:     5 minutes
+     * - original:   2 minutes
+     *
      * @param array<string, mixed> $photo
      *
      * @return array{
@@ -97,22 +105,37 @@ final class AwsMediaService
     ): array {
         return [
             'originalUrl' =>
-            $this->cloudFrontService->signedUrl(
-                (string) $photo['original_object_key'],
-                $this->config->profileUrlTtlSeconds
-            ),
+            $this->cloudFrontService
+                ->signedUrl(
+                    (string) (
+                        $photo['original_object_key']
+                        ?? ''
+                    ),
+                    $this->config
+                        ->adminOriginalUrlTtlSeconds
+                ),
 
             'mediumUrl' =>
-            $this->cloudFrontService->signedUrl(
-                (string) $photo['medium_object_key'],
-                $this->config->profileUrlTtlSeconds
-            ),
+            $this->cloudFrontService
+                ->signedUrl(
+                    (string) (
+                        $photo['medium_object_key']
+                        ?? ''
+                    ),
+                    $this->config
+                        ->mediumUrlTtlSeconds
+                ),
 
             'thumbnailUrl' =>
-            $this->cloudFrontService->signedUrl(
-                (string) $photo['thumbnail_object_key'],
-                $this->config->profileUrlTtlSeconds
-            ),
+            $this->cloudFrontService
+                ->signedUrl(
+                    (string) (
+                        $photo['thumbnail_object_key']
+                        ?? ''
+                    ),
+                    $this->config
+                        ->thumbnailUrlTtlSeconds
+                ),
         ];
     }
 
