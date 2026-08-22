@@ -2,13 +2,162 @@
 
 declare(strict_types=1);
 
+use Config\ProfilePdf;
+
+/*
+ * =========================================================
+ * View-local declarations
+ * =========================================================
+ *
+ * Keep the PDF view defensive and presentation-only.
+ *
+ * The service is responsible for business/privacy rules.
+ * This block only normalizes values supplied to the view.
+ */
+
 $config = config(
-    'ProfilePdf'
+    ProfilePdf::class
 );
 
+$profileReference = trim(
+    (string) (
+        $profileReference
+        ?? ''
+    )
+);
+
+$fullName = trim(
+    (string) (
+        $fullName
+        ?? ''
+    )
+);
+
+if ($fullName === '') {
+    $fullName =
+        'Member Profile';
+}
+
+$age =
+    isset($age)
+    && is_numeric($age)
+    ? max(
+        0,
+        (int) $age
+    )
+    : null;
+
+$height = trim(
+    (string) (
+        $height
+        ?? ''
+    )
+);
+
+$location = trim(
+    (string) (
+        $location
+        ?? ''
+    )
+);
+
+$thumbnail = trim(
+    (string) (
+        $thumbnail
+        ?? ''
+    )
+);
+
+$aboutMe = trim(
+    (string) (
+        $aboutMe
+        ?? ''
+    )
+);
+
+$maskedMobile = trim(
+    (string) (
+        $maskedMobile
+        ?? ''
+    )
+);
+
+$maskedEmail = trim(
+    (string) (
+        $maskedEmail
+        ?? ''
+    )
+);
+
+$isMobileVerified =
+    isset($isMobileVerified)
+    && $isMobileVerified === true;
+
+$isEmailVerified =
+    isset($isEmailVerified)
+    && $isEmailVerified === true;
+
+$isAadhaarVerified =
+    isset($isAadhaarVerified)
+    && $isAadhaarVerified === true;
+
+$hasVideoIntroduction =
+    isset($hasVideoIntroduction)
+    && $hasVideoIntroduction === true;
+
+$quickDetails =
+    isset($quickDetails)
+    && is_array($quickDetails)
+    ? $quickDetails
+    : [];
+
+$educationRows =
+    isset($educationRows)
+    && is_array($educationRows)
+    ? $educationRows
+    : [];
+
+$familyRows =
+    isset($familyRows)
+    && is_array($familyRows)
+    ? $familyRows
+    : [];
+
+$lifestyleRows =
+    isset($lifestyleRows)
+    && is_array($lifestyleRows)
+    ? $lifestyleRows
+    : [];
+
+$preferences =
+    isset($preferences)
+    && is_array($preferences)
+    ? $preferences
+    : [];
+
+$assets =
+    isset($assets)
+    && is_array($assets)
+    ? $assets
+    : [];
+
+$icons =
+    isset($icons)
+    && is_array($icons)
+    ? $icons
+    : [];
+
+/*
+ * PDF brand colours are intentionally local because
+ * this document is a standalone print layout and does
+ * not load the application's CSS bundle.
+ */
 $purple = '#310a57';
 $red = '#ce102c';
 
+/*
+ * Resolve an already embedded PDF icon.
+ */
 $icon = static function (
     string $name
 ) use ($icons): string {
@@ -20,19 +169,48 @@ $icon = static function (
     );
 };
 
+/*
+ * Resolve an already embedded common PDF asset.
+ */
+$asset = static function (
+    string $name
+) use ($assets): string {
+    return trim(
+        (string) (
+            $assets[$name]
+            ?? ''
+        )
+    );
+};
+
 $summary = implode(
     ' • ',
-    array_filter([
-        $age !== null
-            ? $age . ' Years'
-            : '',
+    array_filter(
+        [
+            $age !== null
+                ? $age . ' Years'
+                : '',
 
-        $height,
+            $height,
 
-        $location,
-    ])
+            $location,
+        ],
+        static fn(
+            string $value
+        ): bool =>
+        trim($value) !== ''
+    )
 );
 
+/**
+ * Render a list of PDF detail rows.
+ *
+ * Business data has already been transformed by
+ * MemberProfilePdfDataService. The view only renders
+ * presentation-ready values.
+ *
+ * @param array<int,mixed> $rows
+ */
 $renderRows =
     static function (
         array $rows
@@ -40,41 +218,76 @@ $renderRows =
         $icon
     ): void {
         foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $rowIcon = trim(
+                (string) (
+                    $row['icon']
+                    ?? 'user'
+                )
+            );
+
+            $rowLabel = trim(
+                (string) (
+                    $row['label']
+                    ?? ''
+                )
+            );
+
+            $rowValue = trim(
+                (string) (
+                    $row['value']
+                    ?? ''
+                )
+            );
+
+            if (
+                $rowLabel === ''
+                || $rowValue === ''
+            ) {
+                continue;
+            }
 ?>
         <div class="detail-row">
 
             <div class="detail-icon">
-                <img
-                    src="<?= esc(
-                                $icon(
-                                    (string) (
-                                        $row['icon']
-                                        ?? 'user'
-                                    )
-                                ),
-                                'attr'
-                            ) ?>"
-                    alt="">
+
+                <?php if (
+                    $icon($rowIcon)
+                    !== ''
+                ): ?>
+
+                    <img
+                        src="<?= esc(
+                                    $icon(
+                                        $rowIcon
+                                    ),
+                                    'attr'
+                                ) ?>"
+                        alt="">
+
+                <?php endif; ?>
+
             </div>
 
             <div class="detail-copy">
 
                 <div class="detail-label">
+
                     <?= esc(
-                        (string) (
-                            $row['label']
-                            ?? ''
-                        )
+                        $rowLabel
                     ) ?>
+
                 </div>
 
                 <div class="detail-value">
+
                     <?= esc(
-                        (string) (
-                            $row['value']
-                            ?? ''
-                        )
+                        $rowValue
                     ) ?>
+
                 </div>
 
             </div>
@@ -108,7 +321,7 @@ $renderRows =
             font-family: Inter;
             src:
                 url("<?= esc(
-                            $assets['fontRegular'],
+                            $assets('fontRegular'),
                             'attr'
                         ) ?>");
             font-weight: 400;
@@ -118,7 +331,7 @@ $renderRows =
             font-family: Inter;
             src:
                 url("<?= esc(
-                            $assets['fontMedium'],
+                            $assets('fontMedium'),
                             'attr'
                         ) ?>");
             font-weight: 500;
@@ -128,7 +341,7 @@ $renderRows =
             font-family: Inter;
             src:
                 url("<?= esc(
-                            $assets['fontSemiBold'],
+                            $assets('fontSemiBold'),
                             'attr'
                         ) ?>");
             font-weight: 600;
@@ -138,7 +351,7 @@ $renderRows =
             font-family: Inter;
             src:
                 url("<?= esc(
-                            $assets['fontBold'],
+                            $assets('fontBold'),
                             'attr'
                         ) ?>");
             font-weight: 700;
@@ -725,7 +938,7 @@ $renderRows =
                 <img
                     class="brand-logo"
                     src="<?= esc(
-                                $assets['logo'],
+                                $assets('logo'),
                                 'attr'
                             ) ?>"
                     alt="SikhAnandKaraj">
@@ -1204,7 +1417,7 @@ $renderRows =
                         <img
                             class="marriage-motif"
                             src="<?= esc(
-                                        $assets['marriageMotif'],
+                                        $assets('marriageMotif'),
                                         'attr'
                                     ) ?>"
                             alt="">

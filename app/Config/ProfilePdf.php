@@ -9,10 +9,11 @@ use CodeIgniter\Config\BaseConfig;
 final class ProfilePdf extends BaseConfig
 {
     /**
-     * Absolute Chrome/Chromium executable.
+     * Optional absolute Chrome / Chromium executable.
      *
-     * Environment specific. Never hard-code this
-     * into the PDF service.
+     * Environment configuration takes precedence.
+     * When empty, MemberProfilePdfService attempts
+     * to resolve a supported local installation.
      */
     public string $chromePath = '';
 
@@ -45,11 +46,20 @@ final class ProfilePdf extends BaseConfig
             )
         );
 
-        $this->supportPhone = trim(
+        /*
+         * Keep the configured project default when
+         * no environment override is supplied.
+         */
+        $configuredSupportPhone = trim(
             (string) env(
                 'profilePdf.supportPhone',
                 ''
             )
         );
+
+        if ($configuredSupportPhone !== '') {
+            $this->supportPhone =
+                $configuredSupportPhone;
+        }
     }
 }
