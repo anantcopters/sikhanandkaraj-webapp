@@ -1449,32 +1449,4 @@ $dashboardAadhaar =
     : [];
 ?>
 
-<?= view(
-    'Pages/Dashboard/_AadhaarUploadModal',
-    [
-        'memberName' =>
-        $dashboardTrustVerification['memberName']
-            ?? $resolvedName,
-
-        'profileReference' =>
-        $dashboardTrustVerification['profileReference']
-            ?? $resolvedReference,
-
-        'validationErrors' =>
-        $aadhaarValidationErrors
-            ?? [],
-
-        'openModal' =>
-        $openAadhaarModal
-            ?? false,
-
-        'rejectionReason' =>
-        $dashboardAadhaar['rejectionReason']
-            ?? '',
-
-        'returnContext' =>
-        'DASHBOARD',
-    ]
-) ?>
-
 <?php $this->endSection(); ?>
