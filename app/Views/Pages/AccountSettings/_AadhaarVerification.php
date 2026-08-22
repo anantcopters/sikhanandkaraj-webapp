@@ -676,10 +676,11 @@ $statusClass = match ($status) {
                     <button
                         type="submit"
                         class="btn
-                            registration-form__submit
-                            fs-14
-                            fw-medium
-                            text-uppercase"
+            registration-form__submit
+            fs-14
+            fw-medium
+            text-uppercase
+            w-50"
                         data-submit-button>
 
                         <span
@@ -688,8 +689,8 @@ $statusClass = match ($status) {
 
                             <i
                                 class="mdi
-                                    mdi-cloud-upload-outline
-                                    fs-20"
+                    mdi-cloud-upload-outline
+                    fs-20"
                                 aria-hidden="true">
                             </i>
 
@@ -699,12 +700,13 @@ $statusClass = match ($status) {
 
                         <span
                             class="registration-submit__loading
-                                d-none"
+                d-none"
                             data-submit-loading>
 
                             <span
                                 class="spinner-border
-                                    spinner-border-sm"
+                    spinner-border-sm"
+                                role="status"
                                 aria-hidden="true">
                             </span>
 

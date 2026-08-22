@@ -23,7 +23,7 @@ final class MemberAadhaarValidation
 
                 'rules' => [
                     'required',
-                    'in_list[DASHBOARD,PROFILE_EDIT]',
+                    'in_list[ACCOUNT_SETTINGS]',
                 ],
 
                 'errors' => [
@@ -34,7 +34,6 @@ final class MemberAadhaarValidation
                     'The Aadhaar upload context is invalid.',
                 ],
             ],
-
             'aadhaar_document' => [
                 'label' =>
                 'Aadhaar document',
