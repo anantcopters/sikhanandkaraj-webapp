@@ -479,55 +479,38 @@ final class MemberProfilePdfService
             );
 
         /*
-         * rawurlencode() cannot be used on the whole path
-         * because it would encode path separators.
-         */
-        $segments =
-            explode(
-                '/',
+     * Chrome file URI.
+     *
+     * Encode only characters that are unsafe in the
+     * local file URL while preserving drive letters
+     * and directory separators.
+     */
+        $normalized =
+            str_replace(
+                [
+                    '%',
+                    ' ',
+                    '#',
+                    '?',
+                ],
+                [
+                    '%25',
+                    '%20',
+                    '%23',
+                    '%3F',
+                ],
                 $normalized
-            );
-
-        $encodedPath =
-            implode(
-                '/',
-                array_map(
-                    static fn(
-                        string $segment
-                    ): string =>
-                    rawurlencode(
-                        $segment
-                    ),
-                    $segments
-                )
             );
 
         if (
             PHP_OS_FAMILY
             === 'Windows'
         ) {
-            /*
-             * Preserve the drive colon:
-             *
-             * C:/xampp/...
-             *
-             * instead of:
-             *
-             * C%3A/xampp/...
-             */
-            $encodedPath =
-                preg_replace(
-                    '/^([A-Za-z])%3A\//',
-                    '$1:/',
-                    $encodedPath
-                )
-                ?? $encodedPath;
-
             return 'file:///'
-                . $encodedPath;
+                . $normalized;
         }
 
         return 'file://'
-            . $encodedPath;
+            . $normalized;
     }
 }

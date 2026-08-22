@@ -183,6 +183,36 @@ $asset = static function (
     );
 };
 
+$fontRegularUrl =
+    $asset(
+        'fontRegular'
+    );
+
+$fontMediumUrl =
+    $asset(
+        'fontMedium'
+    );
+
+$fontSemiBoldUrl =
+    $asset(
+        'fontSemiBold'
+    );
+
+$fontBoldUrl =
+    $asset(
+        'fontBold'
+    );
+
+$logoUrl =
+    $asset(
+        'logo'
+    );
+
+$marriageMotifUrl =
+    $asset(
+        'marriageMotif'
+    );
+
 $summary = implode(
     ' • ',
     array_filter(
@@ -318,42 +348,30 @@ $renderRows =
         }
 
         @font-face {
-            font-family: Inter;
-            src:
-                url("<?= esc(
-                            $assets('fontRegular'),
-                            'attr'
-                        ) ?>");
+            font-family: 'Inter';
+            src: url('<?= esc($fontRegularUrl, 'attr') ?>') format('truetype');
+            font-style: normal;
             font-weight: 400;
         }
 
         @font-face {
-            font-family: Inter;
-            src:
-                url("<?= esc(
-                            $assets('fontMedium'),
-                            'attr'
-                        ) ?>");
+            font-family: 'Inter';
+            src: url('<?= esc($fontMediumUrl, 'attr') ?>') format('truetype');
+            font-style: normal;
             font-weight: 500;
         }
 
         @font-face {
-            font-family: Inter;
-            src:
-                url("<?= esc(
-                            $assets('fontSemiBold'),
-                            'attr'
-                        ) ?>");
+            font-family: 'Inter';
+            src: url('<?= esc($fontSemiBoldUrl, 'attr') ?>') format('truetype');
+            font-style: normal;
             font-weight: 600;
         }
 
         @font-face {
-            font-family: Inter;
-            src:
-                url("<?= esc(
-                            $assets('fontBold'),
-                            'attr'
-                        ) ?>");
+            font-family: 'Inter';
+            src: url('<?= esc($fontBoldUrl, 'attr') ?>') format('truetype');
+            font-style: normal;
             font-weight: 700;
         }
 
@@ -938,7 +956,7 @@ $renderRows =
                 <img
                     class="brand-logo"
                     src="<?= esc(
-                                $assets('logo'),
+                                $logoUrl,
                                 'attr'
                             ) ?>"
                     alt="SikhAnandKaraj">
@@ -1417,7 +1435,7 @@ $renderRows =
                         <img
                             class="marriage-motif"
                             src="<?= esc(
-                                        $assets('marriageMotif'),
+                                        $marriageMotifUrl,
                                         'attr'
                                     ) ?>"
                             alt="">

@@ -168,8 +168,11 @@ document.addEventListener(
                     'a'
                 );
 
-            link.href = url;
-            link.download = filename;
+            link.href =
+                url;
+
+            link.download =
+                filename;
 
             document.body.appendChild(
                 link
@@ -203,6 +206,63 @@ document.addEventListener(
 
             return match?.[1]
                 || 'sikhanandkaraj-profile.pdf';
+        };
+
+        /*
+         * Do not blindly call response.json().
+         *
+         * Development error pages, PHP warnings or framework
+         * exceptions may return HTML/text instead of valid JSON.
+         */
+        const errorMessage = async (
+            response
+        ) => {
+            const fallback =
+                'The profile PDF could not '
+                + 'be created. Please try again.';
+
+            let body = '';
+
+            try {
+                body =
+                    await response.text();
+            } catch (error) {
+                return fallback;
+            }
+
+            if (
+                typeof body !== 'string'
+                || body.trim() === ''
+            ) {
+                return fallback;
+            }
+
+            try {
+                const payload =
+                    JSON.parse(
+                        body
+                    );
+
+                if (
+                    payload
+                    && typeof payload.message
+                    === 'string'
+                    && payload.message.trim()
+                    !== ''
+                ) {
+                    return payload.message
+                        .trim();
+                }
+            } catch (error) {
+                /*
+                 * Not JSON.
+                 *
+                 * Do not expose raw PHP/HTML error output
+                 * to the member UI.
+                 */
+            }
+
+            return fallback;
         };
 
         button.addEventListener(
@@ -244,8 +304,7 @@ document.addEventListener(
                     window.setInterval(
                         () => {
                             if (
-                                current
-                                >= 84
+                                current >= 84
                             ) {
                                 return;
                             }
@@ -314,36 +373,35 @@ document.addEventListener(
                         );
 
                     if (!response.ok) {
-                        let text =
-                            'The profile PDF could not '
-                            + 'be created. Please try again.';
+                        throw new Error(
+                            await errorMessage(
+                                response
+                            )
+                        );
+                    }
 
-                        const type =
+                    /*
+                     * A successful endpoint must return PDF.
+                     *
+                     * This prevents an HTML login/error page from
+                     * accidentally being downloaded as ".pdf".
+                     */
+                    const contentType =
+                        (
                             response.headers.get(
                                 'Content-Type'
-                            ) || '';
-
-                        if (
-                            type.includes(
-                                'application/json'
                             )
-                        ) {
-                            const payload =
-                                await response.json();
+                            || ''
+                        ).toLowerCase();
 
-                            if (
-                                typeof payload.message
-                                === 'string'
-                                && payload.message.trim()
-                                !== ''
-                            ) {
-                                text =
-                                    payload.message;
-                            }
-                        }
-
+                    if (
+                        !contentType.includes(
+                            'application/pdf'
+                        )
+                    ) {
                         throw new Error(
-                            text
+                            'The server did not return '
+                            + 'a valid profile PDF.'
                         );
                     }
 
@@ -391,10 +449,6 @@ document.addEventListener(
                         'Profile PDF created successfully.'
                     );
 
-                    /*
-                     * CSRF regenerate is enabled in this project.
-                     * Refresh also satisfies the requested flow.
-                     */
                     window.setTimeout(
                         () => {
                             window.location.reload();
