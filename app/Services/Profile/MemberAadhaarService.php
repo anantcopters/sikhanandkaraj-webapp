@@ -77,6 +77,183 @@ final class MemberAadhaarService
     }
 
     /**
+     * Return member-facing Aadhaar verification state.
+     *
+     * Document storage details, checksum, administrator IDs and
+     * signed URLs must never be exposed to the member.
+     *
+     * @return array{
+     *     status:string,
+     *     rejectionReason:string,
+     *     latest:array<string,mixed>|null,
+     *     history:list<array<string,mixed>>,
+     *     canUpload:bool
+     * }
+     */
+    public function settingsForMember(
+        int $memberId
+    ): array {
+        if ($memberId <= 0) {
+            return [
+                'status' => 'NOT_ADDED',
+                'rejectionReason' => '',
+                'latest' => null,
+                'history' => [],
+                'canUpload' => false,
+            ];
+        }
+
+        $member = $this
+            ->userModel
+            ->find(
+                $memberId
+            );
+
+        if (
+            !is_array($member)
+            || ($member['deleted_at'] ?? null) !== null
+        ) {
+            return [
+                'status' => 'NOT_ADDED',
+                'rejectionReason' => '',
+                'latest' => null,
+                'history' => [],
+                'canUpload' => false,
+            ];
+        }
+
+        $latest = $this
+            ->submissionModel
+            ->latestForMember(
+                $memberId
+            );
+
+        $status = is_array($latest)
+            ? mb_strtoupper(
+                trim(
+                    (string) (
+                        $latest['status']
+                        ?? ''
+                    )
+                )
+            )
+            : 'NOT_ADDED';
+
+        /*
+     * Support members verified before immutable Aadhaar
+     * submission history was introduced.
+     */
+        $isLegacyVerified =
+            \App\Support\BooleanValue::fromDatabase(
+                $member['is_aadhaar_verified']
+                    ?? false
+            );
+
+        if (
+            $status === 'NOT_ADDED'
+            && $isLegacyVerified
+        ) {
+            $status =
+                MemberAadhaarSubmissionModel
+                ::STATUS_APPROVED;
+        }
+
+        if (
+            !in_array(
+                $status,
+                [
+                    MemberAadhaarSubmissionModel
+                    ::STATUS_UNDER_REVIEW,
+
+                    MemberAadhaarSubmissionModel
+                    ::STATUS_APPROVED,
+
+                    MemberAadhaarSubmissionModel
+                    ::STATUS_REJECTED,
+
+                    'NOT_ADDED',
+                ],
+                true
+            )
+        ) {
+            $status = 'NOT_ADDED';
+        }
+
+        $rejectionReason =
+            is_array($latest)
+            ? trim(
+                (string) (
+                    $latest['rejection_reason']
+                    ?? ''
+                )
+            )
+            : '';
+
+        /*
+     * A member may upload only when:
+     *
+     * - no Aadhaar has been submitted; or
+     * - the latest submission was rejected.
+     *
+     * upload() performs the same authorization again
+     * server-side and remains authoritative.
+     */
+        $canUpload = in_array(
+            $status,
+            [
+                'NOT_ADDED',
+                MemberAadhaarSubmissionModel
+                ::STATUS_REJECTED,
+            ],
+            true
+        );
+
+        return [
+            'status' =>
+            $status,
+
+            'rejectionReason' =>
+            $rejectionReason,
+
+            /*
+         * Only member-safe fields from the latest submission.
+         */
+            'latest' =>
+            is_array($latest)
+                ? [
+                    'status' =>
+                    $status,
+
+                    'uploaded_at' =>
+                    $latest['uploaded_at']
+                        ?? null,
+
+                    'reviewed_at' =>
+                    $latest['reviewed_at']
+                        ?? null,
+
+                    'rejection_reason' =>
+                    $rejectionReason,
+                ]
+                : null,
+
+            /*
+         * historyForMember() already deliberately excludes
+         * object_key, checksum and upload reference.
+         */
+            'history' =>
+            $this
+                ->submissionModel
+                ->historyForMember(
+                    $memberId
+                ),
+
+            'canUpload' =>
+            $canUpload,
+        ];
+    }
+
+    /**
      * Validate actual content, upload privately to S3, then persist history.
      *
      * S3 is called before the DB transaction. If the DB write loses a race or

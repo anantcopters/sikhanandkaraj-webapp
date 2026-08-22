@@ -96,6 +96,13 @@ $menuItems = [
         'label' => 'Profile Visibility',
         'icon' => 'ri-eye-line',
     ],
+    'aadhaar-verification' => [
+        'label' =>
+        'Aadhaar Verification',
+
+        'icon' =>
+        'ri-fingerprint-line',
+    ],
     'video-introduction' => [
         'label' => 'Video Introduction',
         'icon' => 'ri-video-line',
@@ -190,8 +197,31 @@ $this->section('content');
                     <div class="card-body p-3 p-lg-4">
 
                         <?php if (
+                            $activeSection === 'aadhaar-verification'
+                        ): ?>
+
+                            <?= view(
+                                'Pages/AccountSettings/_AadhaarVerification',
+                                [
+                                    'aadhaarSettings' =>
+                                    $aadhaarSettings
+                                        ?? [],
+
+                                    'aadhaarValidationErrors' =>
+                                    $aadhaarValidationErrors
+                                        ?? [],
+
+                                    'openAadhaarModal' =>
+                                    $openAadhaarModal
+                                        ?? false,
+                                ]
+                            ) ?>
+
+
+                        <?php elseif (
                             $activeSection === 'video-introduction'
                         ): ?>
+
                             <?= view(
                                 'Pages/AccountSettings/_VideoIntroduction',
                                 [
@@ -202,6 +232,10 @@ $this->section('content');
                                     'activeVideoIntroduction' =>
                                     $activeVideoIntroduction
                                         ?? null,
+
+                                    'videoIntroductionHistory' =>
+                                    $videoIntroductionHistory
+                                        ?? [],
 
                                     'videoStatus' =>
                                     $videoStatus
@@ -242,6 +276,18 @@ $this->section('content');
                                     'allowedVisibilities' =>
                                     $allowedVisibilities
                                         ?? [],
+
+                                    'hasApprovedProfilePhoto' =>
+                                    $hasApprovedProfilePhoto
+                                        ?? false,
+
+                                    'videoMemberName' =>
+                                    $videoMemberName
+                                        ?? '',
+
+                                    'videoProfileReference' =>
+                                    $videoProfileReference
+                                        ?? '',
                                 ]
                             ) ?>
 
