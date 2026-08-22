@@ -11,6 +11,8 @@ use App\Models\MemberPartnerPreferenceEatingHabitModel;
 use App\Models\MemberPartnerPreferenceMotherTongueModel;
 use App\Models\MemberPartnerProfessionalPreferenceModel;
 use App\Models\MemberPartnerReligiousPreferenceModel;
+use App\Support\PartnerPreference\BasicPreferenceItem;
+use App\Support\PartnerPreference\AdditionalPreferenceItem;
 use App\Models\PartnerPreferenceSelectionModel;
 use App\Support\BooleanValue;
 use DateTimeImmutable;
@@ -229,7 +231,7 @@ final class PartnerPreferenceMatchService
 
         $this->criterion(
             $criteria,
-            key: 'age',
+            key: BasicPreferenceItem::AGE,
             configured: $ageFrom > 0
                 && $ageTo >= $ageFrom,
             matched: $candidateAge !== null
@@ -264,7 +266,7 @@ final class PartnerPreferenceMatchService
 
         $this->criterion(
             $criteria,
-            key: 'height',
+            key: BasicPreferenceItem::HEIGHT,
             configured: $heightFrom > 0
                 && $heightTo >= $heightFrom,
             matched: $candidateHeight >= $heightFrom
@@ -285,7 +287,7 @@ final class PartnerPreferenceMatchService
 
         $this->criterion(
             $criteria,
-            key: 'marital_status',
+            key: BasicPreferenceItem::MARITAL_STATUS,
             configured: $maritalStatusId > 0,
             matched: $maritalStatusId
                 === (int) (
@@ -317,7 +319,7 @@ final class PartnerPreferenceMatchService
 
         $this->criterion(
             $criteria,
-            key: 'have_children',
+            key: BasicPreferenceItem::HAVE_CHILDREN,
             configured: $hasChildrenPreference,
             matched: $hasChildrenPreference
                 && $candidateHasChildren
@@ -335,7 +337,7 @@ final class PartnerPreferenceMatchService
      */
         $this->multiSelectCriterion(
             $criteria,
-            key: 'mother_tongue',
+            key: BasicPreferenceItem::MOTHER_TONGUE,
             selectedValues: $snapshot['motherTongues'],
             candidateValue: (int) (
                 $candidate['mother_tongue_id']
@@ -355,7 +357,7 @@ final class PartnerPreferenceMatchService
 
         $this->criterion(
             $criteria,
-            key: 'physical_status',
+            key: BasicPreferenceItem::PHYSICAL_STATUS,
             configured: $physicalStatusId > 0,
             matched: $physicalStatusId
                 === (int) (
@@ -373,7 +375,7 @@ final class PartnerPreferenceMatchService
      */
         $this->multiSelectCriterion(
             $criteria,
-            key: 'eating_habits',
+            key: BasicPreferenceItem::EATING_HABITS,
             selectedValues: $snapshot['eatingHabits'],
             candidateValue: (int) (
                 $candidate['eating_habit_id']
@@ -388,7 +390,7 @@ final class PartnerPreferenceMatchService
      */
         $this->multiSelectCriterion(
             $criteria,
-            key: 'drinking_habits',
+            key: BasicPreferenceItem::DRINKING_HABITS,
             selectedValues: $snapshot['drinkingHabits'],
             candidateValue: (int) (
                 $candidate['drinking_habit_id']
@@ -403,7 +405,7 @@ final class PartnerPreferenceMatchService
      */
         $this->multiSelectCriterion(
             $criteria,
-            key: 'community',
+            key: AdditionalPreferenceItem::COMMUNITY,
             selectedValues: $snapshot['communities'],
             candidateValue: (int) (
                 $candidate['community_id']
@@ -417,7 +419,7 @@ final class PartnerPreferenceMatchService
      */
         $this->multiSelectCriterion(
             $criteria,
-            key: 'education',
+            key: AdditionalPreferenceItem::EDUCATION,
             selectedValues: $snapshot['educations'],
             candidateValue: (int) (
                 $candidate['highest_education_id']
@@ -444,7 +446,7 @@ final class PartnerPreferenceMatchService
 
         $this->criterion(
             $criteria,
-            key: 'employed_in',
+            key: AdditionalPreferenceItem::EMPLOYED_IN,
             configured: $employmentTypes !== [],
             matched: $candidateEmployment !== ''
                 && in_array(
@@ -460,7 +462,7 @@ final class PartnerPreferenceMatchService
      */
         $this->multiSelectCriterion(
             $criteria,
-            key: 'occupation',
+            key: AdditionalPreferenceItem::OCCUPATION,
             selectedValues: $snapshot['occupations'],
             candidateValue: (int) (
                 $candidate['occupation_id']
@@ -474,7 +476,7 @@ final class PartnerPreferenceMatchService
      */
         $this->multiSelectCriterion(
             $criteria,
-            key: 'annual_income',
+            key: AdditionalPreferenceItem::ANNUAL_INCOME,
             selectedValues: $snapshot['annualIncomes'],
             candidateValue: (int) (
                 $candidate['annual_income_id']
@@ -531,7 +533,7 @@ final class PartnerPreferenceMatchService
 
         $this->criterion(
             $criteria,
-            key: 'location',
+            key: AdditionalPreferenceItem::LOCATION,
             configured: $locationConfigured,
             matched: $locationMatched,
             compulsory: $snapshot['locationMatchMode']

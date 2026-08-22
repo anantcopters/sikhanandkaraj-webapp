@@ -2933,82 +2933,35 @@ $this->section('content');
 
                                         </div>
 
-                                        <div class="text-md-end">
 
-                                            <div
-                                                class="fs-24
-            fw-bold
-            text-primary">
 
-                                                <?= esc(
-                                                    (string)
-                                                    $preferenceMatchPercentage
-                                                ) ?>%
+                                    </div>
+                                    <div class="text-md-end">
+                                        <!-- Existing Bootstrap progress -->
+                                        <?php if (
+                                            $partnerPreferenceDisplayItems !== []
+                                            && $preferenceMatchByKey !== []
+                                        ): ?>
 
-                                            </div>
-
-                                            <div
-                                                class="text-muted
-            fs-12
-            mb-2">
-
-                                                overall match
-
-                                            </div>
-
-                                            <?php if (
-                                                $partnerPreferenceDisplayItems !== []
-                                                && $preferenceMatchByKey !== []
-                                            ): ?>
-
-                                                <button
-                                                    type="button"
-                                                    class="btn
+                                            <button
+                                                type="button"
+                                                class="btn
                 btn-sm
                 btn-outline-primary"
-                                                    data-bs-toggle="modal"
-                                                    data-bs-target="#partnerPreferenceMatchModal">
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#partnerPreferenceMatchModal">
 
-                                                    <i
-                                                        class="ri-list-check-3 me-1"
-                                                        aria-hidden="true">
-                                                    </i>
+                                                <i
+                                                    class="ri-list-check-3 me-1"
+                                                    aria-hidden="true">
+                                                </i>
 
-                                                    View Details
+                                                View Details
 
-                                                </button>
+                                            </button>
 
-                                            <?php endif; ?>
-
-                                        </div>
-
+                                        <?php endif; ?>
                                     </div>
-
-                                    <!-- Existing Bootstrap progress -->
-                                    <div
-                                        class="progress"
-                                        role="progressbar"
-                                        aria-label="Partner preference match"
-                                        aria-valuenow="<?= esc(
-                                                            (string)
-                                                            $preferenceMatchPercentage,
-                                                            'attr'
-                                                        ) ?>"
-                                        aria-valuemin="0"
-                                        aria-valuemax="100">
-
-                                        <div
-                                            class="progress-bar"
-                                            style="<?= esc(
-                                                        'width: '
-                                                            . $preferenceMatchPercentage
-                                                            . '%;',
-                                                        'attr'
-                                                    ) ?>">
-                                        </div>
-
-                                    </div>
-
                                 </div>
 
                                 <!-- Summary -->
@@ -3451,7 +3404,7 @@ $this->section('content');
                     <div
                         class="border
                             rounded-3
-                            bg-light
+                            bg-warning-subtle
                             p-3
                             mb-3">
 
@@ -3505,14 +3458,14 @@ $this->section('content');
                                         (string)
                                         $matchedPreferenceCount
                                     ) ?>/<?= esc(
-                                        (string)
-                                        $totalPreferenceCount
-                                    ) ?>
+                                                (string)
+                                                $totalPreferenceCount
+                                            ) ?>
 
                                 </div>
 
                                 <div
-                                    class="text-muted
+                                    class="color-pink
                                         fs-12">
 
                                     preferences matched
@@ -3579,21 +3532,21 @@ $this->section('content');
                         role="progressbar"
                         aria-label="Partner preference match"
                         aria-valuenow="<?= esc(
-                            (string)
-                            $preferenceMatchPercentage,
-                            'attr'
-                        ) ?>"
+                                            (string)
+                                            $preferenceMatchPercentage,
+                                            'attr'
+                                        ) ?>"
                         aria-valuemin="0"
                         aria-valuemax="100">
 
                         <div
                             class="progress-bar"
                             style="<?= esc(
-                                'width: '
-                                . $preferenceMatchPercentage
-                                . '%;',
-                                'attr'
-                            ) ?>">
+                                        'width: '
+                                            . $preferenceMatchPercentage
+                                            . '%;',
+                                        'attr'
+                                    ) ?>">
                         </div>
 
                     </div>
@@ -3616,7 +3569,7 @@ $this->section('content');
 
                         <span
                             class="text-muted
-                                fs-12">
+                                fs-13">
 
                             Match
 
@@ -3668,9 +3621,7 @@ $this->section('content');
                         );
 
                         $matchCriterion =
-                            $preferenceMatchByKey[
-                                $preferenceKey
-                            ]
+                            $preferenceMatchByKey[$preferenceKey]
                             ?? null;
 
                         /*
@@ -3706,7 +3657,7 @@ $this->section('content');
                             class="row
                                 g-2
                                 align-items-center
-                                py-3
+                                p-3
                                 border-bottom">
 
                             <!-- Preference name -->
@@ -3715,8 +3666,8 @@ $this->section('content');
                                     col-md-4">
 
                                 <div
-                                    class="text-muted
-                                        fs-13">
+                                    class="
+                                        fs-14">
 
                                     <?= esc(
                                         $preferenceTitle
@@ -3820,7 +3771,7 @@ $this->section('content');
 
 <?php endif; ?>
 <!-- EXISTING PROFILE PHOTO MODAL CONTINUES HERE -->
-    
+
 <?php if ($galleryPhotos !== []): ?>
 
     <div
