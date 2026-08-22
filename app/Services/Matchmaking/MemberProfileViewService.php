@@ -357,16 +357,24 @@ final class MemberProfileViewService
             );
 
         /*
- * Resolve the logged-in member's Partner Preferences into the
- * same human-readable presentation already used by the normal
- * Partner Preference screens.
- *
- * IMPORTANT:
- *
- * - PartnerPreferenceMatchService remains responsible for matching.
- * - Existing Partner Preference services remain responsible for labels.
- * - The View does not query master tables or interpret IDs.
- */
+        * Build presentation values for exactly the preferences used by
+        * PartnerPreferenceMatchService.
+        *
+        * IMPORTANT:
+        *
+        * The matching service is the source of truth for which criteria
+        * are configured and therefore included in the match count.
+        *
+        * BasicPartnerPreferenceService and
+        * AdditionalPartnerPreferenceService are used only to resolve
+        * those criteria into member-friendly labels.
+        */
+        $matchCriteria =
+            isset($partnerPreferenceMatch['criteria'])
+            && is_array($partnerPreferenceMatch['criteria'])
+            ? $partnerPreferenceMatch['criteria']
+            : [];
+
         $basicPreferenceSummary =
             $this
             ->basicPartnerPreferenceService
@@ -381,7 +389,17 @@ final class MemberProfileViewService
                 $viewerUserId
             );
 
-        $partnerPreferenceDisplayItems = [];
+        /*
+        * First build one lookup containing every available
+        * human-readable Partner Preference summary item.
+        *
+        * Do NOT filter on isCompleted here.
+        *
+        * Whether a preference participates in matchmaking is already
+        * determined by PartnerPreferenceMatchService and represented
+        * by $matchCriteria.
+        */
+        $displayItemsByKey = [];
 
         $basicItems =
             isset($basicPreferenceSummary['items'])
@@ -390,13 +408,7 @@ final class MemberProfileViewService
             : [];
 
         foreach ($basicItems as $item) {
-            if (
-                !is_array($item)
-                || (
-                    $item['isCompleted']
-                    ?? false
-                ) !== true
-            ) {
+            if (!is_array($item)) {
                 continue;
             }
 
@@ -407,43 +419,29 @@ final class MemberProfileViewService
                 )
             );
 
-            $title = trim(
-                (string) (
-                    $item['title']
-                    ?? ''
-                )
-            );
-
-            $value = trim(
-                (string) (
-                    $item['value']
-                    ?? ''
-                )
-            );
-
-            if (
-                $key === ''
-                || $title === ''
-                || $value === ''
-                || $value === 'Not added'
-            ) {
+            if ($key === '') {
                 continue;
             }
 
-            $partnerPreferenceDisplayItems[] = [
+            $displayItemsByKey[$key] = [
                 'key' =>
                 $key,
 
                 'title' =>
-                $title,
+                trim(
+                    (string) (
+                        $item['title']
+                        ?? ''
+                    )
+                ),
 
                 'value' =>
-                $value,
-
-                'isCompulsory' => (
-                    $item['isCompulsory']
-                    ?? false
-                ) === true,
+                trim(
+                    (string) (
+                        $item['value']
+                        ?? ''
+                    )
+                ),
             ];
         }
 
@@ -462,13 +460,7 @@ final class MemberProfileViewService
                 : [];
 
             foreach ($sectionItems as $item) {
-                if (
-                    !is_array($item)
-                    || (
-                        $item['isCompleted']
-                        ?? false
-                    ) !== true
-                ) {
+                if (!is_array($item)) {
                     continue;
                 }
 
@@ -479,10 +471,6 @@ final class MemberProfileViewService
                     )
                 );
 
-                /*
-         * Special Request is intentionally excluded because
-         * PartnerPreferenceMatchService does not score it.
-         */
                 if (
                     $key === ''
                     || $key === 'special-request'
@@ -490,44 +478,117 @@ final class MemberProfileViewService
                     continue;
                 }
 
-                $title = trim(
-                    (string) (
-                        $item['title']
-                        ?? ''
-                    )
-                );
-
-                $value = trim(
-                    (string) (
-                        $item['value']
-                        ?? ''
-                    )
-                );
-
-                if (
-                    $title === ''
-                    || $value === ''
-                    || $value === 'Not added'
-                ) {
-                    continue;
-                }
-
-                $partnerPreferenceDisplayItems[] = [
+                $displayItemsByKey[$key] = [
                     'key' =>
                     $key,
 
                     'title' =>
-                    $title,
+                    trim(
+                        (string) (
+                            $item['title']
+                            ?? ''
+                        )
+                    ),
 
                     'value' =>
-                    $value,
-
-                    'isCompulsory' => (
-                        $item['isCompulsory']
-                        ?? false
-                    ) === true,
+                    trim(
+                        (string) (
+                            $item['value']
+                            ?? ''
+                        )
+                    ),
                 ];
             }
+        }
+
+        /*
+        * Now construct the modal rows FROM THE MATCH CRITERIA.
+        *
+        * This guarantees that:
+        *
+        * total rows in modal
+        *      ===
+        * total preferences used by matching
+        *
+        * and therefore the modal can never silently show only a subset
+        * because a presentation service used a different completion rule.
+        */
+        $partnerPreferenceDisplayItems = [];
+
+        foreach ($matchCriteria as $criterion) {
+            if (!is_array($criterion)) {
+                continue;
+            }
+
+            $key = trim(
+                (string) (
+                    $criterion['key']
+                    ?? ''
+                )
+            );
+
+            if ($key === '') {
+                continue;
+            }
+
+            $displayItem =
+                $displayItemsByKey[$key]
+                ?? null;
+
+            if (!is_array($displayItem)) {
+                continue;
+            }
+
+            $title = trim(
+                (string) (
+                    $displayItem['title']
+                    ?? ''
+                )
+            );
+
+            $value = trim(
+                (string) (
+                    $displayItem['value']
+                    ?? ''
+                )
+            );
+
+            if ($title === '') {
+                continue;
+            }
+
+            /*
+            * A configured match criterion should normally always have
+            * a presentation value. Keep a safe member-friendly fallback
+            * instead of silently removing the row from the modal.
+            */
+            if (
+                $value === ''
+                || $value === 'Not added'
+            ) {
+                $value = 'Preference selected';
+            }
+
+            $partnerPreferenceDisplayItems[] = [
+                'key' =>
+                $key,
+
+                'title' =>
+                $title,
+
+                'value' =>
+                $value,
+
+                'matched' => (
+                    $criterion['matched']
+                    ?? false
+                ) === true,
+
+                'isCompulsory' => (
+                    $criterion['compulsory']
+                    ?? false
+                ) === true,
+            ];
         }
 
         /*

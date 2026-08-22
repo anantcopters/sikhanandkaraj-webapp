@@ -239,29 +239,46 @@ final class AdditionalPartnerPreferenceService
             $cities
         );
 
-        $locationValue = null;
+        $locationParts = [];
 
-        if (
-            $stateLabels !== null
-            && $cityLabels !== null
-        ) {
-            $locationValue =
+        if ($countryLabels !== null) {
+            $locationParts[] =
                 'Countries: '
-                . $countryLabels
-                . ' | States: '
-                . $stateLabels
-                . ' | Cities: '
+                . $countryLabels;
+        }
+
+        if ($stateLabels !== null) {
+            $locationParts[] =
+                'States: '
+                . $stateLabels;
+        }
+
+        if ($cityLabels !== null) {
+            $locationParts[] =
+                'Cities: '
                 . $cityLabels;
         }
+
+        $locationValue =
+            $locationParts !== []
+            ? implode(
+                ' | ',
+                $locationParts
+            )
+            : null;
 
         $locationItems = [
             $this->summaryItem(
                 AdditionalPreferenceItem::LOCATION,
+
                 $countryIds !== []
                     || $stateIds !== []
                     || $cityIds !== [],
+
                 $locationValue,
-                $location['location_match_mode'] ?? false
+
+                $location['location_match_mode']
+                    ?? false
             ),
         ];
 

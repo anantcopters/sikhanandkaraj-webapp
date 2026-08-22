@@ -1891,6 +1891,9 @@ final class Services extends BaseService
         );
     }
 
+    /**
+     * Return the member profile-view service.
+     */
     public static function memberProfileViewService(
         bool $getShared = true
     ): MemberProfileViewService {
@@ -1928,6 +1931,20 @@ final class Services extends BaseService
             ),
 
             static::memberMatchmakingService(
+                false
+            ),
+
+            /*
+         * Reuse the existing Partner Preference services.
+         *
+         * These provide the human-readable preference values
+         * required by the Partner Preference Match modal.
+         */
+            static::basicPartnerPreferenceService(
+                false
+            ),
+
+            static::additionalPartnerPreferenceService(
                 false
             )
         );
