@@ -447,25 +447,15 @@ $videoIntroductionSettingsUrl = route_to(
 
                 <?php else: ?>
 
-                    <span
-                        class="badge
-                    bg-secondary-subtle
-                    text-body-secondary
-                    fs-11
-                    p-2">
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-primary">
 
-                        Not Added
-
-                    </span>
+                        Add
+                    </button>
 
                 <?php endif; ?>
 
-                <i
-                    class="ri-arrow-right-s-line
-                text-muted
-                fs-18"
-                    aria-hidden="true">
-                </i>
 
             </span>
 

@@ -623,7 +623,7 @@ $statusClass = match ($status) {
 
                         </div>
 
-                        <div class="form-text">
+                        <div class="form-text color-pink">
                             JPG, JPEG, PNG or PDF. Maximum
                             file size 1 MB.
                         </div>
@@ -632,7 +632,7 @@ $statusClass = match ($status) {
 
                     <div
                         class="alert
-                            alert-light
+                            alert-warning
                             border
                             fs-13
                             mb-0">
@@ -649,7 +649,7 @@ $statusClass = match ($status) {
                                 aria-hidden="true">
                             </i>
 
-                            <div>
+                            <div class="text-muted">
                                 Your Aadhaar document is used
                                 only for profile verification
                                 and is not displayed to other

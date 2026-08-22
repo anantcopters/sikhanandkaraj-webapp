@@ -4079,7 +4079,7 @@ $this->section('content');
                         </div>
 
                         <div
-                            class="form-text">
+                            class="form-text color-pink">
 
                             Maximum 250 characters.
                         </div>
