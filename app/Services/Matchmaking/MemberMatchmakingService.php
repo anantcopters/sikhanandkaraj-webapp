@@ -545,31 +545,13 @@ final class MemberMatchmakingService
 
         $matched = max(
             0,
-            (int) (
-                $score['matched']
-                ?? 0
-            )
+            $score['matched']
         );
 
         $total = max(
             0,
-            (int) (
-                $score['total']
-                ?? 0
-            )
+            $score['total']
         );
-
-        $criteria =
-            isset($score['criteria'])
-            && is_array($score['criteria'])
-            ? array_values(
-                array_filter(
-                    $score['criteria'],
-                    static fn(mixed $criterion): bool =>
-                    is_array($criterion)
-                )
-            )
-            : [];
 
         return [
             'percentage' =>
@@ -577,10 +559,7 @@ final class MemberMatchmakingService
                 0,
                 min(
                     100,
-                    (int) (
-                        $score['percentage']
-                        ?? 0
-                    )
+                    $score['percentage']
                 )
             ),
 
@@ -596,13 +575,11 @@ final class MemberMatchmakingService
                 $total - $matched
             ),
 
-            'passesCompulsory' => (
-                $score['passesCompulsory']
-                ?? false
-            ) === true,
+            'passesCompulsory' =>
+            $score['passesCompulsory'],
 
             'criteria' =>
-            $criteria,
+            $score['criteria'],
         ];
     }
 

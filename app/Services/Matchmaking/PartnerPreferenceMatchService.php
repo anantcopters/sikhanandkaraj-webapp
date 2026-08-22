@@ -70,6 +70,120 @@ final class PartnerPreferenceMatchService
     ) {}
 
     /**
+     * Score all candidate rows against one member's
+     * Partner Preference configuration.
+     *
+     * Candidates that fail a compulsory preference are
+     * excluded from the returned collection.
+     *
+     * @param list<array<string, mixed>> $candidates
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function scoreCandidates(
+        int $userId,
+        array $candidates
+    ): array {
+        if (
+            $userId <= 0
+            || $candidates === []
+        ) {
+            return [];
+        }
+
+        /*
+     * Load the member's Partner Preference configuration once.
+     *
+     * The same snapshot is then reused for every candidate rather
+     * than querying Partner Preferences for every profile.
+     */
+        $snapshot = $this->snapshotForUser(
+            $userId
+        );
+
+        $scored = [];
+
+        foreach ($candidates as $candidate) {
+            if (!is_array($candidate)) {
+                continue;
+            }
+
+            $score = $this->scoreCandidate(
+                $snapshot,
+                $candidate
+            );
+
+            /*
+         * Dashboard/Search matching must continue to honour
+         * compulsory Partner Preferences.
+         *
+         * scoreProfile() intentionally does not remove a profile
+         * when this is false because Profile View still needs to
+         * display how that profile compares.
+         */
+            if (
+                $score['passesCompulsory']
+                !== true
+            ) {
+                continue;
+            }
+
+            $candidate['match_percentage'] =
+                $score['percentage'];
+
+            $candidate['matched_preferences'] =
+                $score['matched'];
+
+            $candidate['total_preferences'] =
+                $score['total'];
+
+            $scored[] = $candidate;
+        }
+
+        /*
+     * Highest Partner Preference match first.
+     *
+     * Preserve the existing created_at ordering when two
+     * candidates have the same match percentage.
+     */
+        usort(
+            $scored,
+            static function (
+                array $first,
+                array $second
+            ): int {
+                $percentageComparison =
+                    (int) (
+                        $second['match_percentage']
+                        ?? 0
+                    )
+                    <=>
+                    (int) (
+                        $first['match_percentage']
+                        ?? 0
+                    );
+
+                if ($percentageComparison !== 0) {
+                    return $percentageComparison;
+                }
+
+                return strcmp(
+                    (string) (
+                        $second['created_at']
+                        ?? ''
+                    ),
+                    (string) (
+                        $first['created_at']
+                        ?? ''
+                    )
+                );
+            }
+        );
+
+        return $scored;
+    }
+
+    /**
      * @param array<string, mixed> $snapshot
      * @param array<string, mixed> $candidate
      *
@@ -539,7 +653,12 @@ final class PartnerPreferenceMatchService
      *     total:int,
      *     configured:int,
      *     available:int,
-     *     passesCompulsory:bool
+     *     passesCompulsory:bool,
+     *     criteria:list<array{
+     *         key:string,
+     *         matched:bool,
+     *         compulsory:bool
+     *     }>
      * }
      */
     public function scoreProfile(
