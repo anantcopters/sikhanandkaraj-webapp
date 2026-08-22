@@ -133,6 +133,10 @@ use App\Models\MemberVideoProcessingJobModel;
 use App\Services\Admin\MemberVideoModerationService;
 use App\Services\Video\MemberVideoIntroductionService;
 use App\Services\Video\VideoIntroductionProcessingService;
+use App\Services\Profile\MemberProfilePdfAssetService;
+use App\Services\Profile\MemberProfilePdfDataService;
+use App\Services\Profile\MemberProfilePdfService;
+use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
 use App\Logging\ErrorLogSanitizer;
@@ -2363,6 +2367,71 @@ final class Services extends BaseService
 
             config(
                 VideoIntroduction::class
+            )
+        );
+    }
+
+    /**
+     * Embedded asset provider for profile PDF generation.
+     */
+    public static function memberProfilePdfAssetService(
+        bool $getShared = true
+    ): MemberProfilePdfAssetService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfilePdfAssetService'
+            );
+        }
+
+        return new MemberProfilePdfAssetService();
+    }
+
+    /**
+     * Build privacy-safe profile PDF presentation data.
+     */
+    public static function memberProfilePdfDataService(
+        bool $getShared = true
+    ): MemberProfilePdfDataService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfilePdfDataService'
+            );
+        }
+
+        return new MemberProfilePdfDataService(
+            static::memberProfilePdfAssetService(
+                false
+            ),
+
+            static::basicPartnerPreferenceService(
+                false
+            ),
+
+            static::additionalPartnerPreferenceService(
+                false
+            )
+        );
+    }
+
+    /**
+     * Render member profile HTML through headless Chrome.
+     */
+    public static function memberProfilePdfService(
+        bool $getShared = true
+    ): MemberProfilePdfService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfilePdfService'
+            );
+        }
+
+        return new MemberProfilePdfService(
+            static::memberProfilePdfDataService(
+                false
+            ),
+
+            config(
+                ProfilePdf::class
             )
         );
     }

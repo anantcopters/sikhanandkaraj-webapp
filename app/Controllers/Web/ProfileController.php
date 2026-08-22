@@ -253,6 +253,7 @@ final class ProfileController extends BaseController
                     'pageScripts' => [
                         'assets/js/pages/profile-view.js',
                         'assets/js/pages/video-introduction-playback.js',
+                        'assets/js/pages/profile-pdf.js',
                     ],
                 ],
                 $profileSummary

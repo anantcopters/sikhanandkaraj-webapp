@@ -1061,134 +1061,193 @@ $this->section('content');
                     $profileBackLabel
                 ) ?>
             </a>
+            <?php
 
-            <?php if ($isOtherMemberProfileView): ?>
-                <div class="dropdown">
+            $canGenerateProfilePdf =
+                !$isAdminProfileView
+                && !$isFieldOfficerProfileView;
+
+            $profilePdfUrl = '';
+
+            if ($canGenerateProfilePdf) {
+                $profilePdfUrl =
+                    $isOtherMemberProfileView
+                    && $viewedProfileReference !== ''
+                    ? route_to(
+                        'web.members.pdf',
+                        $viewedProfileReference
+                    )
+                    : route_to(
+                        'web.profile.pdf'
+                    );
+            }
+
+            ?>
+            <div
+                class="
+        d-flex
+        align-items-center
+        gap-2">
+                <?php if (
+                    $canGenerateProfilePdf
+                    && $profilePdfUrl !== ''
+                ): ?>
+
                     <button
                         type="button"
                         class="btn btn-info btn-icon"
-                        data-bs-toggle="dropdown"
-                        data-bs-auto-close="outside"
-                        aria-expanded="false"
-                        aria-label="Profile actions">
+                        data-profile-pdf-button
+                        data-profile-pdf-url="<?= esc(
+                                                    $profilePdfUrl,
+                                                    'attr'
+                                                ) ?>"
+                        data-profile-pdf-csrf-name="<?= esc(
+                                                        csrf_token(),
+                                                        'attr'
+                                                    ) ?>"
+                        data-profile-pdf-csrf-hash="<?= esc(
+                                                        csrf_hash(),
+                                                        'attr'
+                                                    ) ?>"
+                        title="Save profile as PDF"
+                        aria-label="Save profile as PDF">
 
                         <i
-                            class="ri-more-2-fill fs-18"
+                            class="ri-file-pdf-2-line fs-18"
                             aria-hidden="true">
                         </i>
+
                     </button>
 
-                    <div
-                        class="dropdown-menu dropdown-menu-end
+                <?php endif; ?>
+                <?php if ($isOtherMemberProfileView): ?>
+                    <div class="dropdown">
+                        <button
+                            type="button"
+                            class="btn btn-info btn-icon"
+                            data-bs-toggle="dropdown"
+                            data-bs-auto-close="outside"
+                            aria-expanded="false"
+                            aria-label="Profile actions">
+
+                            <i
+                                class="ri-more-2-fill fs-18"
+                                aria-hidden="true">
+                            </i>
+                        </button>
+
+                        <div
+                            class="dropdown-menu dropdown-menu-end
                     p-2 border border-danger
         border-opacity-50 shadow-md"
-                        style="min-width: 220px;">
+                            style="min-width: 220px;">
 
-                        <form
-                            method="post"
-                            action="<?= route_to(
-                                        'web.members.shortlist',
-                                        $viewedProfileReference
-                                    ) ?>"
-                            data-member-shortlist-form>
+                            <form
+                                method="post"
+                                action="<?= route_to(
+                                            'web.members.shortlist',
+                                            $viewedProfileReference
+                                        ) ?>"
+                                data-member-shortlist-form>
 
-                            <?= csrf_field() ?>
+                                <?= csrf_field() ?>
 
-                            <button
-                                type="submit"
-                                class="dropdown-item rounded
+                                <button
+                                    type="submit"
+                                    class="dropdown-item rounded
                             d-flex align-items-center gap-2"
-                                data-member-shortlist-submit>
+                                    data-member-shortlist-submit>
 
-                                <span
-                                    class="d-inline-flex
+                                    <span
+                                        class="d-inline-flex
                                 align-items-center gap-2"
-                                    data-member-shortlist-label>
+                                        data-member-shortlist-label>
+
+                                        <i
+                                            class="<?= $isShortlisted
+                                                        ? 'ri-bookmark-fill'
+                                                        : 'ri-bookmark-line' ?>"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        <?= $isShortlisted
+                                            ? 'Remove from Shortlist'
+                                            : 'Shortlist Profile' ?>
+                                    </span>
+
+                                    <span
+                                        class="d-none align-items-center
+                                gap-1"
+                                        data-member-shortlist-loading>
+
+                                        <span
+                                            class="spinner-border
+                                    spinner-border-sm"
+                                            aria-hidden="true">
+                                        </span>
+
+                                        Saving...
+                                    </span>
+                                </button>
+                            </form>
+
+                            <?php if ($hasReportedProfile): ?>
+                                <button
+                                    type="button"
+                                    class="dropdown-item rounded
+                            d-flex align-items-center gap-2
+                            text-muted"
+                                    disabled>
 
                                     <i
-                                        class="<?= $isShortlisted
-                                                    ? 'ri-bookmark-fill'
-                                                    : 'ri-bookmark-line' ?>"
+                                        class="ri-flag-fill"
                                         aria-hidden="true">
                                     </i>
 
-                                    <?= $isShortlisted
-                                        ? 'Remove from Shortlist'
-                                        : 'Shortlist Profile' ?>
-                                </span>
-
-                                <span
-                                    class="d-none align-items-center
-                                gap-1"
-                                    data-member-shortlist-loading>
-
-                                    <span
-                                        class="spinner-border
-                                    spinner-border-sm"
-                                        aria-hidden="true">
-                                    </span>
-
-                                    Saving...
-                                </span>
-                            </button>
-                        </form>
-
-                        <?php if ($hasReportedProfile): ?>
-                            <button
-                                type="button"
-                                class="dropdown-item rounded
-                            d-flex align-items-center gap-2
-                            text-muted"
-                                disabled>
-
-                                <i
-                                    class="ri-flag-fill"
-                                    aria-hidden="true">
-                                </i>
-
-                                Reported:
-                                <?= esc(
-                                    $reportedProfileStatusLabel
-                                ) ?>
-                            </button>
-                        <?php else: ?>
-                            <button
-                                type="button"
-                                class="dropdown-item rounded
+                                    Reported:
+                                    <?= esc(
+                                        $reportedProfileStatusLabel
+                                    ) ?>
+                                </button>
+                            <?php else: ?>
+                                <button
+                                    type="button"
+                                    class="dropdown-item rounded
                             d-flex align-items-center gap-2"
-                                data-bs-toggle="modal"
-                                data-bs-target="#memberReportModal">
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#memberReportModal">
 
-                                <i
-                                    class="ri-flag-line
+                                    <i
+                                        class="ri-flag-line
                                 text-warning"
-                                    aria-hidden="true">
-                                </i>
+                                        aria-hidden="true">
+                                    </i>
 
-                                Report Profile
-                            </button>
-                        <?php endif; ?>
+                                    Report Profile
+                                </button>
+                            <?php endif; ?>
 
-                        <div class="dropdown-divider"></div>
+                            <div class="dropdown-divider"></div>
 
-                        <button
-                            type="button"
-                            class="dropdown-item rounded
+                            <button
+                                type="button"
+                                class="dropdown-item rounded
                         d-flex align-items-center gap-2
                         text-danger"
-                            data-bs-toggle="modal"
-                            data-bs-target="#memberBlockModal">
+                                data-bs-toggle="modal"
+                                data-bs-target="#memberBlockModal">
 
-                            <i
-                                class="ri-forbid-line"
-                                aria-hidden="true">
-                            </i>
+                                <i
+                                    class="ri-forbid-line"
+                                    aria-hidden="true">
+                                </i>
 
-                            Block Profile
-                        </button>
+                                Block Profile
+                            </button>
+                        </div>
                     </div>
-                </div>
-            <?php endif; ?>
+                <?php endif; ?>
+            </div>
         </div>
         <?php if (
             !$isOtherMemberProfileView
@@ -3958,7 +4017,153 @@ $this->section('content');
     </div>
 
 <?php endif; ?>
+<?php if (
+    $canGenerateProfilePdf
+): ?>
 
+    <div
+        class="modal fade"
+        id="profilePdfModal"
+        tabindex="-1"
+        aria-labelledby="profilePdfModalLabel"
+        aria-hidden="true"
+        data-bs-backdrop="static"
+        data-bs-keyboard="false">
+
+        <div
+            class="
+            modal-dialog
+            modal-dialog-centered">
+
+            <div class="modal-content">
+
+                <div class="modal-header">
+
+                    <h5
+                        class="modal-title"
+                        id="profilePdfModalLabel">
+
+                        Creating Profile PDF
+
+                    </h5>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <div
+                        class="
+                        text-center
+                        py-3">
+
+                        <div
+                            class="
+                            spinner-border
+                            text-primary
+                            mb-3"
+                            role="status"
+                            data-profile-pdf-spinner>
+
+                            <span class="visually-hidden">
+                                Creating PDF...
+                            </span>
+
+                        </div>
+
+
+                        <div
+                            class="
+                            d-none
+                            text-success
+                            mb-3"
+                            data-profile-pdf-success>
+
+                            <i
+                                class="
+                                ri-checkbox-circle-fill
+                                fs-36"
+                                aria-hidden="true">
+                            </i>
+
+                        </div>
+
+
+                        <div
+                            class="
+                            d-none
+                            text-danger
+                            mb-3"
+                            data-profile-pdf-error>
+
+                            <i
+                                class="
+                                ri-error-warning-fill
+                                fs-36"
+                                aria-hidden="true">
+                            </i>
+
+                        </div>
+
+
+                        <p
+                            class="
+                            text-muted
+                            fs-13
+                            mb-3"
+                            data-profile-pdf-message>
+
+                            Preparing profile details...
+
+                        </p>
+
+
+                        <div
+                            class="progress"
+                            role="progressbar"
+                            aria-label="Profile PDF progress"
+                            aria-valuemin="0"
+                            aria-valuemax="100">
+
+                            <div
+                                class="
+                                progress-bar
+                                progress-bar-striped
+                                progress-bar-animated"
+                                style="width: 15%;"
+                                aria-valuenow="15"
+                                data-profile-pdf-progress>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div
+                    class="
+                    modal-footer
+                    d-none"
+                    data-profile-pdf-close>
+
+                    <button
+                        type="button"
+                        class="btn btn-light"
+                        data-bs-dismiss="modal">
+
+                        Close
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+<?php endif; ?>
 <?php if (
     $isOtherMemberProfileView
     && $viewedProfileReference !== ''
