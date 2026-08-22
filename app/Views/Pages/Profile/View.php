@@ -2266,7 +2266,7 @@ $this->section('content');
                             <div
                                 class="card-header bg-success-subtle
                     d-flex align-items-center
-                    justify-content-between gap-2">
+                    justify-content-between gap-2 py-2">
 
                                 <div
                                     class="d-flex align-items-center
@@ -2351,7 +2351,7 @@ $this->section('content');
                                     </div>
                                 </div>
 
-                                <p class="text-muted fs-12 mb-0 mt-3">
+                                <p class="color-pink fs-12 mb-0 mt-3">
                                     These details were recorded during Aadhaar
                                     verification and cannot be edited from the
                                     matrimonial profile.
@@ -2373,9 +2373,9 @@ $this->section('content');
 
                             <div
                                 class="card-header
-                    bg-success-subtle
+                    bg-primary-subtle
                     d-flex align-items-center
-                    gap-2">
+                    gap-2 py-2">
 
                                 <i
                                     class="ri-video-line

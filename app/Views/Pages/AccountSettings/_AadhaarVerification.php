@@ -675,6 +675,35 @@ $statusClass = match ($status) {
 
                     <button
                         type="submit"
+                        class="btn btn-success"
+                        data-submit-button>
+
+                        <span data-submit-idle>
+                            <i
+                                class="ri-upload-line me-1"
+                                aria-hidden="true"></i>
+
+                            Upload Aadhaar
+                        </span>
+
+                        <span
+                            data-submit-loading
+                            class="d-none">
+
+                            <span
+                                class="spinner-border
+                        spinner-border-sm
+                        me-1"
+                                aria-hidden="true"></span>
+
+                            Uploading...
+                        </span>
+                    </button>
+
+
+
+                    <!-- <button
+                        type="submit"
                         class="btn
             registration-form__submit
             fs-14
@@ -714,7 +743,7 @@ $statusClass = match ($status) {
 
                         </span>
 
-                    </button>
+                    </button> -->
 
                 </div>
 
