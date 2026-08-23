@@ -213,7 +213,7 @@ $remixIconFont =
 
 $remixIconFontUrl = trim(
     (string) (
-        $remixIconFont
+        $remixIconFont['uri']
         ?? ''
     )
 );
@@ -231,6 +231,13 @@ $remixLibraryCss = trim(
         ?? ''
     )
 );
+
+$remixIconCssUrl =
+    $remixIconFontUrl !== ''
+    ? 'url("'
+    . $remixIconFontUrl
+    . '")'
+    : '';
 
 $remixIconCssUrl =
     $remixIconFontUrl !== ''
@@ -1236,6 +1243,10 @@ $renderRows =
 
             font-size: 4.4mm;
         }
+
+        .header-contact-text {
+            font-size: 10px;
+        }
     </style>
 
 </head>
@@ -1292,7 +1303,7 @@ $renderRows =
 
                         </div>
 
-                        <div>
+                        <div class="header-contact-text">
                             24x7 Help &amp; Support<br>
 
                             <strong>
@@ -1634,15 +1645,9 @@ $renderRows =
 
                     <div class="card-heading red">
 
-                        <div class="card-heading red">
-
-                            <?= $renderIcon(
-                                'ri-group-line'
-                            ) ?>
-
-                            FAMILY DETAILS
-
-                        </div>
+                        <?= $renderIcon(
+                            'ri-group-line'
+                        ) ?>
 
                         FAMILY DETAILS
 
