@@ -287,6 +287,68 @@ final class MemberProfilePdfAssetService
         }
     }
 
+    /**
+     * Return the locally installed Remix Icon font as a
+     * self-contained data URI for HTML/PDF rendering.
+     */
+    public function remixIconFont(): string
+    {
+        $candidates = [
+            FCPATH
+                . 'assets/libs/remixicon/fonts/remixicon.woff2',
+
+            FCPATH
+                . 'assets/libs/remixicon/fonts/remixicon.woff',
+        ];
+
+        foreach ($candidates as $path) {
+            if (
+                !is_file($path)
+                || !is_readable($path)
+            ) {
+                continue;
+            }
+
+            $contents =
+                file_get_contents(
+                    $path
+                );
+
+            if (
+                $contents === false
+                || $contents === ''
+            ) {
+                continue;
+            }
+
+            $extension = strtolower(
+                pathinfo(
+                    $path,
+                    PATHINFO_EXTENSION
+                )
+            );
+
+            $mimeType =
+                $extension === 'woff2'
+                ? 'font/woff2'
+                : 'font/woff';
+
+            return 'data:'
+                . $mimeType
+                . ';base64,'
+                . base64_encode(
+                    $contents
+                );
+        }
+
+        log_message(
+            'warning',
+            'Profile PDF Remix Icon font is unavailable.'
+        );
+
+        return '';
+    }
+
     private function requiredDataUri(
         string $path
     ): string {

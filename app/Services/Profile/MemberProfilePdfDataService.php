@@ -228,7 +228,7 @@ final class MemberProfilePdfDataService
 
         $quickDetails = [
             $this->row(
-                'heart',
+                'ri-heart-2-line',
                 'Marital Status',
                 $this->displayValue(
                     $basic['marital_status_name']
@@ -248,7 +248,7 @@ final class MemberProfilePdfDataService
 
         $educationRows = [
             $this->row(
-                'education',
+                'ri-graduation-cap-line',
                 'Highest Education',
                 $this->displayValue(
                     $education['highest_education_name']
@@ -364,58 +364,62 @@ final class MemberProfilePdfDataService
             ),
         ];
 
-        $icons = [];
+        $remixIconFont =
+            $this->assetService
+            ->remixIconFont();
 
-        foreach (
-            [
-                'calendar',
-                'heart',
-                'height',
-                'language',
-                'religion',
-                'community',
-                'education',
-                'college',
-                'occupation',
-                'employer',
-                'income',
-                'family',
-                'location',
-                'diet',
-                'smoking',
-                'drinking',
-                'workout',
-                'hobbies',
-                'music',
-                'reading',
-                'movies',
-                'sports',
-                'food',
-                'phone',
-                'email',
-                'shield-check',
-                'video',
-                'user',
-                'preference',
-            ]
-            as $iconName
-        ) {
-            $icons[$iconName] = [
-                'purple' =>
-                $this->assetService
-                    ->icon(
-                        $iconName,
-                        'purple'
-                    ),
+        // $icons = [];
 
-                'red' =>
-                $this->assetService
-                    ->icon(
-                        $iconName,
-                        'red'
-                    ),
-            ];
-        }
+        // foreach (
+        //     [
+        //         'calendar',
+        //         'heart',
+        //         'height',
+        //         'language',
+        //         'religion',
+        //         'community',
+        //         'education',
+        //         'college',
+        //         'occupation',
+        //         'employer',
+        //         'income',
+        //         'family',
+        //         'location',
+        //         'diet',
+        //         'smoking',
+        //         'drinking',
+        //         'workout',
+        //         'hobbies',
+        //         'music',
+        //         'reading',
+        //         'movies',
+        //         'sports',
+        //         'food',
+        //         'phone',
+        //         'email',
+        //         'shield-check',
+        //         'video',
+        //         'user',
+        //         'preference',
+        //     ]
+        //     as $iconName
+        // ) {
+        //     $icons[$iconName] = [
+        //         'purple' =>
+        //         $this->assetService
+        //             ->icon(
+        //                 $iconName,
+        //                 'purple'
+        //             ),
+
+        //         'red' =>
+        //         $this->assetService
+        //             ->icon(
+        //                 $iconName,
+        //                 'red'
+        //             ),
+        //     ];
+        // }
 
         $aadhaarVerified =
             trim(
@@ -537,8 +541,8 @@ final class MemberProfilePdfDataService
             $this->assetService
                 ->commonAssets(),
 
-            'icons' =>
-            $icons,
+            'remixIconFont' =>
+            $remixIconFont,
         ];
     }
 

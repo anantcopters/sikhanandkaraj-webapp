@@ -241,6 +241,18 @@ $fontBoldCssUrl =
     . '")'
     : 'local("Arial")';
 
+$remixIconFontUrl =
+    $asset(
+        'remixIconFont'
+    );
+
+$remixIconCssUrl =
+    $remixIconFontUrl !== ''
+    ? 'url("'
+    . $remixIconFontUrl
+    . '")'
+    : '';
+
 $fontFaceCss = <<<CSS
 @font-face {
     font-family: 'InterPDF';
@@ -270,6 +282,19 @@ $fontFaceCss = <<<CSS
     font-weight: 700;
 }
 CSS;
+
+$remixIconCss = '';
+
+if ($remixIconCssUrl !== '') {
+    $remixIconCss = <<<CSS
+@font-face {
+    font-family: 'remixicon';
+    src: {$remixIconCssUrl} format('woff2');
+    font-style: normal;
+    font-weight: normal;
+}
+CSS;
+}
 
 $logoUrl =
     $asset(
@@ -423,7 +448,26 @@ $renderRows =
             box-sizing: border-box;
         }
 
-        <?= $fontFaceCss ?>
+        <?= $fontFaceCss ?><?= $remixIconCss ?>
+
+        /* remix STart*/
+        [class^="ri-"],
+        [class*=" ri-"] {
+            display: inline-block;
+
+            font-family: 'remixicon' !important;
+
+            font-style: normal;
+            font-weight: normal;
+            font-variant: normal;
+
+            line-height: 1;
+
+            text-transform: none;
+
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
 
         /* CSS STart*/
         html,
@@ -1107,6 +1151,28 @@ $renderRows =
             text-align: center;
             padding-bottom: 5px;
             text-decoration: underline;
+        }
+
+        .detail-icon {
+            flex:
+                0 0 auto;
+
+            width: 5mm;
+
+            color: <?= $purple ?>;
+
+            font-size: 4mm;
+
+            text-align: center;
+        }
+
+        .card-heading>i {
+            flex:
+                0 0 auto;
+
+            color: inherit;
+
+            font-size: 4.4mm;
         }
     </style>
 
@@ -1831,7 +1897,7 @@ $renderRows =
 
             <div class="footer-mark">
 
-                
+
 
             </div>
 
