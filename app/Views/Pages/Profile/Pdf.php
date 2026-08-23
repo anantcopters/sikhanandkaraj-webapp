@@ -1661,7 +1661,7 @@ $renderRows =
 
                     <?php
                     $renderRows(
-                        $educationRows
+                        $familyRows
                     );
                     ?>
 
@@ -1696,7 +1696,7 @@ $renderRows =
 
                     <?php
                     $renderRows(
-                        $educationRows
+                        $lifestyleRows
                     );
                     ?>
 
@@ -1737,7 +1737,7 @@ $renderRows =
 
                         <?php
                         $renderRows(
-                            $educationRows
+                            $preferences
                         );
                         ?>
 
