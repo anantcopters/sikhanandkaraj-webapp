@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'submit',
         validateDifferentMobileNumbers
     );
-    
+
     /**
      * Determine whether a field currently contains an error rendered
      * by the server after a validation redirect.
@@ -507,6 +507,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 'date_of_birthError'
             );
 
+        const gender =
+            document.getElementById(
+                'gender'
+            );
+
         if (
             !(
                 dateOfBirth
@@ -528,13 +533,40 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        const minimumAge =
+        const maleMinimumAge =
             Number.parseInt(
                 dateOfBirth.dataset
-                    .minimumAge
+                    .maleMinimumAge
+                ?? '21',
+                10
+            );
+
+        const femaleMinimumAge =
+            Number.parseInt(
+                dateOfBirth.dataset
+                    .femaleMinimumAge
                 ?? '18',
                 10
             );
+
+        /**
+         * Return the minimum age for the currently selected gender.
+         *
+         * @returns {number}
+         */
+        const getMinimumAge = () => {
+            const selectedGender =
+                String(
+                    gender?.value
+                    ?? ''
+                )
+                    .trim()
+                    .toUpperCase();
+
+            return selectedGender === 'MALE'
+                ? maleMinimumAge
+                : femaleMinimumAge;
+        };
 
         /**
          * Format local Date as YYYY-MM-DD.
@@ -709,7 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 return new Date(
                     today.getFullYear()
-                    - minimumAge,
+                    - getMinimumAge(),
                     today.getMonth(),
                     today.getDate()
                 );
@@ -870,7 +902,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     > latestEligibleDate
                 ) {
                     showDateError(
-                        `The member must be at least ${minimumAge} years old.`
+                        `The member must be at least ${getMinimumAge()} years old.`
                     );
 
                     return false;
@@ -1129,6 +1161,42 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 );
         }
+
+        gender?.addEventListener(
+            'change',
+            () => {
+                /*
+                 * Gender changes the allowed DOB range.
+                 *
+                 * Revalidate an already selected DOB immediately so a member
+                 * cannot select a female-valid DOB and then switch to Male.
+                 */
+                const selectedDate =
+                    parseIsoDate(
+                        dateOfBirth.value
+                    );
+
+                if (!selectedDate) {
+                    return;
+                }
+
+                const minimumAge =
+                    getMinimumAge();
+
+                if (
+                    selectedDate
+                    > getLatestEligibleBirthDate()
+                ) {
+                    showDateError(
+                        `The member must be at least ${minimumAge} years old.`
+                    );
+
+                    return;
+                }
+
+                clearDateError();
+            }
+        );
 
         /*
          * Explicit calendar icon.

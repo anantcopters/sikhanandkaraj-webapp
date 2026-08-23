@@ -34,6 +34,14 @@ document.addEventListener('DOMContentLoaded', () => {
         'dateOfBirthError'
     );
 
+    const minimumAge =
+        Number.parseInt(
+            dateOfBirth?.dataset
+                ?.minimumAge
+            ?? '18',
+            10
+        );
+
     function setDateOfBirthError(message) {
         if (!dateOfBirthError) {
             return;
@@ -116,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const today = new Date();
         const maximumAdultDate = new Date(
-            today.getFullYear() - 18,
+            today.getFullYear() - minimumAge,
             today.getMonth(),
             today.getDate()
         );
@@ -125,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
             dateOfBirth.value = '';
 
             setDateOfBirthError(
-                'The member must be at least 18 years old.'
+                `The member must be at least ${minimumAge} years old.`
             );
 
             return false;
@@ -319,7 +327,7 @@ document.addEventListener('DOMContentLoaded', () => {
             age--;
         }
 
-        agePreview.textContent = age >= 18
+        agePreview.textContent = age >= minimumAge
             ? `Current age: ${age} years`
             : '';
     };

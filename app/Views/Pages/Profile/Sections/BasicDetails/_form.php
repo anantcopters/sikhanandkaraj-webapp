@@ -113,9 +113,24 @@ $formatHeight = static function (
     );
 };
 
+$memberGender = mb_strtoupper(
+    trim(
+        (string) (
+            $member['gender']
+            ?? ''
+        )
+    )
+);
+
+$minimumMemberAge = $memberGender === 'MALE'
+    ? 21
+    : 18;
+
 $maximumDateOfBirth = date(
     'Y-m-d',
-    strtotime('-18 years')
+    strtotime(
+        '-' . $minimumMemberAge . ' years'
+    )
 );
 
 $resolvedMasterData = is_array($masterData ?? null)
@@ -220,8 +235,13 @@ $selectedBirthYear = $dateParts[0] ?? '';
 $selectedBirthMonth = $dateParts[1] ?? '';
 $selectedBirthDay = $dateParts[2] ?? '';
 
-$maximumBirthYear = (int) date('Y') - 18;
-$minimumBirthYear = $maximumBirthYear - 42;
+$maximumBirthYear =
+    (int) date('Y')
+    - $minimumMemberAge;
+
+$minimumBirthYear =
+    $maximumBirthYear
+    - 42;
 
 $fullNameHasError = isset(
     $errors['full_name']
@@ -545,7 +565,11 @@ if ($isJourney) {
                 value="<?= esc(
                             $storedDateOfBirth,
                             'attr'
-                        ) ?>">
+                        ) ?>"
+                data-minimum-age="<?= esc(
+                                        (string) $minimumMemberAge,
+                                        'attr'
+                                    ) ?>">
 
             <?= view('Components/Forms/FieldError', [
                 'field' => 'date_of_birth',

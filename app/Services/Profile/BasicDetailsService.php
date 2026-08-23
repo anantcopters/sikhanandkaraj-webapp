@@ -43,8 +43,7 @@ final class BasicDetailsService
         int $userId,
         ?int $requestedCountryId = null,
         ?int $requestedStateId = null
-    ): array
-    {
+    ): array {
         $user = $this->userModel->find($userId);
 
         if (!is_array($user)) {
@@ -101,8 +100,22 @@ final class BasicDetailsService
         int $userId,
         array $data
     ): void {
-        $this->assertAdult(
-            (string) $data['date_of_birth']
+        $user = $this->userModel->find(
+            $userId
+        );
+
+        if (!is_array($user)) {
+            throw new DomainException(
+                'The member account could not be found.'
+            );
+        }
+
+        $this->assertMinimumAge(
+            (string) $data['date_of_birth'],
+            (string) (
+                $user['gender']
+                ?? ''
+            )
         );
 
         $this->masterDataService->assertValidSelection(
@@ -326,10 +339,14 @@ final class BasicDetailsService
     }
 
     /**
-     * Ensure date of birth represents an adult member.
+     * Enforce the gender-specific minimum member age.
+     *
+     * Male members must be at least 21 years old.
+     * Female members must be at least 18 years old.
      */
-    private function assertAdult(
-        string $dateOfBirth
+    private function assertMinimumAge(
+        string $dateOfBirth,
+        string $gender
     ): void {
         $birthDate = DateTimeImmutable::createFromFormat(
             '!Y-m-d',
@@ -345,13 +362,29 @@ final class BasicDetailsService
             );
         }
 
-        $minimumAdultDate = new DateTimeImmutable(
-            'today -18 years'
+        $normalizedGender = mb_strtoupper(
+            trim($gender)
         );
 
-        if ($birthDate > $minimumAdultDate) {
+        $minimumAge = $normalizedGender === 'MALE'
+            ? 21
+            : 18;
+
+        $latestEligibleBirthDate =
+            new DateTimeImmutable(
+                'today -'
+                    . $minimumAge
+                    . ' years'
+            );
+
+        if (
+            $birthDate
+            > $latestEligibleBirthDate
+        ) {
             throw new DomainException(
-                'The member must be at least 18 years old.'
+                'The member must be at least '
+                    . $minimumAge
+                    . ' years old.'
             );
         }
     }

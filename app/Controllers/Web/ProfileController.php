@@ -329,6 +329,7 @@ final class ProfileController extends BaseController
             $dateOfBirthErrors = [
                 'Please enter a valid date of birth.',
                 'The member must be at least 18 years old.',
+                'The member must be at least 21 years old.',
             ];
 
 

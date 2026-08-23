@@ -637,11 +637,13 @@ final class PrelaunchProfileController extends BaseController
         $validation = service('validation');
 
         $validation->setRules(
-            array_merge(
-                PrelaunchProfileValidation::createRules(
-                    $config->requiresFieldOfficerVerification
-                ),
-                PrelaunchPhotoValidation::rules()
+            PrelaunchProfileValidation::createRules(
+                $config
+                    ->requiresFieldOfficerVerification,
+                (string) (
+                    $input['gender']
+                    ?? ''
+                )
             )
         );
 
