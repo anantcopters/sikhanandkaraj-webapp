@@ -1083,42 +1083,39 @@ $this->section('content');
             }
 
             ?>
+
             <div
                 class="
         d-flex
         align-items-center
         gap-2">
-                <?php if (
-                    $canGenerateProfilePdf
-                    && $profilePdfUrl !== ''
-                ): ?>
-
-                    <button
-                        type="button"
-                        class="btn btn-info btn-icon"
-                        data-profile-pdf-button
-                        data-profile-pdf-url="<?= esc(
-                                                    $profilePdfUrl,
-                                                    'attr'
-                                                ) ?>"
-                        data-profile-pdf-csrf-name="<?= esc(
-                                                        csrf_token(),
+                <?php if (!$isOtherMemberProfileView): ?>
+                    <?php if (
+                        $canGenerateProfilePdf
+                        && $profilePdfUrl !== ''
+                    ): ?>
+                        <a href="javascript:void(0);" class="btn btn-info btn-sm shadow-none" data-profile-pdf-button
+                            data-profile-pdf-url="<?= esc(
+                                                        $profilePdfUrl,
                                                         'attr'
                                                     ) ?>"
-                        data-profile-pdf-csrf-hash="<?= esc(
-                                                        csrf_hash(),
-                                                        'attr'
-                                                    ) ?>"
-                        title="Save profile as PDF"
-                        aria-label="Save profile as PDF">
+                            data-profile-pdf-csrf-name="<?= esc(
+                                                            csrf_token(),
+                                                            'attr'
+                                                        ) ?>"
+                            data-profile-pdf-csrf-hash="<?= esc(
+                                                            csrf_hash(),
+                                                            'attr'
+                                                        ) ?>"
+                            title="Save profile as PDF"
+                            aria-label="Save profile as PDF">Download PDF <i class="mdi mdi-send float-end ms-2"></i> </a>
 
-                        <i
-                            class="ri-file-pdf-2-line fs-18"
-                            aria-hidden="true">
-                        </i>
 
-                    </button>
 
+
+
+
+                    <?php endif; ?>
                 <?php endif; ?>
                 <?php if ($isOtherMemberProfileView): ?>
                     <div class="dropdown">

@@ -679,15 +679,6 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                 );
 
                 $routes->post(
-                    'members/(:segment)/pdf',
-                    'MemberProfilePdfController::member/$1',
-                    [
-                        'as' =>
-                        'web.members.pdf',
-                    ]
-                );
-
-                $routes->post(
                     'members/(:segment)/interest',
                     'MemberProfileController::showInterest/$1',
                     [

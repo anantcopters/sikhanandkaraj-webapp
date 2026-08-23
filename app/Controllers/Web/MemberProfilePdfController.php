@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Controllers\Web;
 
 use App\Controllers\BaseController;
-use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\ResponseInterface;
 use Throwable;
 
@@ -222,56 +221,56 @@ extends BaseController
     /**
      * PDF of another member's currently authorized profile.
      */
-    public function member(
-        string $profileReference
-    ): ResponseInterface {
-        try {
-            /*
-             * Reuse the existing profile authorization boundary.
-             *
-             * Do not independently query another member here.
-             */
-            $profile = service(
-                'memberProfileViewService'
-            )->profileForViewer(
-                $this->authenticatedUserId(),
-                $profileReference
-            );
+    // public function member(
+    //     string $profileReference
+    // ): ResponseInterface {
+    //     try {
+    //         /*
+    //          * Reuse the existing profile authorization boundary.
+    //          *
+    //          * Do not independently query another member here.
+    //          */
+    //         $profile = service(
+    //             'memberProfileViewService'
+    //         )->profileForViewer(
+    //             $this->authenticatedUserId(),
+    //             $profileReference
+    //         );
 
-            $memberId = max(
-                0,
-                (int) (
-                    $profile['viewedMemberId']
-                    ?? 0
-                )
-            );
+    //         $memberId = max(
+    //             0,
+    //             (int) (
+    //                 $profile['viewedMemberId']
+    //                 ?? 0
+    //             )
+    //         );
 
-            if ($memberId <= 0) {
-                throw PageNotFoundException
-                    ::forPageNotFound();
-            }
+    //         if ($memberId <= 0) {
+    //             throw PageNotFoundException
+    //                 ::forPageNotFound();
+    //         }
 
-            $profile['videoIntroductionState'] = service(
-                'memberVideoIntroductionService'
-            )->profileState(
-                $memberId
-            );
+    //         $profile['videoIntroductionState'] = service(
+    //             'memberVideoIntroductionService'
+    //         )->profileState(
+    //             $memberId
+    //         );
 
-            return $this->renderPdf(
-                $memberId,
-                $profile
-            );
-        } catch (
-            PageNotFoundException
-            $exception
-        ) {
-            throw $exception;
-        } catch (Throwable $exception) {
-            return $this->failure(
-                $exception
-            );
-        }
-    }
+    //         return $this->renderPdf(
+    //             $memberId,
+    //             $profile
+    //         );
+    //     } catch (
+    //         PageNotFoundException
+    //         $exception
+    //     ) {
+    //         throw $exception;
+    //     } catch (Throwable $exception) {
+    //         return $this->failure(
+    //             $exception
+    //         );
+    //     }
+    // }
 
     /**
      * @param array<string,mixed> $profile

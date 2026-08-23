@@ -1176,6 +1176,36 @@ $renderRows =
             line-height: 1.45;
         }
 
+        .footer-copy-left {
+            display: flex;
+
+            align-items: center;
+
+            gap: 2mm;
+        }
+
+        .footer-shield {
+            flex: 0 0 auto;
+
+            color: #ffd65a;
+
+            font-size: 24px;
+
+            line-height: 1;
+        }
+
+        .footer-shield i {
+            display: block;
+
+            font-size: inherit;
+
+            line-height: 1;
+        }
+
+        .footer-copy-text {
+            min-width: 0;
+        }
+
         .footer-copy.right {
             text-align: right;
         }
@@ -1191,7 +1221,7 @@ $renderRows =
         }
 
         .footer-mark img {
-            width: 23mm;
+            width: 13mm;
             height: 11mm;
 
             object-fit: contain;
@@ -1779,12 +1809,24 @@ $renderRows =
 
         <footer class="pdf-footer">
 
-            <div class="footer-copy">
+            <div class="footer-copy footer-copy-left">
 
-                Your privacy is important to us.<br>
+                <span class="footer-shield">
 
-                Contact and identity information is protected
-                in this profile PDF.
+                    <?= $renderIcon(
+                        'ri-shield-check-fill'
+                    ) ?>
+
+                </span>
+
+                <div class="footer-copy-text">
+
+                    Your privacy is important to us.<br>
+
+                    Contact and identity information is protected
+                    in this profile PDF.
+
+                </div>
 
             </div>
 
