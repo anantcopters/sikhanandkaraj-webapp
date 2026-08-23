@@ -357,7 +357,10 @@ final class MemberProfilePdfDataService
             $this->row(
                 'religion',
                 'Nearest Gurdwara',
-                'NA'
+                $this->maskedText(
+                    $family['nearest_gurudwara']
+                        ?? ''
+                )
             ),
         ];
 

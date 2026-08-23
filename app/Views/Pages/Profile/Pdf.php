@@ -1101,7 +1101,7 @@ $renderRows =
 
         .text-gurmukhi {
             color: <?= $red ?>;
-            text-shadow: 0 2px 20px rgba(0,0,0,0.4);
+            text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
             font-weight: 700;
             font-size: 4.3mm;
             text-align: center;
@@ -1233,7 +1233,7 @@ $renderRows =
             <div class="header-divider">
                 <div class="header-divider-line"></div>
             </div>
-            
+
             <section class="profile-hero">
 
                 <div class="profile-photo">
@@ -1609,6 +1609,41 @@ $renderRows =
 
                 <article class="pdf-card main-card">
 
+                    <div class="card-heading red">
+
+                        <?php if (
+                            $icon(
+                                'family',
+                                'red'
+                            ) !== ''
+                        ): ?>
+
+                            <img
+                                src="<?= esc(
+                                            $icon(
+                                                'family',
+                                                'red'
+                                            ),
+                                            'attr'
+                                        ) ?>"
+                                alt="">
+
+                        <?php endif; ?>
+
+                        FAMILY DETAILS
+
+                    </div>
+
+                    <?php
+                    $renderRows(
+                        $familyRows
+                    );
+                    ?>
+
+                </article>
+
+                <article class="pdf-card main-card">
+
                     <div class="card-heading">
 
                         <?php if (
@@ -1642,40 +1677,7 @@ $renderRows =
 
                 </article>
 
-                <article class="pdf-card main-card">
 
-                    <div class="card-heading red">
-
-                        <?php if (
-                            $icon(
-                                'family',
-                                'red'
-                            ) !== ''
-                        ): ?>
-
-                            <img
-                                src="<?= esc(
-                                            $icon(
-                                                'family',
-                                                'red'
-                                            ),
-                                            'attr'
-                                        ) ?>"
-                                alt="">
-
-                        <?php endif; ?>
-
-                        FAMILY DETAILS
-
-                    </div>
-
-                    <?php
-                    $renderRows(
-                        $familyRows
-                    );
-                    ?>
-
-                </article>
 
                 <article class="pdf-card main-card">
 
@@ -1739,7 +1741,7 @@ $renderRows =
 
                         <?php endif; ?>
 
-                        PREFERENCES
+                        PARTNER PREFERENCES
 
                     </div>
 
