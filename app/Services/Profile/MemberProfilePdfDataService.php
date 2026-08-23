@@ -257,7 +257,7 @@ final class MemberProfilePdfDataService
             ),
 
             $this->row(
-                'ri-briefcase-line',
+                'ri-building-4-line',
                 'Employed In',
                 $this->displayValue(
                     $employmentLabels[$employmentCode]
@@ -266,7 +266,7 @@ final class MemberProfilePdfDataService
             ),
 
             $this->row(
-                'ri-user-star-line',
+                'ri-briefcase-4-line',
                 'Occupation',
                 $this->displayValue(
                     $education['occupation_name']
@@ -275,7 +275,7 @@ final class MemberProfilePdfDataService
             ),
 
             $this->row(
-                'ri-community-line',
+                'ri-building-line',
                 'Organization',
                 $this->displayValue(
                     $education['organization']
@@ -304,7 +304,7 @@ final class MemberProfilePdfDataService
             ),
 
             $this->row(
-                'ri-organization-chart',
+                'ri-git-branch-line',
                 'Gotra',
                 $this->maskedText(
                     $family['gotra']
@@ -348,14 +348,8 @@ final class MemberProfilePdfDataService
                 )
             ),
 
-            /*
-            * Nearest Gurdwara does not currently exist in the
-            * latest pdf_view Family profile data.
-            *
-            * Do not invent a profile/database key.
-            */
             $this->row(
-                'ri-group-2-line',
+                'ri-building-2-line',
                 'Nearest Gurdwara',
                 $this->maskedText(
                     $family['nearest_gurudwara']
@@ -866,7 +860,7 @@ final class MemberProfilePdfDataService
                 [
                     'age',
                 ],
-                'calendar'
+                'ri-calendar-line'
             ),
 
             $this->preferenceRow(
@@ -875,7 +869,7 @@ final class MemberProfilePdfDataService
                 [
                     'marital',
                 ],
-                'heart'
+                'ri-heart-2-line'
             ),
 
             $this->preferenceRow(
@@ -885,7 +879,7 @@ final class MemberProfilePdfDataService
                     'community',
                     'caste',
                 ],
-                'community'
+                'ri-group-line'
             ),
 
             $this->preferenceRow(
@@ -894,7 +888,7 @@ final class MemberProfilePdfDataService
                 [
                     'education',
                 ],
-                'education'
+                'ri-graduation-cap-line'
             ),
 
             $this->preferenceRow(
@@ -904,7 +898,7 @@ final class MemberProfilePdfDataService
                     'employed',
                     'employment',
                 ],
-                'employer'
+                'ri-building-4-line'
             ),
 
             $this->preferenceRow(
@@ -914,7 +908,7 @@ final class MemberProfilePdfDataService
                     'occupation',
                     'profession',
                 ],
-                'occupation'
+                'ri-briefcase-4-line'
             ),
         ];
     }

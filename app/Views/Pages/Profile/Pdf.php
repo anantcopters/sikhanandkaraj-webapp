@@ -213,7 +213,7 @@ $remixIconFont =
 
 $remixIconFontUrl = trim(
     (string) (
-        $remixIconFont['uri']
+        $remixIconFont
         ?? ''
     )
 );
@@ -318,6 +318,41 @@ $summary = implode(
         trim($value) !== ''
     )
 );
+
+$renderIcon =
+    static function (
+        string $iconClass,
+        string $className = ''
+    ): string {
+        $iconClass =
+            trim($iconClass);
+
+        if ($iconClass === '') {
+            return '';
+        }
+
+        if (
+            !str_starts_with(
+                $iconClass,
+                'ri-'
+            )
+        ) {
+            return '';
+        }
+
+        $classes = trim(
+            $iconClass
+                . ' '
+                . $className
+        );
+
+        return '<i class="'
+            . esc(
+                $classes,
+                'attr'
+            )
+            . '" aria-hidden="true"></i>';
+    };
 
 $renderRows =
     static function (
@@ -534,9 +569,16 @@ $renderRows =
             gap: 2mm;
         }
 
-        .header-contact-row img {
+        .header-contact-icon {
             width: 5mm;
-            height: 5mm;
+
+            color: <?= $purple ?>;
+
+            font-size: 4mm;
+
+            line-height: 1;
+
+            text-align: center;
         }
 
         .header-contact strong {
@@ -739,9 +781,38 @@ $renderRows =
                 .2mm solid #eee8f0;
         }
 
-        .quick-item img {
+        [class^="ri-"],
+        [class*=" ri-"] {
+            display: inline-block;
+
+            font-family: 'remixicon' !important;
+
+            font-style: normal;
+            font-weight: normal;
+            font-variant: normal;
+
+            line-height: 1;
+
+            text-transform: none;
+
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .quick-icon {
             width: 5.2mm;
-            height: 5.2mm;
+
+            color: <?= $red ?>;
+
+            font-size: 4.4mm;
+
+            line-height: 1;
+
+            text-align: center;
+        }
+
+        .quick-item:nth-child(even) .quick-icon {
+            color: <?= $purple ?>;
         }
 
         .quick-label {
@@ -822,9 +893,24 @@ $renderRows =
             border-bottom: 0;
         }
 
-        .verify-row img {
+        .verify-icon {
             width: 6mm;
-            height: 6mm;
+
+            color: <?= $purple ?>;
+
+            font-size: 4.5mm;
+
+            line-height: 1;
+
+            text-align: center;
+        }
+
+        .verify-icon-red {
+            color: <?= $red ?>;
+        }
+
+        .verify-icon-success {
+            color: #198754;
         }
 
         .verify-title {
@@ -914,11 +1000,15 @@ $renderRows =
             color: <?= $red ?>;
         }
 
-        .card-heading img {
-            width: 5.8mm;
-            height: 5.8mm;
+        .card-heading>i {
+            flex:
+                0 0 auto;
 
-            object-fit: contain;
+            color: inherit;
+
+            font-size: 4.4mm;
+
+            line-height: 1;
         }
 
         .detail-row {
@@ -1194,24 +1284,13 @@ $renderRows =
 
                     <div class="header-contact-row">
 
-                        <?php if (
-                            $icon(
-                                'phone',
-                                'purple'
-                            ) !== ''
-                        ): ?>
+                        <div class="header-contact-icon">
 
-                            <img
-                                src="<?= esc(
-                                            $icon(
-                                                'phone',
-                                                'purple'
-                                            ),
-                                            'attr'
-                                        ) ?>"
-                                alt="">
+                            <?= $renderIcon(
+                                'ri-phone-line'
+                            ) ?>
 
-                        <?php endif; ?>
+                        </div>
 
                         <div>
                             24x7 Help &amp; Support<br>
@@ -1231,24 +1310,13 @@ $renderRows =
 
                     <div class="header-contact-row">
 
-                        <?php if (
-                            $icon(
-                                'location',
-                                'purple'
-                            ) !== ''
-                        ): ?>
+                        <div class="header-contact-icon">
 
-                            <img
-                                src="<?= esc(
-                                            $icon(
-                                                'location',
-                                                'purple'
-                                            ),
-                                            'attr'
-                                        ) ?>"
-                                alt="">
+                            <?= $renderIcon(
+                                'ri-global-line'
+                            ) ?>
 
-                        <?php endif; ?>
+                        </div>
 
                         <div class="header-site">
                             <?= esc(
@@ -1341,7 +1409,6 @@ $renderRows =
                     <div class="quick-grid">
 
                         <?php
-                        $quickIndex = 0;
 
                         foreach (
                             $quickDetails
@@ -1379,36 +1446,15 @@ $renderRows =
                                 continue;
                             }
 
-                            $quickColour =
-                                $quickIndex % 2 === 0
-                                ? 'red'
-                                : 'purple';
-
-                            $quickIndex++;
                         ?>
 
                             <div class="quick-item">
 
-                                <div>
+                                <div class="quick-icon">
 
-                                    <?php if (
-                                        $icon(
-                                            $iconName,
-                                            $quickColour
-                                        ) !== ''
-                                    ): ?>
-
-                                        <img
-                                            src="<?= esc(
-                                                        $icon(
-                                                            $iconName,
-                                                            $quickColour
-                                                        ),
-                                                        'attr'
-                                                    ) ?>"
-                                            alt="">
-
-                                    <?php endif; ?>
+                                    <?= $renderIcon(
+                                        $iconName
+                                    ) ?>
 
                                 </div>
 
@@ -1448,26 +1494,11 @@ $renderRows =
 
                         <div class="verify-row">
 
-                            <div>
+                            <div class="verify-icon verify-icon-success">
 
-                                <?php if (
-                                    $icon(
-                                        'shield-check',
-                                        'purple'
-                                    ) !== ''
-                                ): ?>
-
-                                    <img
-                                        src="<?= esc(
-                                                    $icon(
-                                                        'shield-check',
-                                                        'purple'
-                                                    ),
-                                                    'attr'
-                                                ) ?>"
-                                        alt="">
-
-                                <?php endif; ?>
+                                <?= $renderIcon(
+                                    'ri-checkbox-circle-fill'
+                                ) ?>
 
                             </div>
 
@@ -1501,26 +1532,11 @@ $renderRows =
 
                         <div class="verify-row">
 
-                            <div>
+                            <div class="verify-icon verify-icon-success">
 
-                                <?php if (
-                                    $icon(
-                                        'shield-check',
-                                        'purple'
-                                    ) !== ''
-                                ): ?>
-
-                                    <img
-                                        src="<?= esc(
-                                                    $icon(
-                                                        'shield-check',
-                                                        'purple'
-                                                    ),
-                                                    'attr'
-                                                ) ?>"
-                                        alt="">
-
-                                <?php endif; ?>
+                                <?= $renderIcon(
+                                    'ri-checkbox-circle-fill'
+                                ) ?>
 
                             </div>
 
@@ -1554,26 +1570,11 @@ $renderRows =
 
                         <div class="verify-row">
 
-                            <div>
+                            <div class="verify-icon verify-icon-success">
 
-                                <?php if (
-                                    $icon(
-                                        'shield-check',
-                                        'purple'
-                                    ) !== ''
-                                ): ?>
-
-                                    <img
-                                        src="<?= esc(
-                                                    $icon(
-                                                        'shield-check',
-                                                        'purple'
-                                                    ),
-                                                    'attr'
-                                                ) ?>"
-                                        alt="">
-
-                                <?php endif; ?>
+                                <?= $renderIcon(
+                                    'ri-shield-check-fill'
+                                ) ?>
 
                             </div>
 
@@ -1599,29 +1600,13 @@ $renderRows =
 
                         <div class="verify-row">
 
-                            <div>
+                            <div class="verify-icon verify-icon-red">
 
-                                <?php if (
-                                    $icon(
-                                        'video',
-                                        'red'
-                                    ) !== ''
-                                ): ?>
-
-                                    <img
-                                        src="<?= esc(
-                                                    $icon(
-                                                        'video',
-                                                        'red'
-                                                    ),
-                                                    'attr'
-                                                ) ?>"
-                                        alt="">
-
-                                <?php endif; ?>
+                                <?= $renderIcon(
+                                    'ri-video-line'
+                                ) ?>
 
                             </div>
-
                             <div>
 
                                 <div class="verify-title">
@@ -1649,24 +1634,15 @@ $renderRows =
 
                     <div class="card-heading red">
 
-                        <?php if (
-                            $icon(
-                                'family',
-                                'red'
-                            ) !== ''
-                        ): ?>
+                        <div class="card-heading red">
 
-                            <img
-                                src="<?= esc(
-                                            $icon(
-                                                'family',
-                                                'red'
-                                            ),
-                                            'attr'
-                                        ) ?>"
-                                alt="">
+                            <?= $renderIcon(
+                                'ri-group-line'
+                            ) ?>
 
-                        <?php endif; ?>
+                            FAMILY DETAILS
+
+                        </div>
 
                         FAMILY DETAILS
 
@@ -1684,24 +1660,9 @@ $renderRows =
 
                     <div class="card-heading">
 
-                        <?php if (
-                            $icon(
-                                'education',
-                                'purple'
-                            ) !== ''
-                        ): ?>
-
-                            <img
-                                src="<?= esc(
-                                            $icon(
-                                                'education',
-                                                'purple'
-                                            ),
-                                            'attr'
-                                        ) ?>"
-                                alt="">
-
-                        <?php endif; ?>
+                        <?= $renderIcon(
+                            'ri-graduation-cap-line'
+                        ) ?>
 
                         EDUCATION &amp; CAREER
 
@@ -1721,24 +1682,9 @@ $renderRows =
 
                     <div class="card-heading">
 
-                        <?php if (
-                            $icon(
-                                'heart',
-                                'purple'
-                            ) !== ''
-                        ): ?>
-
-                            <img
-                                src="<?= esc(
-                                            $icon(
-                                                'heart',
-                                                'purple'
-                                            ),
-                                            'attr'
-                                        ) ?>"
-                                alt="">
-
-                        <?php endif; ?>
+                        <?= $renderIcon(
+                            'ri-heart-pulse-line'
+                        ) ?>
 
                         LIFESTYLE DETAILS
 
@@ -1760,24 +1706,9 @@ $renderRows =
 
                     <div class="card-heading red">
 
-                        <?php if (
-                            $icon(
-                                'heart',
-                                'red'
-                            ) !== ''
-                        ): ?>
-
-                            <img
-                                src="<?= esc(
-                                            $icon(
-                                                'heart',
-                                                'red'
-                                            ),
-                                            'attr'
-                                        ) ?>"
-                                alt="">
-
-                        <?php endif; ?>
+                        <?= $renderIcon(
+                            'ri-user-heart-line'
+                        ) ?>
 
                         PARTNER PREFERENCES
 
@@ -1799,24 +1730,9 @@ $renderRows =
 
                     <div class="card-heading">
 
-                        <?php if (
-                            $icon(
-                                'user',
-                                'purple'
-                            ) !== ''
-                        ): ?>
-
-                            <img
-                                src="<?= esc(
-                                            $icon(
-                                                'user',
-                                                'purple'
-                                            ),
-                                            'attr'
-                                        ) ?>"
-                                alt="">
-
-                        <?php endif; ?>
+                        <?= $renderIcon(
+                            'ri-user-line'
+                        ) ?>
 
                         ABOUT ME
 
