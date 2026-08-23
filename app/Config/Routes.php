@@ -927,6 +927,15 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
             ]
         );
 
+        $routes->get(
+            'profile/pdf/preview',
+            'MemberProfilePdfController::preview',
+            [
+                'as' =>
+                'web.profile.pdf.preview',
+            ]
+        );
+
         /*
         * Lazily return the medium URL for one approved,
         * member-owned photo.

@@ -113,8 +113,6 @@ final class MemberProfilePdfService
 
                         '--headless=new',
 
-                        '--disable-gpu',
-
                         '--hide-scrollbars',
 
                         '--no-pdf-header-footer',

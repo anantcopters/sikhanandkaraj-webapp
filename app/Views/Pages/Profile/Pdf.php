@@ -144,10 +144,12 @@ $icons =
     : [];
 
 $purple =
-    '#310a57';
+    '#442254';
+
+$header = '#495057';
 
 $red =
-    '#ce102c';
+    '#ae1536';
 
 $asset =
     static function (
@@ -439,7 +441,6 @@ $renderRows =
         body {
             font-family:
                 'InterPDF',
-                Arial,
                 sans-serif;
 
             color: #201a23;
@@ -481,7 +482,7 @@ $renderRows =
             z-index: 1;
 
             padding:
-                5mm 7mm 19mm;
+                0mm 7mm 19mm;
         }
 
         /*
@@ -514,7 +515,7 @@ $renderRows =
 
             gap: 1.5mm;
 
-            font-size: 2.75mm;
+            font-size: 2.95mm;
             font-weight: 500;
         }
 
@@ -533,7 +534,7 @@ $renderRows =
         .header-contact strong {
             color: <?= $red ?>;
 
-            font-size: 3mm;
+            font-size: 3.2mm;
             font-weight: 700;
         }
 
@@ -652,8 +653,8 @@ $renderRows =
 
             color: #fff;
 
-            font-size: 2.55mm;
-            font-weight: 700;
+            font-size: 2.8mm;
+            font-weight: 600;
 
             text-align: center;
 
@@ -663,6 +664,7 @@ $renderRows =
                 linear-gradient(90deg,
                     <?= $purple ?>,
                     <?= $red ?>);
+            letter-spacing: 0.08mm;
         }
 
         .profile-identity {
@@ -735,9 +737,9 @@ $renderRows =
         }
 
         .quick-label {
-            color: <?= $purple ?>;
+            color: <?= $header ?>;
 
-            font-size: 2.6mm;
+            font-size: 3mm;
             font-weight: 600;
 
             line-height: 1.2;
@@ -820,7 +822,7 @@ $renderRows =
         .verify-title {
             color: #211b24;
 
-            font-size: 2.9mm;
+            font-size: 2.8mm;
             font-weight: 600;
 
             line-height: 1.2;
@@ -831,7 +833,7 @@ $renderRows =
 
             color: #4f4553;
 
-            font-size: 2.65mm;
+            font-size: 2.4mm;
             font-weight: 500;
 
             line-height: 1.3;
@@ -940,9 +942,9 @@ $renderRows =
         }
 
         .detail-label {
-            color: <?= $purple ?>;
+            color: <?= $header ?>;
 
-            font-size: 2.45mm;
+            font-size: 3mm;
             font-weight: 600;
 
             line-height: 1.2;
@@ -953,7 +955,7 @@ $renderRows =
 
             color: #211b24;
 
-            font-size: 2.85mm;
+            font-size: 3mm;
             font-weight: 500;
 
             line-height: 1.3;
@@ -1015,12 +1017,10 @@ $renderRows =
 
             color: #2d2630;
 
-            font-size: 2.9mm;
-            font-weight: 400;
+            font-size: 3.1mm;
+            font-weight: 500;
 
             line-height: 1.5;
-
-            white-space: pre-line;
         }
 
         .about-motif {
@@ -1033,8 +1033,6 @@ $renderRows =
             height: 20mm;
 
             object-fit: contain;
-
-            opacity: .11;
 
             z-index: 1;
         }
@@ -1074,7 +1072,7 @@ $renderRows =
         }
 
         .footer-copy {
-            font-size: 2.25mm;
+            font-size: 2.5mm;
             font-weight: 500;
 
             line-height: 1.45;
@@ -1099,6 +1097,16 @@ $renderRows =
             height: 11mm;
 
             object-fit: contain;
+        }
+
+        .text-gurmukhi {
+            color: <?= $red ?>;
+            text-shadow: 0 2px 20px rgba(0,0,0,0.4);
+            font-weight: 700;
+            font-size: 4.3mm;
+            text-align: center;
+            padding-bottom: 5px;
+            text-decoration: underline;
         }
     </style>
 
@@ -1219,11 +1227,13 @@ $renderRows =
                 </div>
 
             </header>
-
+            <div class="text-gurmukhi">
+                ਸਿੱਖ ਅਨੰਦ ਕਾਰਜ
+            </div>
             <div class="header-divider">
                 <div class="header-divider-line"></div>
             </div>
-
+            
             <section class="profile-hero">
 
                 <div class="profile-photo">
@@ -1825,13 +1835,11 @@ $renderRows =
 
             <div class="footer-copy right">
 
-                SikhAnandKaraj Matrimonial Services<br>
-
                 <?= esc(
                     (string) (
                         $config
                         ->website
-                        ?? 'sikhanandkaraj.com'
+                        ?? 'www.sikhanandkaraj.com'
                     )
                 ) ?><br>
 

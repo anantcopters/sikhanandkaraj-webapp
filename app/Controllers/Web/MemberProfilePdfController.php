@@ -93,6 +93,133 @@ extends BaseController
     }
 
     /**
+     * Browser preview of the logged-in member's own
+     * profile PDF HTML.
+     *
+     * This deliberately uses the same presentation-data
+     * service and same Pdf.php view as PDF generation so
+     * browser preview and generated PDF cannot diverge.
+     */
+    public function preview(): ResponseInterface
+    {
+        $userId =
+            $this->authenticatedUserId();
+
+        try {
+            $profile = service(
+                'memberProfileSummaryService'
+            )->getForUser(
+                $userId
+            );
+
+            $profile['approvedPhotos'] = service(
+                'memberPhotoUrlService'
+            )->getApprovedThumbnailPhotos(
+                $userId
+            );
+
+            $trust = service(
+                'memberTrustVerificationService'
+            )->getForUser(
+                $userId
+            );
+
+            $mobile =
+                isset($trust['mobile'])
+                && is_array(
+                    $trust['mobile']
+                )
+                ? $trust['mobile']
+                : [];
+
+            $email =
+                isset($trust['email'])
+                && is_array(
+                    $trust['email']
+                )
+                ? $trust['email']
+                : [];
+
+            $profile['viewedMobile'] =
+                (string) (
+                    $mobile['value']
+                    ?? ''
+                );
+
+            $profile['isViewedMobileVerified'] =
+                (
+                    $mobile['isVerified']
+                    ?? false
+                ) === true;
+
+            $profile['viewedEmail'] =
+                (string) (
+                    $email['value']
+                    ?? ''
+                );
+
+            $profile['isViewedEmailVerified'] =
+                (
+                    $email['isVerified']
+                    ?? false
+                ) === true;
+
+            $profile['videoIntroductionState'] =
+                service(
+                    'memberVideoIntroductionService'
+                )->profileState(
+                    $userId
+                );
+
+            $data = service(
+                'memberProfilePdfDataService'
+            )->prepare(
+                $userId,
+                $profile
+            );
+
+            $html = view(
+                'Pages/Profile/Pdf',
+                $data
+            );
+
+            return $this->response
+                ->setHeader(
+                    'Content-Type',
+                    'text/html; charset=UTF-8'
+                )
+                ->setHeader(
+                    'Cache-Control',
+                    'private, no-store, no-cache, '
+                        . 'must-revalidate, max-age=0'
+                )
+                ->setHeader(
+                    'Pragma',
+                    'no-cache'
+                )
+                ->setBody(
+                    $html
+                );
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Profile PDF HTML preview failed: {message}',
+                [
+                    'message' =>
+                    $exception
+                        ->getMessage(),
+                ]
+            );
+
+            return $this->response
+                ->setStatusCode(422)
+                ->setBody(
+                    'The profile PDF preview could not be generated.'
+                );
+        }
+    }
+
+    /**
      * PDF of another member's currently authorized profile.
      */
     public function member(
