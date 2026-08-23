@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Profile;
 
-namespace App\Services\Profile;
-
 use App\Models\MemberPhotoModel;
 use App\Services\PartnerPreference\AdditionalPartnerPreferenceService;
 use App\Services\PartnerPreference\BasicPartnerPreferenceService;
@@ -230,135 +228,136 @@ final class MemberProfilePdfDataService
 
         $quickDetails = [
             $this->row(
-                'calendar',
-                'Date of Birth',
-                $this->formattedDate(
-                    $dateOfBirth
-                )
-            ),
-
-            $this->row(
                 'heart',
                 'Marital Status',
-                $basic['marital_status_name']
-                    ?? ''
+                $this->displayValue(
+                    $basic['marital_status_name']
+                        ?? ''
+                )
             ),
 
             $this->row(
                 'height',
                 'Height',
-                $basic['height_display_name']
-                    ?? ''
-            ),
-
-            $this->row(
-                'language',
-                'Mother Tongue',
-                $basic['mother_tongue_name']
-                    ?? ''
-            ),
-
-            $this->row(
-                'religion',
-                'Religion',
-                'Sikh'
-            ),
-
-            $this->row(
-                'community',
-                'Community',
-                $family['community_name']
-                    ?? ''
+                $this->displayValue(
+                    $basic['height_display_name']
+                        ?? ''
+                )
             ),
         ];
 
         $educationRows = [
             $this->row(
                 'education',
-                'Education',
-                $education['highest_education_name']
-                    ?? ''
-            ),
-
-            $this->row(
-                'college',
-                'College / University',
-                $education['college_institution']
-                    ?? ''
-            ),
-
-            $this->row(
-                'occupation',
-                'Occupation',
-                $education['occupation_name']
-                    ?? ''
-            ),
-
-            $this->row(
-                'employer',
-                'Employer',
-                $education['organization']
-                    ?? ''
-            ),
-
-            $this->row(
-                'income',
-                'Annual Income',
-                $education['annual_income_display_name']
-                    ?? ''
+                'Highest Education',
+                $this->displayValue(
+                    $education['highest_education_name']
+                        ?? ''
+                )
             ),
 
             $this->row(
                 'occupation',
                 'Employed In',
-                $employmentLabels[$employmentCode]
-                    ?? ''
+                $this->displayValue(
+                    $employmentLabels[$employmentCode]
+                        ?? ''
+                )
+            ),
+
+            $this->row(
+                'occupation',
+                'Occupation',
+                $this->displayValue(
+                    $education['occupation_name']
+                        ?? ''
+                )
+            ),
+
+            $this->row(
+                'employer',
+                'Organization',
+                $this->displayValue(
+                    $education['organization']
+                        ?? ''
+                )
+            ),
+
+            $this->row(
+                'income',
+                'Annual Income',
+                $this->displayValue(
+                    $education['annual_income_display_name']
+                        ?? ''
+                )
             ),
         ];
 
         $familyRows = [
             $this->row(
-                'user',
-                "Father's Name",
-                $family['father_name']
-                    ?? ''
-            ),
-
-            $this->row(
-                'occupation',
-                "Father's Occupation",
-                $family['father_occupation_name']
-                    ?? ''
-            ),
-
-            $this->row(
-                'user',
-                "Mother's Name",
-                $family['mother_name']
-                    ?? ''
-            ),
-
-            $this->row(
-                'family',
-                'Siblings',
-                $this->siblings(
-                    $family
+                'community',
+                'Community',
+                $this->displayValue(
+                    $family['community_name']
+                        ?? ''
                 )
             ),
 
             $this->row(
                 'family',
-                'Family Type',
-                $family['family_type_name']
-                    ?? ''
+                'Gotra',
+                $this->maskedText(
+                    $family['gotra']
+                        ?? ''
+                )
+            ),
+
+            $this->row(
+                'family',
+                'No. of Brothers',
+                array_key_exists(
+                    'brothers_count',
+                    $family
+                )
+                    ? (string) (
+                        (int) $family['brothers_count']
+                    )
+                    : 'NA'
+            ),
+
+            $this->row(
+                'family',
+                'No. of Sisters',
+                array_key_exists(
+                    'sisters_count',
+                    $family
+                )
+                    ? (string) (
+                        (int) $family['sisters_count']
+                    )
+                    : 'NA'
             ),
 
             $this->row(
                 'location',
                 'Family Location',
-                $this->location(
-                    $family
+                $this->displayValue(
+                    $this->location(
+                        $family
+                    )
                 )
+            ),
+
+            /*
+            * Nearest Gurdwara does not currently exist in the
+            * latest pdf_view Family profile data.
+            *
+            * Do not invent a profile/database key.
+            */
+            $this->row(
+                'religion',
+                'Nearest Gurdwara',
+                'NA'
             ),
         ];
 
@@ -384,6 +383,11 @@ final class MemberProfilePdfDataService
                 'drinking',
                 'workout',
                 'hobbies',
+                'music',
+                'reading',
+                'movies',
+                'sports',
+                'food',
                 'phone',
                 'email',
                 'shield-check',
@@ -550,19 +554,19 @@ final class MemberProfilePdfDataService
                 continue;
             }
 
-            $category = trim(
-                (string) (
-                    $detail['category_name']
-                    ?? ''
-                )
-            );
-
-            $code = strtoupper(
+            $categoryCode = strtoupper(
                 trim(
                     (string) (
                         $detail['category_code']
                         ?? ''
                     )
+                )
+            );
+
+            $categoryName = trim(
+                (string) (
+                    $detail['category_name']
+                    ?? ''
                 )
             );
 
@@ -574,86 +578,188 @@ final class MemberProfilePdfDataService
             );
 
             if (
-                $category === ''
+                $categoryCode === ''
                 || $value === ''
             ) {
                 continue;
             }
 
-            $categories[$category]['code'] = $code;
+            $categories[$categoryCode]['name'] =
+                $categoryName;
 
-            $categories[$category]['values'][] = $value;
+            $categories[$categoryCode]['values'][] =
+                $value;
         }
+
+        $wantedCategories = [
+            [
+                'label' =>
+                'Hobbies & Interests',
+
+                'matches' => [
+                    'HOBB',
+                    'INTEREST',
+                ],
+
+                'icon' =>
+                'hobbies',
+            ],
+
+            [
+                'label' =>
+                'Music',
+
+                'matches' => [
+                    'MUSIC',
+                ],
+
+                'icon' =>
+                'music',
+            ],
+
+            [
+                'label' =>
+                'Reading',
+
+                'matches' => [
+                    'READ',
+                    'BOOK',
+                ],
+
+                'icon' =>
+                'reading',
+            ],
+
+            [
+                'label' =>
+                'Movies & TV Shows',
+
+                'matches' => [
+                    'MOVIE',
+                    'TV',
+                    'ENTERTAIN',
+                ],
+
+                'icon' =>
+                'movies',
+            ],
+
+            [
+                'label' =>
+                'Sports & Fitness',
+
+                'matches' => [
+                    'SPORT',
+                    'FIT',
+                    'WORKOUT',
+                ],
+
+                'icon' =>
+                'sports',
+            ],
+
+            [
+                'label' =>
+                'Food',
+
+                'matches' => [
+                    'FOOD',
+                    'DIET',
+                    'EAT',
+                ],
+
+                'icon' =>
+                'food',
+            ],
+        ];
 
         $rows = [];
 
         foreach (
-            $categories
-            as $category => $data
+            $wantedCategories
+            as $wanted
         ) {
-            $code = (string) (
-                $data['code']
-                ?? ''
-            );
+            $values = [];
 
-            $icon = match (true) {
-                str_contains(
-                    $code,
-                    'DIET'
-                ) =>
-                'diet',
+            foreach (
+                $categories
+                as $code => $category
+            ) {
+                $matched = false;
 
-                str_contains(
-                    $code,
-                    'SMOK'
-                ) =>
-                'smoking',
+                foreach (
+                    $wanted['matches']
+                    as $needle
+                ) {
+                    if (
+                        str_contains(
+                            $code,
+                            $needle
+                        )
+                    ) {
+                        $matched = true;
+                        break;
+                    }
+                }
 
-                str_contains(
-                    $code,
-                    'DRINK'
-                ) =>
-                'drinking',
+                if (!$matched) {
+                    continue;
+                }
 
-                str_contains(
-                    $code,
-                    'WORK'
-                ) =>
-                'workout',
+                $categoryValues =
+                    isset(
+                        $category['values']
+                    )
+                    && is_array(
+                        $category['values']
+                    )
+                    ? $category['values']
+                    : [];
 
-                default =>
-                'hobbies',
-            };
+                foreach (
+                    $categoryValues
+                    as $categoryValue
+                ) {
+                    $categoryValue =
+                        trim(
+                            (string)
+                            $categoryValue
+                        );
+
+                    if (
+                        $categoryValue !== ''
+                    ) {
+                        $values[] =
+                            $categoryValue;
+                    }
+                }
+            }
 
             $values =
-                isset($data['values'])
-                && is_array(
-                    $data['values']
-                )
-                ? array_unique(
-                    array_map(
-                        'strval',
-                        $data['values']
-                    )
-                )
-                : [];
-
-            $rows[] =
-                $this->row(
-                    $icon,
-                    (string) $category,
-                    implode(
-                        ', ',
+                array_values(
+                    array_unique(
                         $values
                     )
                 );
+
+            $rows[] =
+                $this->row(
+                    (string)
+                    $wanted['icon'],
+
+                    (string)
+                    $wanted['label'],
+
+                    $values !== []
+                        ? implode(
+                            ', ',
+                            $values
+                        )
+                        : 'NA'
+                );
         }
 
-        return array_slice(
-            $rows,
-            0,
-            5
-        );
+        return $rows;
     }
 
     /**
@@ -662,7 +768,7 @@ final class MemberProfilePdfDataService
     private function preferences(
         int $userId
     ): array {
-        $result = [];
+        $available = [];
 
         $basic =
             $this
@@ -679,9 +785,12 @@ final class MemberProfilePdfDataService
             ? $basic['items']
             : [];
 
-        foreach ($basicItems as $item) {
-            $this->appendPreference(
-                $result,
+        foreach (
+            $basicItems
+            as $item
+        ) {
+            $this->collectPreference(
+                $available,
                 $item
             );
         }
@@ -693,41 +802,222 @@ final class MemberProfilePdfDataService
                 $userId
             );
 
-        foreach ($sections as $section) {
+        foreach (
+            $sections
+            as $section
+        ) {
             if (!is_array($section)) {
                 continue;
             }
 
             $items =
-                isset($section['items'])
+                isset(
+                    $section['items']
+                )
                 && is_array(
                     $section['items']
                 )
                 ? $section['items']
                 : [];
 
-            foreach ($items as $item) {
+            foreach (
+                $items
+                as $item
+            ) {
+                if (!is_array($item)) {
+                    continue;
+                }
+
                 if (
-                    is_array($item)
-                    && (
+                    (
                         $item['key']
                         ?? ''
-                    ) === 'special-request'
+                    ) ===
+                    'special-request'
                 ) {
                     continue;
                 }
 
-                $this->appendPreference(
-                    $result,
+                $this->collectPreference(
+                    $available,
                     $item
                 );
             }
         }
 
-        return array_slice(
-            $result,
-            0,
-            6
+        return [
+            $this->preferenceRow(
+                $available,
+                'Age',
+                [
+                    'age',
+                ],
+                'calendar'
+            ),
+
+            $this->preferenceRow(
+                $available,
+                'Marital Status',
+                [
+                    'marital',
+                ],
+                'heart'
+            ),
+
+            $this->preferenceRow(
+                $available,
+                'Community',
+                [
+                    'community',
+                    'caste',
+                ],
+                'community'
+            ),
+
+            $this->preferenceRow(
+                $available,
+                'Education',
+                [
+                    'education',
+                ],
+                'education'
+            ),
+
+            $this->preferenceRow(
+                $available,
+                'Employed In',
+                [
+                    'employed',
+                    'employment',
+                ],
+                'employer'
+            ),
+
+            $this->preferenceRow(
+                $available,
+                'Occupation',
+                [
+                    'occupation',
+                    'profession',
+                ],
+                'occupation'
+            ),
+        ];
+    }
+
+    /**
+     * @param array<string,array{
+     *     label:string,
+     *     value:string
+     * }> $available
+     * @param mixed $item
+     */
+    private function collectPreference(
+        array &$available,
+        mixed $item
+    ): void {
+        if (!is_array($item)) {
+            return;
+        }
+
+        $key = strtolower(
+            trim(
+                (string) (
+                    $item['key']
+                    ?? ''
+                )
+            )
+        );
+
+        $label = trim(
+            (string) (
+                $item['label']
+                ?? ''
+            )
+        );
+
+        $value = trim(
+            (string) (
+                $item['display']
+                ?? $item['value']
+                ?? ''
+            )
+        );
+
+        if (
+            $key === ''
+            && $label === ''
+        ) {
+            return;
+        }
+
+        $lookup =
+            trim(
+                $key
+                    . ' '
+                    . strtolower(
+                        $label
+                    )
+            );
+
+        $available[$lookup] = [
+            'label' =>
+            $label,
+
+            'value' =>
+            $value,
+        ];
+    }
+
+    /**
+     * @param array<string,array{
+     *     label:string,
+     *     value:string
+     * }> $available
+     * @param list<string> $needles
+     *
+     * @return array<string,string>
+     */
+    private function preferenceRow(
+        array $available,
+        string $label,
+        array $needles,
+        string $icon
+    ): array {
+        foreach (
+            $available
+            as $lookup => $item
+        ) {
+            foreach (
+                $needles
+                as $needle
+            ) {
+                if (
+                    !str_contains(
+                        $lookup,
+                        strtolower(
+                            $needle
+                        )
+                    )
+                ) {
+                    continue;
+                }
+
+                return $this->row(
+                    $icon,
+                    $label,
+                    $this->displayValue(
+                        $item['value']
+                            ?? ''
+                    )
+                );
+            }
+        }
+
+        return $this->row(
+            $icon,
+            $label,
+            'NA'
         );
     }
 
@@ -1064,5 +1354,49 @@ final class MemberProfilePdfDataService
             )
             ? $profile[$key]
             : [];
+    }
+
+    private function displayValue(
+        mixed $value
+    ): string {
+        $value = trim(
+            (string) $value
+        );
+
+        return $value !== ''
+            ? $value
+            : 'NA';
+    }
+
+    private function maskedText(
+        mixed $value
+    ): string {
+        $value = trim(
+            (string) $value
+        );
+
+        if ($value === '') {
+            return 'NA';
+        }
+
+        $length =
+            mb_strlen($value);
+
+        if ($length <= 1) {
+            return 'X';
+        }
+
+        return mb_substr(
+            $value,
+            0,
+            1
+        )
+            . str_repeat(
+                'X',
+                max(
+                    1,
+                    $length - 1
+                )
+            );
     }
 }

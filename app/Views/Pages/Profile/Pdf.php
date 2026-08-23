@@ -245,7 +245,6 @@ $fontFaceCss = <<<CSS
     src: {$fontRegularCssUrl} format('truetype');
     font-style: normal;
     font-weight: 400;
-    font-display: block;
 }
 
 @font-face {
@@ -253,7 +252,6 @@ $fontFaceCss = <<<CSS
     src: {$fontMediumCssUrl} format('truetype');
     font-style: normal;
     font-weight: 500;
-    font-display: block;
 }
 
 @font-face {
@@ -261,7 +259,6 @@ $fontFaceCss = <<<CSS
     src: {$fontSemiBoldCssUrl} format('truetype');
     font-style: normal;
     font-weight: 600;
-    font-display: block;
 }
 
 @font-face {
@@ -269,7 +266,6 @@ $fontFaceCss = <<<CSS
     src: {$fontBoldCssUrl} format('truetype');
     font-style: normal;
     font-weight: 700;
-    font-display: block;
 }
 CSS;
 
@@ -286,11 +282,6 @@ $marriageMotifUrl =
 $headerCornerUrl =
     $asset(
         'headerCorner'
-    );
-
-$headerKnotUrl =
-    $asset(
-        'headerKnot'
     );
 
 $summary = implode(
@@ -426,10 +417,13 @@ $renderRows =
             margin: 0;
         }
 
-        <?= $fontFaceCss ?>* {
+        * {
             box-sizing: border-box;
         }
 
+        <?= $fontFaceCss ?>
+
+        /* CSS STart*/
         html,
         body {
             width: 210mm;
@@ -550,19 +544,14 @@ $renderRows =
         }
 
         .header-divider {
-            height: 8mm;
+            height: 5mm;
 
-            display: grid;
-
-            grid-template-columns:
-                1fr 18mm 1fr;
-
+            display: flex;
             align-items: center;
-
-            gap: 2mm;
         }
 
         .header-divider-line {
+            width: 100%;
             height: .35mm;
 
             background:
@@ -696,7 +685,7 @@ $renderRows =
 
             color: #352d39;
 
-            font-size: 3.05mm;
+            font-size: 3.35mm;
             font-weight: 500;
 
             line-height: 1.4;
@@ -748,22 +737,23 @@ $renderRows =
         .quick-label {
             color: <?= $purple ?>;
 
-            font-size: 2.15mm;
+            font-size: 2.6mm;
             font-weight: 600;
 
             line-height: 1.2;
         }
 
         .quick-value {
-            margin-top: .6mm;
+            margin-top: .7mm;
 
             color: #211b24;
 
-            font-size: 2.55mm;
+            font-size: 3mm;
             font-weight: 500;
 
             line-height: 1.3;
         }
+
 
         /*
          * =====================================================
@@ -830,7 +820,7 @@ $renderRows =
         .verify-title {
             color: #211b24;
 
-            font-size: 2.65mm;
+            font-size: 2.9mm;
             font-weight: 600;
 
             line-height: 1.2;
@@ -841,7 +831,7 @@ $renderRows =
 
             color: #4f4553;
 
-            font-size: 2.35mm;
+            font-size: 2.65mm;
             font-weight: 500;
 
             line-height: 1.3;
@@ -901,7 +891,7 @@ $renderRows =
 
             color: <?= $purple ?>;
 
-            font-size: 2.9mm;
+            font-size: 3.2mm;
             font-weight: 700;
 
             line-height: 1.2;
@@ -952,24 +942,25 @@ $renderRows =
         .detail-label {
             color: <?= $purple ?>;
 
-            font-size: 2.1mm;
+            font-size: 2.45mm;
             font-weight: 600;
 
             line-height: 1.2;
         }
 
         .detail-value {
-            margin-top: .55mm;
+            margin-top: .7mm;
 
             color: #211b24;
 
-            font-size: 2.45mm;
+            font-size: 2.85mm;
             font-weight: 500;
 
-            line-height: 1.28;
+            line-height: 1.3;
 
             overflow-wrap: anywhere;
         }
+
 
         /*
          * =====================================================
@@ -1024,10 +1015,10 @@ $renderRows =
 
             color: #2d2630;
 
-            font-size: 2.65mm;
+            font-size: 2.9mm;
             font-weight: 400;
 
-            line-height: 1.48;
+            line-height: 1.5;
 
             white-space: pre-line;
         }
@@ -1230,24 +1221,7 @@ $renderRows =
             </header>
 
             <div class="header-divider">
-
                 <div class="header-divider-line"></div>
-
-                <?php if (
-                    $headerKnotUrl !== ''
-                ): ?>
-
-                    <img
-                        src="<?= esc(
-                                    $headerKnotUrl,
-                                    'attr'
-                                ) ?>"
-                        alt="">
-
-                <?php endif; ?>
-
-                <div class="header-divider-line"></div>
-
             </div>
 
             <section class="profile-hero">
@@ -1845,18 +1819,7 @@ $renderRows =
 
             <div class="footer-mark">
 
-                <?php if (
-                    $headerKnotUrl !== ''
-                ): ?>
-
-                    <img
-                        src="<?= esc(
-                                    $headerKnotUrl,
-                                    'attr'
-                                ) ?>"
-                        alt="">
-
-                <?php endif; ?>
+                
 
             </div>
 
