@@ -588,19 +588,24 @@ $renderRows =
             display: grid;
 
             grid-template-columns:
-                58mm minmax(0, 1fr) 51mm;
+                62mm minmax(0, 1fr) 51mm;
 
-            gap: 5mm;
+            gap: 4mm;
 
             margin-top: 2mm;
+
+            align-items: start;
         }
 
         .profile-photo {
             position: relative;
 
-            height: 78mm;
+            width: 62mm;
+            height: 54mm;
 
             padding: 1.8mm;
+
+            overflow: hidden;
 
             border:
                 .35mm solid rgba(206,
@@ -618,9 +623,11 @@ $renderRows =
             height: 100%;
 
             object-fit: cover;
-            object-position: center top;
+            object-position: center;
 
             border-radius: 2.5mm;
+
+            background: #fff;
         }
 
         .profile-photo-empty {
@@ -652,11 +659,11 @@ $renderRows =
             bottom: 3mm;
 
             padding:
-                2.3mm 1.5mm;
+                1.8mm 1.5mm;
 
             color: #fff;
 
-            font-size: 2.8mm;
+            font-size: 2.55mm;
             font-weight: 700;
 
             text-align: center;
@@ -685,21 +692,21 @@ $renderRows =
         }
 
         .profile-summary {
-            margin-top: 3mm;
+            margin-top: 2.5mm;
 
             color: #352d39;
 
             font-size: 3.05mm;
             font-weight: 500;
 
-            line-height: 1.45;
+            line-height: 1.4;
         }
 
         .profile-divider {
             height: .28mm;
 
             margin:
-                4mm 0 2.5mm;
+                3mm 0 2mm;
 
             background:
                 linear-gradient(90deg,
@@ -765,7 +772,7 @@ $renderRows =
          */
 
         .verified-card {
-            min-height: 78mm;
+            min-height: 54mm;
 
             padding: 3.3mm;
 
