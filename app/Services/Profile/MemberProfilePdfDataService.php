@@ -157,11 +157,36 @@ final class MemberProfilePdfDataService
                 $profile
             );
 
+        if ($thumbnailUrl === '') {
+            log_message(
+                'warning',
+                'Profile PDF has no thumbnail URL. Profile: {profile}',
+                [
+                    'profile' =>
+                    $profileReference,
+                ]
+            );
+        }
+
         $thumbnail =
             $this->assetService
             ->remoteImage(
                 $thumbnailUrl
             );
+
+        if (
+            $thumbnailUrl !== ''
+            && $thumbnail === ''
+        ) {
+            log_message(
+                'warning',
+                'Profile PDF could not embed thumbnail. Profile: {profile}',
+                [
+                    'profile' =>
+                    $profileReference,
+                ]
+            );
+        }
 
         $employmentCode = strtoupper(
             trim(
@@ -355,11 +380,23 @@ final class MemberProfilePdfDataService
                 'user',
                 'preference',
             ]
-            as $icon
+            as $iconName
         ) {
-            $icons[$icon] =
+            $icons[$iconName] = [
+                'purple' =>
                 $this->assetService
-                ->icon($icon);
+                    ->icon(
+                        $iconName,
+                        'purple'
+                    ),
+
+                'red' =>
+                $this->assetService
+                    ->icon(
+                        $iconName,
+                        'red'
+                    ),
+            ];
         }
 
         $aadhaarVerified =

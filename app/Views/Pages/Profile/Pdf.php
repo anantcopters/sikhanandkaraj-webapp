@@ -6,18 +6,14 @@ use Config\ProfilePdf;
 
 /*
  * =========================================================
- * View-local declarations
+ * VIEW-LOCAL DECLARATIONS
  * =========================================================
- *
- * Keep the PDF view defensive and presentation-only.
- *
- * The service is responsible for business/privacy rules.
- * This block only normalizes values supplied to the view.
  */
 
-$config = config(
-    ProfilePdf::class
-);
+$config =
+    config(
+        ProfilePdf::class
+    );
 
 $profileReference = trim(
     (string) (
@@ -147,41 +143,53 @@ $icons =
     ? $icons
     : [];
 
-/*
- * PDF brand colours are intentionally local because
- * this document is a standalone print layout and does
- * not load the application's CSS bundle.
- */
-$purple = '#310a57';
-$red = '#ce102c';
+$purple =
+    '#310a57';
 
-/*
- * Resolve an already embedded PDF icon.
- */
-$icon = static function (
-    string $name
-) use ($icons): string {
-    return trim(
-        (string) (
+$red =
+    '#ce102c';
+
+$asset =
+    static function (
+        string $name
+    ) use ($assets): string {
+        return trim(
+            (string) (
+                $assets[$name]
+                ?? ''
+            )
+        );
+    };
+
+$icon =
+    static function (
+        string $name,
+        string $colour = 'purple'
+    ) use ($icons): string {
+        $value =
             $icons[$name]
-            ?? ''
-        )
-    );
-};
+            ?? '';
 
-/*
- * Resolve an already embedded common PDF asset.
- */
-$asset = static function (
-    string $name
-) use ($assets): string {
-    return trim(
-        (string) (
-            $assets[$name]
-            ?? ''
-        )
-    );
-};
+        /*
+         * Backwards-compatible with already prepared data
+         * during rollout.
+         */
+        if (is_string($value)) {
+            return trim($value);
+        }
+
+        if (!is_array($value)) {
+            return '';
+        }
+
+        return trim(
+            (string) (
+                $value[$colour]
+                ?? $value['purple']
+                ?? ''
+            )
+        );
+    };
 
 $fontRegularUrl =
     $asset(
@@ -203,6 +211,68 @@ $fontBoldUrl =
         'fontBold'
     );
 
+$fontRegularCssUrl =
+    $fontRegularUrl !== ''
+    ? 'url("'
+    . $fontRegularUrl
+    . '")'
+    : 'local("Arial")';
+
+$fontMediumCssUrl =
+    $fontMediumUrl !== ''
+    ? 'url("'
+    . $fontMediumUrl
+    . '")'
+    : 'local("Arial")';
+
+$fontSemiBoldCssUrl =
+    $fontSemiBoldUrl !== ''
+    ? 'url("'
+    . $fontSemiBoldUrl
+    . '")'
+    : 'local("Arial")';
+
+$fontBoldCssUrl =
+    $fontBoldUrl !== ''
+    ? 'url("'
+    . $fontBoldUrl
+    . '")'
+    : 'local("Arial")';
+
+$fontFaceCss = <<<CSS
+@font-face {
+    font-family: 'InterPDF';
+    src: {$fontRegularCssUrl} format('truetype');
+    font-style: normal;
+    font-weight: 400;
+    font-display: block;
+}
+
+@font-face {
+    font-family: 'InterPDF';
+    src: {$fontMediumCssUrl} format('truetype');
+    font-style: normal;
+    font-weight: 500;
+    font-display: block;
+}
+
+@font-face {
+    font-family: 'InterPDF';
+    src: {$fontSemiBoldCssUrl} format('truetype');
+    font-style: normal;
+    font-weight: 600;
+    font-display: block;
+}
+
+@font-face {
+    font-family: 'InterPDF';
+    src: {$fontBoldCssUrl} format('truetype');
+    font-style: normal;
+    font-weight: 700;
+    font-display: block;
+}
+CSS;
+
 $logoUrl =
     $asset(
         'logo'
@@ -211,6 +281,16 @@ $logoUrl =
 $marriageMotifUrl =
     $asset(
         'marriageMotif'
+    );
+
+$headerCornerUrl =
+    $asset(
+        'headerCorner'
+    );
+
+$headerKnotUrl =
+    $asset(
+        'headerKnot'
     );
 
 $summary = implode(
@@ -232,21 +312,14 @@ $summary = implode(
     )
 );
 
-/**
- * Render a list of PDF detail rows.
- *
- * Business data has already been transformed by
- * MemberProfilePdfDataService. The view only renders
- * presentation-ready values.
- *
- * @param array<int,mixed> $rows
- */
 $renderRows =
     static function (
         array $rows
     ) use (
         $icon
     ): void {
+        $index = 0;
+
         foreach ($rows as $row) {
             if (!is_array($row)) {
                 continue;
@@ -279,20 +352,30 @@ $renderRows =
             ) {
                 continue;
             }
+
+            $colour =
+                $index % 2 === 0
+                ? 'purple'
+                : 'red';
+
+            $index++;
 ?>
         <div class="detail-row">
 
             <div class="detail-icon">
 
                 <?php if (
-                    $icon($rowIcon)
-                    !== ''
+                    $icon(
+                        $rowIcon,
+                        $colour
+                    ) !== ''
                 ): ?>
 
                     <img
                         src="<?= esc(
                                     $icon(
-                                        $rowIcon
+                                        $rowIcon,
+                                        $colour
                                     ),
                                     'attr'
                                 ) ?>"
@@ -305,19 +388,15 @@ $renderRows =
             <div class="detail-copy">
 
                 <div class="detail-label">
-
                     <?= esc(
                         $rowLabel
                     ) ?>
-
                 </div>
 
                 <div class="detail-value">
-
                     <?= esc(
                         $rowValue
                     ) ?>
-
                 </div>
 
             </div>
@@ -347,35 +426,7 @@ $renderRows =
             margin: 0;
         }
 
-        @font-face {
-            font-family: 'Inter';
-            src: url('<?= esc($fontRegularUrl, 'attr') ?>') format('truetype');
-            font-style: normal;
-            font-weight: 400;
-        }
-
-        @font-face {
-            font-family: 'Inter';
-            src: url('<?= esc($fontMediumUrl, 'attr') ?>') format('truetype');
-            font-style: normal;
-            font-weight: 500;
-        }
-
-        @font-face {
-            font-family: 'Inter';
-            src: url('<?= esc($fontSemiBoldUrl, 'attr') ?>') format('truetype');
-            font-style: normal;
-            font-weight: 600;
-        }
-
-        @font-face {
-            font-family: 'Inter';
-            src: url('<?= esc($fontBoldUrl, 'attr') ?>') format('truetype');
-            font-style: normal;
-            font-weight: 700;
-        }
-
-        * {
+        <?= $fontFaceCss ?>* {
             box-sizing: border-box;
         }
 
@@ -393,12 +444,12 @@ $renderRows =
 
         body {
             font-family:
-                Inter,
+                'InterPDF',
                 Arial,
                 sans-serif;
 
-            color: #241d28;
-            background: #ffffff;
+            color: #201a23;
+            background: #fff;
         }
 
         .pdf-page {
@@ -411,19 +462,39 @@ $renderRows =
 
             background:
                 linear-gradient(180deg,
-                    #ffffff 0%,
-                    #ffffff 84%,
-                    #fff8fa 100%);
+                    #fff 0%,
+                    #fff 87%,
+                    #fff9fb 100%);
+        }
+
+        .header-corner {
+            position: absolute;
+
+            top: 0;
+            right: 0;
+
+            width: 42mm;
+            height: 42mm;
+
+            opacity: .42;
+
+            z-index: 0;
         }
 
         .pdf-content {
+            position: relative;
+
+            z-index: 1;
+
             padding:
-                6mm 7mm 21mm;
+                5mm 7mm 19mm;
         }
 
-        /* =========================================================
-   HEADER
-   ========================================================= */
+        /*
+         * =====================================================
+         * HEADER
+         * =====================================================
+         */
 
         .pdf-header {
             height: 24mm;
@@ -431,13 +502,10 @@ $renderRows =
             display: flex;
             align-items: center;
             justify-content: space-between;
-
-            border-bottom:
-                .45mm solid <?= $red ?>;
         }
 
         .brand-logo {
-            width: 67mm;
+            width: 72mm;
             height: 18mm;
 
             object-fit: contain;
@@ -445,12 +513,15 @@ $renderRows =
         }
 
         .header-contact {
+            min-width: 54mm;
+
             display: flex;
             flex-direction: column;
 
-            gap: 1.8mm;
+            gap: 1.5mm;
 
-            font-size: 2.45mm;
+            font-size: 2.75mm;
+            font-weight: 500;
         }
 
         .header-contact-row {
@@ -461,59 +532,116 @@ $renderRows =
         }
 
         .header-contact-row img {
-            width: 4.5mm;
-            height: 4.5mm;
+            width: 5mm;
+            height: 5mm;
         }
 
         .header-contact strong {
             color: <?= $red ?>;
+
+            font-size: 3mm;
+            font-weight: 700;
         }
 
         .header-site {
             color: <?= $purple ?>;
+
             font-weight: 600;
         }
 
-        /* =========================================================
-   PROFILE HERO
-   ========================================================= */
+        .header-divider {
+            height: 8mm;
+
+            display: grid;
+
+            grid-template-columns:
+                1fr 18mm 1fr;
+
+            align-items: center;
+
+            gap: 2mm;
+        }
+
+        .header-divider-line {
+            height: .35mm;
+
+            background:
+                linear-gradient(90deg,
+                    <?= $purple ?>,
+                    <?= $red ?>);
+        }
+
+        .header-divider img {
+            width: 18mm;
+            height: 8mm;
+
+            object-fit: contain;
+        }
+
+        /*
+         * =====================================================
+         * PROFILE HERO
+         * =====================================================
+         */
 
         .profile-hero {
             display: grid;
 
             grid-template-columns:
-                46mm 1fr 46mm;
+                58mm minmax(0, 1fr) 51mm;
 
             gap: 5mm;
 
-            margin-top: 5mm;
+            margin-top: 2mm;
         }
 
         .profile-photo {
             position: relative;
 
-            height: 66mm;
+            height: 78mm;
 
-            padding: 1.5mm;
+            padding: 1.8mm;
 
             border:
                 .35mm solid rgba(206,
                     16,
                     44,
-                    .65);
+                    .72);
 
-            border-radius: 3mm;
+            border-radius: 3.5mm;
 
             background: #fff;
         }
 
-        .profile-photo>img {
+        .profile-photo-image {
             width: 100%;
             height: 100%;
 
             object-fit: cover;
+            object-position: center top;
 
-            border-radius: 2.2mm;
+            border-radius: 2.5mm;
+        }
+
+        .profile-photo-empty {
+            width: 100%;
+            height: 100%;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            color: #aa9ead;
+
+            font-size: 2.6mm;
+            font-weight: 500;
+
+            border-radius: 2.5mm;
+
+            background:
+                linear-gradient(145deg,
+                    #faf7fb,
+                    #fff);
         }
 
         .profile-reference {
@@ -524,16 +652,16 @@ $renderRows =
             bottom: 3mm;
 
             padding:
-                2mm 1.5mm;
+                2.3mm 1.5mm;
 
             color: #fff;
 
-            font-size: 2.55mm;
-            font-weight: 600;
+            font-size: 2.8mm;
+            font-weight: 700;
 
             text-align: center;
 
-            border-radius: 1.5mm;
+            border-radius: 1.8mm;
 
             background:
                 linear-gradient(90deg,
@@ -550,34 +678,34 @@ $renderRows =
 
             color: <?= $purple ?>;
 
-            font-size: 6.4mm;
+            font-size: 7.2mm;
             font-weight: 700;
 
-            line-height: 1.12;
+            line-height: 1.08;
         }
 
         .profile-summary {
-            margin-top: 2.5mm;
+            margin-top: 3mm;
 
-            color: #615667;
+            color: #352d39;
 
-            font-size: 2.8mm;
+            font-size: 3.05mm;
             font-weight: 500;
 
             line-height: 1.45;
         }
 
         .profile-divider {
-            height: .3mm;
+            height: .28mm;
 
             margin:
-                4mm 0 2mm;
+                4mm 0 2.5mm;
 
             background:
                 linear-gradient(90deg,
-                    #eadfea,
+                    #e8dce9,
                     <?= $red ?>,
-                    #eadfea);
+                    #e8dce9);
         }
 
         .quick-grid {
@@ -585,78 +713,82 @@ $renderRows =
 
             grid-template-columns:
                 repeat(2,
-                    minmax(0,
-                        1fr));
+                    minmax(0, 1fr));
         }
 
         .quick-item {
-            min-height: 12mm;
+            min-height: 13.5mm;
 
             display: grid;
 
             grid-template-columns:
-                5mm minmax(0,
-                    1fr);
+                6mm minmax(0, 1fr);
 
-            gap: 1.5mm;
+            gap: 1.7mm;
 
             padding:
-                2mm 1mm;
+                2.2mm 1mm;
 
             border-bottom:
                 .2mm solid #eee8f0;
         }
 
         .quick-item img {
-            width: 4.6mm;
-            height: 4.6mm;
+            width: 5.2mm;
+            height: 5.2mm;
         }
 
         .quick-label {
             color: <?= $purple ?>;
 
-            font-size: 1.9mm;
+            font-size: 2.15mm;
             font-weight: 600;
+
+            line-height: 1.2;
         }
 
         .quick-value {
-            margin-top: .5mm;
+            margin-top: .6mm;
 
-            font-size: 2.3mm;
+            color: #211b24;
+
+            font-size: 2.55mm;
             font-weight: 500;
 
-            line-height: 1.25;
+            line-height: 1.3;
         }
 
-        /* =========================================================
-   VERIFIED PROFILE
-   ========================================================= */
+        /*
+         * =====================================================
+         * VERIFIED PROFILE
+         * =====================================================
+         */
 
         .verified-card {
-            height: 66mm;
+            min-height: 78mm;
 
-            padding: 3mm;
+            padding: 3.3mm;
 
             border:
-                .3mm solid #e4dce7;
+                .3mm solid #e1d8e4;
 
-            border-radius: 3mm;
+            border-radius: 3.5mm;
 
             background: #fff;
         }
 
         .verified-heading {
             padding:
-                2.3mm 1mm;
+                2.7mm 1mm;
 
             color: #fff;
 
-            font-size: 2.8mm;
+            font-size: 3mm;
             font-weight: 700;
 
             text-align: center;
 
-            border-radius: 1.5mm;
+            border-radius: 1.8mm;
 
             background:
                 linear-gradient(90deg,
@@ -668,13 +800,12 @@ $renderRows =
             display: grid;
 
             grid-template-columns:
-                5.5mm minmax(0,
-                    1fr);
+                6.5mm minmax(0, 1fr);
 
-            gap: 2mm;
+            gap: 2.2mm;
 
             padding:
-                2.8mm .5mm;
+                3.2mm .5mm;
 
             border-bottom:
                 .2mm solid #ece5ee;
@@ -685,23 +816,28 @@ $renderRows =
         }
 
         .verify-row img {
-            width: 5mm;
-            height: 5mm;
+            width: 6mm;
+            height: 6mm;
         }
 
         .verify-title {
-            color: <?= $purple ?>;
+            color: #211b24;
 
-            font-size: 2.3mm;
+            font-size: 2.65mm;
             font-weight: 600;
+
+            line-height: 1.2;
         }
 
         .verify-value {
-            margin-top: .5mm;
+            margin-top: .7mm;
 
-            color: #665b69;
+            color: #4f4553;
 
-            font-size: 2mm;
+            font-size: 2.35mm;
+            font-weight: 500;
+
+            line-height: 1.3;
 
             overflow-wrap: anywhere;
         }
@@ -710,53 +846,58 @@ $renderRows =
             color: #198754;
         }
 
-        /* =========================================================
-   CARDS
-   ========================================================= */
+        /*
+         * =====================================================
+         * CARDS
+         * =====================================================
+         */
 
         .card-grid {
             display: grid;
 
             grid-template-columns:
                 repeat(3,
-                    minmax(0,
-                        1fr));
+                    minmax(0, 1fr));
 
             gap: 3mm;
 
             margin-top: 4mm;
+
+            align-items: stretch;
         }
 
         .pdf-card {
             overflow: hidden;
 
             border:
-                .28mm solid #e4dce7;
+                .28mm solid #dfd6e2;
 
-            border-radius: 2.5mm;
+            border-radius: 2.8mm;
 
             background: #fff;
         }
 
         .main-card {
-            height: 80mm;
+            min-height: 67mm;
         }
 
         .card-heading {
-            height: 10mm;
+            min-height: 10.5mm;
 
             display: flex;
             align-items: center;
 
-            gap: 2mm;
+            gap: 2.2mm;
 
             padding:
-                0 3mm;
+                1.5mm 3mm;
 
             color: <?= $purple ?>;
 
-            font-size: 2.7mm;
+            font-size: 2.9mm;
             font-weight: 700;
+
+            line-height: 1.2;
 
             border-bottom:
                 .22mm solid #e7e0e9;
@@ -767,26 +908,27 @@ $renderRows =
         }
 
         .card-heading img {
-            width: 5mm;
-            height: 5mm;
+            width: 5.8mm;
+            height: 5.8mm;
+
+            object-fit: contain;
         }
 
         .detail-row {
-            min-height: 10.8mm;
+            min-height: 10mm;
 
             display: grid;
 
             grid-template-columns:
-                5mm minmax(0,
-                    1fr);
+                6mm minmax(0, 1fr);
 
-            gap: 1.8mm;
+            gap: 2mm;
 
             padding:
-                1.8mm 3mm;
+                2mm 3mm;
 
             border-bottom:
-                .2mm solid #f0ebf2;
+                .18mm solid #eee8f0;
         }
 
         .detail-row:last-child {
@@ -794,47 +936,53 @@ $renderRows =
         }
 
         .detail-icon img {
-            width: 4.5mm;
-            height: 4.5mm;
+            width: 5mm;
+            height: 5mm;
+
+            object-fit: contain;
         }
 
         .detail-label {
             color: <?= $purple ?>;
 
-            font-size: 1.8mm;
+            font-size: 2.1mm;
             font-weight: 600;
+
+            line-height: 1.2;
         }
 
         .detail-value {
-            margin-top: .5mm;
+            margin-top: .55mm;
 
-            color: #302833;
+            color: #211b24;
 
-            font-size: 2.2mm;
+            font-size: 2.45mm;
             font-weight: 500;
 
-            line-height: 1.25;
+            line-height: 1.28;
 
             overflow-wrap: anywhere;
         }
 
-        /* =========================================================
-   PREFERENCE + ABOUT
-   ========================================================= */
+        /*
+         * =====================================================
+         * BOTTOM GRID
+         * =====================================================
+         */
 
-        .lower-grid {
+        .bottom-grid {
             display: grid;
 
             grid-template-columns:
-                1.1fr .9fr;
+                1.05fr .95fr;
 
             gap: 3mm;
 
-            margin-top: 3mm;
+            margin-top: 4mm;
         }
 
-        .lower-card {
-            height: 54mm;
+        .bottom-card {
+            min-height: 56mm;
         }
 
         .preference-grid {
@@ -842,21 +990,20 @@ $renderRows =
 
             grid-template-columns:
                 repeat(2,
-                    minmax(0,
-                        1fr));
+                    minmax(0, 1fr));
         }
 
         .preference-grid .detail-row {
-            min-height: 14.5mm;
+            min-height: 13mm;
         }
 
         .about-body {
             position: relative;
 
-            height:
-                calc(54mm - 10mm);
+            min-height: 45mm;
 
-            padding: 3.5mm;
+            padding:
+                3.5mm 4mm 16mm;
 
             overflow: hidden;
         }
@@ -866,35 +1013,39 @@ $renderRows =
 
             z-index: 2;
 
-            color: #403744;
+            margin: 0;
 
-            font-size: 2.35mm;
+            color: #2d2630;
 
-            line-height: 1.5;
+            font-size: 2.65mm;
+            font-weight: 400;
+
+            line-height: 1.48;
+
+            white-space: pre-line;
         }
 
-        .marriage-motif {
+        .about-motif {
             position: absolute;
 
-            left: 6mm;
-            right: 6mm;
-            bottom: 1mm;
+            right: 3mm;
+            bottom: -1mm;
 
-            z-index: 1;
-
-            width:
-                calc(100% - 12mm);
-
-            height: 25mm;
+            width: 46mm;
+            height: 20mm;
 
             object-fit: contain;
 
-            opacity: .25;
+            opacity: .11;
+
+            z-index: 1;
         }
 
-        /* =========================================================
-   FOOTER
-   ========================================================= */
+        /*
+         * =====================================================
+         * FOOTER
+         * =====================================================
+         */
 
         .pdf-footer {
             position: absolute;
@@ -903,43 +1054,53 @@ $renderRows =
             right: 0;
             bottom: 0;
 
-            height: 18mm;
+            height: 17mm;
 
             display: grid;
 
             grid-template-columns:
-                1fr .9fr;
+                1fr 34mm 1fr;
 
             align-items: center;
 
-            gap: 6mm;
-
             padding:
-                0 8mm;
+                2mm 8mm;
 
             color: #fff;
 
             background:
                 linear-gradient(90deg,
                     <?= $purple ?> 0%,
-                    #68134f 50%,
+                    #77114c 52%,
                     <?= $red ?> 100%);
         }
 
-        .footer-privacy {
-            font-size: 2.1mm;
-            line-height: 1.4;
-        }
+        .footer-copy {
+            font-size: 2.25mm;
+            font-weight: 500;
 
-        .footer-brand {
-            text-align: right;
-
-            font-size: 2.2mm;
             line-height: 1.45;
         }
 
-        .footer-brand strong {
-            color: #ffd86a;
+        .footer-copy.right {
+            text-align: right;
+        }
+
+        .footer-copy strong {
+            color: #ffd65a;
+        }
+
+        .footer-mark {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .footer-mark img {
+            width: 23mm;
+            height: 11mm;
+
+            object-fit: contain;
         }
     </style>
 
@@ -949,67 +1110,111 @@ $renderRows =
 
     <div class="pdf-page">
 
+        <?php if (
+            $headerCornerUrl !== ''
+        ): ?>
+
+            <img
+                class="header-corner"
+                src="<?= esc(
+                            $headerCornerUrl,
+                            'attr'
+                        ) ?>"
+                alt="">
+
+        <?php endif; ?>
+
         <div class="pdf-content">
 
             <header class="pdf-header">
 
-                <img
-                    class="brand-logo"
-                    src="<?= esc(
-                                $logoUrl,
-                                'attr'
-                            ) ?>"
-                    alt="SikhAnandKaraj">
+                <div>
+
+                    <?php if (
+                        $logoUrl !== ''
+                    ): ?>
+
+                        <img
+                            class="brand-logo"
+                            src="<?= esc(
+                                        $logoUrl,
+                                        'attr'
+                                    ) ?>"
+                            alt="SikhAnandKaraj">
+
+                    <?php endif; ?>
+
+                </div>
 
                 <div class="header-contact">
 
-                    <?php if (
-                        $config
-                        ->supportPhone
-                        !== ''
-                    ): ?>
+                    <div class="header-contact-row">
 
-                        <div class="header-contact-row">
+                        <?php if (
+                            $icon(
+                                'phone',
+                                'purple'
+                            ) !== ''
+                        ): ?>
 
                             <img
                                 src="<?= esc(
                                             $icon(
-                                                'phone'
+                                                'phone',
+                                                'purple'
                                             ),
                                             'attr'
                                         ) ?>"
                                 alt="">
 
-                            <div>
-                                24x7 Help &amp; Support
-                                <br>
+                        <?php endif; ?>
 
-                                <strong>
-                                    <?= esc(
+                        <div>
+                            24x7 Help &amp; Support<br>
+
+                            <strong>
+                                <?= esc(
+                                    (string) (
                                         $config
-                                            ->supportPhone
-                                    ) ?>
-                                </strong>
-                            </div>
-
+                                        ->supportPhone
+                                        ?? ''
+                                    )
+                                ) ?>
+                            </strong>
                         </div>
 
-                    <?php endif; ?>
+                    </div>
 
                     <div class="header-contact-row">
 
-                        <img
-                            src="<?= esc(
-                                        $icon(
-                                            'location'
-                                        ),
-                                        'attr'
-                                    ) ?>"
-                            alt="">
+                        <?php if (
+                            $icon(
+                                'location',
+                                'purple'
+                            ) !== ''
+                        ): ?>
 
-                        <span class="header-site">
-                            sikhanandkaraj.com
-                        </span>
+                            <img
+                                src="<?= esc(
+                                            $icon(
+                                                'location',
+                                                'purple'
+                                            ),
+                                            'attr'
+                                        ) ?>"
+                                alt="">
+
+                        <?php endif; ?>
+
+                        <div class="header-site">
+                            <?= esc(
+                                (string) (
+                                    $config
+                                    ->website
+                                    ?? 'sikhanandkaraj.com'
+                                )
+                            ) ?>
+                        </div>
 
                     </div>
 
@@ -1017,6 +1222,26 @@ $renderRows =
 
             </header>
 
+            <div class="header-divider">
+
+                <div class="header-divider-line"></div>
+
+                <?php if (
+                    $headerKnotUrl !== ''
+                ): ?>
+
+                    <img
+                        src="<?= esc(
+                                    $headerKnotUrl,
+                                    'attr'
+                                ) ?>"
+                        alt="">
+
+                <?php endif; ?>
+
+                <div class="header-divider-line"></div>
+
+            </div>
 
             <section class="profile-hero">
 
@@ -1027,6 +1252,7 @@ $renderRows =
                     ): ?>
 
                         <img
+                            class="profile-photo-image"
                             src="<?= esc(
                                         $thumbnail,
                                         'attr'
@@ -1036,17 +1262,30 @@ $renderRows =
                                         'attr'
                                     ) ?>">
 
+                    <?php else: ?>
+
+                        <div class="profile-photo-empty">
+                            Profile photo
+                        </div>
+
                     <?php endif; ?>
 
-                    <div class="profile-reference">
-                        Profile ID:
-                        <?= esc(
-                            $profileReference
-                        ) ?>
-                    </div>
+                    <?php if (
+                        $profileReference !== ''
+                    ): ?>
+
+                        <div class="profile-reference">
+
+                            Profile ID:
+                            <?= esc(
+                                $profileReference
+                            ) ?>
+
+                        </div>
+
+                    <?php endif; ?>
 
                 </div>
-
 
                 <div class="profile-identity">
 
@@ -1056,47 +1295,105 @@ $renderRows =
                         ) ?>
                     </h1>
 
-                    <div class="profile-summary">
-                        <?= esc(
-                            $summary
-                        ) ?>
-                    </div>
+                    <?php if (
+                        $summary !== ''
+                    ): ?>
+
+                        <div class="profile-summary">
+                            <?= esc(
+                                $summary
+                            ) ?>
+                        </div>
+
+                    <?php endif; ?>
 
                     <div class="profile-divider"></div>
 
                     <div class="quick-grid">
 
-                        <?php foreach (
-                            array_slice(
-                                $quickDetails,
-                                0,
-                                6
-                            )
-                            as $item
-                        ): ?>
+                        <?php
+                        $quickIndex = 0;
+
+                        foreach (
+                            $quickDetails
+                            as $detail
+                        ):
+                            if (!is_array($detail)) {
+                                continue;
+                            }
+
+                            $label = trim(
+                                (string) (
+                                    $detail['label']
+                                    ?? ''
+                                )
+                            );
+
+                            $value = trim(
+                                (string) (
+                                    $detail['value']
+                                    ?? ''
+                                )
+                            );
+
+                            $iconName = trim(
+                                (string) (
+                                    $detail['icon']
+                                    ?? 'user'
+                                )
+                            );
+
+                            if (
+                                $label === ''
+                                || $value === ''
+                            ) {
+                                continue;
+                            }
+
+                            $quickColour =
+                                $quickIndex % 2 === 0
+                                ? 'red'
+                                : 'purple';
+
+                            $quickIndex++;
+                        ?>
 
                             <div class="quick-item">
 
-                                <img
-                                    src="<?= esc(
-                                                $icon(
-                                                    $item['icon']
-                                                ),
-                                                'attr'
-                                            ) ?>"
-                                    alt="">
+                                <div>
+
+                                    <?php if (
+                                        $icon(
+                                            $iconName,
+                                            $quickColour
+                                        ) !== ''
+                                    ): ?>
+
+                                        <img
+                                            src="<?= esc(
+                                                        $icon(
+                                                            $iconName,
+                                                            $quickColour
+                                                        ),
+                                                        'attr'
+                                                    ) ?>"
+                                            alt="">
+
+                                    <?php endif; ?>
+
+                                </div>
 
                                 <div>
 
                                     <div class="quick-label">
                                         <?= esc(
-                                            $item['label']
+                                            $label
                                         ) ?>
                                     </div>
 
                                     <div class="quick-value">
                                         <?= esc(
-                                            $item['value']
+                                            $value
                                         ) ?>
                                     </div>
 
@@ -1110,7 +1407,6 @@ $renderRows =
 
                 </div>
 
-
                 <aside class="verified-card">
 
                     <div class="verified-heading">
@@ -1123,14 +1419,28 @@ $renderRows =
 
                         <div class="verify-row">
 
-                            <img
-                                src="<?= esc(
-                                            $icon(
-                                                'shield-check'
-                                            ),
-                                            'attr'
-                                        ) ?>"
-                                alt="">
+                            <div>
+
+                                <?php if (
+                                    $icon(
+                                        'shield-check',
+                                        'purple'
+                                    ) !== ''
+                                ): ?>
+
+                                    <img
+                                        src="<?= esc(
+                                                    $icon(
+                                                        'shield-check',
+                                                        'purple'
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
+                                        alt="">
+
+                                <?php endif; ?>
+
+                            </div>
 
                             <div>
 
@@ -1138,18 +1448,23 @@ $renderRows =
                                     Phone Verified
                                 </div>
 
-                                <div class="verify-value">
-                                    <?= esc(
-                                        $maskedMobile
-                                    ) ?>
-                                </div>
+                                <?php if (
+                                    $maskedMobile !== ''
+                                ): ?>
+
+                                    <div class="verify-value">
+                                        <?= esc(
+                                            $maskedMobile
+                                        ) ?>
+                                    </div>
+
+                                <?php endif; ?>
 
                             </div>
 
                         </div>
 
                     <?php endif; ?>
-
 
                     <?php if (
                         $isEmailVerified
@@ -1157,14 +1472,28 @@ $renderRows =
 
                         <div class="verify-row">
 
-                            <img
-                                src="<?= esc(
-                                            $icon(
-                                                'shield-check'
-                                            ),
-                                            'attr'
-                                        ) ?>"
-                                alt="">
+                            <div>
+
+                                <?php if (
+                                    $icon(
+                                        'shield-check',
+                                        'purple'
+                                    ) !== ''
+                                ): ?>
+
+                                    <img
+                                        src="<?= esc(
+                                                    $icon(
+                                                        'shield-check',
+                                                        'purple'
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
+                                        alt="">
+
+                                <?php endif; ?>
+
+                            </div>
 
                             <div>
 
@@ -1172,18 +1501,23 @@ $renderRows =
                                     Email Verified
                                 </div>
 
-                                <div class="verify-value">
-                                    <?= esc(
-                                        $maskedEmail
-                                    ) ?>
-                                </div>
+                                <?php if (
+                                    $maskedEmail !== ''
+                                ): ?>
+
+                                    <div class="verify-value">
+                                        <?= esc(
+                                            $maskedEmail
+                                        ) ?>
+                                    </div>
+
+                                <?php endif; ?>
 
                             </div>
 
                         </div>
 
                     <?php endif; ?>
-
 
                     <?php if (
                         $isAadhaarVerified
@@ -1191,14 +1525,28 @@ $renderRows =
 
                         <div class="verify-row">
 
-                            <img
-                                src="<?= esc(
-                                            $icon(
-                                                'shield-check'
-                                            ),
-                                            'attr'
-                                        ) ?>"
-                                alt="">
+                            <div>
+
+                                <?php if (
+                                    $icon(
+                                        'shield-check',
+                                        'purple'
+                                    ) !== ''
+                                ): ?>
+
+                                    <img
+                                        src="<?= esc(
+                                                    $icon(
+                                                        'shield-check',
+                                                        'purple'
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
+                                        alt="">
+
+                                <?php endif; ?>
+
+                            </div>
 
                             <div>
 
@@ -1206,13 +1554,8 @@ $renderRows =
                                     Aadhaar Verified
                                 </div>
 
-                                <div
-                                    class="
-                            verify-value
-                            verify-success">
-
-                                    Identity verified
-
+                                <div class="verify-value">
+                                    Verified
                                 </div>
 
                             </div>
@@ -1221,21 +1564,34 @@ $renderRows =
 
                     <?php endif; ?>
 
-
                     <?php if (
                         $hasVideoIntroduction
                     ): ?>
 
                         <div class="verify-row">
 
-                            <img
-                                src="<?= esc(
-                                            $icon(
-                                                'video'
-                                            ),
-                                            'attr'
-                                        ) ?>"
-                                alt="">
+                            <div>
+
+                                <?php if (
+                                    $icon(
+                                        'video',
+                                        'red'
+                                    ) !== ''
+                                ): ?>
+
+                                    <img
+                                        src="<?= esc(
+                                                    $icon(
+                                                        'video',
+                                                        'red'
+                                                    ),
+                                                    'attr'
+                                                ) ?>"
+                                        alt="">
+
+                                <?php endif; ?>
+
+                            </div>
 
                             <div>
 
@@ -1244,12 +1600,8 @@ $renderRows =
                                 </div>
 
                                 <div
-                                    class="
-                            verify-value
-                            verify-success">
-
+                                    class="verify-value verify-success">
                                     Available
-
                                 </div>
 
                             </div>
@@ -1262,24 +1614,30 @@ $renderRows =
 
             </section>
 
-
             <section class="card-grid">
 
-                <article
-                    class="
-            pdf-card
-            main-card">
+                <article class="pdf-card main-card">
 
                     <div class="card-heading">
 
-                        <img
-                            src="<?= esc(
-                                        $icon(
-                                            'education'
-                                        ),
-                                        'attr'
-                                    ) ?>"
-                            alt="">
+                        <?php if (
+                            $icon(
+                                'education',
+                                'purple'
+                            ) !== ''
+                        ): ?>
+
+                            <img
+                                src="<?= esc(
+                                            $icon(
+                                                'education',
+                                                'purple'
+                                            ),
+                                            'attr'
+                                        ) ?>"
+                                alt="">
+
+                        <?php endif; ?>
 
                         EDUCATION &amp; CAREER
 
@@ -1293,25 +1651,28 @@ $renderRows =
 
                 </article>
 
+                <article class="pdf-card main-card">
 
-                <article
-                    class="
-            pdf-card
-            main-card">
+                    <div class="card-heading red">
 
-                    <div
-                        class="
-                card-heading
-                red">
+                        <?php if (
+                            $icon(
+                                'family',
+                                'red'
+                            ) !== ''
+                        ): ?>
 
-                        <img
-                            src="<?= esc(
-                                        $icon(
-                                            'family'
-                                        ),
-                                        'attr'
-                                    ) ?>"
-                            alt="">
+                            <img
+                                src="<?= esc(
+                                            $icon(
+                                                'family',
+                                                'red'
+                                            ),
+                                            'attr'
+                                        ) ?>"
+                                alt="">
+
+                        <?php endif; ?>
 
                         FAMILY DETAILS
 
@@ -1319,28 +1680,34 @@ $renderRows =
 
                     <?php
                     $renderRows(
-                        $familyRows
+                        $educationRows
                     );
                     ?>
 
                 </article>
 
-
-                <article
-                    class="
-            pdf-card
-            main-card">
+                <article class="pdf-card main-card">
 
                     <div class="card-heading">
 
-                        <img
-                            src="<?= esc(
-                                        $icon(
-                                            'heart'
-                                        ),
-                                        'attr'
-                                    ) ?>"
-                            alt="">
+                        <?php if (
+                            $icon(
+                                'heart',
+                                'purple'
+                            ) !== ''
+                        ): ?>
+
+                            <img
+                                src="<?= esc(
+                                            $icon(
+                                                'heart',
+                                                'purple'
+                                            ),
+                                            'attr'
+                                        ) ?>"
+                                alt="">
+
+                        <?php endif; ?>
 
                         LIFESTYLE DETAILS
 
@@ -1348,7 +1715,7 @@ $renderRows =
 
                     <?php
                     $renderRows(
-                        $lifestyleRows
+                        $educationRows
                     );
                     ?>
 
@@ -1356,27 +1723,30 @@ $renderRows =
 
             </section>
 
+            <section class="bottom-grid">
 
-            <section class="lower-grid">
+                <article class="pdf-card bottom-card">
 
-                <article
-                    class="
-            pdf-card
-            lower-card">
+                    <div class="card-heading red">
 
-                    <div
-                        class="
-                card-heading
-                red">
+                        <?php if (
+                            $icon(
+                                'heart',
+                                'red'
+                            ) !== ''
+                        ): ?>
 
-                        <img
-                            src="<?= esc(
-                                        $icon(
-                                            'preference'
-                                        ),
-                                        'attr'
-                                    ) ?>"
-                            alt="">
+                            <img
+                                src="<?= esc(
+                                            $icon(
+                                                'heart',
+                                                'red'
+                                            ),
+                                            'attr'
+                                        ) ?>"
+                                alt="">
+
+                        <?php endif; ?>
 
                         PREFERENCES
 
@@ -1386,7 +1756,7 @@ $renderRows =
 
                         <?php
                         $renderRows(
-                            $preferences
+                            $educationRows
                         );
                         ?>
 
@@ -1394,22 +1764,28 @@ $renderRows =
 
                 </article>
 
-
-                <article
-                    class="
-            pdf-card
-            lower-card">
+                <article class="pdf-card bottom-card">
 
                     <div class="card-heading">
 
-                        <img
-                            src="<?= esc(
-                                        $icon(
-                                            'user'
-                                        ),
-                                        'attr'
-                                    ) ?>"
-                            alt="">
+                        <?php if (
+                            $icon(
+                                'user',
+                                'purple'
+                            ) !== ''
+                        ): ?>
+
+                            <img
+                                src="<?= esc(
+                                            $icon(
+                                                'user',
+                                                'purple'
+                                            ),
+                                            'attr'
+                                        ) ?>"
+                                alt="">
+
+                        <?php endif; ?>
 
                         ABOUT ME
 
@@ -1417,28 +1793,29 @@ $renderRows =
 
                     <div class="about-body">
 
-                        <div class="about-copy">
-
-                            <?= nl2br(
-                                esc(
-                                    $aboutMe !== ''
-                                        ? $aboutMe
-                                        : (
-                                            'About me information '
-                                            . 'has not been added.'
-                                        )
+                        <p class="about-copy">
+                            <?=
+                            $aboutMe !== ''
+                                ? esc(
+                                    $aboutMe
                                 )
-                            ) ?>
+                                : 'About me information has not been added.'
+                            ?>
+                        </p>
 
-                        </div>
+                        <?php if (
+                            $marriageMotifUrl !== ''
+                        ): ?>
 
-                        <img
-                            class="marriage-motif"
-                            src="<?= esc(
-                                        $marriageMotifUrl,
-                                        'attr'
-                                    ) ?>"
-                            alt="">
+                            <img
+                                class="about-motif"
+                                src="<?= esc(
+                                            $marriageMotifUrl,
+                                            'attr'
+                                        ) ?>"
+                                alt="">
+
+                        <?php endif; ?>
 
                     </div>
 
@@ -1448,43 +1825,56 @@ $renderRows =
 
         </div>
 
-
         <footer class="pdf-footer">
 
-            <div class="footer-privacy">
+            <div class="footer-copy">
 
-                Your privacy is important to us.
-                <br>
+                Your privacy is important to us.<br>
 
-                Contact and identity information
-                is protected in this profile PDF.
+                Contact and identity information is protected
+                in this profile PDF.
 
             </div>
 
-            <div class="footer-brand">
-
-                SikhAnandKaraj Matrimonial Services
-                <br>
-
-                <strong>
-                    sikhanandkaraj.com
-                </strong>
+            <div class="footer-mark">
 
                 <?php if (
-                    $config
-                    ->supportPhone
-                    !== ''
+                    $headerKnotUrl !== ''
                 ): ?>
 
-                    <br>
-
-                    24x7 Help:
-                    <?= esc(
-                        $config
-                            ->supportPhone
-                    ) ?>
+                    <img
+                        src="<?= esc(
+                                    $headerKnotUrl,
+                                    'attr'
+                                ) ?>"
+                        alt="">
 
                 <?php endif; ?>
+
+            </div>
+
+            <div class="footer-copy right">
+
+                SikhAnandKaraj Matrimonial Services<br>
+
+                <?= esc(
+                    (string) (
+                        $config
+                        ->website
+                        ?? 'sikhanandkaraj.com'
+                    )
+                ) ?><br>
+
+                24x7 Help:
+                <strong>
+                    <?= esc(
+                        (string) (
+                            $config
+                            ->supportPhone
+                            ?? ''
+                        )
+                    ) ?>
+                </strong>
 
             </div>
 

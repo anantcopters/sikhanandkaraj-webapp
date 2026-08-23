@@ -4037,10 +4037,10 @@ $this->section('content');
 
             <div class="modal-content">
 
-                <div class="modal-header">
+                <div class="modal-header ">
 
                     <h5
-                        class="modal-title"
+                        class="modal-title text-center"
                         id="profilePdfModalLabel">
 
                         Creating Profile PDF

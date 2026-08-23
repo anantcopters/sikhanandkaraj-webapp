@@ -5,16 +5,21 @@ declare(strict_types=1);
 namespace App\Services\Profile;
 
 use RuntimeException;
+use Throwable;
 
 final class MemberProfilePdfAssetService
 {
     private const ICON_DIRECTORY =
     'assets/images/profile-pdf/icons/';
 
+    private const PURPLE =
+    '#310a57';
+
+    private const RED =
+    '#ce102c';
+
     /**
-     * Return common embedded PDF assets.
-     *
-     * @return array<string, string>
+     * @return array<string,string>
      */
     public function commonAssets(): array
     {
@@ -60,14 +65,28 @@ final class MemberProfilePdfAssetService
                     . 'assets/fonts/inter/'
                     . 'Inter-Bold.ttf'
             ),
+
+            /*
+             * Decorative background is deliberately generated
+             * locally. No external URL is exposed to Chrome.
+             */
+            'headerCorner' =>
+            $this->dataUri(
+                'image/svg+xml',
+                $this->headerCornerSvg()
+            ),
+
+            'headerKnot' =>
+            $this->dataUri(
+                'image/svg+xml',
+                $this->headerKnotSvg()
+            ),
         ];
     }
 
-    /**
-     * Return one embedded SVG icon.
-     */
     public function icon(
-        string $name
+        string $name,
+        string $colour = 'purple'
     ): string {
         $safeName = preg_replace(
             '/[^a-z0-9-]/',
@@ -81,20 +100,80 @@ final class MemberProfilePdfAssetService
             return '';
         }
 
-        return $this->optionalDataUri(
+        $path =
             FCPATH
-                . self::ICON_DIRECTORY
-                . $safeName
-                . '.svg'
+            . self::ICON_DIRECTORY
+            . $safeName
+            . '.svg';
+
+        if (
+            !is_file($path)
+            || !is_readable($path)
+        ) {
+            return '';
+        }
+
+        $svg =
+            file_get_contents(
+                $path
+            );
+
+        if (
+            $svg === false
+            || trim($svg) === ''
+        ) {
+            return '';
+        }
+
+        $brandColour =
+            strtolower($colour)
+            === 'red'
+            ? self::RED
+            : self::PURPLE;
+
+        /*
+         * Existing PDF SVGs currently contain their own
+         * black/current stroke values. Recolour the SVG before
+         * embedding it rather than maintaining duplicate icons.
+         */
+        $svg = preg_replace(
+            '/stroke="(?:#000000|#000|black|currentColor)"/i',
+            'stroke="' . $brandColour . '"',
+            $svg
+        ) ?? $svg;
+
+        $svg = preg_replace(
+            '/fill="(?:#000000|#000|black|currentColor)"/i',
+            'fill="' . $brandColour . '"',
+            $svg
+        ) ?? $svg;
+
+        /*
+         * Some icons rely on inherited CSS/currentColor.
+         */
+        $svg = str_replace(
+            [
+                'stroke="currentColor"',
+                'fill="currentColor"',
+            ],
+            [
+                'stroke="' . $brandColour . '"',
+                'fill="' . $brandColour . '"',
+            ],
+            $svg
+        );
+
+        return $this->dataUri(
+            'image/svg+xml',
+            $svg
         );
     }
 
     /**
-     * Convert a remote, already-authorized member thumbnail
-     * into an embedded image.
+     * Convert the already-authorized member thumbnail into
+     * an embedded data URI.
      *
-     * The CloudFront URL therefore never appears in the HTML
-     * passed to Chrome.
+     * The signed CloudFront URL never reaches Pdf.php.
      */
     public function remoteImage(
         string $url
@@ -102,70 +181,132 @@ final class MemberProfilePdfAssetService
         $url = trim($url);
 
         if ($url === '') {
+            log_message(
+                'warning',
+                'Profile PDF thumbnail URL is empty.'
+            );
+
             return '';
         }
 
         try {
-            $response = service(
-                'curlrequest'
-            )->get(
-                $url,
-                [
-                    'timeout' => 10,
-                    'http_errors' => false,
-                ]
-            );
+            $response =
+                service(
+                    'curlrequest'
+                )->get(
+                    $url,
+                    [
+                        'timeout' => 15,
+                        'connect_timeout' => 5,
+                        'http_errors' => false,
+                        'allow_redirects' => true,
+                        'headers' => [
+                            'Accept' =>
+                            'image/avif,image/webp,image/png,image/jpeg,image/*,*/*;q=0.8',
+                        ],
+                    ]
+                );
+
+            $status =
+                $response
+                ->getStatusCode();
 
             if (
-                $response->getStatusCode()
-                !== 200
+                $status < 200
+                || $status >= 300
             ) {
+                log_message(
+                    'warning',
+                    'Profile PDF thumbnail download failed. HTTP status: {status}',
+                    [
+                        'status' =>
+                        $status,
+                    ]
+                );
+
                 return '';
             }
 
             $body =
-                $response->getBody();
+                $response
+                ->getBody();
 
             if ($body === '') {
+                log_message(
+                    'warning',
+                    'Profile PDF thumbnail download returned an empty body.'
+                );
+
                 return '';
             }
 
-            $contentType = trim(
-                explode(
-                    ';',
-                    $response->getHeaderLine(
-                        'Content-Type'
-                    )
-                )[0]
+            $contentType = strtolower(
+                trim(
+                    explode(
+                        ';',
+                        $response
+                            ->getHeaderLine(
+                                'Content-Type'
+                            )
+                    )[0]
+                )
             );
+
+            $allowedTypes = [
+                'image/jpeg',
+                'image/jpg',
+                'image/png',
+                'image/webp',
+            ];
 
             if (
                 !in_array(
                     $contentType,
-                    [
-                        'image/jpeg',
-                        'image/png',
-                        'image/webp',
-                    ],
+                    $allowedTypes,
                     true
                 )
             ) {
-                return '';
+                /*
+                 * CloudFront/S3 can occasionally return the
+                 * generic binary MIME type for an image.
+                 *
+                 * Determine the real image type from bytes.
+                 */
+                $detectedType =
+                    $this->detectImageMime(
+                        $body
+                    );
+
+                if ($detectedType === '') {
+                    log_message(
+                        'warning',
+                        'Profile PDF thumbnail has unsupported MIME type: {type}',
+                        [
+                            'type' =>
+                            $contentType,
+                        ]
+                    );
+
+                    return '';
+                }
+
+                $contentType =
+                    $detectedType;
             }
 
-            return 'data:'
-                . $contentType
-                . ';base64,'
-                . base64_encode(
-                    $body
-                );
-        } catch (\Throwable $exception) {
+            return $this->dataUri(
+                $contentType,
+                $body,
+                true
+            );
+        } catch (Throwable $exception) {
             log_message(
                 'warning',
                 'Profile PDF thumbnail embedding failed: {message}',
                 [
                     'message' =>
-                    $exception->getMessage(),
+                    $exception
+                        ->getMessage(),
                 ]
             );
 
@@ -242,11 +383,123 @@ final class MemberProfilePdfAssetService
             return '';
         }
 
+        return $this->dataUri(
+            $mimeType,
+            $contents,
+            true
+        );
+    }
+
+    private function dataUri(
+        string $mimeType,
+        string $contents,
+        bool $base64 = false
+    ): string {
+        if ($base64) {
+            return 'data:'
+                . $mimeType
+                . ';base64,'
+                . base64_encode(
+                    $contents
+                );
+        }
+
         return 'data:'
             . $mimeType
             . ';base64,'
             . base64_encode(
                 $contents
             );
+    }
+
+    private function detectImageMime(
+        string $contents
+    ): string {
+        if (
+            strlen($contents) >= 3
+            && substr(
+                $contents,
+                0,
+                3
+            ) === "\xFF\xD8\xFF"
+        ) {
+            return 'image/jpeg';
+        }
+
+        if (
+            strlen($contents) >= 8
+            && substr(
+                $contents,
+                0,
+                8
+            ) === "\x89PNG\r\n\x1A\n"
+        ) {
+            return 'image/png';
+        }
+
+        if (
+            strlen($contents) >= 12
+            && substr(
+                $contents,
+                0,
+                4
+            ) === 'RIFF'
+            && substr(
+                $contents,
+                8,
+                4
+            ) === 'WEBP'
+        ) {
+            return 'image/webp';
+        }
+
+        return '';
+    }
+
+    private function headerCornerSvg(): string
+    {
+        return <<<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="260"
+     height="260"
+     viewBox="0 0 260 260">
+    <g fill="none"
+       stroke="#ce102c"
+       stroke-width="3"
+       opacity=".28">
+        <circle cx="225" cy="25" r="46"/>
+        <circle cx="225" cy="25" r="65"/>
+        <circle cx="225" cy="25" r="84"/>
+        <path d="M142 0 C160 48 208 82 260 88"/>
+        <path d="M165 0 C178 38 218 62 260 66"/>
+        <path d="M260 112 C215 116 180 146 170 190"/>
+        <path d="M260 136 C226 139 201 162 195 198"/>
+        <path d="M211 0 C213 30 232 49 260 52"/>
+        <path d="M260 170 C236 171 219 188 217 214"/>
+    </g>
+</svg>
+SVG;
+    }
+
+    private function headerKnotSvg(): string
+    {
+        return <<<'SVG'
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="120"
+     height="58"
+     viewBox="0 0 120 58">
+    <g fill="none"
+       stroke-linecap="round"
+       stroke-linejoin="round"
+       stroke-width="6">
+        <path
+            stroke="#310a57"
+            d="M58 28 C42 7 23 7 23 20 C23 34 43 40 59 50 C74 40 96 34 96 20 C96 7 76 7 61 28"/>
+        <path
+            stroke="#ce102c"
+            d="M60 28 C75 7 95 7 95 20 C95 34 74 40 59 50 C43 40 23 34 23 20 C23 7 43 7 58 28"/>
+    </g>
+</svg>
+SVG;
     }
 }
