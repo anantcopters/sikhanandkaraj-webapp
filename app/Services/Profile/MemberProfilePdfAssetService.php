@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Profile;
 
+use App\Services\Aws\S3Service;
+
 use RuntimeException;
 use Throwable;
 
@@ -17,6 +19,10 @@ final class MemberProfilePdfAssetService
 
     private const RED =
     '#ce102c';
+
+    public function __construct(
+        private readonly S3Service $s3Service
+    ) {}
 
     /**
      * @return array<string,string>
@@ -170,71 +176,40 @@ final class MemberProfilePdfAssetService
     }
 
     /**
-     * Convert the already-authorized member thumbnail into
+     * Convert an already-authorized private S3 image into
      * an embedded data URI.
      *
-     * The signed CloudFront URL never reaches Pdf.php.
+     * No S3 object key, S3 URL or CloudFront URL reaches
+     * the PDF view or Chromium.
      */
-    public function remoteImage(
-        string $url
+    public function storedImage(
+        string $objectKey
     ): string {
-        $url = trim($url);
+        $objectKey = ltrim(
+            trim($objectKey),
+            '/'
+        );
 
-        if ($url === '') {
-            log_message(
-                'warning',
-                'Profile PDF thumbnail URL is empty.'
-            );
-
+        if ($objectKey === '') {
             return '';
         }
 
         try {
-            $response =
-                service(
-                    'curlrequest'
-                )->get(
-                    $url,
-                    [
-                        'timeout' => 15,
-                        'connect_timeout' => 5,
-                        'http_errors' => false,
-                        'allow_redirects' => true,
-                        'headers' => [
-                            'Accept' =>
-                            'image/avif,image/webp,image/png,image/jpeg,image/*,*/*;q=0.8',
-                        ],
-                    ]
+            $object =
+                $this->s3Service
+                ->read(
+                    $objectKey
                 );
 
-            $status =
-                $response
-                ->getStatusCode();
-
-            if (
-                $status < 200
-                || $status >= 300
-            ) {
-                log_message(
-                    'warning',
-                    'Profile PDF thumbnail download failed. HTTP status: {status}',
-                    [
-                        'status' =>
-                        $status,
-                    ]
-                );
-
-                return '';
-            }
-
-            $body =
-                $response
-                ->getBody();
+            $body = (string) (
+                $object['body']
+                ?? ''
+            );
 
             if ($body === '') {
                 log_message(
                     'warning',
-                    'Profile PDF thumbnail download returned an empty body.'
+                    'Profile PDF S3 thumbnail returned an empty body.'
                 );
 
                 return '';
@@ -242,13 +217,10 @@ final class MemberProfilePdfAssetService
 
             $contentType = strtolower(
                 trim(
-                    explode(
-                        ';',
-                        $response
-                            ->getHeaderLine(
-                                'Content-Type'
-                            )
-                    )[0]
+                    (string) (
+                        $object['contentType']
+                        ?? ''
+                    )
                 )
             );
 
@@ -267,11 +239,12 @@ final class MemberProfilePdfAssetService
                 )
             ) {
                 /*
-                 * CloudFront/S3 can occasionally return the
-                 * generic binary MIME type for an image.
-                 *
-                 * Determine the real image type from bytes.
-                 */
+             * Older S3 objects may contain a generic
+             * application/octet-stream content type.
+             *
+             * Detect the actual image type from the bytes
+             * instead of rejecting a valid image.
+             */
                 $detectedType =
                     $this->detectImageMime(
                         $body
@@ -280,7 +253,7 @@ final class MemberProfilePdfAssetService
                 if ($detectedType === '') {
                     log_message(
                         'warning',
-                        'Profile PDF thumbnail has unsupported MIME type: {type}',
+                        'Profile PDF S3 thumbnail has unsupported MIME type: {type}',
                         [
                             'type' =>
                             $contentType,
@@ -302,7 +275,7 @@ final class MemberProfilePdfAssetService
         } catch (Throwable $exception) {
             log_message(
                 'warning',
-                'Profile PDF thumbnail embedding failed: {message}',
+                'Profile PDF S3 thumbnail embedding failed: {message}',
                 [
                     'message' =>
                     $exception
@@ -459,47 +432,47 @@ final class MemberProfilePdfAssetService
     private function headerCornerSvg(): string
     {
         return <<<'SVG'
-<svg xmlns="http://www.w3.org/2000/svg"
-     width="260"
-     height="260"
-     viewBox="0 0 260 260">
-    <g fill="none"
-       stroke="#ce102c"
-       stroke-width="3"
-       opacity=".28">
-        <circle cx="225" cy="25" r="46"/>
-        <circle cx="225" cy="25" r="65"/>
-        <circle cx="225" cy="25" r="84"/>
-        <path d="M142 0 C160 48 208 82 260 88"/>
-        <path d="M165 0 C178 38 218 62 260 66"/>
-        <path d="M260 112 C215 116 180 146 170 190"/>
-        <path d="M260 136 C226 139 201 162 195 198"/>
-        <path d="M211 0 C213 30 232 49 260 52"/>
-        <path d="M260 170 C236 171 219 188 217 214"/>
-    </g>
-</svg>
-SVG;
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        width="260"
+                        height="260"
+                        viewBox="0 0 260 260">
+                        <g fill="none"
+                        stroke="#ce102c"
+                        stroke-width="3"
+                        opacity=".28">
+                            <circle cx="225" cy="25" r="46"/>
+                            <circle cx="225" cy="25" r="65"/>
+                            <circle cx="225" cy="25" r="84"/>
+                            <path d="M142 0 C160 48 208 82 260 88"/>
+                            <path d="M165 0 C178 38 218 62 260 66"/>
+                            <path d="M260 112 C215 116 180 146 170 190"/>
+                            <path d="M260 136 C226 139 201 162 195 198"/>
+                            <path d="M211 0 C213 30 232 49 260 52"/>
+                            <path d="M260 170 C236 171 219 188 217 214"/>
+                        </g>
+                    </svg>
+                    SVG;
     }
 
     private function headerKnotSvg(): string
     {
         return <<<'SVG'
-<svg xmlns="http://www.w3.org/2000/svg"
-     width="120"
-     height="58"
-     viewBox="0 0 120 58">
-    <g fill="none"
-       stroke-linecap="round"
-       stroke-linejoin="round"
-       stroke-width="6">
-        <path
-            stroke="#310a57"
-            d="M58 28 C42 7 23 7 23 20 C23 34 43 40 59 50 C74 40 96 34 96 20 C96 7 76 7 61 28"/>
-        <path
-            stroke="#ce102c"
-            d="M60 28 C75 7 95 7 95 20 C95 34 74 40 59 50 C43 40 23 34 23 20 C23 7 43 7 58 28"/>
-    </g>
-</svg>
-SVG;
+                    <svg xmlns="http://www.w3.org/2000/svg"
+                        width="120"
+                        height="58"
+                        viewBox="0 0 120 58">
+                        <g fill="none"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="6">
+                            <path
+                                stroke="#310a57"
+                                d="M58 28 C42 7 23 7 23 20 C23 34 43 40 59 50 C74 40 96 34 96 20 C96 7 76 7 61 28"/>
+                            <path
+                                stroke="#ce102c"
+                                d="M60 28 C75 7 95 7 95 20 C95 34 74 40 59 50 C43 40 23 34 23 20 C23 7 43 7 58 28"/>
+                        </g>
+                    </svg>
+                SVG;
     }
 }

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Profile;
 
+namespace App\Services\Profile;
+
+use App\Models\MemberPhotoModel;
 use App\Services\PartnerPreference\AdditionalPartnerPreferenceService;
 use App\Services\PartnerPreference\BasicPartnerPreferenceService;
 use App\Support\EmailAddressMasker;
@@ -24,7 +27,11 @@ final class MemberProfilePdfDataService
 
         private readonly
         AdditionalPartnerPreferenceService
-        $additionalPreferenceService
+        $additionalPreferenceService,
+
+        private readonly
+        MemberPhotoModel
+        $photoModel
     ) {}
 
     /**
@@ -152,15 +159,15 @@ final class MemberProfilePdfDataService
                 );
         }
 
-        $thumbnailUrl =
-            $this->primaryThumbnail(
-                $profile
+        $profileImageObjectKey =
+            $this->primaryProfileImageObjectKey(
+                $profileOwnerUserId
             );
 
-        if ($thumbnailUrl === '') {
+        if ($profileImageObjectKey === '') {
             log_message(
                 'warning',
-                'Profile PDF has no thumbnail URL. Profile: {profile}',
+                'Profile PDF has no approved primary image. Profile: {profile}',
                 [
                     'profile' =>
                     $profileReference,
@@ -168,19 +175,23 @@ final class MemberProfilePdfDataService
             );
         }
 
-        $thumbnail =
-            $this->assetService
-            ->remoteImage(
-                $thumbnailUrl
-            );
+        $thumbnail = '';
+
+        if ($profileImageObjectKey !== '') {
+            $thumbnail =
+                $this->assetService
+                ->storedImage(
+                    $profileImageObjectKey
+                );
+        }
 
         if (
-            $thumbnailUrl !== ''
+            $profileImageObjectKey !== ''
             && $thumbnail === ''
         ) {
             log_message(
                 'warning',
-                'Profile PDF could not embed thumbnail. Profile: {profile}',
+                'Profile PDF could not embed approved primary image. Profile: {profile}',
                 [
                     'profile' =>
                     $profileReference,
@@ -825,54 +836,38 @@ final class MemberProfilePdfDataService
     }
 
     /**
-     * @param array<string,mixed> $profile
+     * Return the private S3 medium object key for the
+     * member's approved primary profile photo.
+     *
+     * The medium derivative is used instead of the thumbnail
+     * because the PDF displays the photograph at portrait size.
      */
-    private function primaryThumbnail(
-        array $profile
+    private function primaryProfileImageObjectKey(
+        int $memberId
     ): string {
-        $photos =
-            isset(
-                $profile['approvedPhotos']
-            )
-            && is_array(
-                $profile['approvedPhotos']
-            )
-            ? $profile['approvedPhotos']
-            : [];
-
-        $fallback = '';
-
-        foreach ($photos as $photo) {
-            if (!is_array($photo)) {
-                continue;
-            }
-
-            $url = trim(
-                (string) (
-                    $photo['thumbnailUrl']
-                    ?? ''
-                )
-            );
-
-            if ($url === '') {
-                continue;
-            }
-
-            if ($fallback === '') {
-                $fallback = $url;
-            }
-
-            if (
-                (
-                    $photo['isPrimary']
-                    ?? false
-                ) === true
-            ) {
-                return $url;
-            }
+        if ($memberId <= 0) {
+            return '';
         }
 
-        return $fallback;
+        $photo =
+            $this->photoModel
+            ->findApprovedPrimaryForMember(
+                $memberId
+            );
+
+        if (!is_array($photo)) {
+            return '';
+        }
+
+        return ltrim(
+            trim(
+                (string) (
+                    $photo['medium_object_key']
+                    ?? ''
+                )
+            ),
+            '/'
+        );
     }
 
     /**

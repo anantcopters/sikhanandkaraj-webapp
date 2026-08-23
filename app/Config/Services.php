@@ -2383,7 +2383,11 @@ final class Services extends BaseService
             );
         }
 
-        return new MemberProfilePdfAssetService();
+        return new MemberProfilePdfAssetService(
+            static::s3Service(
+                false
+            )
+        );
     }
 
     /**
@@ -2398,6 +2402,8 @@ final class Services extends BaseService
             );
         }
 
+        $database = db_connect();
+
         return new MemberProfilePdfDataService(
             static::memberProfilePdfAssetService(
                 false
@@ -2409,6 +2415,10 @@ final class Services extends BaseService
 
             static::additionalPartnerPreferenceService(
                 false
+            ),
+
+            new MemberPhotoModel(
+                $database
             )
         );
     }
