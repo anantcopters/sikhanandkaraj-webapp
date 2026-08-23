@@ -237,7 +237,7 @@ final class MemberProfilePdfDataService
             ),
 
             $this->row(
-                'height',
+                'ri-ruler-2-line',
                 'Height',
                 $this->displayValue(
                     $basic['height_display_name']
@@ -257,7 +257,7 @@ final class MemberProfilePdfDataService
             ),
 
             $this->row(
-                'occupation',
+                'ri-briefcase-line',
                 'Employed In',
                 $this->displayValue(
                     $employmentLabels[$employmentCode]
@@ -266,7 +266,7 @@ final class MemberProfilePdfDataService
             ),
 
             $this->row(
-                'occupation',
+                'ri-user-star-line',
                 'Occupation',
                 $this->displayValue(
                     $education['occupation_name']
@@ -275,7 +275,7 @@ final class MemberProfilePdfDataService
             ),
 
             $this->row(
-                'employer',
+                'ri-community-line',
                 'Organization',
                 $this->displayValue(
                     $education['organization']
@@ -284,7 +284,7 @@ final class MemberProfilePdfDataService
             ),
 
             $this->row(
-                'income',
+                'ri-money-rupee-circle-line',
                 'Annual Income',
                 $this->displayValue(
                     $education['annual_income_display_name']
@@ -295,7 +295,7 @@ final class MemberProfilePdfDataService
 
         $familyRows = [
             $this->row(
-                'community',
+                'ri-group-line',
                 'Community',
                 $this->displayValue(
                     $family['community_name']
@@ -304,7 +304,7 @@ final class MemberProfilePdfDataService
             ),
 
             $this->row(
-                'family',
+                'ri-organization-chart',
                 'Gotra',
                 $this->maskedText(
                     $family['gotra']
@@ -313,7 +313,7 @@ final class MemberProfilePdfDataService
             ),
 
             $this->row(
-                'family',
+                'ri-men-line',
                 'No. of Brothers',
                 array_key_exists(
                     'brothers_count',
@@ -326,7 +326,7 @@ final class MemberProfilePdfDataService
             ),
 
             $this->row(
-                'family',
+                'ri-women-line',
                 'No. of Sisters',
                 array_key_exists(
                     'sisters_count',
@@ -339,7 +339,7 @@ final class MemberProfilePdfDataService
             ),
 
             $this->row(
-                'location',
+                'ri-map-pin-line',
                 'Family Location',
                 $this->displayValue(
                     $this->location(
@@ -355,7 +355,7 @@ final class MemberProfilePdfDataService
             * Do not invent a profile/database key.
             */
             $this->row(
-                'religion',
+                'ri-group-2-line',
                 'Nearest Gurdwara',
                 $this->maskedText(
                     $family['nearest_gurudwara']
@@ -367,6 +367,10 @@ final class MemberProfilePdfDataService
         $remixIconFont =
             $this->assetService
             ->remixIconFont();
+
+        $remixIconCss =
+            $this->assetService
+            ->remixIconCss();
 
         // $icons = [];
 
@@ -543,6 +547,9 @@ final class MemberProfilePdfDataService
 
             'remixIconFont' =>
             $remixIconFont,
+
+            'remixIconCss' =>
+            $remixIconCss,
         ];
     }
 
@@ -609,7 +616,7 @@ final class MemberProfilePdfDataService
                 ],
 
                 'icon' =>
-                'hobbies',
+                'ri-palette-line',
             ],
 
             [
@@ -621,7 +628,7 @@ final class MemberProfilePdfDataService
                 ],
 
                 'icon' =>
-                'music',
+                'ri-music-2-line',
             ],
 
             [
@@ -634,7 +641,7 @@ final class MemberProfilePdfDataService
                 ],
 
                 'icon' =>
-                'reading',
+                'ri-book-open-line',
             ],
 
             [
@@ -648,7 +655,7 @@ final class MemberProfilePdfDataService
                 ],
 
                 'icon' =>
-                'movies',
+                'ri-movie-2-line',
             ],
 
             [
@@ -662,7 +669,7 @@ final class MemberProfilePdfDataService
                 ],
 
                 'icon' =>
-                'sports',
+                'ri-run-line',
             ],
 
             [
@@ -676,7 +683,7 @@ final class MemberProfilePdfDataService
                 ],
 
                 'icon' =>
-                'food',
+                'ri-restaurant-line',
             ],
         ];
 

@@ -137,12 +137,6 @@ $assets =
     ? $assets
     : [];
 
-$icons =
-    isset($icons)
-    && is_array($icons)
-    ? $icons
-    : [];
-
 $purple =
     '#442254';
 
@@ -158,36 +152,6 @@ $asset =
         return trim(
             (string) (
                 $assets[$name]
-                ?? ''
-            )
-        );
-    };
-
-$icon =
-    static function (
-        string $name,
-        string $colour = 'purple'
-    ) use ($icons): string {
-        $value =
-            $icons[$name]
-            ?? '';
-
-        /*
-         * Backwards-compatible with already prepared data
-         * during rollout.
-         */
-        if (is_string($value)) {
-            return trim($value);
-        }
-
-        if (!is_array($value)) {
-            return '';
-        }
-
-        return trim(
-            (string) (
-                $value[$colour]
-                ?? $value['purple']
                 ?? ''
             )
         );
@@ -241,10 +205,32 @@ $fontBoldCssUrl =
     . '")'
     : 'local("Arial")';
 
-$remixIconFontUrl =
-    $asset(
-        'remixIconFont'
-    );
+$remixIconFont =
+    isset($remixIconFont)
+    && is_array($remixIconFont)
+    ? $remixIconFont
+    : [];
+
+$remixIconFontUrl = trim(
+    (string) (
+        $remixIconFont['uri']
+        ?? ''
+    )
+);
+
+$remixIconFontFormat = trim(
+    (string) (
+        $remixIconFont['format']
+        ?? ''
+    )
+);
+
+$remixLibraryCss = trim(
+    (string) (
+        $remixIconCss
+        ?? ''
+    )
+);
 
 $remixIconCssUrl =
     $remixIconFontUrl !== ''
@@ -283,13 +269,16 @@ $fontFaceCss = <<<CSS
 }
 CSS;
 
-$remixIconCss = '';
+$remixFontFaceCss = '';
 
-if ($remixIconCssUrl !== '') {
-    $remixIconCss = <<<CSS
+if (
+    $remixIconCssUrl !== ''
+    && $remixIconFontFormat !== ''
+) {
+    $remixFontFaceCss = <<<CSS
 @font-face {
     font-family: 'remixicon';
-    src: {$remixIconCssUrl} format('woff2');
+    src: {$remixIconCssUrl} format('{$remixIconFontFormat}');
     font-style: normal;
     font-weight: normal;
 }
@@ -333,8 +322,6 @@ $summary = implode(
 $renderRows =
     static function (
         array $rows
-    ) use (
-        $icon
     ): void {
         $index = 0;
 
@@ -346,7 +333,7 @@ $renderRows =
             $rowIcon = trim(
                 (string) (
                     $row['icon']
-                    ?? 'user'
+                    ?? 'ri-user-line'
                 )
             );
 
@@ -371,35 +358,27 @@ $renderRows =
                 continue;
             }
 
-            $colour =
+            $colourClass =
                 $index % 2 === 0
-                ? 'purple'
-                : 'red';
+                ? 'detail-icon-purple'
+                : 'detail-icon-red';
 
             $index++;
 ?>
         <div class="detail-row">
 
-            <div class="detail-icon">
+            <div
+                class="detail-icon <?= esc(
+                                        $colourClass,
+                                        'attr'
+                                    ) ?>">
 
-                <?php if (
-                    $icon(
-                        $rowIcon,
-                        $colour
-                    ) !== ''
-                ): ?>
-
-                    <img
-                        src="<?= esc(
-                                    $icon(
-                                        $rowIcon,
-                                        $colour
-                                    ),
-                                    'attr'
-                                ) ?>"
-                        alt="">
-
-                <?php endif; ?>
+                <i
+                    class="<?= esc(
+                                $rowIcon,
+                                'attr'
+                            ) ?>"
+                    aria-hidden="true"></i>
 
             </div>
 
@@ -435,7 +414,7 @@ $renderRows =
     <title>
         <?= esc(
             $fullName
-        ) ?> - SikhAnandKaraj
+        ) ?> - Sikhanandkaraj
     </title>
 
     <style>
@@ -448,26 +427,11 @@ $renderRows =
             box-sizing: border-box;
         }
 
-        <?= $fontFaceCss ?><?= $remixIconCss ?>
-
+        <?= $fontFaceCss ?>
         /* remix STart*/
-        [class^="ri-"],
-        [class*=" ri-"] {
-            display: inline-block;
-
-            font-family: 'remixicon' !important;
-
-            font-style: normal;
-            font-weight: normal;
-            font-variant: normal;
-
-            line-height: 1;
-
-            text-transform: none;
-
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-        }
+        <?= $remixFontFaceCss ?>
+        /* remix STart*/
+        <?= $remixLibraryCss ?>
 
         /* CSS STart*/
         html,
@@ -978,13 +942,6 @@ $renderRows =
             border-bottom: 0;
         }
 
-        .detail-icon img {
-            width: 5mm;
-            height: 5mm;
-
-            object-fit: contain;
-        }
-
         .detail-label {
             color: <?= $header ?>;
 
@@ -1154,16 +1111,31 @@ $renderRows =
         }
 
         .detail-icon {
-            flex:
-                0 0 auto;
-
             width: 5mm;
 
-            color: <?= $purple ?>;
+            flex: 0 0 5mm;
 
-            font-size: 4mm;
+            font-size: 4.2mm;
+
+            line-height: 1;
 
             text-align: center;
+        }
+
+        .detail-icon i {
+            display: inline-block;
+
+            font-size: inherit;
+
+            line-height: 1;
+        }
+
+        .detail-icon-purple {
+            color: <?= $purple ?>;
+        }
+
+        .detail-icon-red {
+            color: <?= $red ?>;
         }
 
         .card-heading>i {
@@ -1212,7 +1184,7 @@ $renderRows =
                                         $logoUrl,
                                         'attr'
                                     ) ?>"
-                            alt="SikhAnandKaraj">
+                            alt="Sikhanandkaraj">
 
                     <?php endif; ?>
 

@@ -288,20 +288,47 @@ final class MemberProfilePdfAssetService
     }
 
     /**
-     * Return the locally installed Remix Icon font as a
-     * self-contained data URI for HTML/PDF rendering.
+     * Return the locally installed Remix Icon font.
+     *
+     * @return array{
+     *     uri:string,
+     *     format:string
+     * }
      */
-    public function remixIconFont(): string
+    public function remixIconFont(): array
     {
         $candidates = [
-            FCPATH
-                . 'assets/libs/remixicon/fonts/remixicon.woff2',
+            [
+                'path' =>
+                FCPATH
+                    . 'assets/fonts/'
+                    . 'remixicon.woff2',
 
-            FCPATH
-                . 'assets/libs/remixicon/fonts/remixicon.woff',
+                'mime' =>
+                'font/woff2',
+
+                'format' =>
+                'woff2',
+            ],
+
+            [
+                'path' =>
+                FCPATH
+                    . 'assets/fonts/'
+                    . 'remixicon.woff',
+
+                'mime' =>
+                'font/woff',
+
+                'format' =>
+                'woff',
+            ],
         ];
 
-        foreach ($candidates as $path) {
+        foreach ($candidates as $candidate) {
+            $path =
+                $candidate['path'];
+
             if (
                 !is_file($path)
                 || !is_readable($path)
@@ -321,24 +348,18 @@ final class MemberProfilePdfAssetService
                 continue;
             }
 
-            $extension = strtolower(
-                pathinfo(
-                    $path,
-                    PATHINFO_EXTENSION
-                )
-            );
+            return [
+                'uri' =>
+                'data:'
+                    . $candidate['mime']
+                    . ';base64,'
+                    . base64_encode(
+                        $contents
+                    ),
 
-            $mimeType =
-                $extension === 'woff2'
-                ? 'font/woff2'
-                : 'font/woff';
-
-            return 'data:'
-                . $mimeType
-                . ';base64,'
-                . base64_encode(
-                    $contents
-                );
+                'format' =>
+                $candidate['format'],
+            ];
         }
 
         log_message(
@@ -346,7 +367,62 @@ final class MemberProfilePdfAssetService
             'Profile PDF Remix Icon font is unavailable.'
         );
 
-        return '';
+        return [
+            'uri' => '',
+            'format' => '',
+        ];
+    }
+
+    public function remixIconCss(): string
+    {
+        $path =
+            FCPATH
+            . 'assets/fonts/'
+            . 'remixicon.css';
+
+        if (
+            !is_file($path)
+            || !is_readable($path)
+        ) {
+            log_message(
+                'warning',
+                'Profile PDF Remix Icon stylesheet is unavailable.'
+            );
+
+            return '';
+        }
+
+        $contents =
+            file_get_contents(
+                $path
+            );
+
+        if (
+            $contents === false
+            || trim($contents) === ''
+        ) {
+            return '';
+        }
+
+        /*
+     * Pdf.php supplies its own embedded @font-face.
+     *
+     * Remove the library font-face so Chromium never attempts
+     * to resolve relative Remix font URLs.
+     */
+        $contents = preg_replace(
+            '/@font-face\s*\{.*?\}/is',
+            '',
+            $contents
+        );
+
+        if (!is_string($contents)) {
+            return '';
+        }
+
+        return trim(
+            $contents
+        );
     }
 
     private function requiredDataUri(
