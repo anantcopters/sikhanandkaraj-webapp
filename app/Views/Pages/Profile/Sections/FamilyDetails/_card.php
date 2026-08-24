@@ -271,14 +271,14 @@ $formatEnum = static function (
                         'icon' => 'ri-group-2-line',
                     ],
                     [
-                        'label' => 'Gotra',
+                        'label' => 'Father Gotra',
                         'value' => $displayValue(
                             $details['gotra'] ?? null
                         ),
                         'icon' => 'ri-organization-chart',
                     ],
                     [
-                        'label' => 'Gotra (Maternal Side)',
+                        'label' => 'Mother Gotra (Maternal Side)',
                         'value' => $displayValue(
                             $details['gotra_maternal'] ?? null
                         ),

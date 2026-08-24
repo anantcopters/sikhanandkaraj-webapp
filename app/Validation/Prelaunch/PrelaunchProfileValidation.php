@@ -229,7 +229,7 @@ final class PrelaunchProfileValidation
                 ),
 
                 'gotra' => [
-                    'label' => 'Gotra',
+                    'label' => 'Father Gotra',
                     'rules' => [
                         'required',
                         'min_length[2]',
@@ -241,18 +241,18 @@ final class PrelaunchProfileValidation
                         'Please enter gotra.',
 
                         'min_length' =>
-                        'Gotra must contain at least 2 characters.',
+                        'Father Gotra must contain at least 2 characters.',
 
                         'max_length' =>
-                        'Gotra cannot exceed 100 characters.',
+                        'Father Gotra cannot exceed 100 characters.',
 
                         'regex_match' =>
-                        'Gotra may contain letters, spaces, apostrophes, full stops and hyphens only.',
+                        'Father Gotra may contain letters, spaces, apostrophes, full stops and hyphens only.',
                     ],
                 ],
 
                 'gotra_maternal' => [
-                    'label' => 'Gotra (Maternal Side)',
+                    'label' => 'Mother Gotra (Maternal Side)',
                     'rules' => [
                         'required',
                         'min_length[2]',
@@ -261,16 +261,16 @@ final class PrelaunchProfileValidation
                     ],
                     'errors' => [
                         'required' =>
-                        'Please enter Gotra (Maternal Side).',
+                        'Please enter Mother Gotra (Maternal Side).',
 
                         'min_length' =>
-                        'Gotra (Maternal Side) must contain at least 2 characters.',
+                        'Mother Gotra (Maternal Side) must contain at least 2 characters.',
 
                         'max_length' =>
-                        'Gotra (Maternal Side) cannot exceed 100 characters.',
+                        'Mother Gotra (Maternal Side) cannot exceed 100 characters.',
 
                         'regex_match' =>
-                        'Gotra (Maternal Side) may contain letters, spaces, apostrophes, full stops and hyphens only.',
+                        'Mother Gotra (Maternal Side) may contain letters, spaces, apostrophes, full stops and hyphens only.',
                     ],
                 ],
 

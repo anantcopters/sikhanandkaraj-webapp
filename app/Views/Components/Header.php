@@ -431,7 +431,7 @@ $hidePublicLoginAction =
                                 </i>
 
                                 <span class="align-middle">
-                                    Edit Profile
+                                    Your Profile
                                 </span>
                             </a>
 
@@ -450,7 +450,7 @@ $hidePublicLoginAction =
                                 </i>
 
                                 <span class="align-middle">
-                                    Edit Preferences
+                                    Partner Preferences
                                 </span>
                             </a>
 
@@ -696,7 +696,7 @@ $hidePublicLoginAction =
                                 </i>
 
                                 <span class="align-middle">
-                                    Edit Profile
+                                    Your Profile
                                 </span>
                             </a>
 

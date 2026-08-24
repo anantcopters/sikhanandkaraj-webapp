@@ -221,8 +221,8 @@ final class FamilyDetailsService
 
         $gotraMaternal = $this->requiredGotra(
             $data['gotra_maternal'] ?? null,
-            'Please enter your Gotra (Maternal Side).',
-            'Gotra (Maternal Side)'
+            'Please enter your Mother Gotra (Maternal Side).',
+            'Mother Gotra (Maternal Side)'
         );
 
         /*

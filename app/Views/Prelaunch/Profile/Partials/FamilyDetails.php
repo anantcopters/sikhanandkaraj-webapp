@@ -392,7 +392,7 @@ $communityClass =
                     for="gotra"
                     class="form-label">
 
-                    Gotra
+                    Father Gotra
                 </label>
 
                 <input
@@ -408,14 +408,14 @@ $communityClass =
                                 'attr'
                             ) ?>"
                     aria-describedby="gotraError"
-                    placeholder="Enter Gotra"
+                    placeholder="Enter Father Gotra"
                     minlength="2"
                     maxlength="100"
                     autocomplete="off"
-                    data-error-required="Please enter Gotra."
-                    data-error-minlength="Gotra must contain at least 2 characters."
-                    data-error-maxlength="Gotra cannot exceed 100 characters."
-                    data-error-pattern="Gotra may contain letters, spaces, apostrophes, full stops and hyphens only."
+                    data-error-required="Please enter Father Gotra."
+                    data-error-minlength="Father Gotra must contain at least 2 characters."
+                    data-error-maxlength="Father Gotra cannot exceed 100 characters."
+                    data-error-pattern="Father Gotra may contain letters, spaces, apostrophes, full stops and hyphens only."
                     required>
 
                 <div
@@ -432,7 +432,7 @@ $communityClass =
                     for="gotra_maternal"
                     class="form-label">
 
-                    Gotra (Maternal Side)
+                    Mother Gotra (Maternal Side)
                 </label>
 
                 <input
@@ -452,10 +452,10 @@ $communityClass =
                     minlength="2"
                     maxlength="100"
                     autocomplete="off"
-                    data-error-required="Please enter Gotra (Maternal Side)."
-                    data-error-minlength="Gotra (Maternal Side) must contain at least 2 characters."
-                    data-error-maxlength="Gotra (Maternal Side) cannot exceed 100 characters."
-                    data-error-pattern="Gotra (Maternal Side) may contain letters, spaces, apostrophes, full stops and hyphens only."
+                    data-error-required="Please enter Mother Gotra (Maternal Side)."
+                    data-error-minlength="Mother Gotra (Maternal Side) must contain at least 2 characters."
+                    data-error-maxlength="Mother Gotra (Maternal Side) cannot exceed 100 characters."
+                    data-error-pattern="Mother Gotra (Maternal Side) may contain letters, spaces, apostrophes, full stops and hyphens only."
                     required>
 
                 <div

@@ -92,10 +92,10 @@ $menuItems = [
         'label' => 'Add/Edit Email',
         'icon' => 'ri-mail-settings-line',
     ],
-    'visibility' => [
-        'label' => 'Profile Visibility',
-        'icon' => 'ri-eye-line',
-    ],
+    // 'visibility' => [
+    //     'label' => 'Profile Visibility',
+    //     'icon' => 'ri-eye-line',
+    // ],
     'aadhaar-verification' => [
         'label' =>
         'Aadhaar Verification',

@@ -952,10 +952,10 @@ $familyDetailList = [
     'Community' =>
     $community,
 
-    'Gotra' =>
+    'Father Gotra' =>
     $gotra,
 
-    'Gotra (Maternal Side)' =>
+    'Mother Gotra (Maternal Side)' =>
     $gotraMaternal,
 
     'Family Location' =>
@@ -1555,7 +1555,7 @@ $this->section('content');
                                                                 $community,
 
                                                                 $gotra !== ''
-                                                                    ? 'Gotra: '
+                                                                    ? 'Father Gotra: '
                                                                     . $gotra
                                                                     : '',
                                                             ]

@@ -305,7 +305,7 @@ final class MemberProfilePdfDataService
 
             $this->row(
                 'ri-git-branch-line',
-                'Gotra',
+                'Father Gotra',
                 $this->maskedText(
                     $family['gotra']
                         ?? ''
@@ -314,7 +314,7 @@ final class MemberProfilePdfDataService
 
             $this->row(
                 'ri-git-branch-line',
-                'Gotra (Maternal Side)',
+                'Mother Gotra (Maternal Side)',
                 $this->maskedText(
                     $family['gotra_maternal']
                         ?? ''

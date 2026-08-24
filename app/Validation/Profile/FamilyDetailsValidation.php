@@ -50,7 +50,7 @@ final class FamilyDetailsValidation
             ),
 
             'gotra' => [
-                'label' => 'Gotra',
+                'label' => 'Father Gotra',
                 'rules' => [
                     'required',
                     'max_length['
@@ -59,17 +59,17 @@ final class FamilyDetailsValidation
                 ],
                 'errors' => [
                     'required' =>
-                    'Please enter your Gotra.',
+                    'Please enter your Father Gotra.',
 
                     'max_length' =>
-                    'Gotra cannot exceed '
+                    'Father Gotra cannot exceed '
                         . self::GOTRA_MAX_LENGTH
                         . ' characters.',
                 ],
             ],
 
             'gotra_maternal' => [
-                'label' => 'Gotra (Maternal Side)',
+                'label' => 'Mother Gotra (Maternal Side)',
                 'rules' => [
                     'required',
                     'max_length['
@@ -78,10 +78,10 @@ final class FamilyDetailsValidation
                 ],
                 'errors' => [
                     'required' =>
-                    'Please enter your Gotra (Maternal Side).',
+                    'Please enter your Mother Gotra (Maternal Side).',
 
                     'max_length' =>
-                    'Gotra (Maternal Side) cannot exceed '
+                    'Mother Gotra (Maternal Side) cannot exceed '
                         . self::GOTRA_MAX_LENGTH
                         . ' characters.',
                 ],

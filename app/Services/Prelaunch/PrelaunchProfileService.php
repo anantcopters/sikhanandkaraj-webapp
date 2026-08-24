@@ -77,7 +77,7 @@ final class PrelaunchProfileService
         if ($gotra === '') {
             return PrelaunchProfileResult::fieldFailure(
                 'gotra',
-                'Gotra is required.'
+                'Father Gotra is required.'
             );
         }
 
@@ -93,7 +93,7 @@ final class PrelaunchProfileService
         if ($gotraMaternal === '') {
             return PrelaunchProfileResult::fieldFailure(
                 'gotra_maternal',
-                'Gotra (Maternal Side) is required.'
+                'Mother Gotra (Maternal Side) is required.'
             );
         }
 

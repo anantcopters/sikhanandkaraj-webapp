@@ -257,7 +257,7 @@ if ($isJourney) {
                 for="familyGotra"
                 class="form-label">
 
-                Gotra
+                Father Gotra
                 <span class="text-danger">*</span>
             </label>
 
@@ -273,10 +273,10 @@ if ($isJourney) {
                             ),
                             'attr'
                         ) ?>"
-                placeholder="Enter Gotra"
+                placeholder="Enter Father Gotra"
                 maxlength="100"
                 autocomplete="off"
-                data-error-required="Please enter your Gotra."
+                data-error-required="Please enter your Father Gotra."
                 required>
 
             <?= view(
@@ -294,7 +294,7 @@ if ($isJourney) {
                 for="familyGotraMaternal"
                 class="form-label">
 
-                Gotra (Maternal Side)
+                Mother Gotra (Maternal Side)
                 <span class="text-danger">*</span>
             </label>
 
@@ -310,10 +310,10 @@ if ($isJourney) {
                             ),
                             'attr'
                         ) ?>"
-                placeholder="Enter Gotra (Maternal Side)"
+                placeholder="Enter Mother Gotra (Maternal Side)"
                 maxlength="100"
                 autocomplete="off"
-                data-error-required="Please enter your Gotra (Maternal Side)."
+                data-error-required="Please enter your Mother Gotra (Maternal Side)."
                 required>
 
             <?= view(
