@@ -110,31 +110,62 @@ final class AdditionalPartnerPreferenceValidation
             ],
 
             AdditionalPreferenceItem::LOCATION => [
-                'country_ids' => [
-                    'label' => 'Countries',
-                    'rules' => ['permit_empty'],
-                ],
+                /*
+                * Country is the top-level Location preference.
+                * At least one Country must be selected.
+                */
+                'country_ids' =>
+                self::requiredSelection(
+                    'countries'
+                ),
 
                 'country_ids.*' =>
                 self::positiveIdRule(
                     'country'
                 ),
 
-                'state_ids' =>
-                ['label' => 'States', 'rules' => ['permit_empty']],
+                /*
+                * State is optional.
+                *
+                * Empty State means:
+                * Any State within the selected Countries.
+                *
+                * Do not add a wildcard rule here because the
+                * field can legitimately be absent from POST.
+                * State IDs are subsequently checked against
+                * master data by the service when supplied.
+                */
+                'state_ids' => [
+                    'label' =>
+                    'States',
 
-                'state_ids.*' =>
-                self::positiveIdRule(
-                    'state'
-                ),
+                    'rules' => [
+                        'permit_empty',
+                    ],
+                ],
 
-                'city_ids' =>
-                ['label' => 'Cities', 'rules' => ['permit_empty']],
+                /*
+                * City is optional.
+                *
+                * Empty City means:
+                * Any City within the selected States.
+                *
+                * Do not add a wildcard rule here because City
+                * can legitimately be absent from POST, including
+                * when the control is disabled because no State
+                * has been selected.
+                *
+                * Supplied City IDs are subsequently checked
+                * against master data by the service.
+                */
+                'city_ids' => [
+                    'label' =>
+                    'Cities',
 
-                'city_ids.*' =>
-                self::positiveIdRule(
-                    'city'
-                ),
+                    'rules' => [
+                        'permit_empty',
+                    ],
+                ],
 
                 'is_compulsory' =>
                 self::matchModeRule(),

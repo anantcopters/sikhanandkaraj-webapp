@@ -1110,7 +1110,7 @@ $this->section(
                                                     'attr'
                                                 ) ?>">
 
-                                    <div class="form-text text-secondary">
+                                    <div class="form-text color-pink">
                                         Leave empty for any country.
                                     </div>
 

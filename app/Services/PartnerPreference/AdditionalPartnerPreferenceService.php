@@ -794,7 +794,13 @@ final class AdditionalPartnerPreferenceService
     }
 
     /**
-     * Save selected states and cities.
+     * Save selected countries, states and cities.
+     *
+     * Location hierarchy:
+     *
+     * - Country is required.
+     * - Empty State means Any State within the selected Countries.
+     * - Empty City means Any City within the selected States.
      *
      * @param array<string, mixed> $data
      */
@@ -818,51 +824,92 @@ final class AdditionalPartnerPreferenceService
             ->masterDataService
             ->additionalPartnerPreferenceOptions();
 
+        /*
+     * Country is the top-level Location preference
+     * and must always contain a valid selection.
+     */
         $this->assertMasterIds(
             $countryIds,
             $masterData['countries']
         );
 
-        $this->assertMasterIds(
-            $stateIds,
-            $masterData['states']
-        );
+        /*
+     * State is optional.
+     *
+     * An empty State selection means Any State
+     * within the selected Countries.
+     *
+     * Validate against master data only when the
+     * member has explicitly selected States.
+     */
+        if ($stateIds !== []) {
+            $this->assertMasterIds(
+                $stateIds,
+                $masterData['states']
+            );
 
-        if ($countryIds !== []) {
             $allowedStateIds = array_map(
-                static fn(array $state): int => (int) $state['id'],
+                static fn(array $state): int =>
+                (int) $state['id'],
                 array_filter(
                     $masterData['states'],
-                    static fn(array $state): bool => in_array(
-                        (int) ($state['country_id'] ?? 0),
+                    static fn(array $state): bool =>
+                    in_array(
+                        (int) (
+                            $state['country_id']
+                            ?? 0
+                        ),
                         $countryIds,
                         true
                     )
                 )
             );
 
-            if (array_diff($stateIds, $allowedStateIds) !== []) {
+            if (
+                array_diff(
+                    $stateIds,
+                    $allowedStateIds
+                ) !== []
+            ) {
                 throw new DomainException(
                     'Every selected state must belong to a selected country.'
                 );
             }
         }
 
-        $cities = $this
-            ->masterDataService
-            ->citiesForStates(
-                $stateIds
-            );
-
-        $this->assertMasterIds(
-            $cityIds,
-            $cities
-        );
-
         /*
-     * City validation against citiesForStates() ensures every
-     * selected city belongs to one of the selected states.
+     * City is optional.
+     *
+     * An empty City selection means Any City
+     * within the selected States.
+     *
+     * A City cannot be selected unless at least
+     * one specific State has been selected.
      */
+        if ($cityIds !== []) {
+            if ($stateIds === []) {
+                throw new DomainException(
+                    'Please select a state before selecting a city.'
+                );
+            }
+
+            $cities = $this
+                ->masterDataService
+                ->citiesForStates(
+                    $stateIds
+                );
+
+            /*
+         * This existing master-data check also ensures
+         * every selected City belongs to one of the
+         * selected States.
+         */
+            $this->assertMasterIds(
+                $cityIds,
+                $cities
+            );
+        }
+
         $parentId = $this->ensureParent(
             $this->locationModel,
             $userId
