@@ -4,20 +4,27 @@ declare(strict_types=1);
 
 namespace App\Services\Membership;
 
-use App\Models\MemberInterestModel;
 use App\Models\UserModel;
 use App\Services\Matchmaking\MemberInteractionService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use DomainException;
 
 /**
- * Central authorization policy for another member's Full Profile.
+ * Central authorization policy for protected another-member resources.
  *
- * This class decides whether the profile may be opened.
+ * Two concepts are deliberately separated:
  *
- * It does NOT load sensitive profile details and it does NOT itself mutate
- * usage. Consumption is delegated to MembershipProfileUsageService only
- * after every access rule has passed.
+ * authorizeProfileRelationship()
+ *     Verifies that the viewer is commercially/privacy-authorized to access
+ *     protected information belonging to the target.
+ *
+ * authorizeFullProfile()
+ *     Reuses the relationship authorization and additionally records Full
+ *     Profile commercial usage.
+ *
+ * This separation is important because Live Introduction has its OWN
+ * purchased allowance and therefore must not consume a Full Profile allowance
+ * merely because the video belongs to that profile.
  */
 final class ProfileAccessPolicy
 {
@@ -42,15 +49,20 @@ final class ProfileAccessPolicy
     ) {}
 
     /**
-     * Authorize and consume/record one Full Profile opening.
+     * Authorize protected access to another member without consuming Full
+     * Profile quota.
+     *
+     * Live Introduction playback uses this method before applying its own
+     * video-specific visibility and quota rules.
      *
      * @return array{
+     *     viewer:array<string, mixed>,
+     *     target:array<string, mixed>,
      *     membership:array<string, mixed>,
-     *     usage:array<string, mixed>,
      *     verification:array<string, mixed>
      * }
      */
-    public function authorizeFullProfile(
+    public function authorizeProfileRelationship(
         int $viewerUserId,
         int $targetUserId
     ): array {
@@ -64,10 +76,11 @@ final class ProfileAccessPolicy
         }
 
         /*
-         * The common interaction layer already owns block semantics.
+         * Blocked relationships are never exposed through protected member
+         * resources.
          *
-         * Do this before membership/quota work so blocked profiles never
-         * consume commercial allowance.
+         * This check occurs before membership and quota work so a blocked
+         * request can never consume commercial allowance.
          */
         if (
             $this->interactionService
@@ -81,8 +94,11 @@ final class ProfileAccessPolicy
         }
 
         /*
-         * Free members may discover Profile Cards but may not open another
-         * member's Full Profile.
+         * Protected another-member resources require a paid membership.
+         *
+         * Feature-specific capability checks may additionally be performed by
+         * the caller. This establishes the common Full Profile relationship
+         * boundary.
          */
         if (
             !$this->entitlementService
@@ -91,7 +107,7 @@ final class ProfileAccessPolicy
                 )
         ) {
             throw new DomainException(
-                'A paid membership is required to view the Full Profile.'
+                'A paid membership is required to access this profile.'
             );
         }
 
@@ -109,6 +125,10 @@ final class ProfileAccessPolicy
             !is_array($viewer)
             || !is_array($target)
             || (
+                $viewer['account_status']
+                ?? ''
+            ) !== UserModel::STATUS_ACTIVE
+            || (
                 $target['account_status']
                 ?? ''
             ) !== UserModel::STATUS_ACTIVE
@@ -118,9 +138,11 @@ final class ProfileAccessPolicy
         }
 
         /*
-         * Verified Profile is a candidate property, NOT a membership property.
+         * Verified Profile is a candidate property, not a membership property.
          *
-         * A Free candidate whose Mobile is verified therefore qualifies.
+         * A Free target whose Mobile, Email, Aadhaar or approved Live
+         * Introduction supplies qualifying verification can therefore still
+         * be a Verified Profile.
          */
         $verification = $this
             ->verifiedProfilePolicy
@@ -135,11 +157,15 @@ final class ProfileAccessPolicy
             ) !== true
         ) {
             throw new DomainException(
-                'This Full Profile is unavailable because the member '
+                'This profile is unavailable because the member '
                     . 'does not currently have a verified credential.'
             );
         }
 
+        /*
+         * Apply the matrimonial privacy rule before any sensitive resource is
+         * exposed.
+         */
         $this->assertGenderPrivacy(
             $viewerUserId,
             $targetUserId,
@@ -163,41 +189,25 @@ final class ProfileAccessPolicy
 
         if (!is_array($membership)) {
             /*
-             * Defensive fail-closed check.
+             * Defensive fail closed.
              *
-             * Entitlement and membership resolution should agree, but access
-             * to sensitive profile data must never depend on that assumption.
+             * MembershipEntitlementService and MembershipService should agree,
+             * but protected data must never rely on that assumption.
              */
             throw new DomainException(
-                'An active paid membership is required to view this profile.'
+                'An active paid membership is required.'
             );
         }
 
-        /*
-         * Usage is recorded only after:
-         *
-         * - paid entitlement;
-         * - active target;
-         * - Verified Profile;
-         * - gender/interest privacy;
-         * - block safety
-         *
-         * have all succeeded.
-         */
-        $usage = $this
-            ->usageService
-            ->recordAuthorizedView(
-                $viewerUserId,
-                $targetUserId,
-                $membership
-            );
-
         return [
+            'viewer' =>
+            $viewer,
+
+            'target' =>
+            $target,
+
             'membership' =>
             $membership,
-
-            'usage' =>
-            $usage,
 
             'verification' =>
             $verification,
@@ -205,7 +215,56 @@ final class ProfileAccessPolicy
     }
 
     /**
-     * Enforce the matrimonial gender/interest Full Profile rule.
+     * Authorize and record one Full Profile opening.
+     *
+     * @return array{
+     *     membership:array<string, mixed>,
+     *     usage:array<string, mixed>,
+     *     verification:array<string, mixed>
+     * }
+     */
+    public function authorizeFullProfile(
+        int $viewerUserId,
+        int $targetUserId
+    ): array {
+        /*
+         * All relationship/privacy rules are centralized above.
+         *
+         * Do not reproduce those checks inside Full Profile, PDF or video
+         * controllers.
+         */
+        $access = $this
+            ->authorizeProfileRelationship(
+                $viewerUserId,
+                $targetUserId
+            );
+
+        /*
+         * Only a successfully authorized Full Profile consumes profile-view
+         * allowance.
+         */
+        $usage = $this
+            ->usageService
+            ->recordAuthorizedView(
+                $viewerUserId,
+                $targetUserId,
+                $access['membership']
+            );
+
+        return [
+            'membership' =>
+            $access['membership'],
+
+            'usage' =>
+            $usage,
+
+            'verification' =>
+            $access['verification'],
+        ];
+    }
+
+    /**
+     * Enforce the matrimonial gender / accepted-Interest privacy rule.
      */
     private function assertGenderPrivacy(
         int $viewerUserId,
@@ -224,9 +283,9 @@ final class ProfileAccessPolicy
             );
 
         /*
-         * Female paid member viewing a male profile:
+         * Female paid member -> male profile:
          *
-         * Full Profile is available without requiring an accepted Interest.
+         * No accepted Interest is required.
          */
         if (
             $viewerGender === 'F'
@@ -236,14 +295,10 @@ final class ProfileAccessPolicy
         }
 
         /*
-         * Male paid member viewing a female profile:
+         * Male paid member -> female profile:
          *
-         * The female member must have ACCEPTED this male member's Interest.
-         *
-         * The relationship service returns state relative to the viewer.
-         * ACCEPTED_SENT therefore means:
-         *
-         * male viewer sent Interest -> female target accepted it.
+         * The male must have sent the Interest and the female must have
+         * accepted it.
          */
         if (
             $viewerGender === 'M'
@@ -267,18 +322,17 @@ final class ProfileAccessPolicy
             }
 
             throw new DomainException(
-                'This Full Profile will become available after '
+                'This profile will become available after '
                     . 'the member accepts your Interest.'
             );
         }
 
         /*
-         * Matrimonial matching currently expects opposite-gender profiles.
-         * Unknown/unsupported data must fail closed instead of accidentally
-         * exposing Full Profile information.
+         * Current matrimonial matching expects opposite-gender candidates.
+         * Unknown or unsupported data fails closed.
          */
         throw new DomainException(
-            'This Full Profile is currently unavailable.'
+            'This profile is currently unavailable.'
         );
     }
 

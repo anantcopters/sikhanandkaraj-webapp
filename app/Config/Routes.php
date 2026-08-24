@@ -678,6 +678,25 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                     ]
                 );
 
+                /*
+                * Protected PDF representation of another member's Full Profile.
+                *
+                * Authorization is performed again server-side by
+                * MemberProfilePdfController -> MemberProfileViewService ->
+                * ProfileAccessPolicy.
+                *
+                * Never rely on the fact that the browser previously loaded the Full
+                * Profile.
+                */
+                $routes->post(
+                    'members/(:segment)/pdf',
+                    'MemberProfilePdfController::member/$1',
+                    [
+                        'as' =>
+                        'web.members.pdf',
+                    ]
+                );
+
                 $routes->post(
                     'members/(:segment)/interest',
                     'MemberProfileController::showInterest/$1',

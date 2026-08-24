@@ -7,6 +7,7 @@ namespace App\Controllers\Web;
 use App\Controllers\BaseController;
 use App\Services\Video\MemberVideoIntroductionService;
 use App\Validation\Member\VideoIntroductionValidation;
+use App\Exceptions\MembershipLiveIntroductionQuotaExceededException;
 use Config\VideoIntroduction;
 use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -25,6 +26,46 @@ final class MemberVideoIntroductionController extends BaseController
         $settings = $service->settingsForMember(
             $this->authenticatedUserId()
         );
+
+        /*
+        * Recording is a paid membership capability.
+        *
+        * Keep this controller check for customer-facing navigation while submit()
+        * independently repeats the entitlement check as the actual security
+        * boundary.
+        */
+        if (
+            !service(
+                'membershipEntitlementService'
+            )->canCreateLiveIntroduction(
+                $this->authenticatedUserId()
+            )
+        ) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.account.settings.section',
+                        'video-introduction'
+                    )
+                )
+                ->with(
+                    'accountNotice',
+                    [
+                        'type' =>
+                        'warning',
+
+                        'title' =>
+                        'Membership required',
+
+                        'message' =>
+                        'A paid membership is required to '
+                            . 'create a Live Introduction.',
+
+                        'logoutAfterClose' =>
+                        false,
+                    ]
+                );
+        }
 
         if (
             ($settings['hasApprovedProfilePhoto'] ?? false)
@@ -590,33 +631,60 @@ final class MemberVideoIntroductionController extends BaseController
                 'memberVideoIntroductionService'
             );
 
-            return $this->response->setJSON(
-                [
-                    'url' =>
-                    $service
-                        ->viewerPlaybackUrlByProfileReference(
-                            $this->authenticatedUserId(),
-                            $profileReference
-                        ),
-                ]
-            );
+            return $this->response
+                ->setJSON(
+                    [
+                        'url' =>
+                        $service
+                            ->viewerPlaybackUrlByProfileReference(
+                                $this->authenticatedUserId(),
+                                $profileReference
+                            ),
+                    ]
+                );
+        } catch (
+            MembershipLiveIntroductionQuotaExceededException
+            $exception
+        ) {
+            /*
+         * HTTP 429 communicates exhausted purchased usage rather than an
+         * authorization failure.
+         *
+         * The browser receives only the customer-safe quota message.
+         */
+            return $this->response
+                ->setStatusCode(429)
+                ->setJSON(
+                    [
+                        'message' =>
+                        $exception
+                            ->getMessage(),
+                    ]
+                );
         } catch (DomainException $exception) {
+            /*
+         * Ordinary privacy/membership authorization denial.
+         *
+         * No signed CloudFront URL has been generated when this branch runs.
+         */
             return $this->response
                 ->setStatusCode(403)
                 ->setJSON(
                     [
                         'message' =>
-                        $exception->getMessage(),
+                        $exception
+                            ->getMessage(),
                     ]
                 );
         } catch (Throwable $exception) {
             log_message(
                 'error',
-                'Viewer Video Introduction playback '
+                'Viewer Live Introduction playback '
                     . 'failed: {message}',
                 [
                     'message' =>
-                    $exception->getMessage(),
+                    $exception
+                        ->getMessage(),
                 ]
             );
 
@@ -625,7 +693,7 @@ final class MemberVideoIntroductionController extends BaseController
                 ->setJSON(
                     [
                         'message' =>
-                        'The Video Introduction is '
+                        'The Live Introduction is '
                             . 'temporarily unavailable.',
                     ]
                 );

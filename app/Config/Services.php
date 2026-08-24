@@ -147,6 +147,9 @@ use App\Services\Membership\VerifiedProfilePolicy;
 use App\Models\MemberMembershipProfileViewModel;
 use App\Services\Membership\MembershipProfileUsageService;
 use App\Services\Membership\ProfileAccessPolicy;
+use App\Models\MemberMembershipLiveIntroductionViewModel;
+use App\Services\Membership\MembershipLiveIntroductionUsageService;
+use App\Services\Membership\LiveIntroductionAccessPolicy;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -2310,6 +2313,73 @@ final class Services extends BaseService
         );
     }
 
+    /**
+     * Return membership-scoped Live Introduction commercial usage service.
+     *
+     * This is deliberately separate from video moderation/lifecycle state.
+     */
+    public static function membershipLiveIntroductionUsageService(
+        bool $getShared = true
+    ): MembershipLiveIntroductionUsageService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipLiveIntroductionUsageService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MembershipLiveIntroductionUsageService(
+            new MemberMembershipLiveIntroductionViewModel(
+                $database
+            ),
+            $database
+        );
+    }
+
+    /**
+     * Return the centralized another-member Live Introduction playback policy.
+     *
+     * Signed member-facing video URLs must be authorized through this service.
+     */
+    public static function liveIntroductionAccessPolicy(
+        bool $getShared = true
+    ): LiveIntroductionAccessPolicy {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'liveIntroductionAccessPolicy'
+            );
+        }
+
+        $database = db_connect();
+
+        return new LiveIntroductionAccessPolicy(
+            static::membershipEntitlementService(
+                false
+            ),
+
+            static::profileAccessPolicy(
+                false
+            ),
+
+            new MemberVideoIntroductionModel(
+                $database
+            ),
+
+            new MemberInterestModel(
+                $database
+            ),
+
+            new MemberProfileReportModel(
+                $database
+            ),
+
+            static::membershipLiveIntroductionUsageService(
+                false
+            )
+        );
+    }
+
     public static function memberVideoIntroductionService(
         bool $getShared = true
     ): MemberVideoIntroductionService {
@@ -2322,17 +2392,55 @@ final class Services extends BaseService
         $database = db_connect();
 
         return new MemberVideoIntroductionService(
-            new MemberVideoIntroductionModel($database),
-            new MemberVideoProcessingJobModel($database),
-            new MemberPhotoModel($database),
-            new UserModel($database),
-            new MemberInterestModel($database),
-            new MemberBlockModel($database),
-            new MemberProfileReportModel($database),
-            static::s3Service(false),
-            static::cloudFrontService(false),
+            new MemberVideoIntroductionModel(
+                $database
+            ),
+
+            new MemberVideoProcessingJobModel(
+                $database
+            ),
+
+            new MemberPhotoModel(
+                $database
+            ),
+
+            new UserModel(
+                $database
+            ),
+
+            new MemberInterestModel(
+                $database
+            ),
+
+            new MemberBlockModel(
+                $database
+            ),
+
+            new MemberProfileReportModel(
+                $database
+            ),
+
+            static::s3Service(
+                false
+            ),
+
+            static::cloudFrontService(
+                false
+            ),
+
             $database,
-            config(VideoIntroduction::class)
+
+            config(
+                VideoIntroduction::class
+            ),
+
+            static::membershipEntitlementService(
+                false
+            ),
+
+            static::liveIntroductionAccessPolicy(
+                false
+            )
         );
     }
 
