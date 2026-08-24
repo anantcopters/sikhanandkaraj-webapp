@@ -449,6 +449,11 @@ final class PartnerPreferenceController extends BaseController
 
                     'formAlert' =>
                     $this->readFormAlert(),
+
+                    'pageScripts' => [
+                        'assets/js/pages/'
+                            . 'partner-preference-lifestyle.js',
+                    ],
                 ],
                 $data
             )
