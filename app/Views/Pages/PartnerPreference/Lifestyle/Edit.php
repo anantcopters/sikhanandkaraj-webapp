@@ -2,22 +2,22 @@
 
 declare(strict_types=1);
 
+use App\Support\BooleanValue;
+
 /**
- * @var array<string,mixed>       $category
- * @var list<array<string,mixed>> $options
- * @var list<int>                 $selectedOptionIds
- * @var bool                      $isCompulsory
- * @var array<string,string>      $validationErrors
- * @var array<string,string>|null $formAlert
+ * Lifestyle Partner Preference edit page.
+ *
+ * @var array<string, mixed>       $category
+ * @var list<array<string, mixed>> $options
+ * @var list<int>                  $selectedOptionIds
+ * @var bool                       $isCompulsory
+ * @var array<string, string>      $validationErrors
+ * @var array<string, string>|null $formAlert
  */
 
-$this->extend(
-    'Layouts/Main'
-);
+$this->extend('Layouts/Main');
 
-$this->section(
-    'content'
-);
+$this->section('content');
 
 $categoryId = max(
     0,
@@ -47,24 +47,35 @@ $resolvedOptions = is_array(
     ? array_values($options)
     : [];
 
-$resolvedSelectedIds = is_array(
-    old(
-        'lifestyle_option_ids',
-        $selectedOptionIds ?? []
+$storedSelectedIds = is_array(
+    $selectedOptionIds ?? null
+)
+    ? array_values(
+        array_map(
+            'intval',
+            $selectedOptionIds
+        )
     )
+    : [];
+
+$oldSelectedIds = old(
+    'lifestyle_option_ids',
+    null,
+    false
+);
+
+$resolvedSelectedIds = is_array(
+    $oldSelectedIds
 )
     ? array_values(
         array_unique(
             array_map(
                 'intval',
-                old(
-                    'lifestyle_option_ids',
-                    $selectedOptionIds ?? []
-                )
+                $oldSelectedIds
             )
         )
     )
-    : [];
+    : $storedSelectedIds;
 
 $errors = is_array(
     $validationErrors ?? null
@@ -72,13 +83,23 @@ $errors = is_array(
     ? $validationErrors
     : [];
 
-$resolvedCompulsory =
-    old(
-        'is_compulsory',
-        ($isCompulsory ?? false)
-            ? '1'
-            : '0'
-    ) === '1';
+$storedCompulsory =
+    BooleanValue::fromDatabase(
+        $isCompulsory ?? false
+    );
+
+$strictMatch = old(
+    'is_compulsory',
+    $storedCompulsory
+        ? '1'
+        : '0',
+    false
+) === '1';
+
+$formAction = url_to(
+    'web.partner-preference.lifestyle.update',
+    $categoryId
+);
 ?>
 
 <section class="py-3 py-lg-4">
@@ -102,7 +123,7 @@ $resolvedCompulsory =
                         class="d-inline-flex
                             align-items-center
                             gap-1 text-primary
-                            fw-medium">
+                            fw-medium mb-2">
 
                         <i
                             class="ri-arrow-left-line"
@@ -110,71 +131,74 @@ $resolvedCompulsory =
 
                         Back to Partner Preference
                     </a>
+
+                    <div
+                        class="d-flex
+                            align-items-center
+                            gap-2 mt-2">
+
+                        <div
+                            class="avatar-sm
+                                flex-shrink-0"
+                            aria-hidden="true">
+
+                            <span
+                                class="avatar-title
+                                    rounded-circle
+                                    bg-primary-subtle
+                                    text-primary">
+
+                                <i
+                                    class="<?= esc(
+                                                $categoryIcon,
+                                                'attr'
+                                            ) ?> fs-20"></i>
+                            </span>
+                        </div>
+
+                        <div>
+                            <h2
+                                class="fs-16
+                                    fw-semibold mb-1">
+
+                                <?= esc(
+                                    $categoryName
+                                ) ?>
+                            </h2>
+
+                            <p
+                                class="text-muted
+                                    fs-13 mb-0">
+
+                                Set your preferred partner criteria.
+                            </p>
+                        </div>
+                    </div>
                 </div>
 
                 <div
-                    class="card border border-danger
-                        border-opacity-25 shadow-none">
+                    class="card border
+                        border-danger
+                        border-opacity-25
+                        shadow-none mb-0">
 
                     <div class="card-body p-3 p-md-4">
 
-                        <div
-                            class="d-flex
-                                align-items-start
-                                gap-2 mb-4">
-
-                            <span
-                                class="avatar-sm
-                                    flex-shrink-0">
-
-                                <span
-                                    class="avatar-title
-                                        rounded-circle
-                                        bg-primary-subtle
-                                        text-primary">
-
-                                    <i
-                                        class="<?= esc(
-                                                    $categoryIcon,
-                                                    'attr'
-                                                ) ?> fs-18"
-                                        aria-hidden="true"></i>
-                                </span>
-                            </span>
-
-                            <div>
-                                <h1
-                                    class="fs-16
-                                        fw-semibold mb-1">
-
-                                    <?= esc(
-                                        $categoryName
-                                    ) ?>
-                                </h1>
-
-                                <p
-                                    class="text-muted
-                                        fs-13 mb-0">
-
-                                    Select the preferences
-                                    that matter to you.
-                                </p>
-                            </div>
-                        </div>
-
                         <form
                             method="post"
-                            action="<?= url_to(
-                                        'web.partner-preference'
-                                            . '.lifestyle.update',
-                                        $categoryId
+                            action="<?= esc(
+                                        $formAction,
+                                        'attr'
                                     ) ?>"
-                            data-validate-form>
+                            id="partnerPreferenceLifestyleForm"
+                            data-validate
+                            novalidate>
 
                             <?= csrf_field() ?>
 
                             <div class="row g-3">
 
+                                <!-- Lifestyle options -->
                                 <div class="col-12">
 
                                     <label class="form-labelm">
@@ -182,12 +206,15 @@ $resolvedCompulsory =
                                             $categoryName
                                         ) ?>
 
-                                        <span class="text-danger">*</span>
+                                        <span class="text-danger">
+                                            *
+                                        </span>
                                     </label>
 
                                     <div
                                         class="d-flex
-                                            flex-wrap gap-2">
+                                            flex-wrap
+                                            gap-2">
 
                                         <?php foreach (
                                             $resolvedOptions
@@ -280,92 +307,187 @@ $resolvedCompulsory =
 
                                 </div>
 
-                                <div class="col-12">
-                                    <hr class="my-1">
-                                </div>
 
+                                <!-- Matching Preference -->
                                 <div class="col-12">
 
-                                    <input
-                                        type="hidden"
-                                        name="is_compulsory"
-                                        value="0">
+                                    <div
+                                        class="border rounded
+                                            p-3 bg-light mt-2">
 
-                                    <div class="form-check">
+                                        <div
+                                            class="fw-semibold
+                                                text-dark mb-3">
 
-                                        <input
-                                            type="checkbox"
-                                            class="form-check-input"
-                                            id="isCompulsory"
-                                            name="is_compulsory"
-                                            value="1"
-                                            <?= $resolvedCompulsory
-                                                ? 'checked'
-                                                : '' ?>>
+                                            Matching Preference
+                                        </div>
 
-                                        <label
-                                            class="form-check-label"
-                                            for="isCompulsory">
+                                        <div
+                                            class="form-check mb-2">
 
-                                            This preference is compulsory
-                                        </label>
+                                            <input
+                                                class="form-check-input"
+                                                type="radio"
+                                                name="is_compulsory"
+                                                id="preferredMatch"
+                                                value="0"
+                                                <?= !$strictMatch
+                                                    ? 'checked'
+                                                    : '' ?>>
+
+                                            <label
+                                                class="form-check-label"
+                                                for="preferredMatch">
+
+                                                Prefer profiles matching
+                                                this preference
+
+                                                <span
+                                                    class="badge
+                                                        bg-success-subtle
+                                                        text-success
+                                                        ms-2">
+
+                                                    Recommended
+
+                                                </span>
+
+                                            </label>
+
+                                        </div>
+
+                                        <div class="form-check">
+
+                                            <input
+                                                class="form-check-input"
+                                                type="radio"
+                                                name="is_compulsory"
+                                                id="strictMatch"
+                                                value="1"
+                                                <?= $strictMatch
+                                                    ? 'checked'
+                                                    : '' ?>>
+
+                                            <label
+                                                class="form-check-label"
+                                                for="strictMatch">
+
+                                                Show only profiles matching
+                                                this preference
+
+                                                <span
+                                                    class="badge
+                                                        bg-danger-subtle
+                                                        text-danger
+                                                        ms-2">
+
+                                                    Strict Match
+
+                                                </span>
+
+                                            </label>
+
+                                        </div>
+
+                                        <div
+                                            class="form-text
+                                                color-pink mt-3">
+
+                                            Recommended provides more
+                                            matching profiles, while
+                                            Strict Match only shows
+                                            profiles that exactly satisfy
+                                            this preference.
+
+                                        </div>
 
                                     </div>
 
-                                    <div class="form-text">
-                                        Show only matches having at least
-                                        one of the selected
-                                        <?= esc(
-                                            strtolower(
-                                                $categoryName
-                                            )
-                                        ) ?>
-                                        preferences.
-                                    </div>
-
                                 </div>
 
-                                <div
-                                    class="col-12
-                                        d-flex
-                                        justify-content-end">
 
-                                    <button
-                                        type="submit"
-                                        class="btn
-                                            registration-form__submit
-                                            fs-14 fw-medium
-                                            text-uppercase"
-                                        data-submit-button>
+                                <!-- Client-side validation area -->
+                                <div class="col-12">
+                                    <div
+                                        id="lifestylePreferenceError"
+                                        class="invalid-feedback d-block"
+                                        aria-live="polite"></div>
+                                </div>
 
-                                        <span
-                                            class="registration-submit__idle"
-                                            data-submit-idle>
 
-                                            <i
-                                                class="mdi
-                                                    mdi-cloud-upload-outline
-                                                    fs-20"
-                                                aria-hidden="true"></i>
+                                <!-- Existing Partner Preference actions -->
+                                <div class="col-12">
 
-                                            Save
-                                        </span>
+                                    <div class="row g-2 mt-4">
 
-                                        <span
-                                            class="registration-submit__loading
-                                                d-none"
-                                            data-submit-loading>
+                                        <div
+                                            class="col-12
+                                                col-sm-6
+                                                col-md-3
+                                                ms-md-auto
+                                                order-2
+                                                order-sm-1">
 
-                                            <span
-                                                class="spinner-border
-                                                    spinner-border-sm"
-                                                role="status"
-                                                aria-hidden="true"></span>
+                                            <a
+                                                href="<?= url_to(
+                                                            'web.partner-preference'
+                                                        ) ?>#lifestyle"
+                                                class="btn
+                                                    btn-outline-danger
+                                                    fs-14
+                                                    fw-medium
+                                                    w-100">
 
-                                            Saving...
-                                        </span>
+                                                Cancel
+                                            </a>
 
-                                    </button>
+                                        </div>
+
+                                        <div
+                                            class="col-12
+                                                col-sm-6
+                                                col-md-3
+                                                order-1
+                                                order-sm-2">
+
+                                            <button
+                                                type="submit"
+                                                class="btn
+                                                    registration-form__submit
+                                                    fs-14
+                                                    fw-semibold
+                                                    text-uppercase"
+                                                id="savePartnerPreferenceButton">
+
+                                                <span
+                                                    class="registration-submit__label">
+
+                                                    Save
+
+                                                </span>
+
+                                                <span
+                                                    class="registration-submit__loading
+                                                        d-none"
+                                                    aria-hidden="true">
+
+                                                    <span
+                                                        class="spinner-border
+                                                            spinner-border-sm"
+                                                        role="status"
+                                                        aria-hidden="true"></span>
+
+                                                    <span>
+                                                        Saving...
+                                                    </span>
+
+                                                </span>
+
+                                            </button>
+
+                                        </div>
+
+                                    </div>
 
                                 </div>
 
