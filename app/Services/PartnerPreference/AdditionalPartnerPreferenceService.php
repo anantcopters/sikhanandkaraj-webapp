@@ -317,7 +317,7 @@ final class AdditionalPartnerPreferenceService
                 'religious',
                 'Religious',
                 'Community and religious preferences.',
-                'ri-group-line text-primary',
+                'ri-group-line text-primary fs-20',
                 $religiousItems
             ),
 
@@ -325,7 +325,7 @@ final class AdditionalPartnerPreferenceService
                 'professional',
                 'Professional Preference',
                 'Education, occupation, employment and income preferences.',
-                'ri-briefcase-4-line text-primary',
+                'ri-briefcase-4-line text-primary fs-20',
                 $professionalItems
             ),
 
@@ -333,7 +333,7 @@ final class AdditionalPartnerPreferenceService
                 'location',
                 'Location',
                 'Select one or more preferred states and cities.',
-                'ri-map-pin-line text-primary',
+                'ri-map-pin-line text-primary fs-20',
                 $locationItems
             ),
 
@@ -341,7 +341,7 @@ final class AdditionalPartnerPreferenceService
                 'special-request',
                 'Any Special Request',
                 'Add any additional partner expectations.',
-                'ri-chat-heart-line text-primary',
+                'ri-chat-heart-line text-primary fs-20',
                 $specialItems
             ),
         ];

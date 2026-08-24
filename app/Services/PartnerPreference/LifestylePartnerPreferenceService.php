@@ -185,7 +185,7 @@ final class LifestylePartnerPreferenceService
                 'Hobbies, music, reading, entertainment, sports and other lifestyle preferences.',
 
                 'icon' =>
-                'ri-palette-line text-primary',
+                'ri-palette-line text-primary fs-20',
 
                 'isCompleted' =>
                 $total > 0

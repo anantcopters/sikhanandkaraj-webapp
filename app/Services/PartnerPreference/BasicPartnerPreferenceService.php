@@ -78,7 +78,7 @@ final class BasicPartnerPreferenceService
                     'title' => 'Basic',
                     'description' =>
                     'Age, height, marital status and lifestyle preferences.',
-                    'icon' => 'ri-user-heart-line text-primary',
+                    'icon' => 'ri-user-heart-line text-primary fs-20',
                     'isCompleted' =>
                     $completedItems === count($items),
                     'items' => $items,
