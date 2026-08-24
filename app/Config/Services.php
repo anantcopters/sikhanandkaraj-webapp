@@ -144,6 +144,9 @@ use App\Models\MembershipPlanModel;
 use App\Services\Membership\MembershipEntitlementService;
 use App\Services\Membership\MembershipService;
 use App\Services\Membership\VerifiedProfilePolicy;
+use App\Models\MemberMembershipProfileViewModel;
+use App\Services\Membership\MembershipProfileUsageService;
+use App\Services\Membership\ProfileAccessPolicy;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -1971,8 +1974,10 @@ final class Services extends BaseService
             static::basicPartnerPreferenceService(
                 false
             ),
-
             static::additionalPartnerPreferenceService(
+                false
+            ),
+            static::profileAccessPolicy(
                 false
             )
         );
@@ -2571,6 +2576,68 @@ final class Services extends BaseService
 
         return new VerifiedProfilePolicy(
             static::memberTrustVerificationService(
+                false
+            )
+        );
+    }
+
+    /**
+     * Return membership-scoped Full Profile usage service.
+     *
+     * Commercial consumption is intentionally separate from general
+     * member_profile_views interaction history.
+     */
+    public static function membershipProfileUsageService(
+        bool $getShared = true
+    ): MembershipProfileUsageService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipProfileUsageService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MembershipProfileUsageService(
+            new MemberMembershipProfileViewModel(
+                $database
+            ),
+            $database
+        );
+    }
+
+    /**
+     * Return the centralized another-member Full Profile access policy.
+     *
+     * All Full Profile authorization must pass through this service before
+     * sensitive profile information or signed media URLs are created.
+     */
+    public static function profileAccessPolicy(
+        bool $getShared = true
+    ): ProfileAccessPolicy {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'profileAccessPolicy'
+            );
+        }
+
+        return new ProfileAccessPolicy(
+            new UserModel(
+                db_connect()
+            ),
+            static::membershipService(
+                false
+            ),
+            static::membershipEntitlementService(
+                false
+            ),
+            static::verifiedProfilePolicy(
+                false
+            ),
+            static::membershipProfileUsageService(
+                false
+            ),
+            static::memberInteractionService(
                 false
             )
         );

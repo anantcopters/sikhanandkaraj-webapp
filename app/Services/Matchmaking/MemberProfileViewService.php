@@ -14,7 +14,7 @@ use App\Models\MemberProfileReportModel;
 use App\Services\PartnerPreference\BasicPartnerPreferenceService;
 use App\Services\PartnerPreference\AdditionalPartnerPreferenceService;
 use App\Support\EmailAddressMasker;
-use App\Exceptions\PaidMembershipRequiredException;
+use App\Services\Membership\ProfileAccessPolicy;
 use App\Support\MobileNumberMasker;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
@@ -60,7 +60,10 @@ final class MemberProfileViewService
         $basicPartnerPreferenceService,
 
         private readonly AdditionalPartnerPreferenceService
-        $additionalPartnerPreferenceService
+        $additionalPartnerPreferenceService,
+
+        private readonly ProfileAccessPolicy
+        $profileAccessPolicy
     ) {}
 
     /**
@@ -87,40 +90,29 @@ final class MemberProfileViewService
         );
 
         /*
-        * Enforce paid-member visibility before loading contacts,
-        * profile details, Aadhaar identity, photographs or gallery URLs.
+        * Full Profile authorization happens BEFORE sensitive profile information,
+        * contact details, Aadhaar data or signed media URLs are resolved.
+        *
+        * ProfileAccessPolicy centrally owns:
+        *
+        * - paid membership entitlement;
+        * - Verified Profile requirement;
+        * - female accepted-interest privacy;
+        * - block protection;
+        * - membership-wide quota;
+        * - daily quota;
+        * - repeat-view consumption.
+        *
+        * No Full Profile authorization rule should be duplicated below this point.
         */
-        $profileVisibility = mb_strtoupper(
-            trim(
-                (string) (
-                    $target['profile_visibility']
-                    ?? 'ALL_MEMBERS'
-                )
-            )
-        );
+        $profileAccess = $this
+            ->profileAccessPolicy
+            ->authorizeFullProfile(
+                $viewerUserId,
+                $targetUserId
+            );
 
-        if (
-            $profileVisibility === 'PAID_MEMBERS_ONLY'
-        ) {
-            $viewer = $this
-                ->userModel
-                ->find(
-                    $viewerUserId
-                );
 
-            $viewerIsPaid =
-                is_array($viewer)
-                && BooleanValue::fromDatabase(
-                    $viewer['is_paid']
-                        ?? false
-                );
-
-            if (!$viewerIsPaid) {
-                throw new PaidMembershipRequiredException(
-                    'A paid membership is required to view this profile.'
-                );
-            }
-        }
 
         /*
         * Load profile information without resolving an owner-context
@@ -199,14 +191,7 @@ final class MemberProfileViewService
                 $mobileContact['is_verified']
                     ?? false
             );
-
-        $isMemberMobileVerified =
-            is_array($mobileContact)
-            && BooleanValue::fromDatabase(
-                $mobileContact['is_verified']
-                    ?? false
-            );
-
+        
         /*
         * Gender is currently stored by registration as:
         *
@@ -672,6 +657,14 @@ final class MemberProfileViewService
                 $targetUserId
             );
 
+        /*
+        * Expose already-resolved membership usage to presentation.
+        *
+        * The View must never calculate quotas itself.
+        */
+        $summary['profileAccess'] =
+            $profileAccess;
+
         return array_merge(
             $summary,
             [
@@ -750,6 +743,7 @@ final class MemberProfileViewService
 
                 'partnerPreferenceDisplayItems' =>
                 $partnerPreferenceDisplayItems,
+
             ]
         );
     }

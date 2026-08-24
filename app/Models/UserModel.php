@@ -52,15 +52,6 @@ final class UserModel extends Model
         'account_status',
 
         /*
-        * Member-controlled profile visibility remains temporarily available
-        * until the dedicated Profile Visibility removal phase.
-        *
-        * Paid membership state no longer belongs on users. Membership authority
-        * is now member_memberships + MembershipService.
-        */
-        'profile_visibility',
-
-        /*
         * Member identity-verification state.
         *
         * Verification workflows will update these fields later.
