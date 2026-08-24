@@ -199,22 +199,18 @@ $formAction = url_to(
                             <div class="row g-3">
 
                                 <!-- Lifestyle options -->
+                                <!-- Lifestyle options -->
                                 <div class="col-12">
 
                                     <label class="form-labelm">
-                                        <?= esc(
-                                            $categoryName
-                                        ) ?>
+                                        <?= esc($categoryName) ?>
 
-                                        <span class="text-danger">
-                                            *
-                                        </span>
+                                        <span class="text-danger">*</span>
                                     </label>
 
                                     <div
-                                        class="d-flex
-                                            flex-wrap
-                                            gap-2">
+                                        class="d-flex flex-wrap gap-2"
+                                        id="lifestylePreferenceOptions">
 
                                         <?php foreach (
                                             $resolvedOptions
@@ -248,24 +244,37 @@ $formAction = url_to(
                                                 continue;
                                             }
 
+                                            /*
+             * Include both category and option IDs.
+             *
+             * This guarantees that every checkbox/label
+             * pair has a unique DOM id.
+             */
                                             $controlId =
-                                                'lifestylePreferenceOption'
+                                                'lifestylePreference'
+                                                . $categoryId
+                                                . 'Option'
                                                 . $optionId;
                                             ?>
 
                                             <input
                                                 type="checkbox"
                                                 class="btn-check"
-                                                id="<?= esc(
-                                                        $controlId,
-                                                        'attr'
-                                                    ) ?>"
                                                 name="lifestyle_option_ids[]"
                                                 value="<?= esc(
-                                                            (string)
-                                                            $optionId,
+                                                            (string) $optionId,
                                                             'attr'
                                                         ) ?>"
+                                                id="lifestyle-option-<?= esc(
+                                                                            (string) $optionId,
+                                                                            'attr'
+                                                                        ) ?>"
+                                                data-lifestyle-option
+                                                data-category-id="<?= esc(
+                                                                        (string) $categoryId,
+                                                                        'attr'
+                                                                    ) ?>"
+                                                autocomplete="off"
                                                 <?= in_array(
                                                     $optionId,
                                                     $resolvedSelectedIds,
@@ -275,16 +284,25 @@ $formAction = url_to(
                                                     : '' ?>>
 
                                             <label
-                                                class="btn
-                                                    btn-outline-primary"
-                                                for="<?= esc(
-                                                            $controlId,
-                                                            'attr'
-                                                        ) ?>">
+                                                class="btn btn-outline-primary
+        d-inline-flex align-items-center gap-1"
+                                                for="lifestyle-option-<?= esc(
+                                                                            (string) $optionId,
+                                                                            'attr'
+                                                                        ) ?>">
 
-                                                <?= esc(
-                                                    $optionName
-                                                ) ?>
+                                                <i
+                                                    class="<?= in_array(
+                                                                $optionId,
+                                                                $resolvedSelectedIds,
+                                                                true
+                                                            )
+                                                                ? 'ri-check-line'
+                                                                : 'ri-add-line' ?>"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                <?= esc($optionName) ?>
                                             </label>
 
                                         <?php endforeach; ?>
@@ -403,15 +421,6 @@ $formAction = url_to(
 
                                     </div>
 
-                                </div>
-
-
-                                <!-- Client-side validation area -->
-                                <div class="col-12">
-                                    <div
-                                        id="lifestylePreferenceError"
-                                        class="invalid-feedback d-block"
-                                        aria-live="polite"></div>
                                 </div>
 
 
