@@ -98,6 +98,15 @@ final class SearchController extends BaseController
                     'mode' =>
                     'basic',
 
+                    /*
+                    * Fail closed if Search form state could not be resolved.
+                    *
+                    * Never accidentally expose a membership-controlled feature because its
+                    * entitlement lookup failed.
+                    */
+                    'canUseAdvancedSearch' =>
+                    false,
+
                     'filters' =>
                     [],
 

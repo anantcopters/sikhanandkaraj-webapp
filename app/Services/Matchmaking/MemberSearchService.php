@@ -9,6 +9,7 @@ use App\Models\UserModel;
 use App\Services\Profile\LifestyleService;
 use App\Services\Profile\ProfileMasterDataService;
 use App\Validation\RegisterFreeValidation;
+use App\Services\Membership\MembershipEntitlementService;
 use DomainException;
 
 final class MemberSearchService
@@ -40,7 +41,16 @@ final class MemberSearchService
         $masterDataService,
 
         private readonly LifestyleService
-        $lifestyleService
+        $lifestyleService,
+
+        /*
+        * Membership-controlled Search capabilities are resolved centrally.
+        *
+        * MemberSearchService must never inspect plan codes or membership rows
+        * directly.
+        */
+        private readonly MembershipEntitlementService
+        $membershipEntitlementService
     ) {}
 
     /**
@@ -80,8 +90,22 @@ final class MemberSearchService
             );
 
         /*
-     * State selection must be known before city master data is loaded.
-     */
+        * Advanced Search remains visible as a product capability to Free members,
+        * but the form itself will be replaced by an upgrade lock.
+        *
+        * Returning capability state rather than silently converting the requested
+        * mode to Basic lets the UI clearly explain why Advanced Search is
+        * unavailable.
+        */
+        $canUseAdvancedSearch =
+            $this->membershipEntitlementService
+            ->canUseAdvancedSearch(
+                $viewerUserId
+            );
+
+        /*
+        * State selection must be known before city master data is loaded.
+        */
         $stateIds =
             $this->positiveIds(
                 $input['state_ids']
@@ -106,6 +130,15 @@ final class MemberSearchService
         return [
             'mode' =>
             $mode,
+
+            /*
+            * Presentation-only capability state.
+            *
+            * search() independently repeats the authorization before executing an
+            * Advanced Search.
+            */
+            'canUseAdvancedSearch' =>
+            $canUseAdvancedSearch,
 
             'filters' =>
             $filters,
@@ -136,6 +169,32 @@ final class MemberSearchService
         $mode = $this->mode(
             $input['mode'] ?? null
         );
+
+        /*
+        * SECURITY BOUNDARY
+        * --------------------------------------------------------------------------
+        *
+        * Never rely on the Advanced Search tab/form being hidden or locked.
+        *
+        * A Free member can manually construct:
+        *
+        *     /search/results?mode=advanced&...
+        *
+        * so execution itself must be membership-authorized before Advanced Search
+        * filters reach the candidate query.
+        */
+        if (
+            $mode === 'advanced'
+            && !$this->membershipEntitlementService
+                ->canUseAdvancedSearch(
+                    $viewerUserId
+                )
+        ) {
+            throw new DomainException(
+                'Advanced Search is available with a paid membership. '
+                    . 'Please upgrade your plan to use Advanced Search.'
+            );
+        }
 
         $sort = $this->sort(
             $input['sort'] ?? null

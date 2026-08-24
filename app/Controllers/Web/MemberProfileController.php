@@ -536,9 +536,12 @@ final class MemberProfileController extends BaseController
                 ->with(
                     'formAlert',
                     [
+                        /*
+                        * Domain denial includes membership entitlement and valid relationship
+                        * restrictions. It is not an application failure.
+                        */
                         'type' =>
-                        'danger',
-
+                        'warning',
                         'title' =>
                         'Shortlist not updated',
 

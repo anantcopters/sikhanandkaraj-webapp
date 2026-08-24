@@ -12,6 +12,7 @@ use App\Models\MemberShortlistModel;
 use App\Services\Notification\MemberNotificationService;
 use CodeIgniter\Database\BaseConnection;
 use App\Support\MemberNameVisibility;
+use App\Services\Membership\MembershipEntitlementService;
 use DomainException;
 use RuntimeException;
 use Throwable;
@@ -44,13 +45,35 @@ final class MemberInteractionService
     'DECLINED_RECEIVED';
 
     public function __construct(
-        private readonly UserModel $userModel,
-        private readonly MemberBlockModel $blockModel,
-        private readonly MemberInterestModel $interestModel,
-        private readonly MemberShortlistModel $shortlistModel,
-        private readonly MemberProfileViewModel $profileViewModel,
-        private readonly MemberNotificationService $notificationService,
-        private readonly BaseConnection $database
+        private readonly UserModel
+        $userModel,
+
+        private readonly MemberBlockModel
+        $blockModel,
+
+        private readonly MemberInterestModel
+        $interestModel,
+
+        private readonly MemberShortlistModel
+        $shortlistModel,
+
+        private readonly MemberProfileViewModel
+        $profileViewModel,
+
+        private readonly MemberNotificationService
+        $notificationService,
+
+        private readonly BaseConnection
+        $database,
+
+        /*
+        * MemberInteractionService owns the actual Shortlist state transition.
+        *
+        * Therefore membership authorization belongs here rather than only in
+        * MemberProfileController.
+        */
+        private readonly MembershipEntitlementService
+        $membershipEntitlementService
     ) {}
 
     /**
@@ -202,8 +225,15 @@ final class MemberInteractionService
     }
 
     /**
-     * Add or remove another member from the authenticated
-     * member's shortlist.
+     * Add or remove another member from the authenticated member's shortlist.
+     *
+     * Shortlist is a paid membership capability.
+     *
+     * IMPORTANT:
+     *
+     * Authorization is performed here in the domain service rather than only
+     * inside a controller. This protects every current and future caller,
+     * including Profile View, Profile Card, Interest Card or an API endpoint.
      *
      * @return bool TRUE when shortlisted after the operation,
      *              FALSE when removed.
@@ -213,8 +243,43 @@ final class MemberInteractionService
         int $shortlistedUserId
     ): bool {
         /*
-     * Reuse exactly the same member-pair authorization used
-     * by Interest and profile views.
+        * Determine current state before applying the paid entitlement.
+        *
+        * PRODUCT RULE:
+        *
+        * A member who created a Shortlist while Paid may later become Free.
+        *
+        * We retain that historical Shortlist, but a Free member must still be able
+        * to REMOVE it. Otherwise membership expiry would trap stale user data.
+        *
+        * Therefore:
+        *
+        * - adding a NEW Shortlist requires paid entitlement;
+        * - removing an EXISTING Shortlist remains allowed.
+        */
+        $isAlreadyShortlisted =
+            $this->shortlistModel
+            ->hasShortlisted(
+                $userId,
+                $shortlistedUserId
+            );
+
+        if (
+            !$isAlreadyShortlisted
+            && !$this->membershipEntitlementService
+                ->canShortlist(
+                    $userId
+                )
+        ) {
+            throw new DomainException(
+                'Shortlisting profiles is available with a paid membership. '
+                    . 'Please upgrade your plan to use Shortlist.'
+            );
+        }
+
+        /*
+     * Reuse exactly the same member-pair authorization used by Interest and
+     * profile interactions.
      *
      * This prevents:
      *
@@ -227,13 +292,7 @@ final class MemberInteractionService
             $shortlistedUserId
         );
 
-        if (
-            $this->shortlistModel
-            ->hasShortlisted(
-                $userId,
-                $shortlistedUserId
-            )
-        ) {
+        if ($isAlreadyShortlisted) {
             $removed = $this
                 ->shortlistModel
                 ->removeShortlist(
@@ -271,8 +330,10 @@ final class MemberInteractionService
             }
         } catch (Throwable $exception) {
             /*
-         * The PostgreSQL unique constraint remains the final
-         * concurrency guard.
+         * PostgreSQL uniqueness remains the final concurrency guard.
+         *
+         * If another request inserted the same shortlist concurrently,
+         * returning TRUE accurately describes the resulting domain state.
          */
             if (
                 $this->shortlistModel

@@ -13,6 +13,7 @@ use App\Services\Aws\CloudFrontService;
 use App\Services\Aws\S3Service;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\Files\UploadedFile;
+use App\Services\Membership\MembershipEntitlementService;
 use Config\MemberMedia;
 use DomainException;
 use RuntimeException;
@@ -33,14 +34,38 @@ final class MemberAadhaarService
     ];
 
     public function __construct(
-        private readonly UserModel $userModel,
-        private readonly MemberAadhaarSubmissionModel $submissionModel,
-        private readonly S3Service $s3Service,
-        private readonly CloudFrontService $cloudFrontService,
-        private readonly MemberPhotoUrlService $photoUrlService,
-        private readonly AdminAuditService $auditService,
-        private readonly BaseConnection $database,
-        private readonly MemberMedia $mediaConfig
+        private readonly UserModel
+        $userModel,
+
+        private readonly MemberAadhaarSubmissionModel
+        $submissionModel,
+
+        private readonly S3Service
+        $s3Service,
+
+        private readonly CloudFrontService
+        $cloudFrontService,
+
+        private readonly MemberPhotoUrlService
+        $photoUrlService,
+
+        private readonly AdminAuditService
+        $auditService,
+
+        private readonly BaseConnection
+        $database,
+
+        private readonly MemberMedia
+        $mediaConfig,
+
+        /*
+        * MembershipEntitlementService is the single authority for deciding
+        * whether a member may use Aadhaar verification.
+        *
+        * Do not derive paid/free state from UserModel or plan codes here.
+        */
+        private readonly MembershipEntitlementService
+        $membershipEntitlementService
     ) {}
 
     /**
@@ -95,11 +120,26 @@ final class MemberAadhaarService
     ): array {
         if ($memberId <= 0) {
             return [
-                'status' => 'NOT_ADDED',
-                'rejectionReason' => '',
-                'latest' => null,
-                'history' => [],
-                'canUpload' => false,
+                'status' =>
+                'NOT_ADDED',
+
+                'rejectionReason' =>
+                '',
+
+                'latest' =>
+                null,
+
+                'history' =>
+                [],
+
+                /*
+                * Invalid/nonexistent members never receive an entitlement.
+                */
+                'hasAadhaarEntitlement' =>
+                false,
+
+                'canUpload' =>
+                false,
             ];
         }
 
@@ -114,11 +154,26 @@ final class MemberAadhaarService
             || ($member['deleted_at'] ?? null) !== null
         ) {
             return [
-                'status' => 'NOT_ADDED',
-                'rejectionReason' => '',
-                'latest' => null,
-                'history' => [],
-                'canUpload' => false,
+                'status' =>
+                'NOT_ADDED',
+
+                'rejectionReason' =>
+                '',
+
+                'latest' =>
+                null,
+
+                'history' =>
+                [],
+
+                /*
+                * Invalid/nonexistent members never receive an entitlement.
+                */
+                'hasAadhaarEntitlement' =>
+                false,
+
+                'canUpload' =>
+                false,
             ];
         }
 
@@ -140,9 +195,9 @@ final class MemberAadhaarService
             : 'NOT_ADDED';
 
         /*
-     * Support members verified before immutable Aadhaar
-     * submission history was introduced.
-     */
+        * Support members verified before immutable Aadhaar
+        * submission history was introduced.
+        */
         $isLegacyVerified =
             \App\Support\BooleanValue::fromDatabase(
                 $member['is_aadhaar_verified']
@@ -190,23 +245,43 @@ final class MemberAadhaarService
             : '';
 
         /*
-     * A member may upload only when:
-     *
-     * - no Aadhaar has been submitted; or
-     * - the latest submission was rejected.
-     *
-     * upload() performs the same authorization again
-     * server-side and remains authoritative.
-     */
-        $canUpload = in_array(
-            $status,
-            [
-                'NOT_ADDED',
-                MemberAadhaarSubmissionModel
-                ::STATUS_REJECTED,
-            ],
-            true
-        );
+        * Aadhaar history and verification state remain visible even when a member
+        * later becomes Free.
+        *
+        * This is intentional:
+        *
+        * - verification already performed remains part of the member's identity;
+        * - historical moderation information must not disappear;
+        * - only the ability to START another upload is membership-controlled.
+        *
+        * Therefore membership affects canUpload, not the existing status/history.
+        */
+        $hasAadhaarEntitlement =
+            $this->membershipEntitlementService
+            ->canUseAadhaar(
+                $memberId
+            );
+
+        /*
+        * A member may upload only when BOTH conditions are satisfied:
+        *
+        * 1. the current Aadhaar workflow state allows another submission; and
+        * 2. the active membership grants the Aadhaar capability.
+        *
+        * upload() repeats the entitlement check server-side and remains the
+        * authoritative security boundary.
+        */
+        $canUpload =
+            $hasAadhaarEntitlement
+            && in_array(
+                $status,
+                [
+                    'NOT_ADDED',
+                    MemberAadhaarSubmissionModel
+                    ::STATUS_REJECTED,
+                ],
+                true
+            );
 
         return [
             'status' =>
@@ -216,8 +291,8 @@ final class MemberAadhaarService
             $rejectionReason,
 
             /*
-         * Only member-safe fields from the latest submission.
-         */
+            * Only member-safe fields from the latest submission.
+            */
             'latest' =>
             is_array($latest)
                 ? [
@@ -238,15 +313,23 @@ final class MemberAadhaarService
                 : null,
 
             /*
-         * historyForMember() already deliberately excludes
-         * object_key, checksum and upload reference.
-         */
+            * historyForMember() already deliberately excludes
+            * object_key, checksum and upload reference.
+            */
             'history' =>
             $this
                 ->submissionModel
                 ->historyForMember(
                     $memberId
                 ),
+
+            /*
+            * Presentation may use this value to display the membership lock.
+            *
+            * The View must not calculate membership state itself.
+            */
+            'hasAadhaarEntitlement' =>
+            $hasAadhaarEntitlement,
 
             'canUpload' =>
             $canUpload,
@@ -263,6 +346,34 @@ final class MemberAadhaarService
      */
     public function upload(int $memberId, UploadedFile $file): array
     {
+        /*
+        * SECURITY BOUNDARY
+        * --------------------------------------------------------------------------
+        *
+        * Aadhaar upload is a paid membership capability.
+        *
+        * This check MUST occur in the service before:
+        *
+        * - inspecting the uploaded document;
+        * - calculating checksums;
+        * - generating S3 paths;
+        * - uploading anything to S3;
+        * - writing submission history.
+        *
+        * Controller/UI checks are convenience only and must never be relied upon.
+        */
+        if (
+            !$this->membershipEntitlementService
+                ->canUseAadhaar(
+                    $memberId
+                )
+        ) {
+            throw new DomainException(
+                'A paid membership is required to use '
+                    . 'Aadhaar Verification.'
+            );
+        }
+
         $member = $this->userModel->find($memberId);
 
         if (

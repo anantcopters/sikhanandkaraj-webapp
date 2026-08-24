@@ -1010,7 +1010,16 @@ final class Services extends BaseService
 
             $database,
 
-            $configuration
+            config(
+                MemberMedia::class
+            ),
+
+            /*
+            * Aadhaar upload/re-upload is membership controlled.
+            */
+            static::membershipEntitlementService(
+                false
+            )
         );
     }
 
@@ -1734,19 +1743,29 @@ final class Services extends BaseService
             ),
 
             /*
-         * Intentionally construct this with the SAME database
-         * connection used by the interaction models.
-         *
-         * Do not call memberNotificationService(false) here if
-         * doing so could establish an independent connection.
-         */
+            * Intentionally construct this with the SAME database connection used by
+            * the interaction models.
+            *
+            * Interest persistence and notification creation must continue to
+            * participate in the same transaction.
+            */
             new MemberNotificationService(
                 new MemberNotificationModel(
                     $database
                 )
             ),
 
-            $database
+            $database,
+
+            /*
+            * Shortlist entitlement is resolved centrally.
+            *
+            * Report, Block and Interest remain available to Free + Paid members
+            * according to MembershipEntitlementService.
+            */
+            static::membershipEntitlementService(
+                false
+            )
         );
     }
 
@@ -2047,9 +2066,9 @@ final class Services extends BaseService
         }
 
         /*
-     * All models/services created here use the normal application database
-     * connection managed by CI4.
-     */
+        * All models/services created here use the normal application database
+        * connection managed by CI4.
+        */
         $database =
             db_connect();
 
@@ -2063,8 +2082,8 @@ final class Services extends BaseService
             ),
 
             /*
-         * Same Interest authority used by Member Profile View.
-         */
+            * Same Interest/Shortlist authority used by Member Profile View.
+            */
             static::memberInteractionService(
                 false
             ),
@@ -2078,6 +2097,14 @@ final class Services extends BaseService
             ),
 
             static::lifestyleService(
+                false
+            ),
+
+            /*
+            * Advanced Search authorization belongs to the centralized membership
+            * entitlement service.
+            */
+            static::membershipEntitlementService(
                 false
             )
         );
