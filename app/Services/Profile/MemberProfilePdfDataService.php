@@ -9,6 +9,7 @@ use App\Services\PartnerPreference\AdditionalPartnerPreferenceService;
 use App\Services\PartnerPreference\BasicPartnerPreferenceService;
 use App\Support\EmailAddressMasker;
 use App\Support\MobileNumberMasker;
+use App\Support\BooleanValue;
 use DateTimeImmutable;
 use Throwable;
 
@@ -243,6 +244,23 @@ final class MemberProfilePdfDataService
                     $basic['height_display_name']
                         ?? ''
                 )
+            ),
+
+            $this->row(
+                'ri-checkbox-circle-line',
+                'Amritdhari',
+                array_key_exists(
+                    'is_amritdhari',
+                    $basic
+                )
+                    ? (
+                        BooleanValue::fromDatabase(
+                            $basic['is_amritdhari']
+                        )
+                        ? 'Yes'
+                        : 'No'
+                    )
+                    : 'NA'
             ),
         ];
 
