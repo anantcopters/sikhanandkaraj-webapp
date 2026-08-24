@@ -556,6 +556,19 @@ final class PartnerPreferenceController extends BaseController
                 $strictMode,
             ],
 
+            BasicPreferenceItem::AMRITDHARI => [
+                'amritdhari' =>
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'amritdhari'
+                        )
+                ),
+
+                'is_compulsory' =>
+                $strictMode,
+            ],
+
             BasicPreferenceItem::MOTHER_TONGUE => [
                 'mother_tongue_ids' =>
                 $this->arrayInput(

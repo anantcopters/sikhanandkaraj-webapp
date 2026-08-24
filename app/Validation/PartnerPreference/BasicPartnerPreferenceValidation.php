@@ -47,6 +47,29 @@ final class BasicPartnerPreferenceValidation
                 self::compulsoryRule(),
             ],
 
+            BasicPreferenceItem::AMRITDHARI => [
+                'amritdhari' => [
+                    'label' =>
+                    'Amritdhari',
+
+                    'rules' => [
+                        'required',
+                        'in_list[0,1]',
+                    ],
+
+                    'errors' => [
+                        'required' =>
+                        'Please select your Amritdhari preference.',
+
+                        'in_list' =>
+                        'Please select a valid Amritdhari preference.',
+                    ],
+                ],
+
+                'is_compulsory' =>
+                self::compulsoryRule(),
+            ],
+
             BasicPreferenceItem::MOTHER_TONGUE => [
                 'mother_tongue_ids' => [
                     'label' => 'Mother tongues',

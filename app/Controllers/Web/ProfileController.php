@@ -758,6 +758,13 @@ final class ProfileController extends BaseController
                     'city_id'
                 )
             ),
+
+            'is_amritdhari' =>
+            $this->request->getPost(
+                'is_amritdhari'
+            ) === '1'
+                ? '1'
+                : '0',
         ];
     }
 

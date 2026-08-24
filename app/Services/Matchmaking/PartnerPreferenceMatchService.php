@@ -94,11 +94,11 @@ final class PartnerPreferenceMatchService
         }
 
         /*
-     * Load the member's Partner Preference configuration once.
-     *
-     * The same snapshot is then reused for every candidate rather
-     * than querying Partner Preferences for every profile.
-     */
+        * Load the member's Partner Preference configuration once.
+        *
+        * The same snapshot is then reused for every candidate rather
+        * than querying Partner Preferences for every profile.
+        */
         $snapshot = $this->snapshotForUser(
             $userId
         );
@@ -116,13 +116,13 @@ final class PartnerPreferenceMatchService
             );
 
             /*
-         * Dashboard/Search matching must continue to honour
-         * compulsory Partner Preferences.
-         *
-         * scoreProfile() intentionally does not remove a profile
-         * when this is false because Profile View still needs to
-         * display how that profile compares.
-         */
+            * Dashboard/Search matching must continue to honour
+            * compulsory Partner Preferences.
+            *
+            * scoreProfile() intentionally does not remove a profile
+            * when this is false because Profile View still needs to
+            * display how that profile compares.
+            */
             if (
                 $score['passesCompulsory']
                 !== true
@@ -143,11 +143,11 @@ final class PartnerPreferenceMatchService
         }
 
         /*
-     * Highest Partner Preference match first.
-     *
-     * Preserve the existing created_at ordering when two
-     * candidates have the same match percentage.
-     */
+        * Highest Partner Preference match first.
+        *
+        * Preserve the existing created_at ordering when two
+        * candidates have the same match percentage.
+        */
         usort(
             $scored,
             static function (
@@ -212,8 +212,8 @@ final class PartnerPreferenceMatchService
         $criteria = [];
 
         /*
-     * 1. AGE
-     */
+        * 1. AGE
+        */
         $candidateAge = $this->age(
             $candidate['date_of_birth']
                 ?? null
@@ -244,11 +244,11 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * 2. HEIGHT
-     *
-     * Existing Partner Preference validation treats the two height
-     * master IDs as an ordered range.
-     */
+        * 2. HEIGHT
+        *
+        * Existing Partner Preference validation treats the two height
+        * master IDs as an ordered range.
+        */
         $heightFrom = (int) (
             $basic['height_from_id']
             ?? 0
@@ -278,8 +278,8 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * 3. MARITAL STATUS
-     */
+        * 3. MARITAL STATUS
+        */
         $maritalStatusId = (int) (
             $basic['marital_status_id']
             ?? 0
@@ -301,8 +301,8 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * 4. HAVE CHILDREN
-     */
+        * 4. HAVE CHILDREN
+        */
         $hasChildrenPreference =
             array_key_exists(
                 'have_children',
@@ -333,8 +333,43 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * 5. MOTHER TONGUE
-     */
+        * 5. AMRITDHARI
+        */
+        $hasAmritdhariPreference =
+            array_key_exists(
+                'amritdhari',
+                $basic
+            )
+            && $basic['amritdhari'] !== null;
+
+        $candidateIsAmritdhari =
+            $this->boolean(
+                $candidate['is_amritdhari']
+                    ?? false
+            );
+
+        $this->criterion(
+            $criteria,
+
+            key: BasicPreferenceItem::AMRITDHARI,
+
+            configured: $hasAmritdhariPreference,
+
+            matched: $hasAmritdhariPreference
+                && $candidateIsAmritdhari
+                === $this->boolean(
+                    $basic['amritdhari']
+                ),
+
+            compulsory: $this->boolean(
+                $basic['amritdhari_match_mode']
+                    ?? false
+            )
+        );
+
+        /*
+        * 6. MOTHER TONGUE
+        */
         $this->multiSelectCriterion(
             $criteria,
             key: BasicPreferenceItem::MOTHER_TONGUE,
@@ -348,8 +383,8 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * 6. PHYSICAL STATUS
-     */
+        * 7. PHYSICAL STATUS
+        */
         $physicalStatusId = (int) (
             $basic['physical_status_id']
             ?? 0
@@ -371,8 +406,8 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * 7. EATING HABIT
-     */
+        * 8. EATING HABIT
+        */
         $this->multiSelectCriterion(
             $criteria,
             key: BasicPreferenceItem::EATING_HABITS,
@@ -386,8 +421,8 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * 8. DRINKING HABIT
-     */
+        * 9. DRINKING HABIT
+        */
         $this->multiSelectCriterion(
             $criteria,
             key: BasicPreferenceItem::DRINKING_HABITS,
@@ -401,8 +436,8 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * 9. COMMUNITY
-     */
+        * 10. COMMUNITY
+        */
         $this->multiSelectCriterion(
             $criteria,
             key: AdditionalPreferenceItem::COMMUNITY,
@@ -415,8 +450,8 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * 10. EDUCATION
-     */
+        * 11. EDUCATION
+        */
         $this->multiSelectCriterion(
             $criteria,
             key: AdditionalPreferenceItem::EDUCATION,
@@ -429,8 +464,8 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * 11. EMPLOYED IN
-     */
+        * 12. EMPLOYED IN
+        */
         $employmentTypes =
             $snapshot['employmentTypes'];
 
@@ -458,8 +493,8 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * 12. OCCUPATION
-     */
+        * 13. OCCUPATION
+        */
         $this->multiSelectCriterion(
             $criteria,
             key: AdditionalPreferenceItem::OCCUPATION,
@@ -472,8 +507,8 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * 13. ANNUAL INCOME
-     */
+        * 14. ANNUAL INCOME
+        */
         $this->multiSelectCriterion(
             $criteria,
             key: AdditionalPreferenceItem::ANNUAL_INCOME,
@@ -486,11 +521,11 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * 14. LOCATION
-     *
-     * City is the more precise criterion when cities are configured.
-     * If no city is configured, state is used.
-     */
+        * 15. LOCATION
+        *
+        * City is the more precise criterion when cities are configured.
+        * If no city is configured, state is used.
+        */
         $countryIds = $snapshot['countries'];
         $cityIds = $snapshot['cities'];
         $stateIds = $snapshot['states'];
@@ -540,11 +575,11 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * Every criterion supported by this service is retained in $criteria.
-     *
-     * This gives us a dynamic available count. A preference is included in
-     * the matchmaking denominator only when configured by the member.
-     */
+        * Every criterion supported by this service is retained in $criteria.
+        *
+        * This gives us a dynamic available count. A preference is included in
+        * the matchmaking denominator only when configured by the member.
+        */
         $available = count(
             $criteria
         );

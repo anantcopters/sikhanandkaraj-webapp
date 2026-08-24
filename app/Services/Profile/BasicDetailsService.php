@@ -128,14 +128,14 @@ final class BasicDetailsService
         );
 
         /*
- * Optional numeric fields arrive as empty strings when no value is
- * selected. Convert only non-empty validated values to integers.
- *
- * This preserves the intended distinction:
- *
- * - empty optional value => NULL
- * - selected master value => positive integer
- */
+        * Optional numeric fields arrive as empty strings when no value is
+        * selected. Convert only non-empty validated values to integers.
+        *
+        * This preserves the intended distinction:
+        *
+        * - empty optional value => NULL
+        * - selected master value => positive integer
+        */
         $drinkingHabitValue = trim(
             (string) (
                 $data['drinking_habit_id']
@@ -268,6 +268,10 @@ final class BasicDetailsService
                 );
             }
 
+            $isAmritdhari = BooleanValue::fromDatabase(
+                $data['is_amritdhari']
+            );
+
             $profileData = [
                 'user_id' => $userId,
 
@@ -306,6 +310,9 @@ final class BasicDetailsService
 
                 'children_living_together' =>
                 $childrenLivingTogether,
+
+                'is_amritdhari' =>
+                $isAmritdhari,
             ];
 
             $existing = $this
@@ -414,6 +421,23 @@ final class BasicDetailsService
             $details['marital_status_id'] ?? null,
             $details['height_id'] ?? null,
             $details['mother_tongue_id'] ?? null,
+
+            /*
+            * Both Yes and No are completed values.
+            *
+            * Do not put the raw boolean FALSE into $values because
+            * FALSE casts to an empty string and would incorrectly
+            * be treated as incomplete.
+            */
+            is_array($details)
+                && array_key_exists(
+                    'is_amritdhari',
+                    $details
+                )
+                && $details['is_amritdhari'] !== null
+                ? 'completed'
+                : null,
+
             $details['country_id'] ?? null,
             $details['state_id'] ?? null,
             $details['city_id'] ?? null,

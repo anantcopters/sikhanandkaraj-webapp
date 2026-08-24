@@ -25,6 +25,7 @@ final class MemberBasicDetailModel extends Model
         'marital_status_id',
         'height_id',
         'mother_tongue_id',
+        'is_amritdhari',
         'drinking_habit_id',
         'eating_habit_id',
         'physical_status_id',

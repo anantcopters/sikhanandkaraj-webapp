@@ -95,6 +95,21 @@ final class BasicDetailsValidation
                 ],
             ],
 
+            'is_amritdhari' => [
+                'label' => 'Amritdhari',
+                'rules' => [
+                    'required',
+                    'in_list[0,1]',
+                ],
+                'errors' => [
+                    'required' =>
+                    'Please specify whether you are Amritdhari.',
+
+                    'in_list' =>
+                    'Please select a valid Amritdhari value.',
+                ],
+            ],
+
             'drinking_habit_id' => [
                 'label' => 'Drinking habit',
                 'rules' => [

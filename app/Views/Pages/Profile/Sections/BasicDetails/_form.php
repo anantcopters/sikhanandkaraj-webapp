@@ -291,6 +291,26 @@ $countryHasError = isset(
     $errors['country_id']
 );
 
+$amritdhariHasError = isset(
+    $errors['is_amritdhari']
+);
+
+$isAmritdhari = $fieldValue(
+    'is_amritdhari',
+    array_key_exists(
+        'is_amritdhari',
+        $details
+    )
+        ? (
+            BooleanValue::fromDatabase(
+                $details['is_amritdhari']
+            )
+            ? '1'
+            : '0'
+        )
+        : '0'
+) === '1';
+
 $isJourney = ($isProfileJourney ?? false) === true;
 
 $formAction = url_to(
@@ -900,6 +920,62 @@ if ($isJourney) {
                 'errorId' => 'motherTongueIdError',
                 'errors' => $errors,
             ]) ?>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label
+                for="isAmritdhari"
+                class="form-labelm">
+
+                Amritdhari
+
+                <span class="text-danger">*</span>
+            </label>
+
+            <div class="form-check mt-2">
+
+                <input
+                    type="hidden"
+                    name="is_amritdhari"
+                    value="0">
+
+                <input
+                    type="checkbox"
+                    class="form-check-input <?= $amritdhariHasError
+                                                ? 'is-invalid'
+                                                : '' ?>"
+                    id="isAmritdhari"
+                    name="is_amritdhari"
+                    value="1"
+                    <?= $isAmritdhari
+                        ? 'checked'
+                        : '' ?>
+                    <?= $amritdhariHasError
+                        ? 'aria-invalid="true"'
+                        : '' ?>
+                    aria-describedby="isAmritdhariError">
+
+                <label
+                    class="form-check-label"
+                    for="isAmritdhari">
+
+                    Yes, I am Amritdhari
+                </label>
+            </div>
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' =>
+                    'is_amritdhari',
+
+                    'errorId' =>
+                    'isAmritdhariError',
+
+                    'errors' =>
+                    $errors,
+                ]
+            ) ?>
         </div>
 
         <div class="col-12 col-sm-6 col-lg-4">

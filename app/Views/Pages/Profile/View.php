@@ -861,6 +861,20 @@ $personalDetails = [
     $basicDetails['mother_tongue_name']
         ?? '',
 
+    'Amritdhari' =>
+    array_key_exists(
+        'is_amritdhari',
+        $basicDetails
+    )
+        ? (
+            BooleanValue::fromDatabase(
+                $basicDetails['is_amritdhari']
+            )
+            ? 'Yes'
+            : 'No'
+        )
+        : '',
+
     'Drinking Habit' =>
     $basicDetails['drinking_habit_name']
         ?? '',
