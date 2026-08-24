@@ -21,7 +21,8 @@ final class MemberAadhaarReviewController extends BaseController
     private const PER_PAGE = 20;
 
     /**
-     * Display the searchable pending Aadhaar queue.
+     * Display the searchable and filterable
+     * Aadhaar verification listing.
      */
     public function index(): string
     {
@@ -30,7 +31,9 @@ final class MemberAadhaarReviewController extends BaseController
             ' ',
             trim(
                 (string) $this->request
-                    ->getGet('search')
+                    ->getGet(
+                        'search'
+                    )
             )
         ) ?? '';
 
@@ -40,13 +43,42 @@ final class MemberAadhaarReviewController extends BaseController
             100
         );
 
+        $selectedStatus =
+            mb_strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getGet(
+                            'status'
+                        )
+                )
+            );
+
+        $allowedStatuses = [
+            'ALL',
+            'UNDER_REVIEW',
+            'APPROVED',
+            'REJECTED',
+        ];
+
+        if (
+            !in_array(
+                $selectedStatus,
+                $allowedStatuses,
+                true
+            )
+        ) {
+            $selectedStatus =
+                'UNDER_REVIEW';
+        }
+
         /** @var MemberAadhaarService $service */
         $service = service(
             'memberAadhaarService'
         );
 
-        $data = $service->pendingPage(
+        $data = $service->adminPage(
             $search,
+            $selectedStatus,
             self::PER_PAGE
         );
 
@@ -54,7 +86,7 @@ final class MemberAadhaarReviewController extends BaseController
             'Admin/Members/PendingAadhaarApproval',
             [
                 'pageTitle' =>
-                'Pending Aadhaar Authentication',
+                'Aadhaar Authentication',
 
                 'members' =>
                 $data['members'],
@@ -64,6 +96,9 @@ final class MemberAadhaarReviewController extends BaseController
 
                 'search' =>
                 $data['search'],
+
+                'selectedStatus' =>
+                $data['status'],
 
                 'formAlert' =>
                 $this->readFormAlert(),

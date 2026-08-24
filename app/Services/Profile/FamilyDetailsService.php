@@ -219,6 +219,12 @@ final class FamilyDetailsService
             $data['gotra'] ?? null
         );
 
+        $gotraMaternal = $this->requiredGotra(
+            $data['gotra_maternal'] ?? null,
+            'Please enter your Mother Gotra (Maternal Side).',
+            'Mother Gotra (Maternal Side)'
+        );
+
         /*
         * Service-level checks protect the domain if this service is later
         * called through an API, command or another controller.
@@ -523,6 +529,7 @@ final class FamilyDetailsService
             'family_status_id' => $familyStatusId,
             'community_id' => $communityId,
             'gotra' => $gotra,
+            'gotra_maternal' => $gotraMaternal,
             'father_name' => $fatherName,
             'mother_name' => $motherName,
             'parent_contact_number' =>
@@ -683,10 +690,13 @@ final class FamilyDetailsService
     }
 
     /**
-     * Normalize and require the member's Gotra.
+     * Normalize and require a Gotra value.
      */
-    private function requiredGotra(mixed $value): string
-    {
+    private function requiredGotra(
+        mixed $value,
+        string $requiredMessage = 'Please enter your Gotra.',
+        string $label = 'Gotra'
+    ): string {
         $normalized = preg_replace(
             '/\s+/u',
             ' ',
@@ -695,7 +705,7 @@ final class FamilyDetailsService
 
         if ($normalized === '') {
             throw new DomainException(
-                'Please enter your Gotra.'
+                $requiredMessage
             );
         }
 
@@ -706,7 +716,7 @@ final class FamilyDetailsService
             ) > self::GOTRA_MAX_LENGTH
         ) {
             throw new DomainException(
-                'Gotra cannot exceed '
+                $label . ' cannot exceed '
                     . self::GOTRA_MAX_LENGTH
                     . ' characters.'
             );
@@ -849,6 +859,11 @@ final class FamilyDetailsService
             $this->hasRequiredText(
                 $details['gotra'] ?? null
             ),
+
+            $this->hasRequiredText(
+                $details['gotra_maternal'] ?? null
+            ),
+
 
             $this->hasRequiredText(
                 $details['father_name'] ?? null

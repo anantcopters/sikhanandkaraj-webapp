@@ -847,6 +847,12 @@ final class PrelaunchMemberMigrationService
                             ?? null
                     ),
 
+                    'gotra_maternal' =>
+                    $this->nullableText(
+                        $profile['gotra_maternal']
+                            ?? null
+                    ),
+
                     'nearest_gurudwara' =>
                     $this->nullableText(
                         $profile['nearest_gurudwara']

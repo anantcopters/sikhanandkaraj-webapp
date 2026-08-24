@@ -52,6 +52,7 @@ final class PrelaunchProfileModel extends Model
         'parent_contact_number',
         'sikh_community_id',
         'gotra',
+        'gotra_maternal',
         'nearest_gurudwara',
         'field_officer_id',
         'created_by',

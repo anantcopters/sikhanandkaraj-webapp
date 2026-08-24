@@ -253,6 +253,7 @@ final class ProfileController extends BaseController
                     'pageScripts' => [
                         'assets/js/pages/profile-view.js',
                         'assets/js/pages/video-introduction-playback.js',
+                        'assets/js/pages/profile-pdf.js',
                     ],
                 ],
                 $profileSummary
@@ -328,6 +329,7 @@ final class ProfileController extends BaseController
             $dateOfBirthErrors = [
                 'Please enter a valid date of birth.',
                 'The member must be at least 18 years old.',
+                'The member must be at least 21 years old.',
             ];
 
 
@@ -756,6 +758,13 @@ final class ProfileController extends BaseController
                     'city_id'
                 )
             ),
+
+            'is_amritdhari' =>
+            $this->request->getPost(
+                'is_amritdhari'
+            ) === '1'
+                ? '1'
+                : '0',
         ];
     }
 
@@ -1657,6 +1666,13 @@ final class ProfileController extends BaseController
                     'gotra'
                 )
             ),
+
+            'gotra_maternal' => $this->normalizeProfileText(
+                $this->request->getPost(
+                    'gotra_maternal'
+                )
+            ),
+
 
             'father_name' => $this->normalizeProfileText(
                 $this->request->getPost(

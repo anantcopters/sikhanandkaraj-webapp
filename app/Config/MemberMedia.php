@@ -37,9 +37,32 @@ final class MemberMedia extends BaseConfig
      */
     public string $watermarkText;
 
-    public int $profileUrlTtlSeconds;
+    /**
+     * Signed CloudFront URL lifetime for profile thumbnails.
+     *
+     * Used by dashboard, search, match cards and other compact
+     * member-photo presentations.
+     */
+    public int $thumbnailUrlTtlSeconds;
 
-    public int $galleryUrlTtlSeconds;
+    /**
+     * Signed CloudFront URL lifetime for medium profile photographs.
+     *
+     * Used by full member-profile and member gallery views.
+     */
+    public int $mediumUrlTtlSeconds;
+
+    /**
+     * Signed CloudFront URL lifetime for administrator-only
+     * original photographs.
+     */
+    public int $adminOriginalUrlTtlSeconds;
+
+    /**
+     * Signed URL lifetime for sensitive private documents,
+     * including Aadhaar.
+     */
+    public int $privateDocumentUrlTtlSeconds;
 
     public int $profileMaxFiles;
 
@@ -141,19 +164,35 @@ final class MemberMedia extends BaseConfig
             $this->watermarkText = 'Sikhanandkaraj.com';
         }
 
-        $this->profileUrlTtlSeconds = max(
+        $this->thumbnailUrlTtlSeconds = max(
             60,
             (int) env(
-                'memberMedia.profileUrlTtlSeconds',
-                900
+                'memberMedia.thumbnailUrlTtlSeconds',
+                600
             )
         );
 
-        $this->galleryUrlTtlSeconds = max(
+        $this->mediumUrlTtlSeconds = max(
             60,
             (int) env(
-                'memberMedia.galleryUrlTtlSeconds',
-                900
+                'memberMedia.mediumUrlTtlSeconds',
+                300
+            )
+        );
+
+        $this->adminOriginalUrlTtlSeconds = max(
+            60,
+            (int) env(
+                'memberMedia.adminOriginalUrlTtlSeconds',
+                120
+            )
+        );
+
+        $this->privateDocumentUrlTtlSeconds = max(
+            60,
+            (int) env(
+                'memberMedia.privateDocumentUrlTtlSeconds',
+                120
             )
         );
 

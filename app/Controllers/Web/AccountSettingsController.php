@@ -19,6 +19,7 @@ final class AccountSettingsController extends BaseController
         'password',
         'email',
         'visibility',
+        'aadhaar-verification',
         'video-introduction',
         'report-profile',
         'plans',
@@ -54,6 +55,34 @@ final class AccountSettingsController extends BaseController
                 )->settingsForMember(
                     $userId
                 )
+            );
+        }
+
+        if ($section === 'aadhaar-verification') {
+            /** @var \App\Services\Profile\MemberAadhaarService $aadhaarService */
+            $aadhaarService = service(
+                'memberAadhaarService'
+            );
+
+            $settings = array_merge(
+                $settings,
+                [
+                    'aadhaarSettings' =>
+                    $aadhaarService
+                        ->settingsForMember(
+                            $userId
+                        ),
+
+                    'aadhaarValidationErrors' =>
+                    session(
+                        'aadhaarValidationErrors'
+                    ) ?? [],
+
+                    'openAadhaarModal' =>
+                    session(
+                        'openAadhaarModal'
+                    ) === true,
+                ]
             );
         }
 

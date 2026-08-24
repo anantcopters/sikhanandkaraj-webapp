@@ -78,7 +78,7 @@ final class BasicPartnerPreferenceService
                     'title' => 'Basic',
                     'description' =>
                     'Age, height, marital status and lifestyle preferences.',
-                    'icon' => 'ri-user-heart-line text-primary',
+                    'icon' => 'ri-user-heart-line text-primary fs-20',
                     'isCompleted' =>
                     $completedItems === count($items),
                     'items' => $items,
@@ -254,6 +254,18 @@ final class BasicPartnerPreferenceService
                 ]
             ),
 
+            BasicPreferenceItem::AMRITDHARI =>
+            $this->preferenceModel->update(
+                $preferenceId,
+                [
+                    'amritdhari' =>
+                    $data['amritdhari'],
+
+                    'amritdhari_match_mode' =>
+                    $data['is_compulsory'],
+                ]
+            ),
+
             BasicPreferenceItem::PHYSICAL_STATUS =>
             $this->preferenceModel->update(
                 $preferenceId,
@@ -394,6 +406,16 @@ final class BasicPartnerPreferenceService
                     $data['have_children']
                 ),
                 'is_compulsory' => $isCompulsory,
+            ],
+
+            BasicPreferenceItem::AMRITDHARI => [
+                'amritdhari' =>
+                BooleanValue::fromDatabase(
+                    $data['amritdhari']
+                ),
+
+                'is_compulsory' =>
+                $isCompulsory,
             ],
 
             BasicPreferenceItem::MOTHER_TONGUE => [
@@ -665,6 +687,33 @@ final class BasicPartnerPreferenceService
                     $preference['have_children'] ?? null
                 ),
                 $preference['have_children_match_mode'] ?? false
+            ),
+
+            $this->summaryItem(
+                BasicPreferenceItem::AMRITDHARI,
+
+                array_key_exists(
+                    'amritdhari',
+                    $preference
+                )
+                    && $preference['amritdhari'] !== null,
+
+                array_key_exists(
+                    'amritdhari',
+                    $preference
+                )
+                    && $preference['amritdhari'] !== null
+                    ? (
+                        BooleanValue::fromDatabase(
+                            $preference['amritdhari']
+                        )
+                        ? 'Yes'
+                        : 'No'
+                    )
+                    : null,
+
+                $preference['amritdhari_match_mode']
+                    ?? false
             ),
 
             $this->summaryItem(

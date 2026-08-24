@@ -153,72 +153,107 @@ final class MemberAadhaarSubmissionModel extends Model
     }
 
     /**
-     * Build the paginated administrator pending-review query.
+     * Build the paginated administrator Aadhaar listing query.
+     *
+     * @param string $search
+     * @param string $status ALL|UNDER_REVIEW|APPROVED|REJECTED
      */
-    public function preparePendingListing(string $search): self
-    {
+    public function prepareAdminListing(
+        string $search,
+        string $status
+    ): self {
         $this->select(
             "
-            member_aadhaar_submissions.id AS submission_id,
-            member_aadhaar_submissions.uploaded_at,
-            users.profile_ref_number,
-            users.full_name,
-            users.gender,
-            EXTRACT(
-                YEAR FROM AGE(
-                    CURRENT_DATE,
-                    member_basic_details.date_of_birth
-                )
-            )::INTEGER AS age,
-            CONCAT_WS(
-                ', ',
-                NULLIF(master_cities.name, ''),
-                NULLIF(master_states.name, '')
-            ) AS location
-            ",
+        member_aadhaar_submissions.id AS submission_id,
+        member_aadhaar_submissions.status,
+        member_aadhaar_submissions.uploaded_at,
+        member_aadhaar_submissions.reviewed_at,
+        users.profile_ref_number,
+        users.full_name,
+        users.gender,
+        EXTRACT(
+            YEAR FROM AGE(
+                CURRENT_DATE,
+                member_basic_details.date_of_birth
+            )
+        )::INTEGER AS age,
+        CONCAT_WS(
+            ', ',
+            NULLIF(master_cities.name, ''),
+            NULLIF(master_states.name, '')
+        ) AS location
+        ",
             false
         );
 
-        $this->join('users', 'users.id = member_aadhaar_submissions.member_id');
+        $this->join(
+            'users',
+            'users.id = member_aadhaar_submissions.member_id'
+        );
+
         $this->join(
             'member_basic_details',
             'member_basic_details.user_id = users.id',
             'left'
         );
+
         $this->join(
             'master_cities',
             'master_cities.id = member_basic_details.city_id',
             'left'
         );
+
         $this->join(
             'master_states',
             'master_states.id = member_basic_details.state_id',
             'left'
         );
-        $this->where(
-            'member_aadhaar_submissions.status',
-            self::STATUS_UNDER_REVIEW
-        );
-        $this->where('users.deleted_at', null);
 
-        $normalizedSearch = mb_strtolower(trim($search));
+        $this->where(
+            'users.deleted_at',
+            null
+        );
+
+        if ($status !== 'ALL') {
+            $this->where(
+                'member_aadhaar_submissions.status',
+                $status
+            );
+        }
+
+        $normalizedSearch =
+            mb_strtolower(
+                trim($search)
+            );
 
         if ($normalizedSearch !== '') {
-            $escaped = $this->db->escapeLikeString($normalizedSearch);
+            $escaped =
+                $this->db
+                ->escapeLikeString(
+                    $normalizedSearch
+                );
 
             $this->where(
                 "(
-                    LOWER(users.full_name) LIKE '%{$escaped}%'
-                    OR LOWER(users.profile_ref_number) LIKE '%{$escaped}%'
-                )",
+                LOWER(users.full_name)
+                    LIKE '%{$escaped}%'
+                OR LOWER(users.profile_ref_number)
+                    LIKE '%{$escaped}%'
+            )",
                 null,
                 false
             );
         }
 
         return $this
-            ->orderBy('member_aadhaar_submissions.uploaded_at', 'ASC')
-            ->orderBy('member_aadhaar_submissions.id', 'ASC');
+            ->orderBy(
+                'member_aadhaar_submissions.uploaded_at',
+                'DESC'
+            )
+            ->orderBy(
+                'member_aadhaar_submissions.id',
+                'DESC'
+            );
     }
 
     /**

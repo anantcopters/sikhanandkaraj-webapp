@@ -270,6 +270,57 @@ $unmatchedPreferenceCount = max(
     )
 );
 
+/*
+ * Human-readable Partner Preference values are prepared by the
+ * existing Partner Preference services before reaching this View.
+ */
+$partnerPreferenceDisplayItems =
+    isset($partnerPreferenceDisplayItems)
+    && is_array(
+        $partnerPreferenceDisplayItems
+    )
+    ? $partnerPreferenceDisplayItems
+    : [];
+
+$preferenceMatchCriteria =
+    isset(
+        $partnerPreferenceMatch['criteria']
+    )
+    && is_array(
+        $partnerPreferenceMatch['criteria']
+    )
+    ? $partnerPreferenceMatch['criteria']
+    : [];
+
+/*
+ * Build a keyed lookup only for presentation.
+ *
+ * No matching decision is made in the View.
+ */
+$preferenceMatchByKey = [];
+
+foreach (
+    $preferenceMatchCriteria
+    as $criterion
+) {
+    if (!is_array($criterion)) {
+        continue;
+    }
+
+    $criterionKey = trim(
+        (string) (
+            $criterion['key']
+            ?? ''
+        )
+    );
+
+    if ($criterionKey === '') {
+        continue;
+    }
+
+    $preferenceMatchByKey[$criterionKey] = $criterion;
+}
+
 $profileLayout = match (true) {
     $isAdminProfileView =>
     'Admin/Layouts/Main',
@@ -624,6 +675,14 @@ $gotra = trim(
     )
 );
 
+$gotraMaternal = trim(
+    (string) (
+        $familyDetails['gotra_maternal']
+        ?? ''
+    )
+);
+
+
 $currentLocation = implode(
     ', ',
     array_filter(
@@ -802,6 +861,20 @@ $personalDetails = [
     $basicDetails['mother_tongue_name']
         ?? '',
 
+    'Amritdhari' =>
+    array_key_exists(
+        'is_amritdhari',
+        $basicDetails
+    )
+        ? (
+            BooleanValue::fromDatabase(
+                $basicDetails['is_amritdhari']
+            )
+            ? 'Yes'
+            : 'No'
+        )
+        : '',
+
     'Drinking Habit' =>
     $basicDetails['drinking_habit_name']
         ?? '',
@@ -859,14 +932,16 @@ $familyDetailList = [
         ?? '',
 
     "Father's Occupation" =>
-    $familyDetails['father_occupation_name'] ?? '',
+    $familyDetails['father_occupation_name']
+        ?? '',
 
     "Mother's Name" =>
     $familyDetails['mother_name']
         ?? '',
 
     "Mother's Occupation" =>
-    $familyDetails['mother_occupation_name'] ?? '',
+    $familyDetails['mother_occupation_name']
+        ?? '',
 
     'Number of Brothers' =>
     $familyDetails['brothers_count']
@@ -881,23 +956,36 @@ $familyDetailList = [
         ?? '',
 
     'Family Status' =>
-    $familyDetails['family_status_name'] ?? '',
+    $familyDetails['family_status_name']
+        ?? '',
 
     'Family Values' =>
-    $familyDetails['family_value_name'] ?? '',
+    $familyDetails['family_value_name']
+        ?? '',
 
-    'Community' => $community,
-    'Gotra' => $gotra,
-    'Family Location' => $familyLocation,
+    'Community' =>
+    $community,
+
+    'Father Gotra' =>
+    $gotra,
+
+    'Mother Gotra (Maternal Side)' =>
+    $gotraMaternal,
+
+    'Family Location' =>
+    $familyLocation,
 
     'Nearest Gurudwara' =>
-    $familyDetails['nearest_gurudwara'] ?? '',
+    $familyDetails['nearest_gurudwara']
+        ?? '',
 
     'Reference Person 1' =>
-    $familyDetails['reference_person_1'] ?? '',
+    $familyDetails['reference_person_1']
+        ?? '',
 
     'Reference Person 2' =>
-    $familyDetails['reference_person_2'] ?? '',
+    $familyDetails['reference_person_2']
+        ?? '',
 ];
 
 /*
@@ -1010,134 +1098,190 @@ $this->section('content');
                     $profileBackLabel
                 ) ?>
             </a>
+            <?php
 
-            <?php if ($isOtherMemberProfileView): ?>
-                <div class="dropdown">
-                    <button
-                        type="button"
-                        class="btn btn-info btn-icon"
-                        data-bs-toggle="dropdown"
-                        data-bs-auto-close="outside"
-                        aria-expanded="false"
-                        aria-label="Profile actions">
+            $canGenerateProfilePdf =
+                !$isAdminProfileView
+                && !$isFieldOfficerProfileView;
 
-                        <i
-                            class="ri-more-2-fill fs-18"
-                            aria-hidden="true">
-                        </i>
-                    </button>
+            $profilePdfUrl = '';
 
-                    <div
-                        class="dropdown-menu dropdown-menu-end
+            if ($canGenerateProfilePdf) {
+                $profilePdfUrl =
+                    $isOtherMemberProfileView
+                    && $viewedProfileReference !== ''
+                    ? route_to(
+                        'web.members.pdf',
+                        $viewedProfileReference
+                    )
+                    : route_to(
+                        'web.profile.pdf'
+                    );
+            }
+
+            ?>
+
+            <div
+                class="
+        d-flex
+        align-items-center
+        gap-2">
+                <?php if (!$isOtherMemberProfileView): ?>
+                    <?php if (
+                        $canGenerateProfilePdf
+                        && $profilePdfUrl !== ''
+                    ): ?>
+                        <a href="javascript:void(0);" class="btn btn-info btn-sm shadow-none" data-profile-pdf-button
+                            data-profile-pdf-url="<?= esc(
+                                                        $profilePdfUrl,
+                                                        'attr'
+                                                    ) ?>"
+                            data-profile-pdf-csrf-name="<?= esc(
+                                                            csrf_token(),
+                                                            'attr'
+                                                        ) ?>"
+                            data-profile-pdf-csrf-hash="<?= esc(
+                                                            csrf_hash(),
+                                                            'attr'
+                                                        ) ?>"
+                            title="Save profile as PDF"
+                            aria-label="Save profile as PDF">Download PDF <i class="mdi mdi-send float-end ms-2"></i> </a>
+
+
+
+
+
+
+                    <?php endif; ?>
+                <?php endif; ?>
+                <?php if ($isOtherMemberProfileView): ?>
+                    <div class="dropdown">
+                        <button
+                            type="button"
+                            class="btn btn-info btn-icon"
+                            data-bs-toggle="dropdown"
+                            data-bs-auto-close="outside"
+                            aria-expanded="false"
+                            aria-label="Profile actions">
+
+                            <i
+                                class="ri-more-2-fill fs-18"
+                                aria-hidden="true">
+                            </i>
+                        </button>
+
+                        <div
+                            class="dropdown-menu dropdown-menu-end
                     p-2 border border-danger
         border-opacity-50 shadow-md"
-                        style="min-width: 220px;">
+                            style="min-width: 220px;">
 
-                        <form
-                            method="post"
-                            action="<?= route_to(
-                                        'web.members.shortlist',
-                                        $viewedProfileReference
-                                    ) ?>"
-                            data-member-shortlist-form>
+                            <form
+                                method="post"
+                                action="<?= route_to(
+                                            'web.members.shortlist',
+                                            $viewedProfileReference
+                                        ) ?>"
+                                data-member-shortlist-form>
 
-                            <?= csrf_field() ?>
+                                <?= csrf_field() ?>
 
-                            <button
-                                type="submit"
-                                class="dropdown-item rounded
+                                <button
+                                    type="submit"
+                                    class="dropdown-item rounded
                             d-flex align-items-center gap-2"
-                                data-member-shortlist-submit>
+                                    data-member-shortlist-submit>
 
-                                <span
-                                    class="d-inline-flex
+                                    <span
+                                        class="d-inline-flex
                                 align-items-center gap-2"
-                                    data-member-shortlist-label>
+                                        data-member-shortlist-label>
+
+                                        <i
+                                            class="<?= $isShortlisted
+                                                        ? 'ri-bookmark-fill'
+                                                        : 'ri-bookmark-line' ?>"
+                                            aria-hidden="true">
+                                        </i>
+
+                                        <?= $isShortlisted
+                                            ? 'Remove from Shortlist'
+                                            : 'Shortlist Profile' ?>
+                                    </span>
+
+                                    <span
+                                        class="d-none align-items-center
+                                gap-1"
+                                        data-member-shortlist-loading>
+
+                                        <span
+                                            class="spinner-border
+                                    spinner-border-sm"
+                                            aria-hidden="true">
+                                        </span>
+
+                                        Saving...
+                                    </span>
+                                </button>
+                            </form>
+
+                            <?php if ($hasReportedProfile): ?>
+                                <button
+                                    type="button"
+                                    class="dropdown-item rounded
+                            d-flex align-items-center gap-2
+                            text-muted"
+                                    disabled>
 
                                     <i
-                                        class="<?= $isShortlisted
-                                                    ? 'ri-bookmark-fill'
-                                                    : 'ri-bookmark-line' ?>"
+                                        class="ri-flag-fill"
                                         aria-hidden="true">
                                     </i>
 
-                                    <?= $isShortlisted
-                                        ? 'Remove from Shortlist'
-                                        : 'Shortlist Profile' ?>
-                                </span>
-
-                                <span
-                                    class="d-none align-items-center
-                                gap-1"
-                                    data-member-shortlist-loading>
-
-                                    <span
-                                        class="spinner-border
-                                    spinner-border-sm"
-                                        aria-hidden="true">
-                                    </span>
-
-                                    Saving...
-                                </span>
-                            </button>
-                        </form>
-
-                        <?php if ($hasReportedProfile): ?>
-                            <button
-                                type="button"
-                                class="dropdown-item rounded
-                            d-flex align-items-center gap-2
-                            text-muted"
-                                disabled>
-
-                                <i
-                                    class="ri-flag-fill"
-                                    aria-hidden="true">
-                                </i>
-
-                                Reported:
-                                <?= esc(
-                                    $reportedProfileStatusLabel
-                                ) ?>
-                            </button>
-                        <?php else: ?>
-                            <button
-                                type="button"
-                                class="dropdown-item rounded
+                                    Reported:
+                                    <?= esc(
+                                        $reportedProfileStatusLabel
+                                    ) ?>
+                                </button>
+                            <?php else: ?>
+                                <button
+                                    type="button"
+                                    class="dropdown-item rounded
                             d-flex align-items-center gap-2"
-                                data-bs-toggle="modal"
-                                data-bs-target="#memberReportModal">
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#memberReportModal">
 
-                                <i
-                                    class="ri-flag-line
+                                    <i
+                                        class="ri-flag-line
                                 text-warning"
-                                    aria-hidden="true">
-                                </i>
+                                        aria-hidden="true">
+                                    </i>
 
-                                Report Profile
-                            </button>
-                        <?php endif; ?>
+                                    Report Profile
+                                </button>
+                            <?php endif; ?>
 
-                        <div class="dropdown-divider"></div>
+                            <div class="dropdown-divider"></div>
 
-                        <button
-                            type="button"
-                            class="dropdown-item rounded
+                            <button
+                                type="button"
+                                class="dropdown-item rounded
                         d-flex align-items-center gap-2
                         text-danger"
-                            data-bs-toggle="modal"
-                            data-bs-target="#memberBlockModal">
+                                data-bs-toggle="modal"
+                                data-bs-target="#memberBlockModal">
 
-                            <i
-                                class="ri-forbid-line"
-                                aria-hidden="true">
-                            </i>
+                                <i
+                                    class="ri-forbid-line"
+                                    aria-hidden="true">
+                                </i>
 
-                            Block Profile
-                        </button>
+                                Block Profile
+                            </button>
+                        </div>
                     </div>
-                </div>
-            <?php endif; ?>
+                <?php endif; ?>
+            </div>
         </div>
         <?php if (
             !$isOtherMemberProfileView
@@ -1425,7 +1569,7 @@ $this->section('content');
                                                                 $community,
 
                                                                 $gotra !== ''
-                                                                    ? 'Gotra: '
+                                                                    ? 'Father Gotra: '
                                                                     . $gotra
                                                                     : '',
                                                             ]
@@ -2215,7 +2359,7 @@ $this->section('content');
                             <div
                                 class="card-header bg-success-subtle
                     d-flex align-items-center
-                    justify-content-between gap-2">
+                    justify-content-between gap-2 py-2">
 
                                 <div
                                     class="d-flex align-items-center
@@ -2300,7 +2444,7 @@ $this->section('content');
                                     </div>
                                 </div>
 
-                                <p class="text-muted fs-12 mb-0 mt-3">
+                                <p class="color-pink fs-12 mb-0 mt-3">
                                     These details were recorded during Aadhaar
                                     verification and cannot be edited from the
                                     matrimonial profile.
@@ -2322,9 +2466,9 @@ $this->section('content');
 
                             <div
                                 class="card-header
-                    bg-success-subtle
+                    bg-primary-subtle
                     d-flex align-items-center
-                    gap-2">
+                    gap-2 py-2">
 
                                 <i
                                     class="ri-video-line
@@ -2882,56 +3026,35 @@ $this->section('content');
 
                                         </div>
 
-                                        <div
-                                            class="text-md-end">
 
-                                            <div
-                                                class="fs-24
-                                    fw-bold
-                                    text-primary">
-
-                                                <?= esc(
-                                                    (string)
-                                                    $preferenceMatchPercentage
-                                                ) ?>%
-                                            </div>
-
-                                            <span
-                                                class="text-muted
-                                    fs-12">
-
-                                                overall match
-                                            </span>
-
-                                        </div>
 
                                     </div>
+                                    <div class="text-md-end">
+                                        <!-- Existing Bootstrap progress -->
+                                        <?php if (
+                                            $partnerPreferenceDisplayItems !== []
+                                            && $preferenceMatchByKey !== []
+                                        ): ?>
 
-                                    <!-- Existing Bootstrap progress -->
-                                    <div
-                                        class="progress"
-                                        role="progressbar"
-                                        aria-label="Partner preference match"
-                                        aria-valuenow="<?= esc(
-                                                            (string)
-                                                            $preferenceMatchPercentage,
-                                                            'attr'
-                                                        ) ?>"
-                                        aria-valuemin="0"
-                                        aria-valuemax="100">
+                                            <button
+                                                type="button"
+                                                class="btn
+                btn-sm
+                btn-outline-primary"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#partnerPreferenceMatchModal">
 
-                                        <div
-                                            class="progress-bar"
-                                            style="<?= esc(
-                                                        'width: '
-                                                            . $preferenceMatchPercentage
-                                                            . '%;',
-                                                        'attr'
-                                                    ) ?>">
-                                        </div>
+                                                <i
+                                                    class="ri-list-check-3 me-1"
+                                                    aria-hidden="true">
+                                                </i>
 
+                                                View Details
+
+                                            </button>
+
+                                        <?php endif; ?>
                                     </div>
-
                                 </div>
 
                                 <!-- Summary -->
@@ -3304,6 +3427,444 @@ $this->section('content');
         </div>
     </div>
 </section>
+<?php if (
+    $isOtherMemberProfileView
+    && $totalPreferenceCount > 0
+    && $partnerPreferenceDisplayItems !== []
+    && $preferenceMatchByKey !== []
+): ?>
+
+    <div
+        class="modal fade"
+        id="partnerPreferenceMatchModal"
+        tabindex="-1"
+        aria-labelledby="partnerPreferenceMatchModalLabel"
+        aria-hidden="true">
+
+        <div
+            class="modal-dialog
+                modal-dialog-centered
+                modal-lg">
+
+            <div class="modal-content">
+
+                <!-- =====================================================
+                     MODAL HEADER
+                     ===================================================== -->
+                <div
+                    class="modal-header
+                        bg-info-subtle
+                        py-2">
+
+                    <div>
+
+                        <h2
+                            class="modal-title fs-17"
+                            id="partnerPreferenceMatchModalLabel">
+
+                            Partner Preference Match
+
+                        </h2>
+
+                        <p
+                            class="text-muted
+                                fs-12
+                                mb-0">
+
+                            See how this profile matches
+                            your Partner Preferences.
+
+                        </p>
+
+                    </div>
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                    </button>
+
+                </div>
+
+                <!-- =====================================================
+                     FIXED MEMBER / MATCH SUMMARY
+                     This block does NOT scroll.
+                     ===================================================== -->
+                <div class="p-3 pb-0">
+
+                    <!-- Member identity -->
+                    <div
+                        class="border
+                            rounded-3
+                            bg-warning-subtle
+                            p-3
+                            mb-3">
+
+                        <div
+                            class="d-flex
+                                align-items-center
+                                justify-content-between
+                                flex-wrap
+                                gap-3">
+
+                            <div>
+
+                                <div
+                                    class="fs-16
+                                        fw-semibold">
+
+                                    <?= esc($fullName) ?>
+
+                                </div>
+
+                                <div
+                                    class="text-muted
+                                        fs-12
+                                        mt-1">
+
+                                    Profile ID:
+
+                                    <strong class="text-body">
+
+                                        <?= esc(
+                                            $viewedProfileReference
+                                                !== ''
+                                                ? $viewedProfileReference
+                                                : '-'
+                                        ) ?>
+
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                            <div class="text-end">
+
+                                <div
+                                    class="fs-20
+                                        fw-bold
+                                        text-primary">
+
+                                    <?= esc(
+                                        (string)
+                                        $matchedPreferenceCount
+                                    ) ?>/<?= esc(
+                                                (string)
+                                                $totalPreferenceCount
+                                            ) ?>
+
+                                </div>
+
+                                <div
+                                    class="color-pink
+                                        fs-12">
+
+                                    preferences matched
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Overall match -->
+                    <div
+                        class="d-flex
+                            align-items-center
+                            justify-content-between
+                            flex-wrap
+                            gap-2
+                            mb-2">
+
+                        <div class="fw-semibold">
+
+                            Overall Match
+
+                            <span
+                                class="text-primary
+                                    ms-1">
+
+                                <?= esc(
+                                    (string)
+                                    $preferenceMatchPercentage
+                                ) ?>%
+
+                            </span>
+
+                        </div>
+
+                        <div
+                            class="d-flex
+                                align-items-center
+                                gap-1
+                                text-success
+                                fs-13">
+
+                            <i
+                                class="ri-checkbox-circle-fill"
+                                aria-hidden="true">
+                            </i>
+
+                            <?= esc(
+                                (string)
+                                $matchedPreferenceCount
+                            ) ?>
+
+                            matched
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="progress mb-3"
+                        role="progressbar"
+                        aria-label="Partner preference match"
+                        aria-valuenow="<?= esc(
+                                            (string)
+                                            $preferenceMatchPercentage,
+                                            'attr'
+                                        ) ?>"
+                        aria-valuemin="0"
+                        aria-valuemax="100">
+
+                        <div
+                            class="progress-bar"
+                            style="<?= esc(
+                                        'width: '
+                                            . $preferenceMatchPercentage
+                                            . '%;',
+                                        'attr'
+                                    ) ?>">
+                        </div>
+
+                    </div>
+
+                    <!-- Preference table heading -->
+                    <div
+                        class="d-flex
+                            align-items-center
+                            justify-content-between
+                            gap-2
+                            bg-primary-subtle
+                            rounded-3
+                            p-3">
+
+                        <span class="fw-semibold">
+
+                            Your Partner Preferences
+
+                        </span>
+
+                        <span
+                            class="text-muted
+                                fs-13">
+
+                            Match
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <!-- =====================================================
+                     SCROLLABLE PREFERENCE LIST ONLY
+                     Name / ID / overall summary remain fixed above.
+                     ===================================================== -->
+                <div
+                    class="overflow-y-auto
+                        p-3
+                        pt-0"
+                    style="max-height: 45vh;">
+
+                    <?php foreach (
+                        $partnerPreferenceDisplayItems
+                        as $preferenceItem
+                    ): ?>
+
+                        <?php
+                        if (!is_array($preferenceItem)) {
+                            continue;
+                        }
+
+                        $preferenceKey = trim(
+                            (string) (
+                                $preferenceItem['key']
+                                ?? ''
+                            )
+                        );
+
+                        $preferenceTitle = trim(
+                            (string) (
+                                $preferenceItem['title']
+                                ?? ''
+                            )
+                        );
+
+                        $preferenceValue = trim(
+                            (string) (
+                                $preferenceItem['value']
+                                ?? ''
+                            )
+                        );
+
+                        $matchCriterion =
+                            $preferenceMatchByKey[$preferenceKey]
+                            ?? null;
+
+                        /*
+                         * Display only criteria that are:
+                         *
+                         * - configured;
+                         * - part of the matching engine;
+                         * - supplied with a readable value.
+                         */
+                        if (
+                            $preferenceKey === ''
+                            || $preferenceTitle === ''
+                            || $preferenceValue === ''
+                            || !is_array(
+                                $matchCriterion
+                            )
+                        ) {
+                            continue;
+                        }
+
+                        $isMatched = (
+                            $matchCriterion['matched']
+                            ?? false
+                        ) === true;
+
+                        $isCompulsory = (
+                            $matchCriterion['compulsory']
+                            ?? false
+                        ) === true;
+                        ?>
+
+                        <div
+                            class="row
+                                g-2
+                                align-items-center
+                                p-3
+                                border-bottom">
+
+                            <!-- Preference name -->
+                            <div
+                                class="col-12
+                                    col-md-4">
+
+                                <div
+                                    class="
+                                        fs-14">
+
+                                    <?= esc(
+                                        $preferenceTitle
+                                    ) ?>
+
+                                </div>
+
+                                <?php if (
+                                    $isCompulsory
+                                ): ?>
+
+                                    <span
+                                        class="badge
+                                            bg-danger-subtle
+                                            text-danger
+                                            mt-1">
+
+                                        Must Match
+
+                                    </span>
+
+                                <?php endif; ?>
+
+                            </div>
+
+                            <!-- Actual configured preference -->
+                            <div
+                                class="col-10
+                                    col-md-6">
+
+                                <div
+                                    class="fw-medium
+                                        fs-13">
+
+                                    <?= esc(
+                                        $preferenceValue
+                                    ) ?>
+
+                                </div>
+
+                            </div>
+
+                            <!-- Match state -->
+                            <div
+                                class="col-2
+                                    text-end">
+
+                                <?php if (
+                                    $isMatched
+                                ): ?>
+
+                                    <i
+                                        class="ri-checkbox-circle-fill
+                                            text-success
+                                            fs-20"
+                                        aria-label="Matched"
+                                        title="Matched">
+                                    </i>
+
+                                <?php else: ?>
+
+                                    <i
+                                        class="ri-close-circle-line
+                                            text-warning
+                                            fs-20"
+                                        aria-label="Does not match"
+                                        title="Does not match">
+                                    </i>
+
+                                <?php endif; ?>
+
+                            </div>
+
+                        </div>
+
+                    <?php endforeach; ?>
+
+                </div>
+
+                <!-- =====================================================
+                     FIXED FOOTER
+                     ===================================================== -->
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-light"
+                        data-bs-dismiss="modal">
+
+                        Close
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+<?php endif; ?>
+<!-- EXISTING PROFILE PHOTO MODAL CONTINUES HERE -->
+
 <?php if ($galleryPhotos !== []): ?>
 
     <div
@@ -3490,7 +4051,153 @@ $this->section('content');
     </div>
 
 <?php endif; ?>
+<?php if (
+    $canGenerateProfilePdf
+): ?>
 
+    <div
+        class="modal fade"
+        id="profilePdfModal"
+        tabindex="-1"
+        aria-labelledby="profilePdfModalLabel"
+        aria-hidden="true"
+        data-bs-backdrop="static"
+        data-bs-keyboard="false">
+
+        <div
+            class="
+            modal-dialog
+            modal-dialog-centered">
+
+            <div class="modal-content">
+
+                <div class="modal-header ">
+
+                    <h5
+                        class="modal-title text-center"
+                        id="profilePdfModalLabel">
+
+                        Creating Profile PDF
+
+                    </h5>
+
+                </div>
+
+                <div class="modal-body">
+
+                    <div
+                        class="
+                        text-center
+                        py-3">
+
+                        <div
+                            class="
+                            spinner-border
+                            text-primary
+                            mb-3"
+                            role="status"
+                            data-profile-pdf-spinner>
+
+                            <span class="visually-hidden">
+                                Creating PDF...
+                            </span>
+
+                        </div>
+
+
+                        <div
+                            class="
+                            d-none
+                            text-success
+                            mb-3"
+                            data-profile-pdf-success>
+
+                            <i
+                                class="
+                                ri-checkbox-circle-fill
+                                fs-36"
+                                aria-hidden="true">
+                            </i>
+
+                        </div>
+
+
+                        <div
+                            class="
+                            d-none
+                            text-danger
+                            mb-3"
+                            data-profile-pdf-error>
+
+                            <i
+                                class="
+                                ri-error-warning-fill
+                                fs-36"
+                                aria-hidden="true">
+                            </i>
+
+                        </div>
+
+
+                        <p
+                            class="
+                            text-muted
+                            fs-13
+                            mb-3"
+                            data-profile-pdf-message>
+
+                            Preparing profile details...
+
+                        </p>
+
+
+                        <div
+                            class="progress"
+                            role="progressbar"
+                            aria-label="Profile PDF progress"
+                            aria-valuemin="0"
+                            aria-valuemax="100">
+
+                            <div
+                                class="
+                                progress-bar
+                                progress-bar-striped
+                                progress-bar-animated"
+                                style="width: 15%;"
+                                aria-valuenow="15"
+                                data-profile-pdf-progress>
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div
+                    class="
+                    modal-footer
+                    d-none"
+                    data-profile-pdf-close>
+
+                    <button
+                        type="button"
+                        class="btn btn-light"
+                        data-bs-dismiss="modal">
+
+                        Close
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+<?php endif; ?>
 <?php if (
     $isOtherMemberProfileView
     && $viewedProfileReference !== ''
@@ -3611,7 +4318,7 @@ $this->section('content');
                         </div>
 
                         <div
-                            class="form-text">
+                            class="form-text color-pink">
 
                             Maximum 250 characters.
                         </div>

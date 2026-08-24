@@ -482,9 +482,9 @@ $plans = [
 
         Browse Profiles · Send Interests ·
         Shortlist · Advanced Search ·
-        Preference Match Count · Mobile,
+        Preference Match Count · <span class="fw-medium text-primary">Mobile,
         Email &amp; Aadhaar Verification ·
-        Live Introduction
+        Live Introduction</span>
     </p>
 
     <p

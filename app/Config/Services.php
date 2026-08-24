@@ -133,6 +133,13 @@ use App\Models\MemberVideoProcessingJobModel;
 use App\Services\Admin\MemberVideoModerationService;
 use App\Services\Video\MemberVideoIntroductionService;
 use App\Services\Video\VideoIntroductionProcessingService;
+use App\Services\Profile\MemberProfilePdfAssetService;
+use App\Services\Profile\MemberProfilePdfDataService;
+use App\Services\Profile\MemberProfilePdfService;
+use App\Models\MemberPartnerLifestylePreferenceModel;
+use App\Models\MemberPartnerLifestylePreferenceOptionModel;
+use App\Services\PartnerPreference\LifestylePartnerPreferenceService;
+use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
 use App\Logging\ErrorLogSanitizer;
@@ -1810,6 +1817,22 @@ final class Services extends BaseService
             new PartnerPreferenceSelectionModel(
                 'city',
                 $database
+            ),
+
+            new MasterLifestyleCategoryModel(
+                $database
+            ),
+
+            new MemberLifestyleOptionModel(
+                $database
+            ),
+
+            new MemberPartnerLifestylePreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerLifestylePreferenceOptionModel(
+                $database
             )
         );
     }
@@ -1891,6 +1914,9 @@ final class Services extends BaseService
         );
     }
 
+    /**
+     * Return the member profile-view service.
+     */
     public static function memberProfileViewService(
         bool $getShared = true
     ): MemberProfileViewService {
@@ -1928,6 +1954,20 @@ final class Services extends BaseService
             ),
 
             static::memberMatchmakingService(
+                false
+            ),
+
+            /*
+         * Reuse the existing Partner Preference services.
+         *
+         * These provide the human-readable preference values
+         * required by the Partner Preference Match modal.
+         */
+            static::basicPartnerPreferenceService(
+                false
+            ),
+
+            static::additionalPartnerPreferenceService(
                 false
             )
         );
@@ -2347,6 +2387,113 @@ final class Services extends BaseService
             config(
                 VideoIntroduction::class
             )
+        );
+    }
+
+    /**
+     * Embedded asset provider for profile PDF generation.
+     */
+    public static function memberProfilePdfAssetService(
+        bool $getShared = true
+    ): MemberProfilePdfAssetService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfilePdfAssetService'
+            );
+        }
+
+        return new MemberProfilePdfAssetService(
+            static::s3Service(
+                false
+            )
+        );
+    }
+
+    /**
+     * Build privacy-safe profile PDF presentation data.
+     */
+    public static function memberProfilePdfDataService(
+        bool $getShared = true
+    ): MemberProfilePdfDataService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfilePdfDataService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MemberProfilePdfDataService(
+            static::memberProfilePdfAssetService(
+                false
+            ),
+
+            static::basicPartnerPreferenceService(
+                false
+            ),
+
+            static::additionalPartnerPreferenceService(
+                false
+            ),
+
+            new MemberPhotoModel(
+                $database
+            )
+        );
+    }
+
+    /**
+     * Render member profile HTML through headless Chrome.
+     */
+    public static function memberProfilePdfService(
+        bool $getShared = true
+    ): MemberProfilePdfService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfilePdfService'
+            );
+        }
+
+        return new MemberProfilePdfService(
+            static::memberProfilePdfDataService(
+                false
+            ),
+
+            config(
+                ProfilePdf::class
+            )
+        );
+    }
+
+    /**
+     * Return Lifestyle Partner Preference service.
+     */
+    public static function lifestylePartnerPreferenceService(
+        bool $getShared = true
+    ): LifestylePartnerPreferenceService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'lifestylePartnerPreferenceService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new LifestylePartnerPreferenceService(
+            new UserModel($database),
+            new MasterLifestyleCategoryModel(
+                $database
+            ),
+            new MasterLifestyleOptionModel(
+                $database
+            ),
+            new MemberPartnerLifestylePreferenceModel(
+                $database
+            ),
+            new MemberPartnerLifestylePreferenceOptionModel(
+                $database
+            ),
+            $database
         );
     }
 }

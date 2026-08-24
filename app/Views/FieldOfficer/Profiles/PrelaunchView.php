@@ -199,7 +199,7 @@ $profileDetails = [
         )
     ),
 
-    'Gotra' =>
+    'Father Gotra' =>
     trim(
         (string) (
             $profile['gotra']

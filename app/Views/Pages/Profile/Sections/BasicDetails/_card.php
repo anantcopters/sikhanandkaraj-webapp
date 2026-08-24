@@ -377,6 +377,34 @@ $location = implode(
                 <div class="col-12 col-sm-6 col-lg-4">
                     <div class="d-flex align-items-start gap-2">
                         <i
+                            class="ri-checkbox-circle-line
+                    text-primary fs-18"
+                            aria-hidden="true"></i>
+
+                        <div>
+                            <span class="text-muted fs-12 d-block mb-1">
+                                Amritdhari
+                            </span>
+
+                            <strong class="fw-medium">
+                                <?= array_key_exists(
+                                    'is_amritdhari',
+                                    $details
+                                )
+                                    ? (
+                                        (bool) $details['is_amritdhari']
+                                        ? 'Yes'
+                                        : 'No'
+                                    )
+                                    : 'Not added' ?>
+                            </strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6 col-lg-4">
+                    <div class="d-flex align-items-start gap-2">
+                        <i
                             class="ri-map-pin-line
                                     text-primary fs-18"
                             aria-hidden="true"></i>

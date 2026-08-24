@@ -397,7 +397,7 @@ if ($isJourney) {
             <label
                 for="gotra"
                 class="form-labelm">
-                Gotra
+                Father Gotra
             </label>
 
             <input

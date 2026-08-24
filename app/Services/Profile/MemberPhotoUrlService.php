@@ -78,7 +78,8 @@ final class MemberPhotoUrlService
             photoId: (int) (
                 $photo['id']
                 ?? 0
-            )
+            ),
+            variant: $variant
         );
     }
 
@@ -133,7 +134,8 @@ final class MemberPhotoUrlService
                 objectKey: $objectKey,
                 context: 'Approved profile thumbnail',
                 memberId: $memberId,
-                photoId: $photoId
+                photoId: $photoId,
+                variant: 'thumbnail'
             );
 
             if ($thumbnailUrl === '') {
@@ -250,7 +252,8 @@ final class MemberPhotoUrlService
                 objectKey: $objectKey,
                 context: 'Administrator profile thumbnail',
                 memberId: $memberId,
-                photoId: $photoId
+                photoId: $photoId,
+                variant: 'thumbnail'
             );
 
             if ($thumbnailUrl === '') {
@@ -351,7 +354,8 @@ final class MemberPhotoUrlService
             objectKey: $mediumObjectKey,
             context: 'Approved member gallery medium photo',
             memberId: $memberId,
-            photoId: $photoId
+            photoId: $photoId,
+            variant: 'medium'
         );
 
         if ($mediumUrl === '') {
@@ -474,7 +478,8 @@ final class MemberPhotoUrlService
             objectKey: $originalObjectKey,
             context: $context . ' original',
             memberId: $memberId,
-            photoId: $photoId
+            photoId: $photoId,
+            variant: 'original'
         );
 
         if ($originalUrl === '') {
@@ -490,7 +495,8 @@ final class MemberPhotoUrlService
                 objectKey: $mediumObjectKey,
                 context: $context . ' medium',
                 memberId: $memberId,
-                photoId: $photoId
+                photoId: $photoId,
+                variant: 'medium'
             );
         }
 
@@ -513,14 +519,31 @@ final class MemberPhotoUrlService
         string $objectKey,
         string $context,
         int $memberId,
-        int $photoId
+        int $photoId,
+        string $variant = 'medium'
     ): string {
+        $ttlSeconds = match (mb_strtolower(
+            trim($variant)
+        )) {
+            'thumbnail' =>
+            $this->config
+                ->thumbnailUrlTtlSeconds,
+
+            'original' =>
+            $this->config
+                ->adminOriginalUrlTtlSeconds,
+
+            default =>
+            $this->config
+                ->mediumUrlTtlSeconds,
+        };
+
         try {
-            return $this->cloudFrontService
+            return $this
+                ->cloudFrontService
                 ->signedUrl(
                     $objectKey,
-                    $this->config
-                        ->profileUrlTtlSeconds
+                    $ttlSeconds
                 );
         } catch (Throwable $exception) {
             service(
@@ -549,8 +572,9 @@ final class MemberPhotoUrlService
                         ),
 
                         /*
-                 * Never store the actual private S3 object key.
-                 */
+                     * Never store the actual private S3
+                     * object key.
+                     */
                         'object_key_hash' =>
                         hash(
                             'sha256',
@@ -689,15 +713,13 @@ final class MemberPhotoUrlService
 
         return $this->createSignedUrl(
             objectKey: $objectKey,
-
             context: 'Viewer-authorized primary profile photo',
-
             memberId: $memberId,
-
             photoId: (int) (
                 $photo['id']
                 ?? 0
-            )
+            ),
+            variant: $normalizedVariant
         );
     }
 

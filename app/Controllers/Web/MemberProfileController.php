@@ -116,6 +116,7 @@ final class MemberProfileController extends BaseController
                             'assets/js/pages/profile-view.js',
                             'assets/js/pages/member-profile-actions.js',
                             'assets/js/pages/video-introduction-playback.js',
+                            'assets/js/pages/profile-pdf.js',
                         ],
                     ]
                 )

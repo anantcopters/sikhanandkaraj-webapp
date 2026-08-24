@@ -15,13 +15,18 @@ final class PrelaunchProfileValidation
 
     private const PARENT_CONTACT_NUMBER_LENGTH = 10;
 
+    private const FEMALE_MINIMUM_AGE = 18;
+
+    private const MALE_MINIMUM_AGE = 21;
+
     /**
      * Return the complete profile-creation validation rules.
      *
      * @return array<string, array<string, mixed>>
      */
     public static function createRules(
-        bool $enableFieldOfficerVerification = false
+        bool $enableFieldOfficerVerification = false,
+        string $gender = ''
     ): array {
         /*
          * Reuse shared basic-profile validation and remove only fields
@@ -33,12 +38,20 @@ final class PrelaunchProfileValidation
             $rules['mother_tongue_id']
         );
 
+        $normalizedGender = mb_strtoupper(
+            trim($gender)
+        );
+
+        $minimumAge = $normalizedGender === 'MALE'
+            ? self::MALE_MINIMUM_AGE
+            : self::FEMALE_MINIMUM_AGE;
+
         $rules['date_of_birth'] = [
             'label' => 'Date of birth',
             'rules' => [
                 'required',
                 'valid_date[Y-m-d]',
-                'minimum_age[18]',
+                'minimum_age[' . $minimumAge . ']',
             ],
             'errors' => [
                 'required' =>
@@ -48,7 +61,9 @@ final class PrelaunchProfileValidation
                 'Please enter a valid date of birth.',
 
                 'minimum_age' =>
-                'The member must be at least 18 years old.',
+                'The member must be at least '
+                    . $minimumAge
+                    . ' years old.',
             ],
         ];
 
@@ -214,7 +229,7 @@ final class PrelaunchProfileValidation
                 ),
 
                 'gotra' => [
-                    'label' => 'Gotra',
+                    'label' => 'Father Gotra',
                     'rules' => [
                         'required',
                         'min_length[2]',
@@ -226,13 +241,36 @@ final class PrelaunchProfileValidation
                         'Please enter gotra.',
 
                         'min_length' =>
-                        'Gotra must contain at least 2 characters.',
+                        'Father Gotra must contain at least 2 characters.',
 
                         'max_length' =>
-                        'Gotra cannot exceed 100 characters.',
+                        'Father Gotra cannot exceed 100 characters.',
 
                         'regex_match' =>
-                        'Gotra may contain letters, spaces, apostrophes, full stops and hyphens only.',
+                        'Father Gotra may contain letters, spaces, apostrophes, full stops and hyphens only.',
+                    ],
+                ],
+
+                'gotra_maternal' => [
+                    'label' => 'Mother Gotra (Maternal Side)',
+                    'rules' => [
+                        'required',
+                        'min_length[2]',
+                        'max_length[100]',
+                        'regex_match[/^[\p{L}\p{M} .\'-]+$/u]',
+                    ],
+                    'errors' => [
+                        'required' =>
+                        'Please enter Mother Gotra (Maternal Side).',
+
+                        'min_length' =>
+                        'Mother Gotra (Maternal Side) must contain at least 2 characters.',
+
+                        'max_length' =>
+                        'Mother Gotra (Maternal Side) cannot exceed 100 characters.',
+
+                        'regex_match' =>
+                        'Mother Gotra (Maternal Side) may contain letters, spaces, apostrophes, full stops and hyphens only.',
                     ],
                 ],
 
@@ -272,14 +310,6 @@ final class PrelaunchProfileValidation
             ]
         );
 
-        /*
-         * The SAK Volunteer component is rendered only in deployments
-         * where explicit verification is enabled.
-         *
-         * Both fields are optional. When either value is supplied,
-         * PrelaunchProfileService requires the complete verified pair
-         * and revalidates it server-side before persistence.
-         */
         if ($enableFieldOfficerVerification) {
             $rules['field_officer_code'] = [
                 'label' => 'SAK Volunteer ID',

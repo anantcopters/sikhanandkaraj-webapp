@@ -43,8 +43,7 @@ final class BasicDetailsService
         int $userId,
         ?int $requestedCountryId = null,
         ?int $requestedStateId = null
-    ): array
-    {
+    ): array {
         $user = $this->userModel->find($userId);
 
         if (!is_array($user)) {
@@ -101,8 +100,22 @@ final class BasicDetailsService
         int $userId,
         array $data
     ): void {
-        $this->assertAdult(
-            (string) $data['date_of_birth']
+        $user = $this->userModel->find(
+            $userId
+        );
+
+        if (!is_array($user)) {
+            throw new DomainException(
+                'The member account could not be found.'
+            );
+        }
+
+        $this->assertMinimumAge(
+            (string) $data['date_of_birth'],
+            (string) (
+                $user['gender']
+                ?? ''
+            )
         );
 
         $this->masterDataService->assertValidSelection(
@@ -115,14 +128,14 @@ final class BasicDetailsService
         );
 
         /*
- * Optional numeric fields arrive as empty strings when no value is
- * selected. Convert only non-empty validated values to integers.
- *
- * This preserves the intended distinction:
- *
- * - empty optional value => NULL
- * - selected master value => positive integer
- */
+        * Optional numeric fields arrive as empty strings when no value is
+        * selected. Convert only non-empty validated values to integers.
+        *
+        * This preserves the intended distinction:
+        *
+        * - empty optional value => NULL
+        * - selected master value => positive integer
+        */
         $drinkingHabitValue = trim(
             (string) (
                 $data['drinking_habit_id']
@@ -255,6 +268,10 @@ final class BasicDetailsService
                 );
             }
 
+            $isAmritdhari = BooleanValue::fromDatabase(
+                $data['is_amritdhari']
+            );
+
             $profileData = [
                 'user_id' => $userId,
 
@@ -293,6 +310,9 @@ final class BasicDetailsService
 
                 'children_living_together' =>
                 $childrenLivingTogether,
+
+                'is_amritdhari' =>
+                $isAmritdhari,
             ];
 
             $existing = $this
@@ -326,10 +346,14 @@ final class BasicDetailsService
     }
 
     /**
-     * Ensure date of birth represents an adult member.
+     * Enforce the gender-specific minimum member age.
+     *
+     * Male members must be at least 21 years old.
+     * Female members must be at least 18 years old.
      */
-    private function assertAdult(
-        string $dateOfBirth
+    private function assertMinimumAge(
+        string $dateOfBirth,
+        string $gender
     ): void {
         $birthDate = DateTimeImmutable::createFromFormat(
             '!Y-m-d',
@@ -345,13 +369,29 @@ final class BasicDetailsService
             );
         }
 
-        $minimumAdultDate = new DateTimeImmutable(
-            'today -18 years'
+        $normalizedGender = mb_strtoupper(
+            trim($gender)
         );
 
-        if ($birthDate > $minimumAdultDate) {
+        $minimumAge = $normalizedGender === 'MALE'
+            ? 21
+            : 18;
+
+        $latestEligibleBirthDate =
+            new DateTimeImmutable(
+                'today -'
+                    . $minimumAge
+                    . ' years'
+            );
+
+        if (
+            $birthDate
+            > $latestEligibleBirthDate
+        ) {
             throw new DomainException(
-                'The member must be at least 18 years old.'
+                'The member must be at least '
+                    . $minimumAge
+                    . ' years old.'
             );
         }
     }
@@ -381,6 +421,23 @@ final class BasicDetailsService
             $details['marital_status_id'] ?? null,
             $details['height_id'] ?? null,
             $details['mother_tongue_id'] ?? null,
+
+            /*
+            * Both Yes and No are completed values.
+            *
+            * Do not put the raw boolean FALSE into $values because
+            * FALSE casts to an empty string and would incorrectly
+            * be treated as incomplete.
+            */
+            is_array($details)
+                && array_key_exists(
+                    'is_amritdhari',
+                    $details
+                )
+                && $details['is_amritdhari'] !== null
+                ? 'completed'
+                : null,
+
             $details['country_id'] ?? null,
             $details['state_id'] ?? null,
             $details['city_id'] ?? null,
