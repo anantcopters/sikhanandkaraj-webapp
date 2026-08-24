@@ -636,14 +636,30 @@ final class PrelaunchProfileController extends BaseController
 
         $validation = service('validation');
 
+        /*
+        * Validate both profile data and uploaded photographs.
+        *
+        * PrelaunchProfileValidation applies the gender-specific
+        * minimum DOB rule:
+        *
+        * Male   => 21 years
+        * Female => 18 years
+        *
+        * Keep PrelaunchPhotoValidation merged with the profile rules.
+        * Photo validation existed before the gender-specific DOB
+        * change and must remain authoritative server-side.
+        */
         $validation->setRules(
-            PrelaunchProfileValidation::createRules(
-                $config
-                    ->requiresFieldOfficerVerification,
-                (string) (
-                    $input['gender']
-                    ?? ''
-                )
+            array_merge(
+                PrelaunchProfileValidation::createRules(
+                    $config
+                        ->requiresFieldOfficerVerification,
+                    (string) (
+                        $input['gender']
+                        ?? ''
+                    )
+                ),
+                PrelaunchPhotoValidation::rules()
             )
         );
 
