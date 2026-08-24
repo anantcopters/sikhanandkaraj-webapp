@@ -675,6 +675,14 @@ $gotra = trim(
     )
 );
 
+$gotraMaternal = trim(
+    (string) (
+        $familyDetails['gotra_maternal']
+        ?? ''
+    )
+);
+
+
 $currentLocation = implode(
     ', ',
     array_filter(
@@ -910,14 +918,16 @@ $familyDetailList = [
         ?? '',
 
     "Father's Occupation" =>
-    $familyDetails['father_occupation_name'] ?? '',
+    $familyDetails['father_occupation_name']
+        ?? '',
 
     "Mother's Name" =>
     $familyDetails['mother_name']
         ?? '',
 
     "Mother's Occupation" =>
-    $familyDetails['mother_occupation_name'] ?? '',
+    $familyDetails['mother_occupation_name']
+        ?? '',
 
     'Number of Brothers' =>
     $familyDetails['brothers_count']
@@ -932,23 +942,36 @@ $familyDetailList = [
         ?? '',
 
     'Family Status' =>
-    $familyDetails['family_status_name'] ?? '',
+    $familyDetails['family_status_name']
+        ?? '',
 
     'Family Values' =>
-    $familyDetails['family_value_name'] ?? '',
+    $familyDetails['family_value_name']
+        ?? '',
 
-    'Community' => $community,
-    'Gotra' => $gotra,
-    'Family Location' => $familyLocation,
+    'Community' =>
+    $community,
+
+    'Gotra' =>
+    $gotra,
+
+    'Gotra (Maternal Side)' =>
+    $gotraMaternal,
+
+    'Family Location' =>
+    $familyLocation,
 
     'Nearest Gurudwara' =>
-    $familyDetails['nearest_gurudwara'] ?? '',
+    $familyDetails['nearest_gurudwara']
+        ?? '',
 
     'Reference Person 1' =>
-    $familyDetails['reference_person_1'] ?? '',
+    $familyDetails['reference_person_1']
+        ?? '',
 
     'Reference Person 2' =>
-    $familyDetails['reference_person_2'] ?? '',
+    $familyDetails['reference_person_2']
+        ?? '',
 ];
 
 /*
