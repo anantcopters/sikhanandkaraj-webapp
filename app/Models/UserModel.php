@@ -52,10 +52,12 @@ final class UserModel extends Model
         'account_status',
 
         /*
-        * Temporary QA subscription and member-controlled
-        * profile visibility.
+        * Member-controlled profile visibility remains temporarily available
+        * until the dedicated Profile Visibility removal phase.
+        *
+        * Paid membership state no longer belongs on users. Membership authority
+        * is now member_memberships + MembershipService.
         */
-        'is_paid',
         'profile_visibility',
 
         /*

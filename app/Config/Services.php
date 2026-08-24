@@ -139,6 +139,11 @@ use App\Services\Profile\MemberProfilePdfService;
 use App\Models\MemberPartnerLifestylePreferenceModel;
 use App\Models\MemberPartnerLifestylePreferenceOptionModel;
 use App\Services\PartnerPreference\LifestylePartnerPreferenceService;
+use App\Models\MemberMembershipModel;
+use App\Models\MembershipPlanModel;
+use App\Services\Membership\MembershipEntitlementService;
+use App\Services\Membership\MembershipService;
+use App\Services\Membership\VerifiedProfilePolicy;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -2494,6 +2499,80 @@ final class Services extends BaseService
                 $database
             ),
             $database
+        );
+    }
+
+    /**
+     * Return the authoritative membership resolver.
+     *
+     * MembershipService is the only production authority for determining
+     * whether a member currently has a paid membership and which purchased
+     * limits belong to that membership.
+     */
+    public static function membershipService(
+        bool $getShared = true
+    ): MembershipService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MembershipService(
+            new MembershipPlanModel(
+                $database
+            ),
+            new MemberMembershipModel(
+                $database
+            )
+        );
+    }
+
+    /**
+     * Return the centralized membership capability resolver.
+     *
+     * Product code should ask this service for capabilities rather than
+     * introducing local paid/free conditionals.
+     */
+    public static function membershipEntitlementService(
+        bool $getShared = true
+    ): MembershipEntitlementService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipEntitlementService'
+            );
+        }
+
+        return new MembershipEntitlementService(
+            static::membershipService(
+                false
+            )
+        );
+    }
+
+    /**
+     * Return the centralized Verified Profile policy.
+     *
+     * Verification evidence remains owned by the existing Trust and
+     * Verification service. This policy only defines the product rule that at
+     * least one verified credential qualifies the candidate as a Verified
+     * Profile.
+     */
+    public static function verifiedProfilePolicy(
+        bool $getShared = true
+    ): VerifiedProfilePolicy {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'verifiedProfilePolicy'
+            );
+        }
+
+        return new VerifiedProfilePolicy(
+            static::memberTrustVerificationService(
+                false
+            )
         );
     }
 }
