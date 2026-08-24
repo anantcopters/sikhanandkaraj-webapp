@@ -68,6 +68,25 @@ final class FamilyDetailsValidation
                 ],
             ],
 
+            'gotra_maternal' => [
+                'label' => 'Gotra (Maternal Side)',
+                'rules' => [
+                    'required',
+                    'max_length['
+                        . self::GOTRA_MAX_LENGTH
+                        . ']',
+                ],
+                'errors' => [
+                    'required' =>
+                    'Please enter your Gotra (Maternal Side).',
+
+                    'max_length' =>
+                    'Gotra (Maternal Side) cannot exceed '
+                        . self::GOTRA_MAX_LENGTH
+                        . ' characters.',
+                ],
+            ],
+
             'father_name' => self::parentNameRules(
                 "Father's name",
                 "Please enter your father's name."

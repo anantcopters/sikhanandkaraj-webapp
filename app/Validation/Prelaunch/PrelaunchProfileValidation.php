@@ -251,6 +251,29 @@ final class PrelaunchProfileValidation
                     ],
                 ],
 
+                'gotra_maternal' => [
+                    'label' => 'Gotra (Maternal Side)',
+                    'rules' => [
+                        'required',
+                        'min_length[2]',
+                        'max_length[100]',
+                        'regex_match[/^[\p{L}\p{M} .\'-]+$/u]',
+                    ],
+                    'errors' => [
+                        'required' =>
+                        'Please enter Gotra (Maternal Side).',
+
+                        'min_length' =>
+                        'Gotra (Maternal Side) must contain at least 2 characters.',
+
+                        'max_length' =>
+                        'Gotra (Maternal Side) cannot exceed 100 characters.',
+
+                        'regex_match' =>
+                        'Gotra (Maternal Side) may contain letters, spaces, apostrophes, full stops and hyphens only.',
+                    ],
+                ],
+
                 'nearest_gurudwara' => [
                     'label' => 'Nearest Gurudwara',
                     'rules' => [

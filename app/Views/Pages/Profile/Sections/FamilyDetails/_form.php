@@ -288,6 +288,43 @@ if ($isJourney) {
                 ]
             ) ?>
         </div>
+
+        <div class="col-12 col-md-6">
+            <label
+                for="familyGotraMaternal"
+                class="form-label">
+
+                Gotra (Maternal Side)
+                <span class="text-danger">*</span>
+            </label>
+
+            <input
+                type="text"
+                id="familyGotraMaternal"
+                name="gotra_maternal"
+                class="form-control"
+                value="<?= esc(
+                            $fieldValue(
+                                'gotra_maternal',
+                                $details['gotra_maternal'] ?? ''
+                            ),
+                            'attr'
+                        ) ?>"
+                placeholder="Enter Gotra (Maternal Side)"
+                maxlength="100"
+                autocomplete="off"
+                data-error-required="Please enter your Gotra (Maternal Side)."
+                required>
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' => 'gotra_maternal',
+                    'errorId' => 'gotraMaternalError',
+                    'errors' => $errors,
+                ]
+            ) ?>
+        </div>
         <div class="col-12">
             <hr class="my-2 mb-3">
 

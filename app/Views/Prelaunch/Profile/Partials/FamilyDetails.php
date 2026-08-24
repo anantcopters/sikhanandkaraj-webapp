@@ -47,6 +47,12 @@ $gotra = (string) old(
     ''
 );
 
+$gotraMaternal = (string) old(
+    'gotra_maternal',
+    ''
+);
+
+
 $nearestGurudwara = (string) old(
     'nearest_gurudwara',
     ''
@@ -85,6 +91,13 @@ $gotraError = trim(
     )
 );
 
+$gotraMaternalError = trim(
+    (string) (
+        $errorBag['gotra_maternal']
+        ?? ''
+    )
+);
+
 $nearestGurudwaraError = trim(
     (string) (
         $errorBag['nearest_gurudwara']
@@ -116,6 +129,11 @@ $parentContactNumberClass =
 
 $gotraClass =
     $gotraError !== ''
+    ? 'is-invalid'
+    : '';
+
+$gotraMaternalClass =
+    $gotraMaternalError !== ''
     ? 'is-invalid'
     : '';
 
@@ -408,6 +426,47 @@ $communityClass =
                     <?= esc($gotraError) ?>
                 </div>
             </div>
+
+            <div class="col-12 col-md-6">
+                <label
+                    for="gotra_maternal"
+                    class="form-label">
+
+                    Gotra (Maternal Side)
+                </label>
+
+                <input
+                    type="text"
+                    id="gotra_maternal"
+                    name="gotra_maternal"
+                    class="form-control <?= esc(
+                                            $gotraMaternalClass,
+                                            'attr'
+                                        ) ?>"
+                    value="<?= esc(
+                                $gotraMaternal,
+                                'attr'
+                            ) ?>"
+                    aria-describedby="gotra_maternalError"
+                    placeholder="Enter Gotra (Maternal Side)"
+                    minlength="2"
+                    maxlength="100"
+                    autocomplete="off"
+                    data-error-required="Please enter Gotra (Maternal Side)."
+                    data-error-minlength="Gotra (Maternal Side) must contain at least 2 characters."
+                    data-error-maxlength="Gotra (Maternal Side) cannot exceed 100 characters."
+                    data-error-pattern="Gotra (Maternal Side) may contain letters, spaces, apostrophes, full stops and hyphens only."
+                    required>
+
+                <div
+                    id="gotra_maternalError"
+                    class="invalid-feedback"
+                    data-validation-error="gotra_maternal">
+
+                    <?= esc($gotraMaternalError) ?>
+                </div>
+            </div>
+
             <div class="col-12 col-md-6">
                 <label
                     for="nearest_gurudwara"

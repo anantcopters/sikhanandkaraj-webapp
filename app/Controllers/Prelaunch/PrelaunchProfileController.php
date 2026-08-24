@@ -976,6 +976,11 @@ final class PrelaunchProfileController extends BaseController
                 'gotra'
             )),
 
+            'gotra_maternal' =>
+            trim((string) $this->request->getPost(
+                'gotra_maternal'
+            )),
+
             'nearest_gurudwara' =>
             $this->normalizeOptionalText(
                 $this->request->getPost(

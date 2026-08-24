@@ -313,6 +313,16 @@ final class MemberProfilePdfDataService
             ),
 
             $this->row(
+                'ri-git-branch-line',
+                'Gotra (Maternal Side)',
+                $this->maskedText(
+                    $family['gotra_maternal']
+                        ?? ''
+                )
+            ),
+
+
+            $this->row(
                 'ri-men-line',
                 'No. of Brothers',
                 array_key_exists(

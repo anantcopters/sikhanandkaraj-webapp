@@ -81,6 +81,22 @@ final class PrelaunchProfileService
             );
         }
 
+        $gotraMaternal = mb_strtolower(
+            trim(
+                (string) (
+                    $input['gotra_maternal']
+                    ?? ''
+                )
+            )
+        );
+
+        if ($gotraMaternal === '') {
+            return PrelaunchProfileResult::fieldFailure(
+                'gotra_maternal',
+                'Gotra (Maternal Side) is required.'
+            );
+        }
+
         $nearestGurudwara = trim(
             (string) (
                 $input['nearest_gurudwara']
@@ -493,6 +509,9 @@ final class PrelaunchProfileService
 
                     'nearest_gurudwara' =>
                     $nearestGurudwara,
+
+                    'gotra_maternal' =>
+                    $gotraMaternal,
 
                     /*
                     * Both values remain NULL when no SAK Volunteer

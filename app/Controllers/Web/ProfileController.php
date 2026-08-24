@@ -1660,6 +1660,13 @@ final class ProfileController extends BaseController
                 )
             ),
 
+            'gotra_maternal' => $this->normalizeProfileText(
+                $this->request->getPost(
+                    'gotra_maternal'
+                )
+            ),
+
+
             'father_name' => $this->normalizeProfileText(
                 $this->request->getPost(
                     'father_name'

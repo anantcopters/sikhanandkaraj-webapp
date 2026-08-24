@@ -278,6 +278,13 @@ $formatEnum = static function (
                         'icon' => 'ri-organization-chart',
                     ],
                     [
+                        'label' => 'Gotra (Maternal Side)',
+                        'value' => $displayValue(
+                            $details['gotra_maternal'] ?? null
+                        ),
+                        'icon' => 'ri-organization-chart',
+                    ],
+                    [
                         'label' => 'Family location',
                         'value' => implode(
                             ', ',
