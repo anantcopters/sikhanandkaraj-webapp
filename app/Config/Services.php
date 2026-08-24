@@ -136,6 +136,9 @@ use App\Services\Video\VideoIntroductionProcessingService;
 use App\Services\Profile\MemberProfilePdfAssetService;
 use App\Services\Profile\MemberProfilePdfDataService;
 use App\Services\Profile\MemberProfilePdfService;
+use App\Models\MemberPartnerLifestylePreferenceModel;
+use App\Models\MemberPartnerLifestylePreferenceOptionModel;
+use App\Services\PartnerPreference\LifestylePartnerPreferenceService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -1814,6 +1817,22 @@ final class Services extends BaseService
             new PartnerPreferenceSelectionModel(
                 'city',
                 $database
+            ),
+
+            new MasterLifestyleCategoryModel(
+                $database
+            ),
+
+            new MemberLifestyleOptionModel(
+                $database
+            ),
+
+            new MemberPartnerLifestylePreferenceModel(
+                $database
+            ),
+
+            new MemberPartnerLifestylePreferenceOptionModel(
+                $database
             )
         );
     }
@@ -2443,6 +2462,38 @@ final class Services extends BaseService
             config(
                 ProfilePdf::class
             )
+        );
+    }
+
+    /**
+     * Return Lifestyle Partner Preference service.
+     */
+    public static function lifestylePartnerPreferenceService(
+        bool $getShared = true
+    ): LifestylePartnerPreferenceService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'lifestylePartnerPreferenceService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new LifestylePartnerPreferenceService(
+            new UserModel($database),
+            new MasterLifestyleCategoryModel(
+                $database
+            ),
+            new MasterLifestyleOptionModel(
+                $database
+            ),
+            new MemberPartnerLifestylePreferenceModel(
+                $database
+            ),
+            new MemberPartnerLifestylePreferenceOptionModel(
+                $database
+            ),
+            $database
         );
     }
 }

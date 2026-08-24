@@ -11,6 +11,8 @@ use App\Support\PartnerPreference\AdditionalPreferenceItem;
 use App\Support\PartnerPreference\BasicPreferenceItem;
 use App\Validation\PartnerPreference\AdditionalPartnerPreferenceValidation;
 use App\Validation\PartnerPreference\BasicPartnerPreferenceValidation;
+use App\Services\PartnerPreference\LifestylePartnerPreferenceService;
+use App\Validation\PartnerPreference\LifestylePartnerPreferenceValidation;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\RedirectResponse;
 use DomainException;
@@ -41,12 +43,31 @@ final class PartnerPreferenceController extends BaseController
         $basicSummary = $basicService
             ->getSummaryForUser($userId);
 
+        /** @var LifestylePartnerPreferenceService $lifestyleService */
+        $lifestyleService = service(
+            'lifestylePartnerPreferenceService'
+        );
+
+        $lifestyleSummary = $lifestyleService
+            ->getSummaryForUser(
+                $userId
+            );
+
         $basicSection = $basicSummary['sections'][0] ?? null;
 
         $sections = [];
 
         if (is_array($basicSection)) {
             $sections[] = $basicSection;
+        }
+
+        $lifestyleSection =
+            $lifestyleSummary['section']
+            ?? null;
+
+        if (is_array($lifestyleSection)) {
+            $sections[] =
+                $lifestyleSection;
         }
 
         $sections = array_merge(
@@ -376,6 +397,156 @@ final class PartnerPreferenceController extends BaseController
                 $cities
             ),
         ]);
+    }
+
+    /**
+     * Display one Lifestyle Partner Preference category.
+     */
+    public function editLifestyleCategory(
+        int $categoryId
+    ): string {
+        if ($categoryId <= 0) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        /** @var LifestylePartnerPreferenceService $service */
+        $service = service(
+            'lifestylePartnerPreferenceService'
+        );
+
+        try {
+            $data = $service
+                ->getCategoryForUser(
+                    $this->authenticatedUserId(),
+                    $categoryId
+                );
+        } catch (DomainException) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        $category = is_array(
+            $data['category']
+                ?? null
+        )
+            ? $data['category']
+            : [];
+
+        return view(
+            'Pages/PartnerPreference/Lifestyle/Edit',
+            array_merge(
+                [
+                    'pageTitle' =>
+                    trim(
+                        (string) (
+                            $category['name']
+                            ?? 'Lifestyle'
+                        )
+                    ),
+
+                    'validationErrors' =>
+                    $this->readValidationErrors()
+                        ?? [],
+
+                    'formAlert' =>
+                    $this->readFormAlert(),
+                ],
+                $data
+            )
+        );
+    }
+
+    /**
+     * Save one Lifestyle Partner Preference category.
+     */
+    public function updateLifestyleCategory(
+        int $categoryId
+    ): RedirectResponse {
+        if ($categoryId <= 0) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
+        $input = [
+            'lifestyle_option_ids' =>
+            $this->arrayInput(
+                'lifestyle_option_ids'
+            ),
+
+            'is_compulsory' =>
+            $this->request->getPost(
+                'is_compulsory'
+            ) === '1'
+                ? '1'
+                : '0',
+        ];
+
+        $validation = service(
+            'validation'
+        );
+
+        $validation->setRules(
+            LifestylePartnerPreferenceValidation::rules()
+        );
+
+        if (!$validation->run($input)) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.partner-preference.lifestyle.edit',
+                        $categoryId
+                    )
+                )
+                ->withInput()
+                ->with(
+                    'validationErrors',
+                    $validation->getErrors()
+                );
+        }
+
+        try {
+            /** @var LifestylePartnerPreferenceService $service */
+            $service = service(
+                'lifestylePartnerPreferenceService'
+            );
+
+            $validated =
+                $validation->getValidated();
+
+            $service->saveCategory(
+                $this->authenticatedUserId(),
+                $categoryId,
+                array_map(
+                    'intval',
+                    $validated['lifestyle_option_ids']
+                        ?? []
+                ),
+                (
+                    $validated['is_compulsory']
+                    ?? '0'
+                ) === '1'
+            );
+
+            return $this->successRedirect(
+                'lifestyle',
+                'Lifestyle'
+            );
+        } catch (DomainException $exception) {
+            return $this->domainFailureRedirect(
+                route_to(
+                    'web.partner-preference.lifestyle.edit',
+                    $categoryId
+                ),
+                $exception
+            );
+        } catch (Throwable $exception) {
+            return $this->unexpectedFailureRedirect(
+                route_to(
+                    'web.partner-preference.lifestyle.edit',
+                    $categoryId
+                ),
+                'lifestyle-' . $categoryId,
+                $exception
+            );
+        }
     }
 
     /**

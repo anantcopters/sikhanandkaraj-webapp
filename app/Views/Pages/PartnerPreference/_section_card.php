@@ -171,12 +171,16 @@ $sectionIcon = trim(
                     )
                 );
 
-                $editRoute =
-                    $sectionKey === 'basic'
-                    ? 'web.partner-preference'
-                    . '.basic.edit'
-                    : 'web.partner-preference'
-                    . '.item.edit';
+                $editRoute = match ($sectionKey) {
+                    'basic' =>
+                    'web.partner-preference.basic.edit',
+
+                    'lifestyle' =>
+                    'web.partner-preference.lifestyle.edit',
+
+                    default =>
+                    'web.partner-preference.item.edit',
+                };
                 ?>
 
                 <a

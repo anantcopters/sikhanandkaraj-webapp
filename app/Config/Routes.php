@@ -852,6 +852,31 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                 );
 
                 /*
+ * Lifestyle Partner Preference.
+ *
+ * Each active Lifestyle category is edited independently.
+ */
+                $routes->get(
+                    'lifestyle/(:num)',
+                    'PartnerPreferenceController'
+                        . '::editLifestyleCategory/$1',
+                    [
+                        'as' =>
+                        'web.partner-preference.lifestyle.edit',
+                    ]
+                );
+
+                $routes->post(
+                    'lifestyle/(:num)',
+                    'PartnerPreferenceController'
+                        . '::updateLifestyleCategory/$1',
+                    [
+                        'as' =>
+                        'web.partner-preference.lifestyle.update',
+                    ]
+                );
+
+                /*
          * Religious, Professional, Location and Special Request.
          */
                 $routes->get(

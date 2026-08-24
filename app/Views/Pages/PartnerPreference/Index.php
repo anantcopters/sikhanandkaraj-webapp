@@ -17,7 +17,7 @@ $resolvedSections = is_array($sections ?? null)
     ? $sections
     : [];
 
-$basicSection = null;
+$leftColumnSections = [];
 
 $rightColumnSections = [];
 
@@ -28,17 +28,23 @@ foreach ($resolvedSections as $section) {
 
     $sectionKey = trim(
         (string) (
-            $section['key'] ?? ''
+            $section['key']
+            ?? ''
         )
     );
 
-    if ($sectionKey === 'basic') {
-        $basicSection = $section;
+    if (
+        $sectionKey === 'basic'
+        || $sectionKey === 'lifestyle'
+    ) {
+        $leftColumnSections[] =
+            $section;
 
         continue;
     }
 
-    $rightColumnSections[] = $section;
+    $rightColumnSections[] =
+        $section;
 }
 ?>
 
@@ -115,15 +121,24 @@ foreach ($resolvedSections as $section) {
                 <div class="row g-3 align-items-start">
 
                     <div class="col-12 col-lg-6">
-                        <?php if (is_array($basicSection)): ?>
-                            <?= view(
-                                'Pages/PartnerPreference/_section_card',
-                                [
-                                    'section' =>
-                                    $basicSection,
-                                ]
-                            ) ?>
-                        <?php endif; ?>
+                        <div class="d-flex flex-column gap-3">
+
+                            <?php foreach (
+                                $leftColumnSections
+                                as $section
+                            ): ?>
+
+                                <?= view(
+                                    'Pages/PartnerPreference/_section_card',
+                                    [
+                                        'section' =>
+                                        $section,
+                                    ]
+                                ) ?>
+
+                            <?php endforeach; ?>
+
+                        </div>
                     </div>
 
                     <div class="col-12 col-lg-6">

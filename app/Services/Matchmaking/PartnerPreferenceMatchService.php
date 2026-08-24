@@ -14,6 +14,10 @@ use App\Models\MemberPartnerReligiousPreferenceModel;
 use App\Support\PartnerPreference\BasicPreferenceItem;
 use App\Support\PartnerPreference\AdditionalPreferenceItem;
 use App\Models\PartnerPreferenceSelectionModel;
+use App\Models\MasterLifestyleCategoryModel;
+use App\Models\MemberLifestyleOptionModel;
+use App\Models\MemberPartnerLifestylePreferenceModel;
+use App\Models\MemberPartnerLifestylePreferenceOptionModel;
 use App\Support\BooleanValue;
 use DateTimeImmutable;
 
@@ -68,7 +72,19 @@ final class PartnerPreferenceMatchService
         $stateSelectionModel,
 
         private readonly PartnerPreferenceSelectionModel
-        $citySelectionModel
+        $citySelectionModel,
+
+        private readonly MasterLifestyleCategoryModel
+        $lifestyleCategoryModel,
+
+        private readonly MemberLifestyleOptionModel
+        $memberLifestyleOptionModel,
+
+        private readonly MemberPartnerLifestylePreferenceModel
+        $lifestylePreferenceModel,
+
+        private readonly MemberPartnerLifestylePreferenceOptionModel
+        $lifestylePreferenceOptionModel,
     ) {}
 
     /**
@@ -103,12 +119,45 @@ final class PartnerPreferenceMatchService
             $userId
         );
 
+        $candidateUserIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        static fn(array $candidate): int =>
+                        (int) (
+                            $candidate['id']
+                            ?? 0
+                        ),
+                        $candidates
+                    ),
+                    static fn(int $candidateId): bool =>
+                    $candidateId > 0
+                )
+            )
+        );
+
+        $candidateLifestyleMap =
+            $this
+            ->memberLifestyleOptionModel
+            ->selectedIdsForUsers(
+                $candidateUserIds
+            );
+
         $scored = [];
 
         foreach ($candidates as $candidate) {
             if (!is_array($candidate)) {
                 continue;
             }
+
+            $candidateId = (int) (
+                $candidate['id']
+                ?? 0
+            );
+
+            $candidate['lifestyle_option_ids'] =
+                $candidateLifestyleMap[$candidateId]
+                ?? [];
 
             $score = $this->scoreCandidate(
                 $snapshot,
@@ -575,6 +624,102 @@ final class PartnerPreferenceMatchService
         );
 
         /*
+ * LIFESTYLE
+ *
+ * Every active Lifestyle category is an independent
+ * Partner Preference criterion.
+ *
+ * A configured category matches when the candidate
+ * has at least one option in common with the member's
+ * selected options for that category.
+ */
+        $candidateLifestyleIds =
+            is_array(
+                $candidate['lifestyle_option_ids']
+                    ?? null
+            )
+            ? array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            'intval',
+                            $candidate['lifestyle_option_ids']
+                        ),
+                        static fn(int $optionId): bool =>
+                        $optionId > 0
+                    )
+                )
+            )
+            : [];
+
+        $activeLifestyleCategories =
+            $this
+            ->lifestyleCategoryModel
+            ->activeOrdered();
+
+        foreach (
+            $activeLifestyleCategories
+            as $category
+        ) {
+            $categoryId = (int) (
+                $category['id']
+                ?? 0
+            );
+
+            if ($categoryId <= 0) {
+                continue;
+            }
+
+            $preference =
+                $snapshot['lifestyle'][$categoryId]
+                ?? null;
+
+            $preferredOptionIds =
+                is_array($preference)
+                && is_array(
+                    $preference['optionIds']
+                        ?? null
+                )
+                ? array_values(
+                    array_unique(
+                        array_filter(
+                            array_map(
+                                'intval',
+                                $preference['optionIds']
+                            ),
+                            static fn(int $optionId): bool =>
+                            $optionId > 0
+                        )
+                    )
+                )
+                : [];
+
+            $matched =
+                $preferredOptionIds !== []
+                && array_intersect(
+                    $preferredOptionIds,
+                    $candidateLifestyleIds
+                ) !== [];
+
+            $this->criterion(
+                $criteria,
+
+                key: 'lifestyle-'
+                    . $categoryId,
+
+                configured: $preferredOptionIds !== [],
+
+                matched: $matched,
+
+                compulsory: is_array($preference)
+                    && $this->boolean(
+                        $preference['isCompulsory']
+                            ?? false
+                    )
+            );
+        }
+
+        /*
         * Every criterion supported by this service is retained in $criteria.
         *
         * This gives us a dynamic available count. A preference is included in
@@ -721,6 +866,21 @@ final class PartnerPreferenceMatchService
             $preferenceOwnerUserId
         );
 
+        $candidateUserId = (int) (
+            $candidate['id']
+            ?? $candidate['user_id']
+            ?? 0
+        );
+
+        $candidate['lifestyle_option_ids'] =
+            $candidateUserId > 0
+            ? $this
+            ->memberLifestyleOptionModel
+            ->selectedIdsForUser(
+                $candidateUserId
+            )
+            : [];
+
         return $this->scoreCandidate(
             $snapshot,
             $candidate
@@ -866,6 +1026,59 @@ final class PartnerPreferenceMatchService
             $location['id']
             ?? 0
         );
+
+        $lifestylePreferences =
+            $this
+            ->lifestylePreferenceModel
+            ->findForUser(
+                $userId
+            );
+
+        $lifestyle = [];
+
+        foreach (
+            $lifestylePreferences
+            as $preference
+        ) {
+            $preferenceId = (int) (
+                $preference['id']
+                ?? 0
+            );
+
+            $categoryId = (int) (
+                $preference['lifestyle_category_id']
+                ?? 0
+            );
+
+            if (
+                $preferenceId <= 0
+                || $categoryId <= 0
+            ) {
+                continue;
+            }
+
+            $selectedIds =
+                $this
+                ->lifestylePreferenceOptionModel
+                ->idsForPreference(
+                    $preferenceId
+                );
+
+            if ($selectedIds === []) {
+                continue;
+            }
+
+            $lifestyle[$categoryId] = [
+                'optionIds' =>
+                $selectedIds,
+
+                'isCompulsory' =>
+                $this->boolean(
+                    $preference['is_compulsory']
+                        ?? false
+                ),
+            ];
+        }
 
         return [
             'basic' =>
@@ -1038,6 +1251,9 @@ final class PartnerPreferenceMatchService
                 $location['location_match_mode']
                     ?? false
             ),
+
+            'lifestyle' =>
+            $lifestyle,
         ];
     }
 
