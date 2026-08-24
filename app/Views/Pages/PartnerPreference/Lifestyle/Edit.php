@@ -453,10 +453,10 @@ $formAction = url_to(
                                             <button
                                                 type="submit"
                                                 class="btn
-                                                    registration-form__submit
-                                                    fs-14
-                                                    fw-semibold
-                                                    text-uppercase"
+        registration-form__submit
+        fs-14
+        fw-semibold
+        text-uppercase"
                                                 id="savePartnerPreferenceButton">
 
                                                 <span
@@ -468,12 +468,12 @@ $formAction = url_to(
 
                                                 <span
                                                     class="registration-submit__loading
-                                                        d-none"
+            d-none"
                                                     aria-hidden="true">
 
                                                     <span
                                                         class="spinner-border
-                                                            spinner-border-sm"
+                spinner-border-sm"
                                                         role="status"
                                                         aria-hidden="true"></span>
 
