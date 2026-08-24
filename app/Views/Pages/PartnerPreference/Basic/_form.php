@@ -121,6 +121,9 @@ $storedCompulsory = match ($item) {
     BasicPreferenceItem::DRINKING_HABITS =>
     $preference['drinking_habit_match_mode'] ?? false,
 
+    BasicPreferenceItem::AMRITDHARI =>
+    $preference['amritdhari_match_mode'] ?? false,
+
     default => false,
 };
 
@@ -568,6 +571,105 @@ $drinkingHabits = is_array(
             </div>
         <?php endif; ?>
 
+        <?php if (
+            $item ===
+            BasicPreferenceItem::AMRITDHARI
+        ): ?>
+
+            <div class="col-12">
+
+                <label
+                    for="amritdhari"
+                    class="form-labelm">
+
+                    Amritdhari
+
+                    <span class="text-danger">*</span>
+                </label>
+
+                <select
+                    id="amritdhari"
+                    name="amritdhari"
+                    class="form-select <?= isset(
+                                            $errors['amritdhari']
+                                        )
+                                            ? 'is-invalid'
+                                            : '' ?>"
+                    data-choice
+                    data-choice-search="false"
+                    data-error-required="Please select your Amritdhari preference."
+                    required>
+
+                    <option value="">
+                        Select preference
+                    </option>
+
+                    <option
+                        value="0"
+                        <?= $fieldValue(
+                            'amritdhari',
+                            array_key_exists(
+                                'amritdhari',
+                                $preference
+                            )
+                                && $preference['amritdhari'] !== null
+                                ? (
+                                    BooleanValue::fromDatabase(
+                                        $preference['amritdhari']
+                                    )
+                                    ? '1'
+                                    : '0'
+                                )
+                                : ''
+                        ) === '0'
+                            ? 'selected'
+                            : '' ?>>
+
+                        No
+                    </option>
+
+                    <option
+                        value="1"
+                        <?= $fieldValue(
+                            'amritdhari',
+                            array_key_exists(
+                                'amritdhari',
+                                $preference
+                            )
+                                && $preference['amritdhari'] !== null
+                                ? (
+                                    BooleanValue::fromDatabase(
+                                        $preference['amritdhari']
+                                    )
+                                    ? '1'
+                                    : '0'
+                                )
+                                : ''
+                        ) === '1'
+                            ? 'selected'
+                            : '' ?>>
+
+                        Yes
+                    </option>
+                </select>
+
+                <?= view(
+                    'Components/Forms/FieldError',
+                    [
+                        'field' =>
+                        'amritdhari',
+
+                        'errorId' =>
+                        'amritdhariError',
+
+                        'errors' =>
+                        $errors,
+                    ]
+                ) ?>
+
+            </div>
+
+        <?php endif; ?>
 
         <?php if (
             $item ===

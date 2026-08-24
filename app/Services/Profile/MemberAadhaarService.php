@@ -77,6 +77,183 @@ final class MemberAadhaarService
     }
 
     /**
+     * Return member-facing Aadhaar verification state.
+     *
+     * Document storage details, checksum, administrator IDs and
+     * signed URLs must never be exposed to the member.
+     *
+     * @return array{
+     *     status:string,
+     *     rejectionReason:string,
+     *     latest:array<string,mixed>|null,
+     *     history:list<array<string,mixed>>,
+     *     canUpload:bool
+     * }
+     */
+    public function settingsForMember(
+        int $memberId
+    ): array {
+        if ($memberId <= 0) {
+            return [
+                'status' => 'NOT_ADDED',
+                'rejectionReason' => '',
+                'latest' => null,
+                'history' => [],
+                'canUpload' => false,
+            ];
+        }
+
+        $member = $this
+            ->userModel
+            ->find(
+                $memberId
+            );
+
+        if (
+            !is_array($member)
+            || ($member['deleted_at'] ?? null) !== null
+        ) {
+            return [
+                'status' => 'NOT_ADDED',
+                'rejectionReason' => '',
+                'latest' => null,
+                'history' => [],
+                'canUpload' => false,
+            ];
+        }
+
+        $latest = $this
+            ->submissionModel
+            ->latestForMember(
+                $memberId
+            );
+
+        $status = is_array($latest)
+            ? mb_strtoupper(
+                trim(
+                    (string) (
+                        $latest['status']
+                        ?? ''
+                    )
+                )
+            )
+            : 'NOT_ADDED';
+
+        /*
+     * Support members verified before immutable Aadhaar
+     * submission history was introduced.
+     */
+        $isLegacyVerified =
+            \App\Support\BooleanValue::fromDatabase(
+                $member['is_aadhaar_verified']
+                    ?? false
+            );
+
+        if (
+            $status === 'NOT_ADDED'
+            && $isLegacyVerified
+        ) {
+            $status =
+                MemberAadhaarSubmissionModel
+                ::STATUS_APPROVED;
+        }
+
+        if (
+            !in_array(
+                $status,
+                [
+                    MemberAadhaarSubmissionModel
+                    ::STATUS_UNDER_REVIEW,
+
+                    MemberAadhaarSubmissionModel
+                    ::STATUS_APPROVED,
+
+                    MemberAadhaarSubmissionModel
+                    ::STATUS_REJECTED,
+
+                    'NOT_ADDED',
+                ],
+                true
+            )
+        ) {
+            $status = 'NOT_ADDED';
+        }
+
+        $rejectionReason =
+            is_array($latest)
+            ? trim(
+                (string) (
+                    $latest['rejection_reason']
+                    ?? ''
+                )
+            )
+            : '';
+
+        /*
+     * A member may upload only when:
+     *
+     * - no Aadhaar has been submitted; or
+     * - the latest submission was rejected.
+     *
+     * upload() performs the same authorization again
+     * server-side and remains authoritative.
+     */
+        $canUpload = in_array(
+            $status,
+            [
+                'NOT_ADDED',
+                MemberAadhaarSubmissionModel
+                ::STATUS_REJECTED,
+            ],
+            true
+        );
+
+        return [
+            'status' =>
+            $status,
+
+            'rejectionReason' =>
+            $rejectionReason,
+
+            /*
+         * Only member-safe fields from the latest submission.
+         */
+            'latest' =>
+            is_array($latest)
+                ? [
+                    'status' =>
+                    $status,
+
+                    'uploaded_at' =>
+                    $latest['uploaded_at']
+                        ?? null,
+
+                    'reviewed_at' =>
+                    $latest['reviewed_at']
+                        ?? null,
+
+                    'rejection_reason' =>
+                    $rejectionReason,
+                ]
+                : null,
+
+            /*
+         * historyForMember() already deliberately excludes
+         * object_key, checksum and upload reference.
+         */
+            'history' =>
+            $this
+                ->submissionModel
+                ->historyForMember(
+                    $memberId
+                ),
+
+            'canUpload' =>
+            $canUpload,
+        ];
+    }
+
+    /**
      * Validate actual content, upload privately to S3, then persist history.
      *
      * S3 is called before the DB transaction. If the DB write loses a race or
@@ -179,23 +356,91 @@ final class MemberAadhaarService
     }
 
     /**
-     * Return the searchable administrator queue.
+     * Return the searchable and filterable administrator
+     * Aadhaar submission listing.
      *
-     * @return array{members:list<array<string,mixed>>,pager:\CodeIgniter\Pager\Pager,search:string}
+     * @return array{
+     *     members:list<array<string,mixed>>,
+     *     pager:\CodeIgniter\Pager\Pager,
+     *     search:string,
+     *     status:string
+     * }
      */
-    public function pendingPage(string $search, int $perPage): array
-    {
-        $normalizedSearch = mb_substr(trim($search), 0, 100);
-        $this->submissionModel->preparePendingListing($normalizedSearch);
-        $members = $this->submissionModel->paginate(
-            max(5, min($perPage, 50)),
-            'pendingAadhaarMembers'
-        );
+    public function adminPage(
+        string $search,
+        string $status,
+        int $perPage
+    ): array {
+        $normalizedSearch =
+            mb_substr(
+                trim($search),
+                0,
+                100
+            );
+
+        $normalizedStatus =
+            mb_strtoupper(
+                trim($status)
+            );
+
+        $allowedStatuses = [
+            'ALL',
+            MemberAadhaarSubmissionModel
+            ::STATUS_UNDER_REVIEW,
+
+            MemberAadhaarSubmissionModel
+            ::STATUS_APPROVED,
+
+            MemberAadhaarSubmissionModel
+            ::STATUS_REJECTED,
+        ];
+
+        if (
+            !in_array(
+                $normalizedStatus,
+                $allowedStatuses,
+                true
+            )
+        ) {
+            $normalizedStatus =
+                MemberAadhaarSubmissionModel
+                ::STATUS_UNDER_REVIEW;
+        }
+
+        $this->submissionModel
+            ->prepareAdminListing(
+                $normalizedSearch,
+                $normalizedStatus
+            );
+
+        $members =
+            $this->submissionModel
+            ->paginate(
+                max(
+                    5,
+                    min(
+                        $perPage,
+                        50
+                    )
+                ),
+                'pendingAadhaarMembers'
+            );
 
         return [
-            'members' => is_array($members) ? $members : [],
-            'pager' => $this->submissionModel->pager,
-            'search' => $normalizedSearch,
+            'members' =>
+            is_array($members)
+                ? $members
+                : [],
+
+            'pager' =>
+            $this->submissionModel
+                ->pager,
+
+            'search' =>
+            $normalizedSearch,
+
+            'status' =>
+            $normalizedStatus,
         ];
     }
 
@@ -243,6 +488,10 @@ final class MemberAadhaarService
     /**
      * Return a short-lived private URL for downloading one pending
      * Aadhaar document.
+     *
+     * Aadhaar is sensitive identity documentation, therefore its
+     * signed URL lifetime is deliberately independent from profile
+     * media configuration.
      */
     public function documentDownloadUrl(
         string $profileReference
@@ -259,7 +508,10 @@ final class MemberAadhaarService
         }
 
         $objectKey = trim(
-            (string) ($submission['object_key'] ?? '')
+            (string) (
+                $submission['object_key']
+                ?? ''
+            )
         );
 
         if ($objectKey === '') {
@@ -268,10 +520,12 @@ final class MemberAadhaarService
             );
         }
 
-        return $this->cloudFrontService->signedUrl(
-            $objectKey,
-            $this->mediaConfig->profileUrlTtlSeconds
-        );
+        return $this->cloudFrontService
+            ->signedUrl(
+                $objectKey,
+                $this->mediaConfig
+                    ->privateDocumentUrlTtlSeconds
+            );
     }
 
     /**

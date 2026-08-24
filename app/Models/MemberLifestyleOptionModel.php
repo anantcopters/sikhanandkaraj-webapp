@@ -76,4 +76,79 @@ final class MemberLifestyleOptionModel extends Model
             )
             ->findAll();
     }
+
+    /**
+     * Return Lifestyle selections for multiple members without N+1 queries.
+     *
+     * @param list<int> $userIds
+     *
+     * @return array<int,list<int>>
+     */
+    public function selectedIdsForUsers(
+        array $userIds
+    ): array {
+        $userIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $userIds
+                    ),
+                    static fn(int $userId): bool =>
+                    $userId > 0
+                )
+            )
+        );
+
+        if ($userIds === []) {
+            return [];
+        }
+
+        $rows = $this
+            ->select([
+                'user_id',
+                'lifestyle_option_id',
+            ])
+            ->whereIn(
+                'user_id',
+                $userIds
+            )
+            ->findAll();
+
+        $result = [];
+
+        foreach ($rows as $row) {
+            $userId = (int) (
+                $row['user_id']
+                ?? 0
+            );
+
+            $optionId = (int) (
+                $row['lifestyle_option_id']
+                ?? 0
+            );
+
+            if (
+                $userId <= 0
+                || $optionId <= 0
+            ) {
+                continue;
+            }
+
+            $result[$userId][] =
+                $optionId;
+        }
+
+        foreach ($result as &$optionIds) {
+            $optionIds = array_values(
+                array_unique(
+                    $optionIds
+                )
+            );
+        }
+
+        unset($optionIds);
+
+        return $result;
+    }
 }

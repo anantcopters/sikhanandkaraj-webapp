@@ -116,7 +116,7 @@ final class SikhReligiousDetailsValidation
             ],
 
             'gotra' => [
-                'label' => 'Gotra',
+                'label' => 'Father Gotra',
                 'rules' => [
                     'permit_empty',
                     'max_length[100]',
@@ -124,7 +124,7 @@ final class SikhReligiousDetailsValidation
                 ],
                 'errors' => [
                     'regex_match' =>
-                    'Gotra contains unsupported characters.',
+                    'Father Gotra contains unsupported characters.',
                 ],
             ],
 

@@ -1,0 +1,1 @@
+Copy icons/ and sikh-marriage-motif.svg to public/assets/images/profile-pdf/. Reuse public/assets/images/logo_sak_bgremove_final.png for the main logo. Inter font files are intentionally not redistributed; place official Inter Regular/Medium/SemiBold/Bold TTF files under public/assets/fonts/inter/.

@@ -18,6 +18,8 @@ final class BasicPreferenceItem
 
     public const HAVE_CHILDREN = 'have-children';
 
+    public const AMRITDHARI = 'amritdhari';
+
     public const MOTHER_TONGUE = 'mother-tongue';
 
     public const PHYSICAL_STATUS = 'physical-status';
@@ -38,6 +40,7 @@ final class BasicPreferenceItem
             self::HEIGHT,
             self::MARITAL_STATUS,
             self::HAVE_CHILDREN,
+            self::AMRITDHARI,
             self::MOTHER_TONGUE,
             self::PHYSICAL_STATUS,
             self::EATING_HABITS,
@@ -75,6 +78,9 @@ final class BasicPreferenceItem
             self::HAVE_CHILDREN =>
             'Have Children',
 
+            self::AMRITDHARI =>
+            'Amritdhari',
+
             self::MOTHER_TONGUE =>
             'Mother Tongue',
 
@@ -109,6 +115,9 @@ final class BasicPreferenceItem
 
             self::HAVE_CHILDREN =>
             'Show only matches that meet this children preference.',
+
+            self::AMRITDHARI =>
+            'Show only matches that meet this Amritdhari preference.',
 
             self::MOTHER_TONGUE =>
             'Show only matches with one of the selected mother tongues.',

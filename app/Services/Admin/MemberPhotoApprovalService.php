@@ -137,7 +137,7 @@ final class MemberPhotoApprovalService
                     ->signedUrl(
                         $objectKey,
                         $this->mediaConfig
-                            ->profileUrlTtlSeconds
+                            ->mediumUrlTtlSeconds
                     );
             } catch (Throwable $exception) {
                 log_message(

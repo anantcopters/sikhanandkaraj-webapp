@@ -26,6 +26,7 @@ final class MemberFamilyDetailModel extends Model
         'family_status_id',
         'community_id',
         'gotra',
+        'gotra_maternal',
         'father_name',
         'mother_name',
         'parent_contact_number',

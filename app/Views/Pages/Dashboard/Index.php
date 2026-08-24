@@ -458,7 +458,7 @@ $matchSections = [
                                     </i>
 
                                     <span>
-                                        Edit Profile
+                                        Your Profile
                                     </span>
 
                                 </span>
@@ -513,7 +513,7 @@ $matchSections = [
                                     </i>
 
                                     <span>
-                                        Edit Preferences
+                                        Partner Preferences
                                     </span>
 
                                 </span>
@@ -749,6 +749,24 @@ $matchSections = [
                                             </i>
 
                                             Edit Profile
+                                        </a>
+
+                                        <a
+                                            href="<?= url_to(
+                                                        'web.partner-preference'
+                                                    ) ?>"
+                                            class="btn btn-outline-success
+                        d-inline-flex
+                        align-items-center
+                        justify-content-center
+                        gap-2">
+
+                                            <i
+                                                class="ri-edit-line"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            Edit Partner Preferences
                                         </a>
 
                                     </div>
@@ -1448,33 +1466,5 @@ $dashboardAadhaar =
     ? $dashboardTrustVerification['aadhaar']
     : [];
 ?>
-
-<?= view(
-    'Pages/Dashboard/_AadhaarUploadModal',
-    [
-        'memberName' =>
-        $dashboardTrustVerification['memberName']
-            ?? $resolvedName,
-
-        'profileReference' =>
-        $dashboardTrustVerification['profileReference']
-            ?? $resolvedReference,
-
-        'validationErrors' =>
-        $aadhaarValidationErrors
-            ?? [],
-
-        'openModal' =>
-        $openAadhaarModal
-            ?? false,
-
-        'rejectionReason' =>
-        $dashboardAadhaar['rejectionReason']
-            ?? '',
-
-        'returnContext' =>
-        'DASHBOARD',
-    ]
-) ?>
 
 <?php $this->endSection(); ?>

@@ -17,27 +17,21 @@ use Throwable;
  */
 final class MemberAadhaarController extends BaseController
 {
-    private const RETURN_DASHBOARD =
-    'DASHBOARD';
-
-    private const RETURN_PROFILE_EDIT =
-    'PROFILE_EDIT';
+    private const RETURN_ACCOUNT_SETTINGS =
+    'ACCOUNT_SETTINGS';
 
     /**
-     * Upload an Aadhaar document and return the member to the
-     * screen from which the upload modal was opened.
+     * Upload an Aadhaar document.
+     *
+     * Aadhaar upload/re-upload is intentionally managed only
+     * from Account Settings. The submitted return context is
+     * never interpreted as a URL.
      */
     public function upload(): RedirectResponse
     {
         $memberId =
             $this->authenticatedUserId();
 
-        /*
-         * The submitted return context is not used as a URL.
-         *
-         * It is resolved through a strict server-side allowlist so
-         * an attacker cannot create an open redirect.
-         */
         $returnContext =
             $this->normaliseReturnContext(
                 $this->request->getPost(
@@ -198,6 +192,9 @@ final class MemberAadhaarController extends BaseController
 
     /**
      * Resolve only supported return contexts.
+     *
+     * Aadhaar upload is intentionally restricted to
+     * Account Settings.
      */
     private function normaliseReturnContext(
         mixed $returnContext
@@ -211,33 +208,29 @@ final class MemberAadhaarController extends BaseController
 
         if (
             $resolvedContext
-            === self::RETURN_PROFILE_EDIT
+            === self::RETURN_ACCOUNT_SETTINGS
         ) {
-            return self::RETURN_PROFILE_EDIT;
+            return self::RETURN_ACCOUNT_SETTINGS;
         }
 
-        return self::RETURN_DASHBOARD;
+        /*
+         * Fail closed to the only supported member
+         * Aadhaar upload location.
+         */
+        return self::RETURN_ACCOUNT_SETTINGS;
     }
 
     /**
-     * Resolve the route internally.
+     * Resolve the return route internally.
      *
      * Never redirect to a URL supplied by the request.
      */
     private function returnUrl(
         string $returnContext
     ): string {
-        if (
-            $returnContext
-            === self::RETURN_PROFILE_EDIT
-        ) {
-            return route_to(
-                'web.profile.edit'
-            ) . '#trust-verification';
-        }
-
         return route_to(
-            'web.dashboard'
+            'web.account.settings.section',
+            'aadhaar-verification'
         );
     }
 }

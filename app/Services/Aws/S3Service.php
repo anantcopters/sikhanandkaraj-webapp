@@ -167,6 +167,80 @@ final class S3Service
     }
 
     /**
+     * Read one private object directly from S3.
+     *
+     * Intended for trusted server-side consumers that need the
+     * object bytes without exposing an S3 or CloudFront URL.
+     *
+     * @return array{
+     *     body:string,
+     *     contentType:string
+     * }
+     */
+    public function read(
+        string $objectKey
+    ): array {
+        $resolvedObjectKey = ltrim(
+            trim($objectKey),
+            '/'
+        );
+
+        if ($resolvedObjectKey === '') {
+            throw new RuntimeException(
+                'The private media object key is unavailable.'
+            );
+        }
+
+        try {
+            $result =
+                $this->client
+                ->getObject([
+                    'Bucket' =>
+                    $this->config->s3Bucket,
+
+                    'Key' =>
+                    $resolvedObjectKey,
+                ]);
+
+            $body = (string) (
+                $result['Body']
+                ?? ''
+            );
+
+            if ($body === '') {
+                throw new RuntimeException(
+                    'The private media object is empty.'
+                );
+            }
+
+            $contentType = strtolower(
+                trim(
+                    (string) (
+                        $result['ContentType']
+                        ?? ''
+                    )
+                )
+            );
+
+            return [
+                'body' =>
+                $body,
+
+                'contentType' =>
+                $contentType,
+            ];
+        } catch (RuntimeException $exception) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            throw new RuntimeException(
+                'The private media object could not be read.',
+                0,
+                $exception
+            );
+        }
+    }
+
+    /**
      * Delete one private object.
      *
      * This method returns false instead of throwing, so it owns failure

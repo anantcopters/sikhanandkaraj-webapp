@@ -30,10 +30,17 @@ $dateOfBirth = (string) old(
     ''
 );
 
-$maximumDateOfBirth = date(
-    'Y-m-d',
-    strtotime('-18 years')
-);
+/*
+ * Minimum age is gender-specific:
+ *
+ * Male   => 21 years
+ * Female => 18 years
+ *
+ * Gender can change on the prelaunch form, so JavaScript remains
+ * responsible for updating the active DOB limit dynamically.
+ */
+$maleMinimumAge = 21;
+$femaleMinimumAge = 18;
 
 /*
  * The server always stores/submits DOB as YYYY-MM-DD.
@@ -391,7 +398,14 @@ $genderOptions = [
                                 $dateOfBirth,
                                 'attr'
                             ) ?>"
-                    data-minimum-age="18">
+                    data-male-minimum-age="<?= esc(
+                                                (string) $maleMinimumAge,
+                                                'attr'
+                                            ) ?>"
+                    data-female-minimum-age="<?= esc(
+                                                    (string) $femaleMinimumAge,
+                                                    'attr'
+                                                ) ?>">
 
                 <div class="input-group has-validation">
 

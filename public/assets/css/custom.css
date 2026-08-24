@@ -274,7 +274,7 @@
  */
 .home-registration-section {
     min-height: 600px;
-    padding: 35px 0 35px;
+    padding: 10px 0 35px;
     background-color: var(--sak-section-background-green);
 }
 
@@ -1713,11 +1713,12 @@ form[aria-busy="true"] {
     bottom: 0;
     left: 0;
     width: 61%;
-    background-image: url("../images/bg_index.png");
+    background-image: url("../images/Bg_Hero.png");
     background-repeat: no-repeat;
     background-position: center center;
     background-size: cover;
     content: "";
+    opacity: 0.38;
 }
 
 /*

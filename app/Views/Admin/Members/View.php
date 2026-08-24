@@ -719,7 +719,7 @@ $familyDetailList = [
     'Community' =>
     $community,
 
-    'Gotra' =>
+    'Father Gotra' =>
     $gotra,
 
     'Family Location' =>

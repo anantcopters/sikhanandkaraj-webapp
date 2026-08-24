@@ -133,6 +133,11 @@ $aadhaarRejectionReason = trim(
     )
 );
 
+$aadhaarSettingsUrl = route_to(
+    'web.account.settings.section',
+    'aadhaar-verification'
+);
+
 $isVideoIntroductionApproved =
     (
         $videoIntroduction['isApproved']
@@ -341,81 +346,120 @@ $videoIntroductionSettingsUrl = route_to(
         </a>
 
         <!-- Aadhaar verification -->
-        <div
-            class="d-flex align-items-center
-                justify-content-between gap-3
-                py-2 border-top">
+        <a
+            href="<?= esc(
+                        $aadhaarSettingsUrl,
+                        'attr'
+                    ) ?>"
+            class="d-flex
+        align-items-center
+        justify-content-between
+        gap-3
+        py-2
+        border-top
+        text-body
+        text-decoration-none"
+            aria-label="<?= esc(
+                            'Manage Aadhaar verification. Current status: '
+                                . match ($aadhaarStatus) {
+                                    'APPROVED' =>
+                                    'Verified',
+
+                                    'UNDER_REVIEW' =>
+                                    'Under Review',
+
+                                    'REJECTED' =>
+                                    'Rejected',
+
+                                    default =>
+                                    'Not Added',
+                                },
+                            'attr'
+                        ) ?>">
 
             <span
-                class="d-flex align-items-center gap-2">
+                class="d-flex
+            align-items-center
+            gap-2">
 
                 <i
                     class="ri-fingerprint-line
-                        text-warning fs-18"
+                text-warning
+                fs-18"
                     aria-hidden="true">
                 </i>
 
                 <span class="fw-medium fs-13">
                     Aadhaar
                 </span>
+
             </span>
 
-            <?php if ($aadhaarStatus === 'APPROVED'): ?>
-                <span
-                    class="badge bg-success-subtle
-                        text-success fs-11 p-2">
+            <span
+                class="d-inline-flex
+            align-items-center
+            gap-1">
 
-                    Verified
-                </span>
-            <?php elseif ($aadhaarStatus === 'UNDER_REVIEW'): ?>
-                <span
-                    class="badge bg-warning-subtle
-                        text-warning fs-11 p-2">
+                <?php if (
+                    $aadhaarStatus === 'APPROVED'
+                ): ?>
 
-                    Under Review
-                </span>
-            <?php elseif ($aadhaarStatus === 'REJECTED'): ?>
-                <span class="d-inline-flex align-items-center gap-1">
                     <span
-                        <?php if ($aadhaarRejectionReason !== ''): ?>
-                        data-bs-toggle="tooltip"
-                        data-bs-placement="top"
-                        title="Reupload Aadhaar"
-                        <?php endif; ?>>
+                        class="badge
+                    bg-success-subtle
+                    text-success
+                    fs-11
+                    p-2">
 
-                        <span
-                            class="badge bg-danger-subtle
-                                text-danger fs-11 p-2">
+                        Verified
 
-                            Rejected
-                        </span>
                     </span>
+
+                <?php elseif (
+                    $aadhaarStatus === 'UNDER_REVIEW'
+                ): ?>
+
+                    <span
+                        class="badge
+                    bg-warning-subtle
+                    text-warning
+                    fs-11
+                    p-2">
+
+                        Under Review
+
+                    </span>
+
+                <?php elseif (
+                    $aadhaarStatus === 'REJECTED'
+                ): ?>
+
+                    <span
+                        class="badge
+                    bg-danger-subtle
+                    text-danger
+                    fs-11
+                    p-2">
+
+                        Rejected
+
+                    </span>
+
+                <?php else: ?>
 
                     <button
                         type="button"
-                        class="btn btn-sm btn-outline-danger"
-                        data-bs-toggle="modal"
-                        data-bs-target="#aadhaarUploadModal"
-                        aria-label="Reupload Aadhaar"
-                        title="Reupload Aadhaar">
+                        class="btn btn-sm btn-outline-primary">
 
-                        <i
-                            class="ri-upload-2-fill"
-                            aria-hidden="true">
-                        </i>
+                        Add
                     </button>
-                </span>
-            <?php else: ?>
-                <button
-                    type="button"
-                    class="btn btn-sm btn-outline-primary"
-                    data-bs-toggle="modal"
-                    data-bs-target="#aadhaarUploadModal">
 
-                    Add
-                </button>
-            <?php endif; ?>
-        </div>
+                <?php endif; ?>
+
+
+            </span>
+
+        </a>
 
         <!-- Video Introduction -->
         <a

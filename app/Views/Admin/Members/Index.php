@@ -765,7 +765,7 @@ $this->section('content');
 
                     <div
                         id="member-status-reason-help"
-                        class="form-text">
+                        class="form-text color-pink">
                         Maximum 64 characters.
                     </div>
 

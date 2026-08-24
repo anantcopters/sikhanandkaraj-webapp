@@ -11,6 +11,8 @@ use App\Support\MemberNameVisibility;
 use App\Support\BooleanValue;
 use App\Services\Profile\MemberProfileSummaryService;
 use App\Models\MemberProfileReportModel;
+use App\Services\PartnerPreference\BasicPartnerPreferenceService;
+use App\Services\PartnerPreference\AdditionalPartnerPreferenceService;
 use App\Support\EmailAddressMasker;
 use App\Exceptions\PaidMembershipRequiredException;
 use App\Support\MobileNumberMasker;
@@ -52,7 +54,13 @@ final class MemberProfileViewService
         $profileReportModel,
 
         private readonly MemberMatchmakingService
-        $matchmakingService
+        $matchmakingService,
+
+        private readonly BasicPartnerPreferenceService
+        $basicPartnerPreferenceService,
+
+        private readonly AdditionalPartnerPreferenceService
+        $additionalPartnerPreferenceService
     ) {}
 
     /**
@@ -349,6 +357,241 @@ final class MemberProfileViewService
             );
 
         /*
+        * Build presentation values for exactly the preferences used by
+        * PartnerPreferenceMatchService.
+        *
+        * IMPORTANT:
+        *
+        * The matching service is the source of truth for which criteria
+        * are configured and therefore included in the match count.
+        *
+        * BasicPartnerPreferenceService and
+        * AdditionalPartnerPreferenceService are used only to resolve
+        * those criteria into member-friendly labels.
+        */
+        $matchCriteria =
+            isset($partnerPreferenceMatch['criteria'])
+            && is_array($partnerPreferenceMatch['criteria'])
+            ? $partnerPreferenceMatch['criteria']
+            : [];
+
+        $basicPreferenceSummary =
+            $this
+            ->basicPartnerPreferenceService
+            ->getSummaryForUser(
+                $viewerUserId
+            );
+
+        $additionalPreferenceSections =
+            $this
+            ->additionalPartnerPreferenceService
+            ->getSummarySections(
+                $viewerUserId
+            );
+
+        /*
+        * First build one lookup containing every available
+        * human-readable Partner Preference summary item.
+        *
+        * Do NOT filter on isCompleted here.
+        *
+        * Whether a preference participates in matchmaking is already
+        * determined by PartnerPreferenceMatchService and represented
+        * by $matchCriteria.
+        */
+        $displayItemsByKey = [];
+
+        $basicItems =
+            isset($basicPreferenceSummary['items'])
+            && is_array($basicPreferenceSummary['items'])
+            ? $basicPreferenceSummary['items']
+            : [];
+
+        foreach ($basicItems as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $key = trim(
+                (string) (
+                    $item['key']
+                    ?? ''
+                )
+            );
+
+            if ($key === '') {
+                continue;
+            }
+
+            $displayItemsByKey[$key] = [
+                'key' =>
+                $key,
+
+                'title' =>
+                trim(
+                    (string) (
+                        $item['title']
+                        ?? ''
+                    )
+                ),
+
+                'value' =>
+                trim(
+                    (string) (
+                        $item['value']
+                        ?? ''
+                    )
+                ),
+            ];
+        }
+
+        foreach (
+            $additionalPreferenceSections
+            as $section
+        ) {
+            if (!is_array($section)) {
+                continue;
+            }
+
+            $sectionItems =
+                isset($section['items'])
+                && is_array($section['items'])
+                ? $section['items']
+                : [];
+
+            foreach ($sectionItems as $item) {
+                if (!is_array($item)) {
+                    continue;
+                }
+
+                $key = trim(
+                    (string) (
+                        $item['key']
+                        ?? ''
+                    )
+                );
+
+                if (
+                    $key === ''
+                    || $key === 'special-request'
+                ) {
+                    continue;
+                }
+
+                $displayItemsByKey[$key] = [
+                    'key' =>
+                    $key,
+
+                    'title' =>
+                    trim(
+                        (string) (
+                            $item['title']
+                            ?? ''
+                        )
+                    ),
+
+                    'value' =>
+                    trim(
+                        (string) (
+                            $item['value']
+                            ?? ''
+                        )
+                    ),
+                ];
+            }
+        }
+
+        /*
+        * Now construct the modal rows FROM THE MATCH CRITERIA.
+        *
+        * This guarantees that:
+        *
+        * total rows in modal
+        *      ===
+        * total preferences used by matching
+        *
+        * and therefore the modal can never silently show only a subset
+        * because a presentation service used a different completion rule.
+        */
+        $partnerPreferenceDisplayItems = [];
+
+        foreach ($matchCriteria as $criterion) {
+            if (!is_array($criterion)) {
+                continue;
+            }
+
+            $key = trim(
+                (string) (
+                    $criterion['key']
+                    ?? ''
+                )
+            );
+
+            if ($key === '') {
+                continue;
+            }
+
+            $displayItem =
+                $displayItemsByKey[$key]
+                ?? null;
+
+            if (!is_array($displayItem)) {
+                continue;
+            }
+
+            $title = trim(
+                (string) (
+                    $displayItem['title']
+                    ?? ''
+                )
+            );
+
+            $value = trim(
+                (string) (
+                    $displayItem['value']
+                    ?? ''
+                )
+            );
+
+            if ($title === '') {
+                continue;
+            }
+
+            /*
+            * A configured match criterion should normally always have
+            * a presentation value. Keep a safe member-friendly fallback
+            * instead of silently removing the row from the modal.
+            */
+            if (
+                $value === ''
+                || $value === 'Not added'
+            ) {
+                $value = 'Preference selected';
+            }
+
+            $partnerPreferenceDisplayItems[] = [
+                'key' =>
+                $key,
+
+                'title' =>
+                $title,
+
+                'value' =>
+                $value,
+
+                'matched' => (
+                    $criterion['matched']
+                    ?? false
+                ) === true,
+
+                'isCompulsory' => (
+                    $criterion['compulsory']
+                    ?? false
+                ) === true,
+            ];
+        }
+
+        /*
         * Profile-detail pages use the MEDIUM variant.
         *
         * The photo service additionally checks:
@@ -504,6 +747,9 @@ final class MemberProfileViewService
 
                 'partnerPreferenceMatch' =>
                 $partnerPreferenceMatch,
+
+                'partnerPreferenceDisplayItems' =>
+                $partnerPreferenceDisplayItems,
             ]
         );
     }

@@ -227,7 +227,7 @@ $familyDetails = [
     $profile['community_name']
         ?? '',
 
-    'Gotra' =>
+    'Father Gotra' =>
     $profile['gotra']
         ?? '',
 

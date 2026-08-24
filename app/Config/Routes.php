@@ -852,6 +852,31 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                 );
 
                 /*
+ * Lifestyle Partner Preference.
+ *
+ * Each active Lifestyle category is edited independently.
+ */
+                $routes->get(
+                    'lifestyle/(:num)',
+                    'PartnerPreferenceController'
+                        . '::editLifestyleCategory/$1',
+                    [
+                        'as' =>
+                        'web.partner-preference.lifestyle.edit',
+                    ]
+                );
+
+                $routes->post(
+                    'lifestyle/(:num)',
+                    'PartnerPreferenceController'
+                        . '::updateLifestyleCategory/$1',
+                    [
+                        'as' =>
+                        'web.partner-preference.lifestyle.update',
+                    ]
+                );
+
+                /*
          * Religious, Professional, Location and Special Request.
          */
                 $routes->get(
@@ -903,6 +928,27 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
             [
                 'as' => 'web.profile.view',
                 'filter' => 'webAuth',
+            ]
+        );
+
+        $routes->post(
+            'profile/pdf',
+            'MemberProfilePdfController::own',
+            [
+                'as' =>
+                'web.profile.pdf',
+
+                'filter' =>
+                'webAuth',
+            ]
+        );
+
+        $routes->get(
+            'profile/pdf/preview',
+            'MemberProfilePdfController::preview',
+            [
+                'as' =>
+                'web.profile.pdf.preview',
             ]
         );
 

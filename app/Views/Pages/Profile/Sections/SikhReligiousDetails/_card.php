@@ -183,7 +183,7 @@ $dosh = $doshLabels[(string) ($details['has_dosh'] ?? '')] ?? 'Not added';
                     'icon'  => 'ri-map-pin-line',
                 ],
                 [
-                    'label' => 'Gotra',
+                    'label' => 'Father Gotra',
                     'value' => $display(
                         $details['gotra'] ?? null
                     ),

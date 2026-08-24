@@ -239,29 +239,46 @@ final class AdditionalPartnerPreferenceService
             $cities
         );
 
-        $locationValue = null;
+        $locationParts = [];
 
-        if (
-            $stateLabels !== null
-            && $cityLabels !== null
-        ) {
-            $locationValue =
+        if ($countryLabels !== null) {
+            $locationParts[] =
                 'Countries: '
-                . $countryLabels
-                . ' | States: '
-                . $stateLabels
-                . ' | Cities: '
+                . $countryLabels;
+        }
+
+        if ($stateLabels !== null) {
+            $locationParts[] =
+                'States: '
+                . $stateLabels;
+        }
+
+        if ($cityLabels !== null) {
+            $locationParts[] =
+                'Cities: '
                 . $cityLabels;
         }
+
+        $locationValue =
+            $locationParts !== []
+            ? implode(
+                ' | ',
+                $locationParts
+            )
+            : null;
 
         $locationItems = [
             $this->summaryItem(
                 AdditionalPreferenceItem::LOCATION,
+
                 $countryIds !== []
                     || $stateIds !== []
                     || $cityIds !== [],
+
                 $locationValue,
-                $location['location_match_mode'] ?? false
+
+                $location['location_match_mode']
+                    ?? false
             ),
         ];
 
@@ -300,7 +317,7 @@ final class AdditionalPartnerPreferenceService
                 'religious',
                 'Religious',
                 'Community and religious preferences.',
-                'ri-group-line text-primary',
+                'ri-group-line text-primary fs-20',
                 $religiousItems
             ),
 
@@ -308,7 +325,7 @@ final class AdditionalPartnerPreferenceService
                 'professional',
                 'Professional Preference',
                 'Education, occupation, employment and income preferences.',
-                'ri-briefcase-4-line text-primary',
+                'ri-briefcase-4-line text-primary fs-20',
                 $professionalItems
             ),
 
@@ -316,7 +333,7 @@ final class AdditionalPartnerPreferenceService
                 'location',
                 'Location',
                 'Select one or more preferred states and cities.',
-                'ri-map-pin-line text-primary',
+                'ri-map-pin-line text-primary fs-20',
                 $locationItems
             ),
 
@@ -324,7 +341,7 @@ final class AdditionalPartnerPreferenceService
                 'special-request',
                 'Any Special Request',
                 'Add any additional partner expectations.',
-                'ri-chat-heart-line text-primary',
+                'ri-chat-heart-line text-primary fs-20',
                 $specialItems
             ),
         ];
@@ -777,7 +794,13 @@ final class AdditionalPartnerPreferenceService
     }
 
     /**
-     * Save selected states and cities.
+     * Save selected countries, states and cities.
+     *
+     * Location hierarchy:
+     *
+     * - Country is required.
+     * - Empty State means Any State within the selected Countries.
+     * - Empty City means Any City within the selected States.
      *
      * @param array<string, mixed> $data
      */
@@ -801,51 +824,92 @@ final class AdditionalPartnerPreferenceService
             ->masterDataService
             ->additionalPartnerPreferenceOptions();
 
+        /*
+     * Country is the top-level Location preference
+     * and must always contain a valid selection.
+     */
         $this->assertMasterIds(
             $countryIds,
             $masterData['countries']
         );
 
-        $this->assertMasterIds(
-            $stateIds,
-            $masterData['states']
-        );
+        /*
+     * State is optional.
+     *
+     * An empty State selection means Any State
+     * within the selected Countries.
+     *
+     * Validate against master data only when the
+     * member has explicitly selected States.
+     */
+        if ($stateIds !== []) {
+            $this->assertMasterIds(
+                $stateIds,
+                $masterData['states']
+            );
 
-        if ($countryIds !== []) {
             $allowedStateIds = array_map(
-                static fn(array $state): int => (int) $state['id'],
+                static fn(array $state): int =>
+                (int) $state['id'],
                 array_filter(
                     $masterData['states'],
-                    static fn(array $state): bool => in_array(
-                        (int) ($state['country_id'] ?? 0),
+                    static fn(array $state): bool =>
+                    in_array(
+                        (int) (
+                            $state['country_id']
+                            ?? 0
+                        ),
                         $countryIds,
                         true
                     )
                 )
             );
 
-            if (array_diff($stateIds, $allowedStateIds) !== []) {
+            if (
+                array_diff(
+                    $stateIds,
+                    $allowedStateIds
+                ) !== []
+            ) {
                 throw new DomainException(
                     'Every selected state must belong to a selected country.'
                 );
             }
         }
 
-        $cities = $this
-            ->masterDataService
-            ->citiesForStates(
-                $stateIds
-            );
-
-        $this->assertMasterIds(
-            $cityIds,
-            $cities
-        );
-
         /*
-     * City validation against citiesForStates() ensures every
-     * selected city belongs to one of the selected states.
+     * City is optional.
+     *
+     * An empty City selection means Any City
+     * within the selected States.
+     *
+     * A City cannot be selected unless at least
+     * one specific State has been selected.
      */
+        if ($cityIds !== []) {
+            if ($stateIds === []) {
+                throw new DomainException(
+                    'Please select a state before selecting a city.'
+                );
+            }
+
+            $cities = $this
+                ->masterDataService
+                ->citiesForStates(
+                    $stateIds
+                );
+
+            /*
+         * This existing master-data check also ensures
+         * every selected City belongs to one of the
+         * selected States.
+         */
+            $this->assertMasterIds(
+                $cityIds,
+                $cities
+            );
+        }
+
         $parentId = $this->ensureParent(
             $this->locationModel,
             $userId

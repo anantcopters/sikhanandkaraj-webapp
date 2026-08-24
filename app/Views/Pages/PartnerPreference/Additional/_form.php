@@ -515,8 +515,8 @@ $formAction = url_to(
                 ]
             ) ?>
 
-            <div class="col-12">
-                <div class="form-text text-secondary">
+            <div class="col-12 mt-0">
+                <div class="form-text color-pink">
                     Select one or more acceptable annual-income
                     brackets.
                 </div>
@@ -554,7 +554,8 @@ $formAction = url_to(
                 border mb-0 fs-14 color-pink">
 
                     Select countries, then optionally narrow by states and cities.
-                    An empty level means Any within the preceding selection.
+                    An empty State means Any State within the selected countries.
+                    An empty City means Any City within the selected states.
                     Cities belonging to the selected states
                     will appear below.
                 </div>
@@ -563,24 +564,51 @@ $formAction = url_to(
             <?= view(
                 'Pages/PartnerPreference/Additional/_multi_select',
                 [
-                    'field' => 'country_ids',
-                    'label' => 'Preferred Countries',
-                    'placeholder' => 'Any country',
-                    'options' => $countries,
-                    'optionValueKey' => 'id',
-                    'optionLabelKey' => 'name',
-                    'selectedValues' => $resolvedCountryValues,
-                    'showSelectAll' => true,
-                    'disabled' => false,
-                    'errors' => $errors,
+                    'field' =>
+                    'country_ids',
+
+                    'label' =>
+                    'Preferred Countries',
+
+                    'placeholder' =>
+                    'Any country',
+
+                    'options' =>
+                    $countries,
+
+                    'optionValueKey' =>
+                    'id',
+
+                    'optionLabelKey' =>
+                    'name',
+
+                    'selectedValues' =>
+                    $resolvedCountryValues,
+
+                    /*
+                    * Country remains the top-level preference.
+                    * Keep the existing Any behaviour.
+                    */
+                    'showSelectAll' =>
+                    true,
+
+                    'required' =>
+                    true,
+
+                    'disabled' =>
+                    false,
+
+                    'errors' =>
+                    $errors,
                 ]
             ) ?>
 
-            <div class="col-12"><hr class="my-1"></div>
+            <div class="col-12">
+                <hr class="my-1">
+            </div>
 
             <?= view(
-                'Pages/PartnerPreference/'
-                    . 'Additional/_multi_select',
+                'Pages/PartnerPreference/Additional/_multi_select',
                 [
                     'field' =>
                     'state_ids',
@@ -603,8 +631,20 @@ $formAction = url_to(
                     'selectedValues' =>
                     $resolvedStateValues,
 
+                    /*
+                    * No explicit Any control is required.
+                    *
+                    * An empty State selection already means
+                    * Any State within the selected countries.
+                    */
                     'showSelectAll' =>
-                    true,
+                    false,
+
+                    /*
+                    * Empty is a valid selection.
+                    */
+                    'required' =>
+                    false,
 
                     'disabled' =>
                     false,
@@ -614,13 +654,18 @@ $formAction = url_to(
                 ]
             ) ?>
 
+            <div class="col-12 mt-0">
+                <div class="form-text color-pink">
+                    Leave blank for Any State within the selected countries.
+                </div>
+            </div>
+
             <div class="col-12">
                 <hr class="my-1">
             </div>
 
             <?= view(
-                'Pages/PartnerPreference/'
-                    . 'Additional/_multi_select',
+                'Pages/PartnerPreference/Additional/_multi_select',
                 [
                     'field' =>
                     'city_ids',
@@ -643,13 +688,28 @@ $formAction = url_to(
                     'selectedValues' =>
                     $resolvedCityValues,
 
+                    /*
+                    * No explicit Any control is required.
+                    *
+                    * An empty City selection already means
+                    * Any City within the selected states.
+                    */
                     'showSelectAll' =>
-                    true,
+                    false,
 
                     /*
-             * City remains disabled until at least
-             * one state has been selected.
-             */
+                    * Empty is a valid selection.
+                    */
+                    'required' =>
+                    false,
+
+                    /*
+                    * City can only be narrowed when at least
+                    * one specific State is selected.
+                    *
+                    * State empty = Any State, therefore City
+                    * remains disabled.
+                    */
                     'disabled' =>
                     !$hasSelectedStates,
 
@@ -657,6 +717,16 @@ $formAction = url_to(
                     $errors,
                 ]
             ) ?>
+
+            <div class="col-12 mt-0">
+                <div class="form-text color-pink">
+                    <?php if ($hasSelectedStates): ?>
+                        Leave blank for Any City within the selected states.
+                    <?php else: ?>
+                        Select one or more States to narrow the preference by City.
+                    <?php endif; ?>
+                </div>
+            </div>
 
             <input
                 type="hidden"

@@ -427,6 +427,20 @@ final class MemberMatchCandidateModel extends Model
                 $filters['annual_income_ids'] ?? []
             );
 
+            $amritdhari =
+                $filters['amritdhari']
+                ?? '';
+
+            if (
+                $amritdhari === '0'
+                || $amritdhari === '1'
+            ) {
+                $builder->where(
+                    'bd.is_amritdhari',
+                    $amritdhari === '1'
+                );
+            }
+
             $lifestyleIds =
                 $filters['lifestyle_option_ids']
                 ?? [];

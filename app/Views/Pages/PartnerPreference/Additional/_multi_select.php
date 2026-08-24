@@ -31,6 +31,10 @@ declare(strict_types=1);
  * The presentation layer collapses those selected values into one
  * compact "Any" value.
  *
+ * Optional hierarchical fields can disable the required behaviour.
+ * This is used by Location where an empty State or City selection
+ * means Any within the preceding selection.
+ *
  * @var string                          $field
  * @var string                          $label
  * @var string                          $placeholder
@@ -43,6 +47,7 @@ declare(strict_types=1);
  * @var list<int|string>                $selectedValues
  * @var array<string, string>           $errors
  * @var bool|null                       $showSelectAll
+ * @var bool|null                       $required
  * @var bool|null                       $disabled
  */
 
@@ -114,6 +119,15 @@ $resolvedGroupItemsKey = trim(
  */
 $resolvedShowAny =
     ($showSelectAll ?? true) === true;
+
+/*
+ * Existing multi-select consumers remain required by default.
+ *
+ * Location State and City explicitly opt out because an empty
+ * selection already means Any within the preceding selection.
+ */
+$isRequired =
+    ($required ?? true) === true;
 
 $isDisabled =
     ($disabled ?? false) === true;
@@ -208,7 +222,9 @@ $renderOption = static function (
 
         <?= esc($resolvedLabel) ?>
 
-        <span class="text-danger">*</span>
+        <?php if ($isRequired): ?>
+            <span class="text-danger">*</span>
+        <?php endif; ?>
     </label>
 
     <?php if ($resolvedShowAny): ?>
@@ -274,6 +290,7 @@ $renderOption = static function (
             data-choice-search="true"
             data-choice-position="bottom"
             data-choice-search-placeholder="Search"
+            <?php if ($isRequired): ?>
             data-error-required="<?= esc(
                                         'Please select at least one '
                                             . strtolower(
@@ -282,11 +299,14 @@ $renderOption = static function (
                                             . '.',
                                         'attr'
                                     ) ?>"
+            <?php endif; ?>
             <?= $isDisabled
                 ? 'disabled'
                 : '' ?>
             multiple
-            required>
+            <?= $isRequired
+                ? 'required'
+                : '' ?>>
 
             <?php if ($resolvedGroups !== []): ?>
 

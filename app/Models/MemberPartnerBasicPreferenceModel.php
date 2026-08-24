@@ -36,11 +36,15 @@ final class MemberPartnerBasicPreferenceModel extends Model
 
         'have_children',
 
+        'amritdhari',
+
         'physical_status_id',
+
         'age_match_mode',
         'height_match_mode',
         'marital_status_match_mode',
         'have_children_match_mode',
+        'amritdhari_match_mode',
         'mother_tongue_match_mode',
         'physical_status_match_mode',
         'eating_habit_match_mode',
@@ -66,7 +70,10 @@ final class MemberPartnerBasicPreferenceModel extends Model
         ?ConnectionInterface $db = null,
         ?ValidationInterface $validation = null
     ) {
-        parent::__construct($db, $validation);
+        parent::__construct(
+            $db,
+            $validation
+        );
     }
 
     /**
@@ -77,7 +84,10 @@ final class MemberPartnerBasicPreferenceModel extends Model
     public function findForUser(int $userId): ?array
     {
         $row = $this
-            ->where('user_id', $userId)
+            ->where(
+                'user_id',
+                $userId
+            )
             ->first();
 
         return is_array($row)

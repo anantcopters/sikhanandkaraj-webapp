@@ -257,7 +257,7 @@ if ($isJourney) {
                 for="familyGotra"
                 class="form-label">
 
-                Gotra
+                Father Gotra
                 <span class="text-danger">*</span>
             </label>
 
@@ -273,10 +273,10 @@ if ($isJourney) {
                             ),
                             'attr'
                         ) ?>"
-                placeholder="Enter Gotra"
+                placeholder="Enter Father Gotra"
                 maxlength="100"
                 autocomplete="off"
-                data-error-required="Please enter your Gotra."
+                data-error-required="Please enter your Father Gotra."
                 required>
 
             <?= view(
@@ -284,6 +284,43 @@ if ($isJourney) {
                 [
                     'field' => 'gotra',
                     'errorId' => 'gotraError',
+                    'errors' => $errors,
+                ]
+            ) ?>
+        </div>
+
+        <div class="col-12 col-md-6">
+            <label
+                for="familyGotraMaternal"
+                class="form-label">
+
+                Mother Gotra (Maternal Side)
+                <span class="text-danger">*</span>
+            </label>
+
+            <input
+                type="text"
+                id="familyGotraMaternal"
+                name="gotra_maternal"
+                class="form-control"
+                value="<?= esc(
+                            $fieldValue(
+                                'gotra_maternal',
+                                $details['gotra_maternal'] ?? ''
+                            ),
+                            'attr'
+                        ) ?>"
+                placeholder="Enter Mother Gotra (Maternal Side)"
+                maxlength="100"
+                autocomplete="off"
+                data-error-required="Please enter your Mother Gotra (Maternal Side)."
+                required>
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' => 'gotra_maternal',
+                    'errorId' => 'gotraMaternalError',
                     'errors' => $errors,
                 ]
             ) ?>

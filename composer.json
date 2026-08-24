@@ -15,7 +15,8 @@
         "ext-mbstring": "*",
         "aws/aws-sdk-php": "^3.389",
         "laminas/laminas-escaper": "^2.18",
-        "psr/log": "^3.0"
+        "psr/log": "^3.0",
+        "symfony/process": "^7.4"
     },
     "require-dev": {
         "codeigniter/coding-standard": "^1.7",

@@ -141,6 +141,13 @@ $ageMax =
         )
     );
 
+$amritdhari = trim(
+    (string) (
+        $filters['amritdhari']
+        ?? ''
+    )
+);
+
 $heightMinId =
     max(
         0,
@@ -1110,7 +1117,7 @@ $this->section(
                                                     'attr'
                                                 ) ?>">
 
-                                    <div class="form-text text-secondary">
+                                    <div class="form-text color-pink">
                                         Leave empty for any country.
                                     </div>
 
@@ -2030,6 +2037,54 @@ $this->section(
                                             </div>
 
                                         </div>
+
+                                    </div>
+
+                                    <div class="col-12 col-md-6">
+
+                                        <label
+                                            for="amritdhari"
+                                            class="form-labelm">
+
+                                            Amritdhari
+                                        </label>
+
+                                        <select
+                                            id="amritdhari"
+                                            name="amritdhari"
+                                            class="form-select"
+                                            data-choice
+                                            data-choice-search="false"
+                                            data-choice-position="bottom">
+
+                                            <option
+                                                value=""
+                                                <?= $amritdhari === ''
+                                                    ? 'selected'
+                                                    : '' ?>>
+
+                                                Any
+                                            </option>
+
+                                            <option
+                                                value="1"
+                                                <?= $amritdhari === '1'
+                                                    ? 'selected'
+                                                    : '' ?>>
+
+                                                Yes
+                                            </option>
+
+                                            <option
+                                                value="0"
+                                                <?= $amritdhari === '0'
+                                                    ? 'selected'
+                                                    : '' ?>>
+
+                                                No
+                                            </option>
+
+                                        </select>
 
                                     </div>
 

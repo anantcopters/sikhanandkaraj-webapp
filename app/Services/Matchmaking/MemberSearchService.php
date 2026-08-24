@@ -726,6 +726,24 @@ final class MemberSearchService
     ): array {
         $chips = [];
 
+        if (
+            ($filters['mode'] ?? 'basic')
+            === 'advanced'
+            && in_array(
+                $filters['amritdhari'] ?? '',
+                ['0', '1'],
+                true
+            )
+        ) {
+            $chips[] =
+                'Amritdhari: '
+                . (
+                    $filters['amritdhari'] === '1'
+                    ? 'Yes'
+                    : 'No'
+                );
+        }
+
         /*
      * Age.
      */
@@ -1131,6 +1149,25 @@ final class MemberSearchService
                 'Minimum height cannot be greater than maximum height.'
             );
         }
+
+        $amritdhariValue = trim(
+            (string) (
+                $input['amritdhari']
+                ?? ''
+            )
+        );
+
+        $amritdhari =
+            in_array(
+                $amritdhariValue,
+                [
+                    '0',
+                    '1',
+                ],
+                true
+            )
+            ? $amritdhariValue
+            : '';
 
         $filters = [
             'mode' =>

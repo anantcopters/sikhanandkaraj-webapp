@@ -113,9 +113,24 @@ $formatHeight = static function (
     );
 };
 
+$memberGender = mb_strtoupper(
+    trim(
+        (string) (
+            $member['gender']
+            ?? ''
+        )
+    )
+);
+
+$minimumMemberAge = $memberGender === 'MALE'
+    ? 21
+    : 18;
+
 $maximumDateOfBirth = date(
     'Y-m-d',
-    strtotime('-18 years')
+    strtotime(
+        '-' . $minimumMemberAge . ' years'
+    )
 );
 
 $resolvedMasterData = is_array($masterData ?? null)
@@ -220,8 +235,13 @@ $selectedBirthYear = $dateParts[0] ?? '';
 $selectedBirthMonth = $dateParts[1] ?? '';
 $selectedBirthDay = $dateParts[2] ?? '';
 
-$maximumBirthYear = (int) date('Y') - 18;
-$minimumBirthYear = $maximumBirthYear - 42;
+$maximumBirthYear =
+    (int) date('Y')
+    - $minimumMemberAge;
+
+$minimumBirthYear =
+    $maximumBirthYear
+    - 42;
 
 $fullNameHasError = isset(
     $errors['full_name']
@@ -270,6 +290,26 @@ $cityHasError = isset(
 $countryHasError = isset(
     $errors['country_id']
 );
+
+$amritdhariHasError = isset(
+    $errors['is_amritdhari']
+);
+
+$isAmritdhari = $fieldValue(
+    'is_amritdhari',
+    array_key_exists(
+        'is_amritdhari',
+        $details
+    )
+        ? (
+            BooleanValue::fromDatabase(
+                $details['is_amritdhari']
+            )
+            ? '1'
+            : '0'
+        )
+        : '0'
+) === '1';
 
 $isJourney = ($isProfileJourney ?? false) === true;
 
@@ -545,7 +585,11 @@ if ($isJourney) {
                 value="<?= esc(
                             $storedDateOfBirth,
                             'attr'
-                        ) ?>">
+                        ) ?>"
+                data-minimum-age="<?= esc(
+                                        (string) $minimumMemberAge,
+                                        'attr'
+                                    ) ?>">
 
             <?= view('Components/Forms/FieldError', [
                 'field' => 'date_of_birth',
@@ -876,6 +920,62 @@ if ($isJourney) {
                 'errorId' => 'motherTongueIdError',
                 'errors' => $errors,
             ]) ?>
+        </div>
+
+        <div class="col-12 col-sm-6 col-lg-4">
+            <label
+                for="isAmritdhari"
+                class="form-labelm">
+
+                Amritdhari
+
+                <span class="text-danger">*</span>
+            </label>
+
+            <div class="form-check mt-2">
+
+                <input
+                    type="hidden"
+                    name="is_amritdhari"
+                    value="0">
+
+                <input
+                    type="checkbox"
+                    class="form-check-input <?= $amritdhariHasError
+                                                ? 'is-invalid'
+                                                : '' ?>"
+                    id="isAmritdhari"
+                    name="is_amritdhari"
+                    value="1"
+                    <?= $isAmritdhari
+                        ? 'checked'
+                        : '' ?>
+                    <?= $amritdhariHasError
+                        ? 'aria-invalid="true"'
+                        : '' ?>
+                    aria-describedby="isAmritdhariError">
+
+                <label
+                    class="form-check-label"
+                    for="isAmritdhari">
+
+                    Yes, I am Amritdhari
+                </label>
+            </div>
+
+            <?= view(
+                'Components/Forms/FieldError',
+                [
+                    'field' =>
+                    'is_amritdhari',
+
+                    'errorId' =>
+                    'isAmritdhariError',
+
+                    'errors' =>
+                    $errors,
+                ]
+            ) ?>
         </div>
 
         <div class="col-12 col-sm-6 col-lg-4">
