@@ -687,40 +687,6 @@ final class MemberMatchCandidateModel extends Model
             'page' =>
             $page,
         ];
-
-        /*
-        * Apply deterministic Search ordering after counting.
-        */
-        $this->applySearchSorting(
-            $builder,
-            $sort
-        );
-
-        $offset =
-            ($page - 1)
-            * $perPage;
-
-        $rows =
-            $builder
-            ->limit(
-                $perPage,
-                $offset
-            )
-            ->get()
-            ->getResultArray();
-
-        return [
-            'rows' =>
-            array_values(
-                $rows
-            ),
-
-            'total' =>
-            $total,
-
-            'page' =>
-            $page,
-        ];
     }
 
     /**
@@ -1021,7 +987,7 @@ final class MemberMatchCandidateModel extends Model
                 THEN TRUE
                 ELSE FALSE
             END AS is_video_introduction_verified',
-                    false
+            false
         );
 
         /*

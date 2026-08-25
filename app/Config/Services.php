@@ -1931,6 +1931,13 @@ final class Services extends BaseService
         );
     }
 
+    /**
+     * Return the member matchmaking collection service.
+     *
+     * Candidate eligibility, Partner Preference matching, final Match Score,
+     * interaction state and photo presentation remain delegated to their
+     * existing domain authorities.
+     */
     public static function memberMatchmakingService(
         bool $getShared = true
     ): MemberMatchmakingService {
@@ -1942,6 +1949,12 @@ final class Services extends BaseService
 
         $database =
             db_connect();
+
+        /** @var Matchmaking $configuration */
+        $configuration =
+            config(
+                Matchmaking::class
+            );
 
         return new MemberMatchmakingService(
             new UserModel(
@@ -1956,9 +1969,6 @@ final class Services extends BaseService
                 false
             ),
 
-            /*
-         * Dashboard and Search must use the same final Match Score authority.
-         */
             static::memberMatchScoreService(
                 false
             ),
@@ -1971,9 +1981,17 @@ final class Services extends BaseService
                 false
             ),
 
-            config(
-                Matchmaking::class
-            )
+            /*
+             * Membership-25:
+             *
+             * Reuse the same centralized photo authorization/signing service used
+             * by Search so Dashboard does not perform one photo query per card.
+             */
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            $configuration
         );
     }
 

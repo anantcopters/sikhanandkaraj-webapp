@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Matchmaking;
 
 use App\Models\MemberMatchCandidateModel;
+use App\Services\Profile\MemberPhotoUrlService;
 use App\Models\UserModel;
 use Config\Matchmaking;
 use DateTimeImmutable;
@@ -37,11 +38,11 @@ final class MemberMatchmakingService
         $matchService,
 
         /*
-        * Final weighted ranking authority.
-        *
-        * PartnerPreferenceMatchService remains responsible only for determining
-        * preference compatibility and match_percentage.
-        */
+         * Final weighted ranking authority.
+         *
+         * PartnerPreferenceMatchService remains responsible only for determining
+         * preference compatibility and match_percentage.
+         */
         private readonly MemberMatchScoreService
         $matchScoreService,
 
@@ -50,6 +51,17 @@ final class MemberMatchmakingService
 
         private readonly MemberProfilePresentationService
         $profilePresentationService,
+
+        /*
+         * Membership-25:
+         *
+         * Dashboard collections batch-load approved primary-photo state through
+         * the same service already used by Search.
+         *
+         * Photo visibility rules must not be reimplemented inside matchmaking.
+         */
+        private readonly MemberPhotoUrlService
+        $photoUrlService,
 
         private readonly Matchmaking
         $configuration
@@ -317,128 +329,23 @@ final class MemberMatchmakingService
     /**
      * Return eligible member IDs that qualify as All Matches.
      *
-     * This uses exactly the same Partner Preference matching definition as the
-     * Dashboard All Matches collection:
+     * Dashboard All Matches and Search's All Matches Quick Link must use the
+     * same matching pipeline.
      *
-     * - normal candidate eligibility;
-     * - logged-in member's Partner Preferences;
-     * - compulsory preferences must pass;
-     * - at least one structured preference must exist;
-     * - configured minimum match percentage must be met.
+     * Membership-25:
      *
-     * Only IDs are returned because Search Results performs its own paginated
-     * candidate projection and presentation.
+     * Do not duplicate candidate eligibility, Partner Preference scoring or
+     * minimum-match qualification here. matchedCandidateIds() is the common
+     * authority for both All Matches and New Matches.
      *
      * @return list<int>
      */
     public function allMatchCandidateIds(
         int $userId
     ): array {
-        if ($userId <= 0) {
-            return [];
-        }
-
-        /*
-     * ----------------------------------------------------------------------
-     * Resolve authenticated member
-     * ----------------------------------------------------------------------
-     */
-
-        $viewer =
-            $this->userModel
-            ->find(
-                $userId
-            );
-
-        if (!is_array($viewer)) {
-            throw new DomainException(
-                'The member account could not be found.'
-            );
-        }
-
-        $viewerGender =
-            trim(
-                (string) (
-                    $viewer['gender']
-                    ?? ''
-                )
-            );
-
-        /*
-     * ----------------------------------------------------------------------
-     * Resolve common eligible candidates
-     * ----------------------------------------------------------------------
-     *
-     * Candidate eligibility already handles ACTIVE/deleted/self/gender/block
-     * restrictions centrally.
-     */
-
-        $candidateRows =
-            $this->candidateModel
-            ->eligibleCandidates(
-                $userId,
-                $viewerGender
-            );
-
-        if ($candidateRows === []) {
-            return [];
-        }
-
-        /*
-     * ----------------------------------------------------------------------
-     * Score against existing Partner Preferences
-     * ----------------------------------------------------------------------
-     */
-
-        $scoredCandidates =
-            $this->matchService
-            ->scoreCandidates(
-                $userId,
-                $candidateRows
-            );
-
-        $minimumPercentage =
-            $this->configuration
-            ->minimumMatchPercentage;
-
-        $memberIds = [];
-
-        foreach (
-            $scoredCandidates
-            as $candidate
-        ) {
-            if (!is_array($candidate)) {
-                continue;
-            }
-
-            if (
-                !$this->qualifiesAsMatch(
-                    $candidate,
-                    $minimumPercentage
-                )
-            ) {
-                continue;
-            }
-
-            $memberId =
-                max(
-                    0,
-                    (int) (
-                        $candidate['id']
-                        ?? 0
-                    )
-                );
-
-            if ($memberId > 0) {
-                $memberIds[] =
-                    $memberId;
-            }
-        }
-
-        return array_values(
-            array_unique(
-                $memberIds
-            )
+        return $this->matchedCandidateIds(
+            $userId,
+            false
         );
     }
 
@@ -788,6 +695,27 @@ final class MemberMatchmakingService
      * - existing Interest relationship state;
      * - existing Send Interest route.
      *
+     * Membership-25:
+     *
+     * Collection state is resolved in batches before card presentation.
+     *
+     * Previous behaviour:
+     *
+     *     foreach candidate
+     *         -> Interest DB reads
+     *         -> primary-photo DB read
+     *
+     * Current behaviour:
+     *
+     *     candidate collection
+     *         -> one Interest relationship query
+     *         -> one approved-primary-photo query
+     *         -> in-memory card presentation
+     *
+     * The existing MemberInteractionService and MemberPhotoUrlService remain
+     * authoritative. No relationship or photo-visibility rule is duplicated
+     * here.
+     *
      * @param list<array<string, mixed>> $rows
      *
      * @return list<array<string, mixed>>
@@ -796,48 +724,152 @@ final class MemberMatchmakingService
         int $viewerUserId,
         array $rows
     ): array {
-        $result = [];
-
-        foreach (
-            $rows
-            as $row
+        if (
+            $viewerUserId <= 0
+            || $rows === []
         ) {
+            return [];
+        }
+
+        /*
+         * Normalize candidate IDs once.
+         */
+        $memberIds = [];
+
+        foreach ($rows as $row) {
             if (!is_array($row)) {
                 continue;
             }
 
-            $memberId = max(
-                0,
-                (int) (
-                    $row['id']
-                    ?? 0
+            $memberId =
+                max(
+                    0,
+                    (int) (
+                        $row['id']
+                        ?? 0
+                    )
+                );
+
+            if ($memberId > 0) {
+                $memberIds[] =
+                    $memberId;
+            }
+        }
+
+        $memberIds =
+            array_values(
+                array_unique(
+                    $memberIds
                 )
             );
+
+        if ($memberIds === []) {
+            return [];
+        }
+
+        /*
+         * Resolve every directional Interest relationship required by this
+         * Dashboard collection in one database query.
+         *
+         * MemberInteractionService remains the single relationship authority.
+         */
+        $interestRelationships =
+            $this
+            ->interactionService
+            ->interestRelationshipsFor(
+                $viewerUserId,
+                $memberIds
+            );
+
+        /*
+         * Photo visibility INTERESTED_MEMBERS requires only whether an Interest
+         * relationship exists between the two members.
+         *
+         * Convert the richer Interest contract into the boolean map expected by
+         * MemberPhotoUrlService.
+         */
+        $photoInterestMap = [];
+
+        foreach ($memberIds as $memberId) {
+            $photoInterestMap[$memberId] =
+                (
+                    $interestRelationships[$memberId]['hasRelationship']
+                    ?? false
+                ) === true;
+        }
+
+        /*
+         * Load all approved primary photos for this collection in one database
+         * query and authorize each URL through the existing photo service.
+         *
+         * CloudFront signing remains per visible photograph, which is expected
+         * and is not a database N+1.
+         */
+        $thumbnailUrls =
+            $this
+            ->photoUrlService
+            ->getApprovedPrimaryThumbnailUrlsForViewer(
+                memberIds: $memberIds,
+
+                viewerUserId: $viewerUserId,
+
+                interestRelationshipMap: $photoInterestMap
+            );
+
+        $result = [];
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $memberId =
+                max(
+                    0,
+                    (int) (
+                        $row['id']
+                        ?? 0
+                    )
+                );
 
             if ($memberId <= 0) {
                 continue;
             }
 
             /*
-            * Use the same Interest relationship resolver used by
-            * Search and Member Profile View.
-            *
-            * This keeps:
-            *
-            * - Send Interest eligibility;
-            * - pending sent/received state;
-            * - accepted state;
-            * - Interest-based photo authorization
-            *
-            * consistent across all member-facing screens.
-            */
+             * No database read occurs here.
+             *
+             * interestRelationshipsFor() already returned the same contract as
+             * interestRelationshipFor().
+             */
             $interestRelationship =
-                $this
-                ->interactionService
-                ->interestRelationshipFor(
-                    $viewerUserId,
-                    $memberId
-                );
+                $interestRelationships[$memberId]
+                ?? [
+                    'state' =>
+                    MemberInteractionService
+                    ::INTEREST_STATE_NONE,
+
+                    'hasRelationship' =>
+                    false,
+
+                    'hasOutgoing' =>
+                    false,
+
+                    'hasIncoming' =>
+                    false,
+
+                    'canShowInterest' =>
+                    true,
+
+                    'canRespond' =>
+                    false,
+
+                    'outgoingStatus' =>
+                    null,
+
+                    'incomingStatus' =>
+                    null,
+                ];
 
             $hasInterestRelationship =
                 (
@@ -845,35 +877,52 @@ final class MemberMatchmakingService
                     ?? false
                 ) === true;
 
+            /*
+             * Membership-23 extended summary() with resolvedImage.
+             *
+             * Passing an empty string deliberately means:
+             *
+             *     batch photo resolution completed but no actual photo may be
+             *     displayed -> use the existing gender placeholder.
+             *
+             * Passing null would cause summary() to execute the old single-member
+             * photo query, recreating the N+1 problem.
+             */
             $profile =
                 $this
                 ->profilePresentationService
                 ->summary(
                     viewerUserId: $viewerUserId,
+
                     member: $row,
-                    hasInterestRelationship: $hasInterestRelationship
+
+                    hasInterestRelationship: $hasInterestRelationship,
+
+                    resolvedImage: $thumbnailUrls[$memberId]
+                        ?? ''
                 );
 
             if ($profile === null) {
                 continue;
             }
 
-            $profileReference = trim(
-                (string) (
-                    $profile['referenceId']
-                    ?? ''
-                )
-            );
+            $profileReference =
+                trim(
+                    (string) (
+                        $profile['referenceId']
+                        ?? ''
+                    )
+                );
 
             if ($profileReference === '') {
                 continue;
             }
 
             /*
-         * Use the existing member Interest endpoint.
-         *
-         * Numeric database member IDs are never exposed to the browser.
-         */
+             * Use the existing member Interest endpoint.
+             *
+             * Numeric database member IDs are never exposed to the browser.
+             */
             $profile['interestUrl'] =
                 route_to(
                     'web.members.interest',
@@ -884,9 +933,9 @@ final class MemberMatchmakingService
                 $interestRelationship;
 
             /*
-         * Match percentage belongs specifically to matchmaking context,
-         * not to the generic member-summary contract.
-         */
+             * Match percentage belongs specifically to matchmaking context,
+             * not to the generic member-summary contract.
+             */
             $profile['matchPercentage'] =
                 isset(
                     $row['match_percentage']
