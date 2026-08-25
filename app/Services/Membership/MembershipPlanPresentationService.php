@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Membership;
 
 use App\Models\MembershipPlanModel;
-use Config\DateDisplay;
-use DateTimeImmutable;
-use DateTimeZone;
-use Throwable;
+use App\Support\DateDisplay;
 
 /**
  * Builds the authoritative membership-plan presentation used by:
@@ -192,20 +189,26 @@ final class MembershipPlanPresentationService
          * inside the membership feature.
          */
         if ($currentMembership !== null) {
+            /*
+            * Membership timestamps are stored in UTC.
+            *
+            * IMPORTANT:
+            * Do not perform timezone conversion or date formatting locally.
+            * App\Support\DateDisplay is the existing project-wide presentation
+            * boundary for UTC timestamps and already applies Config\DateDisplay.
+            */
             $currentMembership['startsAtDisplay'] =
-                $this->formatMembershipDate(
-                    (string) (
-                        $currentMembership['startsAt']
-                        ?? ''
-                    )
+                DateDisplay::formatUtcDate(
+                    $currentMembership['startsAt']
+                        ?? null,
+                    ''
                 );
 
             $currentMembership['expiresAtDisplay'] =
-                $this->formatMembershipDate(
-                    (string) (
-                        $currentMembership['expiresAt']
-                        ?? ''
-                    )
+                DateDisplay::formatUtcDate(
+                    $currentMembership['expiresAt']
+                        ?? null,
+                    ''
                 );
 
             $currentAccount['membership'] =
@@ -442,101 +445,5 @@ final class MembershipPlanPresentationService
             'purchaseDecision' =>
             $decision?->toArray(),
         ];
-    }
-
-    /**
-     * Format a persisted UTC membership timestamp for member-facing display.
-     *
-     * STORAGE VS DISPLAY
-     * ==================
-     *
-     * Membership timestamps remain persisted in UTC.
-     *
-     * User-facing dates must follow Config\DateDisplay, which provides the
-     * application's centralized display timezone and date format.
-     *
-     * With the current defaults:
-     *
-     *     storage timezone : UTC
-     *     display timezone : Asia/Kolkata
-     *     display format   : jS M Y
-     *
-     * Example:
-     *
-     *     2026-11-25 18:30:00 UTC
-     *
-     * becomes:
-     *
-     *     26th Nov 2026
-     *
-     * in Asia/Kolkata.
-     *
-     * An invalid or empty timestamp returns an empty string. A presentation
-     * problem must never prevent the member from opening the Membership Plans
-     * screen.
-     */
-    private function formatMembershipDate(
-        string $value
-    ): string {
-        $value =
-            trim(
-                $value
-            );
-
-        if ($value === '') {
-            return '';
-        }
-
-        try {
-            /*
-             * Membership persistence is authoritative UTC.
-             */
-            $date =
-                new DateTimeImmutable(
-                    $value,
-                    new DateTimeZone(
-                        'UTC'
-                    )
-                );
-
-            /*
-             * Reuse the application's existing display policy instead of
-             * defining membership-specific timezone or formatting rules.
-             */
-            $dateDisplay =
-                config(
-                    DateDisplay::class
-                );
-
-            $displayTimezone =
-                trim(
-                    (string) $dateDisplay->timezone
-                );
-
-            $displayFormat =
-                trim(
-                    (string) $dateDisplay->dateFormat
-                );
-
-            
-            return $date
-                ->setTimezone(
-                    new DateTimeZone(
-                        $displayTimezone
-                    )
-                )
-                ->format(
-                    $displayFormat
-                );
-        } catch (Throwable) {
-            /*
-             * Fail presentation-safe.
-             *
-             * The raw membership timestamp remains authoritative. Invalid
-             * persisted/configured values should be investigated separately,
-             * but must not make the pricing/account screen unavailable.
-             */
-            return '';
-        }
     }
 }
