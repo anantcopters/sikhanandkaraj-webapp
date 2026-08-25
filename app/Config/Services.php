@@ -160,6 +160,7 @@ use App\Services\Membership\MembershipLifecycleService;
 use App\Services\Membership\MemberMembershipHistoryService;
 use App\Services\Membership\MembershipPurchaseService;
 use App\Services\Development\DevelopmentSearchProfilerService;
+use App\Services\Development\DevelopmentCandidateQueryProfilerService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -1715,6 +1716,37 @@ final class Services extends BaseService
 
             static::awsMediaService(
                 false
+            ),
+
+            $database
+        );
+    }
+
+    /**
+     * Return the Membership-26 PostgreSQL candidate-query profiler.
+     *
+     * This service is CLI/development infrastructure only. Candidate
+     * eligibility remains owned by MemberMatchCandidateModel.
+     */
+    public static function developmentCandidateQueryProfilerService(
+        bool $getShared = true
+    ): DevelopmentCandidateQueryProfilerService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'developmentCandidateQueryProfilerService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new DevelopmentCandidateQueryProfilerService(
+            new UserModel(
+                $database
+            ),
+
+            new MemberMatchCandidateModel(
+                $database
             ),
 
             $database

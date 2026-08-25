@@ -64,6 +64,56 @@ final class MemberMatchCandidateModel extends Model
     }
 
     /**
+     * Compile the authoritative eligible-candidate query without executing it.
+     *
+     * Membership-26 development diagnostics.
+     *
+     * IMPORTANT:
+     *
+     * This method intentionally builds the query through
+     * baseCandidateBuilder(). The diagnostic tool must inspect the exact same
+     * candidate projection used by Dashboard/Matchmaking rather than maintain a
+     * second diagnostic copy of candidate eligibility rules.
+     *
+     * No query is executed here.
+     */
+    public function compiledEligibleCandidatesSql(
+        int $viewerUserId,
+        string $viewerGender
+    ): string {
+        if ($viewerUserId <= 0) {
+            return '';
+        }
+
+        $builder =
+            $this->baseCandidateBuilder(
+                $viewerUserId,
+                $viewerGender
+            );
+
+        /*
+         * Preserve the exact ordering used by eligibleCandidates().
+         */
+        $builder
+            ->orderBy(
+                'u.created_at',
+                'DESC'
+            )
+            ->orderBy(
+                'u.id',
+                'DESC'
+            );
+
+        /*
+         * getCompiledSelect() compiles the Query Builder state without sending
+         * the candidate query to PostgreSQL.
+         */
+        return trim(
+            $builder->getCompiledSelect()
+        );
+    }
+
+    /**
      * Return currently visible profiles for ordered IDs.
      *
      * Used by:
