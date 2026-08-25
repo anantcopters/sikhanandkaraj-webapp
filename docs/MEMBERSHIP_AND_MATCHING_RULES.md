@@ -269,13 +269,41 @@ Sensitive Full Profile data must never be fetched/exposed before authorization s
 
 ## 10. Female Contact Privacy
 
-When Full Profile access succeeds for a female candidate:
+When Full Profile access succeeds for a female candidate, the existing
+female contact presentation must be preserved.
 
-1. display parents' mobile when available;
-2. otherwise display the female member's mobile;
-3. do not display both merely because both exist.
+### 10.1 Parent contact exists
 
-Contact information is loaded only after server-side Full Profile authorization succeeds.
+When a parent contact exists:
+
+- display the female member's primary mobile in masked form;
+- retain the **Verified** badge when her primary mobile is OTP-verified;
+- display the full parent contact beneath the masked female mobile.
+
+The masked female mobile is intentionally retained as a trust indicator
+while the parent contact remains the usable contact number.
+
+### 10.2 Parent contact does not exist
+
+When a parent contact does not exist:
+
+- display the female member's full primary mobile;
+- retain the **Verified** badge when that primary mobile is OTP-verified.
+
+### 10.3 Male profiles
+
+Male profiles continue displaying their normal primary mobile according
+to the existing profile presentation flow.
+
+### 10.4 Authorization boundary
+
+These rules affect presentation only after Full Profile authorization
+succeeds. Contact information must not be exposed to an unauthorized
+viewer.
+
+The membership implementation must carry this existing behavior forward
+and must not replace it with a rule that shows only the parent contact
+when one exists.
 
 ---
 
