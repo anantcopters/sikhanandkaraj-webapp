@@ -734,6 +734,23 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                     ]
                 );
 
+                /*
+                * Report another profile.
+                *
+                * Report is available to both Free and Paid members.
+                *
+                * The public profile reference remains part of the route so the browser never
+                * submits another member's numeric database user ID.
+                */
+                $routes->post(
+                    'members/(:segment)/report',
+                    'MemberProfileController::report/$1',
+                    [
+                        'as' =>
+                        'web.members.report',
+                    ]
+                );
+
                 $routes->post(
                     'members/(:segment)/block',
                     'MemberProfileController::block/$1',

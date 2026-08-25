@@ -9,6 +9,7 @@ use App\Models\MemberMatchCandidateModel;
 use App\Models\MemberNotificationModel;
 use App\Models\UserModel;
 use App\Services\Notification\MemberNotificationService;
+use App\Services\Membership\MembershipEntitlementService;
 use App\Support\MemberNameVisibility;
 use CodeIgniter\Database\BaseConnection;
 use DomainException;
@@ -55,7 +56,23 @@ final class MemberInterestService
         $notificationService,
 
         private readonly BaseConnection
-        $database
+        $database,
+
+        /*
+        * Membership capabilities used by Interest-card presentation.
+        *
+        * Authorization of the actual actions remains inside the appropriate
+        * domain services.
+        */
+        private readonly MembershipEntitlementService
+        $membershipEntitlementService,
+
+        /*
+        * Existing interaction authority supplies Block/Shortlist relationship
+        * state and remains the write authority for those actions.
+        */
+        private readonly MemberInteractionService
+        $interactionService
     ) {}
 
     /**
@@ -741,7 +758,9 @@ final class MemberInterestService
 
     /**
      * Convert visible Interest records into the common member presentation
-     * contract plus Interest-specific state.
+     * contract plus Interest-specific and membership-capability state.
+     *
+     * Viewer capabilities are resolved once before the loop.
      *
      * @param list<array<string, mixed>> $records
      *
@@ -753,6 +772,35 @@ final class MemberInterestService
         string $direction
     ): array {
         $result = [];
+
+        /*
+        * These are properties of the authenticated viewer.
+        *
+        * Do not resolve them once per Interest card.
+        */
+        $canViewFullProfile =
+            $this->membershipEntitlementService
+            ->canViewFullProfile(
+                $viewerUserId
+            );
+
+        $canShortlist =
+            $this->membershipEntitlementService
+            ->canShortlist(
+                $viewerUserId
+            );
+
+        $canReport =
+            $this->membershipEntitlementService
+            ->canReport(
+                $viewerUserId
+            );
+
+        $canBlock =
+            $this->membershipEntitlementService
+            ->canBlock(
+                $viewerUserId
+            );
 
         foreach (
             $records
@@ -766,16 +814,27 @@ final class MemberInterestService
                 continue;
             }
 
+            $memberId = max(
+                0,
+                (int) (
+                    $member['id']
+                    ?? 0
+                )
+            );
+
+            if ($memberId <= 0) {
+                continue;
+            }
+
             /*
-         * The Interest record itself proves that an Interest relationship
-         * exists between these members.
-         *
-         * MemberProfilePresentationService still delegates actual visibility
-         * authorization to MemberPhotoUrlService.
-         */
+            * The Interest record itself proves that an Interest relationship
+            * exists between these members.
+            *
+            * MemberProfilePresentationService still delegates actual photograph
+            * visibility authorization to MemberPhotoUrlService.
+            */
             $profile =
-                $this
-                ->profilePresentationService
+                $this->profilePresentationService
                 ->summary(
                     viewerUserId: $viewerUserId,
 
@@ -788,9 +847,20 @@ final class MemberInterestService
                 continue;
             }
 
+            $reference = trim(
+                (string) (
+                    $profile['referenceId']
+                    ?? ''
+                )
+            );
+
+            if ($reference === '') {
+                continue;
+            }
+
             /*
-         * Interest-specific state remains outside the common member contract.
-         */
+            * Interest-specific state remains outside the common member contract.
+            */
             $profile['status'] =
                 $this->recordStatus(
                     $record
@@ -806,6 +876,51 @@ final class MemberInterestService
 
             $profile['direction'] =
                 $direction;
+
+            /*
+            * Viewer capability state used by ProfileInterestCard.
+            *
+            * These values are presentation hints only.
+            */
+            $profile['canViewFullProfile'] =
+                $canViewFullProfile;
+
+            $profile['canShortlist'] =
+                $canShortlist;
+
+            $profile['canReport'] =
+                $canReport;
+
+            $profile['canBlock'] =
+                $canBlock;
+
+            $profile['isShortlisted'] =
+                $this->interactionService
+                ->isShortlisted(
+                    $viewerUserId,
+                    $memberId
+                );
+
+            /*
+            * Action URLs expose only the public profile reference.
+            */
+            $profile['shortlistUrl'] =
+                route_to(
+                    'web.members.shortlist',
+                    $reference
+                );
+
+            $profile['reportUrl'] =
+                route_to(
+                    'web.members.report',
+                    $reference
+                );
+
+            $profile['blockUrl'] =
+                route_to(
+                    'web.members.block',
+                    $reference
+                );
 
             $result[] =
                 $profile;

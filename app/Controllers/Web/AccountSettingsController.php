@@ -15,10 +15,16 @@ use Throwable;
 
 final class AccountSettingsController extends BaseController
 {
+    /**
+     * Supported Account Settings sections.
+     *
+     * Profile Visibility was intentionally removed from the membership model.
+     * Access to protected Full Profiles is now governed centrally by
+     * ProfileAccessPolicy rather than member-selected profile visibility.
+     */
     private const ALLOWED_SECTIONS = [
         'password',
         'email',
-        'visibility',
         'aadhaar-verification',
         'video-introduction',
         'report-profile',
@@ -36,6 +42,42 @@ final class AccountSettingsController extends BaseController
         );
 
         $userId = $this->authenticatedUserId();
+
+        /*
+        * Resolve Account Settings membership capabilities once.
+        *
+        * The View uses these values only for feature-lock presentation.
+        *
+        * Individual feature services independently repeat authorization before
+        * performing protected writes.
+        */
+        $membershipEntitlementService =
+            service(
+                'membershipEntitlementService'
+            );
+
+        $membershipCapabilities = [
+            'aadhaar' =>
+            $membershipEntitlementService
+                ->canUseAadhaar(
+                    $userId
+                ),
+
+            'liveIntroduction' =>
+            $membershipEntitlementService
+                ->canCreateLiveIntroduction(
+                    $userId
+                ),
+
+            /*
+            * Report remains available to Free and Paid members.
+            */
+            'report' =>
+            $membershipEntitlementService
+                ->canReport(
+                    $userId
+                ),
+        ];
 
         /** @var MemberAccountSettingsService $service */
         $service = service(
@@ -150,6 +192,9 @@ final class AccountSettingsController extends BaseController
 
                     'profileReports' =>
                     $profileReports,
+
+                    'membershipCapabilities' =>
+                    $membershipCapabilities,
 
                     'pageScripts' => [
                         'assets/js/components/form-validator.js',
@@ -475,75 +520,6 @@ final class AccountSettingsController extends BaseController
                     ]
                 );
         }
-    }
-
-    public function saveVisibility(): RedirectResponse
-    {
-        $input = [
-            'profile_visibility' =>
-            mb_strtoupper(
-                trim(
-                    (string) $this->request
-                        ->getPost(
-                            'profile_visibility'
-                        )
-                )
-            ),
-        ];
-
-        $validation = service(
-            'validation'
-        );
-
-        $validation->setRules(
-            AccountSettingsValidation
-                ::visibilityRules()
-        );
-
-        if (!$validation->run($input)) {
-            return redirect()
-                ->to(
-                    route_to(
-                        'web.account.settings.section',
-                        'visibility'
-                    )
-                )
-                ->with(
-                    'validationErrors',
-                    $validation->getErrors()
-                );
-        }
-
-        /** @var MemberAccountSettingsService $service */
-        $service = service(
-            'memberAccountSettingsService'
-        );
-
-        $service->saveVisibility(
-            $this->authenticatedUserId(),
-            (string) $validation
-                ->getValidated()['profile_visibility']
-        );
-
-        return redirect()
-            ->to(
-                route_to(
-                    'web.account.settings.section',
-                    'visibility'
-                )
-            )
-            ->with(
-                'accountNotice',
-                [
-                    'type' => 'success',
-                    'title' =>
-                    'Visibility updated',
-                    'message' =>
-                    'Your profile visibility has been updated.',
-                    'logoutAfterClose' =>
-                    false,
-                ]
-            );
     }
 
     public function contact(): RedirectResponse

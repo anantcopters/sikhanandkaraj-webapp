@@ -382,6 +382,35 @@ final class MemberInteractionService
     }
 
     /**
+     * Return whether the viewer currently has the target profile shortlisted.
+     *
+     * This is read-only presentation state.
+     *
+     * It deliberately does not apply the current membership entitlement because
+     * historical Shortlists survive membership expiry.
+     *
+     * Membership entitlement is required only when creating a NEW shortlist.
+     */
+    public function isShortlisted(
+        int $viewerUserId,
+        int $targetUserId
+    ): bool {
+        if (
+            $viewerUserId <= 0
+            || $targetUserId <= 0
+            || $viewerUserId === $targetUserId
+        ) {
+            return false;
+        }
+
+        return $this->shortlistModel
+            ->hasShortlisted(
+                $viewerUserId,
+                $targetUserId
+            );
+    }
+
+    /**
      * Return IDs of members who shortlisted this member.
      *
      * @return list<int>

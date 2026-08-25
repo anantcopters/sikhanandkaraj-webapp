@@ -8,7 +8,6 @@ use App\Support\DateDisplay;
  * @var string                   $activeSection
  * @var array<string, mixed>|null $primaryEmail
  * @var array<string, mixed>|null $pendingEmail
- * @var string                   $profileVisibility
  * @var string                   $contactCaptcha
  * @var array<string, string>    $validationErrors
  * @var array<string, mixed>|null $formAlert
@@ -17,6 +16,14 @@ use App\Support\DateDisplay;
 /**
  * @var bool $isMigratedPrelaunchMember
  */
+
+$membershipCapabilities =
+    isset($membershipCapabilities)
+    && is_array(
+        $membershipCapabilities
+    )
+    ? $membershipCapabilities
+    : [];
 
 $profileReports =
     isset($profileReports)
@@ -44,18 +51,6 @@ $pendingEmail = isset($pendingEmail)
     && is_array($pendingEmail)
     ? $pendingEmail
     : null;
-
-$profileVisibility = isset($profileVisibility)
-    && in_array(
-        $profileVisibility,
-        [
-            'ALL_MEMBERS',
-            'PAID_MEMBERS_ONLY',
-        ],
-        true
-    )
-    ? $profileVisibility
-    : 'ALL_MEMBERS';
 
 $contactCaptcha = isset($contactCaptcha)
     ? trim((string) $contactCaptcha)
@@ -92,24 +87,44 @@ $menuItems = [
         'label' => 'Add/Edit Email',
         'icon' => 'ri-mail-settings-line',
     ],
-    // 'visibility' => [
-    //     'label' => 'Profile Visibility',
-    //     'icon' => 'ri-eye-line',
-    // ],
     'aadhaar-verification' => [
         'label' =>
         'Aadhaar Verification',
 
         'icon' =>
         'ri-fingerprint-line',
+
+        'locked' =>
+        !(
+            $membershipCapabilities['aadhaar']
+            ?? false
+        ),
     ],
     'video-introduction' => [
-        'label' => 'Video Introduction',
-        'icon' => 'ri-video-line',
+        'label' =>
+        'Video Introduction',
+
+        'icon' =>
+        'ri-video-line',
+
+        'locked' =>
+        !(
+            $membershipCapabilities['liveIntroduction']
+            ?? false
+        ),
     ],
     'report-profile' => [
-        'label' => 'Report Profile',
-        'icon' => 'ri-flag-line',
+        'label' =>
+        'Report Profile',
+
+        'icon' =>
+        'ri-flag-line',
+
+        /*
+     * Report is intentionally available to Free and Paid members.
+     */
+        'locked' =>
+        false,
     ],
     'plans' => [
         'label' => 'Membership Plans',
@@ -142,8 +157,8 @@ $this->section('content');
             </h1>
 
             <p class="text-muted mb-0">
-                Manage account security, contact information
-                and profile visibility.
+                Manage account security, verification,
+                membership and support settings.
             </p>
         </div>
 
@@ -184,6 +199,27 @@ $this->section('content');
                             </i>
 
                             <?= esc($item['label']) ?>
+                            <?php if (
+                                ($item['locked'] ?? false)
+                                === true
+                            ): ?>
+
+                                <span
+                                    class="ms-auto"
+                                    title="Paid membership required">
+
+                                    <i
+                                        class="ri-lock-2-line"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    <span class="visually-hidden">
+                                        Paid membership required
+                                    </span>
+
+                                </span>
+
+                            <?php endif; ?>
                         </a>
                     <?php endforeach; ?>
                 </div>
@@ -841,146 +877,6 @@ $this->section('content');
                                     </button>
                                 </form>
                             <?php endif; ?>
-
-                        <?php elseif (
-                            $activeSection === 'visibility'
-                        ): ?>
-
-                            <h2 class="fs-18 fw-semibold">
-                                Profile Visibility
-                            </h2>
-
-                            <p class="text-muted fs-13">
-                                Choose which registered members can open
-                                your complete profile.
-                            </p>
-
-                            <form
-                                method="post"
-                                action="<?= route_to(
-                                            'web.account.settings.visibility'
-                                        ) ?>"
-                                data-validate
-                                data-account-visibility-form
-                                data-submit-loader
-                                novalidate>
-
-                                <?= csrf_field() ?>
-
-                                <div class="form-check border rounded p-3 ps-5 mb-3">
-                                    <input
-                                        class="form-check-input
-                <?= isset(
-                                $errors['profile_visibility']
-                            )
-                                ? 'is-invalid'
-                                : '' ?>"
-                                        type="radio"
-                                        name="profile_visibility"
-                                        id="visibilityAll"
-                                        value="ALL_MEMBERS"
-                                        data-error-required="Please select who can view your profile."
-                                        <?= $profileVisibility === 'ALL_MEMBERS'
-                                            ? 'checked'
-                                            : '' ?>
-                                        required>
-
-                                    <label
-                                        class="form-check-label"
-                                        for="visibilityAll">
-
-                                        <strong class="d-block">
-                                            Visible to all registered members
-                                        </strong>
-
-                                        <span class="text-muted fs-13">
-                                            Any authenticated member can open your
-                                            complete profile.
-                                        </span>
-                                    </label>
-                                </div>
-
-                                <div class="form-check border rounded p-3 ps-5 mb-3">
-                                    <input
-                                        class="form-check-input
-                <?= isset(
-                                $errors['profile_visibility']
-                            )
-                                ? 'is-invalid'
-                                : '' ?>"
-                                        type="radio"
-                                        name="profile_visibility"
-                                        id="visibilityPaid"
-                                        value="PAID_MEMBERS_ONLY"
-                                        <?= $profileVisibility
-                                            === 'PAID_MEMBERS_ONLY'
-                                            ? 'checked'
-                                            : '' ?>
-                                        required>
-
-                                    <label
-                                        class="form-check-label"
-                                        for="visibilityPaid">
-
-                                        <strong class="d-block">
-                                            Visible only to paid members
-                                        </strong>
-
-                                        <span class="text-muted fs-13">
-                                            Free members will see a membership prompt
-                                            instead of your complete profile.
-                                        </span>
-                                    </label>
-                                </div>
-
-                                <div
-                                    class="invalid-feedback
-            mb-3
-            <?= isset(
-                                $errors['profile_visibility']
-                            )
-                                ? 'd-block'
-                                : '' ?>"
-                                    data-validation-error="profile_visibility">
-
-                                    <?= esc(
-                                        $errors['profile_visibility']
-                                            ?? ''
-                                    ) ?>
-                                </div>
-
-                                <div class="d-flex justify-content-end">
-                                    <button
-                                        type="submit"
-                                        class="btn
-                registration-form__submit
-                fs-14
-                fw-semibold w-25 text-uppercase"
-                                        data-submit-button>
-
-                                        <span data-submit-idle>
-                                            <i
-                                                class="ri-save-line me-1 fw-medium"
-                                                aria-hidden="true">
-                                            </i>
-
-                                            Save Visibility
-                                        </span>
-
-                                        <span
-                                            class="registration-submit__loading d-none"
-                                            data-submit-loading>
-
-                                            <span
-                                                class="spinner-border spinner-border-sm"
-                                                aria-hidden="true">
-                                            </span>
-
-                                            Saving...
-                                        </span>
-                                    </button>
-                                </div>
-                            </form>
 
                         <?php elseif (
                             $activeSection === 'report-profile'

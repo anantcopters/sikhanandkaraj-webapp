@@ -323,11 +323,24 @@ final class SearchController extends BaseController
                         'default',
 
                         /*
+                        * One Report CAPTCHA is generated for the complete result page.
+                        *
+                        * Do not generate one challenge per card because the CAPTCHA service owns
+                        * session challenge state.
+                        */
+                        'reportCaptcha' =>
+                        service(
+                            'memberProfileReportCaptchaService'
+                        )->generate(),
+
+                        /*
                      * Existing Profile View action JS handles the Interest
                      * loader on Search result cards as well.
                      */
                         'pageScripts' => [
                             'assets/js/pages/member-profile-actions.js',
+                            'assets/js/components/form-validator.js',
+                            'assets/js/components/submit-loader.js',
                         ],
                     ]
                 )
@@ -404,9 +417,14 @@ final class SearchController extends BaseController
     /**
      * Universal exact Profile-ID Search.
      *
-     * Existing member-discovery restrictions are deliberately retained.
+     * IMPORTANT:
+     *
+     * Profile-ID Search returns ProfileCard for both Free and Paid members.
+     *
+     * It must never bypass the Full Profile membership policy by redirecting
+     * directly to MemberProfileController.
      */
-    public function profile(): RedirectResponse
+    public function profile(): string|RedirectResponse
     {
         $userId =
             $this->authenticatedUserId();
@@ -452,7 +470,7 @@ final class SearchController extends BaseController
 
             $profile =
                 $service
-                ->profileByReference(
+                ->profileCardByReference(
                     $userId,
                     $reference
                 );
@@ -480,19 +498,34 @@ final class SearchController extends BaseController
                     );
             }
 
-            return redirect()
-                ->to(
-                    route_to(
-                        'web.members.view',
-                        (string) (
-                            $profile['profile_ref_number']
-                            ?? ''
-                        )
-                    )
-                );
-        } catch (
-            Throwable $exception
-        ) {
+            return view(
+                'Pages/Search/ProfileResult',
+                [
+                    'pageTitle' =>
+                    'Profile Search',
+
+                    'profile' =>
+                    $profile,
+
+                    /*
+                 * Report is available to Free and Paid members.
+                 */
+                    'reportCaptcha' =>
+                    service(
+                        'memberProfileReportCaptchaService'
+                    )->generate(),
+
+                    'formAlert' =>
+                    $this->readFormAlert(),
+
+                    'pageScripts' => [
+                        'assets/js/components/form-validator.js',
+                        'assets/js/components/submit-loader.js',
+                        'assets/js/pages/member-profile-actions.js',
+                    ],
+                ]
+            );
+        } catch (Throwable $exception) {
             service(
                 'applicationErrorLogger'
             )->exception(
@@ -529,7 +562,7 @@ final class SearchController extends BaseController
                         'Profile Search unavailable',
 
                         'message' =>
-                        'The profile could not be opened. '
+                        'The profile could not be loaded. '
                             . 'Please try again.',
                     ]
                 );

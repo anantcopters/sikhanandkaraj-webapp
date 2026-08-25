@@ -475,6 +475,47 @@ final class MemberSearchService
     }
 
     /**
+     * Resolve an exact Profile-ID Search into the normal ProfileCard contract.
+     *
+     * This deliberately does NOT open Full Profile.
+     *
+     * Product rule:
+     *
+     * - Free member -> ProfileCard result;
+     * - Paid member -> ProfileCard result;
+     * - View Profile button then applies membership authorization normally.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function profileCardByReference(
+        int $viewerUserId,
+        string $profileReference
+    ): ?array {
+        $candidate =
+            $this->profileByReference(
+                $viewerUserId,
+                $profileReference
+            );
+
+        if (!is_array($candidate)) {
+            return null;
+        }
+
+        $profiles =
+            $this->presentationProfiles(
+                $viewerUserId,
+                [
+                    $candidate,
+                ]
+            );
+
+        return isset($profiles[0])
+            && is_array($profiles[0])
+            ? $profiles[0]
+            : null;
+    }
+
+    /**
      * Normalize a predefined profile-listing preset.
      *
      * Existing activity Quick Links and the Matches menu deliberately share the
@@ -1450,8 +1491,16 @@ final class MemberSearchService
      * Convert eligible Search candidate rows into the common member presentation
      * contract consumed by Search/Match profile cards.
      *
-     * Search-specific Interest state and activity remain Search context rather
-     * than becoming part of the common member-summary service.
+     * Search-specific Interest state, membership capabilities and activity remain
+     * Search context rather than becoming part of the common member-summary
+     * service.
+     *
+     * IMPORTANT:
+     *
+     * Membership capabilities belong to the VIEWER rather than each candidate.
+     * Resolve them once before iterating through the result collection.
+     *
+     * This avoids resolving the same viewer membership once for every card.
      *
      * @param list<array<string, mixed>> $rows
      *
@@ -1462,6 +1511,36 @@ final class MemberSearchService
         array $rows
     ): array {
         $profiles = [];
+
+        /*
+     * Resolve viewer-level capabilities once for this result collection.
+     *
+     * Report and Block currently return TRUE for both Free and Paid members,
+     * while Full Profile and Shortlist require a paid membership.
+     */
+        $canViewFullProfile =
+            $this->membershipEntitlementService
+            ->canViewFullProfile(
+                $viewerUserId
+            );
+
+        $canShortlist =
+            $this->membershipEntitlementService
+            ->canShortlist(
+                $viewerUserId
+            );
+
+        $canReport =
+            $this->membershipEntitlementService
+            ->canReport(
+                $viewerUserId
+            );
+
+        $canBlock =
+            $this->membershipEntitlementService
+            ->canBlock(
+                $viewerUserId
+            );
 
         foreach (
             $rows
@@ -1488,8 +1567,7 @@ final class MemberSearchService
          * Member Profile View.
          */
             $interestRelationship =
-                $this
-                ->interactionService
+                $this->interactionService
                 ->interestRelationshipFor(
                     $viewerUserId,
                     $memberId
@@ -1502,8 +1580,7 @@ final class MemberSearchService
                 ) === true;
 
             $profile =
-                $this
-                ->profilePresentationService
+                $this->profilePresentationService
                 ->summary(
                     viewerUserId: $viewerUserId,
 
@@ -1528,7 +1605,9 @@ final class MemberSearchService
             }
 
             /*
-         * Search-specific actions remain owned by Search.
+         * Search-specific Interest action.
+         *
+         * Interest remains available to both Free and Paid members.
          */
             $profile['interestUrl'] =
                 route_to(
@@ -1538,6 +1617,67 @@ final class MemberSearchService
 
             $profile['interestRelationship'] =
                 $interestRelationship;
+
+            /*
+         * Viewer membership capability state.
+         *
+         * These values control card presentation only.
+         *
+         * Server-side services independently repeat authorization and remain
+         * the actual security boundary.
+         */
+            $profile['canViewFullProfile'] =
+                $canViewFullProfile;
+
+            $profile['canShortlist'] =
+                $canShortlist;
+
+            $profile['canReport'] =
+                $canReport;
+
+            $profile['canBlock'] =
+                $canBlock;
+
+            /*
+         * Existing shortlist state is different from permission to CREATE a
+         * shortlist.
+         *
+         * A member whose paid membership expires may have:
+         *
+         *     isShortlisted = true
+         *     canShortlist  = false
+         *
+         * Such a member must still be allowed to remove the old shortlist.
+         */
+            $profile['isShortlisted'] =
+                $this->interactionService
+                ->isShortlisted(
+                    $viewerUserId,
+                    $memberId
+                );
+
+            /*
+         * Card actions always use public profile references.
+         *
+         * Numeric member database IDs are never sent to the browser.
+         */
+            $profile['shortlistUrl'] =
+                route_to(
+                    'web.members.shortlist',
+                    $reference
+                );
+
+            $profile['reportUrl'] =
+                route_to(
+                    'web.members.report',
+                    $reference
+                );
+
+            $profile['blockUrl'] =
+                route_to(
+                    'web.members.block',
+                    $reference
+                );
 
             /*
          * Never expose the raw last-login timestamp.

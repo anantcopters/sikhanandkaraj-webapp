@@ -72,7 +72,19 @@ final class InterestController extends BaseController
                         'interestActionNotice'
                     ),
 
+                    /*
+                    * ProfileInterestCard exposes Report to Free and Paid members.
+                    *
+                    * One CAPTCHA challenge is shared by the current listing page.
+                    */
+                    'reportCaptcha' =>
+                    service(
+                        'memberProfileReportCaptchaService'
+                    )->generate(),
+
                     'pageScripts' => [
+                        'assets/js/components/form-validator.js',
+                        'assets/js/components/submit-loader.js',
                         'assets/js/pages/member-interests.js',
                     ],
                 ]

@@ -2037,16 +2037,23 @@ final class Services extends BaseService
             ),
 
             /*
-         * Use the same DB connection so Interest response
-         * and notification remain in one transaction.
-         */
+            * Use the same DB connection so Interest response
+            * and notification remain in one transaction.
+            */
             new MemberNotificationService(
                 new MemberNotificationModel(
                     $database
                 )
             ),
 
-            $database
+            $database,
+            static::membershipEntitlementService(
+                false
+            ),
+
+            static::memberInteractionService(
+                false
+            )
         );
     }
 

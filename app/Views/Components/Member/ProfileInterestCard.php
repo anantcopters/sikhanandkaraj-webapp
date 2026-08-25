@@ -197,6 +197,47 @@ $statusLabel =
         default =>
         'Pending',
     };
+
+$canViewFullProfile =
+    ($profile['canViewFullProfile'] ?? false)
+    === true;
+
+$canShortlist =
+    ($profile['canShortlist'] ?? false)
+    === true;
+
+$canReport =
+    ($profile['canReport'] ?? false)
+    === true;
+
+$canBlock =
+    ($profile['canBlock'] ?? false)
+    === true;
+
+$isShortlisted =
+    ($profile['isShortlisted'] ?? false)
+    === true;
+
+$shortlistUrl = trim(
+    (string) (
+        $profile['shortlistUrl']
+        ?? ''
+    )
+);
+
+$reportUrl = trim(
+    (string) (
+        $profile['reportUrl']
+        ?? ''
+    )
+);
+
+$blockUrl = trim(
+    (string) (
+        $profile['blockUrl']
+        ?? ''
+    )
+);
 ?>
 
 <article
@@ -552,26 +593,56 @@ $statusLabel =
 
                 <?php else: ?>
 
-                    <a
-                        href="<?= esc(
-                                    $profileUrl,
-                                    'attr'
-                                ) ?>"
-                        class="btn btn-sm
-                            btn-outline-primary
-                            d-inline-flex
-                            align-items-center
-                            justify-content-center
-                            gap-2">
+                    <?php if (
+                        $canViewFullProfile
+                        && $profileUrl !== ''
+                    ): ?>
 
-                        <i
-                            class="ri-eye-line"
-                            aria-hidden="true">
-                        </i>
+                        <a
+                            href="<?= esc(
+                                        $profileUrl,
+                                        'attr'
+                                    ) ?>"
+                            class="btn btn-sm
+            btn-outline-primary
+            d-inline-flex
+            align-items-center
+            justify-content-center
+            gap-2">
 
-                        View Profile
+                            <i
+                                class="ri-eye-line"
+                                aria-hidden="true">
+                            </i>
 
-                    </a>
+                            View Profile
+
+                        </a>
+
+                    <?php else: ?>
+
+                        <a
+                            href="<?= route_to(
+                                        'web.account.settings.section',
+                                        'plans'
+                                    ) ?>"
+                            class="btn btn-sm
+            btn-outline-primary
+            d-inline-flex
+            align-items-center
+            justify-content-center
+            gap-2">
+
+                            <i
+                                class="ri-lock-2-line"
+                                aria-hidden="true">
+                            </i>
+
+                            View Profile — Upgrade
+
+                        </a>
+
+                    <?php endif; ?>
 
                 <?php endif; ?>
 
