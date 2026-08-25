@@ -61,7 +61,8 @@ final class MemberProfilePresentationService
     public function summary(
         int $viewerUserId,
         array $member,
-        bool $hasInterestRelationship
+        bool $hasInterestRelationship,
+        ?string $resolvedImage = null
     ): ?array {
         $memberId = max(
             0,
@@ -91,30 +92,34 @@ final class MemberProfilePresentationService
         }
 
         /*
-         * MemberPhotoUrlService remains the single authority for:
+         * Collection consumers may preload primary-photo state in one database
+         * query and supply the already-authorized signed URL here.
          *
-         * - approval;
-         * - photo visibility;
-         * - Interest-based photo visibility;
-         * - signed media URLs.
+         * null means:
+         *     no batch resolution was supplied -> use existing single-profile flow.
+         *
+         * empty string means:
+         *     batch resolution was supplied but the actual photo is unavailable
+         *     or not visible -> use the normal gender placeholder.
+         *
+         * This distinction lets existing callers remain completely unchanged.
          */
         $image =
-            $this->photoUrlService
-            ->getApprovedPrimaryUrlForViewer(
-                memberId: $memberId,
+            $resolvedImage;
 
-                viewerUserId: $viewerUserId,
-
-                hasInterestRelationship: $hasInterestRelationship,
-
-                variant: 'thumbnail'
-            );
+        if ($image === null) {
+            $image =
+                $this->photoUrlService
+                ->getApprovedPrimaryUrlForViewer(
+                    memberId: $memberId,
+                    viewerUserId: $viewerUserId,
+                    hasInterestRelationship: $hasInterestRelationship,
+                    variant: 'thumbnail'
+                );
+        }
 
         /*
          * Do not reveal why an actual photograph cannot be shown.
-         *
-         * The same gender-based placeholder is used whether the member
-         * has no photo, an unapproved photo or a restricted photo.
          */
         if ($image === '') {
             helper(

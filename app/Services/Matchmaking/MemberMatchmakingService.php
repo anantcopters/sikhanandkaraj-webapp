@@ -605,6 +605,120 @@ final class MemberMatchmakingService
     }
 
     /**
+     * Return candidate IDs for the existing New Matches collection.
+     *
+     * @return list<int>
+     */
+    public function newMatchCandidateIds(
+        int $userId
+    ): array {
+        return $this->matchedCandidateIds(
+            $userId,
+            true
+        );
+    }
+
+    /**
+     * Resolve Dashboard-qualified Match IDs without building presentation cards.
+     *
+     * This avoids:
+     *
+     * - photo URL generation;
+     * - Interest presentation;
+     * - Shortlist presentation;
+     * - profile-reference -> numeric-ID re-querying.
+     *
+     * @return list<int>
+     */
+    private function matchedCandidateIds(
+        int $userId,
+        bool $newOnly
+    ): array {
+        $viewer =
+            $this->userModel
+            ->find(
+                $userId
+            );
+
+        if (!is_array($viewer)) {
+            return [];
+        }
+
+        $viewerGender = trim(
+            (string) (
+                $viewer['gender']
+                ?? ''
+            )
+        );
+
+        $candidateRows =
+            $this->candidateModel
+            ->eligibleCandidates(
+                $userId,
+                $viewerGender
+            );
+
+        $scoredCandidates =
+            $this->matchService
+            ->scoreCandidates(
+                $userId,
+                $candidateRows
+            );
+
+        $minimumPercentage =
+            $this->configuration
+            ->minimumMatchPercentage;
+
+        $matchedCandidates =
+            array_values(
+                array_filter(
+                    $scoredCandidates,
+                    fn(array $candidate): bool =>
+                    $this->qualifiesAsMatch(
+                        $candidate,
+                        $minimumPercentage
+                    )
+                )
+            );
+
+        if ($newOnly) {
+            $matchedCandidates =
+                array_values(
+                    array_filter(
+                        $matchedCandidates,
+                        fn(array $candidate): bool =>
+                        $this->isNewMatch(
+                            $candidate['created_at']
+                                ?? null
+                        )
+                    )
+                );
+        }
+
+        /*
+         * Ranking isn't needed merely to build a candidate-ID restriction.
+         *
+         * Search will perform its normal deterministic ranking afterwards.
+         */
+        return array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        static fn(array $candidate): int =>
+                        (int) (
+                            $candidate['id']
+                            ?? 0
+                        ),
+                        $matchedCandidates
+                    ),
+                    static fn(int $candidateId): bool =>
+                    $candidateId > 0
+                )
+            )
+        );
+    }
+
+    /**
      * Determine whether one scored candidate qualifies as a Match.
      *
      * Dashboard All Matches and Search All Matches must use this same rule so

@@ -145,6 +145,93 @@ final class MemberInterestModel extends Model
             : null;
     }
 
+    /**
+     * Return all Interest rows between one viewer and a candidate collection.
+     *
+     * Membership-23:
+     *
+     * Search/Dashboard presentation must not execute two Interest queries for
+     * every displayed profile.
+     *
+     * Both directions are loaded in one query:
+     *
+     * viewer -> candidate
+     * candidate -> viewer
+     *
+     * The service remains responsible for interpreting the rows into the
+     * existing Interest relationship states.
+     *
+     * @param list<int> $targetUserIds
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function findRelationshipsForViewer(
+        int $viewerUserId,
+        array $targetUserIds
+    ): array {
+        $targetUserIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $targetUserIds
+                    ),
+                    static fn(int $userId): bool =>
+                    $userId > 0
+                        && $userId !== $viewerUserId
+                )
+            )
+        );
+
+        if (
+            $viewerUserId <= 0
+            || $targetUserIds === []
+        ) {
+            return [];
+        }
+
+        return $this
+            ->select([
+                'id',
+                'from_user_id',
+                'to_user_id',
+                'status',
+                'responded_at',
+                'created_at',
+            ])
+            ->groupStart()
+            ->groupStart()
+            ->where(
+                'from_user_id',
+                $viewerUserId
+            )
+            ->whereIn(
+                'to_user_id',
+                $targetUserIds
+            )
+            ->groupEnd()
+            ->orGroupStart()
+            ->whereIn(
+                'from_user_id',
+                $targetUserIds
+            )
+            ->where(
+                'to_user_id',
+                $viewerUserId
+            )
+            ->groupEnd()
+            ->groupEnd()
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->orderBy(
+                'id',
+                'DESC'
+            )
+            ->findAll();
+    }
+
     public function acceptedBetween(
         int $firstUserId,
         int $secondUserId

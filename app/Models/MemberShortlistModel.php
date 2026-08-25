@@ -65,6 +65,71 @@ final class MemberShortlistModel extends Model
     }
 
     /**
+     * Return the subset of supplied members currently shortlisted by the viewer.
+     *
+     * Membership-23:
+     *
+     * Card collections use this batch method instead of calling
+     * hasShortlisted() once per candidate.
+     *
+     * @param list<int> $candidateUserIds
+     *
+     * @return list<int>
+     */
+    public function shortlistedIdsFromCandidates(
+        int $userId,
+        array $candidateUserIds
+    ): array {
+        $candidateUserIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $candidateUserIds
+                    ),
+                    static fn(int $candidateUserId): bool =>
+                    $candidateUserId > 0
+                        && $candidateUserId !== $userId
+                )
+            )
+        );
+
+        if (
+            $userId <= 0
+            || $candidateUserIds === []
+        ) {
+            return [];
+        }
+
+        $rows = $this
+            ->select(
+                'shortlisted_user_id'
+            )
+            ->where(
+                'user_id',
+                $userId
+            )
+            ->whereIn(
+                'shortlisted_user_id',
+                $candidateUserIds
+            )
+            ->findAll();
+
+        return array_values(
+            array_unique(
+                array_map(
+                    static fn(array $row): int =>
+                    (int) (
+                        $row['shortlisted_user_id']
+                        ?? 0
+                    ),
+                    $rows
+                )
+            )
+        );
+    }
+
+    /**
      * Remove one directional shortlist relationship.
      */
     public function removeShortlist(

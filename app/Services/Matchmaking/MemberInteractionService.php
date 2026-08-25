@@ -675,115 +675,313 @@ final class MemberInteractionService
             )
             : null;
 
-        /*
-     * ACCEPTED is the strongest final positive state.
+        return $this->relationshipFromStatuses(
+            $outgoingStatus,
+            $incomingStatus
+        );
+    }
+
+    /**
+     * Resolve Interest relationship state for a candidate collection.
      *
-     * This also safely handles old reciprocal rows that
-     * were migrated from MUTUAL to ACCEPTED.
+     * Membership-23 collection optimization.
+     *
+     * Previously Search executed:
+     *
+     *     2 Interest queries x number of cards
+     *
+     * This method loads all relevant Interest rows once and then reuses the
+     * exact existing relationship-state rules for every candidate.
+     *
+     * @param list<int> $targetUserIds
+     *
+     * @return array<int, array{
+     *     state:string,
+     *     hasRelationship:bool,
+     *     hasOutgoing:bool,
+     *     hasIncoming:bool,
+     *     canShowInterest:bool,
+     *     canRespond:bool,
+     *     outgoingStatus:?string,
+     *     incomingStatus:?string
+     * }>
      */
-        if (
-            $outgoingStatus
-            === MemberInterestModel
-            ::STATUS_ACCEPTED
-        ) {
-            return $this
-                ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_ACCEPTED_SENT,
+    public function interestRelationshipsFor(
+        int $viewerUserId,
+        array $targetUserIds
+    ): array {
+        $targetUserIds =
+            $this->normalizedTargetIds(
+                $viewerUserId,
+                $targetUserIds
+            );
 
-                    outgoingStatus: $outgoingStatus,
-
-                    incomingStatus: $incomingStatus
-                );
+        if ($targetUserIds === []) {
+            return [];
         }
 
-        if (
-            $incomingStatus
-            === MemberInterestModel
-            ::STATUS_ACCEPTED
-        ) {
-            return $this
-                ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_ACCEPTED_RECEIVED,
-
-                    outgoingStatus: $outgoingStatus,
-
-                    incomingStatus: $incomingStatus
-                );
-        }
+        $rows =
+            $this->interestModel
+            ->findRelationshipsForViewer(
+                $viewerUserId,
+                $targetUserIds
+            );
 
         /*
-     * Incoming Pending takes precedence over historical
-     * Declined state because it represents a current
-     * actionable request.
-     */
-        if (
-            $incomingStatus
-            === MemberInterestModel
-            ::STATUS_PENDING
-        ) {
-            return $this
-                ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_PENDING_RECEIVED,
+         * Index directional rows by the target member.
+         *
+         * The current schema/domain normally permits one relationship row
+         * between a member pair. Keeping the newest row from each direction
+         * also gives deterministic behaviour for historical data.
+         */
+        $outgoing = [];
+        $incoming = [];
 
-                    outgoingStatus: $outgoingStatus,
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
 
-                    incomingStatus: $incomingStatus
-                );
-        }
-
-        if (
-            $outgoingStatus
-            === MemberInterestModel
-            ::STATUS_PENDING
-        ) {
-            return $this
-                ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_PENDING_SENT,
-
-                    outgoingStatus: $outgoingStatus,
-
-                    incomingStatus: $incomingStatus
-                );
-        }
-
-        if (
-            $outgoingStatus
-            === MemberInterestModel
-            ::STATUS_DECLINED
-        ) {
-            return $this
-                ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_DECLINED_SENT,
-
-                    outgoingStatus: $outgoingStatus,
-
-                    incomingStatus: $incomingStatus
-                );
-        }
-
-        if (
-            $incomingStatus
-            === MemberInterestModel
-            ::STATUS_DECLINED
-        ) {
-            return $this
-                ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_DECLINED_RECEIVED,
-
-                    outgoingStatus: $outgoingStatus,
-
-                    incomingStatus: $incomingStatus
-                );
-        }
-
-        return $this
-            ->interestRelationshipResult(
-                state: self::INTEREST_STATE_NONE,
-
-                outgoingStatus: null,
-
-                incomingStatus: null
+            $fromUserId = max(
+                0,
+                (int) (
+                    $row['from_user_id']
+                    ?? 0
+                )
             );
+
+            $toUserId = max(
+                0,
+                (int) (
+                    $row['to_user_id']
+                    ?? 0
+                )
+            );
+
+            if (
+                $fromUserId === $viewerUserId
+                && in_array(
+                    $toUserId,
+                    $targetUserIds,
+                    true
+                )
+                && !isset(
+                    $outgoing[$toUserId]
+                )
+            ) {
+                $outgoing[$toUserId] =
+                    $this->normaliseInterestStatus(
+                        $row['status']
+                            ?? null
+                    );
+
+                continue;
+            }
+
+            if (
+                $toUserId === $viewerUserId
+                && in_array(
+                    $fromUserId,
+                    $targetUserIds,
+                    true
+                )
+                && !isset(
+                    $incoming[$fromUserId]
+                )
+            ) {
+                $incoming[$fromUserId] =
+                    $this->normaliseInterestStatus(
+                        $row['status']
+                            ?? null
+                    );
+            }
+        }
+
+        $relationships = [];
+
+        foreach ($targetUserIds as $targetUserId) {
+            $relationships[$targetUserId] =
+                $this->relationshipFromStatuses(
+                    $outgoing[$targetUserId]
+                        ?? null,
+                    $incoming[$targetUserId]
+                        ?? null
+                );
+        }
+
+        return $relationships;
+    }
+
+    /**
+     * Return shortlist state for a candidate collection.
+     *
+     * @param list<int> $targetUserIds
+     *
+     * @return array<int, bool>
+     */
+    public function shortlistStatesFor(
+        int $viewerUserId,
+        array $targetUserIds
+    ): array {
+        $targetUserIds =
+            $this->normalizedTargetIds(
+                $viewerUserId,
+                $targetUserIds
+            );
+
+        if ($targetUserIds === []) {
+            return [];
+        }
+
+        $shortlistedIds =
+            $this->shortlistModel
+            ->shortlistedIdsFromCandidates(
+                $viewerUserId,
+                $targetUserIds
+            );
+
+        $shortlistedLookup =
+            array_fill_keys(
+                $shortlistedIds,
+                true
+            );
+
+        $states = [];
+
+        foreach ($targetUserIds as $targetUserId) {
+            $states[$targetUserId] =
+                isset(
+                    $shortlistedLookup[$targetUserId]
+                );
+        }
+
+        return $states;
+    }
+
+    /**
+     * Build the existing Interest relationship contract from already-loaded
+     * directional statuses.
+     *
+     * This is the common state authority used by both single-profile and
+     * collection reads.
+     *
+     * @return array{
+     *     state:string,
+     *     hasRelationship:bool,
+     *     hasOutgoing:bool,
+     *     hasIncoming:bool,
+     *     canShowInterest:bool,
+     *     canRespond:bool,
+     *     outgoingStatus:?string,
+     *     incomingStatus:?string
+     * }
+     */
+    private function relationshipFromStatuses(
+        ?string $outgoingStatus,
+        ?string $incomingStatus
+    ): array {
+        if (
+            $outgoingStatus
+            === MemberInterestModel::STATUS_ACCEPTED
+        ) {
+            return $this->interestRelationshipResult(
+                state: self::INTEREST_STATE_ACCEPTED_SENT,
+                outgoingStatus: $outgoingStatus,
+                incomingStatus: $incomingStatus
+            );
+        }
+
+        if (
+            $incomingStatus
+            === MemberInterestModel::STATUS_ACCEPTED
+        ) {
+            return $this->interestRelationshipResult(
+                state: self::INTEREST_STATE_ACCEPTED_RECEIVED,
+                outgoingStatus: $outgoingStatus,
+                incomingStatus: $incomingStatus
+            );
+        }
+
+        if (
+            $incomingStatus
+            === MemberInterestModel::STATUS_PENDING
+        ) {
+            return $this->interestRelationshipResult(
+                state: self::INTEREST_STATE_PENDING_RECEIVED,
+                outgoingStatus: $outgoingStatus,
+                incomingStatus: $incomingStatus
+            );
+        }
+
+        if (
+            $outgoingStatus
+            === MemberInterestModel::STATUS_PENDING
+        ) {
+            return $this->interestRelationshipResult(
+                state: self::INTEREST_STATE_PENDING_SENT,
+                outgoingStatus: $outgoingStatus,
+                incomingStatus: $incomingStatus
+            );
+        }
+
+        if (
+            $outgoingStatus
+            === MemberInterestModel::STATUS_DECLINED
+        ) {
+            return $this->interestRelationshipResult(
+                state: self::INTEREST_STATE_DECLINED_SENT,
+                outgoingStatus: $outgoingStatus,
+                incomingStatus: $incomingStatus
+            );
+        }
+
+        if (
+            $incomingStatus
+            === MemberInterestModel::STATUS_DECLINED
+        ) {
+            return $this->interestRelationshipResult(
+                state: self::INTEREST_STATE_DECLINED_RECEIVED,
+                outgoingStatus: $outgoingStatus,
+                incomingStatus: $incomingStatus
+            );
+        }
+
+        return $this->interestRelationshipResult(
+            state: self::INTEREST_STATE_NONE,
+            outgoingStatus: null,
+            incomingStatus: null
+        );
+    }
+
+    /**
+     * Normalize a candidate-ID collection used by read-only interaction
+     * projections.
+     *
+     * @param list<int> $targetUserIds
+     *
+     * @return list<int>
+     */
+    private function normalizedTargetIds(
+        int $viewerUserId,
+        array $targetUserIds
+    ): array {
+        if ($viewerUserId <= 0) {
+            return [];
+        }
+
+        return array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $targetUserIds
+                    ),
+                    static fn(int $targetUserId): bool =>
+                    $targetUserId > 0
+                        && $targetUserId !== $viewerUserId
+                )
+            )
+        );
     }
 
     /**

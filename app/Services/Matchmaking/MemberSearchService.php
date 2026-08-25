@@ -10,6 +10,7 @@ use App\Services\Profile\LifestyleService;
 use App\Services\Profile\ProfileMasterDataService;
 use App\Validation\RegisterFreeValidation;
 use App\Services\Membership\MembershipEntitlementService;
+use App\Services\Profile\MemberPhotoUrlService;
 use DomainException;
 
 final class MemberSearchService
@@ -64,7 +65,10 @@ final class MemberSearchService
         * directly.
         */
         private readonly MembershipEntitlementService
-        $membershipEntitlementService
+        $membershipEntitlementService,
+
+        private readonly MemberPhotoUrlService
+        $photoUrlService,
     ) {}
 
     /**
@@ -805,13 +809,13 @@ final class MemberSearchService
     /**
      * Return member IDs for recently joined Partner Preference matches.
      *
-     * Existing MemberMatchmakingService remains the authority for:
+     * Membership-23:
      *
-     * - Partner Preference scoring;
-     * - compulsory preference handling;
-     * - minimum match percentage;
-     * - configured New Match age;
-     * - candidate eligibility.
+     * Do not build complete Dashboard presentation cards and then resolve each
+     * profile reference back to users.id.
+     *
+     * MemberMatchmakingService remains the matching authority and returns the
+     * qualified numeric candidate IDs directly.
      *
      * @return list<int>
      */
@@ -828,83 +832,10 @@ final class MemberSearchService
                 'memberMatchmakingService'
             );
 
-        $collections =
-            $matchmakingService
-            ->dashboardCollections(
+        return $matchmakingService
+            ->newMatchCandidateIds(
                 $viewerUserId
             );
-
-        $newProfiles =
-            isset(
-                $collections['newMatches']
-            )
-            && is_array(
-                $collections['newMatches']
-            )
-            ? $collections['newMatches']
-            : [];
-
-        $memberIds = [];
-
-        foreach (
-            $newProfiles
-            as $profile
-        ) {
-            if (!is_array($profile)) {
-                continue;
-            }
-
-            /*
-         * Existing presentation data intentionally does not expose numeric
-         * member IDs, so resolve the profile reference through UserModel.
-         */
-            $reference =
-                trim(
-                    (string) (
-                        $profile['referenceId']
-                        ?? ''
-                    )
-                );
-
-            if ($reference === '') {
-                continue;
-            }
-
-            $user =
-                $this->userModel
-                ->select(
-                    'id'
-                )
-                ->where(
-                    'profile_ref_number',
-                    $reference
-                )
-                ->first();
-
-            if (!is_array($user)) {
-                continue;
-            }
-
-            $memberId =
-                max(
-                    0,
-                    (int) (
-                        $user['id']
-                        ?? 0
-                    )
-                );
-
-            if ($memberId > 0) {
-                $memberIds[] =
-                    $memberId;
-            }
-        }
-
-        return array_values(
-            array_unique(
-                $memberIds
-            )
-        );
     }
 
     /**
@@ -1616,16 +1547,12 @@ final class MemberSearchService
      * Convert eligible Search candidate rows into the common member presentation
      * contract consumed by Search/Match profile cards.
      *
-     * Search-specific Interest state, membership capabilities and activity remain
-     * Search context rather than becoming part of the common member-summary
-     * service.
+     * Membership-23:
      *
-     * IMPORTANT:
+     * Viewer capability state, Interest relationships, Shortlist state and
+     * approved-primary-photo database state are resolved once per collection.
      *
-     * Membership capabilities belong to the VIEWER rather than each candidate.
-     * Resolve them once before iterating through the result collection.
-     *
-     * This avoids resolving the same viewer membership once for every card.
+     * The card loop performs no candidate-specific database reads.
      *
      * @param list<array<string, mixed>> $rows
      *
@@ -1638,11 +1565,8 @@ final class MemberSearchService
         $profiles = [];
 
         /*
-     * Resolve viewer-level capabilities once for this result collection.
-     *
-     * Report and Block currently return TRUE for both Free and Paid members,
-     * while Full Profile and Shortlist require a paid membership.
-     */
+         * Resolve viewer-level membership capabilities once.
+         */
         $canViewFullProfile =
             $this->membershipEntitlementService
             ->canViewFullProfile(
@@ -1667,6 +1591,89 @@ final class MemberSearchService
                 $viewerUserId
             );
 
+        /*
+         * Normalize candidate IDs once.
+         */
+        $memberIds = [];
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $memberId = max(
+                0,
+                (int) (
+                    $row['id']
+                    ?? 0
+                )
+            );
+
+            if ($memberId > 0) {
+                $memberIds[] =
+                    $memberId;
+            }
+        }
+
+        $memberIds =
+            array_values(
+                array_unique(
+                    $memberIds
+                )
+            );
+
+        /*
+         * One Interest query for the complete displayed collection.
+         */
+        $interestRelationships =
+            $this->interactionService
+            ->interestRelationshipsFor(
+                $viewerUserId,
+                $memberIds
+            );
+
+        /*
+         * One Shortlist query for the complete displayed collection.
+         */
+        $shortlistStates =
+            $this->interactionService
+            ->shortlistStatesFor(
+                $viewerUserId,
+                $memberIds
+            );
+
+        /*
+         * Convert relationship contracts into the boolean map required by
+         * Photo Visibility.
+         */
+        $photoInterestMap = [];
+
+        foreach (
+            $memberIds
+            as $memberId
+        ) {
+            $photoInterestMap[$memberId] =
+                (
+                    $interestRelationships[$memberId]['hasRelationship']
+                    ?? false
+                ) === true;
+        }
+
+        /*
+         * Reuse the existing photo service.
+         *
+         * One photo DB query for the collection; signed CloudFront URLs are
+         * generated only for photographs the viewer may actually see.
+         */
+        /** @var \App\Services\Profile\MemberPhotoUrlService $photoUrlService */
+        $thumbnailUrls =
+            $this->photoUrlService
+            ->getApprovedPrimaryThumbnailUrlsForViewer(
+                memberIds: $memberIds,
+                viewerUserId: $viewerUserId,
+                interestRelationshipMap: $photoInterestMap
+            );
+
         foreach (
             $rows
             as $row
@@ -1688,15 +1695,36 @@ final class MemberSearchService
             }
 
             /*
-         * Reuse the exact Interest relationship resolver used by
-         * Member Profile View.
-         */
+             * No DB query here.
+             */
             $interestRelationship =
-                $this->interactionService
-                ->interestRelationshipFor(
-                    $viewerUserId,
-                    $memberId
-                );
+                $interestRelationships[$memberId]
+                ?? [
+                    'state' =>
+                    MemberInteractionService
+                    ::INTEREST_STATE_NONE,
+
+                    'hasRelationship' =>
+                    false,
+
+                    'hasOutgoing' =>
+                    false,
+
+                    'hasIncoming' =>
+                    false,
+
+                    'canShowInterest' =>
+                    true,
+
+                    'canRespond' =>
+                    false,
+
+                    'outgoingStatus' =>
+                    null,
+
+                    'incomingStatus' =>
+                    null,
+                ];
 
             $hasInterestRelationship =
                 (
@@ -1711,7 +1739,16 @@ final class MemberSearchService
 
                     member: $row,
 
-                    hasInterestRelationship: $hasInterestRelationship
+                    hasInterestRelationship: $hasInterestRelationship,
+
+                    /*
+                     * Empty means placeholder.
+                     *
+                     * We deliberately pass a value even when no photo is visible
+                     * so summary() does not execute its single-member fallback query.
+                     */
+                    resolvedImage: $thumbnailUrls[$memberId]
+                        ?? ''
                 );
 
             if ($profile === null) {
@@ -1729,11 +1766,6 @@ final class MemberSearchService
                 continue;
             }
 
-            /*
-         * Search-specific Interest action.
-         *
-         * Interest remains available to both Free and Paid members.
-         */
             $profile['interestUrl'] =
                 route_to(
                     'web.members.interest',
@@ -1744,13 +1776,10 @@ final class MemberSearchService
                 $interestRelationship;
 
             /*
-         * Viewer membership capability state.
-         *
-         * These values control card presentation only.
-         *
-         * Server-side services independently repeat authorization and remain
-         * the actual security boundary.
-         */
+             * Presentation capability state only.
+             *
+             * Domain services continue independently enforcing authorization.
+             */
             $profile['canViewFullProfile'] =
                 $canViewFullProfile;
 
@@ -1764,28 +1793,14 @@ final class MemberSearchService
                 $canBlock;
 
             /*
-         * Existing shortlist state is different from permission to CREATE a
-         * shortlist.
-         *
-         * A member whose paid membership expires may have:
-         *
-         *     isShortlisted = true
-         *     canShortlist  = false
-         *
-         * Such a member must still be allowed to remove the old shortlist.
-         */
+             * No per-card Shortlist query.
+             */
             $profile['isShortlisted'] =
-                $this->interactionService
-                ->isShortlisted(
-                    $viewerUserId,
-                    $memberId
-                );
+                (
+                    $shortlistStates[$memberId]
+                    ?? false
+                ) === true;
 
-            /*
-         * Card actions always use public profile references.
-         *
-         * Numeric member database IDs are never sent to the browser.
-         */
             $profile['shortlistUrl'] =
                 route_to(
                     'web.members.shortlist',
@@ -1805,8 +1820,8 @@ final class MemberSearchService
                 );
 
             /*
-         * Never expose the raw last-login timestamp.
-         */
+             * Never expose raw last-login timestamp.
+             */
             $profile['activity'] =
                 $this->activityLabel(
                     $row['last_login_at']

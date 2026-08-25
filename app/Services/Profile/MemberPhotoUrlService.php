@@ -724,6 +724,130 @@ final class MemberPhotoUrlService
     }
 
     /**
+     * Return viewer-authorized thumbnail URLs for a member collection.
+     *
+     * Membership-23:
+     *
+     * Photo database state is loaded once for the complete card collection.
+     * CloudFront signing still occurs per visible image because every private
+     * media URL is independently signed.
+     *
+     * @param list<int> $memberIds
+     * @param array<int, bool> $interestRelationshipMap
+     *
+     * @return array<int, string>
+     */
+    public function getApprovedPrimaryThumbnailUrlsForViewer(
+        array $memberIds,
+        int $viewerUserId,
+        array $interestRelationshipMap
+    ): array {
+        $memberIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $memberIds
+                    ),
+                    static fn(int $memberId): bool =>
+                    $memberId > 0
+                        && $memberId !== $viewerUserId
+                )
+            )
+        );
+
+        if (
+            $viewerUserId <= 0
+            || $memberIds === []
+        ) {
+            return [];
+        }
+
+        $photos =
+            $this->photoModel
+            ->findApprovedPrimaryForMembers(
+                $memberIds
+            );
+
+        $urls = [];
+
+        foreach ($memberIds as $memberId) {
+            $photo =
+                $photos[$memberId]
+                ?? null;
+
+            if (!is_array($photo)) {
+                $urls[$memberId] = '';
+                continue;
+            }
+
+            $visibility = mb_strtoupper(
+                trim(
+                    (string) (
+                        $photo['visibility']
+                        ?? ''
+                    )
+                )
+            );
+
+            /*
+             * Preserve the existing fail-closed Photo Visibility rule.
+             */
+            if (
+                !in_array(
+                    $visibility,
+                    [
+                        'PUBLIC',
+                        'INTERESTED_MEMBERS',
+                    ],
+                    true
+                )
+            ) {
+                $urls[$memberId] = '';
+                continue;
+            }
+
+            if (
+                $visibility ===
+                'INTERESTED_MEMBERS'
+                && (
+                    $interestRelationshipMap[$memberId]
+                    ?? false
+                ) !== true
+            ) {
+                $urls[$memberId] = '';
+                continue;
+            }
+
+            $objectKey = trim(
+                (string) (
+                    $photo['thumbnail_object_key']
+                    ?? ''
+                )
+            );
+
+            if ($objectKey === '') {
+                $urls[$memberId] = '';
+                continue;
+            }
+
+            $urls[$memberId] =
+                $this->createSignedUrl(
+                    objectKey: $objectKey,
+                    context: 'Viewer-authorized primary profile photo',
+                    memberId: $memberId,
+                    photoId: (int) (
+                        $photo['id']
+                        ?? 0
+                    ),
+                    variant: 'thumbnail'
+                );
+        }
+
+        return $urls;
+    }
+
+    /**
      * Return gallery thumbnails visible to another authenticated member.
      *
      * PUBLIC:
