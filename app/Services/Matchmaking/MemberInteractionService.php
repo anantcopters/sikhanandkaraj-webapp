@@ -227,13 +227,27 @@ final class MemberInteractionService
     /**
      * Add or remove another member from the authenticated member's shortlist.
      *
-     * Shortlist is a paid membership capability.
+     * Shortlist is a paid membership capability when a NEW shortlist is created.
      *
-     * IMPORTANT:
+     * IMPORTANT PRODUCT RULE:
      *
-     * Authorization is performed here in the domain service rather than only
-     * inside a controller. This protects every current and future caller,
-     * including Profile View, Profile Card, Interest Card or an API endpoint.
+     * A member who created a Shortlist while Paid may later become Free.
+     *
+     * Historical shortlist state is retained after membership expiry, therefore
+     * removing an existing shortlist must remain possible for a Free member.
+     *
+     * CONCURRENCY:
+     *
+     * Shortlist is a toggle operation. A simple:
+     *
+     *     SELECT -> INSERT / DELETE
+     *
+     * is not sufficient because two simultaneous requests could both observe
+     * the same original state.
+     *
+     * We therefore serialize changes for the member pair by locking both user
+     * rows in deterministic ID order. This follows the same locking strategy
+     * already used by Interest creation.
      *
      * @return bool TRUE when shortlisted after the operation,
      *              FALSE when removed.
@@ -243,75 +257,115 @@ final class MemberInteractionService
         int $shortlistedUserId
     ): bool {
         /*
-        * Determine current state before applying the paid entitlement.
-        *
-        * PRODUCT RULE:
-        *
-        * A member who created a Shortlist while Paid may later become Free.
-        *
-        * We retain that historical Shortlist, but a Free member must still be able
-        * to REMOVE it. Otherwise membership expiry would trap stale user data.
-        *
-        * Therefore:
-        *
-        * - adding a NEW Shortlist requires paid entitlement;
-        * - removing an EXISTING Shortlist remains allowed.
-        */
-        $isAlreadyShortlisted =
-            $this->shortlistModel
-            ->hasShortlisted(
-                $userId,
-                $shortlistedUserId
-            );
-
-        if (
-            !$isAlreadyShortlisted
-            && !$this->membershipEntitlementService
-                ->canShortlist(
-                    $userId
-                )
-        ) {
-            throw new DomainException(
-                'Shortlisting profiles is available with a paid membership. '
-                    . 'Please upgrade your plan to use Shortlist.'
-            );
-        }
-
-        /*
-     * Reuse exactly the same member-pair authorization used by Interest and
-     * profile interactions.
+     * Validate the relationship before starting the transaction.
      *
-     * This prevents:
+     * This reuses the existing member-pair authority and prevents:
      *
      * - self-shortlisting;
-     * - inactive accounts;
-     * - blocked member relationships.
+     * - inactive members;
+     * - blocked relationships.
      */
         $this->assertVisiblePair(
             $userId,
             $shortlistedUserId
         );
 
-        if ($isAlreadyShortlisted) {
-            $removed = $this
-                ->shortlistModel
-                ->removeShortlist(
+        $this->database
+            ->transBegin();
+
+        try {
+            /*
+         * Serialize Shortlist state changes for this member pair.
+         *
+         * IDs are always locked in ascending order so competing operations
+         * involving the same pair acquire PostgreSQL row locks consistently.
+         *
+         * This is deliberately the same strategy already used by
+         * showInterest().
+         */
+            $this->database->query(
+                'SELECT id '
+                    . 'FROM users '
+                    . 'WHERE id IN (?, ?) '
+                    . 'ORDER BY id '
+                    . 'FOR UPDATE',
+                [
+                    $userId,
+                    $shortlistedUserId,
+                ]
+            );
+
+            /*
+         * IMPORTANT:
+         *
+         * Resolve the state only AFTER acquiring the row locks.
+         *
+         * Reading the state before locking would reintroduce the race where
+         * two concurrent requests both make their decision from stale data.
+         */
+            $isAlreadyShortlisted =
+                $this->shortlistModel
+                ->hasShortlisted(
                     $userId,
                     $shortlistedUserId
                 );
 
-            if ($removed === false) {
-                throw new RuntimeException(
-                    'The shortlist could not be updated.'
+            if ($isAlreadyShortlisted) {
+                /*
+             * Removing historical shortlist state remains allowed even when
+             * the member's paid membership has expired.
+             */
+                $removed =
+                    $this->shortlistModel
+                    ->removeShortlist(
+                        $userId,
+                        $shortlistedUserId
+                    );
+
+                if ($removed === false) {
+                    throw new RuntimeException(
+                        'The shortlist could not be updated.'
+                    );
+                }
+
+                if (
+                    $this->database
+                    ->transStatus()
+                    === false
+                ) {
+                    throw new RuntimeException(
+                        'The shortlist transaction failed.'
+                    );
+                }
+
+                $this->database
+                    ->transCommit();
+
+                return false;
+            }
+
+            /*
+         * Creating NEW shortlist state requires the current paid
+         * membership entitlement.
+         *
+         * Perform this check while the pair remains serialized so the
+         * authorization applies to the exact state transition we are
+         * about to perform.
+         */
+            if (
+                !$this->membershipEntitlementService
+                    ->canShortlist(
+                        $userId
+                    )
+            ) {
+                throw new DomainException(
+                    'Shortlisting profiles is available with a paid membership. '
+                        . 'Please upgrade your plan to use Shortlist.'
                 );
             }
 
-            return false;
-        }
-
-        try {
-            $insertId = $this
-                ->shortlistModel
+            $insertId =
+                $this->shortlistModel
                 ->insert(
                     [
                         'user_id' =>
@@ -323,32 +377,45 @@ final class MemberInteractionService
                     true
                 );
 
-            if (!is_numeric($insertId)) {
+            if (
+                !is_numeric(
+                    $insertId
+                )
+                || (int) $insertId <= 0
+            ) {
                 throw new RuntimeException(
                     'The profile could not be shortlisted.'
                 );
             }
-        } catch (Throwable $exception) {
+
             /*
-         * PostgreSQL uniqueness remains the final concurrency guard.
+         * PostgreSQL's existing UNIQUE(user_id, shortlisted_user_id)
+         * remains the final defensive database invariant.
          *
-         * If another request inserted the same shortlist concurrently,
-         * returning TRUE accurately describes the resulting domain state.
+         * Application locking defines deterministic toggle semantics;
+         * database uniqueness protects against accidental future callers
+         * that bypass this service.
          */
             if (
-                $this->shortlistModel
-                ->hasShortlisted(
-                    $userId,
-                    $shortlistedUserId
-                )
+                $this->database
+                ->transStatus()
+                === false
             ) {
-                return true;
+                throw new RuntimeException(
+                    'The shortlist transaction failed.'
+                );
             }
+
+            $this->database
+                ->transCommit();
+
+            return true;
+        } catch (Throwable $exception) {
+            $this->database
+                ->transRollback();
 
             throw $exception;
         }
-
-        return true;
     }
 
     /**

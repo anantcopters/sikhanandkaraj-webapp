@@ -6,6 +6,7 @@ namespace App\Services\Membership;
 
 use App\Exceptions\MembershipLiveIntroductionQuotaExceededException;
 use App\Models\MemberMembershipLiveIntroductionViewModel;
+use App\Models\MemberMembershipModel;
 use CodeIgniter\Database\BaseConnection;
 use RuntimeException;
 use Throwable;
@@ -18,6 +19,20 @@ use Throwable;
  *     membership_id + owner_user_id
  *
  * It is deliberately NOT video-version scoped.
+ *
+ * CONCURRENCY AUTHORITY
+ * =====================
+ *
+ * Live Introduction authorization may resolve a membership before another
+ * request replaces or expires it.
+ *
+ * Therefore the membership row locked during commercial consumption is the
+ * final authority for:
+ *
+ * - ownership;
+ * - ACTIVE status;
+ * - starts_at / expires_at;
+ * - immutable purchased quota.
  */
 final class MembershipLiveIntroductionUsageService
 {
@@ -71,20 +86,11 @@ final class MembershipLiveIntroductionUsageService
             )
         );
 
-        $membershipLimit = max(
-            0,
-            (int) (
-                $membership['liveIntroductionViewLimit']
-                ?? 0
-            )
-        );
-
         if (
             $viewerUserId <= 0
             || $ownerUserId <= 0
             || $videoIntroductionId <= 0
             || $membershipId <= 0
-            || $membershipLimit <= 0
         ) {
             throw new RuntimeException(
                 'The Live Introduction allowance is unavailable.'
@@ -94,7 +100,9 @@ final class MembershipLiveIntroductionUsageService
         $nowUtc = (
             new \DateTimeImmutable(
                 'now',
-                new \DateTimeZone('UTC')
+                new \DateTimeZone(
+                    'UTC'
+                )
             )
         )->format(
             'Y-m-d H:i:s'
@@ -105,7 +113,8 @@ final class MembershipLiveIntroductionUsageService
 
         try {
             /*
-             * Serialize commercial usage for this membership.
+             * Serialize every commercial Live Introduction usage operation
+             * against the purchased membership row.
              */
             $lockedMembership = $this
                 ->usageModel
@@ -120,8 +129,8 @@ final class MembershipLiveIntroductionUsageService
             }
 
             /*
-             * Membership IDs must never be trusted without re-checking
-             * ownership while the authoritative membership row is locked.
+             * Never trust a membership identifier supplied indirectly by
+             * another application layer.
              */
             if (
                 (int) (
@@ -131,6 +140,39 @@ final class MembershipLiveIntroductionUsageService
             ) {
                 throw new RuntimeException(
                     'The membership does not belong to this member.'
+                );
+            }
+
+            /*
+             * Revalidate commercial usability AFTER acquiring the lock.
+             *
+             * This closes the race where an access policy authorizes playback
+             * using membership A while another request replaces membership A
+             * with membership B before commercial usage is recorded.
+             */
+            $this->assertMembershipIsUsable(
+                $lockedMembership,
+                $nowUtc
+            );
+
+            /*
+             * Quota comes from the immutable purchased membership snapshot.
+             *
+             * Do not trust the earlier application-layer projection because
+             * the locked database row is the commercial authority at the
+             * consumption boundary.
+             */
+            $membershipLimit = max(
+                0,
+                (int) (
+                    $lockedMembership['live_introduction_view_limit_snapshot']
+                    ?? 0
+                )
+            );
+
+            if ($membershipLimit <= 0) {
+                throw new RuntimeException(
+                    'The Live Introduction allowance is unavailable.'
                 );
             }
 
@@ -232,6 +274,56 @@ final class MembershipLiveIntroductionUsageService
                 ->transRollback();
 
             throw $exception;
+        }
+    }
+
+    /**
+     * Verify that the locked membership is still commercially usable.
+     *
+     * The expiry timestamp is checked directly so authorization does not depend
+     * on lifecycle housekeeping having already changed ACTIVE -> EXPIRED.
+     *
+     * @param array<string, mixed> $membership
+     */
+    private function assertMembershipIsUsable(
+        array $membership,
+        string $nowUtc
+    ): void {
+        $status = mb_strtoupper(
+            trim(
+                (string) (
+                    $membership['status']
+                    ?? ''
+                )
+            )
+        );
+
+        $startsAt = trim(
+            (string) (
+                $membership['starts_at']
+                ?? ''
+            )
+        );
+
+        $expiresAt = trim(
+            (string) (
+                $membership['expires_at']
+                ?? ''
+            )
+        );
+
+        if (
+            $status
+            !== MemberMembershipModel::STATUS_ACTIVE
+            || $startsAt === ''
+            || $expiresAt === ''
+            || $startsAt > $nowUtc
+            || $expiresAt <= $nowUtc
+        ) {
+            throw new RuntimeException(
+                'The membership is no longer active. '
+                    . 'Please refresh and try again.'
+            );
         }
     }
 

@@ -169,33 +169,6 @@ final class MemberMatchmakingService
         );
 
         /*
-         * Interest/activity lists also pass through the shared visible
-         * candidate query. A previously recorded interaction therefore
-         * disappears from member-facing UI when either side blocks the other.
-         */
-        // $interestReceived =
-        //     $this->visibleRowsForIds(
-        //         $userId,
-        //         $viewerGender,
-        //         $this
-        //             ->interactionService
-        //             ->interestReceivedIds(
-        //                 $userId
-        //             )
-        //     );
-
-        // $interestSent =
-        //     $this->visibleRowsForIds(
-        //         $userId,
-        //         $viewerGender,
-        //         $this
-        //             ->interactionService
-        //             ->interestSentIds(
-        //                 $userId
-        //             )
-        //     );
-
-        /*
         * Shortlist collections shown on Dashboard.
         *
         * These still pass through the common visible-candidate query,
@@ -287,18 +260,6 @@ final class MemberMatchmakingService
                 $userId,
                 $newMatches
             ),
-
-            // 'interestReceived' =>
-            // $this->presentationProfiles(
-            //     $userId,
-            //     $interestReceived
-            // ),
-
-            // 'interestSent' =>
-            // $this->presentationProfiles(
-            //     $userId,
-            //     $interestSent
-            // ),
 
             'profileVisitors' =>
             $this->presentationProfiles(
