@@ -1108,7 +1108,21 @@ $this->section('content');
                             <?= view(
                                 'Components/Membership/PlanCards',
                                 [
-                                    'context' => 'member',
+                                    /*
+         * All commercial values come from membership_plans.
+         */
+                                    'plans' =>
+                                    $membershipPlans['plans']
+                                        ?? [],
+
+                                    /*
+         * Current account determines Current Plan presentation.
+         */
+                                    'currentAccount' =>
+                                    $membershipPlans['currentAccount'] ?? [],
+
+                                    'context' =>
+                                    'member',
                                 ]
                             ) ?>
 

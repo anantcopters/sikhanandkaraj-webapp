@@ -50,6 +50,36 @@ final class AccountSettingsController extends BaseController
         $userId = $this->authenticatedUserId();
 
         /*
+        * Membership-plan presentation is loaded only for the Plans section.
+        *
+        * This gives the view:
+        *
+        * - authoritative active plan definitions;
+        * - current member plan;
+        * - purchase/renewal/upgrade/downgrade decision for every plan.
+        *
+        * The controller does not compare plan hierarchy itself.
+        */
+        $membershipPlans = [
+            'currentAccount' => [
+                'accountType' => 'FREE',
+                'accountLabel' => 'Free Account',
+                'isPaid' => false,
+                'membership' => null,
+            ],
+            'plans' => [],
+        ];
+
+        if ($section === 'plans') {
+            $membershipPlans =
+                service(
+                    'membershipPlanPresentationService'
+                )->memberPlans(
+                    $userId
+                );
+        }
+
+        /*
         * Resolve Account Settings membership capabilities once.
         *
         * The View uses these values only for feature-lock presentation.
@@ -243,6 +273,12 @@ final class AccountSettingsController extends BaseController
 
                     'membershipCapabilities' =>
                     $membershipCapabilities,
+
+                    /*
+                    * Authoritative current-plan and pricing presentation.
+                    */
+                    'membershipPlans' =>
+                    $membershipPlans,
 
                     'membershipHistory' =>
                     $membershipHistory,

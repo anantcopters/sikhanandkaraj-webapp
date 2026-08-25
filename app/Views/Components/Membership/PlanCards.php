@@ -2,17 +2,30 @@
 
 declare(strict_types=1);
 
+use App\Services\Membership\MembershipPurchaseDecision;
+
 /**
- * Compact Sikhanandkaraj membership plan cards.
+ * Shared authoritative membership plan cards.
  *
  * Used by:
- * - Public home page
- * - Member Account Settings
+ *
+ * - public membership pricing;
+ * - Account Settings -> Membership Plans.
+ *
+ * IMPORTANT:
+ *
+ * This view contains NO prices, durations or allowance definitions.
+ *
+ * All commercial values originate from membership_plans and arrive through
+ * MembershipPlanPresentationService.
  *
  * @var string|null $context
+ * @var list<array<string, mixed>>|null $plans
+ * @var array<string, mixed>|null $currentAccount
  */
 
-$context = isset($context)
+$context =
+    isset($context)
     && in_array(
         $context,
         [
@@ -27,304 +40,532 @@ $context = isset($context)
 $isMemberContext =
     $context === 'member';
 
-$plans = [
-    [
-        'name' => 'Sikhanandkaraj Go',
-        'positioning' => 'Start Connecting',
-        'image' => 'plan_go_short_removebg.png',
-        'price' => '1,499',
-        'duration' => '3 months',
-        'monthly' => '₹500/month',
-        'profiles' => '50',
-        'dailyProfiles' => '5',
-        'introductions' => '10',
-        'manager' => false,
-        'popular' => false,
-    ],
-    [
-        'name' => 'Sikhanandkaraj Plus',
-        'positioning' => 'Best Value',
-        'image' => 'plan_plus_short_removebg.png',
-        'price' => '2,499',
-        'duration' => '6 months',
-        'monthly' => 'Just ₹417/month',
-        'profiles' => '100',
-        'dailyProfiles' => '10',
-        'introductions' => '30',
-        'manager' => false,
-        'popular' => true,
-    ],
-    [
-        'name' => 'Sikhanandkaraj Pro',
-        'positioning' => 'Personalised Assistance',
-        'image' => 'plan_pro_short_removebg.png',
-        'price' => '9,999',
-        'duration' => '12 months',
-        'monthly' => null,
-        'profiles' => '300',
-        'dailyProfiles' => '20',
-        'introductions' => '80',
-        'manager' => true,
-        'popular' => false,
-    ],
-];
+$plans =
+    isset($plans)
+    && is_array($plans)
+    ? $plans
+    : [];
+
+$currentAccount =
+    isset($currentAccount)
+    && is_array($currentAccount)
+    ? $currentAccount
+    : [];
+
+$currentPlanCode =
+    mb_strtoupper(
+        trim(
+            (string) (
+                $currentAccount['accountType']
+                ?? 'FREE'
+            )
+        )
+    );
+
+$currentMembership =
+    isset(
+        $currentAccount['membership']
+    )
+    && is_array(
+        $currentAccount['membership']
+    )
+    ? $currentAccount['membership']
+    : null;
+
+$isPaid =
+    ($currentAccount['isPaid'] ?? false)
+    === true;
 ?>
 
-<div class="row gy-4 align-items-stretch">
+<?php if (
+    $isMemberContext
+    && $isPaid
+    && $currentMembership !== null
+): ?>
 
-    <?php foreach ($plans as $plan): ?>
+    <!--
+        Current membership summary.
 
-        <div class="col-12 col-lg-4">
-
-            <article
-                class="
-                    card
-                    border
-                    border-danger
-                    <?= $plan['popular']
-                        ? ''
-                        : 'border-opacity-25' ?>
-                    <?= $plan['popular']
-                        ? 'shadow'
-                        : 'shadow-sm' ?>
-                    h-100
-                    mb-0
-                    <?= $plan['popular']
-                        ? 'ribbon-box left'
-                        : '' ?>
-                ">
-
-                <div
-                    class="
-                        card-body
-                        p-4
-                        d-flex
-                        flex-column
-                    ">
-
-                    <?php if ($plan['popular']): ?>
-
-                        <div
-                            class="
-                                ribbon-two
-                                ribbon-two-danger
-                            ">
-
-                            <span>
-                                Popular
-                            </span>
-                        </div>
-
-                    <?php endif; ?>
-
-                    <div class="text-center mb-0">
-
-                        <p
-                            class="
-            fs-12
-            fw-semibold
-            text-danger
-            text-uppercase
-            mb-3
+        This is intentionally separate from the plan cards so the member can
+        immediately understand what is active before considering an upgrade
+        or renewal.
+    -->
+    <div
+        class="
+            alert
+            alert-light
+            border
+            border-danger
+            border-opacity-25
+            mb-4
         ">
 
-                            <?= esc(
-                                $plan['positioning']
-                            ) ?>
-                        </p>
+        <div
+            class="
+                d-flex
+                align-items-center
+                justify-content-between
+                flex-wrap
+                gap-3
+            ">
 
-                        <img
-                            src="<?= base_url(
-                                        'assets/images/'
-                                            . $plan['image']
-                                    ) ?>"
-                            alt="<?= esc(
-                                        $plan['name'],
-                                        'attr'
-                                    ) ?>"
-                            class="img-fluid"
-                            width="200"
-                            height="90"
-                            loading="lazy">
+            <div>
+                <div
+                    class="
+                        fs-12
+                        fw-semibold
+                        text-danger
+                        text-uppercase
+                        mb-1
+                    ">
+                    Current Membership
+                </div>
 
-                    </div>
+                <div class="fs-18 fw-semibold">
+                    <?= esc(
+                        $currentAccount['accountLabel'] ?? 'Paid Account'
+                    ) ?>
+                </div>
+            </div>
 
-                    <div class="text-center py-3">
+            <span
+                class="
+                    badge
+                    bg-success-subtle
+                    text-success
+                    p-2
+                ">
+                Active
+            </span>
 
-                        <div class="mb-1">
+        </div>
 
-                            <span
+        <?php if (
+            trim(
+                (string) (
+                    $currentMembership['expiresAt'] ?? ''
+                )
+            ) !== ''
+        ): ?>
+
+            <div class="fs-13 text-muted mt-2">
+                Your current membership remains active until
+                <?= esc(
+                    (string) $currentMembership['expiresAt']
+                ) ?>.
+            </div>
+
+        <?php endif; ?>
+
+        <div class="fs-12 text-muted mt-2">
+            An upgrade or renewal starts immediately after successful
+            payment. Remaining days and unused allowances from the current
+            membership are not carried forward.
+        </div>
+
+    </div>
+
+<?php elseif ($isMemberContext): ?>
+
+    <div
+        class="
+            alert
+            alert-light
+            border
+            mb-4
+        ">
+
+        <div class="fw-semibold">
+            Free Account
+        </div>
+
+        <div class="fs-13 text-muted mt-1">
+            Choose a membership when paid activation becomes available.
+        </div>
+
+    </div>
+
+<?php endif; ?>
+
+
+<?php if ($plans === []): ?>
+
+    <div
+        class="
+            alert
+            alert-warning
+            mb-0
+        "
+        role="status">
+
+        <i
+            class="ri-information-line me-1"
+            aria-hidden="true">
+        </i>
+
+        Membership plans are currently unavailable.
+        Please try again later.
+
+    </div>
+
+<?php else: ?>
+
+    <div class="row gy-4 align-items-stretch">
+
+        <?php foreach ($plans as $plan): ?>
+
+            <?php
+            /*
+             * Normalize view data locally.
+             */
+            $planCode =
+                mb_strtoupper(
+                    trim(
+                        (string) (
+                            $plan['code']
+                            ?? ''
+                        )
+                    )
+                );
+
+            $planName =
+                trim(
+                    (string) (
+                        $plan['name']
+                        ?? ''
+                    )
+                );
+
+            $positioning =
+                trim(
+                    (string) (
+                        $plan['positioning']
+                        ?? ''
+                    )
+                );
+
+            $image =
+                trim(
+                    (string) (
+                        $plan['image']
+                        ?? ''
+                    )
+                );
+
+            $priceDisplay =
+                trim(
+                    (string) (
+                        $plan['priceDisplay']
+                        ?? '0'
+                    )
+                );
+
+            $durationDisplay =
+                trim(
+                    (string) (
+                        $plan['durationDisplay']
+                        ?? ''
+                    )
+                );
+
+            $monthlyDisplay =
+                isset($plan['monthlyDisplay'])
+                ? trim(
+                    (string) $plan['monthlyDisplay']
+                )
+                : '';
+
+            $profileViewLimit =
+                max(
+                    0,
+                    (int) (
+                        $plan['profileViewLimit']
+                        ?? 0
+                    )
+                );
+
+            $dailyProfileViewLimit =
+                max(
+                    0,
+                    (int) (
+                        $plan['dailyProfileViewLimit']
+                        ?? 0
+                    )
+                );
+
+            $liveIntroductionViewLimit =
+                max(
+                    0,
+                    (int) (
+                        $plan['liveIntroductionViewLimit']
+                        ?? 0
+                    )
+                );
+
+            $hasMatchManager =
+                ($plan['hasMatchManager']
+                    ?? false)
+                === true;
+
+            $popular =
+                ($plan['popular']
+                    ?? false)
+                === true;
+
+            $description =
+                trim(
+                    (string) (
+                        $plan['description']
+                        ?? ''
+                    )
+                );
+
+            $decision =
+                isset(
+                    $plan['purchaseDecision']
+                )
+                && is_array(
+                    $plan['purchaseDecision']
+                )
+                ? $plan['purchaseDecision']
+                : null;
+
+            $isCurrentPlan =
+                $isMemberContext
+                && $isPaid
+                && $currentPlanCode !== ''
+                && $currentPlanCode
+                === $planCode;
+
+            $action =
+                $decision !== null
+                ? mb_strtoupper(
+                    trim(
+                        (string) (
+                            $decision['action']
+                            ?? ''
+                        )
+                    )
+                )
+                : '';
+
+            $allowed =
+                $decision !== null
+                && (
+                    $decision['allowed']
+                    ?? false
+                ) === true;
+
+            /*
+             * Payment gateway is intentionally not wired yet.
+             *
+             * These labels describe the authoritative transition that will
+             * eventually be handed to checkout. They must not activate a
+             * membership themselves.
+             */
+            $buttonLabel =
+                match ($action) {
+                    MembershipPurchaseDecision::ACTION_RENEWAL =>
+                    'Renew ' . $planCode,
+
+                    MembershipPurchaseDecision::ACTION_UPGRADE =>
+                    'Upgrade to ' . $planCode,
+
+                    MembershipPurchaseDecision::ACTION_DOWNGRADE =>
+                    'Downgrade Unavailable',
+
+                    MembershipPurchaseDecision::ACTION_PURCHASE =>
+                    'Choose ' . $planCode,
+
+                    default =>
+                    'Unavailable',
+                };
+
+            if ($isCurrentPlan) {
+                $buttonLabel =
+                    'Current Plan';
+            }
+            ?>
+
+            <div class="col-12 col-lg-4">
+
+                <article
+                    class="
+                        card
+                        border
+                        border-danger
+                        <?= $popular
+                            ? ''
+                            : 'border-opacity-25' ?>
+                        <?= $popular
+                            ? 'shadow'
+                            : 'shadow-sm' ?>
+                        h-100
+                        mb-0
+                        <?= $popular
+                            ? 'ribbon-box left'
+                            : '' ?>
+                    ">
+
+                    <div
+                        class="
+                            card-body
+                            p-4
+                            d-flex
+                            flex-column
+                        ">
+
+                        <?php if ($popular): ?>
+
+                            <div
                                 class="
-                                    fs-18
-                                    fw-semibold
-                                    align-top
+                                    ribbon-two
+                                    ribbon-two-danger
                                 ">
-                                ₹
-                            </span>
 
-                            <span
+                                <span>
+                                    Popular
+                                </span>
+
+                            </div>
+
+                        <?php endif; ?>
+
+                        <div class="text-center mb-0">
+
+                            <p
                                 class="
-                                    fs-36
-                                    fw-bold
-                                    ff-secondary
+                                    fs-12
+                                    fw-semibold
+                                    text-danger
+                                    text-uppercase
+                                    mb-3
                                 ">
 
                                 <?= esc(
-                                    $plan['price']
+                                    $positioning
                                 ) ?>
-                            </span>
+
+                            </p>
+
+                            <?php if ($image !== ''): ?>
+
+                                <img
+                                    src="<?= base_url(
+                                                'assets/images/'
+                                                    . $image
+                                            ) ?>"
+                                    alt="<?= esc(
+                                                $planName,
+                                                'attr'
+                                            ) ?>"
+                                    class="img-fluid"
+                                    width="200"
+                                    height="90"
+                                    loading="lazy">
+
+                            <?php else: ?>
+
+                                <h3 class="fs-22 fw-semibold">
+                                    <?= esc($planName) ?>
+                                </h3>
+
+                            <?php endif; ?>
 
                         </div>
 
-                        <p
-                            class="
-                                text-muted
-                                mb-1
-                            ">
+                        <div class="text-center py-3">
 
-                            for
-                            <?= esc(
-                                $plan['duration']
-                            ) ?>
-                        </p>
+                            <div class="mb-1">
+
+                                <span
+                                    class="
+                                        fs-18
+                                        fw-semibold
+                                        align-top
+                                    ">
+                                    ₹
+                                </span>
+
+                                <span
+                                    class="
+                                        fs-36
+                                        fw-bold
+                                        ff-secondary
+                                    ">
+
+                                    <?= esc(
+                                        $priceDisplay
+                                    ) ?>
+
+                                </span>
+
+                            </div>
+
+                            <p class="text-muted mb-1">
+                                for
+                                <?= esc(
+                                    $durationDisplay
+                                ) ?>
+                            </p>
+
+                            <?php if (
+                                $monthlyDisplay !== ''
+                            ): ?>
+
+                                <p
+                                    class="
+                                        fs-13
+                                        <?= $popular
+                                            ? 'text-danger fw-semibold'
+                                            : 'text-muted' ?>
+                                        mb-0
+                                    ">
+
+                                    <?= esc(
+                                        $monthlyDisplay
+                                    ) ?>
+
+                                </p>
+
+                            <?php endif; ?>
+
+                        </div>
 
                         <?php if (
-                            $plan['monthly'] !== null
+                            $description !== ''
                         ): ?>
 
                             <p
                                 class="
                                     fs-13
-                                    <?= $plan['popular']
-                                        ? 'text-danger fw-semibold'
-                                        : 'text-muted' ?>
-                                    mb-0
+                                    text-muted
+                                    text-center
+                                    mb-3
                                 ">
 
                                 <?= esc(
-                                    $plan['monthly']
+                                    $description
                                 ) ?>
-                            </p>
 
-                        <?php else: ?>
-
-                            <p
-                                class="
-                                    fs-13
-                                    fw-semibold
-                                    text-danger
-                                    mb-0
-                                ">
-                                Personalised assistance
                             </p>
 
                         <?php endif; ?>
 
-                    </div>
-
-                    <div
-                        class="
-                            border-top
-                            pt-3
-                            mt-1
-                        ">
-
-                        <ul
+                        <div
                             class="
-                                list-unstyled
-                                vstack
-                                gap-3
-                                mb-0
+                                border-top
+                                pt-3
+                                mt-1
                             ">
 
-                            <li>
-                                <div
-                                    class="
-                                        d-flex
-                                        align-items-start
-                                        gap-2
-                                    ">
-
-                                    <i
-                                        class="
-                                            ri-shield-check-line
-                                            text-success
-                                            fs-18
-                                            flex-shrink-0
-                                        "
-                                        aria-hidden="true">
-                                    </i>
-
-                                    <div>
-                                        <strong>
-                                            <?= esc(
-                                                $plan['profiles']
-                                            ) ?>
-                                            Verified Profiles
-                                        </strong>
-
-                                        <div
-                                            class="
-                                                fs-12
-                                                text-muted
-                                                mt-1
-                                            ">
-                                            Up to
-                                            <?= esc(
-                                                $plan['dailyProfiles']
-                                            ) ?>
-                                            per day
-                                        </div>
-                                    </div>
-
-                                </div>
-                            </li>
-
-                            <li>
-                                <div
-                                    class="
-                                        d-flex
-                                        align-items-start
-                                        gap-2
-                                    ">
-
-                                    <i
-                                        class="
-                                            ri-video-line
-                                            text-success
-                                            fs-18
-                                            flex-shrink-0
-                                        "
-                                        aria-hidden="true">
-                                    </i>
-
-                                    <div>
-                                        <strong>
-                                            <?= esc(
-                                                $plan['introductions']
-                                            ) ?>
-                                            Live Introductions
-                                        </strong>
-
-                                        <div
-                                            class="
-                                                fs-12
-                                                text-muted
-                                                mt-1
-                                            ">
-                                            Watch up to
-                                            <?= esc(
-                                                $plan['introductions']
-                                            ) ?>
-                                        </div>
-                                    </div>
-
-                                </div>
-                            </li>
-
-                            <?php if (
-                                $plan['manager']
-                            ): ?>
+                            <ul
+                                class="
+                                    list-unstyled
+                                    vstack
+                                    gap-3
+                                    mb-0
+                                ">
 
                                 <li>
                                     <div
@@ -336,7 +577,7 @@ $plans = [
 
                                         <i
                                             class="
-                                                ri-customer-service-2-line
+                                                ri-shield-check-line
                                                 text-success
                                                 fs-18
                                                 flex-shrink-0
@@ -346,7 +587,11 @@ $plans = [
 
                                         <div>
                                             <strong>
-                                                Dedicated Match Manager
+                                                <?= esc(
+                                                    (string)
+                                                    $profileViewLimit
+                                                ) ?>
+                                                Verified Profiles
                                             </strong>
 
                                             <div
@@ -355,27 +600,29 @@ $plans = [
                                                     text-muted
                                                     mt-1
                                                 ">
-                                                Personalised assistance
-                                                throughout your membership
+                                                Up to
+                                                <?= esc(
+                                                    (string)
+                                                    $dailyProfileViewLimit
+                                                ) ?>
+                                                per day
                                             </div>
                                         </div>
 
                                     </div>
                                 </li>
 
-                            <?php else: ?>
-
                                 <li>
                                     <div
                                         class="
                                             d-flex
-                                            align-items-center
+                                            align-items-start
                                             gap-2
                                         ">
 
                                         <i
                                             class="
-                                                ri-checkbox-circle-line
+                                                ri-video-line
                                                 text-success
                                                 fs-18
                                                 flex-shrink-0
@@ -383,82 +630,265 @@ $plans = [
                                             aria-hidden="true">
                                         </i>
 
-                                        <strong>
-                                            All essential features
-                                        </strong>
+                                        <div>
+                                            <strong>
+                                                <?= esc(
+                                                    (string)
+                                                    $liveIntroductionViewLimit
+                                                ) ?>
+                                                Live Introductions
+                                            </strong>
+
+                                            <div
+                                                class="
+                                                    fs-12
+                                                    text-muted
+                                                    mt-1
+                                                ">
+                                                Watch up to
+                                                <?= esc(
+                                                    (string)
+                                                    $liveIntroductionViewLimit
+                                                ) ?>
+                                            </div>
+                                        </div>
 
                                     </div>
                                 </li>
 
+                                <?php if (
+                                    $hasMatchManager
+                                ): ?>
+
+                                    <li>
+                                        <div
+                                            class="
+                                                d-flex
+                                                align-items-start
+                                                gap-2
+                                            ">
+
+                                            <i
+                                                class="
+                                                    ri-customer-service-2-line
+                                                    text-success
+                                                    fs-18
+                                                    flex-shrink-0
+                                                "
+                                                aria-hidden="true">
+                                            </i>
+
+                                            <div>
+                                                <strong>
+                                                    Dedicated Match Manager
+                                                </strong>
+
+                                                <div
+                                                    class="
+                                                        fs-12
+                                                        text-muted
+                                                        mt-1
+                                                    ">
+                                                    Personalised assistance
+                                                    throughout your membership
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </li>
+
+                                <?php else: ?>
+
+                                    <li>
+                                        <div
+                                            class="
+                                                d-flex
+                                                align-items-center
+                                                gap-2
+                                            ">
+
+                                            <i
+                                                class="
+                                                    ri-checkbox-circle-line
+                                                    text-success
+                                                    fs-18
+                                                    flex-shrink-0
+                                                "
+                                                aria-hidden="true">
+                                            </i>
+
+                                            <strong>
+                                                All essential features
+                                            </strong>
+
+                                        </div>
+                                    </li>
+
+                                <?php endif; ?>
+
+                            </ul>
+
+                        </div>
+
+                        <div class="mt-auto pt-4">
+
+                            <?php if (
+                                $isMemberContext
+                            ): ?>
+
+                                <?php if (
+                                    $isCurrentPlan
+                                ): ?>
+
+                                    <button
+                                        type="button"
+                                        class="
+                                            btn
+                                            btn-success
+                                            w-100
+                                        "
+                                        disabled>
+
+                                        <i
+                                            class="
+                                                ri-checkbox-circle-line
+                                                me-1
+                                            "
+                                            aria-hidden="true">
+                                        </i>
+
+                                        Current Plan
+
+                                    </button>
+
+                                <?php elseif (
+                                    !$allowed
+                                ): ?>
+
+                                    <button
+                                        type="button"
+                                        class="
+                                            btn
+                                            btn-outline-secondary
+                                            w-100
+                                        "
+                                        disabled>
+
+                                        <i
+                                            class="
+                                                ri-lock-2-line
+                                                me-1
+                                            "
+                                            aria-hidden="true">
+                                        </i>
+
+                                        <?= esc(
+                                            $buttonLabel
+                                        ) ?>
+
+                                    </button>
+
+                                <?php else: ?>
+
+                                    <!--
+                                        Payment gateway is not available yet.
+
+                                        The authoritative transition is shown
+                                        to the member, but no client-side path
+                                        is allowed to activate membership.
+                                    -->
+                                    <button
+                                        type="button"
+                                        class="
+                                            btn
+                                            <?= $popular
+                                                ? 'btn-danger'
+                                                : 'btn-outline-danger' ?>
+                                            w-100
+                                        "
+                                        disabled>
+
+                                        <?= esc(
+                                            $buttonLabel
+                                        ) ?>
+
+                                    </button>
+
+                                    <div
+                                        class="
+                                            fs-12
+                                            text-muted
+                                            text-center
+                                            mt-2
+                                        ">
+                                        Online purchase coming soon
+                                    </div>
+
+                                <?php endif; ?>
+
+                                <?php if (
+                                    $decision !== null
+                                    && trim(
+                                        (string) (
+                                            $decision['message']
+                                            ?? ''
+                                        )
+                                    ) !== ''
+                                ): ?>
+
+                                    <div
+                                        class="
+                                            fs-12
+                                            text-muted
+                                            text-center
+                                            mt-2
+                                        ">
+
+                                        <?= esc(
+                                            (string)
+                                            $decision['message']
+                                        ) ?>
+
+                                    </div>
+
+                                <?php endif; ?>
+
+                            <?php else: ?>
+
+                                <a
+                                    href="<?= route_to(
+                                                'web.auth.login'
+                                            ) ?>"
+                                    class="
+                                        btn
+                                        <?= $popular
+                                            ? 'btn-danger'
+                                            : 'btn-outline-danger' ?>
+                                        w-100
+                                    ">
+
+                                    Choose
+                                    <?= esc(
+                                        $planCode
+                                    ) ?>
+
+                                </a>
+
                             <?php endif; ?>
 
-                        </ul>
+                        </div>
 
                     </div>
+                </article>
 
-                    <div class="mt-auto pt-4">
+            </div>
 
-                        <?php if (
-                            $isMemberContext
-                        ): ?>
+        <?php endforeach; ?>
 
-                            <button
-                                type="button"
-                                class="
-                                    btn
-                                    <?= $plan['popular']
-                                        ? 'btn-danger'
-                                        : 'btn-outline-danger' ?>
-                                    w-100
-                                "
-                                disabled>
+    </div>
 
-                                Select
-                                <?= esc(
-                                    str_replace(
-                                        'Sikhanandkaraj ',
-                                        '',
-                                        $plan['name']
-                                    )
-                                ) ?>
+<?php endif; ?>
 
-                            </button>
-
-                        <?php else: ?>
-
-                            <a
-                                href="<?= site_url('/') ?>"
-                                class="
-                                    btn
-                                    <?= $plan['popular']
-                                        ? 'btn-danger'
-                                        : 'btn-outline-danger' ?>
-                                    w-100
-                                ">
-
-                                Choose
-                                <?= esc(
-                                    str_replace(
-                                        'Sikhanandkaraj ',
-                                        '',
-                                        $plan['name']
-                                    )
-                                ) ?>
-
-                            </a>
-
-                        <?php endif; ?>
-
-                    </div>
-
-                </div>
-            </article>
-
-        </div>
-
-    <?php endforeach; ?>
-
-</div>
 
 <div
     class="
@@ -477,14 +907,17 @@ $plans = [
         ">
 
         <strong class="text-body">
-            All plans include:
+            All paid plans include:
         </strong>
 
         Browse Profiles · Send Interests ·
         Shortlist · Advanced Search ·
-        Preference Match Count · <span class="fw-medium text-primary">Mobile,
-        Email &amp; Aadhaar Verification ·
-        Live Introduction</span>
+        Preference Match Count ·
+        <span class="fw-medium text-primary">
+            Mobile, Email &amp; Aadhaar Verification ·
+            Live Introduction
+        </span>
+
     </p>
 
     <p
@@ -499,42 +932,19 @@ $plans = [
             Verified Profile:
         </strong>
 
-        A profile with at least one verified
-        credential — Mobile, Email, Aadhaar
-        or Live Introduction.
+        A profile with at least one verified credential —
+        Mobile, Email, Aadhaar or Live Introduction.
+
     </p>
 
     <p
         class="
             fs-13
             fw-semibold
-            mb-3
+            mb-0
         ">
         All prices are inclusive of GST.
         No hidden charges.
     </p>
-
-    <?php if (!$isMemberContext): ?>
-
-        <a
-            href="<?= route_to(
-                        'web.information.membership-plans'
-                    ) ?>"
-            class="
-            text-danger
-            fw-semibold
-            text-decoration-none
-        ">
-
-            View full plan details
-
-            <i
-                class="ri-arrow-right-line ms-1"
-                aria-hidden="true">
-            </i>
-
-        </a>
-
-    <?php endif; ?>
 
 </div>

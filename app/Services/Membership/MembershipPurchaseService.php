@@ -156,15 +156,19 @@ final class MembershipPurchaseService
      * Activate a membership after authoritative successful payment.
      *
      * During the current pre-payment-gateway phase this method may also be
-     * called by an explicitly authorized administrative/system activation
-     * workflow.
+     * called only by an explicitly authorized administrative/system workflow.
      *
-     * DO NOT call this when:
+     * PAYMENT SECURITY
+     * ================
      *
-     * - a payment order is merely created;
-     * - the browser claims payment succeeded;
+     * Never call this because:
+     *
+     * - the browser says payment succeeded;
+     * - a payment order was merely created;
      * - payment verification is pending;
-     * - a webhook signature has not been verified.
+     * - an unverified webhook was received.
+     *
+     * Future payment integration must first authoritatively verify payment.
      *
      * @throws RuntimeException
      */
@@ -178,8 +182,8 @@ final class MembershipPurchaseService
             );
         }
 
-        $plan =
-            $this->planModel
+        $plan = $this
+            ->planModel
             ->findActiveByCode(
                 $requestedPlanCode
             );
@@ -198,19 +202,18 @@ final class MembershipPurchaseService
                 )
             );
 
-        $durationMonths =
-            max(
-                0,
-                (int) (
-                    $plan['duration_months']
-                    ?? 0
-                )
-            );
+        $durationMonths = max(
+            0,
+            (int) (
+                $plan['duration_months']
+                ?? 0
+            )
+        );
 
         if ($durationMonths <= 0) {
             /*
-             * Fail closed if the commercial master is malformed.
-             */
+            * Fail closed when the authoritative commercial master is malformed.
+            */
             throw new RuntimeException(
                 'The selected membership plan has an invalid duration.'
             );
@@ -223,21 +226,23 @@ final class MembershipPurchaseService
 
         try {
             /*
-             * Always lock the member first.
-             *
-             * This protects both:
-             *
-             * - Free -> Paid activation where no membership row exists yet;
-             * - Paid -> Paid replacement.
-             */
+            * Serialize every membership activation for this user.
+            *
+            * Locking the member handles both:
+            *
+            * - FREE -> Paid, where no active membership exists;
+            * - Paid -> Paid replacement.
+            */
             if (
-                !$this->membershipModel
+                !$this
+                    ->membershipModel
                     ->lockUser(
                         $userId
                     )
             ) {
                 throw new RuntimeException(
-                    'The member account could not be locked for membership activation.'
+                    'The member account could not be locked '
+                        . 'for membership activation.'
                 );
             }
 
@@ -250,12 +255,14 @@ final class MembershipPurchaseService
                 );
 
             /*
-             * Re-read the active membership after obtaining the member lock.
-             *
-             * Never trust the state that existed when checkout began.
-             */
+            * Re-read current membership AFTER obtaining the lock.
+            *
+            * The state seen when checkout started must never be trusted during
+            * final activation.
+            */
             $activeMembership =
-                $this->membershipModel
+                $this
+                ->membershipModel
                 ->lockActiveForUser(
                     $userId,
                     $nowUtc
@@ -274,14 +281,14 @@ final class MembershipPurchaseService
             }
 
             /*
-             * Product rule:
-             *
-             * Every successful activation begins immediately.
-             *
-             * We intentionally do NOT append duration to the old expiry date.
-             * Therefore a renewal made while the old plan is active replaces
-             * the old membership and begins a fresh membership period now.
-             */
+            * Every successful purchase/renewal/upgrade starts immediately.
+            *
+            * Product rule:
+            *
+            * - remaining days are not transferred;
+            * - unused quota is not transferred;
+            * - the replacement receives fresh limits from the plan master.
+            */
             $startsAt =
                 $nowUtc;
 
@@ -296,52 +303,26 @@ final class MembershipPurchaseService
                     'Y-m-d H:i:s'
                 );
 
-            /*
-             * Create the new membership first so the old historical record can
-             * retain an explicit replaced_by_membership_id reference.
-             */
-            $newMembershipId =
-                $this->membershipModel
-                ->createFromPlan(
-                    $userId,
-                    $plan,
-                    $startsAt,
-                    $expiresAt
-                );
-
-            if ($newMembershipId <= 0) {
-                throw new RuntimeException(
-                    'The new membership could not be created.'
-                );
-            }
-
-            $replacedMembershipId =
-                null;
-
             $replacedMembershipId =
                 null;
 
             /*
-            * If another membership is active, remove it from ACTIVE before inserting
-            * the replacement.
+            * If another membership is currently active, temporarily move it out
+            * of ACTIVE before creating the replacement.
             *
-            * This is safe because:
+            * This is necessary because the database permits only one ACTIVE
+            * membership per member.
             *
-            * - the entire operation is transactional;
-            * - the member row is locked;
-            * - the current membership row is locked;
-            * - rollback restores ACTIVE if anything later fails;
-            * - the database partial unique index prevents duplicate ACTIVE rows.
+            * The transaction guarantees rollback if any later operation fails.
             */
             if (is_array($activeMembership)) {
-                $replacedMembershipId =
-                    max(
-                        0,
-                        (int) (
-                            $activeMembership['id']
-                            ?? 0
-                        )
-                    );
+                $replacedMembershipId = max(
+                    0,
+                    (int) (
+                        $activeMembership['id']
+                        ?? 0
+                    )
+                );
 
                 if ($replacedMembershipId <= 0) {
                     throw new RuntimeException(
@@ -350,25 +331,31 @@ final class MembershipPurchaseService
                 }
 
                 if (
-                    !$this->membershipModel
+                    !$this
+                        ->membershipModel
                         ->beginReplacement(
                             $replacedMembershipId
                         )
                 ) {
                     throw new RuntimeException(
-                        'The current membership could not be prepared for replacement.'
+                        'The current membership could not be '
+                            . 'prepared for replacement.'
                     );
                 }
             }
 
             /*
-            * The new membership receives a completely fresh commercial snapshot and
-            * fresh usage allowances.
+            * IMPORTANT:
             *
-            * Nothing from the old membership is carried into this membership.
+            * Create exactly ONE new membership.
+            *
+            * The previous implementation accidentally called createFromPlan()
+            * twice during activation. That could create duplicate membership
+            * records or violate the one-active-membership constraint.
             */
             $newMembershipId =
-                $this->membershipModel
+                $this
+                ->membershipModel
                 ->createFromPlan(
                     $userId,
                     $plan,
@@ -383,24 +370,29 @@ final class MembershipPurchaseService
             }
 
             /*
-            * Preserve an explicit historical chain:
+            * Preserve the historical replacement chain:
             *
             * old membership -> new membership
             */
             if (
                 $replacedMembershipId !== null
-                && !$this->membershipModel
+                && !$this
+                    ->membershipModel
                     ->completeReplacement(
                         $replacedMembershipId,
                         $newMembershipId
                     )
             ) {
                 throw new RuntimeException(
-                    'The previous membership could not be linked to its replacement.'
+                    'The previous membership could not be '
+                        . 'linked to its replacement.'
                 );
             }
 
-            if ($database->transStatus() === false) {
+            if (
+                $database->transStatus()
+                === false
+            ) {
                 throw new RuntimeException(
                     'Membership activation transaction failed.'
                 );
@@ -419,7 +411,10 @@ final class MembershipPurchaseService
         } catch (Throwable $exception) {
             $database->transRollback();
 
-            if ($exception instanceof RuntimeException) {
+            if (
+                $exception
+                instanceof RuntimeException
+            ) {
                 throw $exception;
             }
 

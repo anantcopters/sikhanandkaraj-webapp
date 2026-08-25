@@ -3037,6 +3037,34 @@ final class Services extends BaseService
     }
 
     /**
+     * Build authoritative membership pricing/current-plan presentation.
+     *
+     * Commercial values are resolved from membership_plans through
+     * MembershipService. MembershipPurchaseService supplies the member-specific
+     * purchase/renewal/upgrade/downgrade decision.
+     */
+    public static function membershipPlanPresentationService(
+        bool $getShared = true
+    ): \App\Services\Membership\MembershipPlanPresentationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipPlanPresentationService'
+            );
+        }
+
+        return new
+            \App\Services\Membership\MembershipPlanPresentationService(
+                service(
+                    'membershipService'
+                ),
+
+                service(
+                    'membershipPurchaseService'
+                )
+            );
+    }
+
+    /**
      * Member-facing read-only membership usage presentation.
      */
     public static function memberMembershipUsageService(
