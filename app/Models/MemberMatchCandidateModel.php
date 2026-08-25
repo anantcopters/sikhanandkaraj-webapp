@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use CodeIgniter\Database\BaseBuilder;
+use App\Models\MemberMembershipModel;
 use CodeIgniter\Model;
 
 /**
@@ -750,6 +751,31 @@ final class MemberMatchCandidateModel extends Model
                 ::STATUS_ACTION_TAKEN
             );
 
+        /*
+        * Candidate membership projection.
+        *
+        * MembershipService defines a paid membership as one which is:
+        *
+        * - ACTIVE;
+        * - already started;
+        * - not yet expired.
+        *
+        * We deliberately repeat those database-level eligibility conditions here
+        * rather than calling MembershipService once for every candidate.
+        *
+        * This keeps member discovery to one candidate query and avoids an N+1
+        * membership lookup across Search, Dashboard and Interest collections.
+        *
+        * CURRENT_TIMESTAMP is evaluated by PostgreSQL for the query and therefore
+        * also protects us when the membership-expiry housekeeping job has not yet
+        * converted an expired ACTIVE row to EXPIRED.
+        */
+        $activeMembershipStatusSql =
+            $this->db->escape(
+                MemberMembershipModel
+                ::STATUS_ACTIVE
+            );
+
         $builder = $this->db
             ->table(
                 'users u'
@@ -761,6 +787,24 @@ final class MemberMatchCandidateModel extends Model
             'u.full_name',
             'u.gender',
             'u.created_at',
+
+            /*
+            * Candidate membership projection.
+            *
+            * NULL means there is no currently usable paid membership and therefore
+            * the candidate is a Free member.
+            *
+            * Do not COALESCE the plan code here. Keeping the raw projection nullable
+            * lets the presentation layer explicitly derive the Free state.
+            */
+            'active_membership.plan_code_snapshot '
+                . 'AS membership_plan_code',
+
+            'active_membership.plan_name_snapshot '
+                . 'AS membership_plan_name',
+
+            'active_membership.commercial_priority_snapshot '
+                . 'AS membership_commercial_priority',
 
             /*
             * Member verification indicators used by the shared member
@@ -809,6 +853,46 @@ final class MemberMatchCandidateModel extends Model
 
             'fd.community_id',
         ]);
+
+        /*
+        * Resolve at most one currently usable paid membership for each candidate.
+        *
+        * LEFT JOIN LATERAL is used instead of joining member_memberships directly
+        * because membership history is intentionally retained.
+        *
+        * LIMIT 1 guarantees that a data anomaly containing more than one qualifying
+        * ACTIVE membership cannot duplicate the candidate in Search or Dashboard
+        * results.
+        *
+        * Ordering mirrors MembershipService / MemberMembershipModel:
+        * the most recently started usable membership wins.
+        *
+        * id DESC provides a deterministic tie-breaker if two records somehow share
+        * the same starts_at timestamp.
+        */
+        $builder->join(
+            'LATERAL (
+                        SELECT
+                            candidate_membership.id,
+                            candidate_membership.plan_code_snapshot,
+                            candidate_membership.plan_name_snapshot,
+                            candidate_membership.commercial_priority_snapshot
+                        FROM member_memberships candidate_membership
+                        WHERE candidate_membership.user_id = u.id
+                        AND candidate_membership.status = '
+                . $activeMembershipStatusSql
+                . '
+                        AND candidate_membership.starts_at <= CURRENT_TIMESTAMP
+                        AND candidate_membership.expires_at > CURRENT_TIMESTAMP
+                        ORDER BY
+                            candidate_membership.starts_at DESC,
+                            candidate_membership.id DESC
+                        LIMIT 1
+                    ) active_membership',
+            'TRUE',
+            'left',
+            false
+        );
 
         /*
         * This is a PostgreSQL boolean expression rather than a database
