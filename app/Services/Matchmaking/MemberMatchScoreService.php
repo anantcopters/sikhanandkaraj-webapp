@@ -24,7 +24,7 @@ use App\Support\BooleanValue;
  * - deterministic;
  * - unit-testable;
  * - safe to run over large candidate collections;
- * - independent from Search/Dashboard presentation.
+ * - independent from Search/Dashboard/Admin presentation.
  */
 final class MemberMatchScoreService
 {
@@ -38,30 +38,23 @@ final class MemberMatchScoreService
      *
      * Maximum            8
      */
-    private const MOBILE_TRUST_POINTS =
-    1;
+    private const MOBILE_TRUST_POINTS = 1;
 
-    private const EMAIL_TRUST_POINTS =
-    1;
+    private const EMAIL_TRUST_POINTS = 1;
 
-    private const AADHAAR_TRUST_POINTS =
-    3;
+    private const AADHAAR_TRUST_POINTS = 3;
 
-    private const VIDEO_TRUST_POINTS =
-    3;
+    private const VIDEO_TRUST_POINTS = 3;
 
-    private const MAX_TRUST_POINTS =
-    8;
+    private const MAX_TRUST_POINTS = 8;
 
     /*
      * Approved photos are normalized rather than allowing an unlimited
      * number of uploaded photos to continuously increase ranking.
      *
      * Three approved photos are sufficient for the maximum photo component.
-     * Additional photos remain useful to members but do not manipulate rank.
      */
-    private const APPROVED_PHOTO_SCORE_CAP =
-    3;
+    private const APPROVED_PHOTO_SCORE_CAP = 3;
 
     /*
      * Membership commercial priorities currently map to:
@@ -71,8 +64,7 @@ final class MemberMatchScoreService
      * PLUS = 2
      * PRO  = 3
      */
-    private const MAX_COMMERCIAL_PRIORITY =
-    3;
+    private const MAX_COMMERCIAL_PRIORITY = 3;
 
     public function __construct(
         private readonly MatchScoreConfigurationService
@@ -95,22 +87,13 @@ final class MemberMatchScoreService
      *
      * @param array<string, mixed> $candidate
      *
-     * @return array{
-     *     matchScore:float,
-     *     preferenceScore:float,
-     *     profileCompletionScore:float,
-     *     approvedPhotoScore:float,
-     *     trustScore:float,
-     *     commercialScore:float,
-     *     trustPoints:int,
-     *     approvedPhotoCount:int
-     * }
+     * @return array<string, mixed>
      */
     public function score(
         array $candidate
     ): array {
-        $weights = $this
-            ->configurationService
+        $weights =
+            $this->configurationService
             ->weights();
 
         /*
@@ -126,7 +109,7 @@ final class MemberMatchScoreService
             );
 
         /*
-         * Candidate projection must provide the authoritative overall
+         * Candidate projection provides the authoritative cached
          * profile-completion percentage.
          */
         $profileCompletionScore =
@@ -144,7 +127,7 @@ final class MemberMatchScoreService
         );
 
         /*
-         * Approved-photo contribution reaches 100% at the configured cap.
+         * Approved-photo contribution reaches 100% at three approved photos.
          *
          * 0 photos =   0
          * 1 photo  =  33.33
@@ -196,38 +179,60 @@ final class MemberMatchScoreService
             * 100;
 
         /*
-         * Each normalized component is 0..100.
+         * Calculate the ACTUAL contribution of every component.
          *
-         * Weight values total exactly 100, therefore the final Match Score
-         * also remains 0..100.
+         * This belongs in the scoring authority rather than Admin diagnostics.
+         *
+         * Example:
+         *
+         * preference score = 80
+         * preference weight = 50
+         *
+         * contribution = 40 Match Score points.
+         */
+        $weightedContributions = [
+            'preference' =>
+            $this->weightedContribution(
+                $preferenceScore,
+                (float) $weights['preference']
+            ),
+
+            'profileCompletion' =>
+            $this->weightedContribution(
+                $profileCompletionScore,
+                (float) $weights['profileCompletion']
+            ),
+
+            'approvedPhotos' =>
+            $this->weightedContribution(
+                $approvedPhotoScore,
+                (float) $weights['approvedPhotos']
+            ),
+
+            'trust' =>
+            $this->weightedContribution(
+                $trustScore,
+                (float) $weights['trust']
+            ),
+
+            'commercial' =>
+            $this->weightedContribution(
+                $commercialScore,
+                (float) $weights['commercial']
+            ),
+        ];
+
+        /*
+         * The final Match Score is simply the sum of authoritative weighted
+         * contributions.
+         *
+         * This also makes Admin diagnostics explainable without recreating
+         * scoring mathematics elsewhere.
          */
         $matchScore =
-            (
-                $preferenceScore
-                * $weights['preference']
-            )
-            +
-            (
-                $profileCompletionScore
-                * $weights['profileCompletion']
-            )
-            +
-            (
-                $approvedPhotoScore
-                * $weights['approvedPhotos']
-            )
-            +
-            (
-                $trustScore
-                * $weights['trust']
-            )
-            +
-            (
-                $commercialScore
-                * $weights['commercial']
+            array_sum(
+                $weightedContributions
             );
-
-        $matchScore /= 100;
 
         return [
             'matchScore' =>
@@ -271,16 +276,26 @@ final class MemberMatchScoreService
 
             'approvedPhotoCount' =>
             $approvedPhotoCount,
+
+            /*
+             * Expose the exact active configuration used for this score.
+             *
+             * Diagnostics therefore describe the score that was actually
+             * calculated rather than independently resolving configuration.
+             */
+            'weights' =>
+            $weights,
+
+            /*
+             * Actual Match Score points contributed by each component.
+             */
+            'weightedContributions' =>
+            $weightedContributions,
         ];
     }
 
     /**
      * Attach Match Score values to an already preference-scored collection.
-     *
-     * This method intentionally DOES NOT sort the collection in this phase.
-     *
-     * Search/Dashboard ordering will be introduced separately after we have
-     * verified the score inputs and query performance.
      *
      * @param list<array<string, mixed>> $candidates
      *
@@ -321,6 +336,14 @@ final class MemberMatchScoreService
                 $score['commercialScore'],
             ];
 
+            /*
+             * Keep weighted contributions available to internal consumers.
+             *
+             * Member presentation does not need to expose these values.
+             */
+            $candidate['match_score_contributions'] =
+                $score['weightedContributions'];
+
             $candidate['trust_points'] =
                 $score['trustPoints'];
 
@@ -344,9 +367,6 @@ final class MemberMatchScoreService
      * 6. Newest member
      * 7. Highest user ID
      *
-     * The final user-ID tie-breaker guarantees stable ordering even when every
-     * other ranking input is identical.
-     *
      * @param list<array<string, mixed>> $candidates
      *
      * @return list<array<string, mixed>>
@@ -366,9 +386,6 @@ final class MemberMatchScoreService
                 array $left,
                 array $right
             ): int {
-                /*
-                * Highest final Match Score first.
-                */
                 $comparison =
                     ((float) (
                         $right['match_score']
@@ -385,9 +402,10 @@ final class MemberMatchScoreService
                 }
 
                 /*
-                * Preference remains the strongest tie-breaker because matrimonial
-                * relevance must outrank commercial or cosmetic profile signals.
-                */
+                 * Preference remains the strongest tie-breaker because
+                 * matrimonial relevance must outrank commercial/profile
+                 * presentation signals.
+                 */
                 $comparison =
                     ((float) (
                         $right['match_percentage']
@@ -449,8 +467,9 @@ final class MemberMatchScoreService
                 }
 
                 /*
-                * ISO/PostgreSQL timestamps are lexicographically sortable.
-                */
+                 * PostgreSQL/ISO timestamps remain lexicographically sortable
+                 * under the current candidate projection.
+                 */
                 $comparison =
                     strcmp(
                         (string) (
@@ -467,10 +486,13 @@ final class MemberMatchScoreService
                     return $comparison;
                 }
 
+                /*
+                 * Final deterministic tie-breaker.
+                 */
                 return ((int) (
-                        $right['id']
-                        ?? 0
-                    ))
+                    $right['id']
+                    ?? 0
+                ))
                     <=>
                     ((int) (
                         $left['id']
@@ -537,6 +559,24 @@ final class MemberMatchScoreService
         return min(
             self::MAX_TRUST_POINTS,
             $points
+        );
+    }
+
+    /**
+     * Calculate the number of final Match Score points contributed by one
+     * normalized component.
+     */
+    private function weightedContribution(
+        float $componentScore,
+        float $weight
+    ): float {
+        return round(
+            (
+                $componentScore
+                * $weight
+            )
+                / 100,
+            2
         );
     }
 

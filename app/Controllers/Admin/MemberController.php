@@ -153,6 +153,21 @@ final class MemberController extends BaseController
                         session(
                             'formAlert'
                         ),
+                        
+                        'matchScoreComparison' =>
+                        session(
+                            'matchScoreComparison'
+                        ),
+
+                        'matchScoreDiagnosticErrors' =>
+                        session(
+                            'matchScoreDiagnosticErrors'
+                        ) ?? [],
+
+                        'matchScoreDiagnosticInput' =>
+                        session(
+                            'matchScoreDiagnosticInput'
+                        ) ?? [],
 
                         'pageScripts' => [
                             'assets/js/pages/admin-member-view.js',
@@ -190,6 +205,161 @@ final class MemberController extends BaseController
 
             throw PageNotFoundException
                 ::forPageNotFound();
+        }
+    }
+
+    /**
+     * Calculate a read-only directional Match Score diagnostic.
+     *
+     * This endpoint exists only for authenticated administrators.
+     *
+     * It does not persist anything and does not affect actual member ranking.
+     */
+    public function matchScoreDiagnostic(
+        int $userId
+    ): RedirectResponse {
+        $profileReference =
+            mb_strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'profile_reference'
+                        )
+                )
+            );
+
+        /*
+     * Keep client/server validation consistent with the project.
+     *
+     * Profile references are deliberately treated as strings rather than
+     * assuming a numeric member ID format.
+     */
+        $validation =
+            service(
+                'validation'
+            );
+
+        $validation->setRules(
+            [
+                'profile_reference' => [
+                    'label' =>
+                    'Profile ID',
+
+                    'rules' =>
+                    'required|max_length[50]',
+                ],
+            ]
+        );
+
+        $input = [
+            'profile_reference' =>
+            $profileReference,
+        ];
+
+        if (!$validation->run($input)) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.members.view',
+                        $userId
+                    )
+                )
+                ->with(
+                    'matchScoreDiagnosticErrors',
+                    $validation->getErrors()
+                )
+                ->with(
+                    'matchScoreDiagnosticInput',
+                    $input
+                );
+        }
+
+        try {
+            /*
+         * Reuse the existing Admin diagnostic service.
+         *
+         * Controller remains orchestration only and contains no scoring logic.
+         */
+            $diagnostic =
+                service(
+                    'memberMatchScoreDiagnosticService'
+                )->compare(
+                    $userId,
+                    $profileReference
+                );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.members.view',
+                        $userId
+                    )
+                )
+                ->with(
+                    'matchScoreComparison',
+                    $diagnostic
+                )
+                ->with(
+                    'matchScoreDiagnosticInput',
+                    $input
+                );
+        } catch (DomainException $exception) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.members.view',
+                        $userId
+                    )
+                )
+                ->with(
+                    'matchScoreDiagnosticErrors',
+                    [
+                        'profile_reference' =>
+                        $exception->getMessage(),
+                    ]
+                )
+                ->with(
+                    'matchScoreDiagnosticInput',
+                    $input
+                );
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_member_match_score_diagnostic',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_member_user_id' =>
+                        $userId,
+                    ]
+                )
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.members.view',
+                        $userId
+                    )
+                )
+                ->with(
+                    'matchScoreDiagnosticErrors',
+                    [
+                        'profile_reference' =>
+                        'The Match Score diagnostic could not be calculated.',
+                    ]
+                )
+                ->with(
+                    'matchScoreDiagnosticInput',
+                    $input
+                );
         }
     }
 

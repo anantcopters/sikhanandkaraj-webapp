@@ -624,31 +624,32 @@ $pageScripts = $pageScripts ?? [];
                                                 Administrators
                                             </a>
                                         </li>
-                                    </ul>
-                                </li>
-                                <li>
-                                    <a
-                                        href="<?= route_to(
-                                                    'admin.match-score.index'
-                                                ) ?>"
-                                        class="dropdown-item
+                                        <li>
+                                            <a
+                                                href="<?= route_to(
+                                                            'admin.match-score.index'
+                                                        ) ?>"
+                                                class="dropdown-item
             d-flex
             align-items-center
             gap-2
             <?= $matchScoreActive
                                     ? 'active'
                                     : '' ?>"
-                                        <?= $matchScoreActive
-                                            ? 'aria-current="page"'
-                                            : '' ?>>
+                                                <?= $matchScoreActive
+                                                    ? 'aria-current="page"'
+                                                    : '' ?>>
 
-                                        <i
-                                            class="ri-bar-chart-box-line"
-                                            aria-hidden="true"></i>
+                                                <i
+                                                    class="ri-bar-chart-box-line"
+                                                    aria-hidden="true"></i>
 
-                                        Match Score
-                                    </a>
+                                                Match Score
+                                            </a>
+                                        </li>
+                                    </ul>
                                 </li>
+
                             <?php endif; ?>
                         </ul>
 

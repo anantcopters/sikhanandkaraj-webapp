@@ -4,33 +4,70 @@ declare(strict_types=1);
 
 namespace App\Services\Admin;
 
+use App\Models\MemberMatchCandidateModel;
 use App\Models\MemberMembershipModel;
-use App\Models\MemberMatchScoringSignalModel;
 use App\Models\MemberPhotoModel;
 use App\Models\MemberVideoIntroductionModel;
-use App\Models\UserContactModel;
 use App\Models\UserModel;
 use App\Services\Matchmaking\MatchScoreConfigurationService;
 use App\Services\Matchmaking\MemberMatchScoreService;
+use App\Services\Matchmaking\PartnerPreferenceMatchService;
 use App\Support\BooleanValue;
 use CodeIgniter\Database\BaseConnection;
+use DomainException;
 
 /**
- * Read-only administrator diagnostics for intrinsic Match Score signals.
+ * Read-only administrator diagnostics for Match Score.
+ *
+ * Two diagnostic modes exist:
+ *
+ * 1. Candidate-intrinsic diagnostic
+ *    --------------------------------
+ *    Shows signals that belong to one candidate regardless of viewer:
+ *
+ *    - profile completion;
+ *    - approved photos;
+ *    - verification/trust;
+ *    - membership commercial priority.
+ *
+ * 2. Directional diagnostic
+ *    ----------------------
+ *    Calculates the REAL final Match Score for:
+ *
+ *        Viewer A -> Candidate B
+ *
+ *    Partner Preference compatibility is directional, therefore:
+ *
+ *        A -> B
+ *
+ *    can legitimately have a different score from:
+ *
+ *        B -> A
  *
  * IMPORTANT:
  *
- * This service deliberately does NOT manufacture a final Match Score.
+ * This service never reimplements:
  *
- * Final score requires viewer-specific Partner Preference compatibility.
- * Supplying match_percentage = 0 simply to obtain a "score" would create a
- * misleading administrative value.
+ * - candidate eligibility;
+ * - Partner Preference matching;
+ * - Match Score calculation.
+ *
+ * Existing production services remain authoritative.
  */
 final class MemberMatchScoreDiagnosticService
 {
     public function __construct(
         private readonly BaseConnection
         $database,
+
+        private readonly UserModel
+        $userModel,
+
+        private readonly MemberMatchCandidateModel
+        $candidateModel,
+
+        private readonly PartnerPreferenceMatchService
+        $partnerPreferenceMatchService,
 
         private readonly MatchScoreConfigurationService
         $configurationService,
@@ -40,6 +77,8 @@ final class MemberMatchScoreDiagnosticService
     ) {}
 
     /**
+     * Return candidate-intrinsic ranking signals.
+     *
      * @return array<string, mixed>
      */
     public function forMember(
@@ -53,7 +92,7 @@ final class MemberMatchScoreDiagnosticService
          * Build one compact diagnostic projection.
          *
          * These definitions mirror MemberMatchCandidateModel so Admin
-         * diagnostics cannot drift from actual ranking inputs.
+         * diagnostics cannot intentionally use a different scoring definition.
          */
         $activeStatus =
             $this->database->escape(
@@ -115,7 +154,7 @@ final class MemberMatchScoreDiagnosticService
                         active_membership.commercial_priority_snapshot,
                         0
                     ) AS membership_commercial_priority
-                    ',
+                ',
                 false
             )
             ->join(
@@ -125,88 +164,104 @@ final class MemberMatchScoreDiagnosticService
             )
             ->join(
                 'LATERAL (
-                        SELECT
-                            COUNT(*)::INTEGER
-                                AS approved_photo_count
-                        FROM member_photos candidate_photo
-                        WHERE candidate_photo.member_id = u.id
-                        AND candidate_photo.status = '
+                    SELECT
+                        COUNT(*)::INTEGER
+                            AS approved_photo_count
+                    FROM member_photos candidate_photo
+                    WHERE candidate_photo.member_id = u.id
+                    AND candidate_photo.status = '
                     . $approvedPhotoStatus
                     . '
-                        AND candidate_photo.deleted_at IS NULL
-                    ) candidate_photos',
+                    AND candidate_photo.deleted_at IS NULL
+                ) candidate_photos',
                 'TRUE',
                 'left',
                 false
             )
             ->join(
                 'LATERAL (
-                        SELECT
-                            candidate_mobile.is_verified
-                        FROM user_contacts candidate_mobile
-                        WHERE candidate_mobile.user_id = u.id
-                        AND candidate_mobile.contact_type = \'MOBILE\'
-                        AND candidate_mobile.is_primary = TRUE
-                        ORDER BY candidate_mobile.id DESC
-                        LIMIT 1
-                    ) primary_mobile',
+                    SELECT
+                        candidate_mobile.is_verified
+                    FROM user_contacts candidate_mobile
+                    WHERE candidate_mobile.user_id = u.id
+                    AND candidate_mobile.contact_type = \'MOBILE\'
+                    AND candidate_mobile.is_primary = TRUE
+                    ORDER BY candidate_mobile.id DESC
+                    LIMIT 1
+                ) primary_mobile',
                 'TRUE',
                 'left',
                 false
             )
             ->join(
                 'LATERAL (
-                        SELECT
-                            candidate_email.is_verified
-                        FROM user_contacts candidate_email
-                        WHERE candidate_email.user_id = u.id
-                        AND candidate_email.contact_type = \'EMAIL\'
-                        AND candidate_email.is_primary = TRUE
-                        ORDER BY candidate_email.id DESC
-                        LIMIT 1
-                    ) primary_email',
+                    SELECT
+                        candidate_email.is_verified
+                    FROM user_contacts candidate_email
+                    WHERE candidate_email.user_id = u.id
+                    AND candidate_email.contact_type = \'EMAIL\'
+                    AND candidate_email.is_primary = TRUE
+                    ORDER BY candidate_email.id DESC
+                    LIMIT 1
+                ) primary_email',
                 'TRUE',
                 'left',
                 false
             )
+
+            /*
+             * IMPORTANT:
+             *
+             * Use the actual MemberVideoIntroductionModel schema:
+             *
+             * member_user_id
+             * moderation_status
+             * is_active
+             * deleted_at
+             *
+             * The previous diagnostic used legacy/non-existent user_id/status
+             * column names.
+             */
             ->join(
                 'LATERAL (
-                        SELECT
-                            candidate_video.id
-                        FROM member_video_introductions candidate_video
-                        WHERE candidate_video.user_id = u.id
-                        AND candidate_video.status = '
+                    SELECT
+                        candidate_video.id
+                    FROM member_video_introductions candidate_video
+                    WHERE candidate_video.member_user_id = u.id
+                    AND candidate_video.moderation_status = '
                     . $approvedVideoStatus
                     . '
-                        ORDER BY
-                            candidate_video.updated_at DESC,
-                            candidate_video.id DESC
-                        LIMIT 1
-                    ) approved_video',
+                    AND candidate_video.is_active = TRUE
+                    AND candidate_video.deleted_at IS NULL
+                    ORDER BY
+                        candidate_video.updated_at DESC,
+                        candidate_video.id DESC
+                    LIMIT 1
+                ) approved_video',
                 'TRUE',
                 'left',
                 false
             )
             ->join(
                 'LATERAL (
-                        SELECT
-                            candidate_membership.plan_code_snapshot,
-                            candidate_membership.plan_name_snapshot,
-                            candidate_membership.commercial_priority_snapshot
-                        FROM member_memberships candidate_membership
-                        WHERE candidate_membership.user_id = u.id
-                        AND candidate_membership.status = '
+                    SELECT
+                        candidate_membership.plan_code_snapshot,
+                        candidate_membership.plan_name_snapshot,
+                        candidate_membership.commercial_priority_snapshot
+                    FROM member_memberships candidate_membership
+                    WHERE candidate_membership.user_id = u.id
+                    AND candidate_membership.status = '
                     . $activeStatus
                     . '
-                        AND candidate_membership.starts_at
-                            <= CURRENT_TIMESTAMP
-                        AND candidate_membership.expires_at
-                            > CURRENT_TIMESTAMP
-                        ORDER BY
-                            candidate_membership.starts_at DESC,
-                            candidate_membership.id DESC
-                        LIMIT 1
-                    ) active_membership',
+                    AND candidate_membership.starts_at
+                        <= CURRENT_TIMESTAMP
+                    AND candidate_membership.expires_at
+                        > CURRENT_TIMESTAMP
+                    ORDER BY
+                        candidate_membership.starts_at DESC,
+                        candidate_membership.id DESC
+                    LIMIT 1
+                ) active_membership',
                 'TRUE',
                 'left',
                 false
@@ -223,11 +278,13 @@ final class MemberMatchScoreDiagnosticService
         }
 
         /*
-         * Use MemberMatchScoreService itself to normalize intrinsic components.
+         * Use the real scorer to normalize intrinsic components.
          *
-         * preference=0 is passed only so the pure scorer can normalize the
-         * other components. The returned final Match Score is intentionally
-         * discarded.
+         * match_percentage=0 is ONLY used to obtain normalization for the
+         * intrinsic components.
+         *
+         * The resulting final Match Score is deliberately discarded because
+         * there is no viewer in this diagnostic mode.
          */
         $normalized =
             $this->matchScoreService
@@ -342,14 +399,397 @@ final class MemberMatchScoreDiagnosticService
             'weights' =>
             $weights,
 
-            /*
-             * Explicitly communicate why this value is absent.
-             */
             'finalScore' =>
             null,
 
             'finalScoreReason' =>
             'Final Match Score is viewer-specific because Partner Preference compatibility depends on the viewing member.',
+        ];
+    }
+
+    /**
+     * Compare the Admin profile member against another member.
+     *
+     * Both directions are calculated independently:
+     *
+     *     profile member -> comparison member
+     *
+     * and:
+     *
+     *     comparison member -> profile member
+     *
+     * @return array<string, mixed>
+     */
+    public function compare(
+        int $profileMemberId,
+        string $comparisonProfileReference
+    ): array {
+        if ($profileMemberId <= 0) {
+            throw new DomainException(
+                'The member profile could not be found.'
+            );
+        }
+
+        $comparisonProfileReference =
+            mb_strtoupper(
+                trim(
+                    $comparisonProfileReference
+                )
+            );
+
+        if ($comparisonProfileReference === '') {
+            throw new DomainException(
+                'Please enter a Profile ID.'
+            );
+        }
+
+        /*
+         * Resolve both actual member accounts first.
+         *
+         * This lets us distinguish:
+         *
+         * - invalid Profile ID;
+         * - same member;
+         * - member exists but is not an eligible candidate.
+         */
+        $profileMember =
+            $this->userModel
+            ->find(
+                $profileMemberId
+            );
+
+        if (!is_array($profileMember)) {
+            throw new DomainException(
+                'The member profile could not be found.'
+            );
+        }
+
+        $comparisonMember =
+            $this->userModel
+            ->where(
+                'profile_ref_number',
+                $comparisonProfileReference
+            )
+            ->first();
+
+        if (!is_array($comparisonMember)) {
+            throw new DomainException(
+                'No member was found for the entered Profile ID.'
+            );
+        }
+
+        $comparisonMemberId =
+            max(
+                0,
+                (int) (
+                    $comparisonMember['id']
+                    ?? 0
+                )
+            );
+
+        if ($comparisonMemberId <= 0) {
+            throw new DomainException(
+                'No member was found for the entered Profile ID.'
+            );
+        }
+
+        if ($comparisonMemberId === $profileMemberId) {
+            throw new DomainException(
+                'Please enter a different member Profile ID.'
+            );
+        }
+
+        /*
+         * Direction 1:
+         *
+         * Current Admin profile member is the viewer.
+         */
+        $forward =
+            $this->directionalScore(
+                $profileMember,
+                $comparisonMember
+            );
+
+        /*
+         * Direction 2:
+         *
+         * Comparison member becomes the viewer.
+         *
+         * This must be independently calculated because Partner Preferences
+         * are directional.
+         */
+        $reverse =
+            $this->directionalScore(
+                $comparisonMember,
+                $profileMember
+            );
+
+        return [
+            'profileMember' =>
+            $this->memberIdentity(
+                $profileMember
+            ),
+
+            'comparisonMember' =>
+            $this->memberIdentity(
+                $comparisonMember
+            ),
+
+            'forward' =>
+            $forward,
+
+            'reverse' =>
+            $reverse,
+        ];
+    }
+
+    /**
+     * Calculate one viewer -> candidate diagnostic.
+     *
+     * @param array<string, mixed> $viewer
+     * @param array<string, mixed> $candidateMember
+     *
+     * @return array<string, mixed>
+     */
+    private function directionalScore(
+        array $viewer,
+        array $candidateMember
+    ): array {
+        $viewerId =
+            max(
+                0,
+                (int) (
+                    $viewer['id']
+                    ?? 0
+                )
+            );
+
+        $candidateId =
+            max(
+                0,
+                (int) (
+                    $candidateMember['id']
+                    ?? 0
+                )
+            );
+
+        $viewerGender =
+            trim(
+                (string) (
+                    $viewer['gender']
+                    ?? ''
+                )
+            );
+
+        /*
+         * CRITICAL:
+         *
+         * Do not directly query scoring tables here.
+         *
+         * MemberMatchCandidateModel remains the authority for whether this
+         * member is a currently visible/eligible candidate and also supplies
+         * exactly the same candidate scoring projection used by production
+         * Search/Dashboard.
+         */
+        $candidateRows =
+            $this->candidateModel
+            ->visibleCandidatesByIds(
+                $viewerId,
+                $viewerGender,
+                [
+                    $candidateId,
+                ]
+            );
+
+        if ($candidateRows === []) {
+            return [
+                'eligible' =>
+                false,
+
+                'reason' =>
+                'This member is not currently an eligible candidate for the viewing member.',
+
+                'score' =>
+                null,
+            ];
+        }
+
+        /*
+         * There can be only one requested candidate.
+         */
+        $candidate =
+            $candidateRows[0];
+
+        /*
+         * Use the production Partner Preference algorithm.
+         *
+         * Never recreate preference comparison inside Admin diagnostics.
+         */
+        $preferenceScored =
+            $this->partnerPreferenceMatchService
+            ->scoreCandidates(
+                $viewerId,
+                [
+                    $candidate,
+                ]
+            );
+
+        if (
+            $preferenceScored === []
+            || !is_array(
+                $preferenceScored[0]
+                    ?? null
+            )
+        ) {
+            return [
+                'eligible' =>
+                false,
+
+                'reason' =>
+                'Partner Preference compatibility could not be calculated.',
+
+                'score' =>
+                null,
+            ];
+        }
+
+        $scoredCandidate =
+            $preferenceScored[0];
+
+        /*
+         * Use the same final scorer used by Dashboard and Search.
+         */
+        $score =
+            $this->matchScoreService
+            ->score(
+                $scoredCandidate
+            );
+
+        return [
+            'eligible' =>
+            true,
+
+            'reason' =>
+            '',
+
+            'passesCompulsory' => ($scoredCandidate['passes_compulsory'] ?? true)
+                === true,
+
+            'matchPercentage' =>
+            (float) (
+                $scoredCandidate['match_percentage']
+                ?? 0
+            ),
+
+            'matchScore' =>
+            (float) (
+                $score['matchScore']
+                ?? 0
+            ),
+
+            'preferenceScore' =>
+            (float) (
+                $score['preferenceScore']
+                ?? 0
+            ),
+
+            'profileCompletionScore' =>
+            (float) (
+                $score['profileCompletionScore']
+                ?? 0
+            ),
+
+            'approvedPhotoScore' =>
+            (float) (
+                $score['approvedPhotoScore']
+                ?? 0
+            ),
+
+            'trustScore' =>
+            (float) (
+                $score['trustScore']
+                ?? 0
+            ),
+
+            'commercialScore' =>
+            (float) (
+                $score['commercialScore']
+                ?? 0
+            ),
+
+            'trustPoints' =>
+            (int) (
+                $score['trustPoints']
+                ?? 0
+            ),
+
+            'approvedPhotoCount' =>
+            (int) (
+                $score['approvedPhotoCount']
+                ?? 0
+            ),
+
+            'weights' =>
+            is_array(
+                $score['weights']
+                    ?? null
+            )
+                ? $score['weights']
+                : [],
+
+            'weightedContributions' =>
+            is_array(
+                $score['weightedContributions']
+                    ?? null
+            )
+                ? $score['weightedContributions']
+                : [],
+        ];
+    }
+
+    /**
+     * Return only the identity information required by Admin diagnostics.
+     *
+     * @param array<string, mixed> $member
+     *
+     * @return array<string, mixed>
+     */
+    private function memberIdentity(
+        array $member
+    ): array {
+        return [
+            'id' =>
+            max(
+                0,
+                (int) (
+                    $member['id']
+                    ?? 0
+                )
+            ),
+
+            'name' =>
+            trim(
+                (string) (
+                    $member['full_name']
+                    ?? ''
+                )
+            ),
+
+            'profileReference' =>
+            trim(
+                (string) (
+                    $member['profile_ref_number']
+                    ?? ''
+                )
+            ),
+
+            'gender' =>
+            trim(
+                (string) (
+                    $member['gender']
+                    ?? ''
+                )
+            ),
         ];
     }
 }

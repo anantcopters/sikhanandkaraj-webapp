@@ -1064,21 +1064,49 @@ $this->section('content');
         ]
     ) ?>
     <!--
-        Match Score diagnostics.
+    Match Score diagnostics.
 
-        This intentionally displays candidate-intrinsic ranking signals only.
-        A final score cannot exist without selecting a viewing member because
-        Partner Preference compatibility is directional.
-    -->
+    Intrinsic signals are always displayed.
+
+    A viewer-specific diagnostic can additionally calculate the real
+    directional score against another member.
+-->
     <?= view(
         'Admin/Members/Partials/MatchScoreDiagnostics',
         [
+            'memberId' =>
+            $resolvedMemberId,
+
             'diagnostics' =>
             isset($matchScoreDiagnostics)
                 && is_array(
                     $matchScoreDiagnostics
                 )
                 ? $matchScoreDiagnostics
+                : [],
+
+            'comparison' =>
+            isset($matchScoreComparison)
+                && is_array(
+                    $matchScoreComparison
+                )
+                ? $matchScoreComparison
+                : [],
+
+            'diagnosticErrors' =>
+            isset($matchScoreDiagnosticErrors)
+                && is_array(
+                    $matchScoreDiagnosticErrors
+                )
+                ? $matchScoreDiagnosticErrors
+                : [],
+
+            'diagnosticInput' =>
+            isset($matchScoreDiagnosticInput)
+                && is_array(
+                    $matchScoreDiagnosticInput
+                )
+                ? $matchScoreDiagnosticInput
                 : [],
         ]
     ) ?>

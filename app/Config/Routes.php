@@ -1995,6 +1995,21 @@ $routes->group('admin', [
                     ]
                 );
 
+                /*
+                * Read-only viewer-specific Match Score diagnostic.
+                *
+                * Both ADMIN and SUPER_ADMIN may inspect ranking diagnostics.
+                * Global Match Score configuration remains SUPER_ADMIN only.
+                */
+                $routes->post(
+                    '(:num)/match-score-diagnostic',
+                    'MemberController::matchScoreDiagnostic/$1',
+                    [
+                        'as' =>
+                        'admin.members.match-score-diagnostic',
+                    ]
+                );
+
                 $routes->get(
                     '(:num)',
                     'MemberController::view/$1',

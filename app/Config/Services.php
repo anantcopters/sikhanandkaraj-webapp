@@ -2888,8 +2888,13 @@ final class Services extends BaseService
     /**
      * Return read-only Admin Match Score diagnostics.
      *
-     * This service exposes candidate-intrinsic ranking signals only.
-     * It never creates a synthetic viewer-independent final Match Score.
+     * The diagnostic service deliberately reuses the production:
+     *
+     * - candidate projection/eligibility;
+     * - Partner Preference algorithm;
+     * - Match Score calculation.
+     *
+     * This prevents Admin diagnostics from drifting from actual member ranking.
      */
     public static function memberMatchScoreDiagnosticService(
         bool $getShared = true
@@ -2905,6 +2910,18 @@ final class Services extends BaseService
 
         return new MemberMatchScoreDiagnosticService(
             $database,
+
+            new UserModel(
+                $database
+            ),
+
+            new MemberMatchCandidateModel(
+                $database
+            ),
+
+            static::partnerPreferenceMatchService(
+                false
+            ),
 
             static::matchScoreConfigurationService(
                 true
