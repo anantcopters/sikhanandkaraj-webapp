@@ -518,21 +518,7 @@ final class MembershipPlanPresentationService
                     (string) $dateDisplay->dateFormat
                 );
 
-            /*
-             * DateDisplay itself already provides safe defaults, but keep
-             * defensive fallbacks here so malformed runtime configuration
-             * cannot break the Membership Plans screen.
-             */
-            if ($displayTimezone === '') {
-                $displayTimezone =
-                    'Asia/Kolkata';
-            }
-
-            if ($displayFormat === '') {
-                $displayFormat =
-                    'jS M Y';
-            }
-
+            
             return $date
                 ->setTimezone(
                     new DateTimeZone(
