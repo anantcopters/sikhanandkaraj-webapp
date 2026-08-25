@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Support\DateDisplay;
-
 /**
  * @var array<string, mixed> $membershipHistory
  */
@@ -78,27 +76,6 @@ $videoUsage =
     ? $membershipHistory['liveIntroductionUsageHistory']
     : [];
 
-/*
- * Reuse the project's normal UTC -> display timezone formatting.
- */
-$formatDateTime =
-    static function (
-        mixed $value
-    ): string {
-        return DateDisplay::formatUtcDateTime(
-            $value,
-            '—'
-        );
-    };
-
-$isoDateTime =
-    static function (
-        mixed $value
-    ): string {
-        return DateDisplay::utcToDisplayIso(
-            $value
-        );
-    };
 ?>
 
 <div
@@ -211,18 +188,14 @@ $isoDateTime =
 
                     <time
                         datetime="<?= esc(
-                                        $isoDateTime(
-                                            $currentMembership['startsAt']
-                                                ?? null
-                                        ),
+                                        $currentMembership['startsAtIso']
+                                            ?? '',
                                         'attr'
                                     ) ?>">
 
                         <?= esc(
-                            $formatDateTime(
-                                $currentMembership['startsAt']
-                                    ?? null
-                            )
+                            $currentMembership['startsAtDisplay']
+                                ?? '—'
                         ) ?>
 
                     </time>
@@ -231,18 +204,14 @@ $isoDateTime =
 
                     <time
                         datetime="<?= esc(
-                                        $isoDateTime(
-                                            $currentMembership['expiresAt']
-                                                ?? null
-                                        ),
+                                        $currentMembership['expiresAtIso']
+                                            ?? '',
                                         'attr'
                                     ) ?>">
 
                         <?= esc(
-                            $formatDateTime(
-                                $currentMembership['expiresAt']
-                                    ?? null
-                            )
+                            $currentMembership['expiresAtDisplay']
+                                ?? '—'
                         ) ?>
 
                     </time>
@@ -530,18 +499,14 @@ $isoDateTime =
 
                                 <time
                                     datetime="<?= esc(
-                                                    $isoDateTime(
-                                                        $membership['startsAt']
-                                                            ?? null
-                                                    ),
+                                                    $membership['startsAtIso']
+                                                        ?? '',
                                                     'attr'
                                                 ) ?>">
 
                                     <?= esc(
-                                        $formatDateTime(
-                                            $membership['startsAt']
-                                                ?? null
-                                        )
+                                        $membership['startsAtDisplay']
+                                            ?? '—'
                                     ) ?>
 
                                 </time>
@@ -554,18 +519,14 @@ $isoDateTime =
 
                                 <time
                                     datetime="<?= esc(
-                                                    $isoDateTime(
-                                                        $membership['expiresAt']
-                                                            ?? null
-                                                    ),
+                                                    $membership['expiresAtIso']
+                                                        ?? '',
                                                     'attr'
                                                 ) ?>">
 
                                     <?= esc(
-                                        $formatDateTime(
-                                            $membership['expiresAt']
-                                                ?? null
-                                        )
+                                        $membership['expiresAtDisplay']
+                                            ?? '—'
                                     ) ?>
 
                                 </time>
@@ -719,18 +680,14 @@ $isoDateTime =
 
                             <time
                                 datetime="<?= esc(
-                                                $isoDateTime(
-                                                    $usage['firstViewedAt']
-                                                        ?? null
-                                                ),
+                                                $membership['startsAtIso']
+                                                    ?? '',
                                                 'attr'
                                             ) ?>">
 
                                 <?= esc(
-                                    $formatDateTime(
-                                        $usage['firstViewedAt']
-                                            ?? null
-                                    )
+                                    $membership['startsAtDisplay']
+                                        ?? '—'
                                 ) ?>
 
                             </time>
@@ -741,18 +698,14 @@ $isoDateTime =
 
                             <time
                                 datetime="<?= esc(
-                                                $isoDateTime(
-                                                    $usage['lastViewedAt']
-                                                        ?? null
-                                                ),
+                                                $membership['expiresAtIso']
+                                                    ?? '',
                                                 'attr'
                                             ) ?>">
 
                                 <?= esc(
-                                    $formatDateTime(
-                                        $usage['lastViewedAt']
-                                            ?? null
-                                    )
+                                    $membership['expiresAtDisplay']
+                                        ?? '—'
                                 ) ?>
 
                             </time>
@@ -786,9 +739,10 @@ $isoDateTime =
 </h3>
 
 <p class="text-muted fs-13 mb-3">
-    Each approved Live Introduction version consumes allowance
-    only once during the membership. Replays do not consume
-    another allowance.
+    A member's Live Introduction consumes membership allowance
+    only on the first successful playback during that membership.
+    Replays or a replacement approved video for the same member
+    do not consume another allowance.
 </p>
 
 <?php if ($videoUsage === []): ?>
@@ -894,18 +848,14 @@ $isoDateTime =
 
                             <time
                                 datetime="<?= esc(
-                                                $isoDateTime(
-                                                    $usage['firstViewedAt']
-                                                        ?? null
-                                                ),
+                                                $usage['firstViewedAtIso']
+                                                    ?? '',
                                                 'attr'
                                             ) ?>">
 
                                 <?= esc(
-                                    $formatDateTime(
-                                        $usage['firstViewedAt']
-                                            ?? null
-                                    )
+                                    $usage['firstViewedAtDisplay']
+                                        ?? '—'
                                 ) ?>
 
                             </time>
@@ -916,18 +866,14 @@ $isoDateTime =
 
                             <time
                                 datetime="<?= esc(
-                                                $isoDateTime(
-                                                    $usage['lastViewedAt']
-                                                        ?? null
-                                                ),
+                                                $usage['lastViewedAtIso']
+                                                    ?? '',
                                                 'attr'
                                             ) ?>">
 
                                 <?= esc(
-                                    $formatDateTime(
-                                        $usage['lastViewedAt']
-                                            ?? null
-                                    )
+                                    $usage['lastViewedAtDisplay']
+                                        ?? '—'
                                 ) ?>
 
                             </time>

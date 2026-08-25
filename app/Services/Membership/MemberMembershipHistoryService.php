@@ -7,6 +7,7 @@ namespace App\Services\Membership;
 use App\Models\MemberMembershipLiveIntroductionViewModel;
 use App\Models\MemberMembershipModel;
 use App\Models\MemberMembershipProfileViewModel;
+use App\Support\DateDisplay;
 
 /**
  * Builds member-facing membership and commercial usage history.
@@ -16,12 +17,12 @@ use App\Models\MemberMembershipProfileViewModel;
  * It deliberately does not make entitlement decisions. MembershipService,
  * ProfileAccessPolicy and LiveIntroductionAccessPolicy remain the respective
  * authorities for product access.
+ *
+ * Presentation values are prepared here so Account Settings views do not
+ * duplicate date/time conversion logic.
  */
 final class MemberMembershipHistoryService
 {
-    private const IST_TIMEZONE =
-    'Asia/Kolkata';
-
     public function __construct(
         private readonly MembershipService
         $membershipService,
@@ -53,6 +54,21 @@ final class MemberMembershipHistoryService
             ->resolveForUser(
                 $userId
             );
+
+        /*
+         * MembershipService remains the source of truth for the current
+         * membership. We only enrich its timestamps for presentation.
+         */
+        if (
+            is_array($current)
+            && isset($current['membership'])
+            && is_array($current['membership'])
+        ) {
+            $current['membership'] =
+                $this->withDisplayTimestamps(
+                    $current['membership']
+                );
+        }
 
         $memberships =
             array_map(
@@ -123,6 +139,24 @@ final class MemberMembershipHistoryService
                         ?? ''
                     )
                 )
+            );
+
+        $startsAt =
+            (string) (
+                $membership['starts_at']
+                ?? ''
+            );
+
+        $expiresAt =
+            (string) (
+                $membership['expires_at']
+                ?? ''
+            );
+
+        $createdAt =
+            (string) (
+                $membership['created_at']
+                ?? ''
             );
 
         return [
@@ -219,27 +253,54 @@ final class MemberMembershipHistoryService
                 )
             ),
 
+            /*
+             * Keep raw values available where needed, but presentation values
+             * are generated here through the existing DateDisplay support.
+             */
             'startsAt' =>
-            (string) (
-                $membership['starts_at']
-                ?? ''
+            $startsAt,
+
+            'startsAtDisplay' =>
+            DateDisplay::formatUtcDateTime(
+                $startsAt
+            ),
+
+            'startsAtIso' =>
+            DateDisplay::utcToDisplayIso(
+                $startsAt
             ),
 
             'expiresAt' =>
-            (string) (
-                $membership['expires_at']
-                ?? ''
+            $expiresAt,
+
+            'expiresAtDisplay' =>
+            DateDisplay::formatUtcDateTime(
+                $expiresAt
+            ),
+
+            'expiresAtIso' =>
+            DateDisplay::utcToDisplayIso(
+                $expiresAt
             ),
 
             'createdAt' =>
-            (string) (
-                $membership['created_at']
-                ?? ''
+            $createdAt,
+
+            'createdAtDisplay' =>
+            DateDisplay::formatUtcDateTime(
+                $createdAt
+            ),
+
+            'createdAtIso' =>
+            DateDisplay::utcToDisplayIso(
+                $createdAt
             ),
         ];
     }
 
     /**
+     * Normalize one Verified Profile usage row.
+     *
      * @param array<string, mixed> $usage
      *
      * @return array<string, mixed>
@@ -247,6 +308,18 @@ final class MemberMembershipHistoryService
     private function normalizeProfileUsage(
         array $usage
     ): array {
+        $firstViewedAt =
+            (string) (
+                $usage['first_viewed_at']
+                ?? ''
+            );
+
+        $lastViewedAt =
+            (string) (
+                $usage['last_viewed_at']
+                ?? ''
+            );
+
         return [
             'membershipId' =>
             max(
@@ -273,6 +346,10 @@ final class MemberMembershipHistoryService
                 )
             ),
 
+            /*
+             * This is a business-ledger calendar date, not a UTC timestamp.
+             * Do not run it through DateDisplay timezone conversion.
+             */
             'usageDateIst' =>
             trim(
                 (string) (
@@ -282,15 +359,29 @@ final class MemberMembershipHistoryService
             ),
 
             'firstViewedAt' =>
-            (string) (
-                $usage['first_viewed_at']
-                ?? ''
+            $firstViewedAt,
+
+            'firstViewedAtDisplay' =>
+            DateDisplay::formatUtcDateTime(
+                $firstViewedAt
+            ),
+
+            'firstViewedAtIso' =>
+            DateDisplay::utcToDisplayIso(
+                $firstViewedAt
             ),
 
             'lastViewedAt' =>
-            (string) (
-                $usage['last_viewed_at']
-                ?? ''
+            $lastViewedAt,
+
+            'lastViewedAtDisplay' =>
+            DateDisplay::formatUtcDateTime(
+                $lastViewedAt
+            ),
+
+            'lastViewedAtIso' =>
+            DateDisplay::utcToDisplayIso(
+                $lastViewedAt
             ),
 
             'viewCount' =>
@@ -305,6 +396,8 @@ final class MemberMembershipHistoryService
     }
 
     /**
+     * Normalize one Live Introduction usage row.
+     *
      * @param array<string, mixed> $usage
      *
      * @return array<string, mixed>
@@ -312,6 +405,18 @@ final class MemberMembershipHistoryService
     private function normalizeLiveIntroductionUsage(
         array $usage
     ): array {
+        $firstViewedAt =
+            (string) (
+                $usage['first_viewed_at']
+                ?? ''
+            );
+
+        $lastViewedAt =
+            (string) (
+                $usage['last_viewed_at']
+                ?? ''
+            );
+
         return [
             'membershipId' =>
             max(
@@ -348,15 +453,29 @@ final class MemberMembershipHistoryService
             ),
 
             'firstViewedAt' =>
-            (string) (
-                $usage['first_viewed_at']
-                ?? ''
+            $firstViewedAt,
+
+            'firstViewedAtDisplay' =>
+            DateDisplay::formatUtcDateTime(
+                $firstViewedAt
+            ),
+
+            'firstViewedAtIso' =>
+            DateDisplay::utcToDisplayIso(
+                $firstViewedAt
             ),
 
             'lastViewedAt' =>
-            (string) (
-                $usage['last_viewed_at']
-                ?? ''
+            $lastViewedAt,
+
+            'lastViewedAtDisplay' =>
+            DateDisplay::formatUtcDateTime(
+                $lastViewedAt
+            ),
+
+            'lastViewedAtIso' =>
+            DateDisplay::utcToDisplayIso(
+                $lastViewedAt
             ),
 
             'viewCount' =>
@@ -368,6 +487,51 @@ final class MemberMembershipHistoryService
                 )
             ),
         ];
+    }
+
+    /**
+     * Add display-safe timestamp values to the current membership resolved
+     * by MembershipService.
+     *
+     * The raw values remain unchanged because authorization/lifecycle logic
+     * must continue using authoritative membership timestamps.
+     *
+     * @param array<string, mixed> $membership
+     *
+     * @return array<string, mixed>
+     */
+    private function withDisplayTimestamps(
+        array $membership
+    ): array {
+        $startsAt =
+            $membership['startsAt']
+            ?? null;
+
+        $expiresAt =
+            $membership['expiresAt']
+            ?? null;
+
+        $membership['startsAtDisplay'] =
+            DateDisplay::formatUtcDateTime(
+                $startsAt
+            );
+
+        $membership['startsAtIso'] =
+            DateDisplay::utcToDisplayIso(
+                $startsAt
+            );
+
+        $membership['expiresAtDisplay'] =
+            DateDisplay::formatUtcDateTime(
+                $expiresAt
+            );
+
+        $membership['expiresAtIso'] =
+            DateDisplay::utcToDisplayIso(
+                $expiresAt
+            );
+
+        return $membership;
     }
 
     /**

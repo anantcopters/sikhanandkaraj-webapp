@@ -6,6 +6,7 @@ namespace App\Services\Membership;
 
 use App\Models\MemberMembershipLiveIntroductionViewModel;
 use App\Models\MemberMembershipProfileViewModel;
+use App\Support\BooleanValue;
 
 /**
  * Builds member-facing membership usage presentation data.
@@ -57,9 +58,17 @@ final class MemberMembershipUsageService
                 $userId
             );
 
+        /*
+        * MembershipService normally returns a native boolean, but use the existing
+        * project BooleanValue support at this boundary so PostgreSQL/string boolean
+        * representations cannot accidentally alter membership presentation.
+        */
         if (
             !is_array($membership)
-            || !($membership['isPaid'] ?? false)
+            || !BooleanValue::fromDatabase(
+                $membership['isPaid']
+                    ?? false
+            )
             || (int) ($membership['id'] ?? 0) <= 0
         ) {
             return $this->freeState();
