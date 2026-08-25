@@ -7,6 +7,7 @@ namespace App\Services\Profile;
 use App\Models\MemberPhotoModel;
 use App\Services\Aws\CloudFrontService;
 use App\Support\ProfileErrorContext;
+use App\Support\Development\PerformanceTimeline;
 use App\Support\BooleanValue;
 use Config\MemberMedia;
 use DomainException;
@@ -732,7 +733,17 @@ final class MemberPhotoUrlService
      * CloudFront signing still occurs per visible image because every private
      * media URL is independently signed.
      *
-     * @param list<int> $memberIds
+     * Membership-28:
+     *
+     * The optional development timeline separates:
+     *
+     * - the single approved-primary-photo DB lookup;
+     * - in-memory visibility/object-key preparation;
+     * - CloudFront signing.
+     *
+     * Normal application callers do not provide a timeline.
+     *
+     * @param list<int>        $memberIds
      * @param array<int, bool> $interestRelationshipMap
      *
      * @return array<int, string>
@@ -740,21 +751,25 @@ final class MemberPhotoUrlService
     public function getApprovedPrimaryThumbnailUrlsForViewer(
         array $memberIds,
         int $viewerUserId,
-        array $interestRelationshipMap
+        array $interestRelationshipMap,
+        ?PerformanceTimeline $performanceTimeline = null
     ): array {
-        $memberIds = array_values(
-            array_unique(
-                array_filter(
-                    array_map(
-                        'intval',
-                        $memberIds
-                    ),
-                    static fn(int $memberId): bool =>
-                    $memberId > 0
-                        && $memberId !== $viewerUserId
+        $memberIds =
+            array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            'intval',
+                            $memberIds
+                        ),
+                        static fn(
+                            int $memberId
+                        ): bool =>
+                        $memberId > 0
+                            && $memberId !== $viewerUserId
+                    )
                 )
-            )
-        );
+            );
 
         if (
             $viewerUserId <= 0
@@ -763,13 +778,36 @@ final class MemberPhotoUrlService
             return [];
         }
 
+        /*
+     * Membership-28 diagnostic:
+     *
+     * This is the only photograph database read for the complete Search card
+     * collection.
+     */
         $photos =
             $this->photoModel
             ->findApprovedPrimaryForMembers(
                 $memberIds
             );
 
+        $performanceTimeline?->checkpoint(
+            'Photo: Primary DB batch'
+        );
+
         $urls = [];
+
+        /*
+     * First resolve authorization and object keys entirely in memory.
+     *
+     * Keeping signing outside this loop allows Membership-28 to distinguish
+     * visibility processing from CloudFront cryptographic signing.
+     *
+     * @var array<int, array{
+     *     objectKey:string,
+     *     photoId:int
+     * }> $authorizedPhotos
+     */
+        $authorizedPhotos = [];
 
         foreach ($memberIds as $memberId) {
             $photo =
@@ -781,18 +819,19 @@ final class MemberPhotoUrlService
                 continue;
             }
 
-            $visibility = mb_strtoupper(
-                trim(
-                    (string) (
-                        $photo['visibility']
-                        ?? ''
+            $visibility =
+                mb_strtoupper(
+                    trim(
+                        (string) (
+                            $photo['visibility']
+                            ?? ''
+                        )
                     )
-                )
-            );
+                );
 
             /*
-             * Preserve the existing fail-closed Photo Visibility rule.
-             */
+         * Preserve the existing fail-closed Photo Visibility rule.
+         */
             if (
                 !in_array(
                     $visibility,
@@ -808,8 +847,7 @@ final class MemberPhotoUrlService
             }
 
             if (
-                $visibility ===
-                'INTERESTED_MEMBERS'
+                $visibility === 'INTERESTED_MEMBERS'
                 && (
                     $interestRelationshipMap[$memberId]
                     ?? false
@@ -819,30 +857,61 @@ final class MemberPhotoUrlService
                 continue;
             }
 
-            $objectKey = trim(
-                (string) (
-                    $photo['thumbnail_object_key']
-                    ?? ''
-                )
-            );
+            $objectKey =
+                trim(
+                    (string) (
+                        $photo['thumbnail_object_key']
+                        ?? ''
+                    )
+                );
 
             if ($objectKey === '') {
                 $urls[$memberId] = '';
                 continue;
             }
 
+            $authorizedPhotos[$memberId] = [
+                'objectKey' =>
+                $objectKey,
+
+                'photoId' =>
+                (int) (
+                    $photo['id']
+                    ?? 0
+                ),
+            ];
+        }
+
+        $performanceTimeline?->checkpoint(
+            'Photo: Visibility + key preparation'
+        );
+
+        /*
+     * Signing remains deliberately centralized through createSignedUrl().
+     *
+     * Membership-28 only measures it; URL security semantics are unchanged.
+     */
+        foreach (
+            $authorizedPhotos
+            as $memberId => $authorizedPhoto
+        ) {
             $urls[$memberId] =
                 $this->createSignedUrl(
-                    objectKey: $objectKey,
+                    objectKey: $authorizedPhoto['objectKey'],
+
                     context: 'Viewer-authorized primary profile photo',
+
                     memberId: $memberId,
-                    photoId: (int) (
-                        $photo['id']
-                        ?? 0
-                    ),
+
+                    photoId: $authorizedPhoto['photoId'],
+
                     variant: 'thumbnail'
                 );
         }
+
+        $performanceTimeline?->checkpoint(
+            'Photo: CloudFront signing'
+        );
 
         return $urls;
     }

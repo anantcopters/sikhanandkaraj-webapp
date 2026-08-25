@@ -119,19 +119,15 @@ final class PartnerPreferenceMatchService
         }
 
         /*
-     * Load the member's complete Partner Preference snapshot once.
-     *
-     * This snapshot includes the existing Basic, Education/Profession,
-     * Lifestyle and Location preference authorities.
-     */
+        * Membership-28:
+        *
+        * snapshotForUser() now records its own logical DB groups.
+        */
         $snapshot =
             $this->snapshotForUser(
-                $userId
+                $userId,
+                $performanceTimeline
             );
-
-        $performanceTimeline?->checkpoint(
-            'Preference: Viewer snapshot'
-        );
 
         /*
      * Candidate IDs are prepared in memory before the single batch Lifestyle
@@ -284,7 +280,7 @@ final class PartnerPreferenceMatchService
 
         return $scored;
     }
-    
+
     /**
      * @param array<string, mixed> $snapshot
      * @param array<string, mixed> $candidate
@@ -1036,7 +1032,8 @@ final class PartnerPreferenceMatchService
      * @return array<string, mixed>
      */
     private function snapshotForUser(
-        int $userId
+        int $userId,
+        ?PerformanceTimeline $performanceTimeline = null
     ): array {
         $basic = $this
             ->basicPreferenceModel
@@ -1046,6 +1043,9 @@ final class PartnerPreferenceMatchService
         $basicPreferenceId = (int) (
             $basic['id']
             ?? 0
+        );
+        $performanceTimeline?->checkpoint(
+            'Snapshot: Basic preference'
         );
 
         $religious = $this
@@ -1062,6 +1062,10 @@ final class PartnerPreferenceMatchService
             ->locationPreferenceModel
             ->findForUser($userId)
             ?? [];
+
+        $performanceTimeline?->checkpoint(
+            'Snapshot: Preference headers'
+        );
 
         $religiousId = (int) (
             $religious['id']
@@ -1131,48 +1135,194 @@ final class PartnerPreferenceMatchService
             ];
         }
 
+        $performanceTimeline?->checkpoint(
+            'Snapshot: Lifestyle preferences'
+        );
+
+        /*
+ * Membership-28 diagnostic pass.
+ *
+ * Resolve the existing selection-model reads before constructing the snapshot
+ * so their logical groups can be measured.
+ *
+ * Business behaviour is unchanged.
+ */
+
+        /*
+ * Basic multi-select preferences.
+ */
+        $motherTongues =
+            $basicPreferenceId > 0
+            ? $this
+            ->motherTongueModel
+            ->idsForPreference(
+                $basicPreferenceId
+            )
+            : [];
+
+        $eatingHabits =
+            $basicPreferenceId > 0
+            ? $this
+            ->eatingHabitModel
+            ->idsForPreference(
+                $basicPreferenceId
+            )
+            : [];
+
+        $drinkingHabits =
+            $basicPreferenceId > 0
+            ? $this
+            ->drinkingHabitModel
+            ->idsForPreference(
+                $basicPreferenceId
+            )
+            : [];
+
+        $performanceTimeline?->checkpoint(
+            'Snapshot: Basic selections'
+        );
+
+        /*
+ * Religious selections.
+ */
+        $communities =
+            $religiousId > 0
+            ? array_map(
+                'intval',
+                $this
+                    ->communitySelectionModel
+                    ->selectedValues(
+                        $religiousId
+                    )
+            )
+            : [];
+
+        $performanceTimeline?->checkpoint(
+            'Snapshot: Religious selections'
+        );
+
+        /*
+ * Education/Profession selections.
+ */
+        $educations =
+            $professionalId > 0
+            ? array_map(
+                'intval',
+                $this
+                    ->educationSelectionModel
+                    ->selectedValues(
+                        $professionalId
+                    )
+            )
+            : [];
+
+        $employmentTypes =
+            $professionalId > 0
+            ? array_values(
+                array_map(
+                    static fn(
+                        int|string $value
+                    ): string =>
+                    strtoupper(
+                        trim(
+                            (string) $value
+                        )
+                    ),
+                    $this
+                        ->employmentSelectionModel
+                        ->selectedValues(
+                            $professionalId
+                        )
+                )
+            )
+            : [];
+
+        $occupations =
+            $professionalId > 0
+            ? array_map(
+                'intval',
+                $this
+                    ->occupationSelectionModel
+                    ->selectedValues(
+                        $professionalId
+                    )
+            )
+            : [];
+
+        $annualIncomes =
+            $professionalId > 0
+            ? array_map(
+                'intval',
+                $this
+                    ->annualIncomeSelectionModel
+                    ->selectedValues(
+                        $professionalId
+                    )
+            )
+            : [];
+
+        $performanceTimeline?->checkpoint(
+            'Snapshot: Professional selections'
+        );
+
+        /*
+ * Location selections.
+ */
+        $states =
+            $locationId > 0
+            ? array_map(
+                'intval',
+                $this
+                    ->stateSelectionModel
+                    ->selectedValues(
+                        $locationId
+                    )
+            )
+            : [];
+
+        $countries =
+            $locationId > 0
+            ? array_map(
+                'intval',
+                $this
+                    ->countrySelectionModel
+                    ->selectedValues(
+                        $locationId
+                    )
+            )
+            : [];
+
+        $cities =
+            $locationId > 0
+            ? array_map(
+                'intval',
+                $this
+                    ->citySelectionModel
+                    ->selectedValues(
+                        $locationId
+                    )
+            )
+            : [];
+
+        $performanceTimeline?->checkpoint(
+            'Snapshot: Location selections'
+        );
+
         return [
             'basic' =>
             $basic,
 
             'motherTongues' =>
-            $basicPreferenceId > 0
-                ? $this
-                ->motherTongueModel
-                ->idsForPreference(
-                    $basicPreferenceId
-                )
-                : [],
+            $motherTongues,
 
             'eatingHabits' =>
-            $basicPreferenceId > 0
-                ? $this
-                ->eatingHabitModel
-                ->idsForPreference(
-                    $basicPreferenceId
-                )
-                : [],
+            $eatingHabits,
 
             'drinkingHabits' =>
-            $basicPreferenceId > 0
-                ? $this
-                ->drinkingHabitModel
-                ->idsForPreference(
-                    $basicPreferenceId
-                )
-                : [],
+            $drinkingHabits,
 
             'communities' =>
-            $religiousId > 0
-                ? array_map(
-                    'intval',
-                    $this
-                        ->communitySelectionModel
-                        ->selectedValues(
-                            $religiousId
-                        )
-                )
-                : [],
+            $communities,
 
             'communityMatchMode' =>
             $this->boolean(
@@ -1181,16 +1331,7 @@ final class PartnerPreferenceMatchService
             ),
 
             'educations' =>
-            $professionalId > 0
-                ? array_map(
-                    'intval',
-                    $this
-                        ->educationSelectionModel
-                        ->selectedValues(
-                            $professionalId
-                        )
-                )
-                : [],
+            $educations,
 
             'educationMatchMode' =>
             $this->boolean(
@@ -1199,25 +1340,7 @@ final class PartnerPreferenceMatchService
             ),
 
             'employmentTypes' =>
-            $professionalId > 0
-                ? array_values(
-                    array_map(
-                        static fn(
-                            int|string $value
-                        ): string =>
-                        strtoupper(
-                            trim(
-                                (string) $value
-                            )
-                        ),
-                        $this
-                            ->employmentSelectionModel
-                            ->selectedValues(
-                                $professionalId
-                            )
-                    )
-                )
-                : [],
+            $employmentTypes,
 
             'employmentMatchMode' =>
             $this->boolean(
@@ -1226,16 +1349,7 @@ final class PartnerPreferenceMatchService
             ),
 
             'occupations' =>
-            $professionalId > 0
-                ? array_map(
-                    'intval',
-                    $this
-                        ->occupationSelectionModel
-                        ->selectedValues(
-                            $professionalId
-                        )
-                )
-                : [],
+            $occupations,
 
             'occupationMatchMode' =>
             $this->boolean(
@@ -1244,59 +1358,21 @@ final class PartnerPreferenceMatchService
             ),
 
             'annualIncomes' =>
-            $professionalId > 0
-                ? array_map(
-                    'intval',
-                    $this
-                        ->annualIncomeSelectionModel
-                        ->selectedValues(
-                            $professionalId
-                        )
-                )
-                : [],
+            $annualIncomes,
 
             'annualIncomeMatchMode' =>
             $this->boolean(
                 $professional['annual_income_match_mode']
                     ?? false
             ),
-
             'states' =>
-            $locationId > 0
-                ? array_map(
-                    'intval',
-                    $this
-                        ->stateSelectionModel
-                        ->selectedValues(
-                            $locationId
-                        )
-                )
-                : [],
+            $states,
 
             'countries' =>
-            $locationId > 0
-                ? array_map(
-                    'intval',
-                    $this
-                        ->countrySelectionModel
-                        ->selectedValues(
-                            $locationId
-                        )
-                )
-                : [],
+            $countries,
 
             'cities' =>
-            $locationId > 0
-                ? array_map(
-                    'intval',
-                    $this
-                        ->citySelectionModel
-                        ->selectedValues(
-                            $locationId
-                        )
-                )
-                : [],
-
+            $cities,
             'locationMatchMode' =>
             $this->boolean(
                 $location['location_match_mode']

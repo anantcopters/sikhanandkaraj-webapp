@@ -1267,22 +1267,22 @@ final class MemberSearchService
      */
         $basic =
             $this->masterDataService
-            ->basicDetailsOptions();
+            ->basicDetailsOptions(
+                selectedStateId: null,
 
-        $performanceTimeline?->checkpoint(
-            'Master: Basic Details options'
-        );
+                selectedCountryId: null,
+
+                performanceTimeline: $performanceTimeline
+            );
 
         /*
      * Existing Partner Preference masters.
      */
         $additional =
             $this->masterDataService
-            ->additionalPartnerPreferenceOptions();
-
-        $performanceTimeline?->checkpoint(
-            'Master: Partner Preference options'
-        );
+            ->additionalPartnerPreferenceOptions(
+                $performanceTimeline
+            );
 
         /*
      * Existing Lifestyle master hierarchy.
@@ -1815,33 +1815,22 @@ final class MemberSearchService
         }
 
         /*
-         * Reuse the existing photo service.
-         *
-         * One photo DB query for the collection; signed CloudFront URLs are
-         * generated only for photographs the viewer may actually see.
-         */
-        /** @var \App\Services\Profile\MemberPhotoUrlService $photoUrlService */
+        * Membership-28:
+        *
+        * MemberPhotoUrlService now records the internal DB, authorization and
+        * CloudFront-signing stages itself.
+        */
         $thumbnailUrls =
             $this->photoUrlService
             ->getApprovedPrimaryThumbnailUrlsForViewer(
                 memberIds: $memberIds,
-                viewerUserId: $viewerUserId,
-                interestRelationshipMap: $photoInterestMap
-            );
 
-        /*
- * This measurement includes:
- *
- * - approved-primary-photo batch database lookup;
- * - photo visibility authorization;
- * - CloudFront URL generation/signing for photographs the viewer may see.
- *
- * If this stage dominates, Membership-28 should investigate inside the existing
- * MemberPhotoUrlService rather than changing Search.
- */
-        $performanceTimeline?->checkpoint(
-            'Presentation: Photo batch + URLs'
-        );
+                viewerUserId: $viewerUserId,
+
+                interestRelationshipMap: $photoInterestMap,
+
+                performanceTimeline: $performanceTimeline
+            );
 
         foreach (
             $rows

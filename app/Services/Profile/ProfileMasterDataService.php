@@ -22,6 +22,7 @@ use App\Models\AbstractActiveMasterModel;
 use App\Models\MasterDrinkingHabitModel;
 use App\Models\MasterEatingHabitModel;
 use App\Models\MasterPhysicalStatusModel;
+use App\Support\Development\PerformanceTimeline;
 use DomainException;
 
 /**
@@ -52,19 +53,39 @@ final class ProfileMasterDataService
     /**
      * Return the master data required by Basic Details.
      *
+     * Membership-28:
+     *
+     * Search may optionally supply a development performance timeline. Normal
+     * profile/prelaunch callers remain unchanged.
+     *
      * @return array<string, mixed>
      */
     public function basicDetailsOptions(
         ?int $selectedStateId = null,
-        ?int $selectedCountryId = null
+        ?int $selectedCountryId = null,
+        ?PerformanceTimeline $performanceTimeline = null
     ): array {
-        $countries = $this->countryModel->activeOptions();
-        $country = $selectedCountryId !== null
-            ? $this->countryModel->findActive($selectedCountryId)
-            : $this->countryModel->findIndia();
+        $countries =
+            $this->countryModel
+            ->activeOptions();
+
+        $performanceTimeline?->checkpoint(
+            'Master Basic: Countries'
+        );
+
+        $country =
+            $selectedCountryId !== null
+            ? $this->countryModel
+            ->findActive(
+                $selectedCountryId
+            )
+            : $this->countryModel
+            ->findIndia();
 
         if (!is_array($country)) {
-            $country = $this->countryModel->findIndia();
+            $country =
+                $this->countryModel
+                ->findIndia();
         }
 
         if (!is_array($country)) {
@@ -73,50 +94,114 @@ final class ProfileMasterDataService
             );
         }
 
-        return [
-            'country' => $country,
+        $performanceTimeline?->checkpoint(
+            'Master Basic: Selected/default country'
+        );
 
-            'countries' => $countries,
+        $maritalStatuses =
+            $this->maritalStatusModel
+            ->activeOptions();
+
+        $performanceTimeline?->checkpoint(
+            'Master Basic: Marital statuses'
+        );
+
+        $heights =
+            $this->heightModel
+            ->activeOptions();
+
+        $performanceTimeline?->checkpoint(
+            'Master Basic: Heights'
+        );
+
+        $motherTongues =
+            $this->motherTongueModel
+            ->activeOptions();
+
+        $performanceTimeline?->checkpoint(
+            'Master Basic: Mother tongues'
+        );
+
+        $drinkingHabits =
+            $this->drinkingHabitModel
+            ->activeOptions();
+
+        $performanceTimeline?->checkpoint(
+            'Master Basic: Drinking habits'
+        );
+
+        $eatingHabits =
+            $this->eatingHabitModel
+            ->activeOptions();
+
+        $performanceTimeline?->checkpoint(
+            'Master Basic: Eating habits'
+        );
+
+        $physicalStatuses =
+            $this->physicalStatusModel
+            ->activeOptions();
+
+        $performanceTimeline?->checkpoint(
+            'Master Basic: Physical statuses'
+        );
+
+        $states =
+            $this->stateModel
+            ->activeForCountry(
+                (int) $country['id']
+            );
+
+        $performanceTimeline?->checkpoint(
+            'Master Basic: States'
+        );
+
+        $cities =
+            $selectedStateId !== null
+            && $this->stateBelongsToCountry(
+                $selectedStateId,
+                (int) $country['id']
+            )
+            ? $this->cityModel
+            ->activeForState(
+                $selectedStateId
+            )
+            : [];
+
+        $performanceTimeline?->checkpoint(
+            'Master Basic: Cities'
+        );
+
+        return [
+            'country' =>
+            $country,
+
+            'countries' =>
+            $countries,
 
             'maritalStatuses' =>
-            $this->maritalStatusModel
-                ->activeOptions(),
+            $maritalStatuses,
 
             'heights' =>
-            $this->heightModel
-                ->activeOptions(),
+            $heights,
 
             'motherTongues' =>
-            $this->motherTongueModel
-                ->activeOptions(),
+            $motherTongues,
 
             'drinkingHabits' =>
-            $this->drinkingHabitModel
-                ->activeOptions(),
+            $drinkingHabits,
 
             'eatingHabits' =>
-            $this->eatingHabitModel
-                ->activeOptions(),
+            $eatingHabits,
 
             'physicalStatuses' =>
-            $this->physicalStatusModel
-                ->activeOptions(),
+            $physicalStatuses,
 
             'states' =>
-            $this->stateModel->activeForCountry(
-                (int) $country['id']
-            ),
+            $states,
 
             'cities' =>
-            $selectedStateId !== null
-                && $this->stateBelongsToCountry(
-                    $selectedStateId,
-                    (int) $country['id']
-                )
-                ? $this->cityModel->activeForState(
-                    $selectedStateId
-                )
-                : [],
+            $cities,
         ];
     }
 
@@ -204,94 +289,160 @@ final class ProfileMasterDataService
     /**
      * Return active master values used by partner preferences.
      *
-     * Flat Education and Occupation collections are retained for:
+     * Membership-28:
      *
-     * - server-side submitted-ID validation;
-     * - summary label resolution;
-     * - backward-compatible consumers.
+     * Optional development diagnostics identify the individual master reads
+     * behind Search master-data preparation.
      *
-     * Grouped collections are supplied separately for searchable
-     * category-based multi-select rendering.
+     * Normal Partner Preference/Profile callers do not supply the timeline.
      *
      * @return array<string, mixed>
      */
-    public function additionalPartnerPreferenceOptions(): array
-    {
+    public function additionalPartnerPreferenceOptions(
+        ?PerformanceTimeline $performanceTimeline = null
+    ): array {
+        $communities =
+            $this->communityModel
+            ->activeOptions();
+
+        $performanceTimeline?->checkpoint(
+            'Master Additional: Communities'
+        );
+
+        /*
+     * Keep flat and grouped Education contracts separate because existing
+     * consumers use both forms.
+     */
+        $educations =
+            $this->educationModel
+            ->activeOptions();
+
+        $performanceTimeline?->checkpoint(
+            'Master Additional: Educations'
+        );
+
+        $educationGroups =
+            $this->educationModel
+            ->activeGroupedOptions();
+
+        $performanceTimeline?->checkpoint(
+            'Master Additional: Education groups'
+        );
+
+        $occupations =
+            $this->occupationModel
+            ->activeOptions();
+
+        $performanceTimeline?->checkpoint(
+            'Master Additional: Occupations'
+        );
+
+        $occupationGroups =
+            $this->occupationModel
+            ->activeGroupedOptions();
+
+        $performanceTimeline?->checkpoint(
+            'Master Additional: Occupation groups'
+        );
+
+        $annualIncomes =
+            $this->annualIncomeModel
+            ->activeOptions();
+
+        $performanceTimeline?->checkpoint(
+            'Master Additional: Annual incomes'
+        );
+
+        $countries =
+            $this->countryModel
+            ->activeOptions();
+
+        $performanceTimeline?->checkpoint(
+            'Master Additional: Countries'
+        );
+
+        $states =
+            $this->stateModel
+            ->activeAcrossCountries();
+
+        $performanceTimeline?->checkpoint(
+            'Master Additional: States'
+        );
+
         return [
             'communities' =>
-            $this->communityModel
-                ->activeOptions(),
+            $communities,
 
-            /*
-         * Flat education collection.
-         *
-         * AdditionalPartnerPreferenceService uses this collection
-         * to validate selected IDs and resolve summary labels.
-         */
             'educations' =>
-            $this->educationModel
-                ->activeOptions(),
+            $educations,
+
+            'educationGroups' =>
+            $educationGroups,
 
             /*
-         * Grouped collection used only by the Partner Preference UI.
+         * Existing fixed employment master.
+         *
+         * This is application configuration rather than a database read.
          */
-            'educationGroups' =>
-            $this->educationModel
-                ->activeGroupedOptions(),
-
             'employmentTypes' => [
                 [
-                    'value' => 'GOVERNMENT_PSU',
-                    'label' => 'Government / PSU',
+                    'value' =>
+                    'GOVERNMENT_PSU',
+
+                    'label' =>
+                    'Government / PSU',
                 ],
                 [
-                    'value' => 'PRIVATE',
-                    'label' => 'Private',
+                    'value' =>
+                    'PRIVATE',
+
+                    'label' =>
+                    'Private',
                 ],
                 [
-                    'value' => 'BUSINESS',
-                    'label' => 'Business',
+                    'value' =>
+                    'BUSINESS',
+
+                    'label' =>
+                    'Business',
                 ],
                 [
-                    'value' => 'DEFENSE',
-                    'label' => 'Defense',
+                    'value' =>
+                    'DEFENSE',
+
+                    'label' =>
+                    'Defense',
                 ],
                 [
-                    'value' => 'SELF_EMPLOYED',
-                    'label' => 'Self Employed',
+                    'value' =>
+                    'SELF_EMPLOYED',
+
+                    'label' =>
+                    'Self Employed',
                 ],
                 [
-                    'value' => 'NOT_WORKING',
-                    'label' => 'Not Working',
+                    'value' =>
+                    'NOT_WORKING',
+
+                    'label' =>
+                    'Not Working',
                 ],
             ],
 
-            /*
-         * Keep flat occupations because the service validates
-         * submitted occupation IDs against this collection and
-         * uses it for summary labels.
-         */
             'occupations' =>
-            $this->occupationModel
-                ->activeOptions(),
+            $occupations,
 
-            /*
-         * Grouped collection for category-based UI rendering.
-         */
             'occupationGroups' =>
-            $this->occupationModel
-                ->activeGroupedOptions(),
+            $occupationGroups,
 
             'annualIncomes' =>
-            $this->annualIncomeModel
-                ->activeOptions(),
+            $annualIncomes,
 
             'countries' =>
-            $this->countryModel->activeOptions(),
+            $countries,
 
             'states' =>
-            $this->stateModel
-                ->activeAcrossCountries(),
+            $states,
         ];
     }
 
