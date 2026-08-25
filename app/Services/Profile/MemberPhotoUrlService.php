@@ -7,7 +7,6 @@ namespace App\Services\Profile;
 use App\Models\MemberPhotoModel;
 use App\Services\Aws\CloudFrontService;
 use App\Support\ProfileErrorContext;
-use App\Support\Development\PerformanceTimeline;
 use App\Support\BooleanValue;
 use Config\MemberMedia;
 use DomainException;
@@ -727,13 +726,13 @@ final class MemberPhotoUrlService
     /**
      * Return viewer-authorized thumbnail URLs for a member collection.
      *
-     * Membership-23:
+    
      *
      * Photo database state is loaded once for the complete card collection.
      * CloudFront signing still occurs per visible image because every private
      * media URL is independently signed.
      *
-     * Membership-28:
+    
      *
      * The optional development timeline separates:
      *
@@ -751,8 +750,7 @@ final class MemberPhotoUrlService
     public function getApprovedPrimaryThumbnailUrlsForViewer(
         array $memberIds,
         int $viewerUserId,
-        array $interestRelationshipMap,
-        ?PerformanceTimeline $performanceTimeline = null
+        array $interestRelationshipMap
     ): array {
         $memberIds =
             array_values(
@@ -779,7 +777,7 @@ final class MemberPhotoUrlService
         }
 
         /*
-     * Membership-28 diagnostic:
+     
      *
      * This is the only photograph database read for the complete Search card
      * collection.
@@ -789,10 +787,6 @@ final class MemberPhotoUrlService
             ->findApprovedPrimaryForMembers(
                 $memberIds
             );
-
-        $performanceTimeline?->checkpoint(
-            'Photo: Primary DB batch'
-        );
 
         $urls = [];
 
@@ -882,14 +876,10 @@ final class MemberPhotoUrlService
             ];
         }
 
-        $performanceTimeline?->checkpoint(
-            'Photo: Visibility + key preparation'
-        );
-
         /*
      * Signing remains deliberately centralized through createSignedUrl().
      *
-     * Membership-28 only measures it; URL security semantics are unchanged.
+     
      */
         foreach (
             $authorizedPhotos
@@ -908,10 +898,6 @@ final class MemberPhotoUrlService
                     variant: 'thumbnail'
                 );
         }
-
-        $performanceTimeline?->checkpoint(
-            'Photo: CloudFront signing'
-        );
 
         return $urls;
     }

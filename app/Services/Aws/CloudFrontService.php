@@ -17,7 +17,7 @@ use Throwable;
  * This low-level service throws failures to the caller. The workflow service
  * that has member/photo context owns logging.
  *
- * Membership-29:
+ 
  *
  * CloudFront RSA signing was confirmed by Membership-28 profiling to consume
  * approximately 21-22 ms for one Search result page.
@@ -59,7 +59,7 @@ final class CloudFrontService
     /**
      * Generate or reuse one short-lived signed CloudFront URL.
      *
-     * Membership-29:
+     
      *
      * The cache key contains no private object-key text. Only a SHA-256 digest
      * of signing-relevant state is stored in the cache key.

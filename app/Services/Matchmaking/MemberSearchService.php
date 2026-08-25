@@ -11,7 +11,6 @@ use App\Services\Profile\ProfileMasterDataService;
 use App\Validation\RegisterFreeValidation;
 use App\Services\Membership\MembershipEntitlementService;
 use App\Services\Profile\MemberPhotoUrlService;
-use App\Support\Development\PerformanceTimeline;
 use DomainException;
 
 final class MemberSearchService
@@ -170,32 +169,21 @@ final class MemberSearchService
     /**
      * Execute member Search.
      *
-     * $performanceTimeline is development diagnostic infrastructure only.
+     * Candidate eligibility is resolved by MemberMatchCandidateModel.
+     * Partner Preference matching and Match Score ranking are applied before
+     * pagination when Match Score ordering is requested.
      *
-     * Normal controllers never supply it, so production Search behaviour and
-     * performance remain unchanged.
-     *
-     * The profiler passes a timeline only when explicitly invoked through the
-     * CLI-only development Search profiler.
+     * Advanced Search authorization is enforced here rather than relying on
+     * presentation-layer controls.
      *
      * @param array<string, mixed> $input
      */
     public function search(
         int $viewerUserId,
-        array $input,
-        ?PerformanceTimeline $performanceTimeline = null
+        array $input
     ): array {
         $viewer = $this->userModel
             ->find($viewerUserId);
-
-        /*
-        * Membership-27 diagnostic checkpoint.
-        *
-        * Includes authenticated viewer resolution only.
-        */
-        $performanceTimeline?->checkpoint(
-            'Viewer resolution'
-        );
 
         if (!is_array($viewer)) {
             throw new DomainException(
@@ -256,15 +244,14 @@ final class MemberSearchService
             );
 
         /*
-        * Membership-27 diagnostic pass.
+       
         *
         * searchMasterData() records its individual existing master-data authorities
         * when a development timeline is supplied.
         */
         $masterData =
             $this->searchMasterData(
-                $requestedStateIds,
-                $performanceTimeline
+                $requestedStateIds
             );
 
         $filters =
@@ -274,15 +261,7 @@ final class MemberSearchService
                 $masterData
             );
 
-        /*
-        * Master-data retrieval has already been measured individually above.
-        *
-        * This checkpoint therefore isolates PHP validation/normalization of submitted
-        * Search criteria.
-        */
-        $performanceTimeline?->checkpoint(
-            'Filter normalization'
-        );
+
 
         /*
         * --------------------------------------------------------------------------
@@ -330,15 +309,7 @@ final class MemberSearchService
                 $activity;
         }
 
-        /*
-        * Measures Quick Link/activity candidate-ID resolution.
-        *
-        * For normal Search this should be almost zero because no activity collection
-        * is requested.
-        */
-        $performanceTimeline?->checkpoint(
-            'Activity candidate resolution'
-        );
+
 
         /*
         * Default Search is Match Score ranked.
@@ -377,17 +348,7 @@ final class MemberSearchService
                 paginate: !$useMatchScoreRanking
             );
 
-        /*
-        * Membership-26 independently established that the common eligible-candidate
-        * PostgreSQL projection executes in approximately 1 ms in the current
-        * development dataset.
-        *
-        * This checkpoint measures the actual Search candidate query including the
-        * selected Search filters.
-        */
-        $performanceTimeline?->checkpoint(
-            'Candidate query'
-        );
+
 
         $resultRows =
             is_array(
@@ -399,7 +360,7 @@ final class MemberSearchService
 
         if ($useMatchScoreRanking) {
             /*
-            * Membership-27 diagnostic pass.
+            
             *
             * PartnerPreferenceMatchService records its own internal stages when the
             * development timeline is supplied.
@@ -408,8 +369,7 @@ final class MemberSearchService
                 $this->partnerPreferenceMatchService
                 ->scoreCandidates(
                     $viewerUserId,
-                    $resultRows,
-                    $performanceTimeline
+                    $resultRows
                 );
 
             /*
@@ -439,9 +399,7 @@ final class MemberSearchService
                     )
                 );
 
-            $performanceTimeline?->checkpoint(
-                'Compulsory preference filtering'
-            );
+
 
             $resultRows =
                 $this->matchScoreService
@@ -449,15 +407,7 @@ final class MemberSearchService
                     $resultRows
                 );
 
-            /*
-            * MemberMatchScoreService itself performs no candidate database queries.
-            *
-            * This measurement therefore represents scoring/configuration resolution plus
-            * deterministic PHP ranking.
-            */
-            $performanceTimeline?->checkpoint(
-                'Match Score + ranking'
-            );
+
 
             $total =
                 count(
@@ -493,13 +443,7 @@ final class MemberSearchService
                     self::PER_PAGE
                 );
 
-            /*
-            * Match-ranked Search paginates in memory after deterministic ranking.
-            * Explicit chronological sorts are already paginated by PostgreSQL.
-            */
-            $performanceTimeline?->checkpoint(
-                'Pagination'
-            );
+
 
             $results['page'] =
                 $page;
@@ -530,8 +474,7 @@ final class MemberSearchService
         $profiles =
             $this->presentationProfiles(
                 $viewerUserId,
-                $resultRows,
-                $performanceTimeline
+                $resultRows
             );
 
         $chips =
@@ -540,9 +483,7 @@ final class MemberSearchService
                 $masterData
             );
 
-        $performanceTimeline?->checkpoint(
-            'Search chip presentation'
-        );
+
 
         /*
         * Activity is presented exactly like another active Search criterion.
@@ -569,16 +510,7 @@ final class MemberSearchService
                 $viewerUserId
             );
 
-        /*
-        * Quick Links may invoke existing interaction/matchmaking services even though
-        * only their counts/links are required by Search presentation.
-        *
-        * Membership-27 measures this separately because it happens after the visible
-        * result page has already been calculated.
-        */
-        $performanceTimeline?->checkpoint(
-            'Quick Links'
-        );
+
 
         return [
             'mode' =>
@@ -910,7 +842,7 @@ final class MemberSearchService
     /**
      * Return member IDs for recently joined Partner Preference matches.
      *
-     * Membership-23:
+     
      *
      * Do not build complete Dashboard presentation cards and then resolve each
      * profile reference back to users.id.
@@ -1246,7 +1178,7 @@ final class MemberSearchService
     /**
      * Return active master data required by member Search.
      *
-     * Membership-27 diagnostic pass:
+     
      *
      * The optional timeline allows the CLI profiler to identify which existing
      * master-data authority contributes to Search execution time.
@@ -1259,8 +1191,7 @@ final class MemberSearchService
      * @return array<string, mixed>
      */
     private function searchMasterData(
-        array $selectedStateIds = [],
-        ?PerformanceTimeline $performanceTimeline = null
+        array $selectedStateIds = []
     ): array {
         /*
      * Existing Basic Details masters.
@@ -1270,13 +1201,11 @@ final class MemberSearchService
             ->basicDetailsOptions(
                 selectedStateId: null,
 
-                selectedCountryId: null,
-
-                performanceTimeline: $performanceTimeline
+                selectedCountryId: null
             );
 
         /*
- * Membership-29.
+
  *
  * Basic Details already loaded the authoritative active-country collection.
  * Reuse it for Additional Partner Preference master data instead of issuing an
@@ -1285,8 +1214,6 @@ final class MemberSearchService
         $additional =
             $this->masterDataService
             ->additionalPartnerPreferenceOptions(
-                performanceTimeline: $performanceTimeline,
-
                 resolvedCountries: is_array(
                     $basic['countries']
                         ?? null
@@ -1302,9 +1229,7 @@ final class MemberSearchService
             $this->lifestyleService
             ->activeOptions();
 
-        $performanceTimeline?->checkpoint(
-            'Master: Lifestyle options'
-        );
+
 
         /*
      * Advanced Search may select multiple states, unlike Profile Edit.
@@ -1322,9 +1247,7 @@ final class MemberSearchService
             )
             : [];
 
-        $performanceTimeline?->checkpoint(
-            'Master: Cities'
-        );
+
 
         return array_merge(
             $basic,
@@ -1696,7 +1619,7 @@ final class MemberSearchService
      * Convert eligible Search candidate rows into the common member presentation
      * contract consumed by Search/Match profile cards.
      *
-     * Membership-23:
+    
      *
      * Viewer capability state, Interest relationships, Shortlist state and
      * approved-primary-photo database state are resolved once per collection.
@@ -1709,8 +1632,7 @@ final class MemberSearchService
      */
     private function presentationProfiles(
         int $viewerUserId,
-        array $rows,
-        ?PerformanceTimeline $performanceTimeline = null
+        array $rows
     ): array {
         $profiles = [];
 
@@ -1741,13 +1663,7 @@ final class MemberSearchService
                 $viewerUserId
             );
 
-        /*
- * Viewer-level membership capabilities must be resolved once per collection,
- * never once per ProfileCard.
- */
-        $performanceTimeline?->checkpoint(
-            'Presentation: Entitlements'
-        );
+
 
         /*
          * Normalize candidate IDs once.
@@ -1790,9 +1706,7 @@ final class MemberSearchService
                 $memberIds
             );
 
-        $performanceTimeline?->checkpoint(
-            'Presentation: Interest batch'
-        );
+
 
         /*
          * One Shortlist query for the complete displayed collection.
@@ -1804,9 +1718,7 @@ final class MemberSearchService
                 $memberIds
             );
 
-        $performanceTimeline?->checkpoint(
-            'Presentation: Shortlist batch'
-        );
+
 
         /*
          * Convert relationship contracts into the boolean map required by
@@ -1826,7 +1738,7 @@ final class MemberSearchService
         }
 
         /*
-        * Membership-28:
+       
         *
         * MemberPhotoUrlService now records the internal DB, authorization and
         * CloudFront-signing stages itself.
@@ -1838,9 +1750,7 @@ final class MemberSearchService
 
                 viewerUserId: $viewerUserId,
 
-                interestRelationshipMap: $photoInterestMap,
-
-                performanceTimeline: $performanceTimeline
+                interestRelationshipMap: $photoInterestMap
             );
 
         foreach (
@@ -2002,18 +1912,16 @@ final class MemberSearchService
         }
 
         /*
- * Everything after photo resolution is in-memory ProfileCard presentation:
- *
- * - MemberProfilePresentationService::summary();
- * - route generation;
- * - capability projection;
- * - activity label generation.
- *
- * The candidate loop must contain no candidate-specific database reads.
- */
-        $performanceTimeline?->checkpoint(
-            'Presentation: Card mapping'
-        );
+        * Everything after photo resolution is in-memory ProfileCard presentation:
+        *
+        * - MemberProfilePresentationService::summary();
+        * - route generation;
+        * - capability projection;
+        * - activity label generation.
+        *
+        * The candidate loop must contain no candidate-specific database reads.
+        */
+
 
         return $profiles;
     }

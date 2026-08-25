@@ -67,7 +67,7 @@ final class MemberShortlistModel extends Model
     /**
      * Return the subset of supplied members currently shortlisted by the viewer.
      *
-     * Membership-23:
+     
      *
      * Card collections use this batch method instead of calling
      * hasShortlisted() once per candidate.

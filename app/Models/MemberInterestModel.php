@@ -148,8 +148,6 @@ final class MemberInterestModel extends Model
     /**
      * Return all Interest rows between one viewer and a candidate collection.
      *
-     * Membership-23:
-     *
      * Search/Dashboard presentation must not execute two Interest queries for
      * every displayed profile.
      *

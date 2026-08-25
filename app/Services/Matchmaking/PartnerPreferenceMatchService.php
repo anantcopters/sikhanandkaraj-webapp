@@ -18,7 +18,6 @@ use App\Models\MasterLifestyleCategoryModel;
 use App\Models\MemberLifestyleOptionModel;
 use App\Models\MemberPartnerLifestylePreferenceModel;
 use App\Models\MemberPartnerLifestylePreferenceOptionModel;
-use App\Support\Development\PerformanceTimeline;
 use App\Support\BooleanValue;
 use DateTimeImmutable;
 
@@ -89,18 +88,15 @@ final class PartnerPreferenceMatchService
     ) {}
 
     /**
-     * Score all candidate rows against one member's Partner Preference
-     * configuration.
+     * Score candidate rows against the member's Partner Preference configuration.
      *
-     * Candidates that fail a compulsory preference are excluded from the returned
-     * collection.
+     * Preference state is resolved once for the viewer and candidate lifestyle
+     * selections are batch-loaded to avoid per-candidate database queries.
      *
-     * Membership-27 diagnostic pass:
+     * Active Lifestyle categories are also resolved once and reused while scoring
+     * the candidate collection.
      *
-     * The optional timeline measures the existing authoritative preference
-     * pipeline without introducing another matching implementation.
-     *
-     * Normal Dashboard/Search callers do not need to supply the timeline.
+     * Candidates that fail a compulsory preference are excluded.
      *
      * @param list<array<string, mixed>> $candidates
      *
@@ -108,8 +104,7 @@ final class PartnerPreferenceMatchService
      */
     public function scoreCandidates(
         int $userId,
-        array $candidates,
-        ?PerformanceTimeline $performanceTimeline = null
+        array $candidates
     ): array {
         if (
             $userId <= 0
@@ -119,14 +114,13 @@ final class PartnerPreferenceMatchService
         }
 
         /*
-        * Membership-28:
+       
         *
         * snapshotForUser() now records its own logical DB groups.
         */
         $snapshot =
             $this->snapshotForUser(
-                $userId,
-                $performanceTimeline
+                $userId
             );
 
         /*
@@ -156,11 +150,12 @@ final class PartnerPreferenceMatchService
             );
 
         /*
-     * Existing Membership optimization:
-     *
-     * Candidate Lifestyle selections are loaded in one batch. Never replace
-     * this with selectedIdsForUser() inside the candidate loop.
-     */
+        * Candidate Lifestyle selections are batch-loaded for the complete candidate
+        * collection.
+        *
+        * Do not replace this with a per-candidate selectedIdsForUser() lookup because
+        * that would introduce an N+1 query pattern.
+        */
         $candidateLifestyleMap =
             $this
             ->memberLifestyleOptionModel
@@ -168,30 +163,19 @@ final class PartnerPreferenceMatchService
                 $candidateUserIds
             );
 
-        $performanceTimeline?->checkpoint(
-            'Preference: Candidate lifestyle batch'
-        );
-
         /*
-        * Membership-29.
+        * Active Lifestyle categories are common master data for the entire candidate
+        * collection.
         *
-        * Active Lifestyle categories are master data and are identical for every
-        * candidate in this scoring collection.
-        *
-        * Previously scoreCandidate() called activeOrdered() once per candidate,
-        * creating an avoidable master-data N+1.
-        *
-        * Resolve the categories once and reuse the same authoritative collection for
-        * every candidate.
+        * Resolve them once and reuse the same authoritative collection while scoring
+        * each candidate to avoid per-candidate master-data queries.
         */
         $activeLifestyleCategories =
             $this
             ->lifestyleCategoryModel
             ->activeOrdered();
 
-        $performanceTimeline?->checkpoint(
-            'Preference: Lifestyle categories'
-        );
+
 
         $scored = [];
 
@@ -249,9 +233,7 @@ final class PartnerPreferenceMatchService
                 $candidate;
         }
 
-        $performanceTimeline?->checkpoint(
-            'Preference: Candidate scoring'
-        );
+
 
         /*
      * Highest Partner Preference match first.
@@ -296,9 +278,7 @@ final class PartnerPreferenceMatchService
             }
         );
 
-        $performanceTimeline?->checkpoint(
-            'Preference: Initial sorting'
-        );
+
 
         return $scored;
     }
@@ -306,28 +286,12 @@ final class PartnerPreferenceMatchService
     /**
      * Score one candidate using already-resolved preference and master state.
      *
-     * Membership-29:
-     *
-     * Active Lifestyle categories are supplied by the collection-level caller so
-     * this method remains database-free while iterating candidates.
+     * This method intentionally performs no master-data lookup while iterating the
+     * candidate collection.
      *
      * @param array<string, mixed> $snapshot
      * @param array<string, mixed> $candidate
      * @param list<array<string, mixed>> $activeLifestyleCategories
-     *
-     * @return array{
-     *     percentage:int,
-     *     matched:int,
-     *     total:int,
-     *     configured:int,
-     *     available:int,
-     *     passesCompulsory:bool,
-     *     criteria:list<array{
-     *         key:string,
-     *         matched:bool,
-     *         compulsory:bool
-     *     }>
-     * }
      */
     private function scoreCandidate(
         array $snapshot,
@@ -1015,7 +979,7 @@ final class PartnerPreferenceMatchService
         * - how many criteria currently exist;
         * - how many the member has configured.
         *
-        * Membership-29:
+        
         *
         * Lifestyle categories are resolved outside scoreCandidate() so that
         * scoreCandidate() itself remains database-free.
@@ -1083,8 +1047,7 @@ final class PartnerPreferenceMatchService
      * @return array<string, mixed>
      */
     private function snapshotForUser(
-        int $userId,
-        ?PerformanceTimeline $performanceTimeline = null
+        int $userId
     ): array {
         $basic = $this
             ->basicPreferenceModel
@@ -1095,9 +1058,7 @@ final class PartnerPreferenceMatchService
             $basic['id']
             ?? 0
         );
-        $performanceTimeline?->checkpoint(
-            'Snapshot: Basic preference'
-        );
+
 
         $religious = $this
             ->religiousPreferenceModel
@@ -1114,9 +1075,7 @@ final class PartnerPreferenceMatchService
             ->findForUser($userId)
             ?? [];
 
-        $performanceTimeline?->checkpoint(
-            'Snapshot: Preference headers'
-        );
+
 
         $religiousId = (int) (
             $religious['id']
@@ -1186,12 +1145,10 @@ final class PartnerPreferenceMatchService
             ];
         }
 
-        $performanceTimeline?->checkpoint(
-            'Snapshot: Lifestyle preferences'
-        );
+
 
         /*
- * Membership-28 diagnostic pass.
+ 
  *
  * Resolve the existing selection-model reads before constructing the snapshot
  * so their logical groups can be measured.
@@ -1229,9 +1186,7 @@ final class PartnerPreferenceMatchService
             )
             : [];
 
-        $performanceTimeline?->checkpoint(
-            'Snapshot: Basic selections'
-        );
+
 
         /*
  * Religious selections.
@@ -1248,9 +1203,7 @@ final class PartnerPreferenceMatchService
             )
             : [];
 
-        $performanceTimeline?->checkpoint(
-            'Snapshot: Religious selections'
-        );
+
 
         /*
  * Education/Profession selections.
@@ -1312,9 +1265,7 @@ final class PartnerPreferenceMatchService
             )
             : [];
 
-        $performanceTimeline?->checkpoint(
-            'Snapshot: Professional selections'
-        );
+
 
         /*
  * Location selections.
@@ -1355,9 +1306,7 @@ final class PartnerPreferenceMatchService
             )
             : [];
 
-        $performanceTimeline?->checkpoint(
-            'Snapshot: Location selections'
-        );
+
 
         return [
             'basic' =>

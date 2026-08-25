@@ -201,7 +201,7 @@ final class MemberPhotoModel extends Model
     /**
      * Return approved primary photos for a member collection.
      *
-     * Membership-23 collection optimization.
+     
      *
      * This is the batch equivalent of findApprovedPrimaryForMember().
      *

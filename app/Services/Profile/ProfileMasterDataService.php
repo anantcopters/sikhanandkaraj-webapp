@@ -22,7 +22,6 @@ use App\Models\AbstractActiveMasterModel;
 use App\Models\MasterDrinkingHabitModel;
 use App\Models\MasterEatingHabitModel;
 use App\Models\MasterPhysicalStatusModel;
-use App\Support\Development\PerformanceTimeline;
 use DomainException;
 
 /**
@@ -53,7 +52,7 @@ final class ProfileMasterDataService
     /**
      * Return the master data required by Basic Details.
      *
-     * Membership-28:
+   
      *
      * Search may optionally supply a development performance timeline. Normal
      * profile/prelaunch callers remain unchanged.
@@ -62,16 +61,11 @@ final class ProfileMasterDataService
      */
     public function basicDetailsOptions(
         ?int $selectedStateId = null,
-        ?int $selectedCountryId = null,
-        ?PerformanceTimeline $performanceTimeline = null
+        ?int $selectedCountryId = null
     ): array {
         $countries =
             $this->countryModel
             ->activeOptions();
-
-        $performanceTimeline?->checkpoint(
-            'Master Basic: Countries'
-        );
 
         $country =
             $selectedCountryId !== null
@@ -94,57 +88,39 @@ final class ProfileMasterDataService
             );
         }
 
-        $performanceTimeline?->checkpoint(
-            'Master Basic: Selected/default country'
-        );
-
         $maritalStatuses =
             $this->maritalStatusModel
             ->activeOptions();
 
-        $performanceTimeline?->checkpoint(
-            'Master Basic: Marital statuses'
-        );
+
 
         $heights =
             $this->heightModel
             ->activeOptions();
 
-        $performanceTimeline?->checkpoint(
-            'Master Basic: Heights'
-        );
-
         $motherTongues =
             $this->motherTongueModel
             ->activeOptions();
 
-        $performanceTimeline?->checkpoint(
-            'Master Basic: Mother tongues'
-        );
+
 
         $drinkingHabits =
             $this->drinkingHabitModel
             ->activeOptions();
 
-        $performanceTimeline?->checkpoint(
-            'Master Basic: Drinking habits'
-        );
+
 
         $eatingHabits =
             $this->eatingHabitModel
             ->activeOptions();
 
-        $performanceTimeline?->checkpoint(
-            'Master Basic: Eating habits'
-        );
+
 
         $physicalStatuses =
             $this->physicalStatusModel
             ->activeOptions();
 
-        $performanceTimeline?->checkpoint(
-            'Master Basic: Physical statuses'
-        );
+
 
         $states =
             $this->stateModel
@@ -152,9 +128,7 @@ final class ProfileMasterDataService
                 (int) $country['id']
             );
 
-        $performanceTimeline?->checkpoint(
-            'Master Basic: States'
-        );
+
 
         $cities =
             $selectedStateId !== null
@@ -168,9 +142,7 @@ final class ProfileMasterDataService
             )
             : [];
 
-        $performanceTimeline?->checkpoint(
-            'Master Basic: Cities'
-        );
+
 
         return [
             'country' =>
@@ -289,7 +261,7 @@ final class ProfileMasterDataService
     /**
      * Return active master values used by partner preferences.
      *
-     * Membership-29:
+     
      *
      * $resolvedCountries allows a collection-level caller such as Search to reuse
      * countries it has already loaded through basicDetailsOptions().
@@ -305,16 +277,11 @@ final class ProfileMasterDataService
      * @return array<string, mixed>
      */
     public function additionalPartnerPreferenceOptions(
-        ?PerformanceTimeline $performanceTimeline = null,
         ?array $resolvedCountries = null
     ): array {
         $communities =
             $this->communityModel
             ->activeOptions();
-
-        $performanceTimeline?->checkpoint(
-            'Master Additional: Communities'
-        );
 
         /*
      * Keep flat and grouped Education contracts separate because existing
@@ -324,44 +291,23 @@ final class ProfileMasterDataService
             $this->educationModel
             ->activeOptions();
 
-        $performanceTimeline?->checkpoint(
-            'Master Additional: Educations'
-        );
-
         $educationGroups =
             $this->educationModel
             ->activeGroupedOptions();
-
-        $performanceTimeline?->checkpoint(
-            'Master Additional: Education groups'
-        );
-
         $occupations =
             $this->occupationModel
             ->activeOptions();
-
-        $performanceTimeline?->checkpoint(
-            'Master Additional: Occupations'
-        );
 
         $occupationGroups =
             $this->occupationModel
             ->activeGroupedOptions();
 
-        $performanceTimeline?->checkpoint(
-            'Master Additional: Occupation groups'
-        );
-
         $annualIncomes =
             $this->annualIncomeModel
             ->activeOptions();
 
-        $performanceTimeline?->checkpoint(
-            'Master Additional: Annual incomes'
-        );
-
         /*
-        * Membership-29.
+        
         *
         * Search already obtains active Countries while preparing Basic Search master
         * data. Reuse that collection when supplied.
@@ -371,27 +317,15 @@ final class ProfileMasterDataService
         if ($resolvedCountries !== null) {
             $countries =
                 $resolvedCountries;
-
-            $performanceTimeline?->checkpoint(
-                'Master Additional: Countries reused'
-            );
         } else {
             $countries =
                 $this->countryModel
                 ->activeOptions();
-
-            $performanceTimeline?->checkpoint(
-                'Master Additional: Countries'
-            );
         }
 
         $states =
             $this->stateModel
             ->activeAcrossCountries();
-
-        $performanceTimeline?->checkpoint(
-            'Master Additional: States'
-        );
 
         return [
             'communities' =>

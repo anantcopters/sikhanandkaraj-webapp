@@ -751,7 +751,7 @@ final class MemberInteractionService
     /**
      * Resolve Interest relationship state for a candidate collection.
      *
-     * Membership-23 collection optimization.
+     
      *
      * Previously Search executed:
      *

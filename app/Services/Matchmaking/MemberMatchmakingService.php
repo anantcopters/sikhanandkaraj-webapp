@@ -53,7 +53,7 @@ final class MemberMatchmakingService
         $profilePresentationService,
 
         /*
-         * Membership-25:
+         
          *
          * Dashboard collections batch-load approved primary-photo state through
          * the same service already used by Search.
@@ -293,7 +293,7 @@ final class MemberMatchmakingService
      * Dashboard All Matches and Search's All Matches Quick Link must use the
      * same matching pipeline.
      *
-     * Membership-25:
+     
      *
      * Do not duplicate candidate eligibility, Partner Preference scoring or
      * minimum-match qualification here. matchedCandidateIds() is the common
@@ -656,7 +656,7 @@ final class MemberMatchmakingService
      * - existing Interest relationship state;
      * - existing Send Interest route.
      *
-     * Membership-25:
+    
      *
      * Collection state is resolved in batches before card presentation.
      *
@@ -839,7 +839,7 @@ final class MemberMatchmakingService
                 ) === true;
 
             /*
-             * Membership-23 extended summary() with resolvedImage.
+             
              *
              * Passing an empty string deliberately means:
              *

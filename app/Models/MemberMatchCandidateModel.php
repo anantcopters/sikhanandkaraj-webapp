@@ -66,8 +66,7 @@ final class MemberMatchCandidateModel extends Model
     /**
      * Compile the authoritative eligible-candidate query without executing it.
      *
-     * Membership-26 development diagnostics.
-     *
+     
      * IMPORTANT:
      *
      * This method intentionally builds the query through
@@ -607,8 +606,6 @@ final class MemberMatchCandidateModel extends Model
         * Therefore Match-ranked Search must return the complete database-filtered
         * candidate pool before pagination.
         *
-        * Membership-24 optimization:
-        *
         * DO NOT execute COUNT(*) here.
         *
         * The complete result set is about to be loaded anyway and MemberSearchService
@@ -625,7 +622,7 @@ final class MemberMatchCandidateModel extends Model
         *         -> Match Score
         *         -> count again
         *
-        * Membership-24:
+        
         *
         *     filtered SQL
         *         -> execute candidate query
