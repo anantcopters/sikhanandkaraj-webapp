@@ -11,13 +11,19 @@ use CodeIgniter\Model;
  *
  * Authorization belongs to LiveIntroductionAccessPolicy.
  *
- * This model owns only:
+ * IMPORTANT COMMERCIAL RULE:
  *
- * - membership-scoped uniqueness;
- * - consumed-count queries;
- * - concurrency locking;
- * - successful playback activity;
- * - member-facing usage history.
+ * Live Introduction allowance is consumed per candidate/member, not per
+ * uploaded video version.
+ *
+ * Therefore:
+ *
+ *     membership_id + owner_user_id
+ *
+ * identifies one commercial consumption.
+ *
+ * Re-uploading/replacing an approved Live Introduction for the same member
+ * must never consume another allowance during the same membership.
  */
 final class MemberMembershipLiveIntroductionViewModel
 extends Model
@@ -63,16 +69,18 @@ extends Model
     true;
 
     /**
-     * Return whether this exact approved video version has already consumed
+     * Return whether this candidate's Live Introduction has already consumed
      * allowance during the supplied membership.
+     *
+     * Deliberately use owner_user_id rather than video_introduction_id.
      */
-    public function hasConsumedVideo(
+    public function hasConsumedOwner(
         int $membershipId,
-        int $videoIntroductionId
+        int $ownerUserId
     ): bool {
         if (
             $membershipId <= 0
-            || $videoIntroductionId <= 0
+            || $ownerUserId <= 0
         ) {
             return false;
         }
@@ -83,14 +91,14 @@ extends Model
                 $membershipId
             )
             ->where(
-                'video_introduction_id',
-                $videoIntroductionId
+                'owner_user_id',
+                $ownerUserId
             )
             ->countAllResults() > 0;
     }
 
     /**
-     * Count distinct approved Live Introductions consumed during this
+     * Count distinct candidate Live Introductions consumed during this
      * membership.
      */
     public function consumedCount(
@@ -111,6 +119,10 @@ extends Model
     /**
      * Return member-facing Live Introduction usage history.
      *
+     * Usage history is commercial history. A replacement video therefore
+     * updates the same candidate's activity rather than creating a second
+     * allowance entry.
+     *
      * @return list<array<string, mixed>>
      */
     public function historyForUser(
@@ -121,17 +133,15 @@ extends Model
             return [];
         }
 
-        $limit =
-            max(
-                1,
-                min(
-                    200,
-                    $limit
-                )
-            );
+        $limit = max(
+            1,
+            min(
+                200,
+                $limit
+            )
+        );
 
-        $rows =
-            $this->db
+        $rows = $this->db
             ->table(
                 $this->table . ' usage'
             )
@@ -190,10 +200,11 @@ extends Model
     }
 
     /**
-     * Lock the active membership row before checking and consuming quota.
+     * Lock the membership before checking/consuming quota.
      *
-     * Every new Live Introduction consumption for one membership is therefore
-     * serialized against the same row.
+     * Every first-time Live Introduction consumption for a membership is
+     * serialized against the same membership row. This prevents concurrent
+     * requests from consuming beyond the membership allowance.
      *
      * @return array<string, mixed>|null
      */
@@ -204,8 +215,7 @@ extends Model
             return null;
         }
 
-        $row =
-            $this->db
+        $row = $this->db
             ->query(
                 <<<'SQL'
                     SELECT
@@ -231,7 +241,10 @@ extends Model
     }
 
     /**
-     * Persist the first successful playback of one approved video version.
+     * Persist the first successful Live Introduction access for one candidate.
+     *
+     * video_introduction_id is retained as audit information showing which
+     * approved video version was first viewed when the allowance was consumed.
      */
     public function consume(
         int $membershipId,
@@ -240,32 +253,31 @@ extends Model
         int $videoIntroductionId,
         string $nowUtc
     ): bool {
-        $insertId =
-            $this->insert(
-                [
-                    'membership_id' =>
-                    $membershipId,
+        $insertId = $this->insert(
+            [
+                'membership_id' =>
+                $membershipId,
 
-                    'viewer_user_id' =>
-                    $viewerUserId,
+                'viewer_user_id' =>
+                $viewerUserId,
 
-                    'owner_user_id' =>
-                    $ownerUserId,
+                'owner_user_id' =>
+                $ownerUserId,
 
-                    'video_introduction_id' =>
-                    $videoIntroductionId,
+                'video_introduction_id' =>
+                $videoIntroductionId,
 
-                    'first_viewed_at' =>
-                    $nowUtc,
+                'first_viewed_at' =>
+                $nowUtc,
 
-                    'last_viewed_at' =>
-                    $nowUtc,
+                'last_viewed_at' =>
+                $nowUtc,
 
-                    'view_count' =>
-                    1,
-                ],
-                true
-            );
+                'view_count' =>
+                1,
+            ],
+            true
+        );
 
         return is_numeric(
             $insertId
@@ -273,12 +285,16 @@ extends Model
     }
 
     /**
-     * Record another playback request for an already-consumed video version.
+     * Record another successful playback for an already-consumed candidate.
      *
-     * Replays remain free from the commercial quota perspective.
+     * A replacement video remains free from the commercial quota perspective.
+     *
+     * We update video_introduction_id so support/audit can see the latest
+     * approved video version that was successfully accessed.
      */
     public function recordRepeatView(
         int $membershipId,
+        int $ownerUserId,
         int $videoIntroductionId,
         string $nowUtc
     ): void {
@@ -286,17 +302,19 @@ extends Model
             <<<'SQL'
                 UPDATE member_membership_live_introduction_views
                 SET
+                    video_introduction_id = ?,
                     view_count = view_count + 1,
                     last_viewed_at = ?,
                     updated_at = ?
                 WHERE membership_id = ?
-                AND video_introduction_id = ?
+                AND owner_user_id = ?
                 SQL,
             [
+                $videoIntroductionId,
                 $nowUtc,
                 $nowUtc,
                 $membershipId,
-                $videoIntroductionId,
+                $ownerUserId,
             ]
         );
     }

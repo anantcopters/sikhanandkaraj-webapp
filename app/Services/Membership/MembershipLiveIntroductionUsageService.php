@@ -11,24 +11,19 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Owns commercial Live Introduction allowance consumption.
+ * Owns membership-scoped Live Introduction allowance consumption.
  *
- * Authorization has already succeeded before this service is called.
+ * Commercial consumption is candidate-scoped:
  *
- * This service therefore does not know about:
+ *     membership_id + owner_user_id
  *
- * - gender;
- * - Interest relationships;
- * - blocked members;
- * - video visibility;
- * - profile verification.
- *
- * Those belong to the access-policy layer.
+ * It is deliberately NOT video-version scoped.
  */
 final class MembershipLiveIntroductionUsageService
 {
     public function __construct(
-        private readonly MemberMembershipLiveIntroductionViewModel
+        private readonly
+        MemberMembershipLiveIntroductionViewModel
         $usageModel,
 
         private readonly BaseConnection
@@ -36,7 +31,23 @@ final class MembershipLiveIntroductionUsageService
     ) {}
 
     /**
-     * Consume one approved Live Introduction or record a replay.
+     * Return whether this candidate has already consumed allowance during the
+     * supplied membership.
+     */
+    public function hasConsumed(
+        int $membershipId,
+        int $ownerUserId
+    ): bool {
+        return $this
+            ->usageModel
+            ->hasConsumedOwner(
+                $membershipId,
+                $ownerUserId
+            );
+    }
+
+    /**
+     * Consume one Live Introduction allowance or record a repeat playback.
      *
      * @param array<string, mixed> $membership
      *
@@ -94,8 +105,7 @@ final class MembershipLiveIntroductionUsageService
 
         try {
             /*
-             * Serialize all new Live Introduction consumption for this
-             * membership.
+             * Serialize commercial usage for this membership.
              */
             $lockedMembership = $this
                 ->usageModel
@@ -110,8 +120,8 @@ final class MembershipLiveIntroductionUsageService
             }
 
             /*
-             * Never trust membership ownership merely because an upstream
-             * service supplied the membership ID.
+             * Membership IDs must never be trusted without re-checking
+             * ownership while the authoritative membership row is locked.
              */
             if (
                 (int) (
@@ -125,46 +135,32 @@ final class MembershipLiveIntroductionUsageService
             }
 
             /*
-             * Re-check commercial state while holding the lock.
+             * Candidate already consumed during this membership.
              *
-             * MembershipService already resolves only currently active
-             * memberships, but this transaction must remain safe even if the
-             * membership changes between authorization and consumption.
-             */
-            if (
-                mb_strtoupper(
-                    trim(
-                        (string) (
-                            $lockedMembership['status']
-                            ?? ''
-                        )
-                    )
-                ) !== 'ACTIVE'
-            ) {
-                throw new RuntimeException(
-                    'The membership is no longer active.'
-                );
-            }
-
-            /*
-             * A replay of the same approved video version never consumes
-             * another allowance.
+             * This includes:
+             *
+             * - replay of the same video;
+             * - playback of a newly approved replacement video belonging to
+             *   the same member.
+             *
+             * Neither consumes another commercial allowance.
              */
             if (
                 $this->usageModel
-                ->hasConsumedVideo(
+                ->hasConsumedOwner(
                     $membershipId,
-                    $videoIntroductionId
+                    $ownerUserId
                 )
             ) {
                 $this->usageModel
                     ->recordRepeatView(
                         $membershipId,
+                        $ownerUserId,
                         $videoIntroductionId,
                         $nowUtc
                     );
 
-                $used = $this
+                $membershipUsed = $this
                     ->usageModel
                     ->consumedCount(
                         $membershipId
@@ -177,24 +173,28 @@ final class MembershipLiveIntroductionUsageService
                     false,
 
                     'membershipUsed' =>
-                    $used,
+                    $membershipUsed,
 
                     'membershipLimit' =>
                     $membershipLimit,
                 ];
             }
 
-            $used = $this
+            $membershipUsed = $this
                 ->usageModel
                 ->consumedCount(
                     $membershipId
                 );
 
-            if ($used >= $membershipLimit) {
-                throw new MembershipLiveIntroductionQuotaExceededException(
-                    'Your membership Live Introduction viewing limit '
-                        . 'has been reached.'
-                );
+            if (
+                $membershipUsed
+                >= $membershipLimit
+            ) {
+                throw new
+                    MembershipLiveIntroductionQuotaExceededException(
+                        'Your membership Live Introduction '
+                            . 'view limit has been reached.'
+                    );
             }
 
             if (
@@ -208,11 +208,12 @@ final class MembershipLiveIntroductionUsageService
                     )
             ) {
                 throw new RuntimeException(
-                    'The Live Introduction allowance could not be recorded.'
+                    'The Live Introduction allowance '
+                        . 'could not be recorded.'
                 );
             }
 
-            $used++;
+            $membershipUsed++;
 
             $this->commitOrFail();
 
@@ -221,7 +222,7 @@ final class MembershipLiveIntroductionUsageService
                 true,
 
                 'membershipUsed' =>
-                $used,
+                $membershipUsed,
 
                 'membershipLimit' =>
                 $membershipLimit,
@@ -245,7 +246,7 @@ final class MembershipLiveIntroductionUsageService
             === false
         ) {
             throw new RuntimeException(
-                'The Live Introduction usage transaction failed.'
+                'The membership usage transaction failed.'
             );
         }
 

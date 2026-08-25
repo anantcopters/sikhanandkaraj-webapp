@@ -1116,6 +1116,36 @@ $this->section('content');
                             $activeSection === 'membership-history'
                         ): ?>
 
+                            <!--
+                                Membership & Usage is intentionally one Account Settings section.
+
+                                Membership Usage:
+                                    Current paid membership allowance consumption.
+
+                                Membership History:
+                                    Current and previous membership lifecycle/purchase history.
+
+                                Keeping both here avoids creating two overlapping navigation items.
+                            -->
+
+                            <?php if (
+                                ($membershipUsage['isPaid'] ?? false)
+                                === true
+                            ): ?>
+
+                                <?= view(
+                                    'Pages/AccountSettings/_MembershipUsage',
+                                    [
+                                        'membershipUsage' =>
+                                        $membershipUsage
+                                            ?? [],
+                                    ]
+                                ) ?>
+
+                                <hr class="my-4">
+
+                            <?php endif; ?>
+
                             <?= view(
                                 'Pages/AccountSettings/_MembershipHistory',
                                 [

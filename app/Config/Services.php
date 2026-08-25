@@ -3035,4 +3035,32 @@ final class Services extends BaseService
             )
         );
     }
+
+    /**
+     * Member-facing read-only membership usage presentation.
+     */
+    public static function memberMembershipUsageService(
+        bool $getShared = true
+    ): \App\Services\Membership\MemberMembershipUsageService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMembershipUsageService'
+            );
+        }
+
+        return new
+            \App\Services\Membership\MemberMembershipUsageService(
+                service(
+                    'membershipService'
+                ),
+
+                model(
+                    \App\Models\MemberMembershipProfileViewModel::class
+                ),
+
+                model(
+                    \App\Models\MemberMembershipLiveIntroductionViewModel::class
+                )
+            );
+    }
 }

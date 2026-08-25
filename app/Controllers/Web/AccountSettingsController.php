@@ -31,11 +31,11 @@ final class AccountSettingsController extends BaseController
         'plans',
 
         /*
-     * Read-only purchased membership and commercial usage history.
-     */
+        * Read-only purchased membership and commercial usage history.
+        */
         'membership-history',
 
-        'contact',
+        'contact'
     ];
 
     public function index(
@@ -195,6 +195,19 @@ final class AccountSettingsController extends BaseController
                 );
         }
 
+        /*
+        * Membership Usage is read-only commercial data.
+        *
+        * The controller does not calculate quotas itself. All counters and
+        * membership resolution remain centralized in MemberMembershipUsageService.
+        */
+        $membershipUsage =
+            service(
+                'memberMembershipUsageService'
+            )->forUser(
+                $userId
+            );
+
         return view(
             'Pages/AccountSettings/Index',
             array_merge(
@@ -233,6 +246,9 @@ final class AccountSettingsController extends BaseController
 
                     'membershipHistory' =>
                     $membershipHistory,
+
+                    'membershipUsage' =>
+                    $membershipUsage,
 
                     'pageScripts' => [
                         'assets/js/components/form-validator.js',
