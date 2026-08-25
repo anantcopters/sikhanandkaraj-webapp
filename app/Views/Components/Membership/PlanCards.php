@@ -670,23 +670,30 @@ $currentMembershipExpiry =
 
                                     <div
                                         class="
-                                            d-flex
-                                            align-items-start
-                                            gap-2
-                                        ">
+            d-flex
+            align-items-start
+            gap-2
+        ">
 
                                         <i
                                             class="
-                                                ri-video-line
-                                                text-success
-                                                fs-18
-                                                flex-shrink-0
-                                            "
+                ri-video-line
+                text-success
+                fs-18
+                flex-shrink-0
+            "
                                             aria-hidden="true">
                                         </i>
 
                                         <div>
 
+                                            <!--
+                The allowance itself is authoritative and comes from the
+                membership plan master.
+
+                Do not repeat the numeric allowance in secondary copy. The
+                primary line already communicates the complete entitlement.
+            -->
                                             <strong>
 
                                                 <?= esc(
@@ -694,23 +701,18 @@ $currentMembershipExpiry =
                                                     $liveIntroductionViewLimit
                                                 ) ?>
 
-                                                Live Introductions
+                                                Live Introduction Views
 
                                             </strong>
 
                                             <div
                                                 class="
-                                                    fs-12
-                                                    text-muted
-                                                    mt-1
-                                                ">
+                    fs-12
+                    text-muted
+                    mt-1
+                ">
 
-                                                Watch up to
-
-                                                <?= esc(
-                                                    (string)
-                                                    $liveIntroductionViewLimit
-                                                ) ?>
+                                                Included during your membership
 
                                             </div>
 

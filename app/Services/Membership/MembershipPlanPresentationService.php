@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Membership;
 
 use App\Models\MembershipPlanModel;
+use Config\DateDisplay;
 use DateTimeImmutable;
 use DateTimeZone;
 use Throwable;
@@ -182,8 +183,13 @@ final class MembershipPlanPresentationService
         /*
          * Add display-only membership dates once.
          *
-         * The authoritative raw UTC values remain available in the resolved
-         * membership; the formatted values exist only for the UI.
+         * The authoritative membership timestamps remain stored and resolved
+         * in UTC. Only their member-facing representation is converted using
+         * the application's existing DateDisplay configuration.
+         *
+         * This keeps membership screens consistent with the rest of the
+         * application and avoids creating another date/time presentation rule
+         * inside the membership feature.
          */
         if ($currentMembership !== null) {
             $currentMembership['startsAtDisplay'] =
@@ -439,22 +445,35 @@ final class MembershipPlanPresentationService
     }
 
     /**
-     * Format a persisted membership timestamp for member-facing display.
+     * Format a persisted UTC membership timestamp for member-facing display.
      *
-     * Membership persistence currently uses UTC and Config\App also declares
-     * UTC as the application timezone. We therefore keep the same timezone
-     * and change only the human-readable representation.
+     * STORAGE VS DISPLAY
+     * ==================
+     *
+     * Membership timestamps remain persisted in UTC.
+     *
+     * User-facing dates must follow Config\DateDisplay, which provides the
+     * application's centralized display timezone and date format.
+     *
+     * With the current defaults:
+     *
+     *     storage timezone : UTC
+     *     display timezone : Asia/Kolkata
+     *     display format   : jS M Y
      *
      * Example:
      *
-     *     2026-11-25 10:09:30
+     *     2026-11-25 18:30:00 UTC
      *
      * becomes:
      *
-     *     25 Nov 2026
+     *     26th Nov 2026
      *
-     * An invalid/empty timestamp returns an empty string rather than allowing
-     * a presentation failure to break the Membership Plans screen.
+     * in Asia/Kolkata.
+     *
+     * An invalid or empty timestamp returns an empty string. A presentation
+     * problem must never prevent the member from opening the Membership Plans
+     * screen.
      */
     private function formatMembershipDate(
         string $value
@@ -469,22 +488,67 @@ final class MembershipPlanPresentationService
         }
 
         try {
-            return (
+            /*
+             * Membership persistence is authoritative UTC.
+             */
+            $date =
                 new DateTimeImmutable(
                     $value,
                     new DateTimeZone(
                         'UTC'
                     )
+                );
+
+            /*
+             * Reuse the application's existing display policy instead of
+             * defining membership-specific timezone or formatting rules.
+             */
+            $dateDisplay =
+                config(
+                    DateDisplay::class
+                );
+
+            $displayTimezone =
+                trim(
+                    (string) $dateDisplay->timezone
+                );
+
+            $displayFormat =
+                trim(
+                    (string) $dateDisplay->dateFormat
+                );
+
+            /*
+             * DateDisplay itself already provides safe defaults, but keep
+             * defensive fallbacks here so malformed runtime configuration
+             * cannot break the Membership Plans screen.
+             */
+            if ($displayTimezone === '') {
+                $displayTimezone =
+                    'Asia/Kolkata';
+            }
+
+            if ($displayFormat === '') {
+                $displayFormat =
+                    'jS M Y';
+            }
+
+            return $date
+                ->setTimezone(
+                    new DateTimeZone(
+                        $displayTimezone
+                    )
                 )
-            )->format(
-                'd M Y'
-            );
+                ->format(
+                    $displayFormat
+                );
         } catch (Throwable) {
             /*
              * Fail presentation-safe.
              *
-             * The raw membership value remains authoritative and should be
-             * investigated separately if malformed.
+             * The raw membership timestamp remains authoritative. Invalid
+             * persisted/configured values should be investigated separately,
+             * but must not make the pricing/account screen unavailable.
              */
             return '';
         }
