@@ -201,16 +201,10 @@ final class MemberPhotoModel extends Model
     /**
      * Return approved primary photos for a member collection.
      *
-     
-     *
-     * This is the batch equivalent of findApprovedPrimaryForMember().
-     *
-     * Only fields required for member-card authorization and thumbnail signing
-     * are returned. Original object keys are deliberately not loaded.
+     * This is the batch equivalent of findApprovedPrimaryForMember() and should
+     * be preferred by card/listing surfaces to avoid per-member photo queries.
      *
      * @param list<int> $memberIds
-     *
-     * @return array<int, array<string, mixed>>
      */
     public function findApprovedPrimaryForMembers(
         array $memberIds

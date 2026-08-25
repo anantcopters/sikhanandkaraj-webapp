@@ -64,6 +64,13 @@ final class MembershipLiveIntroductionUsageService
     /**
      * Consume one Live Introduction allowance or record a repeat playback.
      *
+     * Consumption is scoped to membership + video owner, not to a specific video
+     * version. Replaying the same video or viewing a replacement approved video
+     * from the same member therefore does not consume another allowance.
+     *
+     * The membership is locked and commercially revalidated inside the
+     * transaction before usage is recorded.
+     *
      * @param array<string, mixed> $membership
      *
      * @return array{

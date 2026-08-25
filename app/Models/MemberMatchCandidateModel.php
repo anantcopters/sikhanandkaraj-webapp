@@ -64,55 +64,6 @@ final class MemberMatchCandidateModel extends Model
     }
 
     /**
-     * Compile the authoritative eligible-candidate query without executing it.
-     *
-     
-     * IMPORTANT:
-     *
-     * This method intentionally builds the query through
-     * baseCandidateBuilder(). The diagnostic tool must inspect the exact same
-     * candidate projection used by Dashboard/Matchmaking rather than maintain a
-     * second diagnostic copy of candidate eligibility rules.
-     *
-     * No query is executed here.
-     */
-    public function compiledEligibleCandidatesSql(
-        int $viewerUserId,
-        string $viewerGender
-    ): string {
-        if ($viewerUserId <= 0) {
-            return '';
-        }
-
-        $builder =
-            $this->baseCandidateBuilder(
-                $viewerUserId,
-                $viewerGender
-            );
-
-        /*
-         * Preserve the exact ordering used by eligibleCandidates().
-         */
-        $builder
-            ->orderBy(
-                'u.created_at',
-                'DESC'
-            )
-            ->orderBy(
-                'u.id',
-                'DESC'
-            );
-
-        /*
-         * getCompiledSelect() compiles the Query Builder state without sending
-         * the candidate query to PostgreSQL.
-         */
-        return trim(
-            $builder->getCompiledSelect()
-        );
-    }
-
-    /**
      * Return currently visible profiles for ordered IDs.
      *
      * Used by:
@@ -596,43 +547,16 @@ final class MemberMatchCandidateModel extends Model
         }
 
         /*
-        * --------------------------------------------------------------------------
-        * Match Score ranking pool
-        * --------------------------------------------------------------------------
+        * Match-ranked Search requires the complete database-filtered candidate pool
+        * before pagination because Partner Preference filtering and final Match Score
+        * ranking occur in the application layer.
         *
-        * Default Search ranking is viewer-specific because Partner Preference score
-        * and final Match Score are calculated by the existing matchmaking services.
+        * Do not execute COUNT(*) for this path. The complete candidate collection is
+        * already being loaded and MemberSearchService calculates the authoritative
+        * total after compulsory preference filtering.
         *
-        * Therefore Match-ranked Search must return the complete database-filtered
-        * candidate pool before pagination.
-        *
-        * DO NOT execute COUNT(*) here.
-        *
-        * The complete result set is about to be loaded anyway and MemberSearchService
-        * must subsequently remove candidates that fail compulsory Partner
-        * Preferences before calculating the real Search total.
-        *
-        * Previous flow:
-        *
-        *     filtered SQL
-        *         -> COUNT(*)
-        *         -> execute same filtered candidate query
-        *         -> Partner Preference
-        *         -> compulsory filtering
-        *         -> Match Score
-        *         -> count again
-        *
-        
-        *
-        *     filtered SQL
-        *         -> execute candidate query
-        *         -> Partner Preference
-        *         -> compulsory filtering
-        *         -> Match Score
-        *         -> final count
-        *
-        * Explicit database-sorted Search continues through the normal count +
-        * pagination path below.
+        * Explicit database-sorted Search continues through the normal count and
+        * database-pagination path below.
         */
         if (!$paginate) {
             $rows =

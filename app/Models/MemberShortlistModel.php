@@ -67,12 +67,10 @@ final class MemberShortlistModel extends Model
     /**
      * Return the subset of supplied members currently shortlisted by the viewer.
      *
-     
-     *
-     * Card collections use this batch method instead of calling
+     * Card collections should use this batch lookup instead of calling
      * hasShortlisted() once per candidate.
      *
-     * @param list<int> $candidateUserIds
+     * @param int $userId
      *
      * @return list<int>
      */

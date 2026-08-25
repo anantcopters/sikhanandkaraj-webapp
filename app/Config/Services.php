@@ -2168,11 +2168,9 @@ final class Services extends BaseService
             ),
 
             /*
-         
-         * Search card collections batch-load approved primary-photo state
-         * through the existing photo URL service.
-         *
-        */
+            * Search card collections batch-load approved primary-photo state through
+            * the shared photo URL service to avoid per-profile photo queries.
+            */
             static::memberPhotoUrlService(
                 false
             )

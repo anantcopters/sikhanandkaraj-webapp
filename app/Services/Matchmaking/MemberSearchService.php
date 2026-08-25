@@ -244,10 +244,11 @@ final class MemberSearchService
             );
 
         /*
-       
+        * Resolve Search master data through the existing profile master-data
+        * authorities.
         *
-        * searchMasterData() records its individual existing master-data authorities
-        * when a development timeline is supplied.
+        * Selected states are supplied so City options are restricted to the
+        * applicable state collection before submitted filters are normalized.
         */
         $masterData =
             $this->searchMasterData(
@@ -360,10 +361,11 @@ final class MemberSearchService
 
         if ($useMatchScoreRanking) {
             /*
-            
+            * Apply the shared Partner Preference authority before final Match Score
+            * ranking.
             *
-            * PartnerPreferenceMatchService records its own internal stages when the
-            * development timeline is supplied.
+            * Search and Dashboard must not implement separate preference-scoring
+            * algorithms.
             */
             $resultRows =
                 $this->partnerPreferenceMatchService
@@ -468,9 +470,12 @@ final class MemberSearchService
         }
 
         /*
- * presentationProfiles() records the internal Membership-27 presentation
- * stages when profiling is active.
- */
+        * Convert the paginated candidate collection through the shared member-card
+        * presentation pipeline.
+        *
+        * Search must use the same presentation contract as other member discovery
+        * surfaces rather than reconstructing profile-card state locally.
+        */
         $profiles =
             $this->presentationProfiles(
                 $viewerUserId,

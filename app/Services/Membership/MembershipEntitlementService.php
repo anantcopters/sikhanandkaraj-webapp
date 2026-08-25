@@ -68,6 +68,14 @@ final class MembershipEntitlementService
             trim($capability)
         );
 
+        /*
+        * These capabilities are intentionally membership-neutral.
+        *
+        * Returning true here grants only the membership entitlement. The target
+        * operation must still enforce its own authentication, ownership, blocking,
+        * moderation and domain-specific authorization rules.
+        */
+
         if (
             in_array(
                 $normalizedCapability,
