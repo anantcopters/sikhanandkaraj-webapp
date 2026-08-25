@@ -199,16 +199,16 @@ final class MemberMatchCandidateModel extends Model
         );
 
         /*
- * --------------------------------------------------------------------------
- * Existing-interaction candidate restriction
- * --------------------------------------------------------------------------
- *
- * Used by Search Quick Links such as shortlist/profile-view activity.
- *
- * Eligibility remains controlled by baseCandidateBuilder(), therefore an
- * inactive, deleted or blocked profile cannot reappear merely because an old
- * interaction record exists.
- */
+        * --------------------------------------------------------------------------
+        * Existing-interaction candidate restriction
+        * --------------------------------------------------------------------------
+        *
+        * Used by Search Quick Links such as shortlist/profile-view activity.
+        *
+        * Eligibility remains controlled by baseCandidateBuilder(), therefore an
+        * inactive, deleted or blocked profile cannot reappear merely because an old
+        * interaction record exists.
+        */
         if (
             array_key_exists(
                 'candidate_ids',
@@ -236,11 +236,11 @@ final class MemberMatchCandidateModel extends Model
                 : [];
 
             /*
-     * A valid activity collection with no members must return zero rows.
-     *
-     * We cannot simply skip whereIn() because that would accidentally turn an
-     * empty activity collection into an unrestricted Search.
-     */
+            * A valid activity collection with no members must return zero rows.
+            *
+            * We cannot simply skip whereIn() because that would accidentally turn an
+            * empty activity collection into an unrestricted Search.
+            */
             if ($candidateIds === []) {
                 return [
                     'rows' =>
@@ -264,8 +264,8 @@ final class MemberMatchCandidateModel extends Model
         }
 
         /*
-     * Search-result presentation fields.
-     */
+        * Search-result presentation fields.
+        */
         $builder->select([
             'state.name AS state_name',
             'height.height_cm',
@@ -292,10 +292,10 @@ final class MemberMatchCandidateModel extends Model
         );
 
         /*
-     * Age.
-     *
-     * age_min means the candidate must be at least that old.
-     */
+        * Age.
+        *
+        * age_min means the candidate must be at least that old.
+        */
         $ageMin = $filters['age_min'] ?? null;
 
         if (is_int($ageMin) && $ageMin >= 18) {
@@ -311,11 +311,11 @@ final class MemberMatchCandidateModel extends Model
         }
 
         /*
-     * Maximum age.
-     *
-     * Example: maximum 30 means DOB must be later than the date representing
-     * someone who has already completed 31 years.
-     */
+        * Maximum age.
+        *
+        * Example: maximum 30 means DOB must be later than the date representing
+        * someone who has already completed 31 years.
+        */
         $ageMax = $filters['age_max'] ?? null;
 
         if (is_int($ageMax) && $ageMax >= 18) {
@@ -333,8 +333,8 @@ final class MemberMatchCandidateModel extends Model
         }
 
         /*
-     * Height range is resolved to centimetres by the service.
-     */
+        * Height range is resolved to centimetres by the service.
+        */
         if (
             isset($filters['height_min_cm'])
             && is_int($filters['height_min_cm'])
@@ -374,8 +374,8 @@ final class MemberMatchCandidateModel extends Model
         );
 
         /*
-     * Advanced-only filters.
-     */
+        * Advanced-only filters.
+        */
         if (
             ($filters['mode'] ?? 'basic')
             === 'advanced'
@@ -417,11 +417,11 @@ final class MemberMatchCandidateModel extends Model
             );
 
             /*
-         * Annual income uses the existing master range IDs.
-         *
-         * When both endpoints are selected the service expands them to the
-         * master IDs that fall inside that range.
-         */
+            * Annual income uses the existing master range IDs.
+            *
+            * When both endpoints are selected the service expands them to the
+            * master IDs that fall inside that range.
+            */
             $this->applyIntegerArrayFilter(
                 $builder,
                 'ep.annual_income_id',
@@ -451,8 +451,8 @@ final class MemberMatchCandidateModel extends Model
                 && $lifestyleIds !== []
             ) {
                 /*
-             * Match profiles having ALL selected lifestyle options.
-             */
+                * Match profiles having ALL selected lifestyle options.
+                */
                 $normalizedLifestyleIds =
                     array_values(
                         array_unique(
@@ -711,10 +711,10 @@ final class MemberMatchCandidateModel extends Model
 
             default:
                 /*
-             * Default remains deterministic.
-             *
-             * Later this can become relevance/match scoring.
-             */
+                * Default remains deterministic.
+                *
+                * Later this can become relevance/match scoring.
+                */
                 $builder
                     ->orderBy(
                         'u.created_at',
@@ -819,6 +819,19 @@ final class MemberMatchCandidateModel extends Model
                 . 'AS is_email_verified',
 
             /*
+            * Match Score trust signal.
+            *
+            * The existing Video Introduction projection already resolves the currently
+            * approved introduction. Convert its presence into the shared boolean
+            * candidate signal used by MemberMatchScoreService.
+            */
+            'CASE
+                WHEN approved_video.id IS NOT NULL
+                THEN TRUE
+                ELSE FALSE
+            END AS is_video_introduction_verified',
+
+            /*
             * Used internally for Last Logged In sorting and converted to a
             * privacy-friendly activity label by MemberSearchService.
             *
@@ -852,6 +865,17 @@ final class MemberMatchCandidateModel extends Model
             'ep.annual_income_id',
 
             'fd.community_id',
+
+            /*
+            * Candidate-level Match Score signal.
+            *
+            * Only approved photos contribute to ranking.
+            *
+            * COUNT is performed in one lateral projection rather than loading photos
+            * separately for every Search/Dashboard candidate.
+            */
+            'COALESCE(candidate_photos.approved_photo_count, 0) '
+                . 'AS approved_photo_count',
         ]);
 
         /*
@@ -889,6 +913,31 @@ final class MemberMatchCandidateModel extends Model
                             candidate_membership.id DESC
                         LIMIT 1
                     ) active_membership',
+            'TRUE',
+            'left',
+            false
+        );
+
+        /*
+        * Candidate approved-photo projection.
+        *
+        * This is deliberately aggregated in SQL to avoid an N+1 photo query when
+        * Match Score is calculated for a collection of candidates.
+        *
+        * IMPORTANT:
+        * Use the same approved-status value already used by MemberPhotoService /
+        * MemberPhotoUrlService in your branch. Do not create a second approval
+        * definition.
+        */
+        $builder->join(
+            'LATERAL (
+                SELECT
+                    COUNT(*)::INTEGER AS approved_photo_count
+                FROM member_photos candidate_photo
+                WHERE candidate_photo.member_id = u.id
+                AND candidate_photo.status = \'APPROVED\'
+                AND candidate_photo.deleted_at IS NULL
+            ) candidate_photos',
             'TRUE',
             'left',
             false
