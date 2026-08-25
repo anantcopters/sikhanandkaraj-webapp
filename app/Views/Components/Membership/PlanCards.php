@@ -75,6 +75,16 @@ $currentMembership =
 $isPaid =
     ($currentAccount['isPaid'] ?? false)
     === true;
+
+$currentMembershipExpiry =
+    $currentMembership !== null
+    ? trim(
+        (string) (
+            $currentMembership['expiresAtDisplay']
+            ?? ''
+        )
+    )
+    : '';
 ?>
 
 <?php if (
@@ -88,7 +98,7 @@ $isPaid =
 
         This is intentionally separate from the plan cards so the member can
         immediately understand what is active before considering an upgrade
-        or renewal.
+        or future renewal.
     -->
     <div
         class="
@@ -110,6 +120,7 @@ $isPaid =
             ">
 
             <div>
+
                 <div
                     class="
                         fs-12
@@ -122,10 +133,13 @@ $isPaid =
                 </div>
 
                 <div class="fs-18 fw-semibold">
+
                     <?= esc(
                         $currentAccount['accountLabel'] ?? 'Paid Account'
                     ) ?>
+
                 </div>
+
             </div>
 
             <span
@@ -141,27 +155,39 @@ $isPaid =
         </div>
 
         <?php if (
-            trim(
-                (string) (
-                    $currentMembership['expiresAt'] ?? ''
-                )
-            ) !== ''
+            $currentMembershipExpiry !== ''
         ): ?>
 
             <div class="fs-13 text-muted mt-2">
+
                 Your current membership remains active until
-                <?= esc(
-                    (string) $currentMembership['expiresAt']
-                ) ?>.
+
+                <strong class="text-body">
+                    <?= esc(
+                        $currentMembershipExpiry
+                    ) ?>
+                </strong>.
+
             </div>
 
         <?php endif; ?>
 
         <div class="fs-12 text-muted mt-2">
+
             An upgrade or renewal starts immediately after successful
             payment. Remaining days and unused allowances from the current
             membership are not carried forward.
+
         </div>
+
+        <!--
+            Renewal is a valid commercial transition in the backend.
+
+            No renewal button is exposed yet because payment integration has
+            not been implemented. Once checkout exists, renewal should be a
+            separate explicit action rather than making the Current Plan card
+            ambiguous.
+        -->
 
     </div>
 
@@ -216,7 +242,9 @@ $isPaid =
 
             <?php
             /*
-             * Normalize view data locally.
+             * Normalize all incoming presentation data locally.
+             *
+             * The view must not infer or recreate commercial rules.
              */
             $planCode =
                 mb_strtoupper(
@@ -269,7 +297,9 @@ $isPaid =
                 );
 
             $monthlyDisplay =
-                isset($plan['monthlyDisplay'])
+                isset(
+                    $plan['monthlyDisplay']
+                )
                 ? trim(
                     (string) $plan['monthlyDisplay']
                 )
@@ -359,9 +389,8 @@ $isPaid =
             /*
              * Payment gateway is intentionally not wired yet.
              *
-             * These labels describe the authoritative transition that will
-             * eventually be handed to checkout. They must not activate a
-             * membership themselves.
+             * These labels describe the authoritative commercial transition.
+             * They must never activate a membership themselves.
              */
             $buttonLabel =
                 match ($action) {
@@ -381,6 +410,13 @@ $isPaid =
                     'Unavailable',
                 };
 
+            /*
+             * Current plan remains visually distinct.
+             *
+             * The underlying purchase decision may correctly be RENEWAL, but
+             * renewal will receive a separate explicit action once payment is
+             * implemented.
+             */
             if ($isCurrentPlan) {
                 $buttonLabel =
                     'Current Plan';
@@ -467,7 +503,11 @@ $isPaid =
                             <?php else: ?>
 
                                 <h3 class="fs-22 fw-semibold">
-                                    <?= esc($planName) ?>
+
+                                    <?= esc(
+                                        $planName
+                                    ) ?>
+
                                 </h3>
 
                             <?php endif; ?>
@@ -503,10 +543,13 @@ $isPaid =
                             </div>
 
                             <p class="text-muted mb-1">
+
                                 for
+
                                 <?= esc(
                                     $durationDisplay
                                 ) ?>
+
                             </p>
 
                             <?php if (
@@ -568,6 +611,7 @@ $isPaid =
                                 ">
 
                                 <li>
+
                                     <div
                                         class="
                                             d-flex
@@ -586,12 +630,16 @@ $isPaid =
                                         </i>
 
                                         <div>
+
                                             <strong>
+
                                                 <?= esc(
                                                     (string)
                                                     $profileViewLimit
                                                 ) ?>
+
                                                 Verified Profiles
+
                                             </strong>
 
                                             <div
@@ -600,19 +648,26 @@ $isPaid =
                                                     text-muted
                                                     mt-1
                                                 ">
+
                                                 Up to
+
                                                 <?= esc(
                                                     (string)
                                                     $dailyProfileViewLimit
                                                 ) ?>
+
                                                 per day
+
                                             </div>
+
                                         </div>
 
                                     </div>
+
                                 </li>
 
                                 <li>
+
                                     <div
                                         class="
                                             d-flex
@@ -631,12 +686,16 @@ $isPaid =
                                         </i>
 
                                         <div>
+
                                             <strong>
+
                                                 <?= esc(
                                                     (string)
                                                     $liveIntroductionViewLimit
                                                 ) ?>
+
                                                 Live Introductions
+
                                             </strong>
 
                                             <div
@@ -645,15 +704,20 @@ $isPaid =
                                                     text-muted
                                                     mt-1
                                                 ">
+
                                                 Watch up to
+
                                                 <?= esc(
                                                     (string)
                                                     $liveIntroductionViewLimit
                                                 ) ?>
+
                                             </div>
+
                                         </div>
 
                                     </div>
+
                                 </li>
 
                                 <?php if (
@@ -661,6 +725,7 @@ $isPaid =
                                 ): ?>
 
                                     <li>
+
                                         <div
                                             class="
                                                 d-flex
@@ -679,6 +744,7 @@ $isPaid =
                                             </i>
 
                                             <div>
+
                                                 <strong>
                                                     Dedicated Match Manager
                                                 </strong>
@@ -689,17 +755,22 @@ $isPaid =
                                                         text-muted
                                                         mt-1
                                                     ">
+
                                                     Personalised assistance
                                                     throughout your membership
+
                                                 </div>
+
                                             </div>
 
                                         </div>
+
                                     </li>
 
                                 <?php else: ?>
 
                                     <li>
+
                                         <div
                                             class="
                                                 d-flex
@@ -722,6 +793,7 @@ $isPaid =
                                             </strong>
 
                                         </div>
+
                                     </li>
 
                                 <?php endif; ?>
@@ -760,6 +832,32 @@ $isPaid =
                                         Current Plan
 
                                     </button>
+
+                                    <?php if (
+                                        $action
+                                        ===
+                                        MembershipPurchaseDecision::ACTION_RENEWAL
+                                    ): ?>
+
+                                        <!--
+                                            Preserve visibility of the renewal
+                                            rule without exposing a fake
+                                            checkout action.
+                                        -->
+                                        <div
+                                            class="
+                                                fs-12
+                                                text-muted
+                                                text-center
+                                                mt-2
+                                            ">
+
+                                            Renewal will be available with
+                                            online payment.
+
+                                        </div>
+
+                                    <?php endif; ?>
 
                                 <?php elseif (
                                     !$allowed
@@ -821,13 +919,16 @@ $isPaid =
                                             text-center
                                             mt-2
                                         ">
+
                                         Online purchase coming soon
+
                                     </div>
 
                                 <?php endif; ?>
 
                                 <?php if (
-                                    $decision !== null
+                                    !$isCurrentPlan
+                                    && $decision !== null
                                     && trim(
                                         (string) (
                                             $decision['message']
@@ -879,6 +980,7 @@ $isPaid =
                         </div>
 
                     </div>
+
                 </article>
 
             </div>
@@ -913,6 +1015,7 @@ $isPaid =
         Browse Profiles · Send Interests ·
         Shortlist · Advanced Search ·
         Preference Match Count ·
+
         <span class="fw-medium text-primary">
             Mobile, Email &amp; Aadhaar Verification ·
             Live Introduction
@@ -943,8 +1046,10 @@ $isPaid =
             fw-semibold
             mb-0
         ">
+
         All prices are inclusive of GST.
         No hidden charges.
+
     </p>
 
 </div>

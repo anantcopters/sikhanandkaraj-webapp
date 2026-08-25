@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Membership;
 
-use CodeIgniter\Database\BaseConnection;
-
 use App\Models\MemberMembershipModel;
 use App\Models\MembershipPlanModel;
+use CodeIgniter\Database\BaseConnection;
 use RuntimeException;
 use Throwable;
 
@@ -41,14 +40,20 @@ use Throwable;
  *
  * A successfully paid/authorized membership starts immediately.
  *
- * When another membership is active:
+ * When another membership is active the replacement transaction performs:
  *
- * 1. create the new membership with fresh plan limits;
- * 2. mark the previous membership REPLACED;
- * 3. point replaced_by_membership_id to the new membership;
- * 4. retain all old usage/history;
- * 5. do not transfer unused quota;
- * 6. do not transfer remaining membership days.
+ * 1. lock the member;
+ * 2. lock and re-read the active membership;
+ * 3. temporarily move the old membership out of ACTIVE;
+ * 4. create exactly one new ACTIVE membership with fresh plan limits;
+ * 5. mark/link the previous membership as REPLACED;
+ * 6. retain all old usage/history;
+ * 7. do not transfer unused quota;
+ * 8. do not transfer remaining membership days.
+ *
+ * Steps 3-5 are performed inside one database transaction. This ordering is
+ * intentional because the database permits only one ACTIVE membership for a
+ * member at a time.
  *
  * PAYMENT BOUNDARY
  * ================
@@ -88,25 +93,23 @@ final class MembershipPurchaseService
     ) {}
 
     /**
-     * Evaluate a requested purchase without changing persistence.
+     * Evaluate a requested purchase against persistence.
      *
-     * This is suitable for:
-     *
-     * - plan-card presentation;
-     * - future payment-order creation;
-     * - displaying upgrade/renewal wording.
+     * Suitable for callers that have not already resolved the member's
+     * current membership.
      *
      * IMPORTANT:
      *
      * This result is advisory only. Activation evaluates the transition again
-     * under a database lock.
+     * inside the activation transaction because membership state may change
+     * while the member is completing payment.
      */
     public function evaluate(
         int $userId,
         string $requestedPlanCode
     ): MembershipPurchaseDecision {
-        $plan =
-            $this->planModel
+        $plan = $this
+            ->planModel
             ->findActiveByCode(
                 $requestedPlanCode
             );
@@ -140,7 +143,8 @@ final class MembershipPurchaseService
         }
 
         $activeMembership =
-            $this->membershipModel
+            $this
+            ->membershipModel
             ->activeForUser(
                 $userId,
                 $this->nowUtc()
@@ -149,6 +153,96 @@ final class MembershipPurchaseService
         return $this->decisionFor(
             $requestedCode,
             $activeMembership
+        );
+    }
+
+    /**
+     * Evaluate a plan against an already-resolved current membership.
+     *
+     * WHY THIS METHOD EXISTS
+     * ======================
+     *
+     * Membership-plan presentation resolves the member account once and then
+     * evaluates GO, PLUS and PRO. Calling evaluate() separately for every card
+     * would unnecessarily query the active membership once per plan.
+     *
+     * This method therefore accepts the already-resolved commercial identity
+     * and delegates to the SAME authoritative transition rules used elsewhere.
+     *
+     * SECURITY
+     * ========
+     *
+     * This method is presentation/advisory only.
+     *
+     * It must never be used as proof that a payment may activate a membership.
+     * activateAfterSuccessfulPayment() always re-reads and re-evaluates the
+     * current membership under a database lock.
+     */
+    public function evaluateAgainstCurrentMembership(
+        string $requestedPlanCode,
+        ?string $currentPlanCode,
+        ?int $currentMembershipId = null
+    ): MembershipPurchaseDecision {
+        $requestedCode =
+            $this->normalizePlanCode(
+                $requestedPlanCode
+            );
+
+        /*
+         * The requested plan has already come from MembershipService::
+         * activePlans(), but still fail closed if an unexpected code reaches
+         * this service.
+         */
+        if (
+            !isset(
+                self::PLAN_RANK[$requestedCode]
+            )
+        ) {
+            return new MembershipPurchaseDecision(
+                false,
+                MembershipPurchaseDecision::ACTION_UNAVAILABLE,
+                'The selected membership plan is not available.',
+                $requestedCode
+            );
+        }
+
+        $normalizedCurrentCode =
+            $currentPlanCode !== null
+            ? $this->normalizePlanCode(
+                $currentPlanCode
+            )
+            : '';
+
+        /*
+         * No current commercial plan means the member is Free.
+         */
+        if ($normalizedCurrentCode === '') {
+            return $this->decisionFor(
+                $requestedCode,
+                null
+            );
+        }
+
+        /*
+         * Build only the minimum membership snapshot required by
+         * decisionFor(). No persistence or entitlement information is being
+         * reconstructed here.
+         */
+        return $this->decisionFor(
+            $requestedCode,
+            [
+                'id' =>
+                max(
+                    0,
+                    (int) (
+                        $currentMembershipId
+                        ?? 0
+                    )
+                ),
+
+                'plan_code_snapshot' =>
+                $normalizedCurrentCode,
+            ]
         );
     }
 
@@ -212,8 +306,9 @@ final class MembershipPurchaseService
 
         if ($durationMonths <= 0) {
             /*
-            * Fail closed when the authoritative commercial master is malformed.
-            */
+             * Fail closed when the authoritative commercial master is
+             * malformed.
+             */
             throw new RuntimeException(
                 'The selected membership plan has an invalid duration.'
             );
@@ -226,13 +321,13 @@ final class MembershipPurchaseService
 
         try {
             /*
-            * Serialize every membership activation for this user.
-            *
-            * Locking the member handles both:
-            *
-            * - FREE -> Paid, where no active membership exists;
-            * - Paid -> Paid replacement.
-            */
+             * Serialize every membership activation for this user.
+             *
+             * Locking the member handles both:
+             *
+             * - FREE -> Paid, where no active membership exists;
+             * - Paid -> Paid replacement.
+             */
             if (
                 !$this
                     ->membershipModel
@@ -255,11 +350,12 @@ final class MembershipPurchaseService
                 );
 
             /*
-            * Re-read current membership AFTER obtaining the lock.
-            *
-            * The state seen when checkout started must never be trusted during
-            * final activation.
-            */
+             * Re-read the current membership AFTER obtaining the lock.
+             *
+             * A purchase decision generated while the member was viewing the
+             * pricing page is advisory only. The commercial state may have
+             * changed before payment was completed.
+             */
             $activeMembership =
                 $this
                 ->membershipModel
@@ -281,14 +377,14 @@ final class MembershipPurchaseService
             }
 
             /*
-            * Every successful purchase/renewal/upgrade starts immediately.
-            *
-            * Product rule:
-            *
-            * - remaining days are not transferred;
-            * - unused quota is not transferred;
-            * - the replacement receives fresh limits from the plan master.
-            */
+             * Every successful purchase/renewal/upgrade starts immediately.
+             *
+             * Product rule:
+             *
+             * - remaining days are not transferred;
+             * - unused quota is not transferred;
+             * - the replacement receives fresh limits from the plan master.
+             */
             $startsAt =
                 $nowUtc;
 
@@ -307,14 +403,15 @@ final class MembershipPurchaseService
                 null;
 
             /*
-            * If another membership is currently active, temporarily move it out
-            * of ACTIVE before creating the replacement.
-            *
-            * This is necessary because the database permits only one ACTIVE
-            * membership per member.
-            *
-            * The transaction guarantees rollback if any later operation fails.
-            */
+             * The database permits only one ACTIVE membership per member.
+             *
+             * Therefore an existing membership must first be moved out of
+             * ACTIVE inside this transaction before the replacement ACTIVE
+             * membership can be inserted.
+             *
+             * If any subsequent operation fails, the transaction rollback
+             * restores the previous membership state.
+             */
             if (is_array($activeMembership)) {
                 $replacedMembershipId = max(
                     0,
@@ -345,14 +442,12 @@ final class MembershipPurchaseService
             }
 
             /*
-            * IMPORTANT:
-            *
-            * Create exactly ONE new membership.
-            *
-            * The previous implementation accidentally called createFromPlan()
-            * twice during activation. That could create duplicate membership
-            * records or violate the one-active-membership constraint.
-            */
+             * Create exactly ONE replacement membership.
+             *
+             * Never move this call before beginReplacement(). The database
+             * protects the invariant that a member can have only one ACTIVE
+             * membership.
+             */
             $newMembershipId =
                 $this
                 ->membershipModel
@@ -370,10 +465,10 @@ final class MembershipPurchaseService
             }
 
             /*
-            * Preserve the historical replacement chain:
-            *
-            * old membership -> new membership
-            */
+             * Preserve the immutable membership lifecycle chain:
+             *
+             * previous membership -> replacement membership.
+             */
             if (
                 $replacedMembershipId !== null
                 && !$this
@@ -428,6 +523,12 @@ final class MembershipPurchaseService
 
     /**
      * Resolve the commercial transition.
+     *
+     * This is the ONE transition implementation used by:
+     *
+     * - advisory evaluation;
+     * - already-resolved presentation evaluation;
+     * - authoritative payment activation.
      *
      * @param array<string, mixed>|null $activeMembership
      */
@@ -492,7 +593,8 @@ final class MembershipPurchaseService
             return new MembershipPurchaseDecision(
                 false,
                 MembershipPurchaseDecision::ACTION_UNAVAILABLE,
-                'Your current membership could not be validated. Please contact support.',
+                'Your current membership could not be validated. '
+                    . 'Please contact support.',
                 $requestedCode,
                 $currentCode,
                 $currentMembershipId
@@ -509,7 +611,8 @@ final class MembershipPurchaseService
             return new MembershipPurchaseDecision(
                 false,
                 MembershipPurchaseDecision::ACTION_DOWNGRADE,
-                'Downgrading is not available while your current membership is active.',
+                'Downgrading is not available while your '
+                    . 'current membership is active.',
                 $requestedCode,
                 $currentCode,
                 $currentMembershipId
@@ -520,7 +623,8 @@ final class MembershipPurchaseService
             return new MembershipPurchaseDecision(
                 true,
                 MembershipPurchaseDecision::ACTION_RENEWAL,
-                'The membership can be renewed. The new membership period and allowances will start immediately.',
+                'The membership can be renewed. The new membership '
+                    . 'period and allowances will start immediately.',
                 $requestedCode,
                 $currentCode,
                 $currentMembershipId
@@ -530,7 +634,8 @@ final class MembershipPurchaseService
         return new MembershipPurchaseDecision(
             true,
             MembershipPurchaseDecision::ACTION_UPGRADE,
-            'The membership can be upgraded. The new plan and allowances will start immediately.',
+            'The membership can be upgraded. The new plan '
+                . 'and allowances will start immediately.',
             $requestedCode,
             $currentCode,
             $currentMembershipId
@@ -552,6 +657,9 @@ final class MembershipPurchaseService
 
     /**
      * Current UTC DateTime.
+     *
+     * Membership persistence uses UTC consistently with the application's
+     * configured timezone.
      */
     private function now(): \DateTimeImmutable
     {
@@ -564,7 +672,7 @@ final class MembershipPurchaseService
     }
 
     /**
-     * Application/database timestamps are UTC.
+     * Application/database membership timestamps are UTC.
      */
     private function nowUtc(): string
     {

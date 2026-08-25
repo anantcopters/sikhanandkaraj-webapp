@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Services\Membership;
 
 use App\Models\MembershipPlanModel;
+use DateTimeImmutable;
+use DateTimeZone;
+use Throwable;
 
 /**
  * Builds the authoritative membership-plan presentation used by:
@@ -20,9 +23,10 @@ use App\Models\MembershipPlanModel;
  *
  * Views must never maintain another commercial copy.
  *
- * Presentation-only information such as image filenames and "popular"
- * highlighting may remain application configuration because those values
- * do not grant capabilities or define commercial entitlement.
+ * Presentation-only information such as image filenames, descriptive copy
+ * and "popular" highlighting may remain application presentation metadata
+ * because those values do not grant capabilities or define commercial
+ * entitlement.
  */
 final class MembershipPlanPresentationService
 {
@@ -31,7 +35,15 @@ final class MembershipPlanPresentationService
      *
      * IMPORTANT:
      *
-     * Nothing in this array may define price, duration, entitlement or quota.
+     * Nothing in this array may define:
+     *
+     * - price;
+     * - duration;
+     * - entitlement;
+     * - quota;
+     * - commercial priority.
+     *
+     * Those values belong exclusively to membership_plans.
      */
     private const PRESENTATION = [
         MembershipPlanModel::CODE_GO => [
@@ -104,6 +116,15 @@ final class MembershipPlanPresentationService
     /**
      * Build Account Settings plan data for one authenticated member.
      *
+     * PERFORMANCE
+     * ===========
+     *
+     * MembershipService resolves the current account exactly once here.
+     *
+     * We then evaluate every active commercial plan against that already
+     * resolved membership state. We intentionally do NOT query the active
+     * membership again once per plan card.
+     *
      * Every plan receives its authoritative transition decision:
      *
      * FREE -> plan       PURCHASE
@@ -119,11 +140,71 @@ final class MembershipPlanPresentationService
     public function memberPlans(
         int $userId
     ): array {
-        $currentAccount = $this
+        $currentAccount =
+            $this
             ->membershipService
             ->resolveForUser(
                 $userId
             );
+
+        $currentMembership =
+            isset(
+                $currentAccount['membership']
+            )
+            && is_array(
+                $currentAccount['membership']
+            )
+            ? $currentAccount['membership']
+            : null;
+
+        $currentPlanCode =
+            ($currentAccount['isPaid'] ?? false)
+            === true
+            ? trim(
+                (string) (
+                    $currentAccount['accountType']
+                    ?? ''
+                )
+            )
+            : null;
+
+        $currentMembershipId =
+            $currentMembership !== null
+            ? max(
+                0,
+                (int) (
+                    $currentMembership['id']
+                    ?? 0
+                )
+            )
+            : null;
+
+        /*
+         * Add display-only membership dates once.
+         *
+         * The authoritative raw UTC values remain available in the resolved
+         * membership; the formatted values exist only for the UI.
+         */
+        if ($currentMembership !== null) {
+            $currentMembership['startsAtDisplay'] =
+                $this->formatMembershipDate(
+                    (string) (
+                        $currentMembership['startsAt']
+                        ?? ''
+                    )
+                );
+
+            $currentMembership['expiresAtDisplay'] =
+                $this->formatMembershipDate(
+                    (string) (
+                        $currentMembership['expiresAt']
+                        ?? ''
+                    )
+                );
+
+            $currentAccount['membership'] =
+                $currentMembership;
+        }
 
         $plans = [];
 
@@ -133,26 +214,37 @@ final class MembershipPlanPresentationService
                 ->activePlans()
             as $plan
         ) {
-            $planCode = mb_strtoupper(
-                trim(
-                    (string) (
-                        $plan['code']
-                        ?? ''
+            $planCode =
+                mb_strtoupper(
+                    trim(
+                        (string) (
+                            $plan['code']
+                            ?? ''
+                        )
                     )
-                )
-            );
-
-            $decision = $this
-                ->purchaseService
-                ->evaluate(
-                    $userId,
-                    $planCode
                 );
 
-            $plans[] = $this->presentPlan(
-                $plan,
-                $decision
-            );
+            /*
+             * Evaluate against the account state already resolved above.
+             *
+             * This avoids another membership query for every pricing card
+             * while keeping the transition logic centralized in
+             * MembershipPurchaseService.
+             */
+            $decision =
+                $this
+                ->purchaseService
+                ->evaluateAgainstCurrentMembership(
+                    $planCode,
+                    $currentPlanCode,
+                    $currentMembershipId
+                );
+
+            $plans[] =
+                $this->presentPlan(
+                    $plan,
+                    $decision
+                );
         }
 
         return [
@@ -175,14 +267,15 @@ final class MembershipPlanPresentationService
         array $plan,
         ?MembershipPurchaseDecision $decision
     ): array {
-        $code = mb_strtoupper(
-            trim(
-                (string) (
-                    $plan['code']
-                    ?? ''
+        $code =
+            mb_strtoupper(
+                trim(
+                    (string) (
+                        $plan['code']
+                        ?? ''
+                    )
                 )
-            )
-        );
+            );
 
         $presentation =
             self::PRESENTATION[$code]
@@ -192,21 +285,23 @@ final class MembershipPlanPresentationService
                 'description' => '',
             ];
 
-        $pricePaise = max(
-            0,
-            (int) (
-                $plan['pricePaise']
-                ?? 0
-            )
-        );
+        $pricePaise =
+            max(
+                0,
+                (int) (
+                    $plan['pricePaise']
+                    ?? 0
+                )
+            );
 
-        $durationMonths = max(
-            0,
-            (int) (
-                $plan['durationMonths']
-                ?? 0
-            )
-        );
+        $durationMonths =
+            max(
+                0,
+                (int) (
+                    $plan['durationMonths']
+                    ?? 0
+                )
+            );
 
         $priceRupees =
             $pricePaise / 100;
@@ -320,12 +415,15 @@ final class MembershipPlanPresentationService
 
             /*
              * Presentation metadata only.
+             *
+             * Never add commercial rules to this section.
              */
             'image' =>
             (string) $presentation['image'],
 
             'popular' =>
-            $presentation['popular'] === true,
+            $presentation['popular']
+                === true,
 
             'description' =>
             (string) $presentation['description'],
@@ -338,5 +436,57 @@ final class MembershipPlanPresentationService
             'purchaseDecision' =>
             $decision?->toArray(),
         ];
+    }
+
+    /**
+     * Format a persisted membership timestamp for member-facing display.
+     *
+     * Membership persistence currently uses UTC and Config\App also declares
+     * UTC as the application timezone. We therefore keep the same timezone
+     * and change only the human-readable representation.
+     *
+     * Example:
+     *
+     *     2026-11-25 10:09:30
+     *
+     * becomes:
+     *
+     *     25 Nov 2026
+     *
+     * An invalid/empty timestamp returns an empty string rather than allowing
+     * a presentation failure to break the Membership Plans screen.
+     */
+    private function formatMembershipDate(
+        string $value
+    ): string {
+        $value =
+            trim(
+                $value
+            );
+
+        if ($value === '') {
+            return '';
+        }
+
+        try {
+            return (
+                new DateTimeImmutable(
+                    $value,
+                    new DateTimeZone(
+                        'UTC'
+                    )
+                )
+            )->format(
+                'd M Y'
+            );
+        } catch (Throwable) {
+            /*
+             * Fail presentation-safe.
+             *
+             * The raw membership value remains authoritative and should be
+             * investigated separately if malformed.
+             */
+            return '';
+        }
     }
 }
