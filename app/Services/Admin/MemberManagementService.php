@@ -47,7 +47,12 @@ final class MemberManagementService
         private readonly MemberVideoIntroductionModel
         $videoIntroductionModel,
         private readonly CloudFrontService $cloudFrontService,
-        private readonly VideoIntroduction $videoConfig
+        private readonly VideoIntroduction $videoConfig,
+        /*
+        * Read-only intrinsic Match Score diagnostics.
+        */
+        private readonly MemberMatchScoreDiagnosticService
+        $matchScoreDiagnosticService,
     ) {}
 
     /**
@@ -207,6 +212,15 @@ final class MemberManagementService
                 $this->videoIntroductionDetails(
                     $userId
                 ),
+
+                /*
+                * Admin-only ranking diagnostics.
+                */
+                'matchScoreDiagnostics' =>
+                $this->matchScoreDiagnosticService
+                    ->forMember(
+                        $userId
+                    ),
             ]
         );
     }

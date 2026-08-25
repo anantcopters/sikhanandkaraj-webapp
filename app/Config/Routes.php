@@ -1607,6 +1607,46 @@ $routes->group('admin', [
                     'as' => 'admin.users.suspend',
                 ]
             );
+
+            /*
+            * --------------------------------------------------------------------------
+            * Match Score configuration
+            * --------------------------------------------------------------------------
+            *
+            * Ranking weights affect every member's Search/Dashboard ordering and are
+            * therefore restricted to SUPER_ADMIN.
+            *
+            * Normal ADMIN users can see read-only member diagnostics through the normal
+            * admin/members/{id} profile view, but cannot change global ranking rules.
+            */
+            $routes->group(
+                'match-score',
+                [
+                    'filter' =>
+                    'superAdmin',
+                ],
+                static function (
+                    RouteCollection $routes
+                ): void {
+                    $routes->get(
+                        '',
+                        'MatchScoreConfigurationController::index',
+                        [
+                            'as' =>
+                            'admin.match-score.index',
+                        ]
+                    );
+
+                    $routes->post(
+                        '',
+                        'MatchScoreConfigurationController::update',
+                        [
+                            'as' =>
+                            'admin.match-score.update',
+                        ]
+                    );
+                }
+            );
         });
 
         /*
@@ -1686,10 +1726,10 @@ $routes->group('admin', [
                 );
 
                 /*
-         * Private document download.
-         *
-         * No physical writable path is exposed.
-         */
+                * Private document download.
+                *
+                * No physical writable path is exposed.
+                */
                 $routes->get(
                     '(:num)/documents/(:segment)',
                     'FieldOfficerController::document/$1/$2',
@@ -1736,9 +1776,9 @@ $routes->group('admin', [
                 );
 
                 /*
-         * Document replacement is the only SAK Volunteer operation
-         * restricted specifically to Super Admin by this requirement.
-         */
+                * Document replacement is the only SAK Volunteer operation
+                * restricted specifically to Super Admin by this requirement.
+                */
                 $routes->post(
                     '(:num)/documents/(:segment)/replace',
                     'FieldOfficerController::replaceDocument/$1/$2',
@@ -1752,11 +1792,11 @@ $routes->group('admin', [
                 );
 
                 /*
- * Display profiles connected with one SAK Volunteer.
- *
- * The listing reuses the existing SAK Volunteer profile-list service
- * and UI. Access is protected by the parent adminAuth group.
- */
+                * Display profiles connected with one SAK Volunteer.
+                *
+                * The listing reuses the existing SAK Volunteer profile-list service
+                * and UI. Access is protected by the parent adminAuth group.
+                */
                 $routes->get(
                     '(:num)/profiles',
                     'FieldOfficerController::profiles/$1',

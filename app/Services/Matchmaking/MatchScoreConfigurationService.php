@@ -16,9 +16,10 @@ use Throwable;
  *
  * - provide safe defaults;
  * - normalize persisted configuration;
- * - validate Superadmin changes;
+ * - validate Super Admin changes;
  * - atomically replace the active configuration;
- * - retain historical configurations.
+ * - retain historical configurations;
+ * - provide safe read contracts for the administration UI.
  *
  * Match scoring code must consume this service rather than hard-coding
  * component weights independently.
@@ -40,11 +41,19 @@ final class MatchScoreConfigurationService
     public const DEFAULT_COMMERCIAL_WEIGHT =
     10;
 
+    /*
+     * Commercial influence must remain a minority component.
+     *
+     * The same limit is protected by the database CHECK constraint.
+     */
+    public const MAX_COMMERCIAL_WEIGHT =
+    20;
+
     /**
      * Request-local configuration cache.
      *
-     * One Search may score hundreds of candidates. Match Score configuration is
-     * global for the request and therefore must be read only once.
+     * One Search may score hundreds of candidates. Match Score configuration
+     * is global for the request and therefore must be read only once.
      *
      * @var array{
      *     preference:int,
@@ -56,14 +65,6 @@ final class MatchScoreConfigurationService
      */
     private ?array $resolvedWeights =
     null;
-
-    /*
-     * Commercial influence must remain a minority component.
-     *
-     * The same limit is protected by the database CHECK constraint.
-     */
-    public const MAX_COMMERCIAL_WEIGHT =
-    20;
 
     public function __construct(
         private readonly MatchScoreConfigurationModel
@@ -105,37 +106,10 @@ final class MatchScoreConfigurationService
                 $this->defaults();
         }
 
-        $weights = [
-            'preference' =>
-            (int) (
-                $row['preference_weight']
-                ?? -1
-            ),
-
-            'profileCompletion' =>
-            (int) (
-                $row['profile_completion_weight']
-                ?? -1
-            ),
-
-            'approvedPhotos' =>
-            (int) (
-                $row['approved_photo_weight']
-                ?? -1
-            ),
-
-            'trust' =>
-            (int) (
-                $row['trust_weight']
-                ?? -1
-            ),
-
-            'commercial' =>
-            (int) (
-                $row['commercial_weight']
-                ?? -1
-            ),
-        ];
+        $weights =
+            $this->weightsFromRow(
+                $row
+            );
 
         if (!$this->isValid($weights)) {
             return $this->resolvedWeights =
@@ -144,6 +118,145 @@ final class MatchScoreConfigurationService
 
         return $this->resolvedWeights =
             $weights;
+    }
+
+    /**
+     * Return the administration-page contract.
+     *
+     * The UI does not need to know whether the current values came from a
+     * persisted row or the application's safe defaults.
+     *
+     * @return array{
+     *     weights:array<string, int>,
+     *     persisted:bool,
+     *     configurationId:int|null,
+     *     createdAt:string|null,
+     *     createdByAdminId:int|null
+     * }
+     */
+    public function activeConfiguration(): array
+    {
+        $row =
+            $this->configurationModel
+            ->activeConfiguration();
+
+        if (!is_array($row)) {
+            return [
+                'weights' =>
+                $this->weights(),
+
+                'persisted' =>
+                false,
+
+                'configurationId' =>
+                null,
+
+                'createdAt' =>
+                null,
+
+                'createdByAdminId' =>
+                null,
+            ];
+        }
+
+        return [
+            'weights' =>
+            $this->weights(),
+
+            'persisted' =>
+            true,
+
+            'configurationId' =>
+            max(
+                0,
+                (int) (
+                    $row['id']
+                    ?? 0
+                )
+            ),
+
+            'createdAt' =>
+            $this->nullableString(
+                $row['created_at']
+                    ?? null
+            ),
+
+            'createdByAdminId' =>
+            isset(
+                $row['created_by_admin_id']
+            )
+                ? max(
+                    0,
+                    (int) $row['created_by_admin_id']
+                )
+                : null,
+        ];
+    }
+
+    /**
+     * Return immutable configuration history for the Super Admin UI.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function history(
+        int $limit = 25
+    ): array {
+        $rows =
+            $this->configurationModel
+            ->configurationHistory(
+                $limit
+            );
+
+        $history = [];
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $weights =
+                $this->weightsFromRow(
+                    $row
+                );
+
+            $history[] = [
+                'id' =>
+                max(
+                    0,
+                    (int) (
+                        $row['id']
+                        ?? 0
+                    )
+                ),
+
+                'weights' =>
+                $weights,
+
+                'isActive' =>
+                $this->databaseBoolean(
+                    $row['is_active']
+                        ?? false
+                ),
+
+                'createdByAdminId' =>
+                isset(
+                    $row['created_by_admin_id']
+                )
+                    ? max(
+                        0,
+                        (int) $row['created_by_admin_id']
+                    )
+                    : null,
+
+                'createdAt' =>
+                $this->nullableString(
+                    $row['created_at']
+                        ?? null
+                ),
+            ];
+        }
+
+        return $history;
     }
 
     /**
@@ -168,40 +281,40 @@ final class MatchScoreConfigurationService
 
         $weights = [
             'preference' =>
-            (int) (
+            $this->integerInput(
                 $input['preference']
-                ?? -1
+                    ?? null
             ),
 
             'profileCompletion' =>
-            (int) (
+            $this->integerInput(
                 $input['profileCompletion']
-                ?? -1
+                    ?? null
             ),
 
             'approvedPhotos' =>
-            (int) (
+            $this->integerInput(
                 $input['approvedPhotos']
-                ?? -1
+                    ?? null
             ),
 
             'trust' =>
-            (int) (
+            $this->integerInput(
                 $input['trust']
-                ?? -1
+                    ?? null
             ),
 
             'commercial' =>
-            (int) (
+            $this->integerInput(
                 $input['commercial']
-                ?? -1
+                    ?? null
             ),
         ];
 
         if (!$this->isValid($weights)) {
             throw new RuntimeException(
                 'Match Score weights are invalid. '
-                    . 'All values must be non-negative, '
+                    . 'All values must be whole numbers from 0 to 100, '
                     . 'Commercial cannot exceed '
                     . self::MAX_COMMERCIAL_WEIGHT
                     . '%, and the total must equal 100%.'
@@ -212,10 +325,8 @@ final class MatchScoreConfigurationService
 
         try {
             /*
-             * Lock the configuration table before replacing the active row.
-             *
-             * This prevents two simultaneous Superadmin requests from both
-             * attempting to create the active configuration.
+             * Prevent simultaneous Super Admin requests from both creating an
+             * active configuration.
              */
             $this->db->query(
                 'LOCK TABLE match_score_configurations '
@@ -272,7 +383,10 @@ final class MatchScoreConfigurationService
                 );
             }
 
-            if ($this->db->transStatus() === false) {
+            if (
+                $this->db->transStatus()
+                === false
+            ) {
                 throw new RuntimeException(
                     'Unable to commit Match Score configuration.'
                 );
@@ -281,9 +395,8 @@ final class MatchScoreConfigurationService
             $this->db->transCommit();
 
             /*
-            * This service instance may already have resolved the previous configuration.
-            * Replace the request-local cache immediately after successful persistence.
-            */
+             * This service instance may already have resolved the old values.
+             */
             $this->resolvedWeights =
                 $weights;
 
@@ -301,8 +414,53 @@ final class MatchScoreConfigurationService
     }
 
     /**
-     * Return immutable documented fallback weights.
+     * @param array<string, mixed> $row
      *
+     * @return array{
+     *     preference:int,
+     *     profileCompletion:int,
+     *     approvedPhotos:int,
+     *     trust:int,
+     *     commercial:int
+     * }
+     */
+    private function weightsFromRow(
+        array $row
+    ): array {
+        return [
+            'preference' =>
+            (int) (
+                $row['preference_weight']
+                ?? -1
+            ),
+
+            'profileCompletion' =>
+            (int) (
+                $row['profile_completion_weight']
+                ?? -1
+            ),
+
+            'approvedPhotos' =>
+            (int) (
+                $row['approved_photo_weight']
+                ?? -1
+            ),
+
+            'trust' =>
+            (int) (
+                $row['trust_weight']
+                ?? -1
+            ),
+
+            'commercial' =>
+            (int) (
+                $row['commercial_weight']
+                ?? -1
+            ),
+        ];
+    }
+
+    /**
      * @return array{
      *     preference:int,
      *     profileCompletion:int,
@@ -332,15 +490,7 @@ final class MatchScoreConfigurationService
     }
 
     /**
-     * Validate one complete weight set.
-     *
-     * @param array{
-     *     preference:int,
-     *     profileCompletion:int,
-     *     approvedPhotos:int,
-     *     trust:int,
-     *     commercial:int
-     * } $weights
+     * @param array<string, int> $weights
      */
     private function isValid(
         array $weights
@@ -364,5 +514,57 @@ final class MatchScoreConfigurationService
         return array_sum(
             $weights
         ) === 100;
+    }
+
+    /**
+     * Reject decimal/non-numeric values rather than silently converting them.
+     */
+    private function integerInput(
+        mixed $value
+    ): int {
+        $value = trim(
+            (string) $value
+        );
+
+        if (
+            $value === ''
+            || preg_match(
+                '/^\d+$/',
+                $value
+            ) !== 1
+        ) {
+            return -1;
+        }
+
+        return (int) $value;
+    }
+
+    private function databaseBoolean(
+        mixed $value
+    ): bool {
+        return in_array(
+            $value,
+            [
+                true,
+                1,
+                '1',
+                't',
+                'true',
+                'TRUE',
+            ],
+            true
+        );
+    }
+
+    private function nullableString(
+        mixed $value
+    ): ?string {
+        $value = trim(
+            (string) $value
+        );
+
+        return $value !== ''
+            ? $value
+            : null;
     }
 }

@@ -1063,6 +1063,25 @@ $this->section('content');
             $profileReference,
         ]
     ) ?>
+    <!--
+        Match Score diagnostics.
+
+        This intentionally displays candidate-intrinsic ranking signals only.
+        A final score cannot exist without selecting a viewing member because
+        Partner Preference compatibility is directional.
+    -->
+    <?= view(
+        'Admin/Members/Partials/MatchScoreDiagnostics',
+        [
+            'diagnostics' =>
+            isset($matchScoreDiagnostics)
+                && is_array(
+                    $matchScoreDiagnostics
+                )
+                ? $matchScoreDiagnostics
+                : [],
+        ]
+    ) ?>
     <?php
     $interactionStats = isset(
         $memberInteractionStats

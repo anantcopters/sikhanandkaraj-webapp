@@ -155,6 +155,7 @@ use App\Models\MemberMatchScoringSignalModel;
 use App\Services\Matchmaking\MatchScoreConfigurationService;
 use App\Services\Matchmaking\MemberMatchScoreService;
 use App\Services\Matchmaking\MemberMatchScoringSignalService;
+use App\Services\Admin\MemberMatchScoreDiagnosticService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -1622,6 +1623,14 @@ final class Services extends BaseService
 
             config(
                 VideoIntroduction::class
+            ),
+
+            /*
+            * Admin profile diagnostics use the same Match Score authority as member
+            * Search and Dashboard.
+            */
+            static::memberMatchScoreDiagnosticService(
+                false
             )
         );
     }
@@ -2871,6 +2880,37 @@ final class Services extends BaseService
             ),
 
             static::memberProfileSummaryService(
+                false
+            )
+        );
+    }
+
+    /**
+     * Return read-only Admin Match Score diagnostics.
+     *
+     * This service exposes candidate-intrinsic ranking signals only.
+     * It never creates a synthetic viewer-independent final Match Score.
+     */
+    public static function memberMatchScoreDiagnosticService(
+        bool $getShared = true
+    ): MemberMatchScoreDiagnosticService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMatchScoreDiagnosticService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MemberMatchScoreDiagnosticService(
+            $database,
+
+            static::matchScoreConfigurationService(
+                true
+            ),
+
+            static::memberMatchScoreService(
                 false
             )
         );
