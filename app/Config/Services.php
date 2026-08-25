@@ -158,6 +158,7 @@ use App\Services\Matchmaking\MemberMatchScoringSignalService;
 use App\Services\Admin\MemberMatchScoreDiagnosticService;
 use App\Services\Membership\MembershipLifecycleService;
 use App\Services\Membership\MemberMembershipHistoryService;
+use App\Services\Membership\MembershipPurchaseService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -2994,6 +2995,43 @@ final class Services extends BaseService
 
             static::memberMatchScoreService(
                 false
+            )
+        );
+    }
+
+    /**
+     * Return authoritative membership purchase/upgrade/renewal service.
+     *
+     * IMPORTANT:
+     *
+     * This service activates membership only after authoritative successful
+     * payment confirmation or an explicitly authorized administrative/system
+     * activation while payment integration is not yet available.
+     *
+     * Controllers and future payment providers must not create
+     * member_memberships rows directly.
+     */
+    public static function membershipPurchaseService(
+        bool $getShared = true
+    ): MembershipPurchaseService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipPurchaseService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MembershipPurchaseService(
+            $database,
+
+            new MembershipPlanModel(
+                $database
+            ),
+
+            new MemberMembershipModel(
+                $database
             )
         );
     }
