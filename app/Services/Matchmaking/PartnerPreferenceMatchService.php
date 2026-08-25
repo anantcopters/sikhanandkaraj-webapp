@@ -18,6 +18,7 @@ use App\Models\MasterLifestyleCategoryModel;
 use App\Models\MemberLifestyleOptionModel;
 use App\Models\MemberPartnerLifestylePreferenceModel;
 use App\Models\MemberPartnerLifestylePreferenceOptionModel;
+use App\Support\Development\PerformanceTimeline;
 use App\Support\BooleanValue;
 use DateTimeImmutable;
 
@@ -88,11 +89,18 @@ final class PartnerPreferenceMatchService
     ) {}
 
     /**
-     * Score all candidate rows against one member's
-     * Partner Preference configuration.
+     * Score all candidate rows against one member's Partner Preference
+     * configuration.
      *
-     * Candidates that fail a compulsory preference are
-     * excluded from the returned collection.
+     * Candidates that fail a compulsory preference are excluded from the returned
+     * collection.
+     *
+     * Membership-27 diagnostic pass:
+     *
+     * The optional timeline measures the existing authoritative preference
+     * pipeline without introducing another matching implementation.
+     *
+     * Normal Dashboard/Search callers do not need to supply the timeline.
      *
      * @param list<array<string, mixed>> $candidates
      *
@@ -100,7 +108,8 @@ final class PartnerPreferenceMatchService
      */
     public function scoreCandidates(
         int $userId,
-        array $candidates
+        array $candidates,
+        ?PerformanceTimeline $performanceTimeline = null
     ): array {
         if (
             $userId <= 0
@@ -110,38 +119,62 @@ final class PartnerPreferenceMatchService
         }
 
         /*
-        * Load the member's Partner Preference configuration once.
-        *
-        * The same snapshot is then reused for every candidate rather
-        * than querying Partner Preferences for every profile.
-        */
-        $snapshot = $this->snapshotForUser(
-            $userId
+     * Load the member's complete Partner Preference snapshot once.
+     *
+     * This snapshot includes the existing Basic, Education/Profession,
+     * Lifestyle and Location preference authorities.
+     */
+        $snapshot =
+            $this->snapshotForUser(
+                $userId
+            );
+
+        $performanceTimeline?->checkpoint(
+            'Preference: Viewer snapshot'
         );
 
-        $candidateUserIds = array_values(
-            array_unique(
-                array_filter(
-                    array_map(
-                        static fn(array $candidate): int =>
-                        (int) (
-                            $candidate['id']
-                            ?? 0
+        /*
+     * Candidate IDs are prepared in memory before the single batch Lifestyle
+     * lookup.
+     */
+        $candidateUserIds =
+            array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            static fn(
+                                array $candidate
+                            ): int =>
+                            (int) (
+                                $candidate['id']
+                                ?? 0
+                            ),
+                            $candidates
                         ),
-                        $candidates
-                    ),
-                    static fn(int $candidateId): bool =>
-                    $candidateId > 0
+                        static fn(
+                            int $candidateId
+                        ): bool =>
+                        $candidateId > 0
+                    )
                 )
-            )
-        );
+            );
 
+        /*
+     * Existing Membership optimization:
+     *
+     * Candidate Lifestyle selections are loaded in one batch. Never replace
+     * this with selectedIdsForUser() inside the candidate loop.
+     */
         $candidateLifestyleMap =
             $this
             ->memberLifestyleOptionModel
             ->selectedIdsForUsers(
                 $candidateUserIds
             );
+
+        $performanceTimeline?->checkpoint(
+            'Preference: Candidate lifestyle batch'
+        );
 
         $scored = [];
 
@@ -150,28 +183,34 @@ final class PartnerPreferenceMatchService
                 continue;
             }
 
-            $candidateId = (int) (
-                $candidate['id']
-                ?? 0
-            );
+            $candidateId =
+                (int) (
+                    $candidate['id']
+                    ?? 0
+                );
 
             $candidate['lifestyle_option_ids'] =
                 $candidateLifestyleMap[$candidateId]
                 ?? [];
 
-            $score = $this->scoreCandidate(
-                $snapshot,
-                $candidate
-            );
+            /*
+         * Existing Partner Preference authority.
+         *
+         * Do not duplicate individual preference rules in Search.
+         */
+            $score =
+                $this->scoreCandidate(
+                    $snapshot,
+                    $candidate
+                );
 
             /*
-            * Dashboard/Search matching must continue to honour
-            * compulsory Partner Preferences.
-            *
-            * scoreProfile() intentionally does not remove a profile
-            * when this is false because Profile View still needs to
-            * display how that profile compares.
-            */
+         * Dashboard/Search matching must continue to honour compulsory Partner
+         * Preferences.
+         *
+         * scoreProfile() intentionally behaves differently because Full Profile
+         * still needs to display the comparison.
+         */
             if (
                 $score['passesCompulsory']
                 !== true
@@ -188,15 +227,23 @@ final class PartnerPreferenceMatchService
             $candidate['total_preferences'] =
                 $score['total'];
 
-            $scored[] = $candidate;
+            $scored[] =
+                $candidate;
         }
 
+        $performanceTimeline?->checkpoint(
+            'Preference: Candidate scoring'
+        );
+
         /*
-        * Highest Partner Preference match first.
-        *
-        * Preserve the existing created_at ordering when two
-        * candidates have the same match percentage.
-        */
+     * Highest Partner Preference match first.
+     *
+     * Preserve created_at ordering when two candidates have the same
+     * percentage.
+     *
+     * MemberMatchScoreService subsequently performs the final commercial/trust
+     * ranking required by Membership rules.
+     */
         usort(
             $scored,
             static function (
@@ -231,9 +278,13 @@ final class PartnerPreferenceMatchService
             }
         );
 
+        $performanceTimeline?->checkpoint(
+            'Preference: Initial sorting'
+        );
+
         return $scored;
     }
-
+    
     /**
      * @param array<string, mixed> $snapshot
      * @param array<string, mixed> $candidate
