@@ -156,6 +156,8 @@ use App\Services\Matchmaking\MatchScoreConfigurationService;
 use App\Services\Matchmaking\MemberMatchScoreService;
 use App\Services\Matchmaking\MemberMatchScoringSignalService;
 use App\Services\Admin\MemberMatchScoreDiagnosticService;
+use App\Services\Membership\MembershipLifecycleService;
+use App\Services\Membership\MemberMembershipHistoryService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -2695,6 +2697,69 @@ final class Services extends BaseService
                 $database
             ),
             new MemberMembershipModel(
+                $database
+            )
+        );
+    }
+
+    /**
+     * Return membership lifecycle housekeeping service.
+     *
+     * This service synchronizes persisted lifecycle status only.
+     *
+     * MembershipService remains the runtime membership authority.
+     */
+    public static function membershipLifecycleService(
+        bool $getShared = true
+    ): MembershipLifecycleService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipLifecycleService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MembershipLifecycleService(
+            new MemberMembershipModel(
+                $database
+            )
+        );
+    }
+
+    /**
+     * Return read-only member membership/usage history service.
+     *
+     * The service combines existing authoritative membership and commercial
+     * usage ledgers for Account Settings presentation.
+     */
+    public static function memberMembershipHistoryService(
+        bool $getShared = true
+    ): MemberMembershipHistoryService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMembershipHistoryService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MemberMembershipHistoryService(
+            static::membershipService(
+                false
+            ),
+
+            new MemberMembershipModel(
+                $database
+            ),
+
+            new MemberMembershipProfileViewModel(
+                $database
+            ),
+
+            new MemberMembershipLiveIntroductionViewModel(
                 $database
             )
         );

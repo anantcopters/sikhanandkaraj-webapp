@@ -29,6 +29,12 @@ final class AccountSettingsController extends BaseController
         'video-introduction',
         'report-profile',
         'plans',
+
+        /*
+     * Read-only purchased membership and commercial usage history.
+     */
+        'membership-history',
+
         'contact',
     ];
 
@@ -160,6 +166,35 @@ final class AccountSettingsController extends BaseController
                 );
         }
 
+        $membershipHistory = [
+            'currentMembership' =>
+            null,
+
+            'membershipHistory' =>
+            [],
+
+            'profileUsageHistory' =>
+            [],
+
+            'liveIntroductionUsageHistory' =>
+            [],
+        ];
+
+        if ($section === 'membership-history') {
+            /*
+            * Membership history is read-only and belongs to the authenticated
+            * member only.
+            *
+            * No user/member ID comes from the request.
+            */
+            $membershipHistory =
+                service(
+                    'memberMembershipHistoryService'
+                )->historyForUser(
+                    $userId
+                );
+        }
+
         return view(
             'Pages/AccountSettings/Index',
             array_merge(
@@ -195,6 +230,9 @@ final class AccountSettingsController extends BaseController
 
                     'membershipCapabilities' =>
                     $membershipCapabilities,
+
+                    'membershipHistory' =>
+                    $membershipHistory,
 
                     'pageScripts' => [
                         'assets/js/components/form-validator.js',

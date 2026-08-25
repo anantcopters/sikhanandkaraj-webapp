@@ -9,15 +9,15 @@ use CodeIgniter\Model;
 /**
  * Commercial usage persistence for Live Introduction playback.
  *
- * This model must not decide whether playback is authorized. Authorization
- * belongs to LiveIntroductionAccessPolicy.
+ * Authorization belongs to LiveIntroductionAccessPolicy.
  *
- * Its responsibility is limited to:
+ * This model owns only:
  *
  * - membership-scoped uniqueness;
  * - consumed-count queries;
  * - concurrency locking;
- * - successful playback activity.
+ * - successful playback activity;
+ * - member-facing usage history.
  */
 final class MemberMembershipLiveIntroductionViewModel
 extends Model
@@ -25,13 +25,17 @@ extends Model
     protected $table =
     'member_membership_live_introduction_views';
 
-    protected $primaryKey = 'id';
+    protected $primaryKey =
+    'id';
 
-    protected $returnType = 'array';
+    protected $returnType =
+    'array';
 
-    protected $useAutoIncrement = true;
+    protected $useAutoIncrement =
+    true;
 
-    protected $protectFields = true;
+    protected $protectFields =
+    true;
 
     protected $allowedFields = [
         'membership_id',
@@ -43,15 +47,20 @@ extends Model
         'view_count',
     ];
 
-    protected $useTimestamps = true;
+    protected $useTimestamps =
+    true;
 
-    protected $dateFormat = 'datetime';
+    protected $dateFormat =
+    'datetime';
 
-    protected $createdField = 'created_at';
+    protected $createdField =
+    'created_at';
 
-    protected $updatedField = 'updated_at';
+    protected $updatedField =
+    'updated_at';
 
-    protected $skipValidation = true;
+    protected $skipValidation =
+    true;
 
     /**
      * Return whether this exact approved video version has already consumed
@@ -100,6 +109,87 @@ extends Model
     }
 
     /**
+     * Return member-facing Live Introduction usage history.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function historyForUser(
+        int $viewerUserId,
+        int $limit = 100
+    ): array {
+        if ($viewerUserId <= 0) {
+            return [];
+        }
+
+        $limit =
+            max(
+                1,
+                min(
+                    200,
+                    $limit
+                )
+            );
+
+        $rows =
+            $this->db
+            ->table(
+                $this->table . ' usage'
+            )
+            ->select(
+                '
+                    usage.id,
+                    usage.membership_id,
+                    usage.owner_user_id,
+                    usage.video_introduction_id,
+                    usage.first_viewed_at,
+                    usage.last_viewed_at,
+                    usage.view_count,
+
+                    owner.profile_ref_number
+                        AS profile_reference,
+
+                    membership.plan_code_snapshot,
+                    membership.plan_name_snapshot
+                ',
+                false
+            )
+            ->join(
+                'users owner',
+                'owner.id = usage.owner_user_id',
+                'left'
+            )
+            ->join(
+                'member_memberships membership',
+                'membership.id = usage.membership_id',
+                'inner'
+            )
+            ->where(
+                'usage.viewer_user_id',
+                $viewerUserId
+            )
+            ->orderBy(
+                'usage.last_viewed_at',
+                'DESC'
+            )
+            ->orderBy(
+                'usage.id',
+                'DESC'
+            )
+            ->limit(
+                $limit
+            )
+            ->get()
+            ->getResultArray();
+
+        return array_values(
+            array_filter(
+                $rows,
+                'is_array'
+            )
+        );
+    }
+
+    /**
      * Lock the active membership row before checking and consuming quota.
      *
      * Every new Live Introduction consumption for one membership is therefore
@@ -114,7 +204,8 @@ extends Model
             return null;
         }
 
-        $row = $this->db
+        $row =
+            $this->db
             ->query(
                 <<<'SQL'
                     SELECT
@@ -149,31 +240,32 @@ extends Model
         int $videoIntroductionId,
         string $nowUtc
     ): bool {
-        $insertId = $this->insert(
-            [
-                'membership_id' =>
-                $membershipId,
+        $insertId =
+            $this->insert(
+                [
+                    'membership_id' =>
+                    $membershipId,
 
-                'viewer_user_id' =>
-                $viewerUserId,
+                    'viewer_user_id' =>
+                    $viewerUserId,
 
-                'owner_user_id' =>
-                $ownerUserId,
+                    'owner_user_id' =>
+                    $ownerUserId,
 
-                'video_introduction_id' =>
-                $videoIntroductionId,
+                    'video_introduction_id' =>
+                    $videoIntroductionId,
 
-                'first_viewed_at' =>
-                $nowUtc,
+                    'first_viewed_at' =>
+                    $nowUtc,
 
-                'last_viewed_at' =>
-                $nowUtc,
+                    'last_viewed_at' =>
+                    $nowUtc,
 
-                'view_count' =>
-                1,
-            ],
-            true
-        );
+                    'view_count' =>
+                    1,
+                ],
+                true
+            );
 
         return is_numeric(
             $insertId

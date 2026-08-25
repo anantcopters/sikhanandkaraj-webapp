@@ -22,13 +22,17 @@ final class MemberMembershipProfileViewModel extends Model
     protected $table =
     'member_membership_profile_views';
 
-    protected $primaryKey = 'id';
+    protected $primaryKey =
+    'id';
 
-    protected $returnType = 'array';
+    protected $returnType =
+    'array';
 
-    protected $useAutoIncrement = true;
+    protected $useAutoIncrement =
+    true;
 
-    protected $protectFields = true;
+    protected $protectFields =
+    true;
 
     protected $allowedFields = [
         'membership_id',
@@ -40,15 +44,20 @@ final class MemberMembershipProfileViewModel extends Model
         'view_count',
     ];
 
-    protected $useTimestamps = true;
+    protected $useTimestamps =
+    true;
 
-    protected $dateFormat = 'datetime';
+    protected $dateFormat =
+    'datetime';
 
-    protected $createdField = 'created_at';
+    protected $createdField =
+    'created_at';
 
-    protected $updatedField = 'updated_at';
+    protected $updatedField =
+    'updated_at';
 
-    protected $skipValidation = true;
+    protected $skipValidation =
+    true;
 
     /**
      * Return whether this target has already consumed allowance during the
@@ -122,6 +131,90 @@ final class MemberMembershipProfileViewModel extends Model
     }
 
     /**
+     * Return member-facing Full Profile consumption history.
+     *
+     * Only information already belonging to the viewing member's commercial
+     * usage ledger is returned.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function historyForUser(
+        int $viewerUserId,
+        int $limit = 100
+    ): array {
+        if ($viewerUserId <= 0) {
+            return [];
+        }
+
+        $limit =
+            max(
+                1,
+                min(
+                    200,
+                    $limit
+                )
+            );
+
+        $rows =
+            $this->db
+            ->table(
+                $this->table . ' usage'
+            )
+            ->select(
+                '
+                    usage.id,
+                    usage.membership_id,
+                    usage.viewed_user_id,
+                    usage.usage_date_ist,
+                    usage.first_viewed_at,
+                    usage.last_viewed_at,
+                    usage.view_count,
+
+                    target.profile_ref_number
+                        AS profile_reference,
+
+                    membership.plan_code_snapshot,
+                    membership.plan_name_snapshot
+                ',
+                false
+            )
+            ->join(
+                'users target',
+                'target.id = usage.viewed_user_id',
+                'left'
+            )
+            ->join(
+                'member_memberships membership',
+                'membership.id = usage.membership_id',
+                'inner'
+            )
+            ->where(
+                'usage.viewer_user_id',
+                $viewerUserId
+            )
+            ->orderBy(
+                'usage.last_viewed_at',
+                'DESC'
+            )
+            ->orderBy(
+                'usage.id',
+                'DESC'
+            )
+            ->limit(
+                $limit
+            )
+            ->get()
+            ->getResultArray();
+
+        return array_values(
+            array_filter(
+                $rows,
+                'is_array'
+            )
+        );
+    }
+
+    /**
      * Lock one membership before checking and consuming quota.
      *
      * Concurrent requests from the same member must serialize against the
@@ -137,7 +230,8 @@ final class MemberMembershipProfileViewModel extends Model
             return null;
         }
 
-        $record = $this->db
+        $record =
+            $this->db
             ->query(
                 <<<'SQL'
                     SELECT
@@ -175,31 +269,32 @@ final class MemberMembershipProfileViewModel extends Model
         string $usageDateIst,
         string $nowUtc
     ): bool {
-        $insertId = $this->insert(
-            [
-                'membership_id' =>
-                $membershipId,
+        $insertId =
+            $this->insert(
+                [
+                    'membership_id' =>
+                    $membershipId,
 
-                'viewer_user_id' =>
-                $viewerUserId,
+                    'viewer_user_id' =>
+                    $viewerUserId,
 
-                'viewed_user_id' =>
-                $viewedUserId,
+                    'viewed_user_id' =>
+                    $viewedUserId,
 
-                'usage_date_ist' =>
-                $usageDateIst,
+                    'usage_date_ist' =>
+                    $usageDateIst,
 
-                'first_viewed_at' =>
-                $nowUtc,
+                    'first_viewed_at' =>
+                    $nowUtc,
 
-                'last_viewed_at' =>
-                $nowUtc,
+                    'last_viewed_at' =>
+                    $nowUtc,
 
-                'view_count' =>
-                1,
-            ],
-            true
-        );
+                    'view_count' =>
+                    1,
+                ],
+                true
+            );
 
         return is_numeric(
             $insertId

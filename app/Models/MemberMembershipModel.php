@@ -9,26 +9,42 @@ use CodeIgniter\Model;
 /**
  * Persists purchased member membership instances.
  *
- * A row represents one commercial membership period. Historical memberships
- * are retained; they are never converted into the member's next plan.
+ * A row represents one commercial membership period.
+ *
+ * IMPORTANT:
+ *
+ * Historical memberships are retained permanently. Expiry, replacement and
+ * cancellation change lifecycle status only; an old membership is never
+ * converted into the member's next membership.
+ *
+ * Runtime access must continue checking starts_at/expires_at even though the
+ * housekeeping process also converts expired ACTIVE rows to EXPIRED.
  */
 final class MemberMembershipModel extends Model
 {
-    public const STATUS_ACTIVE = 'ACTIVE';
+    public const STATUS_ACTIVE =
+    'ACTIVE';
 
-    public const STATUS_EXPIRED = 'EXPIRED';
+    public const STATUS_EXPIRED =
+    'EXPIRED';
 
-    public const STATUS_REPLACED = 'REPLACED';
+    public const STATUS_REPLACED =
+    'REPLACED';
 
-    public const STATUS_CANCELLED = 'CANCELLED';
+    public const STATUS_CANCELLED =
+    'CANCELLED';
 
-    protected $table = 'member_memberships';
+    protected $table =
+    'member_memberships';
 
-    protected $primaryKey = 'id';
+    protected $primaryKey =
+    'id';
 
-    protected $returnType = 'array';
+    protected $returnType =
+    'array';
 
-    protected $useAutoIncrement = true;
+    protected $useAutoIncrement =
+    true;
 
     protected $allowedFields = [
         'user_id',
@@ -48,22 +64,31 @@ final class MemberMembershipModel extends Model
         'replaced_by_membership_id',
     ];
 
-    protected $useTimestamps = true;
+    protected $useTimestamps =
+    true;
 
-    protected $dateFormat = 'datetime';
+    protected $dateFormat =
+    'datetime';
 
-    protected $createdField = 'created_at';
+    protected $createdField =
+    'created_at';
 
-    protected $updatedField = 'updated_at';
+    protected $updatedField =
+    'updated_at';
 
-    protected $skipValidation = true;
+    protected $skipValidation =
+    true;
 
     /**
      * Resolve the currently usable paid membership.
      *
-     * The timestamp check is deliberately part of runtime resolution.
-     * Therefore access expires correctly even if the housekeeping cron has
-     * not yet changed an expired ACTIVE row to EXPIRED.
+     * SECURITY:
+     *
+     * The timestamp check deliberately remains here even though lifecycle
+     * housekeeping changes expired ACTIVE rows to EXPIRED.
+     *
+     * Therefore membership access expires immediately at expires_at even if
+     * the housekeeping cron has not executed yet.
      *
      * @return array<string, mixed>|null
      */
@@ -75,7 +100,8 @@ final class MemberMembershipModel extends Model
             return null;
         }
 
-        $record = $this
+        $record =
+            $this
             ->where(
                 'user_id',
                 $userId
@@ -96,6 +122,10 @@ final class MemberMembershipModel extends Model
                 'starts_at',
                 'DESC'
             )
+            ->orderBy(
+                'id',
+                'DESC'
+            )
             ->first();
 
         return is_array($record)
@@ -106,6 +136,8 @@ final class MemberMembershipModel extends Model
     /**
      * Return membership history newest first.
      *
+     * This is the commercial membership history shown to the member.
+     *
      * @return list<array<string, mixed>>
      */
     public function historyForUser(
@@ -115,13 +147,14 @@ final class MemberMembershipModel extends Model
             return [];
         }
 
-        $rows = $this
+        $rows =
+            $this
             ->where(
                 'user_id',
                 $userId
             )
             ->orderBy(
-                'created_at',
+                'starts_at',
                 'DESC'
             )
             ->orderBy(
@@ -136,5 +169,114 @@ final class MemberMembershipModel extends Model
                 'is_array'
             )
         );
+    }
+
+    /**
+     * Return ACTIVE rows whose commercial validity has ended.
+     *
+     * This is intentionally used only by lifecycle housekeeping.
+     *
+     * Product authorization must never depend on this method having run.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function expiredActiveMemberships(
+        string $nowUtc,
+        int $limit = 500
+    ): array {
+        $limit =
+            max(
+                1,
+                min(
+                    1000,
+                    $limit
+                )
+            );
+
+        $rows =
+            $this
+            ->where(
+                'status',
+                self::STATUS_ACTIVE
+            )
+            ->where(
+                'expires_at <=',
+                $nowUtc
+            )
+            ->orderBy(
+                'expires_at',
+                'ASC'
+            )
+            ->orderBy(
+                'id',
+                'ASC'
+            )
+            ->findAll(
+                $limit
+            );
+
+        return array_values(
+            array_filter(
+                $rows,
+                'is_array'
+            )
+        );
+    }
+
+    /**
+     * Mark one membership expired.
+     *
+     * The status condition makes the operation idempotent:
+     *
+     * - ACTIVE -> EXPIRED is allowed;
+     * - EXPIRED stays EXPIRED;
+     * - CANCELLED stays CANCELLED;
+     * - REPLACED stays REPLACED.
+     *
+     * A housekeeping process must never overwrite a stronger lifecycle state.
+     */
+    public function markExpired(
+        int $membershipId
+    ): bool {
+        if ($membershipId <= 0) {
+            return false;
+        }
+
+        return $this
+            ->where(
+                'id',
+                $membershipId
+            )
+            ->where(
+                'status',
+                self::STATUS_ACTIVE
+            )
+            ->set(
+                [
+                    'status' =>
+                    self::STATUS_EXPIRED,
+                ]
+            )
+            ->update();
+    }
+
+    /**
+     * Count ACTIVE memberships that have passed expires_at.
+     *
+     * Primarily useful for lifecycle monitoring/CLI reporting.
+     */
+    public function expiredActiveCount(
+        string $nowUtc
+    ): int {
+        return (int) $this
+            ->where(
+                'status',
+                self::STATUS_ACTIVE
+            )
+            ->where(
+                'expires_at <=',
+                $nowUtc
+            )
+            ->countAllResults();
     }
 }

@@ -130,6 +130,13 @@ $menuItems = [
         'label' => 'Membership Plans',
         'icon' => 'ri-vip-crown-line',
     ],
+    'membership-history' => [
+        'label' =>
+        'Membership & Usage',
+
+        'icon' =>
+        'ri-history-line',
+    ],
     'contact' => [
         'label' => 'Contact Us',
         'icon' => 'ri-customer-service-2-line',
@@ -1102,6 +1109,19 @@ $this->section('content');
                                 'Components/Membership/PlanCards',
                                 [
                                     'context' => 'member',
+                                ]
+                            ) ?>
+
+                        <?php elseif (
+                            $activeSection === 'membership-history'
+                        ): ?>
+
+                            <?= view(
+                                'Pages/AccountSettings/_MembershipHistory',
+                                [
+                                    'membershipHistory' =>
+                                    $membershipHistory
+                                        ?? [],
                                 ]
                             ) ?>
 
