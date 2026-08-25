@@ -223,9 +223,9 @@ try {
     fwrite(
         STDOUT,
         PHP_EOL
-            . 'Membership-24 Search Profile'
+            . 'Membership-27 Search Pipeline Profile'
             . PHP_EOL
-            . '============================'
+            . '====================================='
             . PHP_EOL
             . PHP_EOL
     );
@@ -360,34 +360,6 @@ try {
                     3
                 )
                 . ' ms'
-                . PHP_EOL
-        );
-    }
-
-    fwrite(
-        STDOUT,
-        PHP_EOL
-            . 'Profile complete.'
-            . PHP_EOL
-    );
-
-    foreach (
-        $result['queries']
-        as $query
-    ) {
-        fwrite(
-            STDOUT,
-            PHP_EOL
-                . '#'
-                . $query['number']
-                . ' | '
-                . number_format(
-                    $query['elapsedMs'],
-                    3
-                )
-                . ' ms'
-                . PHP_EOL
-                . $query['sql']
                 . PHP_EOL
         );
     }
