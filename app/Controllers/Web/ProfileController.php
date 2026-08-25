@@ -226,8 +226,11 @@ final class ProfileController extends BaseController
                     'viewedMobileLabel' =>
                     'Mobile Number',
 
-                    'isViewedMobileVerified' => ($mobile['isVerified'] ?? false)
-                        === true,
+                    'isViewedMobileVerified' =>
+                    BooleanValue::fromDatabase(
+                        $mobile['isVerified']
+                            ?? false
+                    ),
 
                     'isViewedParentMobile' =>
                     false,
@@ -244,8 +247,11 @@ final class ProfileController extends BaseController
                         ?? ''
                     ),
 
-                    'isViewedEmailVerified' => ($email['isVerified'] ?? false)
-                        === true,
+                    'isViewedEmailVerified' =>
+                    BooleanValue::fromDatabase(
+                        $email['isVerified']
+                            ?? false
+                    ),
 
                     'videoIntroductionState' =>
                     $videoIntroductionState,
