@@ -6,6 +6,7 @@ namespace App\Services\Development;
 
 use App\Models\UserModel;
 use App\Services\Matchmaking\MemberSearchService;
+use App\Support\Development\PerformanceTimeline;
 use DomainException;
 use RuntimeException;
 
@@ -28,7 +29,10 @@ final class DevelopmentSearchProfilerService
     ) {}
 
     /**
-     * Profile one Search request.
+     * Profile one real Search request.
+     *
+     * Membership-27 extends the existing total Search measurement with named
+     * application-pipeline checkpoints.
      *
      * @param array<string, mixed> $input
      *
@@ -40,7 +44,12 @@ final class DevelopmentSearchProfilerService
      *     elapsedMs:float,
      *     resultCount:int,
      *     total:int,
-     *     page:int
+     *     page:int,
+     *     stages:list<array{
+     *         name:string,
+     *         elapsedMs:float,
+     *         totalMs:float
+     *     }>
      * }
      */
     public function profile(
@@ -68,25 +77,20 @@ final class DevelopmentSearchProfilerService
         }
 
         /*
-         * Measure the complete real Search pipeline.
-         *
-         * No diagnostic Search implementation is introduced here.
-         */
-        $startedAt =
-            hrtime(
-                true
-            );
+     * Membership-27.
+     *
+     * The timeline is created only by this development profiler.
+     * Normal HTTP Search never creates or passes it.
+     */
+        $timeline =
+            new PerformanceTimeline();
 
         $result =
             $this->searchService
             ->search(
                 $memberId,
-                $input
-            );
-
-        $finishedAt =
-            hrtime(
-                true
+                $input,
+                $timeline
             );
 
         $profiles =
@@ -104,7 +108,7 @@ final class DevelopmentSearchProfilerService
             'profileReference' =>
             trim(
                 (string) (
-                    $member['profile_reference']
+                    $member['profile_ref_number']
                     ?? ''
                 )
             ),
@@ -122,14 +126,7 @@ final class DevelopmentSearchProfilerService
             ),
 
             'elapsedMs' =>
-            round(
-                (
-                    $finishedAt
-                    - $startedAt
-                )
-                    / 1_000_000,
-                3
-            ),
+            $timeline->totalElapsedMs(),
 
             'resultCount' =>
             count(
@@ -153,6 +150,9 @@ final class DevelopmentSearchProfilerService
                     ?? 1
                 )
             ),
+
+            'stages' =>
+            $timeline->checkpoints(),
         ];
     }
 

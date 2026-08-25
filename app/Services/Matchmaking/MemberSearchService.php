@@ -11,6 +11,7 @@ use App\Services\Profile\ProfileMasterDataService;
 use App\Validation\RegisterFreeValidation;
 use App\Services\Membership\MembershipEntitlementService;
 use App\Services\Profile\MemberPhotoUrlService;
+use App\Support\Development\PerformanceTimeline;
 use DomainException;
 
 final class MemberSearchService
@@ -167,16 +168,34 @@ final class MemberSearchService
     }
 
     /**
-     * @param array<string, mixed> $input
+     * Execute member Search.
      *
-     * @return array<string, mixed>
+     * $performanceTimeline is development diagnostic infrastructure only.
+     *
+     * Normal controllers never supply it, so production Search behaviour and
+     * performance remain unchanged.
+     *
+     * The profiler passes a timeline only when explicitly invoked through the
+     * CLI-only development Search profiler.
+     *
+     * @param array<string, mixed> $input
      */
     public function search(
         int $viewerUserId,
-        array $input
+        array $input,
+        ?PerformanceTimeline $performanceTimeline = null
     ): array {
         $viewer = $this->userModel
             ->find($viewerUserId);
+
+        /*
+        * Membership-27 diagnostic checkpoint.
+        *
+        * Includes authenticated viewer resolution only.
+        */
+        $performanceTimeline?->checkpoint(
+            'Viewer resolution'
+        );
 
         if (!is_array($viewer)) {
             throw new DomainException(
@@ -249,6 +268,13 @@ final class MemberSearchService
             );
 
         /*
+        * Includes Search master-data loading and normalized filter preparation.
+        */
+        $performanceTimeline?->checkpoint(
+            'Master data + filter normalization'
+        );
+
+        /*
         * --------------------------------------------------------------------------
         * Quick Link activity preset
         * --------------------------------------------------------------------------
@@ -295,6 +321,16 @@ final class MemberSearchService
         }
 
         /*
+        * Measures Quick Link/activity candidate-ID resolution.
+        *
+        * For normal Search this should be almost zero because no activity collection
+        * is requested.
+        */
+        $performanceTimeline?->checkpoint(
+            'Activity candidate resolution'
+        );
+
+        /*
         * Default Search is Match Score ranked.
         *
         * Explicit user-selected chronology/activity sorts retain their existing
@@ -331,6 +367,18 @@ final class MemberSearchService
                 paginate: !$useMatchScoreRanking
             );
 
+        /*
+        * Membership-26 independently established that the common eligible-candidate
+        * PostgreSQL projection executes in approximately 1 ms in the current
+        * development dataset.
+        *
+        * This checkpoint measures the actual Search candidate query including the
+        * selected Search filters.
+        */
+        $performanceTimeline?->checkpoint(
+            'Candidate query'
+        );
+
         $resultRows =
             is_array(
                 $results['rows']
@@ -352,6 +400,16 @@ final class MemberSearchService
                     $viewerUserId,
                     $resultRows
                 );
+
+            /*
+            * This is expected to be one of the important Membership-27 measurements.
+            *
+            * PartnerPreferenceMatchService loads the viewer preference snapshot,
+            * candidate lifestyle selections and evaluates every candidate.
+            */
+            $performanceTimeline?->checkpoint(
+                'Partner Preference scoring'
+            );
 
             /*
             * Search filters define candidate eligibility.
@@ -380,11 +438,25 @@ final class MemberSearchService
                     )
                 );
 
+            $performanceTimeline?->checkpoint(
+                'Compulsory preference filtering'
+            );
+
             $resultRows =
                 $this->matchScoreService
                 ->rankCandidates(
                     $resultRows
                 );
+
+            /*
+            * MemberMatchScoreService itself performs no candidate database queries.
+            *
+            * This measurement therefore represents scoring/configuration resolution plus
+            * deterministic PHP ranking.
+            */
+            $performanceTimeline?->checkpoint(
+                'Match Score + ranking'
+            );
 
             $total =
                 count(
@@ -420,6 +492,14 @@ final class MemberSearchService
                     self::PER_PAGE
                 );
 
+            /*
+            * Match-ranked Search paginates in memory after deterministic ranking.
+            * Explicit chronological sorts are already paginated by PostgreSQL.
+            */
+            $performanceTimeline?->checkpoint(
+                'Pagination'
+            );
+
             $results['page'] =
                 $page;
         } else {
@@ -448,11 +528,23 @@ final class MemberSearchService
                 $resultRows
             );
 
+        /*
+        * Includes batch Interest resolution, batch photo resolution, CloudFront URL
+        * signing where required, and common ProfileCard presentation.
+        */
+        $performanceTimeline?->checkpoint(
+            'Profile presentation'
+        );
+
         $chips =
             $this->searchChips(
                 $filters,
                 $masterData
             );
+
+        $performanceTimeline?->checkpoint(
+            'Search chip presentation'
+        );
 
         /*
         * Activity is presented exactly like another active Search criterion.
@@ -478,6 +570,17 @@ final class MemberSearchService
             $this->quickLinkGroups(
                 $viewerUserId
             );
+
+        /*
+        * Quick Links may invoke existing interaction/matchmaking services even though
+        * only their counts/links are required by Search presentation.
+        *
+        * Membership-27 measures this separately because it happens after the visible
+        * result page has already been calculated.
+        */
+        $performanceTimeline?->checkpoint(
+            'Quick Links'
+        );
 
         return [
             'mode' =>

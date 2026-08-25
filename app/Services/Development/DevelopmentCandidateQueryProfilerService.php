@@ -200,7 +200,7 @@ final class DevelopmentCandidateQueryProfilerService
             'profileReference' =>
             trim(
                 (string) (
-                    $member['profile_reference']
+                    $member['profile_ref_number']
                     ?? ''
                 )
             ),

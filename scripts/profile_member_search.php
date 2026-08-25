@@ -7,7 +7,7 @@ use CodeIgniter\Boot;
 use Config\Paths;
 
 /*
- * Membership-24 Search profiler.
+ * Membership-27 Search Pipeline Profile
  *
  * This operation exposes SQL and database timing information.
  *
@@ -290,6 +290,79 @@ try {
             . ' ms'
             . PHP_EOL
     );
+
+    fwrite(
+        STDOUT,
+        PHP_EOL
+            . 'Application Pipeline'
+            . PHP_EOL
+            . '--------------------'
+            . PHP_EOL
+    );
+
+    $stages =
+        is_array(
+            $result['stages']
+                ?? null
+        )
+        ? $result['stages']
+        : [];
+
+    foreach ($stages as $stage) {
+        if (!is_array($stage)) {
+            continue;
+        }
+
+        $name =
+            trim(
+                (string) (
+                    $stage['name']
+                    ?? ''
+                )
+            );
+
+        if ($name === '') {
+            continue;
+        }
+
+        $elapsedMs =
+            max(
+                0.0,
+                (float) (
+                    $stage['elapsedMs']
+                    ?? 0.0
+                )
+            );
+
+        $totalMs =
+            max(
+                0.0,
+                (float) (
+                    $stage['totalMs']
+                    ?? 0.0
+                )
+            );
+
+        fwrite(
+            STDOUT,
+            str_pad(
+                $name,
+                38
+            )
+                . number_format(
+                    $elapsedMs,
+                    3
+                )
+                . ' ms'
+                . '  | cumulative '
+                . number_format(
+                    $totalMs,
+                    3
+                )
+                . ' ms'
+                . PHP_EOL
+        );
+    }
 
     fwrite(
         STDOUT,
