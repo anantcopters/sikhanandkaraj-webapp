@@ -36,6 +36,15 @@ final class MemberMatchmakingService
         private readonly PartnerPreferenceMatchService
         $matchService,
 
+        /*
+        * Final weighted ranking authority.
+        *
+        * PartnerPreferenceMatchService remains responsible only for determining
+        * preference compatibility and match_percentage.
+        */
+        private readonly MemberMatchScoreService
+        $matchScoreService,
+
         private readonly MemberInteractionService
         $interactionService,
 
@@ -103,14 +112,16 @@ final class MemberMatchmakingService
             ->minimumMatchPercentage;
 
         /*
-        * A candidate becomes an All Match only through the common Match rule.
+        * Eligibility is evaluated BEFORE ranking.
         *
-        * The same helper is used by the Search Matches menu implementation.
+        * A high commercial/profile score must never rescue a candidate who fails
+        * compulsory Partner Preferences or the configured minimum preference match.
         */
         $matchedCandidates =
             array_values(
                 array_filter(
                     $scoredCandidates,
+
                     fn(
                         array $candidate
                     ): bool =>
@@ -119,6 +130,16 @@ final class MemberMatchmakingService
                         $minimumPercentage
                     )
                 )
+            );
+
+        /*
+        * Final Match Score is applied only to candidates who have already satisfied
+        * the matrimonial eligibility/matching rules.
+        */
+        $matchedCandidates =
+            $this->matchScoreService
+            ->rankCandidates(
+                $matchedCandidates
             );
 
         /*

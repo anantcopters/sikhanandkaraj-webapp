@@ -332,6 +332,159 @@ final class MemberMatchScoreService
     }
 
     /**
+     * Apply the canonical deterministic Match Score ranking.
+     *
+     * Ranking order:
+     *
+     * 1. Final Match Score
+     * 2. Partner Preference score
+     * 3. Trust score
+     * 4. Profile completion
+     * 5. Approved photo count
+     * 6. Newest member
+     * 7. Highest user ID
+     *
+     * The final user-ID tie-breaker guarantees stable ordering even when every
+     * other ranking input is identical.
+     *
+     * @param list<array<string, mixed>> $candidates
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function rankCandidates(
+        array $candidates
+    ): array {
+        $scored =
+            $this->scoreCandidates(
+                $candidates
+            );
+
+        usort(
+            $scored,
+
+            static function (
+                array $left,
+                array $right
+            ): int {
+                /*
+                * Highest final Match Score first.
+                */
+                $comparison =
+                    ((float) (
+                        $right['match_score']
+                        ?? 0
+                    ))
+                    <=>
+                    ((float) (
+                        $left['match_score']
+                        ?? 0
+                    ));
+
+                if ($comparison !== 0) {
+                    return $comparison;
+                }
+
+                /*
+                * Preference remains the strongest tie-breaker because matrimonial
+                * relevance must outrank commercial or cosmetic profile signals.
+                */
+                $comparison =
+                    ((float) (
+                        $right['match_percentage']
+                        ?? 0
+                    ))
+                    <=>
+                    ((float) (
+                        $left['match_percentage']
+                        ?? 0
+                    ));
+
+                if ($comparison !== 0) {
+                    return $comparison;
+                }
+
+                $comparison =
+                    ((float) (
+                        $right['match_score_components']['trust']
+                        ?? 0
+                    ))
+                    <=>
+                    ((float) (
+                        $left['match_score_components']['trust']
+                        ?? 0
+                    ));
+
+                if ($comparison !== 0) {
+                    return $comparison;
+                }
+
+                $comparison =
+                    ((int) (
+                        $right['profile_completion']
+                        ?? 0
+                    ))
+                    <=>
+                    ((int) (
+                        $left['profile_completion']
+                        ?? 0
+                    ));
+
+                if ($comparison !== 0) {
+                    return $comparison;
+                }
+
+                $comparison =
+                    ((int) (
+                        $right['approved_photo_count']
+                        ?? 0
+                    ))
+                    <=>
+                    ((int) (
+                        $left['approved_photo_count']
+                        ?? 0
+                    ));
+
+                if ($comparison !== 0) {
+                    return $comparison;
+                }
+
+                /*
+                * ISO/PostgreSQL timestamps are lexicographically sortable.
+                */
+                $comparison =
+                    strcmp(
+                        (string) (
+                            $right['created_at']
+                            ?? ''
+                        ),
+                        (string) (
+                            $left['created_at']
+                            ?? ''
+                        )
+                    );
+
+                if ($comparison !== 0) {
+                    return $comparison;
+                }
+
+                return ((int) (
+                        $right['id']
+                        ?? 0
+                    ))
+                    <=>
+                    ((int) (
+                        $left['id']
+                        ?? 0
+                    ));
+            }
+        );
+
+        return array_values(
+            $scored
+        );
+    }
+
+    /**
      * Calculate trust points from authoritative projected verification state.
      *
      * @param array<string, mixed> $candidate

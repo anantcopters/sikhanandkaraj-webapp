@@ -44,6 +44,20 @@ final class MemberSearchService
         $lifestyleService,
 
         /*
+        * Search uses the same Partner Preference algorithm as Dashboard.
+        *
+        * We must never implement a second preference-scoring algorithm here.
+        */
+        private readonly PartnerPreferenceMatchService
+        $partnerPreferenceMatchService,
+
+        /*
+        * Final weighted ranking authority shared with Dashboard.
+        */
+        private readonly MemberMatchScoreService
+        $matchScoreService,
+
+        /*
         * Membership-controlled Search capabilities are resolved centrally.
         *
         * MemberSearchService must never inspect plan codes or membership rows
@@ -263,19 +277,35 @@ final class MemberSearchService
         */
         if ($activity !== '') {
             /*
-     * candidate_ids restricts the database query.
-     */
+            * candidate_ids restricts the database query.
+            */
             $filters['candidate_ids'] =
                 $activityMemberIds;
 
             /*
-     * Keep the logical preset in the normalized result state so sorting and
-     * pagination retain the same collection.
-     */
+            * Keep the logical preset in the normalized result state so sorting and
+            * pagination retain the same collection.
+            */
             $filters['activity'] =
                 $activity;
         }
 
+        /*
+        * Default Search is Match Score ranked.
+        *
+        * Explicit user-selected chronology/activity sorts retain their existing
+        * database sorting semantics.
+        */
+        $useMatchScoreRanking =
+            $sort === 'match';
+
+        /*
+        * Match-ranked Search must obtain the complete database-filtered candidate
+        * pool BEFORE pagination.
+        *
+        * Otherwise we would rank only ten rows at a time and a stronger candidate
+        * could incorrectly appear on page 2.
+        */
         $results =
             $this->candidateModel
             ->searchCandidates(
@@ -292,31 +322,126 @@ final class MemberSearchService
 
                 perPage: self::PER_PAGE,
 
-                sort: $sort
+                sort: $sort,
+
+                paginate: !$useMatchScoreRanking
             );
+
+        $resultRows =
+            is_array(
+                $results['rows']
+                    ?? null
+            )
+            ? $results['rows']
+            : [];
+
+        if ($useMatchScoreRanking) {
+            /*
+            * Partner Preference scoring is viewer-specific.
+            *
+            * This is the same algorithm used by Dashboard, so preference relevance
+            * cannot drift between Dashboard and Search.
+            */
+            $resultRows =
+                $this->partnerPreferenceMatchService
+                ->scoreCandidates(
+                    $viewerUserId,
+                    $resultRows
+                );
+
+            /*
+            * Search filters define candidate eligibility.
+            *
+            * Unlike the Dashboard "All Matches" collection, Search does not discard
+            * a candidate merely because the preference percentage is below the
+            * Dashboard minimum threshold.
+            *
+            * Match percentage influences ranking here.
+            *
+            * Compulsory preference failures remain represented by the existing
+            * PartnerPreferenceMatchService result and should be filtered according
+            * to that service's existing eligibility flag.
+            */
+            $resultRows =
+                array_values(
+                    array_filter(
+                        $resultRows,
+
+                        static fn(
+                            array $candidate
+                        ): bool => (
+                            $candidate['passes_compulsory']
+                            ?? true
+                        ) === true
+                    )
+                );
+
+            $resultRows =
+                $this->matchScoreService
+                ->rankCandidates(
+                    $resultRows
+                );
+
+            $total =
+                count(
+                    $resultRows
+                );
+
+            $totalPages =
+                max(
+                    1,
+                    (int) ceil(
+                        $total
+                            / self::PER_PAGE
+                    )
+                );
+
+            $page =
+                min(
+                    $page,
+                    $totalPages
+                );
+
+            $offset =
+                ($page - 1)
+                * self::PER_PAGE;
+
+            /*
+            * Pagination occurs only after the complete deterministic ranking.
+            */
+            $resultRows =
+                array_slice(
+                    $resultRows,
+                    $offset,
+                    self::PER_PAGE
+                );
+
+            $results['page'] =
+                $page;
+        } else {
+            $total =
+                max(
+                    0,
+                    (int) (
+                        $results['total']
+                        ?? 0
+                    )
+                );
+
+            $totalPages =
+                max(
+                    1,
+                    (int) ceil(
+                        $total
+                            / self::PER_PAGE
+                    )
+                );
+        }
 
         $profiles =
             $this->presentationProfiles(
                 $viewerUserId,
-                $results['rows']
-            );
-
-        $total =
-            max(
-                0,
-                (int) (
-                    $results['total']
-                    ?? 0
-                )
-            );
-
-        $totalPages =
-            max(
-                1,
-                (int) ceil(
-                    $total
-                        / self::PER_PAGE
-                )
+                $resultRows
             );
 
         $chips =
@@ -2200,7 +2325,7 @@ final class MemberSearchService
         return in_array(
             $value,
             [
-                'default',
+                'match',
                 'latest',
                 'oldest',
                 'last_login',
@@ -2208,7 +2333,7 @@ final class MemberSearchService
             true
         )
             ? $value
-            : 'default';
+            : 'match';
     }
 
     private function nullablePositiveInt(

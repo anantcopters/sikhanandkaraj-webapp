@@ -302,6 +302,15 @@ final class ProfileController extends BaseController
             );
 
             /*
+            * Basic Details contributes one of the six authoritative profile-completion
+            * steps used by Match Score.
+            */
+            $this->refreshMatchScoringSignals(
+                $userId,
+                'BASIC_DETAILS'
+            );
+
+            /*
              * The header reads this session value, so keep it current.
              */
             session()->set(
@@ -507,6 +516,11 @@ final class ProfileController extends BaseController
             $service->save(
                 $userId,
                 $input['lifestyle_option_ids']
+            );
+
+            $this->refreshMatchScoringSignals(
+                $userId,
+                'LIFESTYLE'
             );
 
             $redirectUrl = $this->isProfileJourney()
@@ -853,6 +867,11 @@ final class ProfileController extends BaseController
             $service->save(
                 $userId,
                 $validatedData
+            );
+
+            $this->refreshMatchScoringSignals(
+                $userId,
+                'EDUCATION_PROFESSION'
             );
 
             $redirectUrl = $this->isProfileJourney()
@@ -1237,12 +1256,17 @@ final class ProfileController extends BaseController
                     : null
             );
 
+            $this->refreshMatchScoringSignals(
+                $userId,
+                'FAMILY_DETAILS'
+            );
+
             /*
- * A verification can only be consumed once.
- *
- * The actual SAK Volunteer assignment is now permanently
- * stored in member_family_details.
- */
+            * A verification can only be consumed once.
+            *
+            * The actual SAK Volunteer assignment is now permanently
+            * stored in member_family_details.
+            */
             session()->remove(
                 'familyFieldOfficerVerification'
             );
@@ -1545,6 +1569,11 @@ final class ProfileController extends BaseController
                 (string) $input['about_me']
             );
 
+            $this->refreshMatchScoringSignals(
+                $userId,
+                'ABOUT_ME'
+            );
+
             return redirect()
                 ->to(
                     route_to('web.profile.edit')
@@ -1780,5 +1809,52 @@ final class ProfileController extends BaseController
             ' ',
             trim((string) $value)
         ) ?? '';
+    }
+
+    /**
+     * Refresh the cached candidate Match Score signals after a successful
+     * profile mutation.
+     *
+     * IMPORTANT:
+     *
+     * The member's actual profile save has already succeeded at this point.
+     *
+     * A cache refresh failure must therefore be logged rather than turning a
+     * successful profile update into a false "save failed" response.
+     */
+    private function refreshMatchScoringSignals(
+        int $userId,
+        string $source
+    ): void {
+        try {
+            service(
+                'memberMatchScoringSignalService'
+            )->refreshForUser(
+                $userId
+            );
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                [
+                    'operation' =>
+                    'member_match_scoring_signal_refresh',
+
+                    'controller' =>
+                    self::class,
+
+                    'method' =>
+                    __FUNCTION__,
+
+                    'member_id' =>
+                    $userId,
+
+                    'source' =>
+                    $source,
+                ]
+            );
+        }
     }
 }

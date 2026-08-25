@@ -40,6 +40,23 @@ final class MatchScoreConfigurationService
     public const DEFAULT_COMMERCIAL_WEIGHT =
     10;
 
+    /**
+     * Request-local configuration cache.
+     *
+     * One Search may score hundreds of candidates. Match Score configuration is
+     * global for the request and therefore must be read only once.
+     *
+     * @var array{
+     *     preference:int,
+     *     profileCompletion:int,
+     *     approvedPhotos:int,
+     *     trust:int,
+     *     commercial:int
+     * }|null
+     */
+    private ?array $resolvedWeights =
+    null;
+
     /*
      * Commercial influence must remain a minority component.
      *
@@ -57,16 +74,10 @@ final class MatchScoreConfigurationService
     ) {}
 
     /**
-     * Return the effective scoring weights.
+     * Return effective Match Score weights.
      *
-     * Safe defaults are returned when:
-     *
-     * - the configuration table has not yet been populated;
-     * - a corrupt/legacy row does not total 100;
-     * - any persisted value is outside its allowed range.
-     *
-     * Search therefore remains operational even when administrative
-     * configuration is temporarily unavailable.
+     * Configuration is cached for the lifetime of this service instance so
+     * scoring N candidates does not issue N configuration queries.
      *
      * @return array{
      *     preference:int,
@@ -78,12 +89,20 @@ final class MatchScoreConfigurationService
      */
     public function weights(): array
     {
-        $row = $this
-            ->configurationModel
+        if (
+            $this->resolvedWeights
+            !== null
+        ) {
+            return $this->resolvedWeights;
+        }
+
+        $row =
+            $this->configurationModel
             ->activeConfiguration();
 
         if (!is_array($row)) {
-            return $this->defaults();
+            return $this->resolvedWeights =
+                $this->defaults();
         }
 
         $weights = [
@@ -119,10 +138,12 @@ final class MatchScoreConfigurationService
         ];
 
         if (!$this->isValid($weights)) {
-            return $this->defaults();
+            return $this->resolvedWeights =
+                $this->defaults();
         }
 
-        return $weights;
+        return $this->resolvedWeights =
+            $weights;
     }
 
     /**
@@ -258,6 +279,13 @@ final class MatchScoreConfigurationService
             }
 
             $this->db->transCommit();
+
+            /*
+            * This service instance may already have resolved the previous configuration.
+            * Replace the request-local cache immediately after successful persistence.
+            */
+            $this->resolvedWeights =
+                $weights;
 
             return [
                 'id' =>

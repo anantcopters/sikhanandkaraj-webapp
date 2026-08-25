@@ -150,6 +150,11 @@ use App\Services\Membership\ProfileAccessPolicy;
 use App\Models\MemberMembershipLiveIntroductionViewModel;
 use App\Services\Membership\MembershipLiveIntroductionUsageService;
 use App\Services\Membership\LiveIntroductionAccessPolicy;
+use App\Models\MatchScoreConfigurationModel;
+use App\Models\MemberMatchScoringSignalModel;
+use App\Services\Matchmaking\MatchScoreConfigurationService;
+use App\Services\Matchmaking\MemberMatchScoreService;
+use App\Services\Matchmaking\MemberMatchScoringSignalService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -1899,7 +1904,8 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new MemberMatchmakingService(
             new UserModel(
@@ -1911,6 +1917,13 @@ final class Services extends BaseService
             ),
 
             static::partnerPreferenceMatchService(
+                false
+            ),
+
+            /*
+         * Dashboard and Search must use the same final Match Score authority.
+         */
+            static::memberMatchScoreService(
                 false
             ),
 
@@ -2072,10 +2085,6 @@ final class Services extends BaseService
             );
         }
 
-        /*
-        * All models/services created here use the normal application database
-        * connection managed by CI4.
-        */
         $database =
             db_connect();
 
@@ -2088,9 +2097,6 @@ final class Services extends BaseService
                 $database
             ),
 
-            /*
-            * Same Interest/Shortlist authority used by Member Profile View.
-            */
             static::memberInteractionService(
                 false
             ),
@@ -2108,9 +2114,17 @@ final class Services extends BaseService
             ),
 
             /*
-            * Advanced Search authorization belongs to the centralized membership
-            * entitlement service.
-            */
+         * Search relevance uses exactly the same Partner Preference algorithm
+         * as Dashboard All Matches.
+         */
+            static::partnerPreferenceMatchService(
+                false
+            ),
+
+            static::memberMatchScoreService(
+                false
+            ),
+
             static::membershipEntitlementService(
                 false
             )
@@ -2780,6 +2794,83 @@ final class Services extends BaseService
                 false
             ),
             static::memberInteractionService(
+                false
+            )
+        );
+    }
+
+    /**
+     * Return the effective Match Score configuration authority.
+     */
+    public static function matchScoreConfigurationService(
+        bool $getShared = true
+    ): MatchScoreConfigurationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'matchScoreConfigurationService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MatchScoreConfigurationService(
+            new MatchScoreConfigurationModel(
+                $database
+            ),
+
+            $database
+        );
+    }
+
+    /**
+     * Return the pure Match Score calculator.
+     *
+     * The calculator itself performs no candidate queries.
+     */
+    public static function memberMatchScoreService(
+        bool $getShared = true
+    ): MemberMatchScoreService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMatchScoreService'
+            );
+        }
+
+        return new MemberMatchScoreService(
+            /*
+         * Use the shared configuration service.
+         *
+         * Its request-local weight cache ensures a complete candidate
+         * collection performs only one configuration lookup.
+         */
+            static::matchScoreConfigurationService(
+                true
+            )
+        );
+    }
+
+    /**
+     * Return the candidate-intrinsic scoring-signal cache service.
+     */
+    public static function memberMatchScoringSignalService(
+        bool $getShared = true
+    ): MemberMatchScoringSignalService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMatchScoringSignalService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MemberMatchScoringSignalService(
+            new MemberMatchScoringSignalModel(
+                $database
+            ),
+
+            static::memberProfileSummaryService(
                 false
             )
         );

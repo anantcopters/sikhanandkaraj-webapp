@@ -181,7 +181,8 @@ final class MemberMatchCandidateModel extends Model
         array $filters,
         int $page,
         int $perPage,
-        string $sort
+        string $sort,
+        bool $paginate = true
     ): array {
         if ($viewerUserId <= 0) {
             return [
@@ -190,8 +191,18 @@ final class MemberMatchCandidateModel extends Model
             ];
         }
 
-        $page = max(1, $page);
-        $perPage = max(1, min(50, $perPage));
+        $page = max(
+            1,
+            $page
+        );
+
+        $perPage = max(
+            1,
+            min(
+                50,
+                $perPage
+            )
+        );
 
         $builder = $this->baseCandidateBuilder(
             $viewerUserId,
@@ -568,6 +579,45 @@ final class MemberMatchCandidateModel extends Model
             );
 
         /*
+        * Match Score ranking is viewer-specific because Partner Preference score is
+        * directional.
+        *
+        * When Search requests the ranking pool, return all database-filtered rows
+        * without applying database pagination.
+        *
+        * SearchService will:
+        *
+        *     filter
+        *       -> Partner Preference score
+        *       -> Match Score
+        *       -> deterministic rank
+        *       -> paginate
+        *
+        * Explicit legacy sorts continue to use normal database pagination.
+        */
+        if (!$paginate) {
+            $rows =
+                $builder
+                ->get()
+                ->getResultArray();
+
+            return [
+                'rows' =>
+                array_values(
+                    $rows
+                ),
+
+                'total' =>
+                count(
+                    $rows
+                ),
+
+                'page' =>
+                1,
+            ];
+        }
+
+        /*
         * Apply deterministic Search ordering after counting.
         */
         $this->applySearchSorting(
@@ -789,6 +839,17 @@ final class MemberMatchCandidateModel extends Model
             'u.created_at',
 
             /*
+            * Cached authoritative profile-completion Match Score signal.
+            *
+            * Missing rows safely become zero. Existing members are backfilled by the
+            * rebuild script supplied with this phase.
+            */
+            'COALESCE(
+                    scoring_signal.profile_completion,
+                    0
+                ) AS profile_completion',
+
+            /*
             * Candidate membership projection.
             *
             * NULL means there is no currently usable paid membership and therefore
@@ -877,6 +938,23 @@ final class MemberMatchCandidateModel extends Model
             'COALESCE(candidate_photos.approved_photo_count, 0) '
                 . 'AS approved_photo_count',
         ]);
+
+        /*
+        * Candidate-intrinsic scoring cache.
+        *
+        * This is a normal indexed one-to-one LEFT JOIN:
+        *
+        *     users.id
+        *         ->
+        *     member_match_scoring_signals.user_id PRIMARY KEY
+        *
+        * No lateral query or per-candidate lookup is required.
+        */
+        $builder->join(
+            'member_match_scoring_signals scoring_signal',
+            'scoring_signal.user_id = u.id',
+            'left'
+        );
 
         /*
         * Resolve at most one currently usable paid membership for each candidate.

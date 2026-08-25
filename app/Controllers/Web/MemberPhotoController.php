@@ -186,6 +186,11 @@ final class MemberPhotoController extends BaseController
                 $makePrimary
             );
 
+            $this->refreshMatchScoringSignals(
+                $memberId,
+                'PHOTO_UPLOAD'
+            );
+
             return $this->successRedirect(
                 'Photo uploaded',
                 'Your photo was uploaded successfully '
@@ -418,6 +423,11 @@ final class MemberPhotoController extends BaseController
                 $photoId
             );
 
+            $this->refreshMatchScoringSignals(
+                $memberId,
+                'PHOTO_DELETE'
+            );
+
             return $this->successRedirect(
                 'Photo deleted',
                 'The photo has been removed.'
@@ -548,6 +558,48 @@ final class MemberPhotoController extends BaseController
                 : null;
         } catch (Throwable) {
             return null;
+        }
+    }
+
+    /**
+     * Refresh cached profile-completion after a successful member-photo change.
+     *
+     * Profile completion uses presence of an active uploaded photo, while the
+     * separate Match Score photo component uses approved_photo_count.
+     */
+    private function refreshMatchScoringSignals(
+        int $userId,
+        string $source
+    ): void {
+        try {
+            service(
+                'memberMatchScoringSignalService'
+            )->refreshForUser(
+                $userId
+            );
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                [
+                    'operation' =>
+                    'member_match_scoring_signal_refresh',
+
+                    'controller' =>
+                    self::class,
+
+                    'method' =>
+                    __FUNCTION__,
+
+                    'member_id' =>
+                    $userId,
+
+                    'source' =>
+                    $source,
+                ]
+            );
         }
     }
 }
