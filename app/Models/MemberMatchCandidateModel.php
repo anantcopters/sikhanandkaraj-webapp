@@ -547,7 +547,83 @@ final class MemberMatchCandidateModel extends Model
         }
 
         /*
-        * Count matching profiles before applying pagination.
+        * --------------------------------------------------------------------------
+        * Match Score ranking pool
+        * --------------------------------------------------------------------------
+        *
+        * Default Search ranking is viewer-specific because Partner Preference score
+        * and final Match Score are calculated by the existing matchmaking services.
+        *
+        * Therefore Match-ranked Search must return the complete database-filtered
+        * candidate pool before pagination.
+        *
+        * Membership-24 optimization:
+        *
+        * DO NOT execute COUNT(*) here.
+        *
+        * The complete result set is about to be loaded anyway and MemberSearchService
+        * must subsequently remove candidates that fail compulsory Partner
+        * Preferences before calculating the real Search total.
+        *
+        * Previous flow:
+        *
+        *     filtered SQL
+        *         -> COUNT(*)
+        *         -> execute same filtered candidate query
+        *         -> Partner Preference
+        *         -> compulsory filtering
+        *         -> Match Score
+        *         -> count again
+        *
+        * Membership-24:
+        *
+        *     filtered SQL
+        *         -> execute candidate query
+        *         -> Partner Preference
+        *         -> compulsory filtering
+        *         -> Match Score
+        *         -> final count
+        *
+        * Explicit database-sorted Search continues through the normal count +
+        * pagination path below.
+        */
+        if (!$paginate) {
+            $rows =
+                $builder
+                ->get()
+                ->getResultArray();
+
+            return [
+                'rows' =>
+                array_values(
+                    $rows
+                ),
+
+                /*
+                * This is the database-filtered pool size only.
+                *
+                * MemberSearchService recalculates the authoritative Search total after
+                * compulsory Partner Preference filtering and Match Score ranking.
+                */
+                'total' =>
+                count(
+                    $rows
+                ),
+
+                'page' =>
+                1,
+            ];
+        }
+
+        /*
+        * --------------------------------------------------------------------------
+        * Database-paginated Search
+        * --------------------------------------------------------------------------
+        *
+        * Chronological/activity sorts do not require the complete Match Score pool.
+        *
+        * For these sorts we still need COUNT(*) so pagination can calculate the
+        * correct number of result pages before LIMIT/OFFSET is applied.
         */
         $countBuilder =
             clone $builder;
@@ -579,43 +655,38 @@ final class MemberMatchCandidateModel extends Model
             );
 
         /*
-        * Match Score ranking is viewer-specific because Partner Preference score is
-        * directional.
-        *
-        * When Search requests the ranking pool, return all database-filtered rows
-        * without applying database pagination.
-        *
-        * SearchService will:
-        *
-        *     filter
-        *       -> Partner Preference score
-        *       -> Match Score
-        *       -> deterministic rank
-        *       -> paginate
-        *
-        * Explicit legacy sorts continue to use normal database pagination.
+        * Apply deterministic Search ordering after counting.
         */
-        if (!$paginate) {
-            $rows =
-                $builder
-                ->get()
-                ->getResultArray();
+        $this->applySearchSorting(
+            $builder,
+            $sort
+        );
 
-            return [
-                'rows' =>
-                array_values(
-                    $rows
-                ),
+        $offset =
+            ($page - 1)
+            * $perPage;
 
-                'total' =>
-                count(
-                    $rows
-                ),
+        $rows =
+            $builder
+            ->limit(
+                $perPage,
+                $offset
+            )
+            ->get()
+            ->getResultArray();
 
-                'page' =>
-                1,
-            ];
-        }
+        return [
+            'rows' =>
+            array_values(
+                $rows
+            ),
+
+            'total' =>
+            $total,
+
+            'page' =>
+            $page,
+        ];
 
         /*
         * Apply deterministic Search ordering after counting.
@@ -880,19 +951,6 @@ final class MemberMatchCandidateModel extends Model
                 . 'AS is_email_verified',
 
             /*
-            * Match Score trust signal.
-            *
-            * The existing Video Introduction projection already resolves the currently
-            * approved introduction. Convert its presence into the shared boolean
-            * candidate signal used by MemberMatchScoreService.
-            */
-            'CASE
-                WHEN approved_video.id IS NOT NULL
-                THEN TRUE
-                ELSE FALSE
-            END AS is_video_introduction_verified',
-
-            /*
             * Used internally for Last Logged In sorting and converted to a
             * privacy-friendly activity label by MemberSearchService.
             *
@@ -940,6 +998,33 @@ final class MemberMatchCandidateModel extends Model
         ]);
 
         /*
+        * Match Score trust signal.
+        *
+        * This is a PostgreSQL CASE expression rather than a database column.
+        *
+        * IMPORTANT:
+        *
+        * Query Builder escaping must be disabled for this expression. If this is
+        * placed inside the normal select([...]) array, CodeIgniter attempts to quote
+        * the expression as an identifier and generates invalid PostgreSQL SQL.
+        *
+        * The actual Video Introduction JOIN is defined below using the video_intro
+        * alias. Therefore the same approved/active Video Introduction projection is
+        * reused for both:
+        *
+        * - Match Score trust verification;
+        * - candidate presentation.
+        */
+        $builder->select(
+            'CASE
+                WHEN video_intro.id IS NOT NULL
+                THEN TRUE
+                ELSE FALSE
+            END AS is_video_introduction_verified',
+                    false
+        );
+
+        /*
         * Candidate-intrinsic scoring cache.
         *
         * This is a normal indexed one-to-one LEFT JOIN:
@@ -959,64 +1044,90 @@ final class MemberMatchCandidateModel extends Model
         /*
         * Resolve at most one currently usable paid membership for each candidate.
         *
-        * LEFT JOIN LATERAL is used instead of joining member_memberships directly
-        * because membership history is intentionally retained.
+        * Membership history is intentionally retained, so joining
+        * member_memberships directly could duplicate a candidate when historical
+        * rows exist.
         *
-        * LIMIT 1 guarantees that a data anomaly containing more than one qualifying
-        * ACTIVE membership cannot duplicate the candidate in Search or Dashboard
-        * results.
+        * PostgreSQL DISTINCT ON gives us one deterministic current membership per
+        * member without requiring a LATERAL JOIN.
         *
-        * Ordering mirrors MembershipService / MemberMembershipModel:
-        * the most recently started usable membership wins.
+        * Membership validity follows the existing MembershipService rules:
         *
-        * id DESC provides a deterministic tie-breaker if two records somehow share
-        * the same starts_at timestamp.
+        * - status must be ACTIVE;
+        * - membership must already have started;
+        * - membership must not have expired.
+        *
+        * CURRENT_TIMESTAMP also protects Search/Dashboard when the expiry
+        * housekeeping job has not yet converted an expired ACTIVE row to EXPIRED.
+        *
+        * Ordering:
+        *
+        * 1. user_id groups memberships by candidate;
+        * 2. latest starts_at wins;
+        * 3. highest id provides a deterministic tie-breaker.
+        *
+        * IMPORTANT:
+        *
+        * Do not convert this back to:
+        *
+        *     LEFT JOIN LATERAL (...) USING (TRUE)
+        *
+        * CodeIgniter Query Builder interprets the literal TRUE join condition as a
+        * USING clause and generates invalid PostgreSQL SQL.
         */
         $builder->join(
-            'LATERAL (
-                        SELECT
-                            candidate_membership.id,
-                            candidate_membership.plan_code_snapshot,
-                            candidate_membership.plan_name_snapshot,
-                            candidate_membership.commercial_priority_snapshot
-                        FROM member_memberships candidate_membership
-                        WHERE candidate_membership.user_id = u.id
-                        AND candidate_membership.status = '
+            '(
+                SELECT DISTINCT ON (
+                    candidate_membership.user_id
+                )
+                    candidate_membership.user_id,
+                    candidate_membership.id,
+                    candidate_membership.plan_code_snapshot,
+                    candidate_membership.plan_name_snapshot,
+                    candidate_membership.commercial_priority_snapshot
+                FROM member_memberships candidate_membership
+                WHERE candidate_membership.status = '
                 . $activeMembershipStatusSql
                 . '
-                        AND candidate_membership.starts_at <= CURRENT_TIMESTAMP
-                        AND candidate_membership.expires_at > CURRENT_TIMESTAMP
-                        ORDER BY
-                            candidate_membership.starts_at DESC,
-                            candidate_membership.id DESC
-                        LIMIT 1
-                    ) active_membership',
-            'TRUE',
+                AND candidate_membership.starts_at <= CURRENT_TIMESTAMP
+                AND candidate_membership.expires_at > CURRENT_TIMESTAMP
+                ORDER BY
+                    candidate_membership.user_id,
+                    candidate_membership.starts_at DESC,
+                    candidate_membership.id DESC
+            ) active_membership',
+            'active_membership.user_id = u.id',
             'left',
             false
         );
 
         /*
-        * Candidate approved-photo projection.
+        * Candidate approved-photo Match Score signal.
         *
-        * This is deliberately aggregated in SQL to avoid an N+1 photo query when
-        * Match Score is calculated for a collection of candidates.
+        * Aggregate approved photographs once by member and LEFT JOIN the result.
         *
-        * IMPORTANT:
-        * Use the same approved-status value already used by MemberPhotoService /
-        * MemberPhotoUrlService in your branch. Do not create a second approval
-        * definition.
+        * This preserves the N+1 optimization while avoiding a PostgreSQL LATERAL
+        * join, which CodeIgniter Query Builder cannot correctly express with the
+        * required ON TRUE condition in this implementation.
+        *
+        * Only approved, non-deleted photographs contribute to Match Score.
+        *
+        * A candidate having no approved photographs simply has no aggregate row;
+        * the SELECT projection above converts that to zero with COALESCE().
         */
         $builder->join(
-            'LATERAL (
+            '(
                 SELECT
-                    COUNT(*)::INTEGER AS approved_photo_count
+                    candidate_photo.member_id,
+                    COUNT(*)::INTEGER
+                        AS approved_photo_count
                 FROM member_photos candidate_photo
-                WHERE candidate_photo.member_id = u.id
-                AND candidate_photo.status = \'APPROVED\'
+                WHERE candidate_photo.status = \'APPROVED\'
                 AND candidate_photo.deleted_at IS NULL
+                GROUP BY
+                    candidate_photo.member_id
             ) candidate_photos',
-            'TRUE',
+            'candidate_photos.member_id = u.id',
             'left',
             false
         );

@@ -159,6 +159,7 @@ use App\Services\Admin\MemberMatchScoreDiagnosticService;
 use App\Services\Membership\MembershipLifecycleService;
 use App\Services\Membership\MemberMembershipHistoryService;
 use App\Services\Membership\MembershipPurchaseService;
+use App\Services\Development\DevelopmentSearchProfilerService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -1720,6 +1721,29 @@ final class Services extends BaseService
         );
     }
 
+    public static function developmentSearchProfilerService(
+        bool $getShared = true
+    ): DevelopmentSearchProfilerService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'developmentSearchProfilerService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new DevelopmentSearchProfilerService(
+            new UserModel(
+                $database
+            ),
+
+            static::memberSearchService(
+                false
+            )
+        );
+    }
+
     /**
      * Return the member-to-member interaction service.
      *
@@ -2133,11 +2157,33 @@ final class Services extends BaseService
                 false
             ),
 
+            /*
+         * Final weighted Match Score authority.
+         *
+         * Dashboard and Search must never maintain separate ranking rules.
+         */
             static::memberMatchScoreService(
                 false
             ),
 
+            /*
+         * All membership-controlled Search capabilities are resolved through
+         * the existing entitlement authority.
+         */
             static::membershipEntitlementService(
+                false
+            ),
+
+            /*
+         * Membership-23:
+         *
+         * Search card collections batch-load approved primary-photo state
+         * through the existing photo URL service.
+         *
+         * This dependency was added to MemberSearchService in Membership-23
+         * and therefore must also be supplied by the service factory.
+         */
+            static::memberPhotoUrlService(
                 false
             )
         );
