@@ -1266,15 +1266,6 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
         );
 
         $routes->post(
-            'account-settings/visibility',
-            'AccountSettingsController::saveVisibility',
-            [
-                'as' =>
-                'web.account.settings.visibility',
-            ]
-        );
-
-        $routes->post(
             'account-settings/contact',
             'AccountSettingsController::contact',
             [
