@@ -820,7 +820,8 @@ final class Services extends BaseService
 
         return new CloudFrontService(
             static::memberMediaCloudFrontClient(false),
-            $configuration
+            $configuration,
+            cache: static::cache()
         );
     }
 

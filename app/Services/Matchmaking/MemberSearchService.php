@@ -1276,12 +1276,23 @@ final class MemberSearchService
             );
 
         /*
-     * Existing Partner Preference masters.
-     */
+ * Membership-29.
+ *
+ * Basic Details already loaded the authoritative active-country collection.
+ * Reuse it for Additional Partner Preference master data instead of issuing an
+ * identical second country query during every Search request.
+ */
         $additional =
             $this->masterDataService
             ->additionalPartnerPreferenceOptions(
-                $performanceTimeline
+                performanceTimeline: $performanceTimeline,
+
+                resolvedCountries: is_array(
+                    $basic['countries']
+                        ?? null
+                )
+                    ? $basic['countries']
+                    : []
             );
 
         /*

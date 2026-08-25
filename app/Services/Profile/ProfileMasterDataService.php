@@ -289,17 +289,24 @@ final class ProfileMasterDataService
     /**
      * Return active master values used by partner preferences.
      *
-     * Membership-28:
+     * Membership-29:
      *
-     * Optional development diagnostics identify the individual master reads
-     * behind Search master-data preparation.
+     * $resolvedCountries allows a collection-level caller such as Search to reuse
+     * countries it has already loaded through basicDetailsOptions().
      *
-     * Normal Partner Preference/Profile callers do not supply the timeline.
+     * Null means "resolve normally". An explicit array means "reuse this
+     * authoritative collection".
+     *
+     * This avoids a duplicate Search query without introducing persistent cache or
+     * changing standalone Partner Preference screens.
+     *
+     * @param list<array<string, mixed>>|null $resolvedCountries
      *
      * @return array<string, mixed>
      */
     public function additionalPartnerPreferenceOptions(
-        ?PerformanceTimeline $performanceTimeline = null
+        ?PerformanceTimeline $performanceTimeline = null,
+        ?array $resolvedCountries = null
     ): array {
         $communities =
             $this->communityModel
@@ -353,13 +360,30 @@ final class ProfileMasterDataService
             'Master Additional: Annual incomes'
         );
 
-        $countries =
-            $this->countryModel
-            ->activeOptions();
+        /*
+        * Membership-29.
+        *
+        * Search already obtains active Countries while preparing Basic Search master
+        * data. Reuse that collection when supplied.
+        *
+        * Other callers continue resolving Countries through the authoritative model.
+        */
+        if ($resolvedCountries !== null) {
+            $countries =
+                $resolvedCountries;
 
-        $performanceTimeline?->checkpoint(
-            'Master Additional: Countries'
-        );
+            $performanceTimeline?->checkpoint(
+                'Master Additional: Countries reused'
+            );
+        } else {
+            $countries =
+                $this->countryModel
+                ->activeOptions();
+
+            $performanceTimeline?->checkpoint(
+                'Master Additional: Countries'
+            );
+        }
 
         $states =
             $this->stateModel

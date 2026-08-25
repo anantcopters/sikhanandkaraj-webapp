@@ -172,6 +172,27 @@ final class PartnerPreferenceMatchService
             'Preference: Candidate lifestyle batch'
         );
 
+        /*
+        * Membership-29.
+        *
+        * Active Lifestyle categories are master data and are identical for every
+        * candidate in this scoring collection.
+        *
+        * Previously scoreCandidate() called activeOrdered() once per candidate,
+        * creating an avoidable master-data N+1.
+        *
+        * Resolve the categories once and reuse the same authoritative collection for
+        * every candidate.
+        */
+        $activeLifestyleCategories =
+            $this
+            ->lifestyleCategoryModel
+            ->activeOrdered();
+
+        $performanceTimeline?->checkpoint(
+            'Preference: Lifestyle categories'
+        );
+
         $scored = [];
 
         foreach ($candidates as $candidate) {
@@ -197,7 +218,8 @@ final class PartnerPreferenceMatchService
             $score =
                 $this->scoreCandidate(
                     $snapshot,
-                    $candidate
+                    $candidate,
+                    $activeLifestyleCategories
                 );
 
             /*
@@ -282,8 +304,16 @@ final class PartnerPreferenceMatchService
     }
 
     /**
+     * Score one candidate using already-resolved preference and master state.
+     *
+     * Membership-29:
+     *
+     * Active Lifestyle categories are supplied by the collection-level caller so
+     * this method remains database-free while iterating candidates.
+     *
      * @param array<string, mixed> $snapshot
      * @param array<string, mixed> $candidate
+     * @param list<array<string, mixed>> $activeLifestyleCategories
      *
      * @return array{
      *     percentage:int,
@@ -301,7 +331,8 @@ final class PartnerPreferenceMatchService
      */
     private function scoreCandidate(
         array $snapshot,
-        array $candidate
+        array $candidate,
+        array $activeLifestyleCategories
     ): array {
         $basic = $snapshot['basic'];
 
@@ -699,10 +730,7 @@ final class PartnerPreferenceMatchService
             )
             : [];
 
-        $activeLifestyleCategories =
-            $this
-            ->lifestyleCategoryModel
-            ->activeOrdered();
+
 
         foreach (
             $activeLifestyleCategories
@@ -928,9 +956,21 @@ final class PartnerPreferenceMatchService
             )
             : [];
 
+        /*
+        * Full Profile scores one candidate only, so one master read is appropriate.
+        *
+        * The collection optimization belongs to scoreCandidates(); Full Profile does
+        * not need a separate batching abstraction.
+        */
+        $activeLifestyleCategories =
+            $this
+            ->lifestyleCategoryModel
+            ->activeOrdered();
+
         return $this->scoreCandidate(
             $snapshot,
-            $candidate
+            $candidate,
+            $activeLifestyleCategories
         );
     }
 
@@ -967,17 +1007,28 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * Candidate values are irrelevant for setup progress.
-     *
-     * scoreCandidate() still builds every supported criterion,
-     * allowing us to dynamically know both:
-     *
-     * - how many criteria currently exist;
-     * - how many the member has configured.
-     */
+        * Candidate values are irrelevant for setup progress.
+        *
+        * scoreCandidate() still builds every supported criterion,
+        * allowing us to dynamically know both:
+        *
+        * - how many criteria currently exist;
+        * - how many the member has configured.
+        *
+        * Membership-29:
+        *
+        * Lifestyle categories are resolved outside scoreCandidate() so that
+        * scoreCandidate() itself remains database-free.
+        */
+        $activeLifestyleCategories =
+            $this
+            ->lifestyleCategoryModel
+            ->activeOrdered();
+
         $score = $this->scoreCandidate(
             $snapshot,
-            []
+            [],
+            $activeLifestyleCategories
         );
 
         $configured = max(
