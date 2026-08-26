@@ -4071,7 +4071,7 @@ $this->section('content');
 
             <div class="modal-content">
 
-                <div class="modal-header ">
+                <div class="modal-header bg-info-subtle py-2">
 
                     <h5
                         class="modal-title text-center"

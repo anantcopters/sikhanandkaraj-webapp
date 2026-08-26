@@ -1231,7 +1231,7 @@ $renderRows =
             color: <?= $red ?>;
             text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
             font-weight: 700;
-            font-size: 4.3mm;
+            font-size: 5.5mm;
             text-align: center;
             padding-bottom: 5px;
             text-decoration: underline;

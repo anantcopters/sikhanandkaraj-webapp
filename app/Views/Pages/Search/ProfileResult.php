@@ -42,7 +42,23 @@ $this->section(
                 gap-3 mb-4">
 
             <div>
+                <a
+                    href="<?= route_to(
+                                'web.search'
+                            ) ?>"
+                    class="d-inline-flex
+                    align-items-center
+                    gap-1 text-primary
+                    fw-medium mb-2">
 
+                    <i
+                        class="ri-arrow-left-line"
+                        aria-hidden="true">
+                    </i>
+
+                    Back to Search
+
+                </a>
                 <h1
                     class="fs-24
                         fw-semibold mb-1">
@@ -62,23 +78,7 @@ $this->section(
 
             </div>
 
-            <a
-                href="<?= route_to(
-                            'web.search'
-                        ) ?>"
-                class="d-inline-flex
-                    align-items-center
-                    gap-1 text-primary
-                    fw-medium">
 
-                <i
-                    class="ri-arrow-left-line"
-                    aria-hidden="true">
-                </i>
-
-                Back to Search
-
-            </a>
 
         </div>
 

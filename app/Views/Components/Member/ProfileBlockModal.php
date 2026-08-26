@@ -51,7 +51,7 @@ $actionUrl = trim(
             class="modal-content
                 border-0 shadow">
 
-            <div class="modal-header">
+            <div class="modal-header bg-info-subtle py-2">
 
                 <h2
                     class="modal-title
@@ -149,14 +149,14 @@ $actionUrl = trim(
                             registration-form__submit
                             fs-14
                             fw-medium
-                            text-uppercase"
+                            text-uppercase w-50"
                         data-submit-button>
 
                         <span data-submit-idle>
 
                             <i
                                 class="ri-forbid-line
-                                    me-1 fs-20"
+                                    me-1 fs-18"
                                 aria-hidden="true">
                             </i>
 

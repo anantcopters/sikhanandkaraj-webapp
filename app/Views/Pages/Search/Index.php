@@ -653,15 +653,15 @@ $this->section(
 
                                 <i
                                     class="ri-lock-2-line
-                fs-32
-                text-muted"
+                    text-danger
+                    fs-18"
                                     aria-hidden="true">
                                 </i>
 
                                 <h2
                                     class="fs-18
                 fw-semibold
-                mt-3
+                mt-2
                 mb-2">
 
                                     Unlock Advanced Search
@@ -1285,11 +1285,11 @@ $this->section(
                                             class="d-flex flex-wrap
                                             align-items-center gap-3">
 
-                                            <span
+                                            <label
                                                 class="form-labelm mb-0">
 
                                                 Photo Settings
-                                            </span>
+                                            </label>
 
                                             <div class="form-check mb-0">
 

@@ -156,7 +156,7 @@ $videoUsage =
                     <span
                         class="badge
                             bg-success-subtle
-                            text-success">
+                            text-body p-2">
 
                         Active
                     </span>
@@ -166,7 +166,7 @@ $videoUsage =
                     <span
                         class="badge
                             bg-secondary-subtle
-                            text-secondary">
+                            text-body p-2">
 
                         Free
                     </span>
@@ -435,16 +435,16 @@ $videoUsage =
                     $statusClass =
                         match ($status) {
                             'ACTIVE' =>
-                            'bg-success-subtle text-success',
+                            'bg-success-subtle text-body p-2',
 
                             'EXPIRED' =>
-                            'bg-secondary-subtle text-secondary',
+                            'bg-secondary-subtle text-body p-2',
 
                             'REPLACED' =>
-                            'bg-info-subtle text-info',
+                            'bg-info-subtle text-body p-2',
 
                             'CANCELLED' =>
-                            'bg-danger-subtle text-danger',
+                            'bg-danger-subtle text-body p-2',
 
                             default =>
                             'bg-light text-muted',

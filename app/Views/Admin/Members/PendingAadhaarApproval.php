@@ -392,13 +392,13 @@ $this->section(
                             $statusClass =
                                 match ($status) {
                                     'APPROVED' =>
-                                    'bg-success-subtle text-success',
+                                    'bg-success-subtle text-body p-2',
 
                                     'REJECTED' =>
-                                    'bg-danger-subtle text-danger',
+                                    'bg-danger-subtle text-body p-2',
 
                                     default =>
-                                    'bg-warning-subtle text-warning',
+                                    'bg-warning-subtle text-body p-2',
                                 };
                             ?>
 

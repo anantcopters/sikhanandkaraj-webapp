@@ -59,7 +59,7 @@ $reportCaptcha = trim(
             class="modal-content
                 border-0 shadow">
 
-            <div class="modal-header">
+            <div class="modal-header bg-info-subtle py-2">
 
                 <h2
                     class="modal-title
@@ -206,7 +206,7 @@ $reportCaptcha = trim(
                             registration-form__submit
                             fs-14
                             fw-medium
-                            text-uppercase"
+                            text-uppercase w-25"
                         data-submit-button>
 
                         <span data-submit-idle>

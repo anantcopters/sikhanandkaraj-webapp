@@ -91,16 +91,16 @@ $statusLabel = match ($status) {
 
 $statusClass = match ($status) {
     'APPROVED' =>
-    'bg-success-subtle text-success',
+    'bg-success-subtle text-body',
 
     'UNDER_REVIEW' =>
-    'bg-warning-subtle text-warning',
+    'bg-warning-subtle text-body',
 
     'REJECTED' =>
-    'bg-danger-subtle text-danger',
+    'bg-danger-subtle text-body',
 
     default =>
-    'bg-secondary-subtle text-body-secondary',
+    'bg-secondary-subtle text-body',
 };
 ?>
 
@@ -137,7 +137,7 @@ $statusClass = match ($status) {
         message. Only new upload/re-upload capability is locked.
     -->
     <div
-        class="alert alert-light border fs-13"
+        class="alert alert-info border fs-13"
         role="status">
 
         <div
@@ -474,13 +474,13 @@ $statusClass = match ($status) {
                         $historyStatusClass =
                             match ($historyStatus) {
                                 'APPROVED' =>
-                                'bg-success-subtle text-success',
+                                'bg-success-subtle text-body p-2',
 
                                 'UNDER_REVIEW' =>
-                                'bg-warning-subtle text-warning',
+                                'bg-warning-subtle text-body p-2',
 
                                 'REJECTED' =>
-                                'bg-danger-subtle text-danger',
+                                'bg-danger-subtle text-body p-2',
 
                                 default =>
                                 'bg-light text-body',

@@ -222,7 +222,7 @@ $videoIntroductionSettingsUrl = route_to(
             <?php if ($isMobileVerified): ?>
                 <span
                     class="badge bg-success-subtle
-                        text-success fs-11 p-2
+                        text-body fs-11 p-2
                         flex-shrink-0">
 
                     Verified
@@ -230,7 +230,7 @@ $videoIntroductionSettingsUrl = route_to(
             <?php else: ?>
                 <span
                     class="badge bg-warning-subtle
-                        text-warning fs-11 p-2
+                        text-body fs-11 p-2
                         flex-shrink-0">
 
                     Pending
@@ -313,7 +313,7 @@ $videoIntroductionSettingsUrl = route_to(
                     <span
                         class="badge
                     bg-success-subtle
-                    text-success
+                    text-body
                     fs-11
                     p-2">
 
@@ -325,7 +325,7 @@ $videoIntroductionSettingsUrl = route_to(
                     <span
                         class="badge
                     bg-warning-subtle
-                    text-warning
+                    text-body
                     fs-11
                     p-2">
 
@@ -335,7 +335,7 @@ $videoIntroductionSettingsUrl = route_to(
                     <span
                         class="badge
                     bg-secondary-subtle
-                    text-body-secondary
+                    text-body
                     fs-11
                     p-2">
 
@@ -407,7 +407,7 @@ $videoIntroductionSettingsUrl = route_to(
                     <span
                         class="badge
                     bg-success-subtle
-                    text-success
+                    text-body
                     fs-11
                     p-2">
 
@@ -422,7 +422,7 @@ $videoIntroductionSettingsUrl = route_to(
                     <span
                         class="badge
                     bg-warning-subtle
-                    text-warning
+                    text-body
                     fs-11
                     p-2">
 
@@ -437,7 +437,7 @@ $videoIntroductionSettingsUrl = route_to(
                     <span
                         class="badge
                     bg-danger-subtle
-                    text-danger
+                    text-body
                     fs-11
                     p-2">
 
@@ -491,7 +491,7 @@ $videoIntroductionSettingsUrl = route_to(
             ): ?>
                 <span
                     class="badge bg-success-subtle
-                text-success fs-11 p-2">
+                text-body fs-11 p-2">
 
                     Approved
                 </span>

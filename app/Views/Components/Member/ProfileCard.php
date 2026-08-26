@@ -383,7 +383,7 @@ $blockModalId =
 
                                 <button
                                     type="button"
-                                    class="btn btn-light
+                                    class="btn btn-info
                                         btn-sm btn-icon"
                                     data-bs-toggle="dropdown"
                                     aria-expanded="false"
@@ -639,7 +639,7 @@ $blockModalId =
                                 btn-outline-primary
                                 btn-sm
                                 d-inline-flex
-                                align-items-center
+                                align-items-center fs-12
                                 gap-1">
 
                             <i
@@ -647,7 +647,7 @@ $blockModalId =
                                 aria-hidden="true">
                             </i>
 
-                            View Profile — Upgrade
+                            UPGRADE to View Profile
 
                         </a>
 
@@ -674,7 +674,7 @@ $blockModalId =
                                     btn-sm
                                     d-inline-flex
                                     align-items-center
-                                    gap-2">
+                                    gap-2 fs-12">
 
                                 <span
                                     data-member-interest-label>

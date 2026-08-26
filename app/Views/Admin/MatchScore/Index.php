@@ -179,7 +179,7 @@ $this->section(
                         <span
                             class="badge
                                 bg-success-subtle
-                                text-success">
+                                text-body p-2">
                             Active
                         </span>
 
@@ -575,7 +575,7 @@ $this->section(
                                     registration-form__submit
                                     fs-14
                                     fw-medium
-                                    text-uppercase"
+                                    text-uppercase w-25"
                                 data-submit-button>
 
                                 <span
@@ -765,14 +765,14 @@ $this->section(
                                                     <span
                                                         class="badge
                                                             bg-success-subtle
-                                                            text-success">
+                                                            text-body p-2">
                                                         Active
                                                     </span>
                                                 <?php else: ?>
                                                     <span
                                                         class="badge
-                                                            bg-light
-                                                            text-muted">
+                                                            bg-info-subtle
+                                                            text-body p-2">
                                                         Previous
                                                     </span>
                                                 <?php endif; ?>

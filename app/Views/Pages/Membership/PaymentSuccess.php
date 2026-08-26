@@ -288,7 +288,7 @@ $this->section(
                                         ) ?>"
                                 class="
                                     btn
-                                    btn-outline-danger
+                                    btn-outline-primary
                                 ">
 
                                 <i

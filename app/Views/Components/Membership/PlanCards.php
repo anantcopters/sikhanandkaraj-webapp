@@ -107,7 +107,7 @@ $currentMembershipExpiry =
     <div
         class="
             alert
-            alert-light
+            alert-info
             border
             border-danger
             border-opacity-25
@@ -145,17 +145,6 @@ $currentMembershipExpiry =
                 </div>
 
             </div>
-
-            <span
-                class="
-                    badge
-                    bg-success-subtle
-                    text-success
-                    p-2
-                ">
-                Active
-            </span>
-
         </div>
 
         <?php if (
@@ -200,7 +189,7 @@ $currentMembershipExpiry =
     <div
         class="
             alert
-            alert-light
+            alert-info
             border
             mb-4
         ">
