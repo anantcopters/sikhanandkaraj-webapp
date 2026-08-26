@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Membership;
 
+use App\Models\MemberProfileReportModel;
 use App\Models\UserModel;
 use App\Services\Matchmaking\MemberInteractionService;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -15,16 +16,16 @@ use DomainException;
  * Two concepts are deliberately separated:
  *
  * authorizeProfileRelationship()
- *     Verifies that the viewer is commercially/privacy-authorized to access
+ *     Verifies that the viewer is relationship/privacy-authorized to access
  *     protected information belonging to the target.
  *
  * authorizeFullProfile()
- *     Reuses the relationship authorization and additionally records Full
- *     Profile commercial usage.
+ *     Verifies the Full Profile membership capability, reuses the common
+ *     relationship authorization and additionally records Full Profile
+ *     commercial usage.
  *
- * This separation is important because Live Introduction has its OWN
- * purchased allowance and therefore must not consume a Full Profile allowance
- * merely because the video belongs to that profile.
+ * This separation is important because protected resources such as Live
+ * Introduction own independent membership capabilities and allowances.
  */
 final class ProfileAccessPolicy
 {
@@ -45,15 +46,22 @@ final class ProfileAccessPolicy
         $usageService,
 
         private readonly MemberInteractionService
-        $interactionService
+        $interactionService,
+
+        private readonly MemberProfileReportModel
+        $profileReportModel
     ) {}
 
     /**
-     * Authorize protected access to another member without consuming Full
-     * Profile quota.
+     * Authorize the common protected relationship to another member without
+     * consuming Full Profile quota.
      *
-     * Live Introduction playback uses this method before applying its own
-     * video-specific visibility and quota rules.
+     * IMPORTANT:
+     *
+     * This method deliberately does NOT check VIEW_FULL_PROFILE or
+     * WATCH_LIVE_INTRODUCTION.
+     *
+     * Feature-specific membership capabilities belong to the caller.
      *
      * @return array{
      *     viewer:array<string, mixed>,
@@ -94,21 +102,20 @@ final class ProfileAccessPolicy
         }
 
         /*
-         * Protected another-member resources require a paid membership.
+         * Admin-moderated globally hidden profiles must remain unavailable
+         * through every protected member resource.
          *
-         * Feature-specific capability checks may additionally be performed by
-         * the caller. This establishes the common Full Profile relationship
-         * boundary.
+         * Discovery filtering is not an authorization boundary because a
+         * member may reach Full Profile, PDF or Live Introduction directly.
          */
         if (
-            !$this->entitlementService
-                ->canViewFullProfile(
-                    $viewerUserId
-                )
+            $this->profileReportModel
+            ->isGloballyHidden(
+                $targetUserId
+            )
         ) {
-            throw new DomainException(
-                'A paid membership is required to access this profile.'
-            );
+            throw PageNotFoundException
+                ::forPageNotFound();
         }
 
         $viewer = $this->userModel
@@ -179,6 +186,17 @@ final class ProfileAccessPolicy
             )
         );
 
+        /*
+         * Resolve the authoritative current paid membership.
+         *
+         * Feature capability has already been checked by the caller:
+         *
+         * - authorizeFullProfile() checks VIEW_FULL_PROFILE;
+         * - LiveIntroductionAccessPolicy checks WATCH_LIVE_INTRODUCTION.
+         *
+         * The membership snapshot is still required because the feature's
+         * usage service records allowance against the purchased membership.
+         */
         $membershipState = $this
             ->membershipService
             ->resolveForUser(
@@ -191,8 +209,8 @@ final class ProfileAccessPolicy
             /*
              * Defensive fail closed.
              *
-             * MembershipEntitlementService and MembershipService should agree,
-             * but protected data must never rely on that assumption.
+             * A feature entitlement and MembershipService should agree, but
+             * protected data must never rely on that assumption.
              */
             throw new DomainException(
                 'An active paid membership is required.'
@@ -228,9 +246,28 @@ final class ProfileAccessPolicy
         int $targetUserId
     ): array {
         /*
-         * All relationship/privacy rules are centralized above.
+         * Full Profile entitlement belongs specifically to Full Profile.
          *
-         * Do not reproduce those checks inside Full Profile, PDF or video
+         * Do not move this check into authorizeProfileRelationship() because
+         * Live Introduction reuses that relationship boundary while owning a
+         * separate WATCH_LIVE_INTRODUCTION capability and allowance.
+         */
+        if (
+            !$this->entitlementService
+                ->canViewFullProfile(
+                    $viewerUserId
+                )
+        ) {
+            throw new DomainException(
+                'A paid membership is required to access this profile.'
+            );
+        }
+
+        /*
+         * All common relationship/privacy/moderation rules are centralized
+         * above.
+         *
+         * Do not reproduce those checks inside Full Profile or PDF
          * controllers.
          */
         $access = $this

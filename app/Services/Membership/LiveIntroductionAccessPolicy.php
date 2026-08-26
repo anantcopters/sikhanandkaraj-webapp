@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Membership;
 
 use App\Models\MemberInterestModel;
-use App\Models\MemberProfileReportModel;
 use App\Models\MemberVideoIntroductionModel;
 use DomainException;
 
@@ -16,13 +15,12 @@ use DomainException;
  *
  * Authorization order matters:
  *
- * 1. paid Live Introduction capability;
- * 2. common protected-profile relationship;
+ * 1. Live Introduction membership capability;
+ * 2. common protected-profile relationship/moderation;
  * 3. approved/active video;
- * 4. moderation/report safety;
- * 5. owner-selected video visibility;
- * 6. membership-scoped Live Introduction quota;
- * 7. only then may the caller create a signed URL.
+ * 4. owner-selected video visibility;
+ * 5. membership-scoped Live Introduction quota;
+ * 6. only then may the caller create a signed URL.
  */
 final class LiveIntroductionAccessPolicy
 {
@@ -38,9 +36,6 @@ final class LiveIntroductionAccessPolicy
 
         private readonly MemberInterestModel
         $interestModel,
-
-        private readonly MemberProfileReportModel
-        $profileReportModel,
 
         private readonly MembershipLiveIntroductionUsageService
         $usageService
@@ -70,10 +65,10 @@ final class LiveIntroductionAccessPolicy
         }
 
         /*
-         * Live Introduction is explicitly membership controlled.
+         * Live Introduction owns an independent membership capability.
          *
-         * Do this before resolving the video so Free members cannot probe
-         * protected video state.
+         * Do this before resolving video state so a member without the
+         * capability cannot probe protected video information.
          */
         if (
             !$this->entitlementService
@@ -90,6 +85,17 @@ final class LiveIntroductionAccessPolicy
         /*
          * Reuse the common protected-profile authorization boundary WITHOUT
          * consuming Full Profile quota.
+         *
+         * This validates:
+         *
+         * - blocked relationship;
+         * - globally hidden/report-moderated target;
+         * - active viewer and target;
+         * - Verified Profile state;
+         * - matrimonial gender/Interest privacy;
+         * - authoritative current paid membership.
+         *
+         * It deliberately does NOT require VIEW_FULL_PROFILE.
          */
         $profileAccess = $this
             ->profileAccessPolicy
@@ -122,21 +128,6 @@ final class LiveIntroductionAccessPolicy
             );
         }
 
-        /*
-         * A profile hidden globally after Admin report review must not remain
-         * accessible through its video endpoint.
-         */
-        if (
-            $this->profileReportModel
-            ->isGloballyHidden(
-                $ownerUserId
-            )
-        ) {
-            throw new DomainException(
-                'Video playback is not available.'
-            );
-        }
-
         $visibility = mb_strtoupper(
             trim(
                 (string) (
@@ -158,24 +149,24 @@ final class LiveIntroductionAccessPolicy
         /*
          * VISIBLE_PRO is the historical persisted value.
          *
-         * Membership architecture now interprets it as "visible to an
-         * entitled paid member"; it must NOT be implemented as plan-code PRO
-         * or users.is_paid.
+         * Membership architecture interprets it as "visible to an entitled
+         * paid member"; it must NOT be implemented as plan-code PRO or
+         * users.is_paid.
          *
-         * GO, PLUS and PRO currently all own WATCH_LIVE_INTRODUCTION.
+         * The WATCH_LIVE_INTRODUCTION capability was already verified above.
          */
         if (
             $visibility
             === MemberVideoIntroductionModel::VISIBILITY_PRO
         ) {
-            // Membership capability was already verified above.
+            // Capability already verified.
         } elseif (
             $visibility
             === MemberVideoIntroductionModel::VISIBILITY_ACCEPTED_INTEREST
         ) {
             /*
-             * Video-specific owner privacy is stricter than the common
-             * profile relationship when configured this way.
+             * Video-specific owner privacy may be stricter than the common
+             * protected-profile relationship.
              */
             if (
                 !$this->interestModel

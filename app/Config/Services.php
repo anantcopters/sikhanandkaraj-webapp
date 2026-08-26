@@ -2464,10 +2464,6 @@ final class Services extends BaseService
                 $database
             ),
 
-            new MemberProfileReportModel(
-                $database
-            ),
-
             static::membershipLiveIntroductionUsageService(
                 false
             )
@@ -2872,10 +2868,13 @@ final class Services extends BaseService
     }
 
     /**
-     * Return the centralized another-member Full Profile access policy.
+     * Return the centralized another-member protected-profile access policy.
      *
-     * All Full Profile authorization must pass through this service before
-     * sensitive profile information or signed media URLs are created.
+     * Common relationship, verification, blocking and moderation rules are
+     * resolved here.
+     *
+     * Feature-specific capabilities and commercial usage remain with the
+     * individual protected resource.
      */
     public static function profileAccessPolicy(
         bool $getShared = true
@@ -2886,24 +2885,40 @@ final class Services extends BaseService
             );
         }
 
+        $database = db_connect();
+
         return new ProfileAccessPolicy(
             new UserModel(
-                db_connect()
+                $database
             ),
+
             static::membershipService(
                 false
             ),
+
             static::membershipEntitlementService(
                 false
             ),
+
             static::verifiedProfilePolicy(
                 false
             ),
+
             static::membershipProfileUsageService(
                 false
             ),
+
             static::memberInteractionService(
                 false
+            ),
+
+            /*
+         * Globally hidden/report-moderated profiles are rejected at the
+         * common protected-resource boundary rather than independently by
+         * Full Profile, PDF and Live Introduction.
+         */
+            new MemberProfileReportModel(
+                $database
             )
         );
     }
