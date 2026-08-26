@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Membership;
 
-use App\Models\MemberInterestModel;
 use App\Models\MemberVideoIntroductionModel;
+use App\Services\Matchmaking\MemberInteractionService;
 use DomainException;
 
 /**
@@ -34,8 +34,8 @@ final class LiveIntroductionAccessPolicy
         private readonly MemberVideoIntroductionModel
         $videoModel,
 
-        private readonly MemberInterestModel
-        $interestModel,
+        private readonly MemberInteractionService
+        $interactionService,
 
         private readonly MembershipLiveIntroductionUsageService
         $usageService
@@ -165,19 +165,41 @@ final class LiveIntroductionAccessPolicy
             === MemberVideoIntroductionModel::VISIBILITY_ACCEPTED_INTEREST
         ) {
             /*
-             * Video-specific owner privacy may be stricter than the common
-             * protected-profile relationship.
+             * VISIBLE_AFTER_ACCEPTED_INTEREST follows the same directional
+             * Interest authority used by Full Profile access.
+             *
+             * Direction is always relative to the viewer.
+             *
+             * Therefore an accepted Interest is sufficient only when the
+             * viewer originally sent that Interest and the profile owner
+             * accepted it:
+             *
+             *     viewer -> owner -> ACCEPTED
+             *
+             * ACCEPTED_RECEIVED deliberately does not satisfy this rule.
+             *
+             * Do not replace this with MemberInterestModel::acceptedBetween()
+             * because that broader pair-level check loses Interest direction
+             * and would create a second interpretation of the Full Profile
+             * privacy rule.
              */
+            $relationship = $this
+                ->interactionService
+                ->interestRelationshipFor(
+                    $viewerUserId,
+                    $ownerUserId
+                );
+
             if (
-                !$this->interestModel
-                    ->acceptedBetween(
-                        $viewerUserId,
-                        $ownerUserId
-                    )
+                (
+                    $relationship['state']
+                    ?? ''
+                ) !== MemberInteractionService
+                ::INTEREST_STATE_ACCEPTED_SENT
             ) {
                 throw new DomainException(
                     'This Live Introduction is available '
-                        . 'after an Interest is accepted.'
+                        . 'after your Interest is accepted.'
                 );
             }
         } else {

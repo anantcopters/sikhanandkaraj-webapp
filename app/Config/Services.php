@@ -2460,8 +2460,13 @@ final class Services extends BaseService
                 $database
             ),
 
-            new MemberInterestModel(
-                $database
+            /*
+         * Reuse the shared member interaction authority so accepted-Interest
+         * direction is interpreted identically by Full Profile and Live
+         * Introduction authorization.
+         */
+            static::memberInteractionService(
+                false
             ),
 
             static::membershipLiveIntroductionUsageService(
