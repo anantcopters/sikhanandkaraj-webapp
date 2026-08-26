@@ -238,6 +238,19 @@ $blockUrl = trim(
         ?? ''
     )
 );
+
+/*
+ * Full Profile navigation must follow the same backend-resolved capability
+ * used by the explicit View Profile action.
+ *
+ * The component must not create a second access path through the member
+ * photograph or name when Full Profile access is unavailable.
+ */
+$profileNavigationUrl =
+    $canViewFullProfile
+    && $profileUrl !== '#'
+    ? $profileUrl
+    : '';
 ?>
 
 <article
@@ -258,13 +271,42 @@ $blockUrl = trim(
         flex-shrink-0"
                 style="width: 160px;">
 
-                <a
-                    href="<?= esc(
-                                $profileUrl,
-                                'attr'
-                            ) ?>"
-                    class="text-decoration-none">
+                <?php if (
+                    $profileNavigationUrl !== ''
+                ): ?>
 
+                    <a
+                        href="<?= esc(
+                                    $profileNavigationUrl,
+                                    'attr'
+                                ) ?>"
+                        class="text-decoration-none">
+
+                        <div class="member-profile-thumbnail">
+
+                            <img
+                                src="<?= esc(
+                                            $image,
+                                            'attr'
+                                        ) ?>"
+                                alt="<?= esc(
+                                            $name
+                                                . ' profile photo',
+                                            'attr'
+                                        ) ?>"
+                                loading="lazy">
+
+                        </div>
+
+                    </a>
+
+                <?php else: ?>
+
+                    <!--
+        Keep the profile photograph visible, but do not expose a second
+        Full Profile navigation path when membership/privacy policy has
+        denied Full Profile access.
+    -->
                     <div class="member-profile-thumbnail">
 
                         <img
@@ -281,7 +323,7 @@ $blockUrl = trim(
 
                     </div>
 
-                </a>
+                <?php endif; ?>
 
                 <?php if (
                     $accountType !== ''
@@ -330,19 +372,35 @@ $blockUrl = trim(
                                 fw-semibold mb-1
                                 text-truncate">
 
-                            <a
-                                href="<?= esc(
-                                            $profileUrl,
-                                            'attr'
-                                        ) ?>"
-                                class="text-body
-                                    text-decoration-none">
+                            <?php if (
+                                $profileNavigationUrl !== ''
+                            ): ?>
 
-                                <?= esc(
-                                    $name
-                                ) ?>
+                                <a
+                                    href="<?= esc(
+                                                $profileNavigationUrl,
+                                                'attr'
+                                            ) ?>"
+                                    class="
+            text-body
+            text-decoration-none
+        ">
 
-                            </a>
+                                    <?= esc($name) ?>
+
+                                </a>
+
+                            <?php else: ?>
+
+                                <!--
+        Identity remains visible even when Full Profile navigation is not.
+        The View Profile — Upgrade action below remains the single CTA.
+    -->
+                                <span class="text-body">
+                                    <?= esc($name) ?>
+                                </span>
+
+                            <?php endif; ?>
 
                         </h2>
 

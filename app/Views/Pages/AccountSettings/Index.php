@@ -94,7 +94,12 @@ $menuItems = [
         'icon' =>
         'ri-fingerprint-line',
 
-        'locked' =>
+        /*
+     * Keep the section accessible so members can review existing Aadhaar
+     * verification status/history. Only new paid operations are restricted
+     * inside the section by the backend-resolved capability.
+     */
+        'paidFeature' =>
         !(
             $membershipCapabilities['aadhaar']
             ?? false
@@ -107,7 +112,12 @@ $menuItems = [
         'icon' =>
         'ri-video-line',
 
-        'locked' =>
+        /*
+     * The section remains navigable so an existing Live Introduction and its
+     * moderation state can still be reviewed. Recording/replacement remains
+     * controlled by the server-side membership capability.
+     */
+        'paidFeature' =>
         !(
             $membershipCapabilities['liveIntroduction']
             ?? false
@@ -121,10 +131,9 @@ $menuItems = [
         'ri-flag-line',
 
         /*
-     * Report is intentionally available to Free and Paid members.
+     * Safety actions remain available to both Free and Paid members and are
+     * intentionally independent of commercial membership capabilities.
      */
-        'locked' =>
-        false,
     ],
     'plans' => [
         'label' => 'Membership Plans',
@@ -207,21 +216,31 @@ $this->section('content');
 
                             <?= esc($item['label']) ?>
                             <?php if (
-                                ($item['locked'] ?? false)
+                                ($item['paidFeature'] ?? false)
                                 === true
                             ): ?>
 
+                                <!--
+        This is a paid-feature indicator, not a disabled navigation state.
+        Members may enter the section to review existing status/history;
+        restricted actions inside the section remain server-authorized.
+    -->
                                 <span
-                                    class="ms-auto"
-                                    title="Paid membership required">
+                                    class="
+            badge
+            bg-primary-subtle
+            text-primary
+            ms-auto
+        "
+                                    title="Paid membership feature">
 
                                     <i
-                                        class="ri-lock-2-line"
+                                        class="ri-vip-crown-line"
                                         aria-hidden="true">
                                     </i>
 
                                     <span class="visually-hidden">
-                                        Paid membership required
+                                        Paid membership feature
                                     </span>
 
                                 </span>

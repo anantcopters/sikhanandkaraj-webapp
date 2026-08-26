@@ -565,36 +565,46 @@ $videoUsage =
 
 <?php endif; ?>
 
-<!-- Full Profile usage -->
+<!--
+    Verified Profile usage.
+
+    Consumption belongs to the membership instance and candidate. Repeat
+    successful openings remain visible in the history but do not consume
+    another membership allowance.
+-->
 <h3 class="fs-16 fw-semibold mb-1">
-    Full Profile Usage
+    Verified Profile Usage
 </h3>
 
 <p class="text-muted fs-13 mb-3">
-    A profile consumes membership allowance only on its first
-    successful opening during that membership. Repeat openings
-    are shown below but do not consume another allowance.
+    A Verified Profile consumes membership allowance only on its first
+    successful opening during that membership. Repeat openings are shown
+    below but do not consume another allowance.
 </p>
 
 <?php if ($profileUsage === []): ?>
 
     <div
-        class="border
+        class="
+            border
             rounded
             text-center
             text-muted
             py-4
-            mb-4">
+            mb-4
+        ">
 
         <i
-            class="ri-user-search-line
+            class="
+                ri-user-search-line
                 fs-24
                 d-block
-                mb-2"
+                mb-2
+            "
             aria-hidden="true">
         </i>
 
-        No Full Profile membership usage is available.
+        No Verified Profile membership usage is available.
 
     </div>
 
@@ -603,14 +613,17 @@ $videoUsage =
     <div class="table-responsive mb-4">
 
         <table
-            class="table
+            class="
+                table
                 table-hover
                 align-middle
-                mb-0">
+                mb-0
+            ">
 
             <thead class="bg-info-subtle">
 
                 <tr>
+
                     <th scope="col">
                         Profile ID
                     </th>
@@ -632,7 +645,9 @@ $videoUsage =
                         class="text-end">
 
                         Opens
+
                     </th>
+
                 </tr>
 
             </thead>
@@ -655,10 +670,12 @@ $videoUsage =
                         <td>
 
                             <span
-                                class="badge
+                                class="
+                                    badge
                                     bg-primary-subtle
                                     text-primary
-                                    p-2">
+                                    p-2
+                                ">
 
                                 <?= esc(
                                     $usage['profileReference']
@@ -670,23 +687,32 @@ $videoUsage =
                         </td>
 
                         <td>
+
                             <?= esc(
                                 $usage['planName']
                                     ?: '—'
                             ) ?>
+
                         </td>
 
+                        <!--
+                            Use the usage record timestamps.
+
+                            Do not use membership start/end dates here:
+                            those describe the commercial membership period,
+                            not when this candidate was actually viewed.
+                        -->
                         <td class="text-nowrap">
 
                             <time
                                 datetime="<?= esc(
-                                                $membership['startsAtIso']
+                                                $usage['firstViewedAtIso']
                                                     ?? '',
                                                 'attr'
                                             ) ?>">
 
                                 <?= esc(
-                                    $membership['startsAtDisplay']
+                                    $usage['firstViewedAtDisplay']
                                         ?? '—'
                                 ) ?>
 
@@ -698,13 +724,13 @@ $videoUsage =
 
                             <time
                                 datetime="<?= esc(
-                                                $membership['expiresAtIso']
+                                                $usage['lastViewedAtIso']
                                                     ?? '',
                                                 'attr'
                                             ) ?>">
 
                                 <?= esc(
-                                    $membership['expiresAtDisplay']
+                                    $usage['lastViewedAtDisplay']
                                         ?? '—'
                                 ) ?>
 
@@ -713,12 +739,14 @@ $videoUsage =
                         </td>
 
                         <td class="text-end fw-medium">
+
                             <?= esc(
                                 (string) (
                                     $usage['viewCount']
                                     ?? 1
                                 )
                             ) ?>
+
                         </td>
 
                     </tr>

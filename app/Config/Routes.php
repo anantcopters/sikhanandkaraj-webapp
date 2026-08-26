@@ -1315,6 +1315,37 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                 'as' => 'web.email.verify',
             ]
         );
+
+        /*
+         * Membership payment lifecycle.
+         *
+         * Purchase is currently executable only in development.
+         * MembershipPaymentController and the development simulator both
+         * independently enforce that restriction.
+         */
+        $routes->post(
+            'membership/purchase',
+            'MembershipPaymentController::purchase',
+            [
+                'as' =>
+                'web.membership.purchase',
+
+                'filter' =>
+                'webAuth',
+            ]
+        );
+
+        $routes->get(
+            'membership/payment/success/(:segment)',
+            'MembershipPaymentController::success/$1',
+            [
+                'as' =>
+                'web.membership.payment.success',
+
+                'filter' =>
+                'webAuth',
+            ]
+        );
     });
 }
 

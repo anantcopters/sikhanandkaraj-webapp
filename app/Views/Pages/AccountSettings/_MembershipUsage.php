@@ -3,14 +3,19 @@
 declare(strict_types=1);
 
 /**
- * Member-facing commercial membership usage.
+ * Member-facing current membership allowance summary.
+ *
+ * Detailed membership and consumption history is intentionally rendered by
+ * _MembershipHistory.php. This partial owns only the current membership
+ * counters so the same history is not presented twice.
  *
  * Expected view data:
  *
  * @var array<string, mixed> $membershipUsage
  *
- * Keep all normalization local to this partial so the template remains safe
- * when an optional key is absent.
+ * Keep normalization local to this partial so the template remains safe when
+ * an optional presentation key is absent. Commercial values themselves remain
+ * authoritative in the membership presentation/service layer.
  */
 
 $membershipUsage =
@@ -50,10 +55,10 @@ $liveIntroductionUsage =
     : [];
 
 /*
- * Normalize all counters locally.
+ * Normalize current Full Profile allowance counters.
  *
- * The service remains authoritative for the values; the view only protects
- * rendering from absent or malformed data.
+ * Repeat access to an already consumed candidate is handled by the usage
+ * service and therefore does not need any special business logic here.
  */
 $profileUsed =
     max(
@@ -109,14 +114,11 @@ $profileDailyRemaining =
         )
     );
 
-$profileHistory =
-    isset($profileUsage['history'])
-    && is_array(
-        $profileUsage['history']
-    )
-    ? $profileUsage['history']
-    : [];
-
+/*
+ * Normalize the current Live Introduction allowance counters.
+ *
+ * Detailed playback history remains owned by _MembershipHistory.php.
+ */
 $liveIntroductionUsed =
     max(
         0,
@@ -143,16 +145,6 @@ $liveIntroductionRemaining =
             ?? 0
         )
     );
-
-$liveIntroductionHistory =
-    isset(
-        $liveIntroductionUsage['history']
-    )
-    && is_array(
-        $liveIntroductionUsage['history']
-    )
-    ? $liveIntroductionUsage['history']
-    : [];
 
 $planName =
     $membership !== null
@@ -190,6 +182,7 @@ $planName =
             $isPaid
             && $planName !== ''
         ): ?>
+
             <span
                 class="
                     badge
@@ -199,8 +192,11 @@ $planName =
                 ">
 
                 <?= esc($planName) ?>
+
             </span>
+
         <?php endif; ?>
+
     </div>
 </div>
 
@@ -217,6 +213,7 @@ $planName =
 
         Membership usage becomes available when you activate
         a paid membership.
+
     </div>
 
 <?php else: ?>
@@ -224,12 +221,13 @@ $planName =
     <div class="row g-3">
 
         <!--
-            Full Profile allowance.
+            Verified Profile allowance.
 
             Repeat access to the same candidate during the same membership
             does not consume another allowance.
         -->
         <div class="col-12 col-lg-6">
+
             <div class="border rounded p-3 h-100">
 
                 <div
@@ -248,11 +246,13 @@ $planName =
                     <h4 class="fs-15 fw-semibold mb-0">
                         Verified Profiles
                     </h4>
+
                 </div>
 
                 <div class="row g-3">
 
                     <div class="col-6">
+
                         <div class="text-muted fs-12">
                             Membership Usage
                         </div>
@@ -266,9 +266,11 @@ $planName =
                                 (string) $profileLimit
                             ) ?>
                         </div>
+
                     </div>
 
                     <div class="col-6">
+
                         <div class="text-muted fs-12">
                             Remaining
                         </div>
@@ -278,9 +280,11 @@ $planName =
                                 (string) $profileRemaining
                             ) ?>
                         </div>
+
                     </div>
 
                     <div class="col-6">
+
                         <div class="text-muted fs-12">
                             Used Today
                         </div>
@@ -294,9 +298,11 @@ $planName =
                                 (string) $profileDailyLimit
                             ) ?>
                         </div>
+
                     </div>
 
                     <div class="col-6">
+
                         <div class="text-muted fs-12">
                             Remaining Today
                         </div>
@@ -306,10 +312,13 @@ $planName =
                                 (string) $profileDailyRemaining
                             ) ?>
                         </div>
+
                     </div>
 
                 </div>
+
             </div>
+
         </div>
 
         <!--
@@ -318,6 +327,7 @@ $planName =
             Consumption is candidate-scoped, not video-version scoped.
         -->
         <div class="col-12 col-lg-6">
+
             <div class="border rounded p-3 h-100">
 
                 <div
@@ -336,11 +346,13 @@ $planName =
                     <h4 class="fs-15 fw-semibold mb-0">
                         Live Introductions
                     </h4>
+
                 </div>
 
                 <div class="row g-3">
 
                     <div class="col-6">
+
                         <div class="text-muted fs-12">
                             Membership Usage
                         </div>
@@ -354,9 +366,11 @@ $planName =
                                 (string) $liveIntroductionLimit
                             ) ?>
                         </div>
+
                     </div>
 
                     <div class="col-6">
+
                         <div class="text-muted fs-12">
                             Remaining
                         </div>
@@ -366,10 +380,13 @@ $planName =
                                 (string) $liveIntroductionRemaining
                             ) ?>
                         </div>
+
                     </div>
 
                 </div>
+
             </div>
+
         </div>
 
     </div>

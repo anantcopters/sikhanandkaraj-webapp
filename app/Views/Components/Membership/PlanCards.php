@@ -40,6 +40,10 @@ $context =
 $isMemberContext =
     $context === 'member';
 
+$developmentPurchaseEnabled =
+    $isMemberContext
+    && ENVIRONMENT === 'development';
+
 $plans =
     isset($plans)
     && is_array($plans)
@@ -812,40 +816,70 @@ $currentMembershipExpiry =
 
                                 <?php if (
                                     $isCurrentPlan
+                                    && $action
+                                    ===
+                                    MembershipPurchaseDecision::ACTION_RENEWAL
                                 ): ?>
 
-                                    <button
-                                        type="button"
+                                    <div
                                         class="
-                                            btn
-                                            btn-success
-                                            w-100
-                                        "
-                                        disabled>
+                                            d-flex
+                                            align-items-center
+                                            justify-content-center
+                                            gap-1
+                                            text-success
+                                            fw-semibold
+                                            mb-2
+                                        ">
 
                                         <i
-                                            class="
-                                                ri-checkbox-circle-line
-                                                me-1
-                                            "
+                                            class="ri-checkbox-circle-line"
                                             aria-hidden="true">
                                         </i>
 
                                         Current Plan
 
-                                    </button>
+                                    </div>
 
                                     <?php if (
-                                        $action
-                                        ===
-                                        MembershipPurchaseDecision::ACTION_RENEWAL
+                                        $developmentPurchaseEnabled
                                     ): ?>
 
-                                        <!--
-                                            Preserve visibility of the renewal
-                                            rule without exposing a fake
-                                            checkout action.
-                                        -->
+                                        <form
+                                            method="post"
+                                            action="<?= route_to(
+                                                        'web.membership.purchase'
+                                                    ) ?>">
+
+                                            <?= csrf_field() ?>
+
+                                            <input
+                                                type="hidden"
+                                                name="plan_code"
+                                                value="<?= esc(
+                                                            $planCode,
+                                                            'attr'
+                                                        ) ?>">
+
+                                            <button
+                                                type="submit"
+                                                class="
+                                                    btn
+                                                    <?= $popular
+                                                        ? 'btn-danger'
+                                                        : 'btn-outline-danger' ?>
+                                                    w-100
+                                                ">
+
+                                                Renew
+                                                <?= esc(
+                                                    $planCode
+                                                ) ?>
+
+                                            </button>
+
+                                        </form>
+
                                         <div
                                             class="
                                                 fs-12
@@ -853,11 +887,31 @@ $currentMembershipExpiry =
                                                 text-center
                                                 mt-2
                                             ">
-
-                                            Renewal will be available with
-                                            online payment.
-
+                                            Development payment simulation
                                         </div>
+
+                                    <?php else: ?>
+
+                                        <button
+                                            type="button"
+                                            class="
+                                                btn
+                                                btn-success
+                                                w-100
+                                            "
+                                            disabled>
+
+                                            <i
+                                                class="
+                                                    ri-checkbox-circle-line
+                                                    me-1
+                                                "
+                                                aria-hidden="true">
+                                            </i>
+
+                                            Current Plan
+
+                                        </button>
 
                                     <?php endif; ?>
 
@@ -888,15 +942,56 @@ $currentMembershipExpiry =
 
                                     </button>
 
+                                <?php elseif (
+                                    $developmentPurchaseEnabled
+                                ): ?>
+
+                                    <form
+                                        method="post"
+                                        action="<?= route_to(
+                                                    'web.membership.purchase'
+                                                ) ?>">
+
+                                        <?= csrf_field() ?>
+
+                                        <input
+                                            type="hidden"
+                                            name="plan_code"
+                                            value="<?= esc(
+                                                        $planCode,
+                                                        'attr'
+                                                    ) ?>">
+
+                                        <button
+                                            type="submit"
+                                            class="
+                                                btn
+                                                <?= $popular
+                                                    ? 'btn-danger'
+                                                    : 'btn-outline-danger' ?>
+                                                w-100
+                                            ">
+
+                                            <?= esc(
+                                                $buttonLabel
+                                            ) ?>
+
+                                        </button>
+
+                                    </form>
+
+                                    <div
+                                        class="
+                                            fs-12
+                                            text-muted
+                                            text-center
+                                            mt-2
+                                        ">
+                                        Development payment simulation
+                                    </div>
+
                                 <?php else: ?>
 
-                                    <!--
-                                        Payment gateway is not available yet.
-
-                                        The authoritative transition is shown
-                                        to the member, but no client-side path
-                                        is allowed to activate membership.
-                                    -->
                                     <button
                                         type="button"
                                         class="
@@ -921,9 +1016,7 @@ $currentMembershipExpiry =
                                             text-center
                                             mt-2
                                         ">
-
                                         Online purchase coming soon
-
                                     </div>
 
                                 <?php endif; ?>

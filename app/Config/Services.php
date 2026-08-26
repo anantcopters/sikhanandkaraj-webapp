@@ -159,6 +159,9 @@ use App\Services\Admin\MemberMatchScoreDiagnosticService;
 use App\Services\Membership\MembershipLifecycleService;
 use App\Services\Membership\MemberMembershipHistoryService;
 use App\Services\Membership\MembershipPurchaseService;
+use App\Models\MemberPaymentModel;
+use App\Services\Development\DevelopmentMembershipPaymentSimulator;
+use App\Services\Membership\MembershipPaymentService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -3086,6 +3089,77 @@ final class Services extends BaseService
 
             new MemberMembershipModel(
                 $database
+            )
+        );
+    }
+
+    /**
+     * Return the common membership payment lifecycle service.
+     *
+     * This service is environment-neutral.
+     *
+     * Development and the future production payment gateway must both feed
+     * authoritative successful-payment results through this service.
+     */
+    public static function membershipPaymentService(
+        bool $getShared = true
+    ): MembershipPaymentService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipPaymentService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MembershipPaymentService(
+            $database,
+
+            new MembershipPlanModel(
+                $database
+            ),
+
+            new MemberPaymentModel(
+                $database
+            ),
+
+            new MemberMembershipModel(
+                $database
+            ),
+
+            new MembershipPurchaseService(
+                $database,
+
+                new MembershipPlanModel(
+                    $database
+                ),
+
+                new MemberMembershipModel(
+                    $database
+                )
+            )
+        );
+    }
+
+    /**
+     * Development-only successful-payment simulator.
+     *
+     * The simulator itself independently rejects every environment other than
+     * development.
+     */
+    public static function developmentMembershipPaymentSimulator(
+        bool $getShared = true
+    ): DevelopmentMembershipPaymentSimulator {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'developmentMembershipPaymentSimulator'
+            );
+        }
+
+        return new DevelopmentMembershipPaymentSimulator(
+            static::membershipPaymentService(
+                false
             )
         );
     }
