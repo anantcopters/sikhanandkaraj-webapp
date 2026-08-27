@@ -32,24 +32,6 @@ final class MemberBlockValidation
                     'The comment cannot exceed 250 characters.',
                 ],
             ],
-
-            'captcha_answer' => [
-                'label' =>
-                'Security answer',
-
-                'rules' => [
-                    'required',
-                    'regex_match[/^[0-9]{1,2}$/]',
-                ],
-
-                'errors' => [
-                    'required' =>
-                    'Please enter the security answer.',
-
-                    'regex_match' =>
-                    'Please enter a valid security answer.',
-                ],
-            ],
         ];
     }
 

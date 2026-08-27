@@ -1010,7 +1010,9 @@ $renderDirection =
                                     $memberId
                                 ),
                                 'attr'
-                            ) ?>">
+                            ) ?>" data-validate
+                    data-submit-loader
+                    novalidate>
 
                     <?= csrf_field() ?>
 
@@ -1075,19 +1077,15 @@ $renderDirection =
                                 type="submit"
                                 class="
         btn
-        registration-form__submit
-        fs-14
+        btn-primary
         fw-medium
-        text-uppercase
     "
                                 data-submit-button>
 
-                                <span
-                                    class="registration-submit__idle"
-                                    data-submit-idle>
+                                <span data-submit-idle>
 
                                     <i
-                                        class="ri-bar-chart-box-line me-1 fs-18"
+                                        class="ri-calculator-line me-1"
                                         aria-hidden="true">
                                     </i>
 
@@ -1096,18 +1094,15 @@ $renderDirection =
                                 </span>
 
                                 <span
-                                    class="
-            registration-submit__loading
-            d-none
-        "
+                                    class="d-none"
                                     data-submit-loading>
 
                                     <span
                                         class="
                 spinner-border
                 spinner-border-sm
+                me-1
             "
-                                        role="status"
                                         aria-hidden="true">
                                     </span>
 

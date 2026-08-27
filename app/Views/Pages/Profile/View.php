@@ -4142,155 +4142,41 @@ $this->section('content');
     );
     ?>
 
-    <div
-        class="modal fade"
-        id="memberBlockModal"
-        tabindex="-1"
-        aria-labelledby="memberBlockModalTitle"
-        aria-hidden="true"
-        data-reopen-member-block="<?= (
-                                        session(
-                                            'reopenMemberBlockModal'
-                                        ) === true
-                                    )
-                                        ? '1'
-                                        : '0' ?>">
+    <?php if (
+        $isOtherMemberProfileView
+        && $viewedProfileReference !== ''
+    ): ?>
 
-        <div
-            class="modal-dialog
-                modal-dialog-centered">
+        <?= view(
+            'Components/Member/ProfileBlockModal',
+            [
+                'modalId' =>
+                'memberBlockModal',
 
-            <div class="modal-content">
+                'profileReference' =>
+                $viewedProfileReference,
 
-                <form
-                    method="post"
-                    action="<?= route_to(
-                                'web.members.block',
-                                $viewedProfileReference
-                            ) ?>"
-                    data-member-block-form>
+                'actionUrl' =>
+                route_to(
+                    'web.members.block',
+                    $viewedProfileReference
+                ),
 
-                    <?= csrf_field() ?>
+                'actionSource' =>
+                'profile',
 
-                    <div class="modal-header bg-info-subtle py-2">
-                        <h2
-                            class="modal-title fs-18"
-                            id="memberBlockModalTitle">
+                'validationErrors' =>
+                $validationErrors
+                    ?? [],
 
-                            Block the Member
-                        </h2>
+                'reopenModal' =>
+                session(
+                    'reopenMemberBlockModal'
+                ) === true,
+            ]
+        ) ?>
 
-                        <button
-                            type="button"
-                            class="btn-close"
-                            data-bs-dismiss="modal"
-                            aria-label="Close">
-                        </button>
-                    </div>
-
-                    <div
-                        class="modal-body">
-
-                        <p
-                            class="text-muted
-                                fs-13">
-
-                            This member will no longer
-                            appear in your matches,
-                            interests, views or searches.
-                        </p>
-
-                        <label
-                            for="member-block-comment"
-                            class="form-label">
-
-                            Comment
-                            <span
-                                class="text-danger">
-                                *
-                            </span>
-                        </label>
-
-                        <textarea
-                            id="member-block-comment"
-                            name="comment"
-                            class="form-control<?= (
-                                                    $blockCommentError !== ''
-                                                )
-                                                    ? ' is-invalid'
-                                                    : '' ?>"
-                            rows="4"
-                            maxlength="250"
-                            required
-                            aria-describedby="member-block-comment-error"><?= esc(
-                                                                                old('comment')
-                                                                            ) ?></textarea>
-
-                        <div
-                            id="member-block-comment-error"
-                            class="invalid-feedback">
-
-                            <?= esc(
-                                $blockCommentError
-                                    !== ''
-                                    ? $blockCommentError
-                                    : 'Please enter a comment.'
-                            ) ?>
-                        </div>
-
-                        <div
-                            class="form-text color-pink">
-
-                            Maximum 250 characters.
-                        </div>
-                    </div>
-
-                    <div
-                        class="modal-footer">
-
-                        <button
-                            type="button"
-                            class="btn btn-light"
-                            data-bs-dismiss="modal">
-
-                            Cancel
-                        </button>
-
-                        <button
-                            type="submit"
-                            class="btn btn-danger
-                                d-inline-flex
-                                align-items-center
-                                justify-content-center
-                                gap-2"
-                            data-member-block-submit>
-
-                            <span
-                                data-member-block-label>
-
-                                Block Member
-                            </span>
-
-                            <span
-                                class="d-none
-                                    align-items-center"
-                                data-member-block-loading>
-
-                                <span
-                                    class="spinner-border
-                                        spinner-border-sm
-                                        me-1"
-                                    aria-hidden="true">
-                                </span>
-
-                                Saving...
-                            </span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    <?php endif; ?>
     <?php if (
         $isOtherMemberProfileView
         && isset($memberActionNotice)

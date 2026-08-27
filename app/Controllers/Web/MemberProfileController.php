@@ -93,11 +93,6 @@ final class MemberProfileController extends BaseController
                                 'memberProfileReportCaptchaService'
                             )->generate(),
 
-                        'blockCaptcha' =>
-                        service(
-                            'memberProfileBlockCaptchaService'
-                        )->generate(),
-
                         'reportValidationErrors' =>
                         session(
                             'reportValidationErrors'
@@ -628,15 +623,6 @@ final class MemberProfileController extends BaseController
                         'comment'
                     )
             ),
-
-            'captcha_answer' =>
-            trim(
-                (string)
-                $this->request
-                    ->getPost(
-                        'captcha_answer'
-                    )
-            ),
         ];
 
         $validation = service(
@@ -651,25 +637,7 @@ final class MemberProfileController extends BaseController
             !$validation->run(
                 $input
             )
-            || !service(
-                'memberProfileBlockCaptchaService'
-            )->verify(
-                $input['captcha_answer']
-            )
         ) {
-            $errors =
-                $validation
-                ->getErrors();
-
-            if (
-                !isset(
-                    $errors['captcha_answer']
-                )
-            ) {
-                $errors['captcha_answer'] =
-                    'The security answer is incorrect or expired.';
-            }
-
             return redirect()
                 ->to(
                     route_to(
@@ -680,7 +648,8 @@ final class MemberProfileController extends BaseController
                 ->withInput()
                 ->with(
                     'validationErrors',
-                    $errors
+                    $validation
+                        ->getErrors()
                 )
                 ->with(
                     'reopenMemberBlockModal',

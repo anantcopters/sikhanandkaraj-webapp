@@ -123,6 +123,54 @@ $liveIntroductionRemaining =
         )
     );
 
+$profileAvailable = max(
+    0,
+    (int) (
+        $currentMembership['profileViewLimit']
+        ?? 0
+    )
+);
+
+$dailyProfileAvailable = max(
+    0,
+    (int) (
+        $currentMembership['dailyProfileViewLimit']
+        ?? 0
+    )
+);
+
+$liveIntroductionAvailable = max(
+    0,
+    (int) (
+        $currentMembership['liveIntroductionViewLimit']
+        ?? 0
+    )
+);
+
+$profileRemaining = max(
+    0,
+    (int) (
+        $profileUsage['remaining']
+        ?? 0
+    )
+);
+
+$dailyProfileRemaining = max(
+    0,
+    (int) (
+        $profileUsage['dailyRemaining']
+        ?? 0
+    )
+);
+
+$liveIntroductionRemaining = max(
+    0,
+    (int) (
+        $videoUsage['remaining']
+        ?? 0
+    )
+);
+
 ?>
 
 <div
@@ -317,17 +365,23 @@ $liveIntroductionRemaining =
                         Full Profiles
                     </div>
 
-                    <div class="fw-semibold fs-18">
+                    <div class="fs-18 fw-semibold">
                         <?= esc(
-                            (string) (
-                                $profileRemaining
-                                ?? 0
-                            )
+                            (string) $profileAvailable
                         ) ?>
                     </div>
 
                     <div class="text-muted fs-12">
-                        Remaining
+                        Available
+                    </div>
+
+                    <div class="fs-13 mt-1">
+                        <span class="fw-semibold">
+                            <?= esc(
+                                (string) $profileRemaining
+                            ) ?>
+                        </span>
+                        remaining
                     </div>
 
                 </div>
@@ -346,17 +400,23 @@ $liveIntroductionRemaining =
                         Daily Full Profiles
                     </div>
 
-                    <div class="fw-semibold fs-18">
+                    <div class="fs-18 fw-semibold">
                         <?= esc(
-                            (string) (
-                                $dailyProfileRemaining
-                                ?? 0
-                            )
+                            (string) $dailyProfileAvailable
                         ) ?>
                     </div>
 
                     <div class="text-muted fs-12">
-                        Remaining today
+                        Available per day
+                    </div>
+
+                    <div class="fs-13 mt-1">
+                        <span class="fw-semibold">
+                            <?= esc(
+                                (string) $dailyProfileRemaining
+                            ) ?>
+                        </span>
+                        remaining today
                     </div>
 
                 </div>
@@ -375,17 +435,23 @@ $liveIntroductionRemaining =
                         Live Introductions
                     </div>
 
-                    <div class="fw-semibold fs-18">
+                    <div class="fs-18 fw-semibold">
                         <?= esc(
-                            (string) (
-                                $liveIntroductionRemaining
-                                ?? 0
-                            )
+                            (string) $liveIntroductionAvailable
                         ) ?>
                     </div>
 
                     <div class="text-muted fs-12">
-                        Remaining
+                        Available
+                    </div>
+
+                    <div class="fs-13 mt-1">
+                        <span class="fw-semibold">
+                            <?= esc(
+                                (string) $liveIntroductionRemaining
+                            ) ?>
+                        </span>
+                        remaining
                     </div>
 
                 </div>

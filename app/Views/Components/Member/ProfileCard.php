@@ -768,9 +768,14 @@ $blockModalId =
             'actionUrl' =>
             $blockUrl,
 
-            'blockCaptcha' =>
-            $blockCaptcha
-                ?? '',
+            'actionSource' =>
+            'card',
+
+            'validationErrors' =>
+            [],
+
+            'reopenModal' =>
+            false,
         ]
     ) ?>
 
