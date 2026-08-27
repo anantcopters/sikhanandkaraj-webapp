@@ -62,6 +62,7 @@ final class SearchController extends BaseController
 
                         'pageScripts' => [
                             'assets/js/pages/member-search.js',
+                            'assets/js/components/submit-loader.js',
                         ],
                     ]
                 )
@@ -127,6 +128,7 @@ final class SearchController extends BaseController
 
                     'pageScripts' => [
                         'assets/js/pages/member-search.js',
+                        'assets/js/components/submit-loader.js',
                     ],
                 ]
             );
@@ -339,6 +341,7 @@ final class SearchController extends BaseController
                      */
                         'pageScripts' => [
                             'assets/js/pages/member-profile-actions.js',
+                            'assets/js/pages/search-results.js',
                             'assets/js/components/form-validator.js',
                             'assets/js/components/submit-loader.js',
                         ],

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Dashboard;
 
 use App\Services\Matchmaking\MemberMatchmakingService;
+use App\Services\Membership\MembershipService;
 
 /**
  * Supplies dashboard-specific member data.
@@ -13,7 +14,10 @@ final class MemberDashboardDataService
 {
     public function __construct(
         private readonly MemberMatchmakingService
-        $matchmakingService
+        $matchmakingService,
+
+        private readonly MembershipService
+        $membershipService
     ) {}
 
     /**
@@ -22,18 +26,39 @@ final class MemberDashboardDataService
     public function getDashboardData(
         int $userId
     ): array {
+        $membership =
+            $this->membershipService
+            ->resolveForUser(
+                $userId
+            );
+
         return array_merge(
             [
                 /*
-                 * Retain the existing placeholder plan until the
-                 * subscription module is introduced.
+                 * MembershipService is the authoritative current-account
+                 * resolver. Dashboard must never hardcode Free Account.
                  */
                 'accountPlan' => [
                     'name' =>
-                    'Free account',
+                    trim(
+                        (string) (
+                            $membership['accountLabel']
+                            ?? 'Free Account'
+                        )
+                    ),
 
                     'code' =>
-                    'FREE',
+                    mb_strtoupper(
+                        trim(
+                            (string) (
+                                $membership['accountType']
+                                ?? MembershipService::ACCOUNT_FREE
+                            )
+                        )
+                    ),
+
+                    'isPaid' => ($membership['isPaid']
+                        ?? false) === true,
                 ],
             ],
             $this

@@ -136,10 +136,22 @@ $currentMembershipExpiry =
                     Current Membership
                 </div>
 
-                <div class="fs-18 fw-semibold">
+                <div
+                    class="
+        d-flex
+        align-items-center
+        gap-2
+    ">
 
-                    <?= esc(
-                        $currentAccount['accountLabel'] ?? 'Paid Account'
+                    <?= view(
+                        'Components/Membership/PlanLogo',
+                        [
+                            'planCode' =>
+                            $currentPlanCode,
+
+                            'width' =>
+                            120,
+                        ]
                     ) ?>
 
                 </div>
@@ -1041,16 +1053,18 @@ $currentMembershipExpiry =
                             <?php else: ?>
 
                                 <a
-                                    href="<?= route_to(
-                                                'web.auth.login'
+                                    href="<?= esc(
+                                                route_to('web.home')
+                                                    . '#registration',
+                                                'attr'
                                             ) ?>"
                                     class="
-                                        btn
-                                        <?= $popular
-                                            ? 'btn-danger'
-                                            : 'btn-outline-danger' ?>
-                                        w-100
-                                    ">
+            btn
+            <?= $popular
+                                    ? 'btn-danger'
+                                    : 'btn-outline-danger' ?>
+            w-100
+        ">
 
                                     Choose
                                     <?= esc(

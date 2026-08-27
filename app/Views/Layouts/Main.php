@@ -35,6 +35,9 @@
 
 <body>
     <?= $this->include('Components/Header') ?>
+    <?= view(
+        'Components/Member/PaidAadhaarReminder'
+    ) ?>
 
     <main>
         <?= $this->renderSection('content') ?>

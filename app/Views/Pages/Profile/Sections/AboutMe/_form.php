@@ -81,7 +81,7 @@ $aboutMeValue = (string) old(
                 data-about-me-count
                 aria-live="polite">
 
-                0 of 500 words
+                0 of 120 words
             </span>
         </div>
 

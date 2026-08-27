@@ -59,9 +59,9 @@ final class MatchScoreConfigurationController extends BaseController
                     'formAlert'
                 ),
 
-                'pageScripts' => [
-                    'assets/js/components/submit-loader.js',
+                'pageScripts' => [                    
                     'assets/js/pages/admin-match-score.js',
+                    'assets/js/components/submit-loader.js'
                 ],
             ]
         );

@@ -21,7 +21,7 @@ $message = trim(
 ?>
 
 <?= $this->extend(
-    'Layouts/member'
+    'Layouts/Main'
 ) ?>
 
 <?= $this->section(

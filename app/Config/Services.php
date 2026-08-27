@@ -387,6 +387,27 @@ final class Services extends BaseService
     }
 
     /**
+     * Return the member profile-block CAPTCHA service.
+     *
+     * Reuses the established arithmetic CAPTCHA implementation with
+     * isolated session state so Block and Report do not overwrite
+     * each other's active CAPTCHA challenge.
+     */
+    public static function memberProfileBlockCaptchaService(
+        bool $getShared = true
+    ): AdminCaptchaService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfileBlockCaptchaService'
+            );
+        }
+
+        return new AdminCaptchaService(
+            'member_profile_block_captcha'
+        );
+    }
+
+    /**
      * Return the SAK Volunteer login CAPTCHA service.
      *
      * The same proven CAPTCHA implementation used by Admin
@@ -1983,9 +2004,8 @@ final class Services extends BaseService
         }
 
         return new MemberDashboardDataService(
-            static::memberMatchmakingService(
-                false
-            )
+            static::memberMatchmakingService(false),
+            static::membershipService(false)
         );
     }
 

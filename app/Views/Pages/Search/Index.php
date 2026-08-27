@@ -2456,14 +2456,46 @@ $this->section(
 
                                     <button
                                         type="submit"
-                                        class="btn btn-primary">
+                                        class="
+        btn
+        registration-form__submit
+        fs-14
+        fw-medium
+        text-uppercase
+    "
+                                        data-submit-button>
 
-                                        <i
-                                            class="ri-search-line me-1"
-                                            aria-hidden="true">
-                                        </i>
+                                        <span
+                                            class="registration-submit__idle"
+                                            data-submit-idle>
 
-                                        Search Profiles
+                                            <i
+                                                class="ri-search-line me-1 fs-20"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            Search Profiles
+                                        </span>
+
+                                        <span
+                                            class="
+            registration-submit__loading
+            d-none
+        "
+                                            data-submit-loading>
+
+                                            <span
+                                                class="
+                spinner-border
+                spinner-border-sm
+            "
+                                                role="status"
+                                                aria-hidden="true">
+                                            </span>
+
+                                            Searching...
+                                        </span>
+
                                     </button>
 
                                 </div>

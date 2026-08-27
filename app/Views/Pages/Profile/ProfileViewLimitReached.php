@@ -17,7 +17,7 @@ $message = trim(
 ?>
 
 <?= $this->extend(
-    'Layouts/member'
+    'Layouts/Main'
 ) ?>
 
 <?= $this->section(
@@ -73,7 +73,8 @@ $message = trim(
 
                         <a
                             href="<?= route_to(
-                                        'web.account-settings.membership'
+                                        'web.account.settings.section',
+                                        'plans'
                                     ) ?>"
                             class="btn btn-danger">
 

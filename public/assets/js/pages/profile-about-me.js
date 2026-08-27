@@ -2,9 +2,11 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('aboutMeForm');
+
     const textarea = document.querySelector(
         '[data-about-me-input]'
     );
+
     const counter = document.querySelector(
         '[data-about-me-count]'
     );
@@ -17,12 +19,14 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    const maxWords = 500;
+    const maxWords = 120;
 
     const words = (value) => {
         return value
             .trim()
-            .match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu)
+            .match(
+                /[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu
+            )
             ?? [];
     };
 
@@ -36,7 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const updateCount = () => {
-        const count = words(textarea.value).length;
+        const count =
+            words(textarea.value).length;
 
         counter.textContent =
             `${count} of ${maxWords} words`;
@@ -52,60 +57,93 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     };
 
-    textarea.addEventListener('input', updateCount);
+    textarea.addEventListener(
+        'input',
+        updateCount
+    );
 
     updateCount();
 
-    form.addEventListener('submit', (event) => {
-        const count = words(textarea.value).length;
+    form.addEventListener(
+        'submit',
+        (event) => {
+            const count =
+                words(textarea.value).length;
 
-        if (count > maxWords) {
+            if (count > maxWords) {
+                event.preventDefault();
+
+                textarea.classList.add(
+                    'is-invalid'
+                );
+
+                textarea.focus();
+
+                return;
+            }
+
+            if (containsLink(textarea.value)) {
+                event.preventDefault();
+
+                textarea.classList.add(
+                    'is-invalid'
+                );
+
+                textarea.focus();
+
+                return;
+            }
+
+            const submitButton =
+                document.getElementById(
+                    'saveAboutMeButton'
+                );
+
+            if (
+                !(submitButton
+                    instanceof HTMLButtonElement)
+            ) {
+                return;
+            }
+
+            if (
+                form.dataset.submitting
+                === 'true'
+            ) {
+                event.preventDefault();
+
+                return;
+            }
+
             event.preventDefault();
-            textarea.classList.add('is-invalid');
-            textarea.focus();
 
-            return;
-        }
+            form.dataset.submitting =
+                'true';
 
-        if (containsLink(textarea.value)) {
-            event.preventDefault();
-            textarea.classList.add('is-invalid');
-            textarea.focus();
+            submitButton.disabled =
+                true;
 
-            return;
-        }
+            submitButton
+                .querySelector(
+                    '.registration-submit__label'
+                )
+                ?.classList.add(
+                    'd-none'
+                );
 
-        const submitButton = document.getElementById(
-            'saveAboutMeButton'
-        );
+            submitButton
+                .querySelector(
+                    '.registration-submit__loading'
+                )
+                ?.classList.remove(
+                    'd-none'
+                );
 
-        if (!(submitButton instanceof HTMLButtonElement)) {
-            return;
-        }
-
-        if (form.dataset.submitting === 'true') {
-            event.preventDefault();
-
-            return;
-        }
-
-        event.preventDefault();
-
-        form.dataset.submitting = 'true';
-        submitButton.disabled = true;
-
-        submitButton
-            .querySelector('.registration-submit__label')
-            ?.classList.add('d-none');
-
-        submitButton
-            .querySelector('.registration-submit__loading')
-            ?.classList.remove('d-none');
-
-        requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                form.submit();
+                requestAnimationFrame(() => {
+                    form.submit();
+                });
             });
-        });
-    });
+        }
+    );
 });

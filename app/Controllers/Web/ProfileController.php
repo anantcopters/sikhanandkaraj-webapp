@@ -1566,6 +1566,45 @@ final class ProfileController extends BaseController
                 );
         }
 
+        $validatedData =
+            $validation->getValidated();
+
+        $aboutMe = trim(
+            (string) (
+                $validatedData['about_me']
+                ?? ''
+            )
+        );
+
+        $aboutMeWords =
+            preg_match_all(
+                '/[\p{L}\p{N}]+(?:[\'’-][\p{L}\p{N}]+)*/u',
+                $aboutMe
+            );
+
+        if (
+            $aboutMeWords === false
+            || $aboutMeWords
+            > AboutMeValidation::MAX_WORDS
+        ) {
+            return redirect()
+                ->to(
+                    $this->profileSectionUrl(
+                        'web.profile.about-me'
+                    )
+                )
+                ->withInput()
+                ->with(
+                    'validationErrors',
+                    [
+                        'about_me' =>
+                        'About Me cannot exceed '
+                            . AboutMeValidation::MAX_WORDS
+                            . ' words.',
+                    ]
+                );
+        }
+
         try {
             /** @var AboutMeService $service */
             $service = service('aboutMeService');

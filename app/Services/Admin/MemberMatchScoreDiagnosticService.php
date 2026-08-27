@@ -163,50 +163,58 @@ final class MemberMatchScoreDiagnosticService
                 'left'
             )
             ->join(
-                'LATERAL (
+                '(
                     SELECT
+                        candidate_photo.member_id,
                         COUNT(*)::INTEGER
                             AS approved_photo_count
                     FROM member_photos candidate_photo
-                    WHERE candidate_photo.member_id = u.id
-                    AND candidate_photo.status = '
-                    . $approvedPhotoStatus
-                    . '
+                    WHERE candidate_photo.status = '
+                                . $approvedPhotoStatus
+                                . '
                     AND candidate_photo.deleted_at IS NULL
+                    GROUP BY
+                        candidate_photo.member_id
                 ) candidate_photos',
-                'TRUE',
-                'left',
-                false
+                            'candidate_photos.member_id = u.id',
+                            'left',
+                            false
             )
             ->join(
-                'LATERAL (
-                    SELECT
+                '(
+                    SELECT DISTINCT ON (
+                        candidate_mobile.user_id
+                    )
+                        candidate_mobile.user_id,
                         candidate_mobile.is_verified
                     FROM user_contacts candidate_mobile
-                    WHERE candidate_mobile.user_id = u.id
-                    AND candidate_mobile.contact_type = \'MOBILE\'
+                    WHERE candidate_mobile.contact_type = \'MOBILE\'
                     AND candidate_mobile.is_primary = TRUE
-                    ORDER BY candidate_mobile.id DESC
-                    LIMIT 1
+                    ORDER BY
+                        candidate_mobile.user_id,
+                        candidate_mobile.id DESC
                 ) primary_mobile',
-                'TRUE',
-                'left',
-                false
+                            'primary_mobile.user_id = u.id',
+                            'left',
+                            false
             )
             ->join(
-                'LATERAL (
-                    SELECT
+                '(
+                    SELECT DISTINCT ON (
+                        candidate_email.user_id
+                    )
+                        candidate_email.user_id,
                         candidate_email.is_verified
                     FROM user_contacts candidate_email
-                    WHERE candidate_email.user_id = u.id
-                    AND candidate_email.contact_type = \'EMAIL\'
+                    WHERE candidate_email.contact_type = \'EMAIL\'
                     AND candidate_email.is_primary = TRUE
-                    ORDER BY candidate_email.id DESC
-                    LIMIT 1
+                    ORDER BY
+                        candidate_email.user_id,
+                        candidate_email.id DESC
                 ) primary_email',
-                'TRUE',
-                'left',
-                false
+                            'primary_email.user_id = u.id',
+                            'left',
+                            false
             )
 
             /*
@@ -223,48 +231,52 @@ final class MemberMatchScoreDiagnosticService
              * column names.
              */
             ->join(
-                'LATERAL (
-                    SELECT
+                '(
+                    SELECT DISTINCT ON (
+                        candidate_video.member_user_id
+                    )
+                        candidate_video.member_user_id,
                         candidate_video.id
                     FROM member_video_introductions candidate_video
-                    WHERE candidate_video.member_user_id = u.id
-                    AND candidate_video.moderation_status = '
-                    . $approvedVideoStatus
-                    . '
+                    WHERE candidate_video.moderation_status = '
+                                . $approvedVideoStatus
+                                . '
                     AND candidate_video.is_active = TRUE
                     AND candidate_video.deleted_at IS NULL
                     ORDER BY
+                        candidate_video.member_user_id,
                         candidate_video.updated_at DESC,
                         candidate_video.id DESC
-                    LIMIT 1
                 ) approved_video',
-                'TRUE',
-                'left',
-                false
+                            'approved_video.member_user_id = u.id',
+                            'left',
+                            false
             )
             ->join(
-                'LATERAL (
-                    SELECT
+                '(
+                    SELECT DISTINCT ON (
+                        candidate_membership.user_id
+                    )
+                        candidate_membership.user_id,
                         candidate_membership.plan_code_snapshot,
                         candidate_membership.plan_name_snapshot,
                         candidate_membership.commercial_priority_snapshot
                     FROM member_memberships candidate_membership
-                    WHERE candidate_membership.user_id = u.id
-                    AND candidate_membership.status = '
-                    . $activeStatus
-                    . '
+                    WHERE candidate_membership.status = '
+                                . $activeStatus
+                                . '
                     AND candidate_membership.starts_at
                         <= CURRENT_TIMESTAMP
                     AND candidate_membership.expires_at
                         > CURRENT_TIMESTAMP
                     ORDER BY
+                        candidate_membership.user_id,
                         candidate_membership.starts_at DESC,
                         candidate_membership.id DESC
-                    LIMIT 1
                 ) active_membership',
-                'TRUE',
-                'left',
-                false
+                            'active_membership.user_id = u.id',
+                            'left',
+                            false
             )
             ->where(
                 'u.id',

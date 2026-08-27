@@ -10,6 +10,7 @@ declare(strict_types=1);
  * @var string $modalId
  * @var string $profileReference
  * @var string $actionUrl
+ * @var string $blockCaptcha
  */
 
 $modalId = trim(
@@ -29,6 +30,13 @@ $profileReference = trim(
 $actionUrl = trim(
     (string) (
         $actionUrl
+        ?? ''
+    )
+);
+
+$blockCaptcha = trim(
+    (string) (
+        $blockCaptcha
         ?? ''
     )
 );
@@ -102,7 +110,7 @@ $actionUrl = trim(
 
                     </p>
 
-                    <div class="mb-0">
+                    <div class="mb-3">
 
                         <label
                             class="form-label"
@@ -130,6 +138,51 @@ $actionUrl = trim(
 
                     </div>
 
+                    <?php if ($blockCaptcha !== ''): ?>
+
+                        <div class="mb-0">
+
+                            <label
+                                class="form-label"
+                                for="<?= esc(
+                                            $modalId . 'Captcha',
+                                            'attr'
+                                        ) ?>">
+
+                                Security Check
+
+                            </label>
+
+                            <div class="input-group">
+
+                                <span
+                                    class="input-group-text">
+
+                                    <?= esc(
+                                        $blockCaptcha
+                                    ) ?>
+
+                                </span>
+
+                                <input
+                                    type="text"
+                                    id="<?= esc(
+                                            $modalId . 'Captcha',
+                                            'attr'
+                                        ) ?>"
+                                    name="captcha_answer"
+                                    class="form-control"
+                                    maxlength="20"
+                                    autocomplete="off"
+                                    required
+                                    data-error-required="Please enter the security answer.">
+
+                            </div>
+
+                        </div>
+
+                    <?php endif; ?>
+
                 </div>
 
                 <div class="modal-footer">
@@ -149,7 +202,7 @@ $actionUrl = trim(
                             registration-form__submit
                             fs-14
                             fw-medium
-                            text-uppercase w-50"
+                            text-uppercase"
                         data-submit-button>
 
                         <span data-submit-idle>

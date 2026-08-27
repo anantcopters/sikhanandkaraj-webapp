@@ -665,6 +665,10 @@ $blockModalId =
                                         'attr'
                                     ) ?>"
                             data-member-interest-form>
+                            <input
+                                type="hidden"
+                                name="action_source"
+                                value="card">
 
                             <?= csrf_field() ?>
 
@@ -814,6 +818,10 @@ $blockModalId =
 
             'actionUrl' =>
             $blockUrl,
+
+            'blockCaptcha' =>
+            $blockCaptcha
+                ?? '',
         ]
     ) ?>
 

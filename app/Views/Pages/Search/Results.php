@@ -267,7 +267,8 @@ $this->section(
                         ) ?>"
                 method="get"
                 class="d-flex
-                    align-items-center gap-2">
+                    align-items-center gap-2"
+                data-search-result-sort-form>
 
                 <?php foreach (
                     $sortingFilters
@@ -322,8 +323,7 @@ $this->section(
                     class="form-select"
                     data-choice
                     data-choice-search="false"
-                    aria-label="Sort Search results"
-                    onchange="this.form.submit()">
+                    aria-label="Sort Search results">
 
                     <option
                         value="default"

@@ -106,15 +106,27 @@ $this->section(
                                     mb-0
                                 ">
 
-                                Your Sikhanandkaraj
+                                Your
 
-                                <strong class="text-body">
-                                    <?= esc(
-                                        $planName !== ''
-                                            ? $planName
-                                            : $planCode
+                                <span
+                                    class="
+        d-inline-flex
+        align-items-center
+        mx-1
+    ">
+
+                                    <?= view(
+                                        'Components/Membership/PlanLogo',
+                                        [
+                                            'planCode' =>
+                                            $planCode,
+
+                                            'width' =>
+                                            110,
+                                        ]
                                     ) ?>
-                                </strong>
+
+                                </span>
 
                                 membership has been activated successfully.
 

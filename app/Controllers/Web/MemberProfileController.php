@@ -93,6 +93,11 @@ final class MemberProfileController extends BaseController
                                 'memberProfileReportCaptchaService'
                             )->generate(),
 
+                        'blockCaptcha' =>
+                        service(
+                            'memberProfileBlockCaptchaService'
+                        )->generate(),
+
                         'reportValidationErrors' =>
                         session(
                             'reportValidationErrors'
@@ -318,6 +323,14 @@ final class MemberProfileController extends BaseController
                 )
             );
 
+            $actionSource =
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'action_source'
+                        )
+                );
+
             if (
                 $targetUserId <= 0
             ) {
@@ -337,15 +350,18 @@ final class MemberProfileController extends BaseController
                     $targetUserId
                 );
 
-            return redirect()
-                ->to(
+            $redirect = $actionSource === 'card'
+                ? redirect()->back()
+                : redirect()->to(
                     route_to(
                         'web.members.view',
                         (string) (
                             $target['profile_ref_number']
                         )
                     )
-                )
+                );
+
+            return $redirect
                 ->with(
                     'memberActionNotice',
                     [
@@ -356,10 +372,8 @@ final class MemberProfileController extends BaseController
 
                         'message' =>
                         $created
-                            ? 'Your interest has been '
-                            . 'sent successfully.'
-                            : 'An interest relationship '
-                            . 'already exists between '
+                            ? 'Your interest has been sent successfully.'
+                            : 'An interest relationship already exists between '
                             . 'you and this member.',
                     ]
                 );
@@ -614,6 +628,15 @@ final class MemberProfileController extends BaseController
                         'comment'
                     )
             ),
+
+            'captcha_answer' =>
+            trim(
+                (string)
+                $this->request
+                    ->getPost(
+                        'captcha_answer'
+                    )
+            ),
         ];
 
         $validation = service(
@@ -628,7 +651,25 @@ final class MemberProfileController extends BaseController
             !$validation->run(
                 $input
             )
+            || !service(
+                'memberProfileBlockCaptchaService'
+            )->verify(
+                $input['captcha_answer']
+            )
         ) {
+            $errors =
+                $validation
+                ->getErrors();
+
+            if (
+                !isset(
+                    $errors['captcha_answer']
+                )
+            ) {
+                $errors['captcha_answer'] =
+                    'The security answer is incorrect or expired.';
+            }
+
             return redirect()
                 ->to(
                     route_to(
@@ -636,14 +677,10 @@ final class MemberProfileController extends BaseController
                         $profileReference
                     )
                 )
-                /*
-                 * Restore comment for the reopened modal.
-                 */
                 ->withInput()
                 ->with(
                     'validationErrors',
-                    $validation
-                        ->getErrors()
+                    $errors
                 )
                 ->with(
                     'reopenMemberBlockModal',
