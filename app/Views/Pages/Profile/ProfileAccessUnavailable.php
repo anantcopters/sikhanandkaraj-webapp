@@ -27,50 +27,52 @@ $message = trim(
 <?= $this->section(
     'content'
 ) ?>
+<section class="py-3 py-lg-4">
+    <div class="container">
 
-<div class="container-fluid">
+        <div class="row justify-content-center">
 
-    <div class="row justify-content-center">
+            <div class="col-12 col-lg-8 col-xl-6">
 
-        <div class="col-12 col-lg-8 col-xl-6">
+                <div class="card border border-danger border-opacity-25">
 
-            <div class="card">
+                    <div class="card-body text-center p-4 p-lg-5">
 
-                <div class="card-body text-center p-4 p-lg-5">
+                        <div class="mb-4">
 
-                    <div class="mb-4">
+                            <i
+                                class="ri-lock-2-line fs-48 text-danger"
+                                aria-hidden="true">
+                            </i>
 
-                        <i
-                            class="ri-lock-2-line fs-48 text-muted"
-                            aria-hidden="true">
-                        </i>
+                        </div>
+
+                        <h4 class="mb-3">
+                            Full Profile Unavailable
+                        </h4>
+
+                        <p class="text-muted mb-4">
+                            <?= esc(
+                                $message
+                            ) ?>
+                        </p>
+
+                        <a
+                            href="<?= route_to(
+                                        'web.dashboard'
+                                    ) ?>"
+                            class="btn btn-outline-secondary">
+
+                            <i
+                                class="ri-arrow-left-line me-1"
+                                aria-hidden="true">
+                            </i>
+
+                            Back to Dashboard
+
+                        </a>
 
                     </div>
-
-                    <h4 class="mb-3">
-                        Full Profile Unavailable
-                    </h4>
-
-                    <p class="text-muted mb-4">
-                        <?= esc(
-                            $message
-                        ) ?>
-                    </p>
-
-                    <a
-                        href="<?= route_to(
-                                    'web.dashboard'
-                                ) ?>"
-                        class="btn btn-outline-secondary">
-
-                        <i
-                            class="ri-arrow-left-line me-1"
-                            aria-hidden="true">
-                        </i>
-
-                        Back to Dashboard
-
-                    </a>
 
                 </div>
 
@@ -79,7 +81,5 @@ $message = trim(
         </div>
 
     </div>
-
-</div>
-
+</section>
 <?= $this->endSection() ?>

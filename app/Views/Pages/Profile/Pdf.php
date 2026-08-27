@@ -1310,22 +1310,21 @@ $renderRows =
         .pdf-watermark {
             position: absolute;
 
-            top: 50%;
+            bottom: 17mm;
             left: 50%;
 
             z-index: 0;
 
             color: rgba(68, 34, 84, .045);
 
-            font-size: 15mm;
+            font-size: 12mm;
             font-weight: 700;
 
-            letter-spacing: 1mm;
+            letter-spacing: 0.6mm;
 
             white-space: nowrap;
 
-            transform:
-                translate(-50%, -50%) rotate(-32deg);
+            transform: translateX(-50%);
 
             pointer-events: none;
         }

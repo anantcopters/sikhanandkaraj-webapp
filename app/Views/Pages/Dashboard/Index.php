@@ -427,7 +427,7 @@ $matchSections = [
                                 </p>
                             <?php endif; ?>
 
-                            <div class="mb-4">
+                            <div class="mb-0">
 
                                 <?php if ($isPaidPlan): ?>
 
@@ -438,7 +438,7 @@ $matchSections = [
                                             $resolvedPlanCode,
 
                                             'width' =>
-                                            120,
+                                            180,
                                         ]
                                     ) ?>
 

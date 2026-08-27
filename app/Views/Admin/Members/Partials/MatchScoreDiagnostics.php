@@ -278,7 +278,7 @@ $renderDirection =
                 <span
                     class="badge
                             bg-success-subtle
-                            text-success">
+                            text-black p-2">
 
                     Eligible
                 </span>
@@ -286,7 +286,7 @@ $renderDirection =
                 <span
                     class="badge
                             bg-secondary-subtle
-                            text-secondary">
+                            text-black p-2">
 
                     Not Eligible
                 </span>
@@ -513,7 +513,7 @@ $renderDirection =
                     <span
                         class="badge
                                 bg-success-subtle
-                                text-success">
+                                text-black p-2">
 
                         <i
                             class="ri-checkbox-circle-line me-1"
@@ -527,7 +527,7 @@ $renderDirection =
                     <span
                         class="badge
                                 bg-danger-subtle
-                                text-danger">
+                                text-black p-2">
 
                         <i
                             class="ri-close-circle-line me-1"
@@ -622,7 +622,7 @@ $renderDirection =
     };
 ?>
 
-<div class="card">
+<div class="card border border-danger border-opacity-25">
 
     <div class="card-header">
 
@@ -650,7 +650,7 @@ $renderDirection =
             <span
                 class="badge
                     bg-primary-subtle
-                    text-primary">
+                    text-black p-2">
 
                 Admin Only
             </span>
@@ -1142,7 +1142,7 @@ $renderDirection =
                 class="alert
                     alert-info
                     d-flex
-                    align-items-start
+                    align-items-center
                     gap-2"
                 role="alert">
 
