@@ -76,6 +76,53 @@ $videoUsage =
     ? $membershipHistory['liveIntroductionUsageHistory']
     : [];
 
+$currentProfileUsage =
+    isset(
+        $membershipUsage['profileUsage']
+    )
+    && is_array(
+        $membershipUsage['profileUsage']
+    )
+    ? $membershipUsage['profileUsage']
+    : [];
+
+$currentVideoUsage =
+    isset(
+        $membershipUsage['liveIntroductionUsage']
+    )
+    && is_array(
+        $membershipUsage['liveIntroductionUsage']
+    )
+    ? $membershipUsage['liveIntroductionUsage']
+    : [];
+
+$profileRemaining =
+    max(
+        0,
+        (int) (
+            $currentProfileUsage['remaining']
+            ?? 0
+        )
+    );
+
+$dailyProfileRemaining =
+    max(
+        0,
+        (int) (
+            $currentProfileUsage['dailyRemaining']
+            ?? 0
+        )
+    );
+
+$liveIntroductionRemaining =
+    max(
+        0,
+        (int) (
+            $currentVideoUsage['remaining']
+            ?? 0
+        )
+    );
+
 ?>
 
 <div
@@ -273,14 +320,14 @@ $videoUsage =
                     <div class="fw-semibold fs-18">
                         <?= esc(
                             (string) (
-                                $currentMembership['profileViewLimit']
+                                $profileRemaining
                                 ?? 0
                             )
                         ) ?>
                     </div>
 
                     <div class="text-muted fs-12">
-                        Membership allowance
+                        Remaining
                     </div>
 
                 </div>
@@ -302,14 +349,14 @@ $videoUsage =
                     <div class="fw-semibold fs-18">
                         <?= esc(
                             (string) (
-                                $currentMembership['dailyProfileViewLimit']
+                                $dailyProfileRemaining
                                 ?? 0
                             )
                         ) ?>
                     </div>
 
                     <div class="text-muted fs-12">
-                        Daily allowance
+                        Remaining today
                     </div>
 
                 </div>
@@ -331,14 +378,14 @@ $videoUsage =
                     <div class="fw-semibold fs-18">
                         <?= esc(
                             (string) (
-                                $currentMembership['liveIntroductionViewLimit']
+                                $liveIntroductionRemaining
                                 ?? 0
                             )
                         ) ?>
                     </div>
 
                     <div class="text-muted fs-12">
-                        Membership allowance
+                        Remaining
                     </div>
 
                 </div>
@@ -640,14 +687,6 @@ $videoUsage =
                         Last Viewed
                     </th>
 
-                    <th
-                        scope="col"
-                        class="text-end">
-
-                        Opens
-
-                    </th>
-
                 </tr>
 
             </thead>
@@ -738,17 +777,6 @@ $videoUsage =
 
                         </td>
 
-                        <td class="text-end fw-medium">
-
-                            <?= esc(
-                                (string) (
-                                    $usage['viewCount']
-                                    ?? 1
-                                )
-                            ) ?>
-
-                        </td>
-
                     </tr>
 
                 <?php endforeach; ?>
@@ -821,13 +849,6 @@ $videoUsage =
 
                     <th scope="col">
                         Last Watched
-                    </th>
-
-                    <th
-                        scope="col"
-                        class="text-end">
-
-                        Plays
                     </th>
                 </tr>
 
@@ -906,15 +927,6 @@ $videoUsage =
 
                             </time>
 
-                        </td>
-
-                        <td class="text-end fw-medium">
-                            <?= esc(
-                                (string) (
-                                    $usage['viewCount']
-                                    ?? 1
-                                )
-                            ) ?>
                         </td>
 
                     </tr>

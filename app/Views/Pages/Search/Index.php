@@ -706,7 +706,8 @@ $this->section(
                                 action="<?= url_to(
                                             'web.search.results'
                                         ) ?>"
-                                id="memberSearchForm">
+                                id="memberSearchForm" data-submit-loader
+                                novalidate>
 
                                 <input
                                     type="hidden"
@@ -2458,19 +2459,19 @@ $this->section(
                                         type="submit"
                                         class="
         btn
-        registration-form__submit
+        btn-success
         fs-14
         fw-medium
-        text-uppercase
+        text-uppercase w-25
     "
                                         data-submit-button>
 
                                         <span
-                                            class="registration-submit__idle"
+                                            class=""
                                             data-submit-idle>
 
                                             <i
-                                                class="ri-search-line me-1 fs-20"
+                                                class="ri-search-line me-1"
                                                 aria-hidden="true">
                                             </i>
 
@@ -2479,7 +2480,7 @@ $this->section(
 
                                         <span
                                             class="
-            registration-submit__loading
+            
             d-none
         "
                                             data-submit-loading>

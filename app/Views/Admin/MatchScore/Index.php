@@ -221,7 +221,7 @@ $this->section(
                                     'admin.match-score.update'
                                 ) ?>"
                         data-match-score-form
-                        data-submit-form
+                        data-submit-loader
                         novalidate>
 
                         <?= csrf_field() ?>

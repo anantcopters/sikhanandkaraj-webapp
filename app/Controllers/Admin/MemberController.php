@@ -153,7 +153,7 @@ final class MemberController extends BaseController
                         session(
                             'formAlert'
                         ),
-                        
+
                         'matchScoreComparison' =>
                         session(
                             'matchScoreComparison'
@@ -172,6 +172,8 @@ final class MemberController extends BaseController
                         'pageScripts' => [
                             'assets/js/pages/admin-member-view.js',
                             'assets/js/pages/admin-video-introduction-review.js',
+                            'assets/js/components/form-validator.js',
+                            'assets/js/components/submit-loader.js',
                         ],
                     ],
                     $service->profilePreview(

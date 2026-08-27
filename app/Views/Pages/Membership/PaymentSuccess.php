@@ -35,21 +35,16 @@ $transactionReference =
         )
     );
 
-$this
-    ->setVar(
-        'footerView',
-        'Components/Home/Footer'
-    )
-    ->extend(
-        'Layouts/Main'
-    );
+$this->extend(
+    'Layouts/Main'
+);
 
 $this->section(
     'content'
 );
 ?>
 
-<section class="section py-5 light-yellowish">
+<section class="section py-5">
 
     <div class="container">
 
@@ -95,42 +90,43 @@ $this->section(
                                 Payment Successful
                             </p>
 
-                            <h1 class="fs-28 fw-bold mb-3">
+                            <h1 class="fs-28 fw-bold mb-0">
                                 Membership Activated
                             </h1>
 
-                            <p
+                            <div
                                 class="
-                                    text-secondary
-                                    lh-lg
-                                    mb-0
-                                ">
-
-                                Your
-
-                                <span
-                                    class="
-        d-inline-flex
+        d-flex
+        flex-column
         align-items-center
-        mx-1
+        gap-2
+        mb-3
     ">
 
-                                    <?= view(
-                                        'Components/Membership/PlanLogo',
-                                        [
-                                            'planCode' =>
-                                            $planCode,
+                                <?= view(
+                                    'Components/Membership/PlanLogo',
+                                    [
+                                        'planCode' =>
+                                        $planCode,
 
-                                            'width' =>
-                                            110,
-                                        ]
-                                    ) ?>
+                                        'width' =>
+                                        250,
+                                    ]
+                                ) ?>
 
-                                </span>
+                                <p
+                                    class="
+            text-secondary
+            lh-lg
+            mb-0
+        ">
 
-                                membership has been activated successfully.
+                                    Your membership has been
+                                    activated successfully.
 
-                            </p>
+                                </p>
+
+                            </div>
 
                         </div>
 

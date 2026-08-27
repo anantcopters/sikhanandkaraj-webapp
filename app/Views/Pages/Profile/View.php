@@ -1154,132 +1154,53 @@ $this->section('content');
 
                     <?php endif; ?>
                 <?php endif; ?>
-                <?php if ($isOtherMemberProfileView): ?>
-                    <div class="dropdown">
-                        <button
-                            type="button"
-                            class="btn btn-info btn-icon"
-                            data-bs-toggle="dropdown"
-                            data-bs-auto-close="outside"
-                            aria-expanded="false"
-                            aria-label="Profile actions">
+                <?php if (
+                    $isOtherMemberProfileView
+                    && $viewedProfileReference !== ''
+                ): ?>
 
-                            <i
-                                class="ri-more-2-fill fs-18"
-                                aria-hidden="true">
-                            </i>
-                        </button>
+                    <?= view(
+                        'Components/Member/ProfileActions',
+                        [
+                            'profileReference' =>
+                            $viewedProfileReference,
 
-                        <div
-                            class="dropdown-menu dropdown-menu-end
-                    p-2 border border-danger
-        border-opacity-50 shadow-md"
-                            style="min-width: 220px;">
+                            'isShortlisted' =>
+                            $isShortlisted,
 
-                            <form
-                                method="post"
-                                action="<?= route_to(
-                                            'web.members.shortlist',
-                                            $viewedProfileReference
-                                        ) ?>"
-                                data-member-shortlist-form>
+                            /*
+             * Full Profile has already passed member-to-member
+             * authorization before this View is rendered.
+             */
+                            'canShortlist' =>
+                            true,
 
-                                <?= csrf_field() ?>
+                            'canReport' =>
+                            true,
 
-                                <button
-                                    type="submit"
-                                    class="dropdown-item rounded
-                            d-flex align-items-center gap-2"
-                                    data-member-shortlist-submit>
+                            'canBlock' =>
+                            true,
 
-                                    <span
-                                        class="d-inline-flex
-                                align-items-center gap-2"
-                                        data-member-shortlist-label>
+                            'hasReportedProfile' =>
+                            $hasReportedProfile,
 
-                                        <i
-                                            class="<?= $isShortlisted
-                                                        ? 'ri-bookmark-fill'
-                                                        : 'ri-bookmark-line' ?>"
-                                            aria-hidden="true">
-                                        </i>
+                            'reportedProfileStatusLabel' =>
+                            $reportedProfileStatusLabel,
 
-                                        <?= $isShortlisted
-                                            ? 'Remove from Shortlist'
-                                            : 'Shortlist Profile' ?>
-                                    </span>
+                            'shortlistUrl' =>
+                            route_to(
+                                'web.members.shortlist',
+                                $viewedProfileReference
+                            ),
 
-                                    <span
-                                        class="d-none align-items-center
-                                gap-1"
-                                        data-member-shortlist-loading>
+                            'reportModalId' =>
+                            'memberReportModal',
 
-                                        <span
-                                            class="spinner-border
-                                    spinner-border-sm"
-                                            aria-hidden="true">
-                                        </span>
+                            'blockModalId' =>
+                            'memberBlockModal',
+                        ]
+                    ) ?>
 
-                                        Saving...
-                                    </span>
-                                </button>
-                            </form>
-
-                            <?php if ($hasReportedProfile): ?>
-                                <button
-                                    type="button"
-                                    class="dropdown-item rounded
-                            d-flex align-items-center gap-2
-                            text-muted"
-                                    disabled>
-
-                                    <i
-                                        class="ri-flag-fill"
-                                        aria-hidden="true">
-                                    </i>
-
-                                    Reported:
-                                    <?= esc(
-                                        $reportedProfileStatusLabel
-                                    ) ?>
-                                </button>
-                            <?php else: ?>
-                                <button
-                                    type="button"
-                                    class="dropdown-item rounded
-                            d-flex align-items-center gap-2"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#memberReportModal">
-
-                                    <i
-                                        class="ri-flag-line
-                                text-warning"
-                                        aria-hidden="true">
-                                    </i>
-
-                                    Report Profile
-                                </button>
-                            <?php endif; ?>
-
-                            <div class="dropdown-divider"></div>
-
-                            <button
-                                type="button"
-                                class="dropdown-item rounded
-                        d-flex align-items-center gap-2
-                        text-danger"
-                                data-bs-toggle="modal"
-                                data-bs-target="#memberBlockModal">
-
-                                <i
-                                    class="ri-forbid-line"
-                                    aria-hidden="true">
-                                </i>
-
-                                Block Profile
-                            </button>
-                        </div>
-                    </div>
                 <?php endif; ?>
             </div>
         </div>

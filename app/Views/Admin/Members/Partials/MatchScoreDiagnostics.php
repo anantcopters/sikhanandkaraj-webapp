@@ -1040,6 +1040,8 @@ $renderDirection =
                                             $enteredProfileReference,
                                             'attr'
                                         ) ?>"
+                                data-error-required="Please enter the Profile ID."
+                                data-error-maxlength="Profile ID cannot exceed 50 characters."
                                 required>
 
                             <?php if (
@@ -1059,7 +1061,7 @@ $renderDirection =
 
                         </div>
 
-                        <div class="col-md-4">
+                        <div class="col-md-auto">
 
                             <label
                                 class="form-label
@@ -1071,15 +1073,48 @@ $renderDirection =
 
                             <button
                                 type="submit"
-                                class="btn
-                                    btn-primary
-                                    w-100">
+                                class="
+        btn
+        registration-form__submit
+        fs-14
+        fw-medium
+        text-uppercase
+    "
+                                data-submit-button>
 
-                                <i
-                                    class="ri-bar-chart-box-line me-1"
-                                    aria-hidden="true"></i>
+                                <span
+                                    class="registration-submit__idle"
+                                    data-submit-idle>
 
-                                Calculate
+                                    <i
+                                        class="ri-bar-chart-box-line me-1 fs-18"
+                                        aria-hidden="true">
+                                    </i>
+
+                                    Calculate
+
+                                </span>
+
+                                <span
+                                    class="
+            registration-submit__loading
+            d-none
+        "
+                                    data-submit-loading>
+
+                                    <span
+                                        class="
+                spinner-border
+                spinner-border-sm
+            "
+                                        role="status"
+                                        aria-hidden="true">
+                                    </span>
+
+                                    Calculating...
+
+                                </span>
+
                             </button>
 
                         </div>

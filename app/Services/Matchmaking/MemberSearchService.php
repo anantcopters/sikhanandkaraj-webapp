@@ -388,20 +388,11 @@ final class MemberSearchService
             * to that service's existing eligibility flag.
             */
             $resultRows =
-                array_values(
-                    array_filter(
-                        $resultRows,
-
-                        static fn(
-                            array $candidate
-                        ): bool => (
-                            $candidate['passes_compulsory']
-                            ?? true
-                        ) === true
-                    )
+                $this->partnerPreferenceMatchService
+                ->scoreCandidates(
+                    $viewerUserId,
+                    $resultRows
                 );
-
-
 
             $resultRows =
                 $this->matchScoreService

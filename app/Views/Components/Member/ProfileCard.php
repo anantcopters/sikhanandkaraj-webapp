@@ -114,6 +114,35 @@ $isShortlisted =
         ?? false
     ) === true;
 
+$reportedProfileStatus = mb_strtoupper(
+    trim(
+        (string) (
+            $profile['reportedProfileStatus']
+            ?? ''
+        )
+    )
+);
+
+$reportedProfileStatusLabel = match ($reportedProfileStatus) {
+    'OPEN' =>
+    'Open',
+
+    'REVIEWED' =>
+    'Reviewed',
+
+    'DISMISSED' =>
+    'Dismissed',
+
+    'ACTION_TAKEN' =>
+    'Action Taken',
+
+    default =>
+    '',
+};
+
+$hasReportedProfile =
+    $reportedProfileStatusLabel !== '';
+
 $age =
     is_numeric(
         $profile['age']
@@ -373,146 +402,49 @@ $blockModalId =
                         <?php endif; ?>
 
                         <?php if (
-                            $canReport
-                            || $canBlock
-                            || $canShortlist
-                            || $isShortlisted
+                            $reference !== ''
+                            && (
+                                $canReport
+                                || $canBlock
+                                || $canShortlist
+                                || $isShortlisted
+                            )
                         ): ?>
 
-                            <div class="dropdown">
+                            <?= view(
+                                'Components/Member/ProfileActions',
+                                [
+                                    'profileReference' =>
+                                    $reference,
 
-                                <button
-                                    type="button"
-                                    class="btn btn-info
-                                        btn-sm btn-icon"
-                                    data-bs-toggle="dropdown"
-                                    aria-expanded="false"
-                                    aria-label="Profile actions">
+                                    'isShortlisted' =>
+                                    $isShortlisted,
 
-                                    <i
-                                        class="ri-more-2-fill"
-                                        aria-hidden="true">
-                                    </i>
+                                    'canShortlist' =>
+                                    $canShortlist,
 
-                                </button>
+                                    'canReport' =>
+                                    $canReport,
 
-                                <div
-                                    class="dropdown-menu
-                                        dropdown-menu-end
-                                        shadow-sm">
+                                    'canBlock' =>
+                                    $canBlock,
 
-                                    <?php if (
-                                        $isShortlisted
-                                        || $canShortlist
-                                    ): ?>
+                                    'hasReportedProfile' =>
+                                    $hasReportedProfile,
 
-                                        <form
-                                            method="post"
-                                            action="<?= esc(
-                                                        $shortlistUrl,
-                                                        'attr'
-                                                    ) ?>">
+                                    'reportedProfileStatusLabel' =>
+                                    $reportedProfileStatusLabel,
 
-                                            <?= csrf_field() ?>
+                                    'shortlistUrl' =>
+                                    $shortlistUrl,
 
-                                            <button
-                                                type="submit"
-                                                class="dropdown-item
-                                                    d-flex
-                                                    align-items-center
-                                                    gap-2">
+                                    'reportModalId' =>
+                                    $reportModalId,
 
-                                                <i
-                                                    class="<?= $isShortlisted
-                                                                ? 'ri-bookmark-fill'
-                                                                : 'ri-bookmark-line' ?>"
-                                                    aria-hidden="true">
-                                                </i>
-
-                                                <?= $isShortlisted
-                                                    ? 'Remove from Shortlist'
-                                                    : 'Shortlist Profile' ?>
-
-                                            </button>
-
-                                        </form>
-
-                                    <?php elseif (!$canShortlist): ?>
-
-                                        <a
-                                            href="<?= route_to(
-                                                        'web.account.settings.section',
-                                                        'plans'
-                                                    ) ?>"
-                                            class="dropdown-item
-                                                d-flex
-                                                align-items-center
-                                                gap-2">
-
-                                            <i
-                                                class="ri-lock-2-line"
-                                                aria-hidden="true">
-                                            </i>
-
-                                            Shortlist — Upgrade
-
-                                        </a>
-
-                                    <?php endif; ?>
-
-                                    <?php if ($canReport): ?>
-
-                                        <button
-                                            type="button"
-                                            class="dropdown-item
-                                                d-flex
-                                                align-items-center
-                                                gap-2"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#<?= esc(
-                                                                    $reportModalId,
-                                                                    'attr'
-                                                                ) ?>">
-
-                                            <i
-                                                class="ri-flag-line"
-                                                aria-hidden="true">
-                                            </i>
-
-                                            Report Profile
-
-                                        </button>
-
-                                    <?php endif; ?>
-
-                                    <?php if ($canBlock): ?>
-
-                                        <button
-                                            type="button"
-                                            class="dropdown-item
-                                                d-flex
-                                                align-items-center
-                                                gap-2 text-danger"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#<?= esc(
-                                                                    $blockModalId,
-                                                                    'attr'
-                                                                ) ?>">
-
-                                            <i
-                                                class="ri-forbid-line"
-                                                aria-hidden="true">
-                                            </i>
-
-                                            Block Profile
-
-                                        </button>
-
-                                    <?php endif; ?>
-
-                                </div>
-
-                            </div>
+                                    'blockModalId' =>
+                                    $blockModalId,
+                                ]
+                            ) ?>
 
                         <?php endif; ?>
 
@@ -779,24 +711,41 @@ $blockModalId =
 
 <?php if (
     $canReport
+    && !$hasReportedProfile
     && $reportUrl !== ''
 ): ?>
 
     <?= view(
-        'Components/Member/ProfileReportModal',
+        'Pages/Profile/_ReportProfileModal',
         [
             'modalId' =>
             $reportModalId,
 
-            'profileReference' =>
+            'viewedProfileReference' =>
             $reference,
 
             'actionUrl' =>
             $reportUrl,
 
+            'actionSource' =>
+            'card',
+
             'reportCaptcha' =>
             $reportCaptcha
                 ?? '',
+
+            /*
+             * Cards are listing components.
+             *
+             * Validation errors are returned through the
+             * card action flow rather than persisted in
+             * one arbitrary card on a multi-card page.
+             */
+            'reportValidationErrors' =>
+            [],
+
+            'reopenReportModal' =>
+            false,
         ]
     ) ?>
 

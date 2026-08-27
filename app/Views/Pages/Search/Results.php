@@ -179,6 +179,46 @@ $this->section(
 ?>
 
 <section class="py-3 py-lg-4">
+    <div
+        class="
+        position-fixed
+        top-0
+        start-0
+        w-100
+        h-100
+        bg-light
+        bg-opacity-75
+        d-none
+        align-items-center
+        justify-content-center
+    "
+        style="z-index: 2000;"
+        data-search-results-loader
+        aria-hidden="true">
+
+        <div class="text-center">
+
+            <div
+                class="
+                spinner-border
+                text-primary
+                mb-3
+            "
+                role="status">
+
+                <span class="visually-hidden">
+                    Loading matches...
+                </span>
+
+            </div>
+
+            <div class="fw-medium">
+                Loading profiles...
+            </div>
+
+        </div>
+
+    </div>
     <div class="container">
 
         <!-- =============================================================

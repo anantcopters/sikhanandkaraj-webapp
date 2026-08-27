@@ -25,23 +25,62 @@ document.addEventListener(
             return;
         }
 
+        const loader =
+            document.querySelector(
+                '[data-search-results-loader]'
+            );
+
+        const showLoader = () => {
+            if (
+                !(loader instanceof HTMLElement)
+            ) {
+                return;
+            }
+
+            loader.classList.remove(
+                'd-none'
+            );
+
+            loader.classList.add(
+                'd-flex'
+            );
+
+            loader.setAttribute(
+                'aria-hidden',
+                'false'
+            );
+        };
+
         sort.addEventListener(
             'change',
             () => {
-                const loader =
-                    document.querySelector(
-                        '.page-loader'
-                    );
-
-                if (
-                    loader instanceof HTMLElement
-                ) {
-                    loader.classList.remove(
-                        'd-none'
-                    );
-                }
+                showLoader();
 
                 form.submit();
+            }
+        );
+
+        window.addEventListener(
+            'pageshow',
+            () => {
+                if (
+                    !(loader instanceof HTMLElement)
+                ) {
+                    return;
+                }
+
+                loader.classList.add(
+                    'd-none'
+                );
+
+                loader.classList.remove(
+                    'd-flex'
+                );
+
+                loader.setAttribute(
+                    'aria-hidden',
+                    'true'
+                );
             }
         );
     }
