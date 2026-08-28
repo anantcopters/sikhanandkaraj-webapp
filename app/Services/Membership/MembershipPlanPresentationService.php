@@ -46,7 +46,7 @@ final class MembershipPlanPresentationService
     private const PRESENTATION = [
         MembershipPlanModel::CODE_GO => [
             'image' =>
-            'plan_go_short_removebg.png',
+            'Logo_Go_Plan.png',
 
             'popular' =>
             false,
@@ -58,7 +58,7 @@ final class MembershipPlanPresentationService
 
         MembershipPlanModel::CODE_PLUS => [
             'image' =>
-            'plan_plus_short_removebg.png',
+            'Logo_Plus_Plan.png',
 
             'popular' =>
             true,
@@ -70,7 +70,7 @@ final class MembershipPlanPresentationService
 
         MembershipPlanModel::CODE_PRO => [
             'image' =>
-            'plan_pro_short_removebg.png',
+            'Logo_Pro_Plan.png',
 
             'popular' =>
             false,

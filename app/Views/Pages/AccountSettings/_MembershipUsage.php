@@ -180,20 +180,23 @@ $planName =
 
         <?php if (
             $isPaid
-            && $planName !== ''
+            && $membership['planCode'] !== ''
         ): ?>
 
-            <span
-                class="
-                    badge
-                    bg-primary-subtle
-                    text-primary
-                    p-2
-                ">
+            <div class="flex-shrink-0">
 
-                <?= esc($planName) ?>
+                <?= view(
+                    'Components/Membership/PlanLogo',
+                    [
+                        'planCode' =>
+                        $membership['planCode'],
 
-            </span>
+                        'width' =>
+                        150,
+                    ]
+                ) ?>
+
+            </div>
 
         <?php endif; ?>
 
@@ -239,7 +242,7 @@ $planName =
                     ">
 
                     <i
-                        class="ri-user-search-line fs-18"
+                        class="ri-user-search-line fs-18 text-success"
                         aria-hidden="true">
                     </i>
 
@@ -339,7 +342,7 @@ $planName =
                     ">
 
                     <i
-                        class="ri-video-line fs-18"
+                        class="ri-video-line fs-18 text-danger"
                         aria-hidden="true">
                     </i>
 

@@ -123,6 +123,60 @@ $interestActionNotice =
 <section class="py-3 py-lg-4">
     <div class="container">
 
+        <!-- =========================================================
+             Page heading
+             ========================================================= -->
+        <div
+            class="d-flex flex-column flex-sm-row
+                align-items-sm-center
+                justify-content-between
+                gap-2 mb-3">
+
+            <div>
+                <h1
+                    class="fs-24 fw-semibold mb-1">
+
+                    <?= esc(
+                        trim(
+                            $headingStatus
+                                . ' '
+                                . $headingDirection
+                        )
+                    ) ?>
+                </h1>
+
+                <p
+                    class="text-muted mb-0">
+
+                    <?php if ($isReceived): ?>
+
+                        Manage members who have
+                        shown interest in your profile.
+
+                    <?php else: ?>
+
+                        Review interests you have
+                        sent to other members.
+
+                    <?php endif; ?>
+
+                </p>
+            </div>
+
+            <span
+                class="badge bg-primary text-white border p-2 fs-12">
+
+                <?= esc(
+                    (string)
+                    count(
+                        $profiles
+                    )
+                ) ?>
+                profiles
+            </span>
+
+        </div>
+
         <div class="row g-4">
 
             <!-- =========================================================
@@ -285,54 +339,6 @@ $interestActionNotice =
                  ========================================================= -->
             <div class="col-12 col-lg-8 col-xl-9">
 
-                <div
-                    class="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2 mb-3">
-
-                    <div>
-                        <h1
-                            class="fs-24 fw-semibold mb-1">
-
-                            <?= esc(
-                                trim(
-                                    $headingStatus
-                                        . ' '
-                                        . $headingDirection
-                                )
-                            ) ?>
-                        </h1>
-
-                        <p
-                            class="text-muted mb-0">
-
-                            <?php if ($isReceived): ?>
-
-                                Manage members who have
-                                shown interest in your profile.
-
-                            <?php else: ?>
-
-                                Review interests you have
-                                sent to other members.
-
-                            <?php endif; ?>
-
-                        </p>
-                    </div>
-
-                    <span
-                        class="badge bg-primary text-white border p-2 fs-12">
-
-                        <?= esc(
-                            (string)
-                            count(
-                                $profiles
-                            )
-                        ) ?>
-                        profiles
-                    </span>
-
-                </div>
-
                 <?php if ($profiles === []): ?>
 
                     <div
@@ -365,7 +371,6 @@ $interestActionNotice =
 
                 <?php else: ?>
 
-                    <!-- Exactly two profiles per row on XL desktop. -->
                     <div class="row g-0">
 
                         <?php foreach (
@@ -395,6 +400,7 @@ $interestActionNotice =
                 <?php endif; ?>
 
             </div>
+
         </div>
     </div>
 </section>

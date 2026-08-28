@@ -23,13 +23,13 @@ $width =
 
 $logos = [
     'GO' =>
-    'plan_go_short_removebg.png',
+    'Logo_Go_Plan.png',
 
     'PLUS' =>
-    'plan_plus_short_removebg.png',
+    'Logo_Plus_Plan.png',
 
     'PRO' =>
-    'plan_pro_short_removebg.png',
+    'Logo_Pro_Plan.png',
 ];
 
 $image =
@@ -51,7 +51,7 @@ if ($image === '') {
                     . $planCode,
                 'attr'
             ) ?>"
-    class="img-fluid"
+    class="img-fluid my-2"
     width="<?= esc(
                 (string) $width,
                 'attr'

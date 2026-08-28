@@ -182,7 +182,8 @@ $this->section('content');
 
             <aside class="col-12 col-lg-4 col-xl-3">
                 <div
-                    class="list-group shadow-sm"
+                    class="list-group shadow-sm border border-danger
+        border-opacity-25"
                     aria-label="Account Settings">
 
                     <?php foreach (

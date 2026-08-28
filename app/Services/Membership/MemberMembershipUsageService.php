@@ -52,54 +52,78 @@ final class MemberMembershipUsageService
             return $this->freeState();
         }
 
-        $membership = $this
+        $resolvedMembership = $this
             ->membershipService
             ->resolveForUser(
                 $userId
             );
 
         /*
-        * MembershipService normally returns a native boolean, but use the existing
-        * project BooleanValue support at this boundary so PostgreSQL/string boolean
-        * representations cannot accidentally alter membership presentation.
-        */
+         * MembershipService is the authoritative source for the member's
+         * current commercial state.
+         *
+         * The purchased membership snapshot is intentionally nested under
+         * "membership". Do not read membership ID or quota values from the
+         * outer resolved-membership array.
+         */
         if (
-            !is_array($membership)
+            !is_array($resolvedMembership)
             || !BooleanValue::fromDatabase(
-                $membership['isPaid']
+                $resolvedMembership['isPaid']
                     ?? false
             )
-            || (int) ($membership['id'] ?? 0) <= 0
+            || !isset(
+                $resolvedMembership['membership']
+            )
+            || !is_array(
+                $resolvedMembership['membership']
+            )
         ) {
             return $this->freeState();
         }
 
+        $membership =
+            $resolvedMembership['membership'];
+
         $membershipId =
-            (int) $membership['id'];
+            max(
+                0,
+                (int) (
+                    $membership['id']
+                    ?? 0
+                )
+            );
 
-        $profileLimit = max(
-            0,
-            (int) (
-                $membership['profileViewLimit']
-                ?? 0
-            )
-        );
+        if ($membershipId <= 0) {
+            return $this->freeState();
+        }
 
-        $dailyProfileLimit = max(
-            0,
-            (int) (
-                $membership['dailyProfileViewLimit']
-                ?? 0
-            )
-        );
+        $profileLimit =
+            max(
+                0,
+                (int) (
+                    $membership['profileViewLimit']
+                    ?? 0
+                )
+            );
 
-        $liveIntroductionLimit = max(
-            0,
-            (int) (
-                $membership['liveIntroductionViewLimit']
-                ?? 0
-            )
-        );
+        $dailyProfileLimit =
+            max(
+                0,
+                (int) (
+                    $membership['dailyProfileViewLimit']
+                    ?? 0
+                )
+            );
+
+        $liveIntroductionLimit =
+            max(
+                0,
+                (int) (
+                    $membership['liveIntroductionViewLimit']
+                    ?? 0
+                )
+            );
 
         $todayIst = (
             new \DateTimeImmutable(
@@ -135,6 +159,10 @@ final class MemberMembershipUsageService
             'isPaid' =>
             true,
 
+            /*
+             * Keep the same view contract already consumed by
+             * _MembershipUsage.php.
+             */
             'membership' =>
             $membership,
 

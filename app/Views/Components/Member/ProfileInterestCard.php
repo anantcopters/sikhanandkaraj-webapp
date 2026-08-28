@@ -103,14 +103,28 @@ if ($profileUrl === '') {
     $profileUrl = '#';
 }
 
-/*
- * Account type and professional summary come from the shared
- * MemberProfilePresentationService contract.
- */
 $accountType = trim(
     (string) (
         $profile['accountType']
         ?? ''
+    )
+);
+
+/*
+ * Membership presentation is resolved by the backend.
+ *
+ * accountType remains the display label used by the shared profile
+ * presentation contract.
+ *
+ * accountTypeCode is the canonical membership plan code consumed by the
+ * existing PlanLogo component.
+ */
+$accountTypeCode = mb_strtoupper(
+    trim(
+        (string) (
+            $profile['accountCode']
+            ?? ''
+        )
     )
 );
 
@@ -251,6 +265,8 @@ $profileNavigationUrl =
     && $profileUrl !== '#'
     ? $profileUrl
     : '';
+
+
 ?>
 
 <article
@@ -320,34 +336,31 @@ $profileNavigationUrl =
                                         'attr'
                                     ) ?>"
                             loading="lazy">
-
                     </div>
 
                 <?php endif; ?>
 
                 <?php if (
-                    $accountType !== ''
+                    $accountTypeCode !== ''
                 ): ?>
 
-                    <span
-                        class="badge rounded
-                bg-primary-subtle
-                text-primary
-                border border-primary
-                border-opacity-25
-                mt-3 px-2 py-2 fs-12">
+                    <div
+                        class="mt-1
+            d-flex
+            justify-content-center">
 
-                        <i
-                            class="ri-vip-crown-line
-                    me-1 fs-14"
-                            aria-hidden="true">
-                        </i>
+                        <?= view(
+                            'Components/Membership/PlanLogo',
+                            [
+                                'planCode' =>
+                                $accountTypeCode,
 
-                        <?= esc(
-                            $accountType
+                                'width' =>
+                                180,
+                            ]
                         ) ?>
 
-                    </span>
+                    </div>
 
                 <?php endif; ?>
 
@@ -713,7 +726,7 @@ $profileNavigationUrl =
 
 
 
-            <div class="d-flex align-items-center mt-3">
+            <div class="d-flex align-items-center mt-1">
                 <div class="flex-shrink-0 me-1">
                     <div class="avatar-xs flex-shrink-0 me-1">
                         <span class="avatar-title bg-dark-subtle rounded-circle shadow">

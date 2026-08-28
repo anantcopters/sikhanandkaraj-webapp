@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 /**
  * @var array<string, mixed> $membershipHistory
+ * @var array<string, mixed> $membershipUsage
  */
 
 $membershipHistory =
@@ -12,6 +13,14 @@ $membershipHistory =
         $membershipHistory
     )
     ? $membershipHistory
+    : [];
+
+$membershipUsage =
+    isset($membershipUsage)
+    && is_array(
+        $membershipUsage
+    )
+    ? $membershipUsage
     : [];
 
 $current =
@@ -76,6 +85,13 @@ $videoUsage =
     ? $membershipHistory['liveIntroductionUsageHistory']
     : [];
 
+/*
+ * Current allowance consumption comes from
+ * MemberMembershipUsageService.
+ *
+ * The membership-history arrays above are ledger/history collections and
+ * must never be used as current allowance counters.
+ */
 $currentProfileUsage =
     isset(
         $membershipUsage['profileUsage']
@@ -96,6 +112,41 @@ $currentVideoUsage =
     ? $membershipUsage['liveIntroductionUsage']
     : [];
 
+/*
+ * Purchased allowance limits come from the immutable current-membership
+ * snapshot resolved by MembershipService.
+ */
+$profileAvailable =
+    max(
+        0,
+        (int) (
+            $currentMembership['profileViewLimit']
+            ?? 0
+        )
+    );
+
+$dailyProfileAvailable =
+    max(
+        0,
+        (int) (
+            $currentMembership['dailyProfileViewLimit']
+            ?? 0
+        )
+    );
+
+$liveIntroductionAvailable =
+    max(
+        0,
+        (int) (
+            $currentMembership['liveIntroductionViewLimit']
+            ?? 0
+        )
+    );
+
+/*
+ * Remaining allowances come exclusively from the current usage
+ * presentation service.
+ */
 $profileRemaining =
     max(
         0,
@@ -122,54 +173,6 @@ $liveIntroductionRemaining =
             ?? 0
         )
     );
-
-$profileAvailable = max(
-    0,
-    (int) (
-        $currentMembership['profileViewLimit']
-        ?? 0
-    )
-);
-
-$dailyProfileAvailable = max(
-    0,
-    (int) (
-        $currentMembership['dailyProfileViewLimit']
-        ?? 0
-    )
-);
-
-$liveIntroductionAvailable = max(
-    0,
-    (int) (
-        $currentMembership['liveIntroductionViewLimit']
-        ?? 0
-    )
-);
-
-$profileRemaining = max(
-    0,
-    (int) (
-        $profileUsage['remaining']
-        ?? 0
-    )
-);
-
-$dailyProfileRemaining = max(
-    0,
-    (int) (
-        $profileUsage['dailyRemaining']
-        ?? 0
-    )
-);
-
-$liveIntroductionRemaining = max(
-    0,
-    (int) (
-        $videoUsage['remaining']
-        ?? 0
-    )
-);
 
 ?>
 
@@ -236,22 +239,42 @@ $liveIntroductionRemaining = max(
 
             <div
                 class="d-flex
-                    align-items-center
-                    gap-2
-                    mb-1">
+        align-items-center
+        gap-3
+        mb-1">
 
-                <span class="fw-semibold fs-18">
-                    <?= esc(
-                        $accountLabel
+                <?php if (
+                    $isPaid
+                    && $currentMembership['planCode'] !== ''
+                ): ?>
+
+                    <?= view(
+                        'Components/Membership/PlanLogo',
+                        [
+                            'planCode' =>
+                            $currentMembership['planCode'],
+
+                            'width' =>
+                            150,
+                        ]
                     ) ?>
-                </span>
+
+                <?php else: ?>
+
+                    <span class="fw-semibold fs-18">
+                        <?= esc(
+                            $accountLabel
+                        ) ?>
+                    </span>
+
+                <?php endif; ?>
 
                 <?php if ($isPaid): ?>
 
                     <span
                         class="badge
-                            bg-success-subtle
-                            text-body p-2">
+                bg-success-subtle
+                text-body p-2">
 
                         Active
                     </span>
@@ -260,8 +283,8 @@ $liveIntroductionRemaining = max(
 
                     <span
                         class="badge
-                            bg-secondary-subtle
-                            text-body p-2">
+                bg-secondary-subtle
+                text-body p-2">
 
                         Free
                     </span>
