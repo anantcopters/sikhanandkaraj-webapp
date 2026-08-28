@@ -1072,7 +1072,7 @@ $this->extend(
 $this->section('content');
 ?>
 
-<section class="py-3 py-lg-4">
+<section class="py-3 py-lg-3">
     <div class="container">
 
         <div
