@@ -563,12 +563,18 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
             }
         );
 
+        /*
+        * Logout must remain accessible even when the authenticated session
+        * has already expired.
+        *
+        * AuthenticationController::logout() safely destroys any remaining
+        * session state, so this route must not be protected by webAuth.
+        */
         $routes->post(
             'logout',
             'AuthenticationController::logout',
             [
                 'as' => 'web.logout',
-                'filter' => 'webAuth',
             ]
         );
 
