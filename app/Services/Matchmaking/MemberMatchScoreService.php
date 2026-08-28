@@ -360,12 +360,16 @@ final class MemberMatchScoreService
      * Ranking order:
      *
      * 1. Final Match Score
-     * 2. Partner Preference score
-     * 3. Trust score
-     * 4. Profile completion
-     * 5. Approved photo count
-     * 6. Newest member
-     * 7. Highest user ID
+     * 2. Trust score
+     * 3. Profile completion
+     * 4. Approved photo count
+     * 5. Newest member
+     * 6. Highest user ID
+     *
+     * Partner Preference is intentionally NOT an independent tie-breaker.
+     *
+     * It already contributes according to its configured Match Score weight and
+     * must not receive additional ranking influence outside that weighting.
      *
      * @param list<array<string, mixed>> $candidates
      *
@@ -394,26 +398,6 @@ final class MemberMatchScoreService
                     <=>
                     ((float) (
                         $left['match_score']
-                        ?? 0
-                    ));
-
-                if ($comparison !== 0) {
-                    return $comparison;
-                }
-
-                /*
-                 * Preference remains the strongest tie-breaker because
-                 * matrimonial relevance must outrank commercial/profile
-                 * presentation signals.
-                 */
-                $comparison =
-                    ((float) (
-                        $right['match_percentage']
-                        ?? 0
-                    ))
-                    <=>
-                    ((float) (
-                        $left['match_percentage']
                         ?? 0
                     ));
 

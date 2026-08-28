@@ -45,9 +45,14 @@ final class MemberSearchService
         $lifestyleService,
 
         /*
-        * Search uses the same Partner Preference algorithm as Dashboard.
+        * Partner Preference remains the single authority for calculating the
+        * viewer-specific preference percentage.
         *
-        * We must never implement a second preference-scoring algorithm here.
+        * IMPORTANT:
+        *
+        * Filtered Search does NOT use Partner Preference as candidate eligibility.
+        * The calculated percentage is supplied only as one weighted component of
+        * MemberMatchScoreService.
         */
         private readonly PartnerPreferenceMatchService
         $partnerPreferenceMatchService,
@@ -266,13 +271,11 @@ final class MemberSearchService
 
         /*
         * --------------------------------------------------------------------------
-        * Quick Link activity preset
+        * Existing result-collection preset
         * --------------------------------------------------------------------------
         *
-        * Activity Quick Links are not a separate Search implementation.
-        *
-        * They simply restrict the existing Search candidate query to the member IDs
-        * returned by the existing interaction service.
+        * Activity collections reuse their existing domain authorities rather than
+        * rebuilding shortlist/view/match rules inside Search.
         */
         $activity =
             $this->activity(
@@ -280,34 +283,37 @@ final class MemberSearchService
                     ?? null
             );
 
-        $activityMemberIds =
-            $this->activityMemberIds(
-                $viewerUserId,
-                $activity
-            );
-
-        /*
-        * null:
-        *      Normal Search. Do not apply an activity restriction.
-        *
-        * []:
-        *      Valid activity Search with no matching interaction records.
-        *
-        * [1, 2, 3]&#58;  *      Restrict normal Search to those existing interaction members.
-        */
         if ($activity !== '') {
-            /*
-            * candidate_ids restricts the database query.
-            */
             $filters['candidate_ids'] =
-                $activityMemberIds;
+                $this->activityMemberIds(
+                    $viewerUserId,
+                    $activity
+                );
 
-            /*
-            * Keep the logical preset in the normalized result state so sorting and
-            * pagination retain the same collection.
-            */
             $filters['activity'] =
                 $activity;
+        } elseif (
+            !$this->hasCandidateFilters(
+                $filters
+            )
+        ) {
+            /*
+            * Product rule:
+            *
+            * Basic/Advanced Search with no candidate criteria is the same collection
+            * as All Matches.
+            *
+            * MemberMatchmakingService remains the sole authority for:
+            *
+            * - Partner Preference compulsory eligibility;
+            * - configured minimum Partner Preference percentage.
+            *
+            * Search only lists/ranks the resulting candidate IDs.
+            */
+            $filters['candidate_ids'] =
+                $this->allMatchIds(
+                    $viewerUserId
+                );
         }
 
 
@@ -361,46 +367,33 @@ final class MemberSearchService
 
         if ($useMatchScoreRanking) {
             /*
-            * Apply the shared Partner Preference authority before final Match Score
-            * ranking.
+            * Search filters/activity restrictions have already determined candidate
+            * eligibility.
             *
-            * Search and Dashboard must not implement separate preference-scoring
-            * algorithms.
+            * Partner Preference is calculated exactly once here because Match Score
+            * uses match_percentage as one of its weighted components.
+            *
+            * scoreCandidatesForRanking() deliberately does NOT remove candidates
+            * failing compulsory Partner Preferences.
+            *
+            * All Matches/default Matches have already received their Partner
+            * Preference eligibility restriction through allMatchCandidateIds().
             */
             $resultRows =
                 $this->partnerPreferenceMatchService
-                ->scoreCandidates(
+                ->scoreCandidatesForRanking(
                     $viewerUserId,
                     $resultRows
                 );
 
             /*
-            * Search filters define candidate eligibility.
-            *
-            * Unlike the Dashboard "All Matches" collection, Search does not discard
-            * a candidate merely because the preference percentage is below the
-            * Dashboard minimum threshold.
-            *
-            * Match percentage influences ranking here.
-            *
-            * Compulsory preference failures remain represented by the existing
-            * PartnerPreferenceMatchService result and should be filtered according
-            * to that service's existing eligibility flag.
+            * MemberMatchScoreService is the single final ranking authority.
             */
-            $resultRows =
-                $this->partnerPreferenceMatchService
-                ->scoreCandidates(
-                    $viewerUserId,
-                    $resultRows
-                );
-
             $resultRows =
                 $this->matchScoreService
                 ->rankCandidates(
                     $resultRows
                 );
-
-
 
             $total =
                 count(
@@ -427,7 +420,8 @@ final class MemberSearchService
                 * self::PER_PAGE;
 
             /*
-            * Pagination occurs only after the complete deterministic ranking.
+            * Pagination occurs only after the complete deterministic Match Score
+            * ranking.
             */
             $resultRows =
                 array_slice(
@@ -435,8 +429,6 @@ final class MemberSearchService
                     $offset,
                     self::PER_PAGE
                 );
-
-
 
             $results['page'] =
                 $page;
@@ -890,7 +882,7 @@ final class MemberSearchService
             'Viewed by you',
 
             'new-profiles' =>
-            'New Profiles · Last 30 Days',
+            'New Matches',
 
             default =>
             '',
@@ -1609,6 +1601,84 @@ final class MemberSearchService
             );
 
         return $filters;
+    }
+
+    /**
+     * Determine whether the normalized Search request contains at least one
+     * candidate-selection criterion.
+     *
+     * Presentation/query-state values such as mode, sort, page and activity are
+     * deliberately not candidate filters.
+     *
+     * This method operates on normalized filters so invalid/inactive master IDs
+     * cannot prevent the no-filter Search fallback.
+     *
+     * @param array<string, mixed> $filters
+     */
+    private function hasCandidateFilters(
+        array $filters
+    ): bool {
+        $scalarFilters = [
+            'age_min',
+            'age_max',
+            'height_min_id',
+            'height_max_id',
+            'height_min_cm',
+            'height_max_cm',
+        ];
+
+        foreach ($scalarFilters as $key) {
+            if (
+                array_key_exists(
+                    $key,
+                    $filters
+                )
+                && $filters[$key] !== null
+            ) {
+                return true;
+            }
+        }
+
+        $arrayFilters = [
+            'marital_status_ids',
+            'country_ids',
+            'state_ids',
+            'photo_visibility',
+            'city_ids',
+            'community_ids',
+            'managed_by',
+            'education_ids',
+            'occupation_ids',
+            'employed_in',
+            'annual_income_ids',
+            'lifestyle_option_ids',
+        ];
+
+        foreach ($arrayFilters as $key) {
+            if (
+                isset($filters[$key])
+                && is_array(
+                    $filters[$key]
+                )
+                && $filters[$key] !== []
+            ) {
+                return true;
+            }
+        }
+
+        /*
+        * "0" is a valid Advanced Search value for Amritdhari = No, therefore
+        * truthiness must not be used here.
+        */
+        return in_array(
+            $filters['amritdhari']
+                ?? '',
+            [
+                '0',
+                '1',
+            ],
+            true
+        );
     }
 
     /**

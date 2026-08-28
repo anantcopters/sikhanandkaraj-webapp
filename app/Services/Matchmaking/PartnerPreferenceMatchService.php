@@ -88,15 +88,15 @@ final class PartnerPreferenceMatchService
     ) {}
 
     /**
-     * Score candidate rows against the member's Partner Preference configuration.
+     * Score candidates for matrimonial Match eligibility.
      *
-     * Preference state is resolved once for the viewer and candidate lifestyle
-     * selections are batch-loaded to avoid per-candidate database queries.
+     * This is the authoritative Partner Preference collection used by:
      *
-     * Active Lifestyle categories are also resolved once and reused while scoring
-     * the candidate collection.
+     * - Dashboard All Matches;
+     * - Dashboard New Matches;
+     * - default Matches.
      *
-     * Candidates that fail a compulsory preference are excluded.
+     * Candidates failing a compulsory Partner Preference are excluded here.
      *
      * @param list<array<string, mixed>> $candidates
      *
@@ -106,6 +106,65 @@ final class PartnerPreferenceMatchService
         int $userId,
         array $candidates
     ): array {
+        return $this->scoreCandidateCollection(
+            $userId,
+            $candidates,
+            true
+        );
+    }
+
+    /**
+     * Calculate Partner Preference percentages for Match Score ranking without
+     * using Partner Preference as candidate eligibility.
+     *
+     * Search filters are the eligibility authority for filtered Basic Search,
+     * Advanced Search and the independent Matches filters.
+     *
+     * Partner Preference is still calculated because it is one weighted
+     * component of MemberMatchScoreService.
+     *
+     * A candidate failing a compulsory Partner Preference therefore remains in
+     * the Search collection; the preference result only affects Match Score.
+     *
+     * @param list<array<string, mixed>> $candidates
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function scoreCandidatesForRanking(
+        int $userId,
+        array $candidates
+    ): array {
+        return $this->scoreCandidateCollection(
+            $userId,
+            $candidates,
+            false
+        );
+    }
+
+    /**
+     * Apply the existing Partner Preference algorithm to a candidate collection.
+     *
+     * The scoring implementation is shared deliberately so Dashboard/Matches and
+     * Search can never develop separate Partner Preference calculations.
+     *
+     * $enforceCompulsory:
+     *
+     * true
+     *     Partner Preference determines matrimonial Match eligibility.
+     *
+     * false
+     *     Partner Preference is scoring context only. Search filters determine
+     *     candidate eligibility.
+     *
+     * @param list<array<string, mixed>> $candidates
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function scoreCandidateCollection(
+        int $userId,
+        array $candidates,
+        bool $enforceCompulsory
+    ): array {
         if (
             $userId <= 0
             || $candidates === []
@@ -114,9 +173,8 @@ final class PartnerPreferenceMatchService
         }
 
         /*
-       
-        *
-        * snapshotForUser() now records its own logical DB groups.
+        * Resolve the viewer's Partner Preference configuration once for the
+        * complete candidate collection.
         */
         $snapshot =
             $this->snapshotForUser(
@@ -124,9 +182,10 @@ final class PartnerPreferenceMatchService
             );
 
         /*
-     * Candidate IDs are prepared in memory before the single batch Lifestyle
-     * lookup.
-     */
+        * Candidate Lifestyle selections are batch-loaded.
+        *
+        * Do not introduce per-candidate selectedIdsForUser() calls here.
+        */
         $candidateUserIds =
             array_values(
                 array_unique(
@@ -149,13 +208,6 @@ final class PartnerPreferenceMatchService
                 )
             );
 
-        /*
-        * Candidate Lifestyle selections are batch-loaded for the complete candidate
-        * collection.
-        *
-        * Do not replace this with a per-candidate selectedIdsForUser() lookup because
-        * that would introduce an N+1 query pattern.
-        */
         $candidateLifestyleMap =
             $this
             ->memberLifestyleOptionModel
@@ -164,18 +216,13 @@ final class PartnerPreferenceMatchService
             );
 
         /*
-        * Active Lifestyle categories are common master data for the entire candidate
-        * collection.
-        *
-        * Resolve them once and reuse the same authoritative collection while scoring
-        * each candidate to avoid per-candidate master-data queries.
+        * Active Lifestyle categories are common master data for the complete
+        * collection and are therefore resolved once.
         */
         $activeLifestyleCategories =
             $this
             ->lifestyleCategoryModel
             ->activeOrdered();
-
-
 
         $scored = [];
 
@@ -195,10 +242,8 @@ final class PartnerPreferenceMatchService
                 ?? [];
 
             /*
-         * Existing Partner Preference authority.
-         *
-         * Do not duplicate individual preference rules in Search.
-         */
+            * Reuse the single existing Partner Preference algorithm.
+            */
             $score =
                 $this->scoreCandidate(
                     $snapshot,
@@ -207,15 +252,13 @@ final class PartnerPreferenceMatchService
                 );
 
             /*
-         * Dashboard/Search matching must continue to honour compulsory Partner
-         * Preferences.
-         *
-         * scoreProfile() intentionally behaves differently because Full Profile
-         * still needs to display the comparison.
-         */
+            * Dashboard/default Matches enforce compulsory preferences.
+            *
+            * Filtered Search deliberately does not.
+            */
             if (
-                $score['passesCompulsory']
-                !== true
+                $enforceCompulsory
+                && $score['passesCompulsory'] !== true
             ) {
                 continue;
             }
@@ -229,58 +272,20 @@ final class PartnerPreferenceMatchService
             $candidate['total_preferences'] =
                 $score['total'];
 
+            /*
+            * Keep the result available to internal consumers without turning it
+            * into Search eligibility.
+            */
+            $candidate['passes_compulsory_preferences'] =
+                $score['passesCompulsory'] === true;
+
             $scored[] =
                 $candidate;
         }
 
-
-
-        /*
-     * Highest Partner Preference match first.
-     *
-     * Preserve created_at ordering when two candidates have the same
-     * percentage.
-     *
-     * MemberMatchScoreService subsequently performs the final commercial/trust
-     * ranking required by Membership rules.
-     */
-        usort(
-            $scored,
-            static function (
-                array $first,
-                array $second
-            ): int {
-                $percentageComparison =
-                    (int) (
-                        $second['match_percentage']
-                        ?? 0
-                    )
-                    <=>
-                    (int) (
-                        $first['match_percentage']
-                        ?? 0
-                    );
-
-                if ($percentageComparison !== 0) {
-                    return $percentageComparison;
-                }
-
-                return strcmp(
-                    (string) (
-                        $second['created_at']
-                        ?? ''
-                    ),
-                    (string) (
-                        $first['created_at']
-                        ?? ''
-                    )
-                );
-            }
+        return array_values(
+            $scored
         );
-
-
-
-        return $scored;
     }
 
     /**

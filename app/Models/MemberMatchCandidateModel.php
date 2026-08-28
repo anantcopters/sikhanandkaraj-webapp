@@ -903,6 +903,19 @@ final class MemberMatchCandidateModel extends Model
             'bd.eating_habit_id',
             'bd.physical_status_id',
             'bd.number_of_children',
+
+            /*
+            * Required by:
+            *
+            * - Advanced Search Amritdhari filtering;
+            * - Partner Preference percentage calculation;
+            * - final Match Score ranking.
+            *
+            * Keep this in the shared candidate projection so Search and Dashboard
+            * consume the same candidate value.
+            */
+            'bd.is_amritdhari',
+
             'bd.country_id',
             'bd.state_id',
             'bd.city_id',
