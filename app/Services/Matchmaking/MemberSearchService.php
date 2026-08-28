@@ -1470,6 +1470,15 @@ final class MemberSearchService
             return $filters;
         }
 
+        /*
+        * Amritdhari is an Advanced Search candidate filter.
+        *
+        * Keep the normalized string value because both "0" and "1" are valid
+        * selections and must remain distinguishable from an unselected value.
+        */
+        $filters['amritdhari'] =
+            $amritdhari;
+
         $filters['community_ids'] =
             $this->validatedMasterIds(
                 $input['community_ids']

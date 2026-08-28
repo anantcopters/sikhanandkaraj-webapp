@@ -776,6 +776,27 @@ final class SearchController extends BaseController
                     )
             ),
 
+            /*
+            * Advanced Search Amritdhari filter.
+            *
+            * Keep this as a scalar because:
+            *
+            * ''  = Any
+            * '1' = Yes
+            * '0' = No
+            *
+            * In particular, do not use truthiness because "0" is a valid
+            * Search criterion.
+            */
+            'amritdhari' =>
+            trim(
+                (string)
+                $this->request
+                    ->getGet(
+                        'amritdhari'
+                    )
+            ),
+
             'sort' =>
             trim(
                 (string)
