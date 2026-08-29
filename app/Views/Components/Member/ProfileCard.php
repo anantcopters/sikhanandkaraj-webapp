@@ -3,13 +3,19 @@
 declare(strict_types=1);
 
 /**
- * Search profile-card UI variables.
+ * Search / Match profile-card presentation.
  *
- * Eligibility, blocking, reporting, privacy, Interest state, account type,
- * verification state and photo authorization are resolved before reaching
- * this view.
+ * All business decisions are resolved before this component:
  *
- * @var array<string, mixed> $profile
+ * - member eligibility;
+ * - photograph visibility;
+ * - Interest state;
+ * - membership capabilities;
+ * - shortlist relationship state.
+ *
+ * The component must never inspect plan codes itself.
+ *
+ * @var array<string,mixed> $profile
  */
 
 $profile =
@@ -50,16 +56,92 @@ $profileUrl = trim(
     )
 );
 
-if ($profileUrl === '') {
-    $profileUrl = '#';
-}
-
 $interestUrl = trim(
     (string) (
         $profile['interestUrl']
         ?? ''
     )
 );
+
+$shortlistUrl = trim(
+    (string) (
+        $profile['shortlistUrl']
+        ?? ''
+    )
+);
+
+$reportUrl = trim(
+    (string) (
+        $profile['reportUrl']
+        ?? ''
+    )
+);
+
+$blockUrl = trim(
+    (string) (
+        $profile['blockUrl']
+        ?? ''
+    )
+);
+
+$canViewFullProfile =
+    (
+        $profile['canViewFullProfile']
+        ?? false
+    ) === true;
+
+$canShortlist =
+    (
+        $profile['canShortlist']
+        ?? false
+    ) === true;
+
+$canReport =
+    (
+        $profile['canReport']
+        ?? false
+    ) === true;
+
+$canBlock =
+    (
+        $profile['canBlock']
+        ?? false
+    ) === true;
+
+$isShortlisted =
+    (
+        $profile['isShortlisted']
+        ?? false
+    ) === true;
+
+$reportedProfileStatus = mb_strtoupper(
+    trim(
+        (string) (
+            $profile['reportedProfileStatus']
+            ?? ''
+        )
+    )
+);
+
+$reportedProfileStatusLabel = match ($reportedProfileStatus) {
+    'OPEN' =>
+    'Open',
+
+    'REVIEWED' =>
+    'Reviewed',
+
+    'DISMISSED' =>
+    'Dismissed',
+
+    'ACTION_TAKEN' =>
+    'Action Taken',
+
+    default =>
+    '',
+};
+
+$hasReportedProfile =
+    $reportedProfileStatusLabel !== '';
 
 $age =
     is_numeric(
@@ -79,28 +161,10 @@ $height = trim(
     )
 );
 
-$city = trim(
-    (string) (
-        $profile['city']
-        ?? ''
-    )
-);
-
-$state = trim(
-    (string) (
-        $profile['state']
-        ?? ''
-    )
-);
-
 $location = trim(
     (string) (
         $profile['location']
-        ?? (
-            $city !== ''
-            ? $city
-            : $state
-        )
+        ?? ''
     )
 );
 
@@ -118,12 +182,6 @@ $activity = trim(
     )
 );
 
-/*
- * Account type comes from MemberProfilePresentationService.
- *
- * Do not hardcode a fallback in the view. Missing backend data should not
- * silently display an incorrect account type.
- */
 $accountType = trim(
     (string) (
         $profile['accountType']
@@ -131,10 +189,15 @@ $accountType = trim(
     )
 );
 
-/*
- * The shared presentation service decides whether to use the sentence or
- * compact professional-summary format.
- */
+$accountTypeCode = mb_strtoupper(
+    trim(
+        (string) (
+            $profile['accountCode']
+            ?? ''
+        )
+    )
+);
+
 $professionalSummary = trim(
     (string) (
         $profile['professionalSummary']
@@ -142,10 +205,6 @@ $professionalSummary = trim(
     )
 );
 
-/*
- * Verification values are normalized to booleans by the backend
- * presentation service.
- */
 $verification =
     isset($profile['verification'])
     && is_array(
@@ -162,7 +221,7 @@ $interestRelationship =
     ? $profile['interestRelationship']
     : [];
 
-$interestState = strtoupper(
+$interestState = mb_strtoupper(
     trim(
         (string) (
             $interestRelationship['state']
@@ -177,10 +236,6 @@ $canShowInterest =
         ?? false
     ) === true;
 
-/*
- * Relationship status is intentionally coarse. Internal member IDs and
- * relationship implementation details are never exposed by the card.
- */
 $relationshipLabel =
     match ($interestState) {
         'PENDING_SENT' =>
@@ -201,22 +256,15 @@ $relationshipLabel =
         '',
     };
 
-/*
- * Keep Interest badge colours consistent with ProfileInterestCard.
- *
- * Pending  = warning
- * Accepted = success
- * Declined = danger
- */
 $relationshipBadgeClass =
     match ($interestState) {
         'ACCEPTED_SENT',
         'ACCEPTED_RECEIVED' =>
-        'bg-success-subtle text-success',
+        'bg-success-subtle text-body',
 
         'DECLINED_SENT',
         'DECLINED_RECEIVED' =>
-        'bg-danger-subtle text-danger',
+        'bg-danger-subtle text-body',
 
         'PENDING_SENT',
         'PENDING_RECEIVED' =>
@@ -225,6 +273,27 @@ $relationshipBadgeClass =
         default =>
         'bg-light text-body',
     };
+
+/*
+ * Modal IDs use the public profile reference.
+ *
+ * Numeric database member IDs are never exposed.
+ */
+$safeModalReference =
+    preg_replace(
+        '/[^A-Za-z0-9_-]/',
+        '',
+        $reference
+    )
+    ?? '';
+
+$reportModalId =
+    'profileCardReport'
+    . $safeModalReference;
+
+$blockModalId =
+    'profileCardBlock'
+    . $safeModalReference;
 ?>
 
 <article
@@ -238,70 +307,50 @@ $relationshipBadgeClass =
             class="d-flex flex-column
                 flex-sm-row gap-3">
 
-            <!-- Profile photo, account type and professional summary -->
             <div
                 class="d-flex flex-column
-        align-items-center
-        flex-shrink-0"
+                    align-items-center
+                    flex-shrink-0"
                 style="width: 160px;">
 
-                <a
-                    href="<?= esc(
-                                $profileUrl,
-                                'attr'
-                            ) ?>"
-                    class="text-decoration-none">
+                <div class="member-profile-thumbnail">
 
-                    <div class="member-profile-thumbnail">
+                    <img
+                        src="<?= esc(
+                                    $image,
+                                    'attr'
+                                ) ?>"
+                        alt="<?= esc(
+                                    $name
+                                        . ' profile photo',
+                                    'attr'
+                                ) ?>"
+                        loading="lazy">
 
-                        <img
-                            src="<?= esc(
-                                        $image,
-                                        'attr'
-                                    ) ?>"
-                            alt="<?= esc(
-                                        $name
-                                            . ' profile photo',
-                                        'attr'
-                                    ) ?>"
-                            loading="lazy">
+                </div>
 
-                    </div>
+                <div
+                    class="mt-1
+        d-flex
+        justify-content-center">
 
-                </a>
+                    <?= view(
+                        'Components/Membership/PlanLogo',
+                        [
+                            'planCode' =>
+                            $accountTypeCode,
 
-                <?php if (
-                    $accountType !== ''
-                ): ?>
+                            'width' =>
+                            180,
+                        ]
+                    ) ?>
 
-                    <span
-                        class="badge rounded
-                bg-primary-subtle
-                text-primary
-                border border-primary
-                border-opacity-25
-                mt-3 px-2 py-2 fs-12">
-
-                        <i
-                            class="ri-vip-crown-line
-                    me-1 fs-14"
-                            aria-hidden="true">
-                        </i>
-
-                        <?= esc(
-                            $accountType
-                        ) ?>
-
-                    </span>
-
-                <?php endif; ?>
+                </div>
 
             </div>
 
-            <!-- Profile summary -->
             <div class="flex-grow-1 min-w-0">
 
-                <!-- Name, reference and account type -->
                 <div
                     class="d-flex
                         align-items-start
@@ -315,33 +364,17 @@ $relationshipBadgeClass =
                                 fw-semibold mb-1
                                 text-truncate">
 
-                            <a
-                                href="<?= esc(
-                                            $profileUrl,
-                                            'attr'
-                                        ) ?>"
-                                class="text-body
-                                    text-decoration-none">
-
-                                <?= esc(
-                                    $name
-                                ) ?>
-
-                            </a>
+                            <?= esc($name) ?>
 
                         </h3>
 
-                        <?php if (
-                            $reference !== ''
-                        ): ?>
+                        <?php if ($reference !== ''): ?>
 
                             <div
                                 class="text-muted
                                     fs-13">
 
-                                <?= esc(
-                                    $reference
-                                ) ?>
+                                <?= esc($reference) ?>
 
                             </div>
 
@@ -349,32 +382,62 @@ $relationshipBadgeClass =
 
                     </div>
 
-                    <?php if (
-                        $relationshipLabel !== ''
-                    ): ?>
+                    <div
+                        class="d-flex
+                            align-items-center">
 
-                        <span
-                            class="badge <?= esc(
-                                                $relationshipBadgeClass,
-                                                'attr'
-                                            ) ?>
-            border px-2 py-2
-            flex-shrink-0">
+                        <?php if (
+                            $reference !== ''
+                            && (
+                                $canReport
+                                || $canBlock
+                                || $canShortlist
+                                || $isShortlisted
+                            )
+                        ): ?>
 
-                            <?= esc(
-                                $relationshipLabel
+                            <?= view(
+                                'Components/Member/ProfileActions',
+                                [
+                                    'profileReference' =>
+                                    $reference,
+
+                                    'isShortlisted' =>
+                                    $isShortlisted,
+
+                                    'canShortlist' =>
+                                    $canShortlist,
+
+                                    'canReport' =>
+                                    $canReport,
+
+                                    'canBlock' =>
+                                    $canBlock,
+
+                                    'hasReportedProfile' =>
+                                    $hasReportedProfile,
+
+                                    'reportedProfileStatusLabel' =>
+                                    $reportedProfileStatusLabel,
+
+                                    'shortlistUrl' =>
+                                    $shortlistUrl,
+
+                                    'reportModalId' =>
+                                    $reportModalId,
+
+                                    'blockModalId' =>
+                                    $blockModalId,
+                                ]
                             ) ?>
 
-                        </span>
+                        <?php endif; ?>
 
-                    <?php endif; ?>
+                    </div>
 
                 </div>
 
-                <!-- Privacy-safe member activity -->
-                <?php if (
-                    $activity !== ''
-                ): ?>
+                <?php if ($activity !== ''): ?>
 
                     <div
                         class="d-flex
@@ -387,17 +450,12 @@ $relationshipBadgeClass =
                             aria-hidden="true">
                         </i>
 
-                        <span>
-                            <?= esc(
-                                $activity
-                            ) ?>
-                        </span>
+                        <?= esc($activity) ?>
 
                     </div>
 
                 <?php endif; ?>
 
-                <!-- Basic member summary -->
                 <div
                     class="d-flex flex-wrap
                         align-items-center
@@ -412,40 +470,24 @@ $relationshipBadgeClass =
                         <span>
                             <?= esc(
                                 (string) $age
-                            ) ?>
-                            yrs
+                            ) ?> yrs
                         </span>
 
                     <?php endif; ?>
 
-                    <?php if (
-                        $height !== ''
-                    ): ?>
+                    <?php if ($height !== ''): ?>
 
-                        <?php if (
-                            $age !== null
-                            && $age > 0
-                        ): ?>
-
-                            <span aria-hidden="true">
-                                ·
-                            </span>
-
-                        <?php endif; ?>
+                        <span aria-hidden="true">·</span>
 
                         <span>
-                            <?= esc(
-                                $height
-                            ) ?>
+                            <?= esc($height) ?>
                         </span>
 
                     <?php endif; ?>
 
                 </div>
 
-                <?php if (
-                    $location !== ''
-                ): ?>
+                <?php if ($location !== ''): ?>
 
                     <p
                         class="d-flex
@@ -455,61 +497,78 @@ $relationshipBadgeClass =
 
                         <i
                             class="ri-map-pin-line
-                                text-primary
-                                flex-shrink-0"
+                                text-primary"
                             aria-hidden="true">
                         </i>
 
-                        <span>
-                            <?= esc(
-                                $location
-                            ) ?>
-                        </span>
+                        <?= esc($location) ?>
 
                     </p>
 
                 <?php endif; ?>
 
-                <?php if (
-                    $maritalStatus !== ''
-                ): ?>
+                <?php if ($maritalStatus !== ''): ?>
 
                     <p class="fs-13 mb-3">
-
-                        <?= esc(
-                            $maritalStatus
-                        ) ?>
-
+                        <?= esc($maritalStatus) ?>
                     </p>
 
                 <?php endif; ?>
 
-                <!-- Profile actions -->
                 <div
                     class="d-flex flex-wrap
                         align-items-center gap-2">
 
-                    <a
-                        href="<?= esc(
-                                    $profileUrl,
-                                    'attr'
-                                ) ?>"
-                        class="btn
-                            btn-outline-primary
-                            btn-sm
-                            d-inline-flex
-                            align-items-center
-                            justify-content-center
-                            gap-1">
+                    <?php if (
+                        $canViewFullProfile
+                        && $profileUrl !== ''
+                    ): ?>
 
-                        <i
-                            class="ri-eye-line"
-                            aria-hidden="true">
-                        </i>
+                        <a
+                            href="<?= esc(
+                                        $profileUrl,
+                                        'attr'
+                                    ) ?>"
+                            class="btn
+                                btn-outline-primary
+                                btn-sm
+                                d-inline-flex
+                                align-items-center
+                                gap-1">
 
-                        View Profile
+                            <i
+                                class="ri-eye-line"
+                                aria-hidden="true">
+                            </i>
 
-                    </a>
+                            View Profile
+
+                        </a>
+
+                    <?php else: ?>
+
+                        <a
+                            href="<?= route_to(
+                                        'web.account.settings.section',
+                                        'plans'
+                                    ) ?>"
+                            class="btn
+                                btn-outline-primary
+                                btn-sm
+                                d-inline-flex
+                                align-items-center fs-12
+                                gap-1">
+
+                            <i
+                                class="ri-lock-2-line"
+                                aria-hidden="true">
+                            </i>
+
+                            UPGRADE to View Profile
+
+                        </a>
+
+                    <?php endif; ?>
 
                     <?php if (
                         $canShowInterest
@@ -523,6 +582,10 @@ $relationshipBadgeClass =
                                         'attr'
                                     ) ?>"
                             data-member-interest-form>
+                            <input
+                                type="hidden"
+                                name="action_source"
+                                value="card">
 
                             <?= csrf_field() ?>
 
@@ -532,13 +595,9 @@ $relationshipBadgeClass =
                                     btn-sm
                                     d-inline-flex
                                     align-items-center
-                                    justify-content-center
-                                    gap-2">
+                                    gap-2 fs-12">
 
                                 <span
-                                    class="d-inline-flex
-                                        align-items-center
-                                        gap-1"
                                     data-member-interest-label>
 
                                     <i
@@ -559,7 +618,6 @@ $relationshipBadgeClass =
                                     <span
                                         class="spinner-border
                                             spinner-border-sm"
-                                        role="status"
                                         aria-hidden="true">
                                     </span>
 
@@ -575,35 +633,78 @@ $relationshipBadgeClass =
 
                 </div>
 
+                <?php if (
+                    $relationshipLabel !== ''
+                ): ?>
+
+                    <div class="mt-2">
+
+                        <span
+                            class="badge <?= esc(
+                                                $relationshipBadgeClass,
+                                                'attr'
+                                            ) ?>
+                border p-2">
+
+                            <?= esc(
+                                $relationshipLabel
+                            ) ?>
+
+                        </span>
+
+                    </div>
+
+                <?php endif; ?>
+
             </div>
 
-
         </div>
+
         <?php if (
             $professionalSummary !== ''
         ): ?>
 
+            <div
+                class="d-flex
+                    align-items-center mt-3">
 
+                <div
+                    class="avatar-xs
+                        flex-shrink-0 me-2">
 
-            <div class="d-flex align-items-center mt-3">
-                <div class="flex-shrink-0 me-1">
-                    <div class="avatar-xs flex-shrink-0 me-1">
-                        <span class="avatar-title bg-dark-subtle rounded-circle shadow">
-                            <i class="ri-briefcase-4-line fs-16 align-middle text-primary"></i>
-                        </span>
-                    </div>
+                    <span
+                        class="avatar-title
+                            bg-dark-subtle
+                            rounded-circle shadow">
+
+                        <i
+                            class="ri-briefcase-4-line
+                                fs-16 text-primary"
+                            aria-hidden="true">
+                        </i>
+
+                    </span>
 
                 </div>
+
                 <div class="flex-grow-1">
-                    <h5 class="fs-13 mb-0 fw-semibold"><?= esc(
-                                                            $professionalSummary
-                                                        ) ?>
+
+                    <h5
+                        class="fs-13
+                            mb-0 fw-semibold">
+
+                        <?= esc(
+                            $professionalSummary
+                        ) ?>
+
                     </h5>
+
                 </div>
+
             </div>
 
-
         <?php endif; ?>
+
     </div>
 
     <?= view(
@@ -615,3 +716,75 @@ $relationshipBadgeClass =
     ) ?>
 
 </article>
+
+<?php if (
+    $canReport
+    && !$hasReportedProfile
+    && $reportUrl !== ''
+): ?>
+
+    <?= view(
+        'Pages/Profile/_ReportProfileModal',
+        [
+            'modalId' =>
+            $reportModalId,
+
+            'viewedProfileReference' =>
+            $reference,
+
+            'actionUrl' =>
+            $reportUrl,
+
+            'actionSource' =>
+            'card',
+
+            'reportCaptcha' =>
+            $reportCaptcha
+                ?? '',
+
+            /*
+             * Cards are listing components.
+             *
+             * Validation errors are returned through the
+             * card action flow rather than persisted in
+             * one arbitrary card on a multi-card page.
+             */
+            'reportValidationErrors' =>
+            [],
+
+            'reopenReportModal' =>
+            false,
+        ]
+    ) ?>
+
+<?php endif; ?>
+
+<?php if (
+    $canBlock
+    && $blockUrl !== ''
+): ?>
+
+    <?= view(
+        'Components/Member/ProfileBlockModal',
+        [
+            'modalId' =>
+            $blockModalId,
+
+            'profileReference' =>
+            $reference,
+
+            'actionUrl' =>
+            $blockUrl,
+
+            'actionSource' =>
+            'card',
+
+            'validationErrors' =>
+            [],
+
+            'reopenModal' =>
+            false,
+        ]
+    ) ?>
+
+<?php endif; ?>

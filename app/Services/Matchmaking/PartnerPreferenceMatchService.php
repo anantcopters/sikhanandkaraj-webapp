@@ -88,11 +88,15 @@ final class PartnerPreferenceMatchService
     ) {}
 
     /**
-     * Score all candidate rows against one member's
-     * Partner Preference configuration.
+     * Score candidates for matrimonial Match eligibility.
      *
-     * Candidates that fail a compulsory preference are
-     * excluded from the returned collection.
+     * This is the authoritative Partner Preference collection used by:
+     *
+     * - Dashboard All Matches;
+     * - Dashboard New Matches;
+     * - default Matches.
+     *
+     * Candidates failing a compulsory Partner Preference are excluded here.
      *
      * @param list<array<string, mixed>> $candidates
      *
@@ -102,6 +106,65 @@ final class PartnerPreferenceMatchService
         int $userId,
         array $candidates
     ): array {
+        return $this->scoreCandidateCollection(
+            $userId,
+            $candidates,
+            true
+        );
+    }
+
+    /**
+     * Calculate Partner Preference percentages for Match Score ranking without
+     * using Partner Preference as candidate eligibility.
+     *
+     * Search filters are the eligibility authority for filtered Basic Search,
+     * Advanced Search and the independent Matches filters.
+     *
+     * Partner Preference is still calculated because it is one weighted
+     * component of MemberMatchScoreService.
+     *
+     * A candidate failing a compulsory Partner Preference therefore remains in
+     * the Search collection; the preference result only affects Match Score.
+     *
+     * @param list<array<string, mixed>> $candidates
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function scoreCandidatesForRanking(
+        int $userId,
+        array $candidates
+    ): array {
+        return $this->scoreCandidateCollection(
+            $userId,
+            $candidates,
+            false
+        );
+    }
+
+    /**
+     * Apply the existing Partner Preference algorithm to a candidate collection.
+     *
+     * The scoring implementation is shared deliberately so Dashboard/Matches and
+     * Search can never develop separate Partner Preference calculations.
+     *
+     * $enforceCompulsory:
+     *
+     * true
+     *     Partner Preference determines matrimonial Match eligibility.
+     *
+     * false
+     *     Partner Preference is scoring context only. Search filters determine
+     *     candidate eligibility.
+     *
+     * @param list<array<string, mixed>> $candidates
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function scoreCandidateCollection(
+        int $userId,
+        array $candidates,
+        bool $enforceCompulsory
+    ): array {
         if (
             $userId <= 0
             || $candidates === []
@@ -110,31 +173,40 @@ final class PartnerPreferenceMatchService
         }
 
         /*
-        * Load the member's Partner Preference configuration once.
-        *
-        * The same snapshot is then reused for every candidate rather
-        * than querying Partner Preferences for every profile.
+        * Resolve the viewer's Partner Preference configuration once for the
+        * complete candidate collection.
         */
-        $snapshot = $this->snapshotForUser(
-            $userId
-        );
+        $snapshot =
+            $this->snapshotForUser(
+                $userId
+            );
 
-        $candidateUserIds = array_values(
-            array_unique(
-                array_filter(
-                    array_map(
-                        static fn(array $candidate): int =>
-                        (int) (
-                            $candidate['id']
-                            ?? 0
+        /*
+        * Candidate Lifestyle selections are batch-loaded.
+        *
+        * Do not introduce per-candidate selectedIdsForUser() calls here.
+        */
+        $candidateUserIds =
+            array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            static fn(
+                                array $candidate
+                            ): int =>
+                            (int) (
+                                $candidate['id']
+                                ?? 0
+                            ),
+                            $candidates
                         ),
-                        $candidates
-                    ),
-                    static fn(int $candidateId): bool =>
-                    $candidateId > 0
+                        static fn(
+                            int $candidateId
+                        ): bool =>
+                        $candidateId > 0
+                    )
                 )
-            )
-        );
+            );
 
         $candidateLifestyleMap =
             $this
@@ -143,6 +215,15 @@ final class PartnerPreferenceMatchService
                 $candidateUserIds
             );
 
+        /*
+        * Active Lifestyle categories are common master data for the complete
+        * collection and are therefore resolved once.
+        */
+        $activeLifestyleCategories =
+            $this
+            ->lifestyleCategoryModel
+            ->activeOrdered();
+
         $scored = [];
 
         foreach ($candidates as $candidate) {
@@ -150,31 +231,34 @@ final class PartnerPreferenceMatchService
                 continue;
             }
 
-            $candidateId = (int) (
-                $candidate['id']
-                ?? 0
-            );
+            $candidateId =
+                (int) (
+                    $candidate['id']
+                    ?? 0
+                );
 
             $candidate['lifestyle_option_ids'] =
                 $candidateLifestyleMap[$candidateId]
                 ?? [];
 
-            $score = $this->scoreCandidate(
-                $snapshot,
-                $candidate
-            );
+            /*
+            * Reuse the single existing Partner Preference algorithm.
+            */
+            $score =
+                $this->scoreCandidate(
+                    $snapshot,
+                    $candidate,
+                    $activeLifestyleCategories
+                );
 
             /*
-            * Dashboard/Search matching must continue to honour
-            * compulsory Partner Preferences.
+            * Dashboard/default Matches enforce compulsory preferences.
             *
-            * scoreProfile() intentionally does not remove a profile
-            * when this is false because Profile View still needs to
-            * display how that profile compares.
+            * Filtered Search deliberately does not.
             */
             if (
-                $score['passesCompulsory']
-                !== true
+                $enforceCompulsory
+                && $score['passesCompulsory'] !== true
             ) {
                 continue;
             }
@@ -188,73 +272,45 @@ final class PartnerPreferenceMatchService
             $candidate['total_preferences'] =
                 $score['total'];
 
-            $scored[] = $candidate;
+            /*
+            * Keep individual configured criterion results available to internal
+            * presentation consumers.
+            *
+            * Display labels deliberately remain outside the matching engine.
+            */
+            $candidate['match_criteria'] =
+                $score['criteria'];
+
+            /*
+            * Keep the result available to internal consumers without turning it
+            * into Search eligibility.
+            */
+            $candidate['passes_compulsory_preferences'] =
+                $score['passesCompulsory'] === true;
+
+            $scored[] =
+                $candidate;
         }
 
-        /*
-        * Highest Partner Preference match first.
-        *
-        * Preserve the existing created_at ordering when two
-        * candidates have the same match percentage.
-        */
-        usort(
-            $scored,
-            static function (
-                array $first,
-                array $second
-            ): int {
-                $percentageComparison =
-                    (int) (
-                        $second['match_percentage']
-                        ?? 0
-                    )
-                    <=>
-                    (int) (
-                        $first['match_percentage']
-                        ?? 0
-                    );
-
-                if ($percentageComparison !== 0) {
-                    return $percentageComparison;
-                }
-
-                return strcmp(
-                    (string) (
-                        $second['created_at']
-                        ?? ''
-                    ),
-                    (string) (
-                        $first['created_at']
-                        ?? ''
-                    )
-                );
-            }
+        return array_values(
+            $scored
         );
-
-        return $scored;
     }
 
     /**
+     * Score one candidate using already-resolved preference and master state.
+     *
+     * This method intentionally performs no master-data lookup while iterating the
+     * candidate collection.
+     *
      * @param array<string, mixed> $snapshot
      * @param array<string, mixed> $candidate
-     *
-     * @return array{
-     *     percentage:int,
-     *     matched:int,
-     *     total:int,
-     *     configured:int,
-     *     available:int,
-     *     passesCompulsory:bool,
-     *     criteria:list<array{
-     *         key:string,
-     *         matched:bool,
-     *         compulsory:bool
-     *     }>
-     * }
+     * @param list<array<string, mixed>> $activeLifestyleCategories
      */
     private function scoreCandidate(
         array $snapshot,
-        array $candidate
+        array $candidate,
+        array $activeLifestyleCategories
     ): array {
         $basic = $snapshot['basic'];
 
@@ -652,10 +708,7 @@ final class PartnerPreferenceMatchService
             )
             : [];
 
-        $activeLifestyleCategories =
-            $this
-            ->lifestyleCategoryModel
-            ->activeOrdered();
+
 
         foreach (
             $activeLifestyleCategories
@@ -881,9 +934,21 @@ final class PartnerPreferenceMatchService
             )
             : [];
 
+        /*
+        * Full Profile scores one candidate only, so one master read is appropriate.
+        *
+        * The collection optimization belongs to scoreCandidates(); Full Profile does
+        * not need a separate batching abstraction.
+        */
+        $activeLifestyleCategories =
+            $this
+            ->lifestyleCategoryModel
+            ->activeOrdered();
+
         return $this->scoreCandidate(
             $snapshot,
-            $candidate
+            $candidate,
+            $activeLifestyleCategories
         );
     }
 
@@ -920,17 +985,28 @@ final class PartnerPreferenceMatchService
         );
 
         /*
-     * Candidate values are irrelevant for setup progress.
-     *
-     * scoreCandidate() still builds every supported criterion,
-     * allowing us to dynamically know both:
-     *
-     * - how many criteria currently exist;
-     * - how many the member has configured.
-     */
+        * Candidate values are irrelevant for setup progress.
+        *
+        * scoreCandidate() still builds every supported criterion,
+        * allowing us to dynamically know both:
+        *
+        * - how many criteria currently exist;
+        * - how many the member has configured.
+        *
+        
+        *
+        * Lifestyle categories are resolved outside scoreCandidate() so that
+        * scoreCandidate() itself remains database-free.
+        */
+        $activeLifestyleCategories =
+            $this
+            ->lifestyleCategoryModel
+            ->activeOrdered();
+
         $score = $this->scoreCandidate(
             $snapshot,
-            []
+            [],
+            $activeLifestyleCategories
         );
 
         $configured = max(
@@ -997,6 +1073,7 @@ final class PartnerPreferenceMatchService
             ?? 0
         );
 
+
         $religious = $this
             ->religiousPreferenceModel
             ->findForUser($userId)
@@ -1011,6 +1088,8 @@ final class PartnerPreferenceMatchService
             ->locationPreferenceModel
             ->findForUser($userId)
             ?? [];
+
+
 
         $religiousId = (int) (
             $religious['id']
@@ -1080,48 +1159,184 @@ final class PartnerPreferenceMatchService
             ];
         }
 
+
+
+        /*
+ 
+ *
+ * Resolve the existing selection-model reads before constructing the snapshot
+ * so their logical groups can be measured.
+ *
+ * Business behaviour is unchanged.
+ */
+
+        /*
+ * Basic multi-select preferences.
+ */
+        $motherTongues =
+            $basicPreferenceId > 0
+            ? $this
+            ->motherTongueModel
+            ->idsForPreference(
+                $basicPreferenceId
+            )
+            : [];
+
+        $eatingHabits =
+            $basicPreferenceId > 0
+            ? $this
+            ->eatingHabitModel
+            ->idsForPreference(
+                $basicPreferenceId
+            )
+            : [];
+
+        $drinkingHabits =
+            $basicPreferenceId > 0
+            ? $this
+            ->drinkingHabitModel
+            ->idsForPreference(
+                $basicPreferenceId
+            )
+            : [];
+
+
+
+        /*
+ * Religious selections.
+ */
+        $communities =
+            $religiousId > 0
+            ? array_map(
+                'intval',
+                $this
+                    ->communitySelectionModel
+                    ->selectedValues(
+                        $religiousId
+                    )
+            )
+            : [];
+
+
+
+        /*
+ * Education/Profession selections.
+ */
+        $educations =
+            $professionalId > 0
+            ? array_map(
+                'intval',
+                $this
+                    ->educationSelectionModel
+                    ->selectedValues(
+                        $professionalId
+                    )
+            )
+            : [];
+
+        $employmentTypes =
+            $professionalId > 0
+            ? array_values(
+                array_map(
+                    static fn(
+                        int|string $value
+                    ): string =>
+                    strtoupper(
+                        trim(
+                            (string) $value
+                        )
+                    ),
+                    $this
+                        ->employmentSelectionModel
+                        ->selectedValues(
+                            $professionalId
+                        )
+                )
+            )
+            : [];
+
+        $occupations =
+            $professionalId > 0
+            ? array_map(
+                'intval',
+                $this
+                    ->occupationSelectionModel
+                    ->selectedValues(
+                        $professionalId
+                    )
+            )
+            : [];
+
+        $annualIncomes =
+            $professionalId > 0
+            ? array_map(
+                'intval',
+                $this
+                    ->annualIncomeSelectionModel
+                    ->selectedValues(
+                        $professionalId
+                    )
+            )
+            : [];
+
+
+
+        /*
+ * Location selections.
+ */
+        $states =
+            $locationId > 0
+            ? array_map(
+                'intval',
+                $this
+                    ->stateSelectionModel
+                    ->selectedValues(
+                        $locationId
+                    )
+            )
+            : [];
+
+        $countries =
+            $locationId > 0
+            ? array_map(
+                'intval',
+                $this
+                    ->countrySelectionModel
+                    ->selectedValues(
+                        $locationId
+                    )
+            )
+            : [];
+
+        $cities =
+            $locationId > 0
+            ? array_map(
+                'intval',
+                $this
+                    ->citySelectionModel
+                    ->selectedValues(
+                        $locationId
+                    )
+            )
+            : [];
+
+
+
         return [
             'basic' =>
             $basic,
 
             'motherTongues' =>
-            $basicPreferenceId > 0
-                ? $this
-                ->motherTongueModel
-                ->idsForPreference(
-                    $basicPreferenceId
-                )
-                : [],
+            $motherTongues,
 
             'eatingHabits' =>
-            $basicPreferenceId > 0
-                ? $this
-                ->eatingHabitModel
-                ->idsForPreference(
-                    $basicPreferenceId
-                )
-                : [],
+            $eatingHabits,
 
             'drinkingHabits' =>
-            $basicPreferenceId > 0
-                ? $this
-                ->drinkingHabitModel
-                ->idsForPreference(
-                    $basicPreferenceId
-                )
-                : [],
+            $drinkingHabits,
 
             'communities' =>
-            $religiousId > 0
-                ? array_map(
-                    'intval',
-                    $this
-                        ->communitySelectionModel
-                        ->selectedValues(
-                            $religiousId
-                        )
-                )
-                : [],
+            $communities,
 
             'communityMatchMode' =>
             $this->boolean(
@@ -1130,16 +1345,7 @@ final class PartnerPreferenceMatchService
             ),
 
             'educations' =>
-            $professionalId > 0
-                ? array_map(
-                    'intval',
-                    $this
-                        ->educationSelectionModel
-                        ->selectedValues(
-                            $professionalId
-                        )
-                )
-                : [],
+            $educations,
 
             'educationMatchMode' =>
             $this->boolean(
@@ -1148,25 +1354,7 @@ final class PartnerPreferenceMatchService
             ),
 
             'employmentTypes' =>
-            $professionalId > 0
-                ? array_values(
-                    array_map(
-                        static fn(
-                            int|string $value
-                        ): string =>
-                        strtoupper(
-                            trim(
-                                (string) $value
-                            )
-                        ),
-                        $this
-                            ->employmentSelectionModel
-                            ->selectedValues(
-                                $professionalId
-                            )
-                    )
-                )
-                : [],
+            $employmentTypes,
 
             'employmentMatchMode' =>
             $this->boolean(
@@ -1175,16 +1363,7 @@ final class PartnerPreferenceMatchService
             ),
 
             'occupations' =>
-            $professionalId > 0
-                ? array_map(
-                    'intval',
-                    $this
-                        ->occupationSelectionModel
-                        ->selectedValues(
-                            $professionalId
-                        )
-                )
-                : [],
+            $occupations,
 
             'occupationMatchMode' =>
             $this->boolean(
@@ -1193,59 +1372,21 @@ final class PartnerPreferenceMatchService
             ),
 
             'annualIncomes' =>
-            $professionalId > 0
-                ? array_map(
-                    'intval',
-                    $this
-                        ->annualIncomeSelectionModel
-                        ->selectedValues(
-                            $professionalId
-                        )
-                )
-                : [],
+            $annualIncomes,
 
             'annualIncomeMatchMode' =>
             $this->boolean(
                 $professional['annual_income_match_mode']
                     ?? false
             ),
-
             'states' =>
-            $locationId > 0
-                ? array_map(
-                    'intval',
-                    $this
-                        ->stateSelectionModel
-                        ->selectedValues(
-                            $locationId
-                        )
-                )
-                : [],
+            $states,
 
             'countries' =>
-            $locationId > 0
-                ? array_map(
-                    'intval',
-                    $this
-                        ->countrySelectionModel
-                        ->selectedValues(
-                            $locationId
-                        )
-                )
-                : [],
+            $countries,
 
             'cities' =>
-            $locationId > 0
-                ? array_map(
-                    'intval',
-                    $this
-                        ->citySelectionModel
-                        ->selectedValues(
-                            $locationId
-                        )
-                )
-                : [],
-
+            $cities,
             'locationMatchMode' =>
             $this->boolean(
                 $location['location_match_mode']

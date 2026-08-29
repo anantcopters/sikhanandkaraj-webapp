@@ -52,13 +52,6 @@ final class UserModel extends Model
         'account_status',
 
         /*
-        * Temporary QA subscription and member-controlled
-        * profile visibility.
-        */
-        'is_paid',
-        'profile_visibility',
-
-        /*
         * Member identity-verification state.
         *
         * Verification workflows will update these fields later.

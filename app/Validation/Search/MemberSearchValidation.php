@@ -108,6 +108,21 @@ final class MemberSearchValidation
                 ],
             ],
 
+            'amritdhari' => [
+                'label' =>
+                'Amritdhari',
+
+                'rules' => [
+                    'permit_empty',
+                    'in_list[0,1]',
+                ],
+
+                'errors' => [
+                    'in_list' =>
+                    'Please select a valid Amritdhari option.',
+                ],
+            ],
+
             'sort' => [
                 'label' =>
                 'Sort order',

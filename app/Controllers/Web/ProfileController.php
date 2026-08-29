@@ -226,8 +226,11 @@ final class ProfileController extends BaseController
                     'viewedMobileLabel' =>
                     'Mobile Number',
 
-                    'isViewedMobileVerified' => ($mobile['isVerified'] ?? false)
-                        === true,
+                    'isViewedMobileVerified' =>
+                    BooleanValue::fromDatabase(
+                        $mobile['isVerified']
+                            ?? false
+                    ),
 
                     'isViewedParentMobile' =>
                     false,
@@ -244,8 +247,11 @@ final class ProfileController extends BaseController
                         ?? ''
                     ),
 
-                    'isViewedEmailVerified' => ($email['isVerified'] ?? false)
-                        === true,
+                    'isViewedEmailVerified' =>
+                    BooleanValue::fromDatabase(
+                        $email['isVerified']
+                            ?? false
+                    ),
 
                     'videoIntroductionState' =>
                     $videoIntroductionState,
@@ -266,14 +272,49 @@ final class ProfileController extends BaseController
      */
     public function updateBasicDetails(): RedirectResponse
     {
-        $userId = $this->authenticatedUserId();
+        $userId =
+            $this->authenticatedUserId();
 
-        $input = $this->basicDetailsInput();
+        $input =
+            $this->basicDetailsInput();
 
-        $validation = service('validation');
+        /** @var BasicDetailsService $basicDetailsService */
+        $basicDetailsService =
+            service(
+                'basicDetailsService'
+            );
+
+        $basicProfile =
+            $basicDetailsService
+            ->getForUser(
+                $userId
+            );
+
+        $user =
+            is_array(
+                $basicProfile['user']
+                    ?? null
+            )
+            ? $basicProfile['user']
+            : [];
+
+        $gender =
+            trim(
+                (string) (
+                    $user['gender']
+                    ?? ''
+                )
+            );
+
+        $validation =
+            service(
+                'validation'
+            );
 
         $validation->setRules(
-            BasicDetailsValidation::rules()
+            BasicDetailsValidation::rules(
+                $gender
+            )
         );
 
         if (!$validation->run($input)) {
@@ -290,7 +331,10 @@ final class ProfileController extends BaseController
                 );
         }
 
-        $validatedData = $validation->getValidated();
+        $validatedData =
+            $validation->getValidated();
+
+        // Existing code continues unchanged...
 
         try {
             /** @var BasicDetailsService $service */
@@ -299,6 +343,15 @@ final class ProfileController extends BaseController
             $service->save(
                 $userId,
                 $validatedData
+            );
+
+            /*
+            * Basic Details contributes one of the six authoritative profile-completion
+            * steps used by Match Score.
+            */
+            $this->refreshMatchScoringSignals(
+                $userId,
+                'BASIC_DETAILS'
             );
 
             /*
@@ -507,6 +560,11 @@ final class ProfileController extends BaseController
             $service->save(
                 $userId,
                 $input['lifestyle_option_ids']
+            );
+
+            $this->refreshMatchScoringSignals(
+                $userId,
+                'LIFESTYLE'
             );
 
             $redirectUrl = $this->isProfileJourney()
@@ -853,6 +911,11 @@ final class ProfileController extends BaseController
             $service->save(
                 $userId,
                 $validatedData
+            );
+
+            $this->refreshMatchScoringSignals(
+                $userId,
+                'EDUCATION_PROFESSION'
             );
 
             $redirectUrl = $this->isProfileJourney()
@@ -1237,12 +1300,17 @@ final class ProfileController extends BaseController
                     : null
             );
 
+            $this->refreshMatchScoringSignals(
+                $userId,
+                'FAMILY_DETAILS'
+            );
+
             /*
- * A verification can only be consumed once.
- *
- * The actual SAK Volunteer assignment is now permanently
- * stored in member_family_details.
- */
+            * A verification can only be consumed once.
+            *
+            * The actual SAK Volunteer assignment is now permanently
+            * stored in member_family_details.
+            */
             session()->remove(
                 'familyFieldOfficerVerification'
             );
@@ -1536,6 +1604,45 @@ final class ProfileController extends BaseController
                 );
         }
 
+        $validatedData =
+            $validation->getValidated();
+
+        $aboutMe = trim(
+            (string) (
+                $validatedData['about_me']
+                ?? ''
+            )
+        );
+
+        $aboutMeWords =
+            preg_match_all(
+                '/[\p{L}\p{N}]+(?:[\'’-][\p{L}\p{N}]+)*/u',
+                $aboutMe
+            );
+
+        if (
+            $aboutMeWords === false
+            || $aboutMeWords
+            > AboutMeValidation::MAX_WORDS
+        ) {
+            return redirect()
+                ->to(
+                    $this->profileSectionUrl(
+                        'web.profile.about-me'
+                    )
+                )
+                ->withInput()
+                ->with(
+                    'validationErrors',
+                    [
+                        'about_me' =>
+                        'About Me cannot exceed '
+                            . AboutMeValidation::MAX_WORDS
+                            . ' words.',
+                    ]
+                );
+        }
+
         try {
             /** @var AboutMeService $service */
             $service = service('aboutMeService');
@@ -1543,6 +1650,11 @@ final class ProfileController extends BaseController
             $service->save(
                 $userId,
                 (string) $input['about_me']
+            );
+
+            $this->refreshMatchScoringSignals(
+                $userId,
+                'ABOUT_ME'
             );
 
             return redirect()
@@ -1780,5 +1892,52 @@ final class ProfileController extends BaseController
             ' ',
             trim((string) $value)
         ) ?? '';
+    }
+
+    /**
+     * Refresh the cached candidate Match Score signals after a successful
+     * profile mutation.
+     *
+     * IMPORTANT:
+     *
+     * The member's actual profile save has already succeeded at this point.
+     *
+     * A cache refresh failure must therefore be logged rather than turning a
+     * successful profile update into a false "save failed" response.
+     */
+    private function refreshMatchScoringSignals(
+        int $userId,
+        string $source
+    ): void {
+        try {
+            service(
+                'memberMatchScoringSignalService'
+            )->refreshForUser(
+                $userId
+            );
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                [
+                    'operation' =>
+                    'member_match_scoring_signal_refresh',
+
+                    'controller' =>
+                    self::class,
+
+                    'method' =>
+                    __FUNCTION__,
+
+                    'member_id' =>
+                    $userId,
+
+                    'source' =>
+                    $source,
+                ]
+            );
+        }
     }
 }

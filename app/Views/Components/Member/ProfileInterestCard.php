@@ -103,14 +103,28 @@ if ($profileUrl === '') {
     $profileUrl = '#';
 }
 
-/*
- * Account type and professional summary come from the shared
- * MemberProfilePresentationService contract.
- */
 $accountType = trim(
     (string) (
         $profile['accountType']
         ?? ''
+    )
+);
+
+/*
+ * Membership presentation is resolved by the backend.
+ *
+ * accountType remains the display label used by the shared profile
+ * presentation contract.
+ *
+ * accountTypeCode is the canonical membership plan code consumed by the
+ * existing PlanLogo component.
+ */
+$accountTypeCode = mb_strtoupper(
+    trim(
+        (string) (
+            $profile['accountCode']
+            ?? ''
+        )
     )
 );
 
@@ -197,6 +211,62 @@ $statusLabel =
         default =>
         'Pending',
     };
+
+$canViewFullProfile =
+    ($profile['canViewFullProfile'] ?? false)
+    === true;
+
+$canShortlist =
+    ($profile['canShortlist'] ?? false)
+    === true;
+
+$canReport =
+    ($profile['canReport'] ?? false)
+    === true;
+
+$canBlock =
+    ($profile['canBlock'] ?? false)
+    === true;
+
+$isShortlisted =
+    ($profile['isShortlisted'] ?? false)
+    === true;
+
+$shortlistUrl = trim(
+    (string) (
+        $profile['shortlistUrl']
+        ?? ''
+    )
+);
+
+$reportUrl = trim(
+    (string) (
+        $profile['reportUrl']
+        ?? ''
+    )
+);
+
+$blockUrl = trim(
+    (string) (
+        $profile['blockUrl']
+        ?? ''
+    )
+);
+
+/*
+ * Full Profile navigation must follow the same backend-resolved capability
+ * used by the explicit View Profile action.
+ *
+ * The component must not create a second access path through the member
+ * photograph or name when Full Profile access is unavailable.
+ */
+$profileNavigationUrl =
+    $canViewFullProfile
+    && $profileUrl !== '#'
+    ? $profileUrl
+    : '';
+
+
 ?>
 
 <article
@@ -217,13 +287,42 @@ $statusLabel =
         flex-shrink-0"
                 style="width: 160px;">
 
-                <a
-                    href="<?= esc(
-                                $profileUrl,
-                                'attr'
-                            ) ?>"
-                    class="text-decoration-none">
+                <?php if (
+                    $profileNavigationUrl !== ''
+                ): ?>
 
+                    <a
+                        href="<?= esc(
+                                    $profileNavigationUrl,
+                                    'attr'
+                                ) ?>"
+                        class="text-decoration-none">
+
+                        <div class="member-profile-thumbnail">
+
+                            <img
+                                src="<?= esc(
+                                            $image,
+                                            'attr'
+                                        ) ?>"
+                                alt="<?= esc(
+                                            $name
+                                                . ' profile photo',
+                                            'attr'
+                                        ) ?>"
+                                loading="lazy">
+
+                        </div>
+
+                    </a>
+
+                <?php else: ?>
+
+                    <!--
+        Keep the profile photograph visible, but do not expose a second
+        Full Profile navigation path when membership/privacy policy has
+        denied Full Profile access.
+    -->
                     <div class="member-profile-thumbnail">
 
                         <img
@@ -237,34 +336,31 @@ $statusLabel =
                                         'attr'
                                     ) ?>"
                             loading="lazy">
-
                     </div>
 
-                </a>
+                <?php endif; ?>
 
                 <?php if (
-                    $accountType !== ''
+                    $accountTypeCode !== ''
                 ): ?>
 
-                    <span
-                        class="badge rounded
-                bg-primary-subtle
-                text-primary
-                border border-primary
-                border-opacity-25
-                mt-3 px-2 py-2 fs-12">
+                    <div
+                        class="mt-1
+            d-flex
+            justify-content-center">
 
-                        <i
-                            class="ri-vip-crown-line
-                    me-1 fs-14"
-                            aria-hidden="true">
-                        </i>
+                        <?= view(
+                            'Components/Membership/PlanLogo',
+                            [
+                                'planCode' =>
+                                $accountTypeCode,
 
-                        <?= esc(
-                            $accountType
+                                'width' =>
+                                180,
+                            ]
                         ) ?>
 
-                    </span>
+                    </div>
 
                 <?php endif; ?>
 
@@ -289,19 +385,35 @@ $statusLabel =
                                 fw-semibold mb-1
                                 text-truncate">
 
-                            <a
-                                href="<?= esc(
-                                            $profileUrl,
-                                            'attr'
-                                        ) ?>"
-                                class="text-body
-                                    text-decoration-none">
+                            <?php if (
+                                $profileNavigationUrl !== ''
+                            ): ?>
 
-                                <?= esc(
-                                    $name
-                                ) ?>
+                                <a
+                                    href="<?= esc(
+                                                $profileNavigationUrl,
+                                                'attr'
+                                            ) ?>"
+                                    class="
+            text-body
+            text-decoration-none
+        ">
 
-                            </a>
+                                    <?= esc($name) ?>
+
+                                </a>
+
+                            <?php else: ?>
+
+                                <!--
+        Identity remains visible even when Full Profile navigation is not.
+        The View Profile — Upgrade action below remains the single CTA.
+    -->
+                                <span class="text-body">
+                                    <?= esc($name) ?>
+                                </span>
+
+                            <?php endif; ?>
 
                         </h2>
 
@@ -552,26 +664,56 @@ $statusLabel =
 
                 <?php else: ?>
 
-                    <a
-                        href="<?= esc(
-                                    $profileUrl,
-                                    'attr'
-                                ) ?>"
-                        class="btn btn-sm
-                            btn-outline-primary
-                            d-inline-flex
-                            align-items-center
-                            justify-content-center
-                            gap-2">
+                    <?php if (
+                        $canViewFullProfile
+                        && $profileUrl !== ''
+                    ): ?>
 
-                        <i
-                            class="ri-eye-line"
-                            aria-hidden="true">
-                        </i>
+                        <a
+                            href="<?= esc(
+                                        $profileUrl,
+                                        'attr'
+                                    ) ?>"
+                            class="btn btn-sm
+            btn-outline-primary
+            d-inline-flex
+            align-items-center
+            justify-content-center
+            gap-2">
 
-                        View Profile
+                            <i
+                                class="ri-eye-line"
+                                aria-hidden="true">
+                            </i>
 
-                    </a>
+                            View Profile
+
+                        </a>
+
+                    <?php else: ?>
+
+                        <a
+                            href="<?= route_to(
+                                        'web.account.settings.section',
+                                        'plans'
+                                    ) ?>"
+                            class="btn btn-sm
+            btn-outline-primary
+            d-inline-flex
+            align-items-center
+            justify-content-center
+            gap-2">
+
+                            <i
+                                class="ri-lock-2-line"
+                                aria-hidden="true">
+                            </i>
+
+                            View Profile — Upgrade
+
+                        </a>
+
+                    <?php endif; ?>
 
                 <?php endif; ?>
 
@@ -584,7 +726,7 @@ $statusLabel =
 
 
 
-            <div class="d-flex align-items-center mt-3">
+            <div class="d-flex align-items-center mt-1">
                 <div class="flex-shrink-0 me-1">
                     <div class="avatar-xs flex-shrink-0 me-1">
                         <span class="avatar-title bg-dark-subtle rounded-circle shadow">

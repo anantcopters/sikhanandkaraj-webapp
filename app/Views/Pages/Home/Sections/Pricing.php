@@ -54,6 +54,7 @@ declare(strict_types=1);
             'Components/Membership/PlanCards',
             [
                 'context' => 'public',
+                'plans' => $plans ?? [],
             ]
         ) ?>
 

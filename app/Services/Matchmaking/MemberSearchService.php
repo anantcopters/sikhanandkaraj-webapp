@@ -9,6 +9,8 @@ use App\Models\UserModel;
 use App\Services\Profile\LifestyleService;
 use App\Services\Profile\ProfileMasterDataService;
 use App\Validation\RegisterFreeValidation;
+use App\Services\Membership\MembershipEntitlementService;
+use App\Services\Profile\MemberPhotoUrlService;
 use DomainException;
 
 final class MemberSearchService
@@ -40,7 +42,38 @@ final class MemberSearchService
         $masterDataService,
 
         private readonly LifestyleService
-        $lifestyleService
+        $lifestyleService,
+
+        /*
+        * Partner Preference remains the single authority for calculating the
+        * viewer-specific preference percentage.
+        *
+        * IMPORTANT:
+        *
+        * Filtered Search does NOT use Partner Preference as candidate eligibility.
+        * The calculated percentage is supplied only as one weighted component of
+        * MemberMatchScoreService.
+        */
+        private readonly PartnerPreferenceMatchService
+        $partnerPreferenceMatchService,
+
+        /*
+        * Final weighted ranking authority shared with Dashboard.
+        */
+        private readonly MemberMatchScoreService
+        $matchScoreService,
+
+        /*
+        * Membership-controlled Search capabilities are resolved centrally.
+        *
+        * MemberSearchService must never inspect plan codes or membership rows
+        * directly.
+        */
+        private readonly MembershipEntitlementService
+        $membershipEntitlementService,
+
+        private readonly MemberPhotoUrlService
+        $photoUrlService,
     ) {}
 
     /**
@@ -80,8 +113,22 @@ final class MemberSearchService
             );
 
         /*
-     * State selection must be known before city master data is loaded.
-     */
+        * Advanced Search remains visible as a product capability to Free members,
+        * but the form itself will be replaced by an upgrade lock.
+        *
+        * Returning capability state rather than silently converting the requested
+        * mode to Basic lets the UI clearly explain why Advanced Search is
+        * unavailable.
+        */
+        $canUseAdvancedSearch =
+            $this->membershipEntitlementService
+            ->canUseAdvancedSearch(
+                $viewerUserId
+            );
+
+        /*
+        * State selection must be known before city master data is loaded.
+        */
         $stateIds =
             $this->positiveIds(
                 $input['state_ids']
@@ -107,6 +154,15 @@ final class MemberSearchService
             'mode' =>
             $mode,
 
+            /*
+            * Presentation-only capability state.
+            *
+            * search() independently repeats the authorization before executing an
+            * Advanced Search.
+            */
+            'canUseAdvancedSearch' =>
+            $canUseAdvancedSearch,
+
             'filters' =>
             $filters,
 
@@ -116,9 +172,16 @@ final class MemberSearchService
     }
 
     /**
-     * @param array<string, mixed> $input
+     * Execute member Search.
      *
-     * @return array<string, mixed>
+     * Candidate eligibility is resolved by MemberMatchCandidateModel.
+     * Partner Preference matching and Match Score ranking are applied before
+     * pagination when Match Score ordering is requested.
+     *
+     * Advanced Search authorization is enforced here rather than relying on
+     * presentation-layer controls.
+     *
+     * @param array<string, mixed> $input
      */
     public function search(
         int $viewerUserId,
@@ -136,6 +199,32 @@ final class MemberSearchService
         $mode = $this->mode(
             $input['mode'] ?? null
         );
+
+        /*
+        * SECURITY BOUNDARY
+        * --------------------------------------------------------------------------
+        *
+        * Never rely on the Advanced Search tab/form being hidden or locked.
+        *
+        * A Free member can manually construct:
+        *
+        *     /search/results?mode=advanced&...
+        *
+        * so execution itself must be membership-authorized before Advanced Search
+        * filters reach the candidate query.
+        */
+        if (
+            $mode === 'advanced'
+            && !$this->membershipEntitlementService
+                ->canUseAdvancedSearch(
+                    $viewerUserId
+                )
+        ) {
+            throw new DomainException(
+                'Advanced Search is available with a paid membership. '
+                    . 'Please upgrade your plan to use Advanced Search.'
+            );
+        }
 
         $sort = $this->sort(
             $input['sort'] ?? null
@@ -159,6 +248,13 @@ final class MemberSearchService
                     ?? []
             );
 
+        /*
+        * Resolve Search master data through the existing profile master-data
+        * authorities.
+        *
+        * Selected states are supplied so City options are restricted to the
+        * applicable state collection before submitted filters are normalized.
+        */
         $masterData =
             $this->searchMasterData(
                 $requestedStateIds
@@ -171,15 +267,15 @@ final class MemberSearchService
                 $masterData
             );
 
+
+
         /*
         * --------------------------------------------------------------------------
-        * Quick Link activity preset
+        * Existing result-collection preset
         * --------------------------------------------------------------------------
         *
-        * Activity Quick Links are not a separate Search implementation.
-        *
-        * They simply restrict the existing Search candidate query to the member IDs
-        * returned by the existing interaction service.
+        * Activity collections reuse their existing domain authorities rather than
+        * rebuilding shortlist/view/match rules inside Search.
         */
         $activity =
             $this->activity(
@@ -187,36 +283,57 @@ final class MemberSearchService
                     ?? null
             );
 
-        $activityMemberIds =
-            $this->activityMemberIds(
-                $viewerUserId,
-                $activity
-            );
-
-        /*
-        * null:
-        *      Normal Search. Do not apply an activity restriction.
-        *
-        * []:
-        *      Valid activity Search with no matching interaction records.
-        *
-        * [1, 2, 3]&#58;  *      Restrict normal Search to those existing interaction members.
-        */
         if ($activity !== '') {
-            /*
-     * candidate_ids restricts the database query.
-     */
             $filters['candidate_ids'] =
-                $activityMemberIds;
+                $this->activityMemberIds(
+                    $viewerUserId,
+                    $activity
+                );
 
-            /*
-     * Keep the logical preset in the normalized result state so sorting and
-     * pagination retain the same collection.
-     */
             $filters['activity'] =
                 $activity;
+        } elseif (
+            !$this->hasCandidateFilters(
+                $filters
+            )
+        ) {
+            /*
+            * Product rule:
+            *
+            * Basic/Advanced Search with no candidate criteria is the same collection
+            * as All Matches.
+            *
+            * MemberMatchmakingService remains the sole authority for:
+            *
+            * - Partner Preference compulsory eligibility;
+            * - configured minimum Partner Preference percentage.
+            *
+            * Search only lists/ranks the resulting candidate IDs.
+            */
+            $filters['candidate_ids'] =
+                $this->allMatchIds(
+                    $viewerUserId
+                );
         }
 
+
+
+        /*
+        * Default Search is Match Score ranked.
+        *
+        * Explicit user-selected chronology/activity sorts retain their existing
+        * database sorting semantics.
+        */
+        $useMatchScoreRanking =
+            $sort === 'match';
+
+        /*
+        * Match-ranked Search must obtain the complete database-filtered candidate
+        * pool BEFORE pagination.
+        *
+        * Otherwise we would rank only ten rows at a time and a stronger candidate
+        * could incorrectly appear on page 2.
+        */
         $results =
             $this->candidateModel
             ->searchCandidates(
@@ -233,31 +350,119 @@ final class MemberSearchService
 
                 perPage: self::PER_PAGE,
 
-                sort: $sort
+                sort: $sort,
+
+                paginate: !$useMatchScoreRanking
             );
 
+
+
+        $resultRows =
+            is_array(
+                $results['rows']
+                    ?? null
+            )
+            ? $results['rows']
+            : [];
+
+        if ($useMatchScoreRanking) {
+            /*
+            * Search filters/activity restrictions have already determined candidate
+            * eligibility.
+            *
+            * Partner Preference is calculated exactly once here because Match Score
+            * uses match_percentage as one of its weighted components.
+            *
+            * scoreCandidatesForRanking() deliberately does NOT remove candidates
+            * failing compulsory Partner Preferences.
+            *
+            * All Matches/default Matches have already received their Partner
+            * Preference eligibility restriction through allMatchCandidateIds().
+            */
+            $resultRows =
+                $this->partnerPreferenceMatchService
+                ->scoreCandidatesForRanking(
+                    $viewerUserId,
+                    $resultRows
+                );
+
+            /*
+            * MemberMatchScoreService is the single final ranking authority.
+            */
+            $resultRows =
+                $this->matchScoreService
+                ->rankCandidates(
+                    $resultRows
+                );
+
+            $total =
+                count(
+                    $resultRows
+                );
+
+            $totalPages =
+                max(
+                    1,
+                    (int) ceil(
+                        $total
+                            / self::PER_PAGE
+                    )
+                );
+
+            $page =
+                min(
+                    $page,
+                    $totalPages
+                );
+
+            $offset =
+                ($page - 1)
+                * self::PER_PAGE;
+
+            /*
+            * Pagination occurs only after the complete deterministic Match Score
+            * ranking.
+            */
+            $resultRows =
+                array_slice(
+                    $resultRows,
+                    $offset,
+                    self::PER_PAGE
+                );
+
+            $results['page'] =
+                $page;
+        } else {
+            $total =
+                max(
+                    0,
+                    (int) (
+                        $results['total']
+                        ?? 0
+                    )
+                );
+
+            $totalPages =
+                max(
+                    1,
+                    (int) ceil(
+                        $total
+                            / self::PER_PAGE
+                    )
+                );
+        }
+
+        /*
+        * Convert the paginated candidate collection through the shared member-card
+        * presentation pipeline.
+        *
+        * Search must use the same presentation contract as other member discovery
+        * surfaces rather than reconstructing profile-card state locally.
+        */
         $profiles =
             $this->presentationProfiles(
                 $viewerUserId,
-                $results['rows']
-            );
-
-        $total =
-            max(
-                0,
-                (int) (
-                    $results['total']
-                    ?? 0
-                )
-            );
-
-        $totalPages =
-            max(
-                1,
-                (int) ceil(
-                    $total
-                        / self::PER_PAGE
-                )
+                $resultRows
             );
 
         $chips =
@@ -265,6 +470,8 @@ final class MemberSearchService
                 $filters,
                 $masterData
             );
+
+
 
         /*
         * Activity is presented exactly like another active Search criterion.
@@ -290,6 +497,8 @@ final class MemberSearchService
             $this->quickLinkGroups(
                 $viewerUserId
             );
+
+
 
         return [
             'mode' =>
@@ -413,6 +622,47 @@ final class MemberSearchService
         }
 
         return $visible[0];
+    }
+
+    /**
+     * Resolve an exact Profile-ID Search into the normal ProfileCard contract.
+     *
+     * This deliberately does NOT open Full Profile.
+     *
+     * Product rule:
+     *
+     * - Free member -> ProfileCard result;
+     * - Paid member -> ProfileCard result;
+     * - View Profile button then applies membership authorization normally.
+     *
+     * @return array<string,mixed>|null
+     */
+    public function profileCardByReference(
+        int $viewerUserId,
+        string $profileReference
+    ): ?array {
+        $candidate =
+            $this->profileByReference(
+                $viewerUserId,
+                $profileReference
+            );
+
+        if (!is_array($candidate)) {
+            return null;
+        }
+
+        $profiles =
+            $this->presentationProfiles(
+                $viewerUserId,
+                [
+                    $candidate,
+                ]
+            );
+
+        return isset($profiles[0])
+            && is_array($profiles[0])
+            ? $profiles[0]
+            : null;
     }
 
     /**
@@ -580,13 +830,13 @@ final class MemberSearchService
     /**
      * Return member IDs for recently joined Partner Preference matches.
      *
-     * Existing MemberMatchmakingService remains the authority for:
+     
      *
-     * - Partner Preference scoring;
-     * - compulsory preference handling;
-     * - minimum match percentage;
-     * - configured New Match age;
-     * - candidate eligibility.
+     * Do not build complete Dashboard presentation cards and then resolve each
+     * profile reference back to users.id.
+     *
+     * MemberMatchmakingService remains the matching authority and returns the
+     * qualified numeric candidate IDs directly.
      *
      * @return list<int>
      */
@@ -603,83 +853,10 @@ final class MemberSearchService
                 'memberMatchmakingService'
             );
 
-        $collections =
-            $matchmakingService
-            ->dashboardCollections(
+        return $matchmakingService
+            ->newMatchCandidateIds(
                 $viewerUserId
             );
-
-        $newProfiles =
-            isset(
-                $collections['newMatches']
-            )
-            && is_array(
-                $collections['newMatches']
-            )
-            ? $collections['newMatches']
-            : [];
-
-        $memberIds = [];
-
-        foreach (
-            $newProfiles
-            as $profile
-        ) {
-            if (!is_array($profile)) {
-                continue;
-            }
-
-            /*
-         * Existing presentation data intentionally does not expose numeric
-         * member IDs, so resolve the profile reference through UserModel.
-         */
-            $reference =
-                trim(
-                    (string) (
-                        $profile['referenceId']
-                        ?? ''
-                    )
-                );
-
-            if ($reference === '') {
-                continue;
-            }
-
-            $user =
-                $this->userModel
-                ->select(
-                    'id'
-                )
-                ->where(
-                    'profile_ref_number',
-                    $reference
-                )
-                ->first();
-
-            if (!is_array($user)) {
-                continue;
-            }
-
-            $memberId =
-                max(
-                    0,
-                    (int) (
-                        $user['id']
-                        ?? 0
-                    )
-                );
-
-            if ($memberId > 0) {
-                $memberIds[] =
-                    $memberId;
-            }
-        }
-
-        return array_values(
-            array_unique(
-                $memberIds
-            )
-        );
     }
 
     /**
@@ -705,7 +882,7 @@ final class MemberSearchService
             'Viewed by you',
 
             'new-profiles' =>
-            'New Profiles · Last 30 Days',
+            'New Matches',
 
             default =>
             '',
@@ -989,6 +1166,14 @@ final class MemberSearchService
     /**
      * Return active master data required by member Search.
      *
+     
+     *
+     * The optional timeline allows the CLI profiler to identify which existing
+     * master-data authority contributes to Search execution time.
+     *
+     * Normal HTTP Search may pass null, so no diagnostic work is performed unless
+     * profiling is explicitly enabled.
+     *
      * @param list<int> $selectedStateIds
      *
      * @return array<string, mixed>
@@ -996,22 +1181,51 @@ final class MemberSearchService
     private function searchMasterData(
         array $selectedStateIds = []
     ): array {
+        /*
+     * Existing Basic Details masters.
+     */
         $basic =
             $this->masterDataService
-            ->basicDetailsOptions();
+            ->basicDetailsOptions(
+                selectedStateId: null,
 
+                selectedCountryId: null
+            );
+
+        /*
+
+ *
+ * Basic Details already loaded the authoritative active-country collection.
+ * Reuse it for Additional Partner Preference master data instead of issuing an
+ * identical second country query during every Search request.
+ */
         $additional =
             $this->masterDataService
-            ->additionalPartnerPreferenceOptions();
+            ->additionalPartnerPreferenceOptions(
+                resolvedCountries: is_array(
+                    $basic['countries']
+                        ?? null
+                )
+                    ? $basic['countries']
+                    : []
+            );
 
+        /*
+     * Existing Lifestyle master hierarchy.
+     */
         $lifestyle =
             $this->lifestyleService
             ->activeOptions();
 
+
+
         /*
      * Advanced Search may select multiple states, unlike Profile Edit.
+     *
      * Load active cities across all selected states so submitted city values
      * remain visible after Search, sorting and pagination.
+     *
+     * Basic Search normally reaches this checkpoint without a city query.
      */
         $cities =
             $selectedStateIds !== []
@@ -1020,6 +1234,8 @@ final class MemberSearchService
                 $selectedStateIds
             )
             : [];
+
+
 
         return array_merge(
             $basic,
@@ -1214,12 +1430,6 @@ final class MemberSearchService
                 $masterData['states']
                     ?? []
             ),
-
-            'photo_visibility' =>
-            $this->photoVisibility(
-                $input['photo_visibility']
-                    ?? []
-            ),
         ];
 
         /*
@@ -1253,6 +1463,28 @@ final class MemberSearchService
         if ($mode !== 'advanced') {
             return $filters;
         }
+
+        /*
+        * Photo Visibility is an Advanced Search criterion.
+        *
+        * Keeping this normalization after the Advanced Search boundary ensures
+        * a Free member cannot manually submit photo_visibility through Basic
+        * Search and bypass the membership-controlled Advanced Search flow.
+        */
+        $filters['photo_visibility'] =
+            $this->photoVisibility(
+                $input['photo_visibility']
+                    ?? []
+            );
+
+        /*
+        * Amritdhari is an Advanced Search candidate filter.
+        *
+        * Keep the normalized string value because both "0" and "1" are valid
+        * selections and must remain distinguishable from an unselected value.
+        */
+        $filters['amritdhari'] =
+            $amritdhari;
 
         $filters['community_ids'] =
             $this->validatedMasterIds(
@@ -1388,11 +1620,93 @@ final class MemberSearchService
     }
 
     /**
+     * Determine whether the normalized Search request contains at least one
+     * candidate-selection criterion.
+     *
+     * Presentation/query-state values such as mode, sort, page and activity are
+     * deliberately not candidate filters.
+     *
+     * This method operates on normalized filters so invalid/inactive master IDs
+     * cannot prevent the no-filter Search fallback.
+     *
+     * @param array<string, mixed> $filters
+     */
+    private function hasCandidateFilters(
+        array $filters
+    ): bool {
+        $scalarFilters = [
+            'age_min',
+            'age_max',
+            'height_min_id',
+            'height_max_id',
+            'height_min_cm',
+            'height_max_cm',
+        ];
+
+        foreach ($scalarFilters as $key) {
+            if (
+                array_key_exists(
+                    $key,
+                    $filters
+                )
+                && $filters[$key] !== null
+            ) {
+                return true;
+            }
+        }
+
+        $arrayFilters = [
+            'marital_status_ids',
+            'country_ids',
+            'state_ids',
+            'photo_visibility',
+            'city_ids',
+            'community_ids',
+            'managed_by',
+            'education_ids',
+            'occupation_ids',
+            'employed_in',
+            'annual_income_ids',
+            'lifestyle_option_ids',
+        ];
+
+        foreach ($arrayFilters as $key) {
+            if (
+                isset($filters[$key])
+                && is_array(
+                    $filters[$key]
+                )
+                && $filters[$key] !== []
+            ) {
+                return true;
+            }
+        }
+
+        /*
+        * "0" is a valid Advanced Search value for Amritdhari = No, therefore
+        * truthiness must not be used here.
+        */
+        return in_array(
+            $filters['amritdhari']
+                ?? '',
+            [
+                '0',
+                '1',
+            ],
+            true
+        );
+    }
+
+    /**
      * Convert eligible Search candidate rows into the common member presentation
      * contract consumed by Search/Match profile cards.
      *
-     * Search-specific Interest state and activity remain Search context rather
-     * than becoming part of the common member-summary service.
+    
+     *
+     * Viewer capability state, Interest relationships, Shortlist state and
+     * approved-primary-photo database state are resolved once per collection.
+     *
+     * The card loop performs no candidate-specific database reads.
      *
      * @param list<array<string, mixed>> $rows
      *
@@ -1403,6 +1717,123 @@ final class MemberSearchService
         array $rows
     ): array {
         $profiles = [];
+
+        /*
+         * Resolve viewer-level membership capabilities once.
+         */
+        $canViewFullProfile =
+            $this->membershipEntitlementService
+            ->canViewFullProfile(
+                $viewerUserId
+            );
+
+        $canShortlist =
+            $this->membershipEntitlementService
+            ->canShortlist(
+                $viewerUserId
+            );
+
+        $canReport =
+            $this->membershipEntitlementService
+            ->canReport(
+                $viewerUserId
+            );
+
+        $canBlock =
+            $this->membershipEntitlementService
+            ->canBlock(
+                $viewerUserId
+            );
+
+
+
+        /*
+         * Normalize candidate IDs once.
+         */
+        $memberIds = [];
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $memberId = max(
+                0,
+                (int) (
+                    $row['id']
+                    ?? 0
+                )
+            );
+
+            if ($memberId > 0) {
+                $memberIds[] =
+                    $memberId;
+            }
+        }
+
+        $memberIds =
+            array_values(
+                array_unique(
+                    $memberIds
+                )
+            );
+
+        /*
+         * One Interest query for the complete displayed collection.
+         */
+        $interestRelationships =
+            $this->interactionService
+            ->interestRelationshipsFor(
+                $viewerUserId,
+                $memberIds
+            );
+
+
+
+        /*
+         * One Shortlist query for the complete displayed collection.
+         */
+        $shortlistStates =
+            $this->interactionService
+            ->shortlistStatesFor(
+                $viewerUserId,
+                $memberIds
+            );
+
+
+
+        /*
+         * Convert relationship contracts into the boolean map required by
+         * Photo Visibility.
+         */
+        $photoInterestMap = [];
+
+        foreach (
+            $memberIds
+            as $memberId
+        ) {
+            $photoInterestMap[$memberId] =
+                (
+                    $interestRelationships[$memberId]['hasRelationship']
+                    ?? false
+                ) === true;
+        }
+
+        /*
+       
+        *
+        * MemberPhotoUrlService now records the internal DB, authorization and
+        * CloudFront-signing stages itself.
+        */
+        $thumbnailUrls =
+            $this->photoUrlService
+            ->getApprovedPrimaryThumbnailUrlsForViewer(
+                memberIds: $memberIds,
+
+                viewerUserId: $viewerUserId,
+
+                interestRelationshipMap: $photoInterestMap
+            );
 
         foreach (
             $rows
@@ -1425,16 +1856,36 @@ final class MemberSearchService
             }
 
             /*
-         * Reuse the exact Interest relationship resolver used by
-         * Member Profile View.
-         */
+             * No DB query here.
+             */
             $interestRelationship =
-                $this
-                ->interactionService
-                ->interestRelationshipFor(
-                    $viewerUserId,
-                    $memberId
-                );
+                $interestRelationships[$memberId]
+                ?? [
+                    'state' =>
+                    MemberInteractionService
+                    ::INTEREST_STATE_NONE,
+
+                    'hasRelationship' =>
+                    false,
+
+                    'hasOutgoing' =>
+                    false,
+
+                    'hasIncoming' =>
+                    false,
+
+                    'canShowInterest' =>
+                    true,
+
+                    'canRespond' =>
+                    false,
+
+                    'outgoingStatus' =>
+                    null,
+
+                    'incomingStatus' =>
+                    null,
+                ];
 
             $hasInterestRelationship =
                 (
@@ -1443,14 +1894,22 @@ final class MemberSearchService
                 ) === true;
 
             $profile =
-                $this
-                ->profilePresentationService
+                $this->profilePresentationService
                 ->summary(
                     viewerUserId: $viewerUserId,
 
                     member: $row,
 
-                    hasInterestRelationship: $hasInterestRelationship
+                    hasInterestRelationship: $hasInterestRelationship,
+
+                    /*
+                     * Empty means placeholder.
+                     *
+                     * We deliberately pass a value even when no photo is visible
+                     * so summary() does not execute its single-member fallback query.
+                     */
+                    resolvedImage: $thumbnailUrls[$memberId]
+                        ?? ''
                 );
 
             if ($profile === null) {
@@ -1468,9 +1927,6 @@ final class MemberSearchService
                 continue;
             }
 
-            /*
-         * Search-specific actions remain owned by Search.
-         */
             $profile['interestUrl'] =
                 route_to(
                     'web.members.interest',
@@ -1481,8 +1937,52 @@ final class MemberSearchService
                 $interestRelationship;
 
             /*
-         * Never expose the raw last-login timestamp.
-         */
+             * Presentation capability state only.
+             *
+             * Domain services continue independently enforcing authorization.
+             */
+            $profile['canViewFullProfile'] =
+                $canViewFullProfile;
+
+            $profile['canShortlist'] =
+                $canShortlist;
+
+            $profile['canReport'] =
+                $canReport;
+
+            $profile['canBlock'] =
+                $canBlock;
+
+            /*
+             * No per-card Shortlist query.
+             */
+            $profile['isShortlisted'] =
+                (
+                    $shortlistStates[$memberId]
+                    ?? false
+                ) === true;
+
+            $profile['shortlistUrl'] =
+                route_to(
+                    'web.members.shortlist',
+                    $reference
+                );
+
+            $profile['reportUrl'] =
+                route_to(
+                    'web.members.report',
+                    $reference
+                );
+
+            $profile['blockUrl'] =
+                route_to(
+                    'web.members.block',
+                    $reference
+                );
+
+            /*
+             * Never expose raw last-login timestamp.
+             */
             $profile['activity'] =
                 $this->activityLabel(
                     $row['last_login_at']
@@ -1492,6 +1992,18 @@ final class MemberSearchService
             $profiles[] =
                 $profile;
         }
+
+        /*
+        * Everything after photo resolution is in-memory ProfileCard presentation:
+        *
+        * - MemberProfilePresentationService::summary();
+        * - route generation;
+        * - capability projection;
+        * - activity label generation.
+        *
+        * The candidate loop must contain no candidate-specific database reads.
+        */
+
 
         return $profiles;
     }
@@ -1518,6 +2030,20 @@ final class MemberSearchService
     private function quickLinkGroups(
         int $viewerUserId
     ): array {
+
+        /*
+        * City, Community and Public Photo Quick Links expose
+        * Advanced Search capabilities.
+        *
+        * Resolve the existing Advanced Search membership entitlement once
+        * for the complete Quick Links collection.
+        */
+        $canUseAdvancedSearch =
+            $this->membershipEntitlementService
+            ->canUseAdvancedSearch(
+                $viewerUserId
+            );
+
         /*
      * Reuse the member's saved Basic Details location.
      */
@@ -1651,15 +2177,15 @@ final class MemberSearchService
             : '';
 
         /*
-     * Existing photo-visibility Search filter.
-     */
+        * Existing photo-visibility Search filter.
+        */
         $publicPhotoUrl =
             $searchResultsUrl
             . '?'
             . http_build_query(
                 [
                     'mode' =>
-                    'basic',
+                    'advanced',
 
                     'photo_visibility' => [
                         'PUBLIC',
@@ -1833,19 +2359,34 @@ final class MemberSearchService
                         'Living in same City',
 
                         'help' =>
-                        $cityId > 0
-                            ? 'Find eligible profiles living in your City.'
-                            : 'Add your City in Basic Details to use this search.',
+                        !$canUseAdvancedSearch
+                            ? 'Upgrade your membership to use this search.'
+                            : (
+                                $cityId > 0
+                                ? 'Find eligible profiles living in your City.'
+                                : 'Add your City in Basic Details to use this search.'
+                            ),
 
                         'icon' =>
                         'ri-map-pin-line',
 
                         'url' =>
-                        $sameCityUrl,
+                        !$canUseAdvancedSearch
+                            ? route_to(
+                                'web.account.settings.section',
+                                'plans'
+                            )
+                            : $sameCityUrl,
 
                         'available' =>
-                        $stateId > 0
-                            && $cityId > 0,
+                        !$canUseAdvancedSearch
+                            || (
+                                $stateId > 0
+                                && $cityId > 0
+                            ),
+
+                        'membershipLocked' =>
+                        !$canUseAdvancedSearch,
                     ],
                 ],
             ],
@@ -1866,22 +2407,37 @@ final class MemberSearchService
                         'Same Community',
 
                         'help' =>
-                        $communityId > 0
-                            && $communityName !== ''
-                            ? 'Find eligible profiles from the '
-                            . $communityName
-                            . ' community.'
-                            : 'Add your Community in Family Details to use this search.',
+                        !$canUseAdvancedSearch
+                            ? 'Upgrade your membership to use this search.'
+                            : (
+                                $communityId > 0
+                                && $communityName !== ''
+                                ? 'Find eligible profiles from the '
+                                . $communityName
+                                . ' community.'
+                                : 'Add your Community in Family Details to use this search.'
+                            ),
 
                         'icon' =>
                         'ri-group-line',
 
                         'url' =>
-                        $sameCommunityUrl,
+                        !$canUseAdvancedSearch
+                            ? route_to(
+                                'web.account.settings.section',
+                                'plans'
+                            )
+                            : $sameCommunityUrl,
 
                         'available' =>
-                        $communityId > 0
-                            && $communityName !== '',
+                        !$canUseAdvancedSearch
+                            || (
+                                $communityId > 0
+                                && $communityName !== ''
+                            ),
+
+                        'membershipLocked' =>
+                        !$canUseAdvancedSearch,
                     ],
 
                     [
@@ -1889,16 +2445,26 @@ final class MemberSearchService
                         'Profiles with Public Photos',
 
                         'help' =>
-                        'Show profiles whose approved primary photo is public.',
+                        !$canUseAdvancedSearch
+                            ? 'Upgrade your membership to use this search.'
+                            : 'Show profiles whose approved primary photo is public.',
 
                         'icon' =>
                         'ri-image-2-line',
 
                         'url' =>
-                        $publicPhotoUrl,
+                        !$canUseAdvancedSearch
+                            ? route_to(
+                                'web.account.settings.section',
+                                'plans'
+                            )
+                            : $publicPhotoUrl,
 
                         'available' =>
                         true,
+
+                        'membershipLocked' =>
+                        !$canUseAdvancedSearch,
                     ],
                 ],
             ],
@@ -2001,7 +2567,7 @@ final class MemberSearchService
         return in_array(
             $value,
             [
-                'default',
+                'match',
                 'latest',
                 'oldest',
                 'last_login',
@@ -2009,7 +2575,7 @@ final class MemberSearchService
             true
         )
             ? $value
-            : 'default';
+            : 'match';
     }
 
     private function nullablePositiveInt(

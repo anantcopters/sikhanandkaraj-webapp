@@ -867,9 +867,10 @@ if ($isJourney) {
                 placeholder="Enter Gurudwara name or location"
                 maxlength="300"
                 data-error-required="Please enter the nearest Gurudwara name or location."
-                data-error-maxlength="Nearest Gurudwara cannot exceed 200 characters."
+                data-error-maxlength="Nearest Gurudwara cannot exceed 300 characters."
                 autocomplete="off"
-                aria-describedby="nearestGurudwaraError">
+                aria-describedby="nearestGurudwaraError"
+                required>
 
             <?= view(
                 'Components/Forms/FieldError',

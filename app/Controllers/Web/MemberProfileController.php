@@ -9,7 +9,7 @@ use App\Services\Matchmaking\MemberInteractionService;
 use App\Services\Matchmaking\MemberProfileViewService;
 use App\Validation\Member\MemberBlockValidation;
 use App\Services\Matchmaking\MemberInterestService;
-use App\Exceptions\PaidMembershipRequiredException;
+use App\Exceptions\MembershipProfileQuotaExceededException;
 use App\Services\Account\MemberProfileReportService;
 use App\Validation\Member\MemberProfileReportValidation;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -45,7 +45,6 @@ final class MemberProfileController extends BaseController
                     ?? 0
                 )
             );
-
 
             $viewerUserId =
                 $this->authenticatedUserId();
@@ -122,12 +121,45 @@ final class MemberProfileController extends BaseController
                 )
             );
         } catch (
-            PaidMembershipRequiredException) {
+            MembershipProfileQuotaExceededException
+            $exception
+        ) {
+            /*
+            * Quota exhaustion is different from being Free.
+            *
+            * The member already owns a paid plan, so do not tell them simply
+            * that a paid membership is required.
+            */
             return view(
-                'Pages/Profile/PaidMembershipRequired',
+                'Pages/Profile/ProfileViewLimitReached',
                 [
                     'pageTitle' =>
-                    'Paid Membership Required',
+                    'Profile View Limit Reached',
+
+                    'message' =>
+                    $exception->getMessage(),
+                ]
+            );
+        } catch (
+            DomainException $exception
+        ) {
+            /*
+            * ProfileAccessPolicy intentionally returns member-safe messages for:
+            *
+            * - Free membership;
+            * - unverified target;
+            * - female Interest privacy.
+            *
+            * Do not expose database or internal authorization information here.
+            */
+            return view(
+                'Pages/Profile/ProfileAccessUnavailable',
+                [
+                    'pageTitle' =>
+                    'Profile Unavailable',
+
+                    'message' =>
+                    $exception->getMessage(),
                 ]
             );
         }
@@ -286,6 +318,14 @@ final class MemberProfileController extends BaseController
                 )
             );
 
+            $actionSource =
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'action_source'
+                        )
+                );
+
             if (
                 $targetUserId <= 0
             ) {
@@ -305,15 +345,18 @@ final class MemberProfileController extends BaseController
                     $targetUserId
                 );
 
-            return redirect()
-                ->to(
+            $redirect = $actionSource === 'card'
+                ? redirect()->back()
+                : redirect()->to(
                     route_to(
                         'web.members.view',
                         (string) (
                             $target['profile_ref_number']
                         )
                     )
-                )
+                );
+
+            return $redirect
                 ->with(
                     'memberActionNotice',
                     [
@@ -324,10 +367,8 @@ final class MemberProfileController extends BaseController
 
                         'message' =>
                         $created
-                            ? 'Your interest has been '
-                            . 'sent successfully.'
-                            : 'An interest relationship '
-                            . 'already exists between '
+                            ? 'Your interest has been sent successfully.'
+                            : 'An interest relationship already exists between '
                             . 'you and this member.',
                     ]
                 );
@@ -504,9 +545,12 @@ final class MemberProfileController extends BaseController
                 ->with(
                     'formAlert',
                     [
+                        /*
+                        * Domain denial includes membership entitlement and valid relationship
+                        * restrictions. It is not an application failure.
+                        */
                         'type' =>
-                        'danger',
-
+                        'warning',
                         'title' =>
                         'Shortlist not updated',
 
@@ -601,9 +645,6 @@ final class MemberProfileController extends BaseController
                         $profileReference
                     )
                 )
-                /*
-                 * Restore comment for the reopened modal.
-                 */
                 ->withInput()
                 ->with(
                     'validationErrors',

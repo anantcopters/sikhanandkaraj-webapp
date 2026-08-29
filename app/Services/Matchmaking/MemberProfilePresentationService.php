@@ -19,12 +19,6 @@ use Throwable;
  */
 final class MemberProfilePresentationService
 {
-    /**
-     * Temporary account label until member subscription plans are connected
-     * to the common profile-presentation contract.
-     */
-    private const DEFAULT_ACCOUNT_TYPE =
-    'Free Account';
 
     public function __construct(
         private readonly MemberPhotoUrlService
@@ -50,6 +44,9 @@ final class MemberProfilePresentationService
      *     location:string,
      *     maritalStatus:string,
      *     accountType:string,
+     *     accountCode:string,
+     *     isPaidAccount:bool,
+     *     commercialPriority:int,
      *     professionalSummary:string,
      *     verification:array{
      *         mobile:bool,
@@ -64,7 +61,8 @@ final class MemberProfilePresentationService
     public function summary(
         int $viewerUserId,
         array $member,
-        bool $hasInterestRelationship
+        bool $hasInterestRelationship,
+        ?string $resolvedImage = null
     ): ?array {
         $memberId = max(
             0,
@@ -94,30 +92,34 @@ final class MemberProfilePresentationService
         }
 
         /*
-         * MemberPhotoUrlService remains the single authority for:
+         * Collection consumers may preload primary-photo state in one database
+         * query and supply the already-authorized signed URL here.
          *
-         * - approval;
-         * - photo visibility;
-         * - Interest-based photo visibility;
-         * - signed media URLs.
+         * null means:
+         *     no batch resolution was supplied -> use existing single-profile flow.
+         *
+         * empty string means:
+         *     batch resolution was supplied but the actual photo is unavailable
+         *     or not visible -> use the normal gender placeholder.
+         *
+         * This distinction lets existing callers remain completely unchanged.
          */
         $image =
-            $this->photoUrlService
-            ->getApprovedPrimaryUrlForViewer(
-                memberId: $memberId,
+            $resolvedImage;
 
-                viewerUserId: $viewerUserId,
-
-                hasInterestRelationship: $hasInterestRelationship,
-
-                variant: 'thumbnail'
-            );
+        if ($image === null) {
+            $image =
+                $this->photoUrlService
+                ->getApprovedPrimaryUrlForViewer(
+                    memberId: $memberId,
+                    viewerUserId: $viewerUserId,
+                    hasInterestRelationship: $hasInterestRelationship,
+                    variant: 'thumbnail'
+                );
+        }
 
         /*
          * Do not reveal why an actual photograph cannot be shown.
-         *
-         * The same gender-based placeholder is used whether the member
-         * has no photo, an unapproved photo or a restricted photo.
          */
         if ($image === '') {
             helper(
@@ -213,6 +215,103 @@ final class MemberProfilePresentationService
                 employedIn: $employedIn
             );
 
+        /*
+        * Candidate membership was resolved by MemberMatchCandidateModel as part of
+        * the candidate query.
+        *
+        * Do NOT call MembershipService here.
+        *
+        * summary() is executed once per card, so resolving membership from this
+        * service would recreate the N+1 query problem which the candidate
+        * membership projection is designed to prevent.
+        */
+        $membershipPlanCode =
+            mb_strtoupper(
+                trim(
+                    (string) (
+                        $member['membership_plan_code']
+                        ?? ''
+                    )
+                )
+            );
+
+        /*
+        * Only known paid plan codes are allowed to produce a paid account label.
+        *
+        * The candidate projection may contain NULL for Free members. An unexpected
+        * or corrupt snapshot also fails closed to Free Account rather than granting
+        * paid-looking presentation state.
+        */
+        $isPaidAccount =
+            in_array(
+                $membershipPlanCode,
+                [
+                    'GO',
+                    'PLUS',
+                    'PRO',
+                ],
+                true
+            );
+
+        $accountType =
+            $isPaidAccount
+            ? trim(
+                (string) (
+                    $member['membership_plan_name']
+                    ?? ''
+                )
+            )
+            : '';
+
+        /*
+        * Historical plan-name snapshots should normally be populated.
+        *
+        * Falling back to the known plan code keeps presentation usable if an older
+        * membership row has an empty name snapshot, without querying the plan master.
+        */
+        if (
+            $isPaidAccount
+            && $accountType === ''
+        ) {
+            $accountType =
+                match ($membershipPlanCode) {
+                    'GO' =>
+                    'Go Account',
+
+                    'PLUS' =>
+                    'Plus Account',
+
+                    'PRO' =>
+                    'Pro Account',
+
+                    default =>
+                    'Free Account',
+                };
+        }
+
+        if (!$isPaidAccount) {
+            $accountType =
+                'Free Account';
+        }
+
+        /*
+        * Commercial priority is projected now even though card presentation does
+        * not currently display it.
+        *
+        * The upcoming ranking phase can therefore consume the value without adding
+        * another membership query or changing the candidate contract again.
+        */
+        $commercialPriority =
+            $isPaidAccount
+            ? max(
+                0,
+                (int) (
+                    $member['membership_commercial_priority']
+                    ?? 0
+                )
+            )
+            : 0;
+
         return [
             'referenceId' =>
             $profileReference,
@@ -275,13 +374,37 @@ final class MemberProfilePresentationService
             ),
 
             /*
-            * Temporary backend-supplied account type.
+            * Account type comes from the membership snapshot projected by the candidate
+            * query.
             *
-            * Replace this value with the member's resolved subscription entitlement
-            * when the subscription module becomes authoritative.
+            * Free remains a derived state: absence of a valid active paid membership
+            * means Free Account.
             */
             'accountType' =>
-            self::DEFAULT_ACCOUNT_TYPE,
+            $accountType,
+
+            /*
+            * Machine-readable account state.
+            *
+            * Keep this separate from accountType so future card/ranking logic never
+            * needs to reverse-engineer business state from display text.
+            */
+            'accountCode' =>
+            $isPaidAccount
+                ? $membershipPlanCode
+                : 'FREE',
+
+            'isPaidAccount' =>
+            $isPaidAccount,
+
+            /*
+            * Used by the upcoming ranking algorithm.
+            *
+            * This is the commercial priority snapshot purchased with the membership,
+            * not a live lookup against the current plan master.
+            */
+            'commercialPriority' =>
+            $commercialPriority,
 
             /*
             * Verification values are normalized in the backend so views never need

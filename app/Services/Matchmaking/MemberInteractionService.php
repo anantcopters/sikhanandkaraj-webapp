@@ -12,6 +12,7 @@ use App\Models\MemberShortlistModel;
 use App\Services\Notification\MemberNotificationService;
 use CodeIgniter\Database\BaseConnection;
 use App\Support\MemberNameVisibility;
+use App\Services\Membership\MembershipEntitlementService;
 use DomainException;
 use RuntimeException;
 use Throwable;
@@ -44,13 +45,35 @@ final class MemberInteractionService
     'DECLINED_RECEIVED';
 
     public function __construct(
-        private readonly UserModel $userModel,
-        private readonly MemberBlockModel $blockModel,
-        private readonly MemberInterestModel $interestModel,
-        private readonly MemberShortlistModel $shortlistModel,
-        private readonly MemberProfileViewModel $profileViewModel,
-        private readonly MemberNotificationService $notificationService,
-        private readonly BaseConnection $database
+        private readonly UserModel
+        $userModel,
+
+        private readonly MemberBlockModel
+        $blockModel,
+
+        private readonly MemberInterestModel
+        $interestModel,
+
+        private readonly MemberShortlistModel
+        $shortlistModel,
+
+        private readonly MemberProfileViewModel
+        $profileViewModel,
+
+        private readonly MemberNotificationService
+        $notificationService,
+
+        private readonly BaseConnection
+        $database,
+
+        /*
+        * MemberInteractionService owns the actual Shortlist state transition.
+        *
+        * Therefore membership authorization belongs here rather than only in
+        * MemberProfileController.
+        */
+        private readonly MembershipEntitlementService
+        $membershipEntitlementService
     ) {}
 
     /**
@@ -202,8 +225,29 @@ final class MemberInteractionService
     }
 
     /**
-     * Add or remove another member from the authenticated
-     * member's shortlist.
+     * Add or remove another member from the authenticated member's shortlist.
+     *
+     * Shortlist is a paid membership capability when a NEW shortlist is created.
+     *
+     * IMPORTANT PRODUCT RULE:
+     *
+     * A member who created a Shortlist while Paid may later become Free.
+     *
+     * Historical shortlist state is retained after membership expiry, therefore
+     * removing an existing shortlist must remain possible for a Free member.
+     *
+     * CONCURRENCY:
+     *
+     * Shortlist is a toggle operation. A simple:
+     *
+     *     SELECT -> INSERT / DELETE
+     *
+     * is not sufficient because two simultaneous requests could both observe
+     * the same original state.
+     *
+     * We therefore serialize changes for the member pair by locking both user
+     * rows in deterministic ID order. This follows the same locking strategy
+     * already used by Interest creation.
      *
      * @return bool TRUE when shortlisted after the operation,
      *              FALSE when removed.
@@ -213,46 +257,115 @@ final class MemberInteractionService
         int $shortlistedUserId
     ): bool {
         /*
-     * Reuse exactly the same member-pair authorization used
-     * by Interest and profile views.
+     * Validate the relationship before starting the transaction.
      *
-     * This prevents:
+     * This reuses the existing member-pair authority and prevents:
      *
      * - self-shortlisting;
-     * - inactive accounts;
-     * - blocked member relationships.
+     * - inactive members;
+     * - blocked relationships.
      */
         $this->assertVisiblePair(
             $userId,
             $shortlistedUserId
         );
 
-        if (
-            $this->shortlistModel
-            ->hasShortlisted(
-                $userId,
-                $shortlistedUserId
-            )
-        ) {
-            $removed = $this
-                ->shortlistModel
-                ->removeShortlist(
+        $this->database
+            ->transBegin();
+
+        try {
+            /*
+         * Serialize Shortlist state changes for this member pair.
+         *
+         * IDs are always locked in ascending order so competing operations
+         * involving the same pair acquire PostgreSQL row locks consistently.
+         *
+         * This is deliberately the same strategy already used by
+         * showInterest().
+         */
+            $this->database->query(
+                'SELECT id '
+                    . 'FROM users '
+                    . 'WHERE id IN (?, ?) '
+                    . 'ORDER BY id '
+                    . 'FOR UPDATE',
+                [
+                    $userId,
+                    $shortlistedUserId,
+                ]
+            );
+
+            /*
+         * IMPORTANT:
+         *
+         * Resolve the state only AFTER acquiring the row locks.
+         *
+         * Reading the state before locking would reintroduce the race where
+         * two concurrent requests both make their decision from stale data.
+         */
+            $isAlreadyShortlisted =
+                $this->shortlistModel
+                ->hasShortlisted(
                     $userId,
                     $shortlistedUserId
                 );
 
-            if ($removed === false) {
-                throw new RuntimeException(
-                    'The shortlist could not be updated.'
+            if ($isAlreadyShortlisted) {
+                /*
+             * Removing historical shortlist state remains allowed even when
+             * the member's paid membership has expired.
+             */
+                $removed =
+                    $this->shortlistModel
+                    ->removeShortlist(
+                        $userId,
+                        $shortlistedUserId
+                    );
+
+                if ($removed === false) {
+                    throw new RuntimeException(
+                        'The shortlist could not be updated.'
+                    );
+                }
+
+                if (
+                    $this->database
+                    ->transStatus()
+                    === false
+                ) {
+                    throw new RuntimeException(
+                        'The shortlist transaction failed.'
+                    );
+                }
+
+                $this->database
+                    ->transCommit();
+
+                return false;
+            }
+
+            /*
+         * Creating NEW shortlist state requires the current paid
+         * membership entitlement.
+         *
+         * Perform this check while the pair remains serialized so the
+         * authorization applies to the exact state transition we are
+         * about to perform.
+         */
+            if (
+                !$this->membershipEntitlementService
+                    ->canShortlist(
+                        $userId
+                    )
+            ) {
+                throw new DomainException(
+                    'Shortlisting profiles is available with a paid membership. '
+                        . 'Please upgrade your plan to use Shortlist.'
                 );
             }
 
-            return false;
-        }
-
-        try {
-            $insertId = $this
-                ->shortlistModel
+            $insertId =
+                $this->shortlistModel
                 ->insert(
                     [
                         'user_id' =>
@@ -264,30 +377,45 @@ final class MemberInteractionService
                     true
                 );
 
-            if (!is_numeric($insertId)) {
+            if (
+                !is_numeric(
+                    $insertId
+                )
+                || (int) $insertId <= 0
+            ) {
                 throw new RuntimeException(
                     'The profile could not be shortlisted.'
                 );
             }
-        } catch (Throwable $exception) {
+
             /*
-         * The PostgreSQL unique constraint remains the final
-         * concurrency guard.
+         * PostgreSQL's existing UNIQUE(user_id, shortlisted_user_id)
+         * remains the final defensive database invariant.
+         *
+         * Application locking defines deterministic toggle semantics;
+         * database uniqueness protects against accidental future callers
+         * that bypass this service.
          */
             if (
-                $this->shortlistModel
-                ->hasShortlisted(
-                    $userId,
-                    $shortlistedUserId
-                )
+                $this->database
+                ->transStatus()
+                === false
             ) {
-                return true;
+                throw new RuntimeException(
+                    'The shortlist transaction failed.'
+                );
             }
+
+            $this->database
+                ->transCommit();
+
+            return true;
+        } catch (Throwable $exception) {
+            $this->database
+                ->transRollback();
 
             throw $exception;
         }
-
-        return true;
     }
 
     /**
@@ -317,6 +445,35 @@ final class MemberInteractionService
             ->shortlistModel
             ->shortlistedMemberIds(
                 $userId
+            );
+    }
+
+    /**
+     * Return whether the viewer currently has the target profile shortlisted.
+     *
+     * This is read-only presentation state.
+     *
+     * It deliberately does not apply the current membership entitlement because
+     * historical Shortlists survive membership expiry.
+     *
+     * Membership entitlement is required only when creating a NEW shortlist.
+     */
+    public function isShortlisted(
+        int $viewerUserId,
+        int $targetUserId
+    ): bool {
+        if (
+            $viewerUserId <= 0
+            || $targetUserId <= 0
+            || $viewerUserId === $targetUserId
+        ) {
+            return false;
+        }
+
+        return $this->shortlistModel
+            ->hasShortlisted(
+                $viewerUserId,
+                $targetUserId
             );
     }
 
@@ -585,115 +742,313 @@ final class MemberInteractionService
             )
             : null;
 
-        /*
-     * ACCEPTED is the strongest final positive state.
+        return $this->relationshipFromStatuses(
+            $outgoingStatus,
+            $incomingStatus
+        );
+    }
+
+    /**
+     * Resolve Interest relationship state for a candidate collection.
      *
-     * This also safely handles old reciprocal rows that
-     * were migrated from MUTUAL to ACCEPTED.
+     
+     *
+     * Previously Search executed:
+     *
+     *     2 Interest queries x number of cards
+     *
+     * This method loads all relevant Interest rows once and then reuses the
+     * exact existing relationship-state rules for every candidate.
+     *
+     * @param list<int> $targetUserIds
+     *
+     * @return array<int, array{
+     *     state:string,
+     *     hasRelationship:bool,
+     *     hasOutgoing:bool,
+     *     hasIncoming:bool,
+     *     canShowInterest:bool,
+     *     canRespond:bool,
+     *     outgoingStatus:?string,
+     *     incomingStatus:?string
+     * }>
      */
-        if (
-            $outgoingStatus
-            === MemberInterestModel
-            ::STATUS_ACCEPTED
-        ) {
-            return $this
-                ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_ACCEPTED_SENT,
+    public function interestRelationshipsFor(
+        int $viewerUserId,
+        array $targetUserIds
+    ): array {
+        $targetUserIds =
+            $this->normalizedTargetIds(
+                $viewerUserId,
+                $targetUserIds
+            );
 
-                    outgoingStatus: $outgoingStatus,
-
-                    incomingStatus: $incomingStatus
-                );
+        if ($targetUserIds === []) {
+            return [];
         }
 
-        if (
-            $incomingStatus
-            === MemberInterestModel
-            ::STATUS_ACCEPTED
-        ) {
-            return $this
-                ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_ACCEPTED_RECEIVED,
-
-                    outgoingStatus: $outgoingStatus,
-
-                    incomingStatus: $incomingStatus
-                );
-        }
+        $rows =
+            $this->interestModel
+            ->findRelationshipsForViewer(
+                $viewerUserId,
+                $targetUserIds
+            );
 
         /*
-     * Incoming Pending takes precedence over historical
-     * Declined state because it represents a current
-     * actionable request.
-     */
-        if (
-            $incomingStatus
-            === MemberInterestModel
-            ::STATUS_PENDING
-        ) {
-            return $this
-                ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_PENDING_RECEIVED,
+         * Index directional rows by the target member.
+         *
+         * The current schema/domain normally permits one relationship row
+         * between a member pair. Keeping the newest row from each direction
+         * also gives deterministic behaviour for historical data.
+         */
+        $outgoing = [];
+        $incoming = [];
 
-                    outgoingStatus: $outgoingStatus,
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
 
-                    incomingStatus: $incomingStatus
-                );
-        }
-
-        if (
-            $outgoingStatus
-            === MemberInterestModel
-            ::STATUS_PENDING
-        ) {
-            return $this
-                ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_PENDING_SENT,
-
-                    outgoingStatus: $outgoingStatus,
-
-                    incomingStatus: $incomingStatus
-                );
-        }
-
-        if (
-            $outgoingStatus
-            === MemberInterestModel
-            ::STATUS_DECLINED
-        ) {
-            return $this
-                ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_DECLINED_SENT,
-
-                    outgoingStatus: $outgoingStatus,
-
-                    incomingStatus: $incomingStatus
-                );
-        }
-
-        if (
-            $incomingStatus
-            === MemberInterestModel
-            ::STATUS_DECLINED
-        ) {
-            return $this
-                ->interestRelationshipResult(
-                    state: self::INTEREST_STATE_DECLINED_RECEIVED,
-
-                    outgoingStatus: $outgoingStatus,
-
-                    incomingStatus: $incomingStatus
-                );
-        }
-
-        return $this
-            ->interestRelationshipResult(
-                state: self::INTEREST_STATE_NONE,
-
-                outgoingStatus: null,
-
-                incomingStatus: null
+            $fromUserId = max(
+                0,
+                (int) (
+                    $row['from_user_id']
+                    ?? 0
+                )
             );
+
+            $toUserId = max(
+                0,
+                (int) (
+                    $row['to_user_id']
+                    ?? 0
+                )
+            );
+
+            if (
+                $fromUserId === $viewerUserId
+                && in_array(
+                    $toUserId,
+                    $targetUserIds,
+                    true
+                )
+                && !isset(
+                    $outgoing[$toUserId]
+                )
+            ) {
+                $outgoing[$toUserId] =
+                    $this->normaliseInterestStatus(
+                        $row['status']
+                            ?? null
+                    );
+
+                continue;
+            }
+
+            if (
+                $toUserId === $viewerUserId
+                && in_array(
+                    $fromUserId,
+                    $targetUserIds,
+                    true
+                )
+                && !isset(
+                    $incoming[$fromUserId]
+                )
+            ) {
+                $incoming[$fromUserId] =
+                    $this->normaliseInterestStatus(
+                        $row['status']
+                            ?? null
+                    );
+            }
+        }
+
+        $relationships = [];
+
+        foreach ($targetUserIds as $targetUserId) {
+            $relationships[$targetUserId] =
+                $this->relationshipFromStatuses(
+                    $outgoing[$targetUserId]
+                        ?? null,
+                    $incoming[$targetUserId]
+                        ?? null
+                );
+        }
+
+        return $relationships;
+    }
+
+    /**
+     * Return shortlist state for a candidate collection.
+     *
+     * @param list<int> $targetUserIds
+     *
+     * @return array<int, bool>
+     */
+    public function shortlistStatesFor(
+        int $viewerUserId,
+        array $targetUserIds
+    ): array {
+        $targetUserIds =
+            $this->normalizedTargetIds(
+                $viewerUserId,
+                $targetUserIds
+            );
+
+        if ($targetUserIds === []) {
+            return [];
+        }
+
+        $shortlistedIds =
+            $this->shortlistModel
+            ->shortlistedIdsFromCandidates(
+                $viewerUserId,
+                $targetUserIds
+            );
+
+        $shortlistedLookup =
+            array_fill_keys(
+                $shortlistedIds,
+                true
+            );
+
+        $states = [];
+
+        foreach ($targetUserIds as $targetUserId) {
+            $states[$targetUserId] =
+                isset(
+                    $shortlistedLookup[$targetUserId]
+                );
+        }
+
+        return $states;
+    }
+
+    /**
+     * Build the existing Interest relationship contract from already-loaded
+     * directional statuses.
+     *
+     * This is the common state authority used by both single-profile and
+     * collection reads.
+     *
+     * @return array{
+     *     state:string,
+     *     hasRelationship:bool,
+     *     hasOutgoing:bool,
+     *     hasIncoming:bool,
+     *     canShowInterest:bool,
+     *     canRespond:bool,
+     *     outgoingStatus:?string,
+     *     incomingStatus:?string
+     * }
+     */
+    private function relationshipFromStatuses(
+        ?string $outgoingStatus,
+        ?string $incomingStatus
+    ): array {
+        if (
+            $outgoingStatus
+            === MemberInterestModel::STATUS_ACCEPTED
+        ) {
+            return $this->interestRelationshipResult(
+                state: self::INTEREST_STATE_ACCEPTED_SENT,
+                outgoingStatus: $outgoingStatus,
+                incomingStatus: $incomingStatus
+            );
+        }
+
+        if (
+            $incomingStatus
+            === MemberInterestModel::STATUS_ACCEPTED
+        ) {
+            return $this->interestRelationshipResult(
+                state: self::INTEREST_STATE_ACCEPTED_RECEIVED,
+                outgoingStatus: $outgoingStatus,
+                incomingStatus: $incomingStatus
+            );
+        }
+
+        if (
+            $incomingStatus
+            === MemberInterestModel::STATUS_PENDING
+        ) {
+            return $this->interestRelationshipResult(
+                state: self::INTEREST_STATE_PENDING_RECEIVED,
+                outgoingStatus: $outgoingStatus,
+                incomingStatus: $incomingStatus
+            );
+        }
+
+        if (
+            $outgoingStatus
+            === MemberInterestModel::STATUS_PENDING
+        ) {
+            return $this->interestRelationshipResult(
+                state: self::INTEREST_STATE_PENDING_SENT,
+                outgoingStatus: $outgoingStatus,
+                incomingStatus: $incomingStatus
+            );
+        }
+
+        if (
+            $outgoingStatus
+            === MemberInterestModel::STATUS_DECLINED
+        ) {
+            return $this->interestRelationshipResult(
+                state: self::INTEREST_STATE_DECLINED_SENT,
+                outgoingStatus: $outgoingStatus,
+                incomingStatus: $incomingStatus
+            );
+        }
+
+        if (
+            $incomingStatus
+            === MemberInterestModel::STATUS_DECLINED
+        ) {
+            return $this->interestRelationshipResult(
+                state: self::INTEREST_STATE_DECLINED_RECEIVED,
+                outgoingStatus: $outgoingStatus,
+                incomingStatus: $incomingStatus
+            );
+        }
+
+        return $this->interestRelationshipResult(
+            state: self::INTEREST_STATE_NONE,
+            outgoingStatus: null,
+            incomingStatus: null
+        );
+    }
+
+    /**
+     * Normalize a candidate-ID collection used by read-only interaction
+     * projections.
+     *
+     * @param list<int> $targetUserIds
+     *
+     * @return list<int>
+     */
+    private function normalizedTargetIds(
+        int $viewerUserId,
+        array $targetUserIds
+    ): array {
+        if ($viewerUserId <= 0) {
+            return [];
+        }
+
+        return array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $targetUserIds
+                    ),
+                    static fn(int $targetUserId): bool =>
+                    $targetUserId > 0
+                        && $targetUserId !== $viewerUserId
+                )
+            )
+        );
     }
 
     /**

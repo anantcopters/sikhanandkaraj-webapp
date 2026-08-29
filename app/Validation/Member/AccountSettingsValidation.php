@@ -8,6 +8,11 @@ use App\Validation\PasswordValidation;
 
 /**
  * Server-side Account Settings rules.
+ *
+ * Profile Visibility is intentionally absent.
+ *
+ * Full Profile authorization belongs to the centralized membership/profile
+ * access architecture and is not a member-editable Account Setting.
  */
 final class AccountSettingsValidation
 {
@@ -67,32 +72,6 @@ final class AccountSettingsValidation
 
                     'max_length' =>
                     'Email address cannot exceed 254 characters.',
-                ],
-            ],
-        ];
-    }
-
-    /**
-     * @return array<string, array<string, mixed>>
-     */
-    public static function visibilityRules(): array
-    {
-        return [
-            'profile_visibility' => [
-                'label' =>
-                'Profile visibility',
-
-                'rules' => [
-                    'required',
-                    'in_list[ALL_MEMBERS,PAID_MEMBERS_ONLY]',
-                ],
-
-                'errors' => [
-                    'required' =>
-                    'Please select who can view your profile.',
-
-                    'in_list' =>
-                    'The selected profile visibility is invalid.',
                 ],
             ],
         ];

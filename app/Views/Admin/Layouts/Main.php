@@ -104,6 +104,12 @@ $pageScripts = $pageScripts ?? [];
                 'admin/users'
             );
 
+        $matchScoreActive =
+            str_starts_with(
+                $currentPath,
+                'admin/match-score'
+            );
+
         $sakVolunteersActive =
             str_starts_with(
                 $currentPath,
@@ -124,7 +130,8 @@ $pageScripts = $pageScripts ?? [];
             || $videoIntroductionApprovalsActive;
 
         $administrationGroupActive =
-            $administratorsActive;
+            $administratorsActive
+            || $matchScoreActive;
 
         $profileReportsActive =
             str_starts_with(
@@ -617,8 +624,32 @@ $pageScripts = $pageScripts ?? [];
                                                 Administrators
                                             </a>
                                         </li>
+                                        <li>
+                                            <a
+                                                href="<?= route_to(
+                                                            'admin.match-score.index'
+                                                        ) ?>"
+                                                class="dropdown-item
+            d-flex
+            align-items-center
+            gap-2
+            <?= $matchScoreActive
+                                    ? 'active'
+                                    : '' ?>"
+                                                <?= $matchScoreActive
+                                                    ? 'aria-current="page"'
+                                                    : '' ?>>
+
+                                                <i
+                                                    class="ri-bar-chart-box-line"
+                                                    aria-hidden="true"></i>
+
+                                                Match Score
+                                            </a>
+                                        </li>
                                     </ul>
                                 </li>
+
                             <?php endif; ?>
                         </ul>
 

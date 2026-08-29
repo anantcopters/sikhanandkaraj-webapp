@@ -527,6 +527,27 @@ $this->section('content');
                                                 aria-hidden="true"></i>
                                         </a>
 
+                                        <a
+                                            href="<?= route_to(
+                                                        'admin.members.matches',
+                                                        $userId
+                                                    ) ?>"
+                                            class="btn
+        btn-sm
+        btn-soft-success"
+                                            title="View member matches"
+                                            data-bs-toggle="tooltip"
+                                            data-bs-placement="top"
+                                            aria-label="View matches for <?= esc(
+                                                                                $fullName,
+                                                                                'attr'
+                                                                            ) ?>">
+
+                                            <i
+                                                class="ri-hearts-line"
+                                                aria-hidden="true"></i>
+                                        </a>
+
                                         <button
                                             type="button"
                                             class="btn

@@ -86,25 +86,25 @@ $duration = is_array($videoIntroduction)
 
 $statusClass = match ($videoStatus) {
     'APPROVED' =>
-    'bg-success-subtle text-success',
+    'bg-success-subtle text-body',
 
     'REJECTED',
     'PROCESSING_FAILED' =>
-    'bg-danger-subtle text-danger',
+    'bg-danger-subtle text-body',
 
     'PENDING_REVIEW',
     'RESUBMISSION_REQUESTED' =>
-    'bg-warning-subtle text-warning',
+    'bg-warning-subtle text-body',
 
     'PROCESSING' =>
-    'bg-primary-subtle text-primary',
+    'bg-primary-subtle text-body',
 
     'DELETED',
     'REPLACED' =>
-    'bg-secondary-subtle text-secondary',
+    'bg-light-subtle text-body',
 
     default =>
-    'bg-light text-body',
+    'bg-secondary-subtle text-body',
 };
 ?>
 
@@ -337,7 +337,7 @@ $statusClass = match ($videoStatus) {
 
 <?php if (!$hasApprovedProfilePhoto): ?>
     <div
-        class="alert alert-warning fs-13"
+        class="alert alert-info fs-13"
         role="alert">
 
         <div class="d-flex align-items-start gap-2">
@@ -351,7 +351,7 @@ $statusClass = match ($videoStatus) {
                     An approved profile photo is required
                 </strong>
 
-                <p class="mb-0 mt-1">
+                <p class="text-muted mb-0 mt-1">
                     Add a profile photo and wait for its
                     approval before recording your Video
                     Introduction.

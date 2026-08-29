@@ -139,6 +139,31 @@ use App\Services\Profile\MemberProfilePdfService;
 use App\Models\MemberPartnerLifestylePreferenceModel;
 use App\Models\MemberPartnerLifestylePreferenceOptionModel;
 use App\Services\PartnerPreference\LifestylePartnerPreferenceService;
+use App\Models\MemberMembershipModel;
+use App\Models\MembershipPlanModel;
+use App\Services\Membership\MembershipEntitlementService;
+use App\Services\Membership\MembershipService;
+use App\Services\Membership\VerifiedProfilePolicy;
+use App\Models\MemberMembershipProfileViewModel;
+use App\Services\Membership\MembershipProfileUsageService;
+use App\Services\Membership\ProfileAccessPolicy;
+use App\Models\MemberMembershipLiveIntroductionViewModel;
+use App\Services\Membership\MembershipLiveIntroductionUsageService;
+use App\Services\Membership\LiveIntroductionAccessPolicy;
+use App\Models\MatchScoreConfigurationModel;
+use App\Models\MemberMatchScoringSignalModel;
+use App\Services\Matchmaking\MatchScoreConfigurationService;
+use App\Services\Matchmaking\MemberMatchScoreService;
+use App\Services\Matchmaking\MemberMatchScoringSignalService;
+use App\Services\Admin\MemberMatchScoreDiagnosticService;
+use App\Services\Membership\MembershipLifecycleService;
+use App\Services\Membership\MemberMembershipHistoryService;
+use App\Services\Membership\MembershipPurchaseService;
+use App\Models\MemberPaymentModel;
+use App\Services\Development\DevelopmentMembershipPaymentSimulator;
+use App\Services\Membership\MembershipPaymentService;
+use App\Services\Admin\AdminMemberMatchesService;
+use App\Services\Matchmaking\PartnerPreferencePresentationService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -360,6 +385,27 @@ final class Services extends BaseService
 
         return new AdminCaptchaService(
             'member_profile_report_captcha'
+        );
+    }
+
+    /**
+     * Return the member profile-block CAPTCHA service.
+     *
+     * Reuses the established arithmetic CAPTCHA implementation with
+     * isolated session state so Block and Report do not overwrite
+     * each other's active CAPTCHA challenge.
+     */
+    public static function memberProfileBlockCaptchaService(
+        bool $getShared = true
+    ): AdminCaptchaService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberProfileBlockCaptchaService'
+            );
+        }
+
+        return new AdminCaptchaService(
+            'member_profile_block_captcha'
         );
     }
 
@@ -798,7 +844,8 @@ final class Services extends BaseService
 
         return new CloudFrontService(
             static::memberMediaCloudFrontClient(false),
-            $configuration
+            $configuration,
+            cache: static::cache()
         );
     }
 
@@ -999,7 +1046,16 @@ final class Services extends BaseService
 
             $database,
 
-            $configuration
+            config(
+                MemberMedia::class
+            ),
+
+            /*
+            * Aadhaar upload/re-upload is membership controlled.
+            */
+            static::membershipEntitlementService(
+                false
+            )
         );
     }
 
@@ -1534,6 +1590,32 @@ final class Services extends BaseService
     }
 
     /**
+     * Return the shared Partner Preference presentation service.
+     *
+     * Matching remains owned by PartnerPreferenceMatchService. This service
+     * only resolves authoritative Match criteria into readable UI rows.
+     */
+    public static function partnerPreferencePresentationService(
+        bool $getShared = true
+    ): PartnerPreferencePresentationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'partnerPreferencePresentationService'
+            );
+        }
+
+        return new PartnerPreferencePresentationService(
+            static::basicPartnerPreferenceService(
+                false
+            ),
+
+            static::additionalPartnerPreferenceService(
+                false
+            )
+        );
+    }
+
+    /**
      * Administrator member listing, complete profile display and
      * account-status management.
      */
@@ -1597,7 +1679,71 @@ final class Services extends BaseService
 
             config(
                 VideoIntroduction::class
+            ),
+
+            /*
+            * Admin profile diagnostics use the same Match Score authority as member
+            * Search and Dashboard.
+            */
+            static::memberMatchScoreDiagnosticService(
+                false
             )
+        );
+    }
+
+    /**
+     * Return administrator-only Match listing service.
+     *
+     * Candidate eligibility, Partner Preference matching, Match Score and
+     * common profile presentation remain delegated to their existing
+     * production authorities.
+     */
+    public static function adminMemberMatchesService(
+        bool $getShared = true
+    ): AdminMemberMatchesService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'adminMemberMatchesService'
+            );
+        }
+
+        $database = db_connect();
+
+        /** @var Matchmaking $configuration */
+        $configuration = config(
+            Matchmaking::class
+        );
+
+        return new AdminMemberMatchesService(
+            new UserModel(
+                $database
+            ),
+
+            new MemberMatchCandidateModel(
+                $database
+            ),
+
+            static::partnerPreferenceMatchService(
+                false
+            ),
+
+            static::memberMatchScoreService(
+                false
+            ),
+
+            static::memberProfilePresentationService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            static::partnerPreferencePresentationService(
+                false
+            ),
+
+            $configuration
         );
     }
 
@@ -1723,19 +1869,29 @@ final class Services extends BaseService
             ),
 
             /*
-         * Intentionally construct this with the SAME database
-         * connection used by the interaction models.
-         *
-         * Do not call memberNotificationService(false) here if
-         * doing so could establish an independent connection.
-         */
+            * Intentionally construct this with the SAME database connection used by
+            * the interaction models.
+            *
+            * Interest persistence and notification creation must continue to
+            * participate in the same transaction.
+            */
             new MemberNotificationService(
                 new MemberNotificationModel(
                     $database
                 )
             ),
 
-            $database
+            $database,
+
+            /*
+            * Shortlist entitlement is resolved centrally.
+            *
+            * Report, Block and Interest remain available to Free + Paid members
+            * according to MembershipEntitlementService.
+            */
+            static::membershipEntitlementService(
+                false
+            )
         );
     }
 
@@ -1860,6 +2016,13 @@ final class Services extends BaseService
         );
     }
 
+    /**
+     * Return the member matchmaking collection service.
+     *
+     * Candidate eligibility, Partner Preference matching, final Match Score,
+     * interaction state and photo presentation remain delegated to their
+     * existing domain authorities.
+     */
     public static function memberMatchmakingService(
         bool $getShared = true
     ): MemberMatchmakingService {
@@ -1869,7 +2032,14 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
+
+        /** @var Matchmaking $configuration */
+        $configuration =
+            config(
+                Matchmaking::class
+            );
 
         return new MemberMatchmakingService(
             new UserModel(
@@ -1884,6 +2054,10 @@ final class Services extends BaseService
                 false
             ),
 
+            static::memberMatchScoreService(
+                false
+            ),
+
             static::memberInteractionService(
                 false
             ),
@@ -1892,9 +2066,24 @@ final class Services extends BaseService
                 false
             ),
 
-            config(
-                Matchmaking::class
-            )
+            /*
+            * Reuse the same centralized photo authorization/signing service used
+            * by Search so Dashboard does not perform one photo query per card.
+            */
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            /*
+            * Dashboard ProfileCard presentation needs the viewer's
+            * membership capability so paid members receive the
+            * View Profile action.
+            */
+            static::membershipEntitlementService(
+                false
+            ),
+
+            $configuration
         );
     }
 
@@ -1908,9 +2097,8 @@ final class Services extends BaseService
         }
 
         return new MemberDashboardDataService(
-            static::memberMatchmakingService(
-                false
-            )
+            static::memberMatchmakingService(false),
+            static::membershipService(false)
         );
     }
 
@@ -1957,17 +2145,11 @@ final class Services extends BaseService
                 false
             ),
 
-            /*
-         * Reuse the existing Partner Preference services.
-         *
-         * These provide the human-readable preference values
-         * required by the Partner Preference Match modal.
-         */
-            static::basicPartnerPreferenceService(
+            static::partnerPreferencePresentationService(
                 false
             ),
-
-            static::additionalPartnerPreferenceService(
+            
+            static::profileAccessPolicy(
                 false
             )
         );
@@ -2005,16 +2187,23 @@ final class Services extends BaseService
             ),
 
             /*
-         * Use the same DB connection so Interest response
-         * and notification remain in one transaction.
-         */
+            * Use the same DB connection so Interest response
+            * and notification remain in one transaction.
+            */
             new MemberNotificationService(
                 new MemberNotificationModel(
                     $database
                 )
             ),
 
-            $database
+            $database,
+            static::membershipEntitlementService(
+                false
+            ),
+
+            static::memberInteractionService(
+                false
+            )
         );
     }
 
@@ -2033,10 +2222,6 @@ final class Services extends BaseService
             );
         }
 
-        /*
-     * All models/services created here use the normal application database
-     * connection managed by CI4.
-     */
         $database =
             db_connect();
 
@@ -2049,9 +2234,6 @@ final class Services extends BaseService
                 $database
             ),
 
-            /*
-         * Same Interest authority used by Member Profile View.
-         */
             static::memberInteractionService(
                 false
             ),
@@ -2065,6 +2247,39 @@ final class Services extends BaseService
             ),
 
             static::lifestyleService(
+                false
+            ),
+
+            /*
+         * Search relevance uses exactly the same Partner Preference algorithm
+         * as Dashboard All Matches.
+         */
+            static::partnerPreferenceMatchService(
+                false
+            ),
+
+            /*
+         * Final weighted Match Score authority.
+         *
+         * Dashboard and Search must never maintain separate ranking rules.
+         */
+            static::memberMatchScoreService(
+                false
+            ),
+
+            /*
+         * All membership-controlled Search capabilities are resolved through
+         * the existing entitlement authority.
+         */
+            static::membershipEntitlementService(
+                false
+            ),
+
+            /*
+            * Search card collections batch-load approved primary-photo state through
+            * the shared photo URL service to avoid per-profile photo queries.
+            */
+            static::memberPhotoUrlService(
                 false
             )
         );
@@ -2300,6 +2515,74 @@ final class Services extends BaseService
         );
     }
 
+    /**
+     * Return membership-scoped Live Introduction commercial usage service.
+     *
+     * This is deliberately separate from video moderation/lifecycle state.
+     */
+    public static function membershipLiveIntroductionUsageService(
+        bool $getShared = true
+    ): MembershipLiveIntroductionUsageService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipLiveIntroductionUsageService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MembershipLiveIntroductionUsageService(
+            new MemberMembershipLiveIntroductionViewModel(
+                $database
+            ),
+            $database
+        );
+    }
+
+    /**
+     * Return the centralized another-member Live Introduction playback policy.
+     *
+     * Signed member-facing video URLs must be authorized through this service.
+     */
+    public static function liveIntroductionAccessPolicy(
+        bool $getShared = true
+    ): LiveIntroductionAccessPolicy {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'liveIntroductionAccessPolicy'
+            );
+        }
+
+        $database = db_connect();
+
+        return new LiveIntroductionAccessPolicy(
+            static::membershipEntitlementService(
+                false
+            ),
+
+            static::profileAccessPolicy(
+                false
+            ),
+
+            new MemberVideoIntroductionModel(
+                $database
+            ),
+
+            /*
+         * Reuse the shared member interaction authority so accepted-Interest
+         * direction is interpreted identically by Full Profile and Live
+         * Introduction authorization.
+         */
+            static::memberInteractionService(
+                false
+            ),
+
+            static::membershipLiveIntroductionUsageService(
+                false
+            )
+        );
+    }
+
     public static function memberVideoIntroductionService(
         bool $getShared = true
     ): MemberVideoIntroductionService {
@@ -2312,17 +2595,55 @@ final class Services extends BaseService
         $database = db_connect();
 
         return new MemberVideoIntroductionService(
-            new MemberVideoIntroductionModel($database),
-            new MemberVideoProcessingJobModel($database),
-            new MemberPhotoModel($database),
-            new UserModel($database),
-            new MemberInterestModel($database),
-            new MemberBlockModel($database),
-            new MemberProfileReportModel($database),
-            static::s3Service(false),
-            static::cloudFrontService(false),
+            new MemberVideoIntroductionModel(
+                $database
+            ),
+
+            new MemberVideoProcessingJobModel(
+                $database
+            ),
+
+            new MemberPhotoModel(
+                $database
+            ),
+
+            new UserModel(
+                $database
+            ),
+
+            new MemberInterestModel(
+                $database
+            ),
+
+            new MemberBlockModel(
+                $database
+            ),
+
+            new MemberProfileReportModel(
+                $database
+            ),
+
+            static::s3Service(
+                false
+            ),
+
+            static::cloudFrontService(
+                false
+            ),
+
             $database,
-            config(VideoIntroduction::class)
+
+            config(
+                VideoIntroduction::class
+            ),
+
+            static::membershipEntitlementService(
+                false
+            ),
+
+            static::liveIntroductionAccessPolicy(
+                false
+            )
         );
     }
 
@@ -2495,5 +2816,512 @@ final class Services extends BaseService
             ),
             $database
         );
+    }
+
+    /**
+     * Return the authoritative membership resolver.
+     *
+     * MembershipService is the only production authority for determining
+     * whether a member currently has a paid membership and which purchased
+     * limits belong to that membership.
+     */
+    public static function membershipService(
+        bool $getShared = true
+    ): MembershipService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MembershipService(
+            new MembershipPlanModel(
+                $database
+            ),
+            new MemberMembershipModel(
+                $database
+            )
+        );
+    }
+
+    /**
+     * Return membership lifecycle housekeeping service.
+     *
+     * This service synchronizes persisted lifecycle status only.
+     *
+     * MembershipService remains the runtime membership authority.
+     */
+    public static function membershipLifecycleService(
+        bool $getShared = true
+    ): MembershipLifecycleService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipLifecycleService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MembershipLifecycleService(
+            new MemberMembershipModel(
+                $database
+            )
+        );
+    }
+
+    /**
+     * Return read-only member membership/usage history service.
+     *
+     * The service combines existing authoritative membership and commercial
+     * usage ledgers for Account Settings presentation.
+     */
+    public static function memberMembershipHistoryService(
+        bool $getShared = true
+    ): MemberMembershipHistoryService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMembershipHistoryService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MemberMembershipHistoryService(
+            static::membershipService(
+                false
+            ),
+
+            new MemberMembershipModel(
+                $database
+            ),
+
+            new MemberMembershipProfileViewModel(
+                $database
+            ),
+
+            new MemberMembershipLiveIntroductionViewModel(
+                $database
+            )
+        );
+    }
+
+    /**
+     * Return the centralized membership capability resolver.
+     *
+     * Product code should ask this service for capabilities rather than
+     * introducing local paid/free conditionals.
+     */
+    public static function membershipEntitlementService(
+        bool $getShared = true
+    ): MembershipEntitlementService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipEntitlementService'
+            );
+        }
+
+        return new MembershipEntitlementService(
+            static::membershipService(
+                false
+            )
+        );
+    }
+
+    /**
+     * Return the centralized Verified Profile policy.
+     *
+     * Verification evidence remains owned by the existing Trust and
+     * Verification service. This policy only defines the product rule that at
+     * least one verified credential qualifies the candidate as a Verified
+     * Profile.
+     */
+    public static function verifiedProfilePolicy(
+        bool $getShared = true
+    ): VerifiedProfilePolicy {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'verifiedProfilePolicy'
+            );
+        }
+
+        return new VerifiedProfilePolicy(
+            static::memberTrustVerificationService(
+                false
+            )
+        );
+    }
+
+    /**
+     * Return membership-scoped Full Profile usage service.
+     *
+     * Commercial consumption is intentionally separate from general
+     * member_profile_views interaction history.
+     */
+    public static function membershipProfileUsageService(
+        bool $getShared = true
+    ): MembershipProfileUsageService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipProfileUsageService'
+            );
+        }
+
+        $database = db_connect();
+
+        return new MembershipProfileUsageService(
+            new MemberMembershipProfileViewModel(
+                $database
+            ),
+            $database
+        );
+    }
+
+    /**
+     * Return the centralized another-member protected-profile access policy.
+     *
+     * Common relationship, verification, blocking and moderation rules are
+     * resolved here.
+     *
+     * Feature-specific capabilities and commercial usage remain with the
+     * individual protected resource.
+     */
+    public static function profileAccessPolicy(
+        bool $getShared = true
+    ): ProfileAccessPolicy {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'profileAccessPolicy'
+            );
+        }
+
+        $database = db_connect();
+
+        return new ProfileAccessPolicy(
+            new UserModel(
+                $database
+            ),
+
+            static::membershipService(
+                false
+            ),
+
+            static::membershipEntitlementService(
+                false
+            ),
+
+            static::verifiedProfilePolicy(
+                false
+            ),
+
+            static::membershipProfileUsageService(
+                false
+            ),
+
+            static::memberInteractionService(
+                false
+            ),
+
+            /*
+         * Globally hidden/report-moderated profiles are rejected at the
+         * common protected-resource boundary rather than independently by
+         * Full Profile, PDF and Live Introduction.
+         */
+            new MemberProfileReportModel(
+                $database
+            )
+        );
+    }
+
+    /**
+     * Return the effective Match Score configuration authority.
+     */
+    public static function matchScoreConfigurationService(
+        bool $getShared = true
+    ): MatchScoreConfigurationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'matchScoreConfigurationService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MatchScoreConfigurationService(
+            new MatchScoreConfigurationModel(
+                $database
+            ),
+
+            $database
+        );
+    }
+
+    /**
+     * Return the pure Match Score calculator.
+     *
+     * The calculator itself performs no candidate queries.
+     */
+    public static function memberMatchScoreService(
+        bool $getShared = true
+    ): MemberMatchScoreService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMatchScoreService'
+            );
+        }
+
+        return new MemberMatchScoreService(
+            /*
+         * Use the shared configuration service.
+         *
+         * Its request-local weight cache ensures a complete candidate
+         * collection performs only one configuration lookup.
+         */
+            static::matchScoreConfigurationService(
+                true
+            )
+        );
+    }
+
+    /**
+     * Return the candidate-intrinsic scoring-signal cache service.
+     */
+    public static function memberMatchScoringSignalService(
+        bool $getShared = true
+    ): MemberMatchScoringSignalService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMatchScoringSignalService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MemberMatchScoringSignalService(
+            new MemberMatchScoringSignalModel(
+                $database
+            ),
+
+            static::memberProfileSummaryService(
+                false
+            )
+        );
+    }
+
+    /**
+     * Return read-only Admin Match Score diagnostics.
+     *
+     * The diagnostic service deliberately reuses the production:
+     *
+     * - candidate projection/eligibility;
+     * - Partner Preference algorithm;
+     * - Match Score calculation.
+     *
+     * This prevents Admin diagnostics from drifting from actual member ranking.
+     */
+    public static function memberMatchScoreDiagnosticService(
+        bool $getShared = true
+    ): MemberMatchScoreDiagnosticService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMatchScoreDiagnosticService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MemberMatchScoreDiagnosticService(
+            $database,
+
+            new UserModel(
+                $database
+            ),
+
+            new MemberMatchCandidateModel(
+                $database
+            ),
+
+            static::partnerPreferenceMatchService(
+                false
+            ),
+
+            static::matchScoreConfigurationService(
+                true
+            ),
+
+            static::memberMatchScoreService(
+                false
+            )
+        );
+    }
+
+    /**
+     * Return authoritative membership purchase/upgrade/renewal service.
+     *
+     * IMPORTANT:
+     *
+     * This service activates membership only after authoritative successful
+     * payment confirmation or an explicitly authorized administrative/system
+     * activation while payment integration is not yet available.
+     *
+     * Controllers and future payment providers must not create
+     * member_memberships rows directly.
+     */
+    public static function membershipPurchaseService(
+        bool $getShared = true
+    ): MembershipPurchaseService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipPurchaseService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MembershipPurchaseService(
+            $database,
+
+            new MembershipPlanModel(
+                $database
+            ),
+
+            new MemberMembershipModel(
+                $database
+            )
+        );
+    }
+
+    /**
+     * Return the common membership payment lifecycle service.
+     *
+     * This service is environment-neutral.
+     *
+     * Development and the future production payment gateway must both feed
+     * authoritative successful-payment results through this service.
+     */
+    public static function membershipPaymentService(
+        bool $getShared = true
+    ): MembershipPaymentService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipPaymentService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MembershipPaymentService(
+            $database,
+
+            new MembershipPlanModel(
+                $database
+            ),
+
+            new MemberPaymentModel(
+                $database
+            ),
+
+            new MemberMembershipModel(
+                $database
+            ),
+
+            new MembershipPurchaseService(
+                $database,
+
+                new MembershipPlanModel(
+                    $database
+                ),
+
+                new MemberMembershipModel(
+                    $database
+                )
+            )
+        );
+    }
+
+    /**
+     * Development-only successful-payment simulator.
+     *
+     * The simulator itself independently rejects every environment other than
+     * development.
+     */
+    public static function developmentMembershipPaymentSimulator(
+        bool $getShared = true
+    ): DevelopmentMembershipPaymentSimulator {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'developmentMembershipPaymentSimulator'
+            );
+        }
+
+        return new DevelopmentMembershipPaymentSimulator(
+            static::membershipPaymentService(
+                false
+            )
+        );
+    }
+
+    /**
+     * Build authoritative membership pricing/current-plan presentation.
+     *
+     * Commercial values are resolved from membership_plans through
+     * MembershipService. MembershipPurchaseService supplies the member-specific
+     * purchase/renewal/upgrade/downgrade decision.
+     */
+    public static function membershipPlanPresentationService(
+        bool $getShared = true
+    ): \App\Services\Membership\MembershipPlanPresentationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'membershipPlanPresentationService'
+            );
+        }
+
+        return new
+            \App\Services\Membership\MembershipPlanPresentationService(
+                service(
+                    'membershipService'
+                ),
+
+                service(
+                    'membershipPurchaseService'
+                )
+            );
+    }
+
+    /**
+     * Member-facing read-only membership usage presentation.
+     */
+    public static function memberMembershipUsageService(
+        bool $getShared = true
+    ): \App\Services\Membership\MemberMembershipUsageService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberMembershipUsageService'
+            );
+        }
+
+        return new
+            \App\Services\Membership\MemberMembershipUsageService(
+                service(
+                    'membershipService'
+                ),
+
+                model(
+                    \App\Models\MemberMembershipProfileViewModel::class
+                ),
+
+                model(
+                    \App\Models\MemberMembershipLiveIntroductionViewModel::class
+                )
+            );
     }
 }

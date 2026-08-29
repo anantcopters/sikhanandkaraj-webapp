@@ -71,6 +71,35 @@ $aboutMe = trim(
     )
 );
 
+$aboutMeWords =
+    preg_split(
+        '/\s+/u',
+        $aboutMe,
+        -1,
+        PREG_SPLIT_NO_EMPTY
+    );
+
+$aboutMeWords =
+    is_array($aboutMeWords)
+    ? $aboutMeWords
+    : [];
+
+$aboutMeTruncated =
+    count($aboutMeWords) > 60;
+
+if ($aboutMeTruncated) {
+    $aboutMe =
+        implode(
+            ' ',
+            array_slice(
+                $aboutMeWords,
+                0,
+                60
+            )
+        )
+        . '....';
+}
+
 $maskedMobile = trim(
     (string) (
         $maskedMobile
@@ -1231,7 +1260,7 @@ $renderRows =
             color: <?= $red ?>;
             text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4);
             font-weight: 700;
-            font-size: 4.3mm;
+            font-size: 5.5mm;
             text-align: center;
             padding-bottom: 5px;
             text-decoration: underline;
@@ -1277,6 +1306,28 @@ $renderRows =
         .header-contact-text {
             font-size: 10px;
         }
+
+        .pdf-watermark {
+            position: absolute;
+
+            bottom: 17mm;
+            left: 50%;
+
+            z-index: 0;
+
+            color: rgba(68, 34, 84, .045);
+
+            font-size: 12mm;
+            font-weight: 700;
+
+            letter-spacing: 0.6mm;
+
+            white-space: nowrap;
+
+            transform: translateX(-50%);
+
+            pointer-events: none;
+        }
     </style>
 
 </head>
@@ -1298,7 +1349,11 @@ $renderRows =
                 alt="">
 
         <?php endif; ?>
-
+        <div
+            class="pdf-watermark"
+            aria-hidden="true">
+            sikhanandkaraj.com
+        </div>
         <div class="pdf-content">
 
             <header class="pdf-header">

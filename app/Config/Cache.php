@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Config;
 
 use CodeIgniter\Cache\CacheInterface;
@@ -12,187 +14,392 @@ use CodeIgniter\Cache\Handlers\RedisHandler;
 use CodeIgniter\Cache\Handlers\WincacheHandler;
 use CodeIgniter\Config\BaseConfig;
 
+/**
+ * Application cache configuration.
+ *
+ * PRODUCTION RULE
+ * ===============
+ *
+ * The cache backend is deployment configuration rather than application
+ * business logic.
+ *
+ * Current QA/Production architecture uses one application EC2 instance, so
+ * file cache remains the appropriate default. A shared cache such as Redis is
+ * only required if the application is later deployed across multiple
+ * application instances.
+ *
+ * Environment variables allow that infrastructure change without requiring
+ * application-code modification.
+ */
 class Cache extends BaseConfig
 {
     /**
-     * --------------------------------------------------------------------------
-     * Primary Handler
-     * --------------------------------------------------------------------------
+     * Preferred cache handler.
      *
-     * The name of the preferred handler that should be used. If for some reason
-     * it is not available, the $backupHandler will be used in its place.
+     * Current default:
+     *
+     *     file
+     *
+     * Optional future values supported by CI4 include:
+     *
+     *     redis
+     *     predis
+     *     memcached
+     *     apcu
+     *
+     * Example:
+     *
+     *     cache.handler = file
      */
-    public string $handler = 'file';
+    public string $handler;
 
     /**
-     * --------------------------------------------------------------------------
-     * Backup Handler
-     * --------------------------------------------------------------------------
+     * Fallback handler when the primary cache backend is unavailable.
      *
-     * The name of the handler that will be used in case the first one is
-     * unreachable. Often, 'file' is used here since the filesystem is
-     * always available, though that's not always practical for the app.
+     * "file" is preferable to "dummy" for a remote cache because temporary
+     * Redis/Memcached failure should not silently disable useful application
+     * caching.
+     *
+     * For the current file-cache deployment, dummy remains a safe fallback.
      */
-    public string $backupHandler = 'dummy';
+    public string $backupHandler;
 
     /**
-     * --------------------------------------------------------------------------
-     * Key Prefix
-     * --------------------------------------------------------------------------
+     * Namespace every application cache key.
      *
-     * This string is added to all cache item names to help avoid collisions
-     * if you run multiple applications with the same cache engine.
+     * CloudFrontService already includes environment information inside its
+     * own hashed key. The global prefix additionally protects every other CI4
+     * cache consumer from collisions if a shared backend is introduced later.
      */
-    public string $prefix = '';
+    public string $prefix;
 
     /**
-     * --------------------------------------------------------------------------
-     * Default TTL
-     * --------------------------------------------------------------------------
+     * Default TTL used by application cache consumers that do not explicitly
+     * supply their own TTL.
      *
-     * The default number of seconds to save items when none is specified.
-     *
-     * WARNING: This is not used by framework handlers where 60 seconds is
-     * hard-coded, but may be useful to projects and modules. This will replace
-     * the hard-coded value in a future release.
+     * CloudFrontService supplies an explicit TTL and therefore does not depend
+     * on this value.
      */
-    public int $ttl = 60;
+    public int $ttl;
 
     /**
-     * --------------------------------------------------------------------------
-     * Reserved Characters
-     * --------------------------------------------------------------------------
-     *
-     * A string of reserved characters that will not be allowed in keys or tags.
-     * Strings that violate this restriction will cause handlers to throw.
-     * Default: {}()/\@:
-     *
-     * NOTE: The default set is required for PSR-6 compliance.
+     * PSR-6 reserved cache-key characters.
      */
-    public string $reservedCharacters = '{}()/\@:';
+    public string $reservedCharacters =
+    '{}()/\\@:';
 
     /**
-     * --------------------------------------------------------------------------
-     * File settings
-     * --------------------------------------------------------------------------
+     * File-cache settings.
      *
-     * Your file storage preferences can be specified below, if you are using
-     * the File driver.
+     * writable/cache remains outside public web access.
      *
-     * @var array{storePath?: string, mode?: int}
+     * 0640 prevents world-readable cache files while allowing the application
+     * process and its group to read them.
+     *
+     * @var array{storePath:string, mode:int}
      */
     public array $file = [
-        'storePath' => WRITEPATH . 'cache/',
-        'mode'      => 0640,
+        'storePath' =>
+        WRITEPATH . 'cache/',
+
+        'mode' =>
+        0640,
     ];
 
     /**
-     * -------------------------------------------------------------------------
-     * Memcached settings
-     * -------------------------------------------------------------------------
+     * Memcached configuration.
      *
-     * Your Memcached servers can be specified below, if you are using
-     * the Memcached drivers.
-     *
-     * @see https://codeigniter.com/user_guide/libraries/caching.html#memcached
-     *
-     * @var array{host?: string, port?: int, weight?: int, raw?: bool}
-     */
-    public array $memcached = [
-        'host'   => '127.0.0.1',
-        'port'   => 11211,
-        'weight' => 1,
-        'raw'    => false,
-    ];
-
-    /**
-     * -------------------------------------------------------------------------
-     * Redis settings
-     * -------------------------------------------------------------------------
-     *
-     * Your Redis server can be specified below, if you are using
-     * the Redis or Predis drivers.
+     * Kept because it is a CI4-supported handler even though the current
+     * Sikhanandkaraj deployment does not require Memcached.
      *
      * @var array{
-     *     host?: string,
-     *     password?: string|null,
-     *     port?: int,
-     *     timeout?: int,
-     *     async?: bool,
-     *     persistent?: bool,
-     *     database?: int
+     *     host:string,
+     *     port:int,
+     *     weight:int,
+     *     raw:bool
      * }
      */
-    public array $redis = [
-        'host'       => '127.0.0.1',
-        'password'   => null,
-        'port'       => 6379,
-        'timeout'    => 0,
-        'async'      => false, // specific to Predis and ignored by the native Redis extension
-        'persistent' => false,
-        'database'   => 0,
+    public array $memcached = [
+        'host' =>
+        '127.0.0.1',
+
+        'port' =>
+        11211,
+
+        'weight' =>
+        1,
+
+        'raw' =>
+        false,
     ];
 
     /**
-     * --------------------------------------------------------------------------
-     * Available Cache Handlers
-     * --------------------------------------------------------------------------
+     * Redis configuration.
      *
-     * This is an array of cache engine alias' and class names. Only engines
-     * that are listed here are allowed to be used.
+     * Redis is NOT required for the current single-instance deployment.
+     *
+     * These values simply preserve a clean future migration path if the
+     * application is later horizontally scaled.
+     *
+     * @var array{
+     *     host:string,
+     *     password:string|null,
+     *     port:int,
+     *     timeout:int,
+     *     async:bool,
+     *     persistent:bool,
+     *     database:int
+     * }
+     */
+    public array $redis;
+
+    /**
+     * Cache handlers explicitly supported by the application/framework.
      *
      * @var array<string, class-string<CacheInterface>>
      */
     public array $validHandlers = [
-        'apcu'      => ApcuHandler::class,
-        'dummy'     => DummyHandler::class,
-        'file'      => FileHandler::class,
-        'memcached' => MemcachedHandler::class,
-        'predis'    => PredisHandler::class,
-        'redis'     => RedisHandler::class,
-        'wincache'  => WincacheHandler::class,
+        'apcu' =>
+        ApcuHandler::class,
+
+        'dummy' =>
+        DummyHandler::class,
+
+        'file' =>
+        FileHandler::class,
+
+        'memcached' =>
+        MemcachedHandler::class,
+
+        'predis' =>
+        PredisHandler::class,
+
+        'redis' =>
+        RedisHandler::class,
+
+        'wincache' =>
+        WincacheHandler::class,
     ];
 
     /**
-     * --------------------------------------------------------------------------
-     * Web Page Caching: Cache Include Query String
-     * --------------------------------------------------------------------------
+     * Page-cache query-string behaviour.
      *
-     * Whether to take the URL query string into consideration when generating
-     * output cache files. Valid options are:
+     * Page caching is not being enabled as part of membership/search
+     * optimization.
      *
-     *    false = Disabled
-     *    true  = Enabled, take all query parameters into account.
-     *            Please be aware that this may result in numerous cache
-     *            files generated for the same page over and over again.
-     *    ['q'] = Enabled, but only take into account the specified list
-     *            of query parameters.
-     *
-     * @var bool|list<string>
+     * Member pages are authorization-sensitive and must never be globally
+     * cached merely to improve search performance.
      */
-    public $cacheQueryString = false;
+    public $cacheQueryString =
+    false;
 
     /**
-     * --------------------------------------------------------------------------
-     * Web Page Caching: Cache Status Codes
-     * --------------------------------------------------------------------------
+     * If PageCache is deliberately introduced elsewhere, only successful
+     * responses should ever be eligible.
      *
-     * HTTP status codes that are allowed to be cached. Only responses with
-     * these status codes will be cached by the PageCache filter.
-     *
-     * Default: [] - Cache all status codes (backward compatible)
-     *
-     * Recommended: [200] - Only cache successful responses
-     *
-     * You can also use status codes like:
-     *   [200, 404, 410] - Cache successful responses and specific error codes
-     *   [200, 201, 202, 203, 204] - All 2xx successful responses
-     *
-     * WARNING: Using [] may cache temporary error pages (404, 500, etc).
-     * Consider restricting to [200] for production applications to avoid
-     * caching errors that should be temporary.
+     * This prevents temporary authentication/application errors from becoming
+     * cached responses.
      *
      * @var list<int>
      */
-    public array $cacheStatusCodes = [];
+    public array $cacheStatusCodes = [
+        200,
+    ];
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        /*
+         * Keep FILE as the deployment default.
+         *
+         * No Redis dependency is introduced by Membership-29/production
+         * hardening.
+         */
+        $this->handler = $this->normalizeHandler(
+            (string) env(
+                'cache.handler',
+                'file'
+            ),
+            'file'
+        );
+
+        /*
+         * File cache failing generally means writable/cache itself is
+         * unavailable. Dummy allows the request to continue without turning a
+         * cache problem into application downtime.
+         *
+         * If Redis is introduced later, configure:
+         *
+         *     cache.backupHandler = file
+         */
+        $this->backupHandler =
+            $this->normalizeHandler(
+                (string) env(
+                    'cache.backupHandler',
+                    $this->handler === 'file'
+                        ? 'dummy'
+                        : 'file'
+                ),
+                $this->handler === 'file'
+                    ? 'dummy'
+                    : 'file'
+            );
+
+        /*
+         * Use the application/environment identity as the default namespace.
+         *
+         * Examples:
+         *
+         *     sikhanandkaraj_development_
+         *     sikhanandkaraj_qa_
+         *     sikhanandkaraj_production_
+         */
+        $environmentName = strtolower(
+            trim(
+                (string) env(
+                    'memberMedia.environmentName',
+                    ENVIRONMENT
+                )
+            )
+        );
+
+        $environmentName = preg_replace(
+            '/[^a-z0-9_-]+/',
+            '_',
+            $environmentName
+        ) ?? '';
+
+        if ($environmentName === '') {
+            $environmentName =
+                'application';
+        }
+
+        $defaultPrefix =
+            'sikhanandkaraj_'
+            . $environmentName
+            . '_';
+
+        $configuredPrefix = trim(
+            (string) env(
+                'cache.prefix',
+                $defaultPrefix
+            )
+        );
+
+        $this->prefix =
+            $configuredPrefix !== ''
+            ? $configuredPrefix
+            : $defaultPrefix;
+
+        $this->ttl = max(
+            1,
+            (int) env(
+                'cache.ttl',
+                60
+            )
+        );
+
+        /*
+         * Redis remains optional.
+         *
+         * Reading configuration does not establish a Redis connection unless
+         * the redis/predis cache handler is selected.
+         */
+        $redisPassword = env(
+            'cache.redis.password',
+            null
+        );
+
+        $this->redis = [
+            'host' =>
+            trim(
+                (string) env(
+                    'cache.redis.host',
+                    '127.0.0.1'
+                )
+            ),
+
+            'password' =>
+            $redisPassword !== null
+                && trim(
+                    (string) $redisPassword
+                ) !== ''
+                ? (string) $redisPassword
+                : null,
+
+            'port' =>
+            max(
+                1,
+                (int) env(
+                    'cache.redis.port',
+                    6379
+                )
+            ),
+
+            'timeout' =>
+            max(
+                0,
+                (int) env(
+                    'cache.redis.timeout',
+                    0
+                )
+            ),
+
+            'async' =>
+            filter_var(
+                env(
+                    'cache.redis.async',
+                    false
+                ),
+                FILTER_VALIDATE_BOOLEAN
+            ),
+
+            'persistent' =>
+            filter_var(
+                env(
+                    'cache.redis.persistent',
+                    false
+                ),
+                FILTER_VALIDATE_BOOLEAN
+            ),
+
+            'database' =>
+            max(
+                0,
+                (int) env(
+                    'cache.redis.database',
+                    0
+                )
+            ),
+        ];
+    }
+
+    /**
+     * Accept only cache handlers supported by this configuration.
+     *
+     * Configuration errors therefore fail safely back to the deployment
+     * default instead of allowing an arbitrary handler name.
+     */
+    private function normalizeHandler(
+        string $handler,
+        string $fallback
+    ): string {
+        $handler = strtolower(
+            trim(
+                $handler
+            )
+        );
+
+        if (
+            $handler !== ''
+            && isset(
+                $this->validHandlers[$handler]
+            )
+        ) {
+            return $handler;
+        }
+
+        return $fallback;
+    }
 }

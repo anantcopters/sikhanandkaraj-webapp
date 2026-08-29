@@ -38,10 +38,24 @@ final class HomeController extends BaseController
             ->setHeader('Pragma', 'no-cache')
             ->setHeader('Expires', '0');
 
+        /*
+         * Public pricing uses the same authoritative membership-plan
+         * presentation as Account Settings.
+         *
+         * Prices, durations and allowances continue to originate only from
+         * membership_plans through MembershipService.
+         */
+        $plans = service(
+            'membershipPlanPresentationService'
+        )->publicPlans();
+
         return view(
             'Pages/Home/Index',
             [
                 'pageTitle' => 'Sikhanandkaraj',
+
+                'plans' =>
+                $plans,
 
                 'validationErrors' =>
                 $this->readValidationErrors(),

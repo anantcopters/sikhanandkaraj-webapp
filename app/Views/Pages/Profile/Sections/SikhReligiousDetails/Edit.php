@@ -49,7 +49,7 @@ $this->extend('Layouts/Main');
 $this->section('content');
 ?>
 
-<section class="py-3 py-lg-4">
+<section class="py-3 py-lg-3">
     <div class="container">
         <?= view(
             'Pages/Profile/Partials/_feedback_alert',

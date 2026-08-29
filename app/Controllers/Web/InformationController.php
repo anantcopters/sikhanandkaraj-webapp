@@ -46,12 +46,27 @@ final class InformationController extends BaseController
 
     /**
      * Display Sikhanandkaraj membership plans.
+     *
+     * Pricing is intentionally resolved from membership_plans.
+     *
+     * The public pricing page must never maintain an independent copy of
+     * prices, duration or commercial allowances.
      */
     public function membershipPlans(): string
     {
-        return $this->renderInformationPage(
+        $plans = service(
+            'membershipPlanPresentationService'
+        )->publicPlans();
+
+        return view(
             'Pages/Information/MembershipPlans',
-            'Membership Plans | Sikhanandkaraj'
+            [
+                'pageTitle' =>
+                'Membership Plans | Sikhanandkaraj',
+
+                'plans' =>
+                $plans,
+            ]
         );
     }
 
@@ -79,7 +94,8 @@ final class InformationController extends BaseController
         return view(
             $view,
             [
-                'pageTitle' => $pageTitle,
+                'pageTitle' =>
+                $pageTitle,
             ]
         );
     }

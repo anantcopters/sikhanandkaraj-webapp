@@ -1072,7 +1072,7 @@ $this->extend(
 $this->section('content');
 ?>
 
-<section class="py-3 py-lg-4">
+<section class="py-3 py-lg-3">
     <div class="container">
 
         <div
@@ -1154,132 +1154,53 @@ $this->section('content');
 
                     <?php endif; ?>
                 <?php endif; ?>
-                <?php if ($isOtherMemberProfileView): ?>
-                    <div class="dropdown">
-                        <button
-                            type="button"
-                            class="btn btn-info btn-icon"
-                            data-bs-toggle="dropdown"
-                            data-bs-auto-close="outside"
-                            aria-expanded="false"
-                            aria-label="Profile actions">
+                <?php if (
+                    $isOtherMemberProfileView
+                    && $viewedProfileReference !== ''
+                ): ?>
 
-                            <i
-                                class="ri-more-2-fill fs-18"
-                                aria-hidden="true">
-                            </i>
-                        </button>
+                    <?= view(
+                        'Components/Member/ProfileActions',
+                        [
+                            'profileReference' =>
+                            $viewedProfileReference,
 
-                        <div
-                            class="dropdown-menu dropdown-menu-end
-                    p-2 border border-danger
-        border-opacity-50 shadow-md"
-                            style="min-width: 220px;">
+                            'isShortlisted' =>
+                            $isShortlisted,
 
-                            <form
-                                method="post"
-                                action="<?= route_to(
-                                            'web.members.shortlist',
-                                            $viewedProfileReference
-                                        ) ?>"
-                                data-member-shortlist-form>
+                            /*
+             * Full Profile has already passed member-to-member
+             * authorization before this View is rendered.
+             */
+                            'canShortlist' =>
+                            true,
 
-                                <?= csrf_field() ?>
+                            'canReport' =>
+                            true,
 
-                                <button
-                                    type="submit"
-                                    class="dropdown-item rounded
-                            d-flex align-items-center gap-2"
-                                    data-member-shortlist-submit>
+                            'canBlock' =>
+                            true,
 
-                                    <span
-                                        class="d-inline-flex
-                                align-items-center gap-2"
-                                        data-member-shortlist-label>
+                            'hasReportedProfile' =>
+                            $hasReportedProfile,
 
-                                        <i
-                                            class="<?= $isShortlisted
-                                                        ? 'ri-bookmark-fill'
-                                                        : 'ri-bookmark-line' ?>"
-                                            aria-hidden="true">
-                                        </i>
+                            'reportedProfileStatusLabel' =>
+                            $reportedProfileStatusLabel,
 
-                                        <?= $isShortlisted
-                                            ? 'Remove from Shortlist'
-                                            : 'Shortlist Profile' ?>
-                                    </span>
+                            'shortlistUrl' =>
+                            route_to(
+                                'web.members.shortlist',
+                                $viewedProfileReference
+                            ),
 
-                                    <span
-                                        class="d-none align-items-center
-                                gap-1"
-                                        data-member-shortlist-loading>
+                            'reportModalId' =>
+                            'memberReportModal',
 
-                                        <span
-                                            class="spinner-border
-                                    spinner-border-sm"
-                                            aria-hidden="true">
-                                        </span>
+                            'blockModalId' =>
+                            'memberBlockModal',
+                        ]
+                    ) ?>
 
-                                        Saving...
-                                    </span>
-                                </button>
-                            </form>
-
-                            <?php if ($hasReportedProfile): ?>
-                                <button
-                                    type="button"
-                                    class="dropdown-item rounded
-                            d-flex align-items-center gap-2
-                            text-muted"
-                                    disabled>
-
-                                    <i
-                                        class="ri-flag-fill"
-                                        aria-hidden="true">
-                                    </i>
-
-                                    Reported:
-                                    <?= esc(
-                                        $reportedProfileStatusLabel
-                                    ) ?>
-                                </button>
-                            <?php else: ?>
-                                <button
-                                    type="button"
-                                    class="dropdown-item rounded
-                            d-flex align-items-center gap-2"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#memberReportModal">
-
-                                    <i
-                                        class="ri-flag-line
-                                text-warning"
-                                        aria-hidden="true">
-                                    </i>
-
-                                    Report Profile
-                                </button>
-                            <?php endif; ?>
-
-                            <div class="dropdown-divider"></div>
-
-                            <button
-                                type="button"
-                                class="dropdown-item rounded
-                        d-flex align-items-center gap-2
-                        text-danger"
-                                data-bs-toggle="modal"
-                                data-bs-target="#memberBlockModal">
-
-                                <i
-                                    class="ri-forbid-line"
-                                    aria-hidden="true">
-                                </i>
-
-                                Block Profile
-                            </button>
-                        </div>
-                    </div>
                 <?php endif; ?>
             </div>
         </div>
@@ -2457,8 +2378,8 @@ $this->section('content');
                 <?php if ($hasVideoIntroductionBadge): ?>
                     <div class="col-12 col-lg-6">
                         <section
-                            class="card border border-success
-                border-opacity-25 shadow-sm
+                            class="card border border-danger
+        border-opacity-25 shadow-sm
                 rounded-3 h-100"
                             aria-labelledby="
                 liveIntroductionVerifiedTitle
@@ -2466,13 +2387,13 @@ $this->section('content');
 
                             <div
                                 class="card-header
-                    bg-primary-subtle
+                    bg-info-subtle
                     d-flex align-items-center
                     gap-2 py-2">
 
                                 <i
                                     class="ri-video-line
-                        text-success fs-18"
+                         fs-18"
                                     aria-hidden="true">
                                 </i>
 
@@ -2490,7 +2411,7 @@ $this->section('content');
                                     $isVideoIntroductionHidden
                                 ): ?>
                                     <div
-                                        class="alert alert-light
+                                        class="alert alert-warning
                             border fs-13 mb-0">
 
                                         This member has an approved
@@ -4071,7 +3992,7 @@ $this->section('content');
 
             <div class="modal-content">
 
-                <div class="modal-header ">
+                <div class="modal-header bg-info-subtle py-2">
 
                     <h5
                         class="modal-title text-center"
@@ -4221,155 +4142,41 @@ $this->section('content');
     );
     ?>
 
-    <div
-        class="modal fade"
-        id="memberBlockModal"
-        tabindex="-1"
-        aria-labelledby="memberBlockModalTitle"
-        aria-hidden="true"
-        data-reopen-member-block="<?= (
-                                        session(
-                                            'reopenMemberBlockModal'
-                                        ) === true
-                                    )
-                                        ? '1'
-                                        : '0' ?>">
+    <?php if (
+        $isOtherMemberProfileView
+        && $viewedProfileReference !== ''
+    ): ?>
 
-        <div
-            class="modal-dialog
-                modal-dialog-centered">
+        <?= view(
+            'Components/Member/ProfileBlockModal',
+            [
+                'modalId' =>
+                'memberBlockModal',
 
-            <div class="modal-content">
+                'profileReference' =>
+                $viewedProfileReference,
 
-                <form
-                    method="post"
-                    action="<?= route_to(
-                                'web.members.block',
-                                $viewedProfileReference
-                            ) ?>"
-                    data-member-block-form>
+                'actionUrl' =>
+                route_to(
+                    'web.members.block',
+                    $viewedProfileReference
+                ),
 
-                    <?= csrf_field() ?>
+                'actionSource' =>
+                'profile',
 
-                    <div class="modal-header bg-info-subtle py-2">
-                        <h2
-                            class="modal-title fs-18"
-                            id="memberBlockModalTitle">
+                'validationErrors' =>
+                $validationErrors
+                    ?? [],
 
-                            Block the Member
-                        </h2>
+                'reopenModal' =>
+                session(
+                    'reopenMemberBlockModal'
+                ) === true,
+            ]
+        ) ?>
 
-                        <button
-                            type="button"
-                            class="btn-close"
-                            data-bs-dismiss="modal"
-                            aria-label="Close">
-                        </button>
-                    </div>
-
-                    <div
-                        class="modal-body">
-
-                        <p
-                            class="text-muted
-                                fs-13">
-
-                            This member will no longer
-                            appear in your matches,
-                            interests, views or searches.
-                        </p>
-
-                        <label
-                            for="member-block-comment"
-                            class="form-label">
-
-                            Comment
-                            <span
-                                class="text-danger">
-                                *
-                            </span>
-                        </label>
-
-                        <textarea
-                            id="member-block-comment"
-                            name="comment"
-                            class="form-control<?= (
-                                                    $blockCommentError !== ''
-                                                )
-                                                    ? ' is-invalid'
-                                                    : '' ?>"
-                            rows="4"
-                            maxlength="250"
-                            required
-                            aria-describedby="member-block-comment-error"><?= esc(
-                                                                                old('comment')
-                                                                            ) ?></textarea>
-
-                        <div
-                            id="member-block-comment-error"
-                            class="invalid-feedback">
-
-                            <?= esc(
-                                $blockCommentError
-                                    !== ''
-                                    ? $blockCommentError
-                                    : 'Please enter a comment.'
-                            ) ?>
-                        </div>
-
-                        <div
-                            class="form-text color-pink">
-
-                            Maximum 250 characters.
-                        </div>
-                    </div>
-
-                    <div
-                        class="modal-footer">
-
-                        <button
-                            type="button"
-                            class="btn btn-light"
-                            data-bs-dismiss="modal">
-
-                            Cancel
-                        </button>
-
-                        <button
-                            type="submit"
-                            class="btn btn-danger
-                                d-inline-flex
-                                align-items-center
-                                justify-content-center
-                                gap-2"
-                            data-member-block-submit>
-
-                            <span
-                                data-member-block-label>
-
-                                Block Member
-                            </span>
-
-                            <span
-                                class="d-none
-                                    align-items-center"
-                                data-member-block-loading>
-
-                                <span
-                                    class="spinner-border
-                                        spinner-border-sm
-                                        me-1"
-                                    aria-hidden="true">
-                                </span>
-
-                                Saving...
-                            </span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    <?php endif; ?>
     <?php if (
         $isOtherMemberProfileView
         && isset($memberActionNotice)

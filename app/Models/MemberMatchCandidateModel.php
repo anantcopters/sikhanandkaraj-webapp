@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use CodeIgniter\Database\BaseBuilder;
+use App\Models\MemberMembershipModel;
 use CodeIgniter\Model;
 
 /**
@@ -180,7 +181,8 @@ final class MemberMatchCandidateModel extends Model
         array $filters,
         int $page,
         int $perPage,
-        string $sort
+        string $sort,
+        bool $paginate = true
     ): array {
         if ($viewerUserId <= 0) {
             return [
@@ -189,8 +191,18 @@ final class MemberMatchCandidateModel extends Model
             ];
         }
 
-        $page = max(1, $page);
-        $perPage = max(1, min(50, $perPage));
+        $page = max(
+            1,
+            $page
+        );
+
+        $perPage = max(
+            1,
+            min(
+                50,
+                $perPage
+            )
+        );
 
         $builder = $this->baseCandidateBuilder(
             $viewerUserId,
@@ -198,16 +210,16 @@ final class MemberMatchCandidateModel extends Model
         );
 
         /*
- * --------------------------------------------------------------------------
- * Existing-interaction candidate restriction
- * --------------------------------------------------------------------------
- *
- * Used by Search Quick Links such as shortlist/profile-view activity.
- *
- * Eligibility remains controlled by baseCandidateBuilder(), therefore an
- * inactive, deleted or blocked profile cannot reappear merely because an old
- * interaction record exists.
- */
+        * --------------------------------------------------------------------------
+        * Existing-interaction candidate restriction
+        * --------------------------------------------------------------------------
+        *
+        * Used by Search Quick Links such as shortlist/profile-view activity.
+        *
+        * Eligibility remains controlled by baseCandidateBuilder(), therefore an
+        * inactive, deleted or blocked profile cannot reappear merely because an old
+        * interaction record exists.
+        */
         if (
             array_key_exists(
                 'candidate_ids',
@@ -235,11 +247,11 @@ final class MemberMatchCandidateModel extends Model
                 : [];
 
             /*
-     * A valid activity collection with no members must return zero rows.
-     *
-     * We cannot simply skip whereIn() because that would accidentally turn an
-     * empty activity collection into an unrestricted Search.
-     */
+            * A valid activity collection with no members must return zero rows.
+            *
+            * We cannot simply skip whereIn() because that would accidentally turn an
+            * empty activity collection into an unrestricted Search.
+            */
             if ($candidateIds === []) {
                 return [
                     'rows' =>
@@ -263,8 +275,8 @@ final class MemberMatchCandidateModel extends Model
         }
 
         /*
-     * Search-result presentation fields.
-     */
+        * Search-result presentation fields.
+        */
         $builder->select([
             'state.name AS state_name',
             'height.height_cm',
@@ -291,10 +303,10 @@ final class MemberMatchCandidateModel extends Model
         );
 
         /*
-     * Age.
-     *
-     * age_min means the candidate must be at least that old.
-     */
+        * Age.
+        *
+        * age_min means the candidate must be at least that old.
+        */
         $ageMin = $filters['age_min'] ?? null;
 
         if (is_int($ageMin) && $ageMin >= 18) {
@@ -310,11 +322,11 @@ final class MemberMatchCandidateModel extends Model
         }
 
         /*
-     * Maximum age.
-     *
-     * Example: maximum 30 means DOB must be later than the date representing
-     * someone who has already completed 31 years.
-     */
+        * Maximum age.
+        *
+        * Example: maximum 30 means DOB must be later than the date representing
+        * someone who has already completed 31 years.
+        */
         $ageMax = $filters['age_max'] ?? null;
 
         if (is_int($ageMax) && $ageMax >= 18) {
@@ -332,8 +344,8 @@ final class MemberMatchCandidateModel extends Model
         }
 
         /*
-     * Height range is resolved to centimetres by the service.
-     */
+        * Height range is resolved to centimetres by the service.
+        */
         if (
             isset($filters['height_min_cm'])
             && is_int($filters['height_min_cm'])
@@ -373,8 +385,8 @@ final class MemberMatchCandidateModel extends Model
         );
 
         /*
-     * Advanced-only filters.
-     */
+        * Advanced-only filters.
+        */
         if (
             ($filters['mode'] ?? 'basic')
             === 'advanced'
@@ -416,11 +428,11 @@ final class MemberMatchCandidateModel extends Model
             );
 
             /*
-         * Annual income uses the existing master range IDs.
-         *
-         * When both endpoints are selected the service expands them to the
-         * master IDs that fall inside that range.
-         */
+            * Annual income uses the existing master range IDs.
+            *
+            * When both endpoints are selected the service expands them to the
+            * master IDs that fall inside that range.
+            */
             $this->applyIntegerArrayFilter(
                 $builder,
                 'ep.annual_income_id',
@@ -450,8 +462,8 @@ final class MemberMatchCandidateModel extends Model
                 && $lifestyleIds !== []
             ) {
                 /*
-             * Match profiles having ALL selected lifestyle options.
-             */
+                * Match profiles having ALL selected lifestyle options.
+                */
                 $normalizedLifestyleIds =
                     array_values(
                         array_unique(
@@ -535,7 +547,54 @@ final class MemberMatchCandidateModel extends Model
         }
 
         /*
-        * Count matching profiles before applying pagination.
+        * Match-ranked Search requires the complete database-filtered candidate pool
+        * before pagination because Partner Preference filtering and final Match Score
+        * ranking occur in the application layer.
+        *
+        * Do not execute COUNT(*) for this path. The complete candidate collection is
+        * already being loaded and MemberSearchService calculates the authoritative
+        * total after compulsory preference filtering.
+        *
+        * Explicit database-sorted Search continues through the normal count and
+        * database-pagination path below.
+        */
+        if (!$paginate) {
+            $rows =
+                $builder
+                ->get()
+                ->getResultArray();
+
+            return [
+                'rows' =>
+                array_values(
+                    $rows
+                ),
+
+                /*
+                * This is the database-filtered pool size only.
+                *
+                * MemberSearchService recalculates the authoritative Search total after
+                * compulsory Partner Preference filtering and Match Score ranking.
+                */
+                'total' =>
+                count(
+                    $rows
+                ),
+
+                'page' =>
+                1,
+            ];
+        }
+
+        /*
+        * --------------------------------------------------------------------------
+        * Database-paginated Search
+        * --------------------------------------------------------------------------
+        *
+        * Chronological/activity sorts do not require the complete Match Score pool.
+        *
+        * For these sorts we still need COUNT(*) so pagination can calculate the
+        * correct number of result pages before LIMIT/OFFSET is applied.
         */
         $countBuilder =
             clone $builder;
@@ -710,10 +769,10 @@ final class MemberMatchCandidateModel extends Model
 
             default:
                 /*
-             * Default remains deterministic.
-             *
-             * Later this can become relevance/match scoring.
-             */
+                * Default remains deterministic.
+                *
+                * Later this can become relevance/match scoring.
+                */
                 $builder
                     ->orderBy(
                         'u.created_at',
@@ -750,6 +809,31 @@ final class MemberMatchCandidateModel extends Model
                 ::STATUS_ACTION_TAKEN
             );
 
+        /*
+        * Candidate membership projection.
+        *
+        * MembershipService defines a paid membership as one which is:
+        *
+        * - ACTIVE;
+        * - already started;
+        * - not yet expired.
+        *
+        * We deliberately repeat those database-level eligibility conditions here
+        * rather than calling MembershipService once for every candidate.
+        *
+        * This keeps member discovery to one candidate query and avoids an N+1
+        * membership lookup across Search, Dashboard and Interest collections.
+        *
+        * CURRENT_TIMESTAMP is evaluated by PostgreSQL for the query and therefore
+        * also protects us when the membership-expiry housekeeping job has not yet
+        * converted an expired ACTIVE row to EXPIRED.
+        */
+        $activeMembershipStatusSql =
+            $this->db->escape(
+                MemberMembershipModel
+                ::STATUS_ACTIVE
+            );
+
         $builder = $this->db
             ->table(
                 'users u'
@@ -761,6 +845,35 @@ final class MemberMatchCandidateModel extends Model
             'u.full_name',
             'u.gender',
             'u.created_at',
+
+            /*
+            * Cached authoritative profile-completion Match Score signal.
+            *
+            * Missing rows safely become zero. Existing members are backfilled by the
+            * rebuild script supplied with this phase.
+            */
+            'COALESCE(
+                    scoring_signal.profile_completion,
+                    0
+                ) AS profile_completion',
+
+            /*
+            * Candidate membership projection.
+            *
+            * NULL means there is no currently usable paid membership and therefore
+            * the candidate is a Free member.
+            *
+            * Do not COALESCE the plan code here. Keeping the raw projection nullable
+            * lets the presentation layer explicitly derive the Free state.
+            */
+            'active_membership.plan_code_snapshot '
+                . 'AS membership_plan_code',
+
+            'active_membership.plan_name_snapshot '
+                . 'AS membership_plan_name',
+
+            'active_membership.commercial_priority_snapshot '
+                . 'AS membership_commercial_priority',
 
             /*
             * Member verification indicators used by the shared member
@@ -790,6 +903,19 @@ final class MemberMatchCandidateModel extends Model
             'bd.eating_habit_id',
             'bd.physical_status_id',
             'bd.number_of_children',
+
+            /*
+            * Required by:
+            *
+            * - Advanced Search Amritdhari filtering;
+            * - Partner Preference percentage calculation;
+            * - final Match Score ranking.
+            *
+            * Keep this in the shared candidate projection so Search and Dashboard
+            * consume the same candidate value.
+            */
+            'bd.is_amritdhari',
+
             'bd.country_id',
             'bd.state_id',
             'bd.city_id',
@@ -808,7 +934,153 @@ final class MemberMatchCandidateModel extends Model
             'ep.annual_income_id',
 
             'fd.community_id',
+
+            /*
+            * Candidate-level Match Score signal.
+            *
+            * Only approved photos contribute to ranking.
+            *
+            * COUNT is performed in one lateral projection rather than loading photos
+            * separately for every Search/Dashboard candidate.
+            */
+            'COALESCE(candidate_photos.approved_photo_count, 0) '
+                . 'AS approved_photo_count',
         ]);
+
+        /*
+        * Match Score trust signal.
+        *
+        * This is a PostgreSQL CASE expression rather than a database column.
+        *
+        * IMPORTANT:
+        *
+        * Query Builder escaping must be disabled for this expression. If this is
+        * placed inside the normal select([...]) array, CodeIgniter attempts to quote
+        * the expression as an identifier and generates invalid PostgreSQL SQL.
+        *
+        * The actual Video Introduction JOIN is defined below using the video_intro
+        * alias. Therefore the same approved/active Video Introduction projection is
+        * reused for both:
+        *
+        * - Match Score trust verification;
+        * - candidate presentation.
+        */
+        $builder->select(
+            'CASE
+                WHEN video_intro.id IS NOT NULL
+                THEN TRUE
+                ELSE FALSE
+            END AS is_video_introduction_verified',
+            false
+        );
+
+        /*
+        * Candidate-intrinsic scoring cache.
+        *
+        * This is a normal indexed one-to-one LEFT JOIN:
+        *
+        *     users.id
+        *         ->
+        *     member_match_scoring_signals.user_id PRIMARY KEY
+        *
+        * No lateral query or per-candidate lookup is required.
+        */
+        $builder->join(
+            'member_match_scoring_signals scoring_signal',
+            'scoring_signal.user_id = u.id',
+            'left'
+        );
+
+        /*
+        * Resolve at most one currently usable paid membership for each candidate.
+        *
+        * Membership history is intentionally retained, so joining
+        * member_memberships directly could duplicate a candidate when historical
+        * rows exist.
+        *
+        * PostgreSQL DISTINCT ON gives us one deterministic current membership per
+        * member without requiring a LATERAL JOIN.
+        *
+        * Membership validity follows the existing MembershipService rules:
+        *
+        * - status must be ACTIVE;
+        * - membership must already have started;
+        * - membership must not have expired.
+        *
+        * CURRENT_TIMESTAMP also protects Search/Dashboard when the expiry
+        * housekeeping job has not yet converted an expired ACTIVE row to EXPIRED.
+        *
+        * Ordering:
+        *
+        * 1. user_id groups memberships by candidate;
+        * 2. latest starts_at wins;
+        * 3. highest id provides a deterministic tie-breaker.
+        *
+        * IMPORTANT:
+        *
+        * Do not convert this back to:
+        *
+        *     LEFT JOIN LATERAL (...) USING (TRUE)
+        *
+        * CodeIgniter Query Builder interprets the literal TRUE join condition as a
+        * USING clause and generates invalid PostgreSQL SQL.
+        */
+        $builder->join(
+            '(
+                SELECT DISTINCT ON (
+                    candidate_membership.user_id
+                )
+                    candidate_membership.user_id,
+                    candidate_membership.id,
+                    candidate_membership.plan_code_snapshot,
+                    candidate_membership.plan_name_snapshot,
+                    candidate_membership.commercial_priority_snapshot
+                FROM member_memberships candidate_membership
+                WHERE candidate_membership.status = '
+                . $activeMembershipStatusSql
+                . '
+                AND candidate_membership.starts_at <= CURRENT_TIMESTAMP
+                AND candidate_membership.expires_at > CURRENT_TIMESTAMP
+                ORDER BY
+                    candidate_membership.user_id,
+                    candidate_membership.starts_at DESC,
+                    candidate_membership.id DESC
+            ) active_membership',
+            'active_membership.user_id = u.id',
+            'left',
+            false
+        );
+
+        /*
+        * Candidate approved-photo Match Score signal.
+        *
+        * Aggregate approved photographs once by member and LEFT JOIN the result.
+        *
+        * This preserves the N+1 optimization while avoiding a PostgreSQL LATERAL
+        * join, which CodeIgniter Query Builder cannot correctly express with the
+        * required ON TRUE condition in this implementation.
+        *
+        * Only approved, non-deleted photographs contribute to Match Score.
+        *
+        * A candidate having no approved photographs simply has no aggregate row;
+        * the SELECT projection above converts that to zero with COALESCE().
+        */
+        $builder->join(
+            '(
+                SELECT
+                    candidate_photo.member_id,
+                    COUNT(*)::INTEGER
+                        AS approved_photo_count
+                FROM member_photos candidate_photo
+                WHERE candidate_photo.status = \'APPROVED\'
+                AND candidate_photo.deleted_at IS NULL
+                GROUP BY
+                    candidate_photo.member_id
+            ) candidate_photos',
+            'candidate_photos.member_id = u.id',
+            'left',
+            false
+        );
 
         /*
         * This is a PostgreSQL boolean expression rather than a database

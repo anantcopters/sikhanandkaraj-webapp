@@ -563,12 +563,18 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
             }
         );
 
+        /*
+        * Logout must remain accessible even when the authenticated session
+        * has already expired.
+        *
+        * AuthenticationController::logout() safely destroys any remaining
+        * session state, so this route must not be protected by webAuth.
+        */
         $routes->post(
             'logout',
             'AuthenticationController::logout',
             [
                 'as' => 'web.logout',
-                'filter' => 'webAuth',
             ]
         );
 
@@ -678,6 +684,25 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                     ]
                 );
 
+                /*
+                * Protected PDF representation of another member's Full Profile.
+                *
+                * Authorization is performed again server-side by
+                * MemberProfilePdfController -> MemberProfileViewService ->
+                * ProfileAccessPolicy.
+                *
+                * Never rely on the fact that the browser previously loaded the Full
+                * Profile.
+                */
+                $routes->post(
+                    'members/(:segment)/pdf',
+                    'MemberProfilePdfController::member/$1',
+                    [
+                        'as' =>
+                        'web.members.pdf',
+                    ]
+                );
+
                 $routes->post(
                     'members/(:segment)/interest',
                     'MemberProfileController::showInterest/$1',
@@ -712,6 +737,23 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
                     [
                         'as' =>
                         'web.members.shortlist',
+                    ]
+                );
+
+                /*
+                * Report another profile.
+                *
+                * Report is available to both Free and Paid members.
+                *
+                * The public profile reference remains part of the route so the browser never
+                * submits another member's numeric database user ID.
+                */
+                $routes->post(
+                    'members/(:segment)/report',
+                    'MemberProfileController::report/$1',
+                    [
+                        'as' =>
+                        'web.members.report',
                     ]
                 );
 
@@ -1230,15 +1272,6 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
         );
 
         $routes->post(
-            'account-settings/visibility',
-            'AccountSettingsController::saveVisibility',
-            [
-                'as' =>
-                'web.account.settings.visibility',
-            ]
-        );
-
-        $routes->post(
             'account-settings/contact',
             'AccountSettingsController::contact',
             [
@@ -1286,6 +1319,37 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
             'EmailVerificationController::verify/$1',
             [
                 'as' => 'web.email.verify',
+            ]
+        );
+
+        /*
+         * Membership payment lifecycle.
+         *
+         * Purchase is currently executable only in development.
+         * MembershipPaymentController and the development simulator both
+         * independently enforce that restriction.
+         */
+        $routes->post(
+            'membership/purchase',
+            'MembershipPaymentController::purchase',
+            [
+                'as' =>
+                'web.membership.purchase',
+
+                'filter' =>
+                'webAuth',
+            ]
+        );
+
+        $routes->get(
+            'membership/payment/success/(:segment)',
+            'MembershipPaymentController::success/$1',
+            [
+                'as' =>
+                'web.membership.payment.success',
+
+                'filter' =>
+                'webAuth',
             ]
         );
     });
@@ -1571,6 +1635,46 @@ $routes->group('admin', [
                     'as' => 'admin.users.suspend',
                 ]
             );
+
+            /*
+            * --------------------------------------------------------------------------
+            * Match Score configuration
+            * --------------------------------------------------------------------------
+            *
+            * Ranking weights affect every member's Search/Dashboard ordering and are
+            * therefore restricted to SUPER_ADMIN.
+            *
+            * Normal ADMIN users can see read-only member diagnostics through the normal
+            * admin/members/{id} profile view, but cannot change global ranking rules.
+            */
+            $routes->group(
+                'match-score',
+                [
+                    'filter' =>
+                    'superAdmin',
+                ],
+                static function (
+                    RouteCollection $routes
+                ): void {
+                    $routes->get(
+                        '',
+                        'MatchScoreConfigurationController::index',
+                        [
+                            'as' =>
+                            'admin.match-score.index',
+                        ]
+                    );
+
+                    $routes->post(
+                        '',
+                        'MatchScoreConfigurationController::update',
+                        [
+                            'as' =>
+                            'admin.match-score.update',
+                        ]
+                    );
+                }
+            );
         });
 
         /*
@@ -1650,10 +1754,10 @@ $routes->group('admin', [
                 );
 
                 /*
-         * Private document download.
-         *
-         * No physical writable path is exposed.
-         */
+                * Private document download.
+                *
+                * No physical writable path is exposed.
+                */
                 $routes->get(
                     '(:num)/documents/(:segment)',
                     'FieldOfficerController::document/$1/$2',
@@ -1700,9 +1804,9 @@ $routes->group('admin', [
                 );
 
                 /*
-         * Document replacement is the only SAK Volunteer operation
-         * restricted specifically to Super Admin by this requirement.
-         */
+                * Document replacement is the only SAK Volunteer operation
+                * restricted specifically to Super Admin by this requirement.
+                */
                 $routes->post(
                     '(:num)/documents/(:segment)/replace',
                     'FieldOfficerController::replaceDocument/$1/$2',
@@ -1716,11 +1820,11 @@ $routes->group('admin', [
                 );
 
                 /*
- * Display profiles connected with one SAK Volunteer.
- *
- * The listing reuses the existing SAK Volunteer profile-list service
- * and UI. Access is protected by the parent adminAuth group.
- */
+                * Display profiles connected with one SAK Volunteer.
+                *
+                * The listing reuses the existing SAK Volunteer profile-list service
+                * and UI. Access is protected by the parent adminAuth group.
+                */
                 $routes->get(
                     '(:num)/profiles',
                     'FieldOfficerController::profiles/$1',
@@ -1916,6 +2020,35 @@ $routes->group('admin', [
                     [
                         'as' =>
                         'admin.members.unblock',
+                    ]
+                );
+
+                /*
+                * Administrator Match listing for one member.
+                *
+                * Both ADMIN and SUPER_ADMIN may use this read-only diagnostic screen.
+                */
+                $routes->get(
+                    '(:num)/matches',
+                    'MemberController::matches/$1',
+                    [
+                        'as' =>
+                        'admin.members.matches',
+                    ]
+                );
+
+                /*
+                * Read-only viewer-specific Match Score diagnostic.
+                *
+                * Both ADMIN and SUPER_ADMIN may inspect ranking diagnostics.
+                * Global Match Score configuration remains SUPER_ADMIN only.
+                */
+                $routes->post(
+                    '(:num)/match-score-diagnostic',
+                    'MemberController::matchScoreDiagnostic/$1',
+                    [
+                        'as' =>
+                        'admin.members.match-score-diagnostic',
                     ]
                 );
 

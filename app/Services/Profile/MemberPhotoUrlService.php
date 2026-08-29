@@ -724,6 +724,185 @@ final class MemberPhotoUrlService
     }
 
     /**
+     * Return viewer-authorized thumbnail URLs for a member collection.
+     *
+    
+     *
+     * Photo database state is loaded once for the complete card collection.
+     * CloudFront signing still occurs per visible image because every private
+     * media URL is independently signed.
+     *
+    
+     *
+     * The optional development timeline separates:
+     *
+     * - the single approved-primary-photo DB lookup;
+     * - in-memory visibility/object-key preparation;
+     * - CloudFront signing.
+     *
+     * Normal application callers do not provide a timeline.
+     *
+     * @param list<int>        $memberIds
+     * @param array<int, bool> $interestRelationshipMap
+     *
+     * @return array<int, string>
+     */
+    public function getApprovedPrimaryThumbnailUrlsForViewer(
+        array $memberIds,
+        int $viewerUserId,
+        array $interestRelationshipMap
+    ): array {
+        $memberIds =
+            array_values(
+                array_unique(
+                    array_filter(
+                        array_map(
+                            'intval',
+                            $memberIds
+                        ),
+                        static fn(
+                            int $memberId
+                        ): bool =>
+                        $memberId > 0
+                            && $memberId !== $viewerUserId
+                    )
+                )
+            );
+
+        if (
+            $viewerUserId <= 0
+            || $memberIds === []
+        ) {
+            return [];
+        }
+
+        /*
+     
+     *
+     * This is the only photograph database read for the complete Search card
+     * collection.
+     */
+        $photos =
+            $this->photoModel
+            ->findApprovedPrimaryForMembers(
+                $memberIds
+            );
+
+        $urls = [];
+
+        /*
+     * First resolve authorization and object keys entirely in memory.
+     *
+     * Keeping signing outside this loop allows Membership-28 to distinguish
+     * visibility processing from CloudFront cryptographic signing.
+     *
+     * @var array<int, array{
+     *     objectKey:string,
+     *     photoId:int
+     * }> $authorizedPhotos
+     */
+        $authorizedPhotos = [];
+
+        foreach ($memberIds as $memberId) {
+            $photo =
+                $photos[$memberId]
+                ?? null;
+
+            if (!is_array($photo)) {
+                $urls[$memberId] = '';
+                continue;
+            }
+
+            $visibility =
+                mb_strtoupper(
+                    trim(
+                        (string) (
+                            $photo['visibility']
+                            ?? ''
+                        )
+                    )
+                );
+
+            /*
+         * Preserve the existing fail-closed Photo Visibility rule.
+         */
+            if (
+                !in_array(
+                    $visibility,
+                    [
+                        'PUBLIC',
+                        'INTERESTED_MEMBERS',
+                    ],
+                    true
+                )
+            ) {
+                $urls[$memberId] = '';
+                continue;
+            }
+
+            if (
+                $visibility === 'INTERESTED_MEMBERS'
+                && (
+                    $interestRelationshipMap[$memberId]
+                    ?? false
+                ) !== true
+            ) {
+                $urls[$memberId] = '';
+                continue;
+            }
+
+            $objectKey =
+                trim(
+                    (string) (
+                        $photo['thumbnail_object_key']
+                        ?? ''
+                    )
+                );
+
+            if ($objectKey === '') {
+                $urls[$memberId] = '';
+                continue;
+            }
+
+            $authorizedPhotos[$memberId] = [
+                'objectKey' =>
+                $objectKey,
+
+                'photoId' =>
+                (int) (
+                    $photo['id']
+                    ?? 0
+                ),
+            ];
+        }
+
+        /*
+     * Signing remains deliberately centralized through createSignedUrl().
+     *
+     
+     */
+        foreach (
+            $authorizedPhotos
+            as $memberId => $authorizedPhoto
+        ) {
+            $urls[$memberId] =
+                $this->createSignedUrl(
+                    objectKey: $authorizedPhoto['objectKey'],
+
+                    context: 'Viewer-authorized primary profile photo',
+
+                    memberId: $memberId,
+
+                    photoId: $authorizedPhoto['photoId'],
+
+                    variant: 'thumbnail'
+                );
+        }
+
+        return $urls;
+    }
+
+    /**
      * Return gallery thumbnails visible to another authenticated member.
      *
      * PUBLIC:
