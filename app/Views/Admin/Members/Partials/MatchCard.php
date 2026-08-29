@@ -452,116 +452,115 @@ $preferenceModalId =
         <?php endif; ?>
 
 
-        <!-- Admin-only Match scores -->
-
         <!-- Admin-only matching summary -->
-        <div class="row mt-3">
+        <div
+            class="row
+        g-0
+        mt-3
+        pt-3
+        border-top">
 
-            <div class="col-12">
+            <div
+                class="col-6">
 
                 <div
                     class="d-flex
                 align-items-center
-                flex-wrap
-                gap-4
-                pt-3
-                border-top">
+                gap-2">
 
-                    <div
-                        class="d-flex
-                    align-items-center
-                    gap-2">
+                    <span
+                        class="avatar-xs
+                    flex-shrink-0">
 
                         <span
-                            class="avatar-xs
-                        flex-shrink-0">
+                            class="avatar-title
+                        bg-primary-subtle
+                        text-primary
+                        rounded-circle">
 
-                            <span
-                                class="avatar-title
-                            bg-primary-subtle
-                            text-primary
-                            rounded-circle">
-
-                                <i
-                                    class="ri-calculator-line"
-                                    aria-hidden="true"></i>
-
-                            </span>
+                            <i
+                                class="ri-calculator-line"
+                                aria-hidden="true"></i>
 
                         </span>
 
-                        <div>
+                    </span>
 
-                            <div
-                                class="text-muted
-                            fs-12">
+                    <div>
 
-                                Match Score
+                        <div
+                            class="text-muted
+                        fs-12">
 
-                            </div>
+                            Match Score
 
-                            <div
-                                class="fw-semibold
-                            fs-18
-                            lh-1">
+                        </div>
 
-                                <?= esc(
-                                    number_format(
-                                        $matchScore,
-                                        2
-                                    )
-                                ) ?>%
+                        <div
+                            class="fw-semibold
+                        fs-18
+                        lh-1">
 
-                            </div>
+                            <?= esc(
+                                number_format(
+                                    $matchScore,
+                                    2
+                                )
+                            ) ?>%
 
                         </div>
 
                     </div>
 
-                    <div
-                        class="d-flex
-                    align-items-center
-                    gap-2">
+                </div>
+
+            </div>
+
+            <div
+                class="col-6">
+
+                <div
+                    class="d-flex
+                align-items-center
+                gap-2">
+
+                    <span
+                        class="avatar-xs
+                    flex-shrink-0">
 
                         <span
-                            class="avatar-xs
-                        flex-shrink-0">
+                            class="avatar-title
+                        bg-success-subtle
+                        text-success
+                        rounded-circle">
 
-                            <span
-                                class="avatar-title
-                            bg-success-subtle
-                            text-success
-                            rounded-circle">
-
-                                <i
-                                    class="ri-list-check-3"
-                                    aria-hidden="true"></i>
-
-                            </span>
+                            <i
+                                class="ri-list-check-3"
+                                aria-hidden="true"></i>
 
                         </span>
 
-                        <div>
+                    </span>
 
-                            <div
-                                class="text-muted
-                            fs-12">
+                    <div>
 
-                                Partner Preference
+                        <div
+                            class="text-muted
+                        fs-12">
 
-                            </div>
+                            Partner Preference
 
-                            <div
-                                class="fw-semibold
-                            fs-18
-                            lh-1">
+                        </div>
 
-                                <?= esc(
-                                    (string)
-                                    $partnerPreferencePercentage
-                                ) ?>%
+                        <div
+                            class="fw-semibold
+                        fs-18
+                        lh-1">
 
-                            </div>
+                            <?= esc(
+                                (string)
+                                $partnerPreferencePercentage
+                            ) ?>%
 
                         </div>
 
