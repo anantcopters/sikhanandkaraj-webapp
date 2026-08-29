@@ -188,7 +188,7 @@ $statusClasses = [
                                     <span
                                         class="badge
                                             bg-primary-subtle
-                                            text-primary">
+                                            text-body p-2">
 
                                         Submitted
                                     </span>
