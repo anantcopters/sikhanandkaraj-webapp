@@ -57,9 +57,7 @@ The pricing term **Verified Profiles** is correct and must be retained.
 
 Go, Plus, and Pro respectively allow access to 50, 100, and 300 distinct Verified Profiles during the applicable membership period.
 
-Internally, consumption is still unique per candidate within a membership so repeat Full Profile access does not consume another allowance. `Unique` or `distinct` describes the accounting mechanism; it is not the customer-facing pricing label.
-
-Example:
+Internally, consumption is unique per candidate within a membership so repeat Full Profile access does not consume another allowance. `Unique` or `distinct` describes the accounting mechanism; it is not the customer-facing pricing label.
 
 ```text
 Candidate B has Mobile verified only
@@ -85,8 +83,6 @@ It must be removed as part of the membership implementation after all existing r
 Production authorization must never use `users.is_paid`, `session.is_paid`, or scattered `if ($isPaid)` checks as the source of truth.
 
 Membership state must be resolved from authoritative membership records and current time.
-
-Commercial hierarchy:
 
 ```text
 FREE < GO < PLUS < PRO
@@ -149,13 +145,7 @@ Paid-only features remain discoverable to Free members where useful instead of d
 
 A Free member reaching a Paid-only feature receives a consistent upgrade message. UI locks are presentation only; protected endpoints require server-side enforcement.
 
-A Paid member blocked by a non-payment rule must receive the correct reason. Examples:
-
-- Male viewing Female before accepted interest: explain accepted-interest requirement.
-- Candidate has no verified credential: explain that the profile is awaiting verification; do not ask the viewer to upgrade.
-- Daily/plan allowance exhausted: explain the applicable usage limit.
-
-Report and Block are safety features and must never be Paid-only.
+A Paid member blocked by a non-payment rule must receive the correct reason. Report and Block are safety features and must never be Paid-only.
 
 ---
 
@@ -235,17 +225,13 @@ The interest may be accepted, but Full Profile remains locked until the male act
 
 ### 9.6 Mandatory authorization and consumption order
 
-The Full Profile flow is:
-
 ```text
 Candidate
    ↓
 Hard target/block/moderation eligibility
    ↓
 At least one verified credential?
-   ├── NO → Full Profile unavailable
-   │        No allowance consumed
-   │
+   ├── NO → Full Profile unavailable; no allowance consumed
    └── YES
         ↓
       Active Paid membership?
@@ -254,13 +240,9 @@ At least one verified credential?
         ↓
       Previously consumed this membership?
         ├── YES → Allow, no new consumption
-        └── NO
-             ↓
-           Check daily + membership quota atomically
-             ↓
-           Consume exactly 1 Verified Profile allowance
-             ↓
-           Load sensitive profile/contact/media
+        └── NO → Check daily + membership quota atomically
+                 → Consume exactly 1 Verified Profile allowance
+                 → Load sensitive profile/contact/media
 ```
 
 Sensitive Full Profile data must never be fetched/exposed before authorization succeeds.
@@ -269,41 +251,26 @@ Sensitive Full Profile data must never be fetched/exposed before authorization s
 
 ## 10. Female Contact Privacy
 
-When Full Profile access succeeds for a female candidate, the existing
-female contact presentation must be preserved.
+When Full Profile access succeeds for a female candidate, the existing female contact presentation must be preserved.
 
 ### 10.1 Parent contact exists
-
-When a parent contact exists:
 
 - display the female member's primary mobile in masked form;
 - retain the **Verified** badge when her primary mobile is OTP-verified;
 - display the full parent contact beneath the masked female mobile.
 
-The masked female mobile is intentionally retained as a trust indicator
-while the parent contact remains the usable contact number.
-
 ### 10.2 Parent contact does not exist
-
-When a parent contact does not exist:
 
 - display the female member's full primary mobile;
 - retain the **Verified** badge when that primary mobile is OTP-verified.
 
 ### 10.3 Male profiles
 
-Male profiles continue displaying their normal primary mobile according
-to the existing profile presentation flow.
+Male profiles continue displaying their normal primary mobile according to the existing profile presentation flow.
 
 ### 10.4 Authorization boundary
 
-These rules affect presentation only after Full Profile authorization
-succeeds. Contact information must not be exposed to an unauthorized
-viewer.
-
-The membership implementation must carry this existing behavior forward
-and must not replace it with a rule that shows only the parent contact
-when one exists.
+These rules affect presentation only after Full Profile authorization succeeds. Contact information must not be exposed to an unauthorized viewer.
 
 ---
 
@@ -333,18 +300,7 @@ Reopening the same candidate during the same membership consumes nothing additio
 
 ### 12.3 Daily limit
 
-Daily limits count newly consumed Verified Profiles that day.
-
-Example for Go:
-
-```text
-Five different Verified Profiles first opened today
-Daily usage: 5 / 5
-Membership usage: 5 / 50
-
-Reopen one of those five -> allowed, no consumption
-Open a sixth new Verified Profile -> blocked until next daily period
-```
+Daily limits count newly consumed Verified Profiles that day. Reopening an already consumed profile does not consume daily or membership allowance.
 
 ### 12.4 Total membership limit
 
@@ -384,14 +340,7 @@ Database uniqueness and transactional enforcement are mandatory.
 
 Paid members receive **Membership Usage** in Account Settings.
 
-Profile usage displays:
-
-- Verified Profile allowance;
-- total used/remaining;
-- today's used/daily limit;
-- date-wise history;
-- viewed member name using existing masking rules;
-- Member ID.
+Profile usage displays Verified Profile allowance, total used/remaining, today's used/daily limit, date-wise history, viewed member name using existing masking rules, and Member ID.
 
 Live Introduction usage displays allowance, used, remaining, date-wise history, member name, and Member ID.
 
@@ -444,21 +393,23 @@ Historical records must not be overwritten when plans expire or are replaced.
 
 ## 17. Match Eligibility: Mandatory First Stage
 
-A candidate must pass hard eligibility before Match Score is considered. Eligibility includes applicable gender, age, search filters, active/searchable state, blocks, moderation/report exclusions, location/community criteria, and existing mandatory matching conditions.
+A candidate must first pass the hard eligibility rules applicable to the collection being requested. Common hard eligibility includes opposite gender, active/searchable state, blocks, moderation/report exclusions, and any other existing collection-independent safety/status conditions.
+
+Collection-specific eligibility is then applied according to the rules in Section 21. Partner Preference is **not a universal hard-eligibility condition**. The >=30% Partner Preference threshold applies only to **All Matches / Default Matches** and collections explicitly defined as subsets of All Matches.
 
 Profile Visibility is not an eligibility input.
 
 ```text
-Eligibility first -> Match Score second -> Sorting third
+Collection eligibility first -> Match Score second -> Sorting third
 ```
 
-The Verified Profile gate is specifically a **Full Profile access gate**. It should not automatically remove an otherwise eligible completely unverified candidate from discovery unless another existing product rule does so. This allows discovery while preventing Paid allowance from being spent on a completely unverified profile.
+The Verified Profile gate is specifically a **Full Profile access gate**. It must not automatically remove an otherwise eligible completely unverified candidate from discovery unless another product rule does so.
 
 ---
 
 ## 18. Match Score
 
-Every eligible candidate receives a normalized Match Score using:
+Every candidate that survives the applicable collection eligibility receives a normalized Match Score using:
 
 1. Partner Preference / Relevance;
 2. Profile Completion;
@@ -479,9 +430,11 @@ Initial Superadmin-configurable defaults:
 
 Configuration must total 100%, reject negative values, be audited/historically traceable, have a safe fallback, and use sensible server-side ranges so Commercial cannot accidentally dominate matchmaking.
 
+**Partner Preference remains exactly one weighted Match Score component.** Except for the explicit >=30% eligibility rule of All Matches / Default Matches, Partner Preference must not independently determine eligibility and must not receive an additional ranking advantage after Match Score has been calculated.
+
 ---
 
-## 19. Match Score Components
+## 19. Match Score Components and Ordering
 
 Partner Preference uses the existing preference matching logic and remains viewer-specific. Profile Completion uses the application's authoritative completion calculation. Approved Photos counts only approved photos and must be capped/normalized. Trust uses current verification state.
 
@@ -506,31 +459,90 @@ PRO  = 3
 
 Commercial priority is a score input, never an eligibility bypass or absolute sorting override.
 
-Primary ordering is `match_score DESC`, followed by deterministic tie-breakers: preference score, trust, profile completion, approved photos, freshness timestamp, stable member identifier.
+Primary ordering is `match_score DESC`. Deterministic tie-breakers may use non-duplicative member-level signals such as trust, profile completion, approved photos, freshness timestamp, and a stable member identifier. **Partner Preference must not be used as a separate tie-breaker**, because it is already represented in Match Score.
 
 ---
 
-## 20. New Profiles
+## 20. New Matches
 
-A New Profile is introduced within the last 30 days. Since there is currently no dedicated publish date, implementation should use the most appropriate existing creation/activation timestamp unless analysis proves a new field is required.
+**New Matches is a subset of All Matches.** A candidate must therefore first satisfy the All Matches / Default Matches eligibility rule, including the configured Partner Preference threshold (default 30%), and then satisfy the configured recent-days restriction.
+
+The recent-days value is configuration-driven (`newMatchDays` in the current implementation) rather than a permanently hard-coded 30-day product rule. The implementation should use the appropriate existing creation/activation timestamp unless a dedicated publish timestamp is introduced later.
+
+```text
+All Matches eligibility
++ configured recent-days restriction
+-> Match Score
+-> Match Score DESC
+```
 
 ---
 
 ## 21. Dashboard Match Sections and Search
 
-All Matches, Same State, Same City, Same Community, Profiles With Photos, and New Profiles first apply their section criteria, then order eligible candidates by Match Score.
+### 21.1 All Matches / Default Matches
 
-Basic and Advanced Search share one candidate/ranking engine. Advanced Search adds filters. Free direct requests for Advanced Search must be denied with the Paid-feature response rather than silently downgraded.
+All Matches is the default discovery collection. A candidate must satisfy common hard eligibility and achieve the configured Partner Preference eligibility threshold, currently/default **>=30%**.
 
-Pipeline:
+Candidates that qualify are ranked by final Match Score.
 
 ```text
-Request Filters
--> Hard Eligibility
+Common hard eligibility
++ Partner Preference >= configured threshold (default 30%)
+-> Match Score
+-> Match Score DESC
+```
+
+### 21.2 New Matches
+
+New Matches uses **All Matches eligibility** and adds only the configured recent-days restriction. It does not define an independent Partner Preference rule.
+
+### 21.3 Filtered Basic / Advanced Search
+
+When the member supplies one or more candidate search filters, those requested search filters determine candidate eligibility in addition to common hard eligibility.
+
+Partner Preference does **not** independently filter the result set in filtered search. It remains one weighted input to Match Score.
+
+```text
+Common hard eligibility
++ requested search filters
+-> Match Score
+-> Match Score DESC
+```
+
+Advanced Search remains subject to membership entitlement. Free direct requests for Advanced Search must be denied with the Paid-feature response rather than silently downgraded.
+
+### 21.4 Matches Specific Filters
+
+For Matches collections such as Same State, Same City, Same Community, Profiles With Photos, or another explicit Matches filter, the selected section criterion determines collection eligibility in addition to common hard eligibility.
+
+The All Matches >=30% Partner Preference threshold must **not** be silently added to these specific-filter collections unless the product explicitly defines that collection as a subset of All Matches.
+
+Partner Preference remains a weighted Match Score component only.
+
+```text
+Common hard eligibility
++ selected Matches-specific criterion
+-> Match Score
+-> Match Score DESC
+```
+
+### 21.5 No-filter Basic / Advanced Search
+
+If Basic or Advanced Search is submitted without any effective candidate filters, it falls back to **All Matches / Default Matches**. Therefore the configured Partner Preference eligibility threshold (default 30%) applies in this no-filter case.
+
+### 21.6 Shared ranking pipeline
+
+Basic Search, Advanced Search, Matches-specific filters, All Matches, and New Matches should share the same ranking engine after their respective candidate eligibility stage.
+
+```text
+Request / Collection
+-> Common hard eligibility
+-> Collection-specific eligibility
 -> Candidate Set
 -> Viewer Preference/Relevance + Member-level Signals
 -> Match Score
--> Deterministic Ordering
+-> Match Score DESC + deterministic non-duplicative tie-breakers
 -> Pagination
 ```
 
@@ -542,54 +554,15 @@ Do not persist every viewer/candidate Match Score pair.
 
 Precompute or efficiently expose member-level signals such as active/searchable state, filter IDs, profile completion, approved-photo count, verification/trust state, active plan priority, and freshness timestamp.
 
-Apply indexed hard filters first, then viewer-specific preference calculation to the reduced candidate set.
+Apply indexed hard filters first, then viewer-specific preference calculation to the reduced candidate set. Avoid N+1 queries for membership, verification, photos, interest, block, preference, and ranking inputs. Filtering/scoring/ordering/pagination should remain database-oriented rather than loading all candidates into PHP.
 
-PostgreSQL indexes must support measured high-frequency access patterns including active/gender, location, community, DOB/age, freshness, active membership, usage uniqueness, blocks/reports, and interest relationships.
-
-Avoid N+1 queries for membership, verification, photos, interest, block, preference, and ranking inputs. Filtering/scoring/ordering/pagination should remain database-oriented rather than loading all candidates into PHP.
-
-Cache static plan/scoring configuration where useful. PostgreSQL remains the primary search engine until measured scale demonstrates a need for an external engine.
+PostgreSQL remains the primary search engine until measured scale demonstrates a need for an external engine.
 
 ---
 
 ## 23. Centralized Entitlement Architecture
 
-Membership logic must be centralized. Exact class names must follow the existing project architecture, but responsibilities include:
-
-```text
-MembershipService
-    getActiveMembership()
-    getPlan()
-    canUpgradeTo()
-    expireMemberships()
-
-MembershipEntitlementService
-    canUseAdvancedSearch()
-    canViewProfile()
-    canAddAadhaar()
-    canCreateLiveIntroduction()
-    canWatchLiveIntroduction()
-    canShortlist()
-    canReport()
-    canBlock()
-    canSendInterest()
-
-MembershipUsageService
-    consumeVerifiedProfile()
-    consumeLiveIntroductionView()
-    hasConsumedProfile()
-    hasConsumedLiveIntroduction()
-    getDailyProfileUsage()
-    getMembershipProfileUsage()
-    getLiveIntroductionUsage()
-
-ProfileAccessPolicy
-    isVerifiedProfile()
-    canViewerAccessCandidate()
-    canViewerSeeContact()
-```
-
-Controllers enforce authorization; views render resolved capability state. Direct requests pass the same policies.
+Membership logic must be centralized. Controllers enforce authorization; views render resolved capability state. Direct requests pass the same policies. Exact class names follow the existing project architecture rather than creating parallel implementations.
 
 ---
 
@@ -607,9 +580,7 @@ For Verified Profile access:
 6. insert exactly one unique usage record;
 7. load/return protected profile data.
 
-Do not use an unsafe `SELECT count -> PHP check -> INSERT` sequence. Database uniqueness plus transactions/appropriate locking must prevent duplicate consumption and final-slot quota races.
-
-Live Introduction consumption requires equivalent protection.
+Do not use an unsafe `SELECT count -> PHP check -> INSERT` sequence. Database uniqueness plus transactions/appropriate locking must prevent duplicate consumption and final-slot quota races. Live Introduction consumption requires equivalent protection.
 
 ---
 
@@ -621,39 +592,19 @@ Do not cache Paid state in the login session as authorization. Membership expiry
 
 ## 26. Pricing Page and Plan Source of Truth
 
-The current pricing implementation contains plan data in the view. It must be replaced by the same authoritative plan definition used by membership services.
+The pricing implementation must use the same authoritative plan definition as membership services. Historical memberships retain a purchased entitlement snapshot or immutable plan-version relationship.
 
-Plan configuration supports at least plan code/name, commercial priority, price, duration, Verified Profile allowance, daily new Verified Profile limit, Live Introduction limit, Dedicated Match Manager flag, active/available flag, and display order.
-
-Historical memberships retain a purchased entitlement snapshot or immutable plan-version relationship.
-
-### Pricing terminology
-
-The pricing page must retain the customer-facing term **Verified Profiles**.
-
-Do not change `50 Verified Profiles`, `100 Verified Profiles`, and `300 Verified Profiles` to generic `Full Profile Views` merely because repeat views are de-duplicated internally.
-
-The definition presented/enforced is:
-
-> A Verified Profile has at least one verified credential: Mobile, Email, Aadhaar, or Live Introduction.
-
-The allowance is consumed once per distinct Verified Profile successfully Full Viewed during that membership.
+The pricing page must retain the customer-facing term **Verified Profiles**. Do not replace `50 Verified Profiles`, `100 Verified Profiles`, and `300 Verified Profiles` with generic `Full Profile Views` merely because repeat views are de-duplicated internally.
 
 ---
 
 ## 27. Removed Profile Visibility Feature
 
-The existing member Profile Visibility feature is obsolete and must be removed from Account Settings UI, routes, controller handling, services/models used only for it, Full Profile authorization, matching/search conditions, and obsolete constants/validation/helpers.
-
-Database cleanup follows the project's incremental SQL deployment rules after code references are migrated.
-
-This does not remove Photo Visibility.
+The member Profile Visibility feature is obsolete and must not participate in Account Settings, Full Profile authorization, matching, or search. Database cleanup follows the project's incremental SQL deployment rules. This does not remove Photo Visibility.
 
 ---
 
 ## 28. Mandatory Risk Controls
-
-All previously identified risks are accepted and must be addressed in the current feature:
 
 1. remove temporary `users.is_paid` dependencies;
 2. enforce every Paid feature server-side, not only in UI;
@@ -668,7 +619,9 @@ All previously identified risks are accepted and must be addressed in the curren
 11. remove Profile Visibility conflicts;
 12. evaluate the Verified Profile gate before consumption;
 13. never consume an allowance for a completely unverified candidate;
-14. do not treat a historical consumption record as proof that a candidate remains currently verified.
+14. do not treat a historical consumption record as proof that a candidate remains currently verified;
+15. do not apply the All Matches Partner Preference threshold to filtered Basic/Advanced Search or Matches-specific filters;
+16. do not give Partner Preference a second ranking advantage outside its configured Match Score weight.
 
 ---
 
@@ -680,33 +633,27 @@ All previously identified risks are accepted and must be addressed in the curren
 | Expiry cron has not run | `expires_at` still prevents Paid access |
 | Accepted interest exists but male plan expires | Interest remains accepted; female Full Profile locks |
 | Female accepts Free male interest | Accepted; Full Profile remains locked until Paid |
-| Candidate has Mobile verified only | Candidate is a Verified Profile |
-| Candidate has Email verified only | Candidate is a Verified Profile |
-| Candidate has Aadhaar verified only | Candidate is a Verified Profile |
-| Candidate has Live Introduction verified only | Candidate is a Verified Profile |
+| Candidate has any one valid credential | Candidate is a Verified Profile |
 | Candidate has zero verified credentials | Full Profile unavailable; no allowance consumed |
-| Candidate is Free but Mobile verified | Eligible as a Verified Profile; normal access rules apply |
-| Candidate is Paid but completely unverified | Full Profile unavailable; no allowance consumed |
-| Candidate has all four credentials | Still consumes only one profile allowance |
 | Viewer reopens same Verified Profile | No additional consumption |
 | Candidate loses all verification after prior consumption | Current Full Profile access denied; historical usage retained |
-| Candidate becomes Verified again in same membership | Existing consumption means no additional allowance |
-| Viewer reaches daily limit | Previously consumed profiles remain accessible; new consumption blocked |
-| Viewer reaches total limit | Previously consumed profiles remain accessible; new consumption blocked |
+| Viewer reaches daily/total limit | Previously consumed profiles remain accessible; new consumption blocked |
 | Two tabs open same new profile | One consumption only |
 | Two new profiles race for final daily/total slot | Quota cannot be exceeded |
 | Viewer replays same Live Introduction | No additional consumption |
 | New membership starts | Usage starts fresh for that membership |
 | Active Go buys Plus/Pro | Upgrade allowed; previous membership replaced |
-| Active Plus attempts Go | Downgrade blocked |
-| Active Pro attempts Plus/Go | Downgrade blocked |
+| Active Plus/Pro attempts downgrade | Downgrade blocked |
 | Free member receives interest | Can Accept/Decline |
 | Free member tries Advanced Search | Locked; server denies |
-| Free member opens Full Profile URL | Locked; server denies |
 | Free member needs Report/Block | Allowed |
 | Free member tries Shortlist | Locked/denied |
+| All Matches candidate has PP below threshold | Excluded from All Matches |
+| New Matches candidate has PP below All Matches threshold | Excluded because New Matches is an All Matches subset |
+| Filtered Basic/Advanced Search candidate has PP below 30% | May remain eligible; PP affects Match Score only |
+| Matches-specific filter candidate has PP below 30% | May remain eligible; PP affects Match Score only |
+| Basic/Advanced Search has no effective filters | Falls back to All Matches threshold/ranking |
 | Match Score weights change | New searches use new active configuration; no pairwise rebuild |
-| Legacy Profile Visibility exists in DB | Ignored by new authorization; removed through controlled cleanup |
 
 ---
 
@@ -720,11 +667,8 @@ All previously identified risks are accepted and must be addressed in the curren
 6. Membership expiry uses authoritative membership/time, not `is_paid` or stale session state.
 7. Usage limits use transactions and database uniqueness.
 8. Superadmin scoring changes require authorization, validation, safe ranges, and audit history.
-9. Member-visible usage history exposes only permitted information.
-10. Plan edits do not retroactively mutate historical purchased entitlements.
-11. Direct URL/action requests pass the same policies as UI requests.
-12. Legacy Profile Visibility never authorizes/denies Full Profile access.
-13. A completely unverified profile cannot be Full Viewed by another member.
+9. Direct URL/action requests pass the same policies as UI requests.
+10. A completely unverified profile cannot be Full Viewed by another member.
 
 ---
 
@@ -732,66 +676,31 @@ All previously identified risks are accepted and must be addressed in the curren
 
 ### Phase 1 - Membership foundation
 
-- authoritative plan definition;
-- membership/history storage;
-- active membership resolution;
-- remove/migrate `users.is_paid`;
-- upgrade/downgrade rules;
-- expiry logic/cron;
-- entitlement snapshot/versioning;
-- retain and centrally define Verified Profile pricing semantics.
+Authoritative plan definition, membership/history storage, active membership resolution, `users.is_paid` removal, lifecycle rules, expiry, and entitlement snapshots.
 
 ### Phase 2 - Entitlement and visibility cleanup
 
-- centralized entitlement service;
-- Verified Profile gate;
-- remove Profile Visibility feature/dependencies;
-- Full Profile access policy;
-- female access/privacy rules;
-- locked-feature response pattern;
-- server-side guards.
+Centralized entitlement service, Verified Profile gate, Profile Visibility removal, Full Profile access policy, privacy rules, and server-side guards.
 
 ### Phase 3 - Usage accounting
 
-- Verified Profile usage;
-- Live Introduction usage;
-- daily/total caps;
-- concurrency and quota-race protection;
-- Membership Usage screen/history.
+Verified Profile and Live Introduction usage, daily/total caps, concurrency protection, and Membership Usage/history.
 
 ### Phase 4 - UI enforcement
 
-- Advanced Search, Aadhaar, Live Introduction, Full Profile and Shortlist locks;
-- Report/Block on ProfileCard and ProfileInterestCard;
-- safe return contexts;
-- current plan/upgrade UI;
-- awaiting-verification Full Profile state.
+Paid-feature locks, Report/Block card access, safe return contexts, current-plan UI, and awaiting-verification state.
 
-### Phase 5 - Match Score
+### Phase 5 - Match Score and collection rules
 
-- Superadmin weights/ranges/audit;
-- preference, completion, approved-photo, trust, and commercial components.
+Superadmin weights/ranges/audit; preference, completion, approved-photo, trust, and commercial components; All Matches >= configured threshold; New Matches recent-days subset; filtered search and Matches-specific eligibility separation; no duplicate Partner Preference ranking advantage.
 
 ### Phase 6 - Search optimization
 
-- candidate filtering;
-- Match Score ordering;
-- dashboard/search reuse;
-- indexes;
-- N+1 prevention;
-- query-plan/performance testing;
-- deterministic pagination.
+Candidate filtering, Match Score ordering, dashboard/search reuse, indexes, N+1 prevention, query-plan/performance testing, and deterministic pagination.
 
 ### Phase 7 - Production hardening
 
-- entitlement tests;
-- Verified Profile classification/access tests;
-- `is_paid` and Profile Visibility removal regression tests;
-- expiry/concurrency/quota/privacy tests;
-- pricing-plan consistency tests;
-- ranking/configuration tests;
-- performance/load tests;
-- audit/log review.
+Entitlement, access, expiry, concurrency, quota, privacy, pricing, ranking, collection-eligibility, configuration, performance, and audit regression tests.
 
 ---
 
@@ -804,21 +713,22 @@ Implementation is correct only when:
 - Photo Visibility remains separately enforced;
 - Free members can discover candidates and exchange unlimited interests;
 - Report/Block remain Free and Paid safety features;
-- Shortlist/Advanced Search/Aadhaar/Live Introduction/full-profile access enforce Paid rules server-side;
+- Paid features enforce server-side rules;
 - **Verified Profile means at least one verified Mobile, Email, Aadhaar, or Live Introduction credential**;
-- Free/Paid candidate plan does not determine Verified Profile status;
 - completely unverified candidates cannot be Full Viewed and consume no allowance;
-- 50/100/300 remain customer-facing **Verified Profiles** allowances;
 - each distinct Verified Profile consumes at most once per membership;
 - repeat access does not consume again;
-- daily limits apply only to new Verified Profile consumption;
-- Live Introduction follows equivalent distinct-owner consumption rules;
 - concurrency cannot double-consume or exceed quota;
 - female privacy and gender/interest rules are preserved;
 - only one membership is active and active downgrades are prevented;
 - expiry works even if cron fails;
 - membership history remains auditable;
-- hard eligibility runs before Match Score;
+- All Matches / Default Matches enforce the configured Partner Preference threshold, default 30%;
+- New Matches is All Matches plus the configured recent-days restriction;
+- filtered Basic/Advanced Search uses requested filters for eligibility and Partner Preference only as a Match Score component;
+- Matches-specific filters use their specific criterion for eligibility and Partner Preference only as a Match Score component;
+- no-filter Basic/Advanced Search falls back to All Matches;
+- Partner Preference receives no extra tie-break/ranking advantage after being included in Match Score;
 - Match Score remains configurable, relevance-led, database-oriented, and scalable;
 - pricing and enforcement use one source of truth;
 - sensitive data is never loaded before authorization.
@@ -837,7 +747,7 @@ This document is the agreed product/technical baseline for Membership and Matchi
 
 For implementation:
 
-1. read the latest `development` branch;
+1. read the latest active development branch for the feature;
 2. reuse existing project architecture, services, validation, UI classes, routes, security and deployment rules;
 3. extend existing flows rather than creating parallel implementations;
 4. check every implementation change against this document;
