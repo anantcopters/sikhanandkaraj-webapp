@@ -16,7 +16,8 @@ final class MemberBlockValidation
     {
         return [
             'comment' => [
-                'label' => 'Comment',
+                'label' =>
+                'Comment',
 
                 'rules' => [
                     'required',

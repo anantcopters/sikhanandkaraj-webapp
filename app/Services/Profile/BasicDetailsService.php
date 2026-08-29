@@ -7,6 +7,7 @@ namespace App\Services\Profile;
 use App\Models\MemberBasicDetailModel;
 use App\Models\UserModel;
 use App\Services\Profile\ProfileMasterDataService;
+use App\Support\Domain\MemberAgePolicy;
 use App\Support\BooleanValue;
 use DateTimeImmutable;
 use DomainException;
@@ -373,9 +374,10 @@ final class BasicDetailsService
             trim($gender)
         );
 
-        $minimumAge = $normalizedGender === 'MALE'
-            ? 21
-            : 18;
+        $minimumAge =
+            MemberAgePolicy::minimumAgeForGender(
+                $normalizedGender
+            );
 
         $latestEligibleBirthDate =
             new DateTimeImmutable(

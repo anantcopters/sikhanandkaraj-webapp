@@ -11,10 +11,8 @@ use App\Support\MemberNameVisibility;
 use App\Support\BooleanValue;
 use App\Services\Profile\MemberProfileSummaryService;
 use App\Models\MemberProfileReportModel;
-use App\Services\PartnerPreference\BasicPartnerPreferenceService;
-use App\Services\PartnerPreference\AdditionalPartnerPreferenceService;
 use App\Support\EmailAddressMasker;
-use App\Exceptions\PaidMembershipRequiredException;
+use App\Services\Membership\ProfileAccessPolicy;
 use App\Support\MobileNumberMasker;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
@@ -56,11 +54,11 @@ final class MemberProfileViewService
         private readonly MemberMatchmakingService
         $matchmakingService,
 
-        private readonly BasicPartnerPreferenceService
-        $basicPartnerPreferenceService,
+        private readonly PartnerPreferencePresentationService
+        $partnerPreferencePresentationService,
 
-        private readonly AdditionalPartnerPreferenceService
-        $additionalPartnerPreferenceService
+        private readonly ProfileAccessPolicy
+        $profileAccessPolicy
     ) {}
 
     /**
@@ -87,40 +85,29 @@ final class MemberProfileViewService
         );
 
         /*
-        * Enforce paid-member visibility before loading contacts,
-        * profile details, Aadhaar identity, photographs or gallery URLs.
+        * Full Profile authorization happens BEFORE sensitive profile information,
+        * contact details, Aadhaar data or signed media URLs are resolved.
+        *
+        * ProfileAccessPolicy centrally owns:
+        *
+        * - paid membership entitlement;
+        * - Verified Profile requirement;
+        * - female accepted-interest privacy;
+        * - block protection;
+        * - membership-wide quota;
+        * - daily quota;
+        * - repeat-view consumption.
+        *
+        * No Full Profile authorization rule should be duplicated below this point.
         */
-        $profileVisibility = mb_strtoupper(
-            trim(
-                (string) (
-                    $target['profile_visibility']
-                    ?? 'ALL_MEMBERS'
-                )
-            )
-        );
+        $profileAccess = $this
+            ->profileAccessPolicy
+            ->authorizeFullProfile(
+                $viewerUserId,
+                $targetUserId
+            );
 
-        if (
-            $profileVisibility === 'PAID_MEMBERS_ONLY'
-        ) {
-            $viewer = $this
-                ->userModel
-                ->find(
-                    $viewerUserId
-                );
 
-            $viewerIsPaid =
-                is_array($viewer)
-                && BooleanValue::fromDatabase(
-                    $viewer['is_paid']
-                        ?? false
-                );
-
-            if (!$viewerIsPaid) {
-                throw new PaidMembershipRequiredException(
-                    'A paid membership is required to view this profile.'
-                );
-            }
-        }
 
         /*
         * Load profile information without resolving an owner-context
@@ -190,13 +177,6 @@ final class MemberProfileViewService
             && $emailAddress !== ''
             && BooleanValue::fromDatabase(
                 $emailContact['is_verified']
-                    ?? false
-            );
-
-        $isMemberMobileVerified =
-            is_array($mobileContact)
-            && BooleanValue::fromDatabase(
-                $mobileContact['is_verified']
                     ?? false
             );
 
@@ -370,226 +350,22 @@ final class MemberProfileViewService
         * those criteria into member-friendly labels.
         */
         $matchCriteria =
-            isset($partnerPreferenceMatch['criteria'])
-            && is_array($partnerPreferenceMatch['criteria'])
+            isset(
+                $partnerPreferenceMatch['criteria']
+            )
+            && is_array(
+                $partnerPreferenceMatch['criteria']
+            )
             ? $partnerPreferenceMatch['criteria']
             : [];
 
-        $basicPreferenceSummary =
+        $partnerPreferenceDisplayItems =
             $this
-            ->basicPartnerPreferenceService
-            ->getSummaryForUser(
-                $viewerUserId
+            ->partnerPreferencePresentationService
+            ->displayItems(
+                $viewerUserId,
+                $matchCriteria
             );
-
-        $additionalPreferenceSections =
-            $this
-            ->additionalPartnerPreferenceService
-            ->getSummarySections(
-                $viewerUserId
-            );
-
-        /*
-        * First build one lookup containing every available
-        * human-readable Partner Preference summary item.
-        *
-        * Do NOT filter on isCompleted here.
-        *
-        * Whether a preference participates in matchmaking is already
-        * determined by PartnerPreferenceMatchService and represented
-        * by $matchCriteria.
-        */
-        $displayItemsByKey = [];
-
-        $basicItems =
-            isset($basicPreferenceSummary['items'])
-            && is_array($basicPreferenceSummary['items'])
-            ? $basicPreferenceSummary['items']
-            : [];
-
-        foreach ($basicItems as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-
-            $key = trim(
-                (string) (
-                    $item['key']
-                    ?? ''
-                )
-            );
-
-            if ($key === '') {
-                continue;
-            }
-
-            $displayItemsByKey[$key] = [
-                'key' =>
-                $key,
-
-                'title' =>
-                trim(
-                    (string) (
-                        $item['title']
-                        ?? ''
-                    )
-                ),
-
-                'value' =>
-                trim(
-                    (string) (
-                        $item['value']
-                        ?? ''
-                    )
-                ),
-            ];
-        }
-
-        foreach (
-            $additionalPreferenceSections
-            as $section
-        ) {
-            if (!is_array($section)) {
-                continue;
-            }
-
-            $sectionItems =
-                isset($section['items'])
-                && is_array($section['items'])
-                ? $section['items']
-                : [];
-
-            foreach ($sectionItems as $item) {
-                if (!is_array($item)) {
-                    continue;
-                }
-
-                $key = trim(
-                    (string) (
-                        $item['key']
-                        ?? ''
-                    )
-                );
-
-                if (
-                    $key === ''
-                    || $key === 'special-request'
-                ) {
-                    continue;
-                }
-
-                $displayItemsByKey[$key] = [
-                    'key' =>
-                    $key,
-
-                    'title' =>
-                    trim(
-                        (string) (
-                            $item['title']
-                            ?? ''
-                        )
-                    ),
-
-                    'value' =>
-                    trim(
-                        (string) (
-                            $item['value']
-                            ?? ''
-                        )
-                    ),
-                ];
-            }
-        }
-
-        /*
-        * Now construct the modal rows FROM THE MATCH CRITERIA.
-        *
-        * This guarantees that:
-        *
-        * total rows in modal
-        *      ===
-        * total preferences used by matching
-        *
-        * and therefore the modal can never silently show only a subset
-        * because a presentation service used a different completion rule.
-        */
-        $partnerPreferenceDisplayItems = [];
-
-        foreach ($matchCriteria as $criterion) {
-            if (!is_array($criterion)) {
-                continue;
-            }
-
-            $key = trim(
-                (string) (
-                    $criterion['key']
-                    ?? ''
-                )
-            );
-
-            if ($key === '') {
-                continue;
-            }
-
-            $displayItem =
-                $displayItemsByKey[$key]
-                ?? null;
-
-            if (!is_array($displayItem)) {
-                continue;
-            }
-
-            $title = trim(
-                (string) (
-                    $displayItem['title']
-                    ?? ''
-                )
-            );
-
-            $value = trim(
-                (string) (
-                    $displayItem['value']
-                    ?? ''
-                )
-            );
-
-            if ($title === '') {
-                continue;
-            }
-
-            /*
-            * A configured match criterion should normally always have
-            * a presentation value. Keep a safe member-friendly fallback
-            * instead of silently removing the row from the modal.
-            */
-            if (
-                $value === ''
-                || $value === 'Not added'
-            ) {
-                $value = 'Preference selected';
-            }
-
-            $partnerPreferenceDisplayItems[] = [
-                'key' =>
-                $key,
-
-                'title' =>
-                $title,
-
-                'value' =>
-                $value,
-
-                'matched' => (
-                    $criterion['matched']
-                    ?? false
-                ) === true,
-
-                'isCompulsory' => (
-                    $criterion['compulsory']
-                    ?? false
-                ) === true,
-            ];
-        }
 
         /*
         * Profile-detail pages use the MEDIUM variant.
@@ -672,6 +448,14 @@ final class MemberProfileViewService
                 $targetUserId
             );
 
+        /*
+        * Expose already-resolved membership usage to presentation.
+        *
+        * The View must never calculate quotas itself.
+        */
+        $summary['profileAccess'] =
+            $profileAccess;
+
         return array_merge(
             $summary,
             [
@@ -750,6 +534,7 @@ final class MemberProfileViewService
 
                 'partnerPreferenceDisplayItems' =>
                 $partnerPreferenceDisplayItems,
+
             ]
         );
     }

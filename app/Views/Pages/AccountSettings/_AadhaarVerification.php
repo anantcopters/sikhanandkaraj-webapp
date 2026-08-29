@@ -7,9 +7,12 @@ use App\Support\DateDisplay;
 /**
  * Member Aadhaar Verification settings.
  *
+ * Membership authorization has already been resolved by
+ * MemberAadhaarService. This View only presents that state.
+ *
  * @var array<string,mixed> $aadhaarSettings
  * @var array<string,string> $aadhaarValidationErrors
- * @var bool $openAadhaarModal
+ * @var bool                 $openAadhaarModal
  */
 
 $aadhaarSettings =
@@ -61,6 +64,17 @@ $canUpload =
         ?? false)
     === true;
 
+/*
+ * This value is supplied by MemberAadhaarService.
+ *
+ * Never resolve membership/plan state directly inside the View.
+ */
+$hasAadhaarEntitlement =
+    (
+        $aadhaarSettings['hasAadhaarEntitlement']
+        ?? false
+    ) === true;
+
 $statusLabel = match ($status) {
     'APPROVED' =>
     'Verified',
@@ -77,16 +91,16 @@ $statusLabel = match ($status) {
 
 $statusClass = match ($status) {
     'APPROVED' =>
-    'bg-success-subtle text-success',
+    'bg-success-subtle text-body',
 
     'UNDER_REVIEW' =>
-    'bg-warning-subtle text-warning',
+    'bg-warning-subtle text-body',
 
     'REJECTED' =>
-    'bg-danger-subtle text-danger',
+    'bg-danger-subtle text-body',
 
     default =>
-    'bg-secondary-subtle text-body-secondary',
+    'bg-secondary-subtle text-body',
 };
 ?>
 
@@ -114,7 +128,66 @@ $statusClass = match ($status) {
         <?= esc($statusLabel) ?>
     </span>
 </div>
+<?php if (!$hasAadhaarEntitlement): ?>
 
+    <!--
+        Free-member feature lock.
+
+        Existing Aadhaar verification/history remains visible below this
+        message. Only new upload/re-upload capability is locked.
+    -->
+    <div
+        class="alert alert-info border fs-13"
+        role="status">
+
+        <div
+            class="d-flex
+                align-items-start
+                gap-2">
+
+            <i
+                class="ri-lock-2-line
+                    text-muted
+                    fs-18"
+                aria-hidden="true">
+            </i>
+
+            <div>
+
+                <strong>
+                    Aadhaar Verification is available
+                    with a paid membership.
+                </strong>
+
+                <p class="text-muted mb-2 mt-1">
+                    Upgrade your membership to submit
+                    or re-submit your Aadhaar document
+                    for verification.
+                </p>
+
+                <a
+                    href="<?= route_to(
+                                'web.account.settings.section',
+                                'plans'
+                            ) ?>"
+                    class="text-danger fw-medium">
+
+                    View Membership Plans
+
+                    <i
+                        class="ri-arrow-right-line ms-1"
+                        aria-hidden="true">
+                    </i>
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+<?php endif; ?>
 
 <?php if (
     $status === 'REJECTED'
@@ -401,13 +474,13 @@ $statusClass = match ($status) {
                         $historyStatusClass =
                             match ($historyStatus) {
                                 'APPROVED' =>
-                                'bg-success-subtle text-success',
+                                'bg-success-subtle text-body p-2',
 
                                 'UNDER_REVIEW' =>
-                                'bg-warning-subtle text-warning',
+                                'bg-warning-subtle text-body p-2',
 
                                 'REJECTED' =>
-                                'bg-danger-subtle text-danger',
+                                'bg-danger-subtle text-body p-2',
 
                                 default =>
                                 'bg-light text-body',
@@ -507,7 +580,7 @@ $statusClass = match ($status) {
 
 </div>
 
-
+<?php if ($canUpload): ?>
 <!-- ============================================================
      EXISTING AADHAAR UPLOAD MODAL UI
      Same member-facing modal flow, now owned by Account Settings.
@@ -754,7 +827,7 @@ $statusClass = match ($status) {
     </div>
 
 </div>
-
+<?php endif; ?>
 
 <?php if ($openAadhaarModal): ?>
 

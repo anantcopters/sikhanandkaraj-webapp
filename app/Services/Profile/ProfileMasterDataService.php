@@ -52,19 +52,34 @@ final class ProfileMasterDataService
     /**
      * Return the master data required by Basic Details.
      *
+   
+     *
+     * Search may optionally supply a development performance timeline. Normal
+     * profile/prelaunch callers remain unchanged.
+     *
      * @return array<string, mixed>
      */
     public function basicDetailsOptions(
         ?int $selectedStateId = null,
         ?int $selectedCountryId = null
     ): array {
-        $countries = $this->countryModel->activeOptions();
-        $country = $selectedCountryId !== null
-            ? $this->countryModel->findActive($selectedCountryId)
-            : $this->countryModel->findIndia();
+        $countries =
+            $this->countryModel
+            ->activeOptions();
+
+        $country =
+            $selectedCountryId !== null
+            ? $this->countryModel
+            ->findActive(
+                $selectedCountryId
+            )
+            : $this->countryModel
+            ->findIndia();
 
         if (!is_array($country)) {
-            $country = $this->countryModel->findIndia();
+            $country =
+                $this->countryModel
+                ->findIndia();
         }
 
         if (!is_array($country)) {
@@ -73,50 +88,92 @@ final class ProfileMasterDataService
             );
         }
 
-        return [
-            'country' => $country,
+        $maritalStatuses =
+            $this->maritalStatusModel
+            ->activeOptions();
 
-            'countries' => $countries,
+
+
+        $heights =
+            $this->heightModel
+            ->activeOptions();
+
+        $motherTongues =
+            $this->motherTongueModel
+            ->activeOptions();
+
+
+
+        $drinkingHabits =
+            $this->drinkingHabitModel
+            ->activeOptions();
+
+
+
+        $eatingHabits =
+            $this->eatingHabitModel
+            ->activeOptions();
+
+
+
+        $physicalStatuses =
+            $this->physicalStatusModel
+            ->activeOptions();
+
+
+
+        $states =
+            $this->stateModel
+            ->activeForCountry(
+                (int) $country['id']
+            );
+
+
+
+        $cities =
+            $selectedStateId !== null
+            && $this->stateBelongsToCountry(
+                $selectedStateId,
+                (int) $country['id']
+            )
+            ? $this->cityModel
+            ->activeForState(
+                $selectedStateId
+            )
+            : [];
+
+
+
+        return [
+            'country' =>
+            $country,
+
+            'countries' =>
+            $countries,
 
             'maritalStatuses' =>
-            $this->maritalStatusModel
-                ->activeOptions(),
+            $maritalStatuses,
 
             'heights' =>
-            $this->heightModel
-                ->activeOptions(),
+            $heights,
 
             'motherTongues' =>
-            $this->motherTongueModel
-                ->activeOptions(),
+            $motherTongues,
 
             'drinkingHabits' =>
-            $this->drinkingHabitModel
-                ->activeOptions(),
+            $drinkingHabits,
 
             'eatingHabits' =>
-            $this->eatingHabitModel
-                ->activeOptions(),
+            $eatingHabits,
 
             'physicalStatuses' =>
-            $this->physicalStatusModel
-                ->activeOptions(),
+            $physicalStatuses,
 
             'states' =>
-            $this->stateModel->activeForCountry(
-                (int) $country['id']
-            ),
+            $states,
 
             'cities' =>
-            $selectedStateId !== null
-                && $this->stateBelongsToCountry(
-                    $selectedStateId,
-                    (int) $country['id']
-                )
-                ? $this->cityModel->activeForState(
-                    $selectedStateId
-                )
-                : [],
+            $cities,
         ];
     }
 
@@ -204,94 +261,146 @@ final class ProfileMasterDataService
     /**
      * Return active master values used by partner preferences.
      *
-     * Flat Education and Occupation collections are retained for:
+     
      *
-     * - server-side submitted-ID validation;
-     * - summary label resolution;
-     * - backward-compatible consumers.
+     * $resolvedCountries allows a collection-level caller such as Search to reuse
+     * countries it has already loaded through basicDetailsOptions().
      *
-     * Grouped collections are supplied separately for searchable
-     * category-based multi-select rendering.
+     * Null means "resolve normally". An explicit array means "reuse this
+     * authoritative collection".
+     *
+     * This avoids a duplicate Search query without introducing persistent cache or
+     * changing standalone Partner Preference screens.
+     *
+     * @param list<array<string, mixed>>|null $resolvedCountries
      *
      * @return array<string, mixed>
      */
-    public function additionalPartnerPreferenceOptions(): array
-    {
+    public function additionalPartnerPreferenceOptions(
+        ?array $resolvedCountries = null
+    ): array {
+        $communities =
+            $this->communityModel
+            ->activeOptions();
+
+        /*
+     * Keep flat and grouped Education contracts separate because existing
+     * consumers use both forms.
+     */
+        $educations =
+            $this->educationModel
+            ->activeOptions();
+
+        $educationGroups =
+            $this->educationModel
+            ->activeGroupedOptions();
+        $occupations =
+            $this->occupationModel
+            ->activeOptions();
+
+        $occupationGroups =
+            $this->occupationModel
+            ->activeGroupedOptions();
+
+        $annualIncomes =
+            $this->annualIncomeModel
+            ->activeOptions();
+
+        /*
+        
+        *
+        * Search already obtains active Countries while preparing Basic Search master
+        * data. Reuse that collection when supplied.
+        *
+        * Other callers continue resolving Countries through the authoritative model.
+        */
+        if ($resolvedCountries !== null) {
+            $countries =
+                $resolvedCountries;
+        } else {
+            $countries =
+                $this->countryModel
+                ->activeOptions();
+        }
+
+        $states =
+            $this->stateModel
+            ->activeAcrossCountries();
+
         return [
             'communities' =>
-            $this->communityModel
-                ->activeOptions(),
+            $communities,
 
-            /*
-         * Flat education collection.
-         *
-         * AdditionalPartnerPreferenceService uses this collection
-         * to validate selected IDs and resolve summary labels.
-         */
             'educations' =>
-            $this->educationModel
-                ->activeOptions(),
+            $educations,
+
+            'educationGroups' =>
+            $educationGroups,
 
             /*
-         * Grouped collection used only by the Partner Preference UI.
+         * Existing fixed employment master.
+         *
+         * This is application configuration rather than a database read.
          */
-            'educationGroups' =>
-            $this->educationModel
-                ->activeGroupedOptions(),
-
             'employmentTypes' => [
                 [
-                    'value' => 'GOVERNMENT_PSU',
-                    'label' => 'Government / PSU',
+                    'value' =>
+                    'GOVERNMENT_PSU',
+
+                    'label' =>
+                    'Government / PSU',
                 ],
                 [
-                    'value' => 'PRIVATE',
-                    'label' => 'Private',
+                    'value' =>
+                    'PRIVATE',
+
+                    'label' =>
+                    'Private',
                 ],
                 [
-                    'value' => 'BUSINESS',
-                    'label' => 'Business',
+                    'value' =>
+                    'BUSINESS',
+
+                    'label' =>
+                    'Business',
                 ],
                 [
-                    'value' => 'DEFENSE',
-                    'label' => 'Defense',
+                    'value' =>
+                    'DEFENSE',
+
+                    'label' =>
+                    'Defense',
                 ],
                 [
-                    'value' => 'SELF_EMPLOYED',
-                    'label' => 'Self Employed',
+                    'value' =>
+                    'SELF_EMPLOYED',
+
+                    'label' =>
+                    'Self Employed',
                 ],
                 [
-                    'value' => 'NOT_WORKING',
-                    'label' => 'Not Working',
+                    'value' =>
+                    'NOT_WORKING',
+
+                    'label' =>
+                    'Not Working',
                 ],
             ],
 
-            /*
-         * Keep flat occupations because the service validates
-         * submitted occupation IDs against this collection and
-         * uses it for summary labels.
-         */
             'occupations' =>
-            $this->occupationModel
-                ->activeOptions(),
+            $occupations,
 
-            /*
-         * Grouped collection for category-based UI rendering.
-         */
             'occupationGroups' =>
-            $this->occupationModel
-                ->activeGroupedOptions(),
+            $occupationGroups,
 
             'annualIncomes' =>
-            $this->annualIncomeModel
-                ->activeOptions(),
+            $annualIncomes,
 
             'countries' =>
-            $this->countryModel->activeOptions(),
+            $countries,
 
             'states' =>
-            $this->stateModel
-                ->activeAcrossCountries(),
+            $states,
         ];
     }
 

@@ -91,6 +91,20 @@ $resolvedPlanName = trim(
     (string) ($accountPlan['name'] ?? 'Free account')
 );
 
+$resolvedPlanCode =
+    mb_strtoupper(
+        trim(
+            (string) (
+                $accountPlan['code']
+                ?? 'FREE'
+            )
+        )
+    );
+
+$isPaidPlan =
+    ($accountPlan['isPaid'] ?? false)
+    === true;
+
 $completionPercentage = max(
     0,
     min(
@@ -371,7 +385,7 @@ $matchSections = [
 ];
 ?>
 
-<section class="py-3 py-lg-4">
+<section class="py-3 py-lg-3">
     <div class="container">
 
         <?= view(
@@ -413,9 +427,36 @@ $matchSections = [
                                 </p>
                             <?php endif; ?>
 
-                            <p class="text-primary fs-12 mb-4">
-                                <?= esc($resolvedPlanName) ?>
-                            </p>
+                            <div class="mb-0">
+
+                                <?php if ($isPaidPlan): ?>
+
+                                    <?= view(
+                                        'Components/Membership/PlanLogo',
+                                        [
+                                            'planCode' =>
+                                            $resolvedPlanCode,
+
+                                            'width' =>
+                                            180,
+                                        ]
+                                    ) ?>
+
+                                <?php else: ?>
+
+                                    <span
+                                        class="
+                badge
+                bg-primary-subtle
+                text-primary
+                p-2
+            ">
+                                        Free Account
+                                    </span>
+
+                                <?php endif; ?>
+
+                            </div>
                             <div class="pt-3 text-start">
 
                                 <?= view(

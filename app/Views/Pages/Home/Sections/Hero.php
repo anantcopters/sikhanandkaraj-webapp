@@ -72,7 +72,7 @@ $this->section('content');
                 </div>
             </div>
 
-            <div class="col-12 col-lg-5">
+            <div class="col-12 col-lg-5" id="registration">
                 <div class="registration-card">
 
 

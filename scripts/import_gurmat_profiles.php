@@ -35,7 +35,7 @@ if (PHP_SAPI !== 'cli') {
 const GURMAT_BASE_URL = 'https://www.gurmat.com';
 
 const GURMAT_BROWSE_PATH = '/browse'
-    . '?gender=f'
+    . '?gender=m'
     . '&min_height_cm=122'
     . '&max_height_cm=250'
     . '&min_age=18'

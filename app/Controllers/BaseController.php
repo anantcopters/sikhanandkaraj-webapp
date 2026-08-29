@@ -71,19 +71,88 @@ abstract class BaseController extends Controller
                 $memberUserId
             );
 
+            try {
+                $membershipState =
+                    service(
+                        'membershipService'
+                    )->resolveForUser(
+                        $memberUserId
+                    );
+
+                $trustState =
+                    service(
+                        'memberTrustVerificationService'
+                    )->getForUser(
+                        $memberUserId
+                    );
+
+                $aadhaarStatus =
+                    mb_strtoupper(
+                        trim(
+                            (string) (
+                                $trustState['aadhaar']['status']
+                                ?? 'NOT_ADDED'
+                            )
+                        )
+                    );
+
+                $showPaidAadhaarReminder =
+                    ($membershipState['isPaid'] ?? false)
+                    === true
+                    && in_array(
+                        $aadhaarStatus,
+                        [
+                            'NOT_ADDED',
+                            'REJECTED',
+                        ],
+                        true
+                    );
+
+                service('renderer')->setData(
+                    [
+                        'showPaidAadhaarReminder' =>
+                        $showPaidAadhaarReminder,
+
+                        'paidAadhaarReminderStatus' =>
+                        $aadhaarStatus,
+                    ],
+                    'raw'
+                );
+            } catch (Throwable $exception) {
+                log_message(
+                    'error',
+                    'Unable to prepare paid Aadhaar reminder: {message}',
+                    [
+                        'message' =>
+                        $exception->getMessage(),
+                    ]
+                );
+
+                service('renderer')->setData(
+                    [
+                        'showPaidAadhaarReminder' =>
+                        false,
+
+                        'paidAadhaarReminderStatus' =>
+                        '',
+                    ],
+                    'raw'
+                );
+            }
+
             /*
-         * setData makes these values available to all views rendered during
-         * this request, including Components/Header.php.
-         */
+            * setData makes these values available to all views rendered during
+            * this request, including Components/Header.php.
+            */
             service('renderer')->setData(
                 $headerData,
                 'raw'
             );
         } catch (Throwable $exception) {
             /*
-         * Header notification failure must not prevent members from using
-         * the application.
-         */
+            * Header notification failure must not prevent members from using
+            * the application.
+            */
             log_message(
                 'error',
                 'Unable to prepare member notification header: {message}',

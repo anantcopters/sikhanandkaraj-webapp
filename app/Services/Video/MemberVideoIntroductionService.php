@@ -6,18 +6,17 @@ namespace App\Services\Video;
 
 use App\Models\MemberBlockModel;
 use App\Models\MemberInterestModel;
-
 use App\Models\MemberProfileReportModel;
 use App\Models\MemberVideoIntroductionModel;
 use App\Models\MemberVideoProcessingJobModel;
 use App\Models\UserModel;
 use App\Services\Aws\CloudFrontService;
 use App\Services\Aws\S3Service;
-
 use App\Models\MemberPhotoModel;
-use App\Support\BooleanValue;
 use CodeIgniter\Database\BaseConnection;
 use CodeIgniter\HTTP\Files\UploadedFile;
+use App\Services\Membership\LiveIntroductionAccessPolicy;
+use App\Services\Membership\MembershipEntitlementService;
 use Config\VideoIntroduction;
 use DomainException;
 use RuntimeException;
@@ -26,17 +25,44 @@ use Throwable;
 final class MemberVideoIntroductionService
 {
     public function __construct(
-        private readonly MemberVideoIntroductionModel $videoModel,
-        private readonly MemberVideoProcessingJobModel $jobModel,
-        private readonly MemberPhotoModel $photoModel,
-        private readonly UserModel $userModel,
-        private readonly MemberInterestModel $interestModel,
-        private readonly MemberBlockModel $blockModel,
-        private readonly MemberProfileReportModel $profileReportModel,
-        private readonly S3Service $s3Service,
-        private readonly CloudFrontService $cloudFrontService,
-        private readonly BaseConnection $database,
-        private readonly VideoIntroduction $config
+        private readonly MemberVideoIntroductionModel
+        $videoModel,
+
+        private readonly MemberVideoProcessingJobModel
+        $jobModel,
+
+        private readonly MemberPhotoModel
+        $photoModel,
+
+        private readonly UserModel
+        $userModel,
+
+        private readonly MemberInterestModel
+        $interestModel,
+
+        private readonly MemberBlockModel
+        $blockModel,
+
+        private readonly MemberProfileReportModel
+        $profileReportModel,
+
+        private readonly S3Service
+        $s3Service,
+
+        private readonly CloudFrontService
+        $cloudFrontService,
+
+        private readonly BaseConnection
+        $database,
+
+        private readonly VideoIntroduction
+        $config,
+
+        private readonly MembershipEntitlementService
+        $membershipEntitlementService,
+
+        private readonly LiveIntroductionAccessPolicy
+        $liveIntroductionAccessPolicy
     ) {}
 
     /**
@@ -48,6 +74,19 @@ final class MemberVideoIntroductionService
         $member = $this->requireActiveMember(
             $memberUserId
         );
+
+        /*
+        * Recording a Live Introduction is a paid membership capability.
+        *
+        * Account Settings may still display the feature to a Free member so the
+        * product can explain what is available, but recording/submission itself
+        * must be enforced server-side.
+        */
+        $canCreateLiveIntroduction =
+            $this->membershipEntitlementService
+            ->canCreateLiveIntroduction(
+                $memberUserId
+            );
 
         $current = $this->videoModel->currentForMember(
             $memberUserId
@@ -121,12 +160,16 @@ final class MemberVideoIntroductionService
             'isFemaleMember' => $isFemale,
 
             /*
-             * Until individual plan entitlements are introduced,
-             * users.is_paid = TRUE is considered a Pro member.
-             */
-            'isProMember' => BooleanValue::fromDatabase(
-                $member['is_paid'] ?? false
-            ),
+            * Historical View code expects this presentation key.
+            *
+            * It now means "member currently owns the Live Introduction creation
+            * capability", not "users.is_paid" and not specifically the PRO plan.
+            *
+            * This key can be renamed in a later pure presentation cleanup without
+            * changing authorization behavior.
+            */
+            'isProMember' =>
+            $canCreateLiveIntroduction,
 
             'videoMemberName' =>
             trim(
@@ -147,8 +190,13 @@ final class MemberVideoIntroductionService
             'hasApprovedProfilePhoto' =>
             $hasApprovedProfilePhoto,
 
+            /*
+            * Client/UI state mirrors the server entitlement but is never the security
+            * boundary. submit() repeats the entitlement check.
+            */
             'canRecord' =>
-            $hasApprovedProfilePhoto
+            $canCreateLiveIntroduction
+                && $hasApprovedProfilePhoto
                 && $canRecordForStatus,
 
             'canDelete' =>
@@ -210,6 +258,24 @@ final class MemberVideoIntroductionService
         $member = $this->requireActiveMember(
             $memberUserId
         );
+
+        /*
+        * Server-side membership enforcement is mandatory.
+        *
+        * Hiding/disabling the recorder in the browser is not sufficient because a
+        * crafted multipart request could otherwise bypass the UI.
+        */
+        if (
+            !$this->membershipEntitlementService
+                ->canCreateLiveIntroduction(
+                    $memberUserId
+                )
+        ) {
+            throw new DomainException(
+                'A paid membership is required to create '
+                    . 'a Live Introduction.'
+            );
+        }
 
         if (
             $this->photoModel->countApprovedForMember(
@@ -425,7 +491,7 @@ final class MemberVideoIntroductionService
                     'The Video Introduction processing '
                         . 'job could not be queued.'
                 );
-            }            
+            }
 
             $this->database->transCommit();
         } catch (Throwable $exception) {
@@ -737,121 +803,63 @@ final class MemberVideoIntroductionService
         int $viewerUserId,
         int $ownerUserId
     ): string {
-        if (
-            $viewerUserId <= 0
-            || $ownerUserId <= 0
-            || $viewerUserId === $ownerUserId
-        ) {
-            throw new DomainException(
-                'Video playback is not available.'
-            );
-        }
-
-        $viewer = $this->requireActiveMember(
-            $viewerUserId
-        );
-
-        $owner = $this->requireActiveMember(
-            $ownerUserId
-        );
-
-        $video = $this->videoModel->activeForMember(
-            $ownerUserId
-        );
-
-        if (
-            ! is_array($video)
-            || ($video['visibility'] ?? '')
-            === MemberVideoIntroductionModel::VISIBILITY_HIDDEN
-        ) {
-            throw new DomainException(
-                'This member has hidden their Video Introduction.'
-            );
-        }
-
-        if (
-            $this->blockModel->existsBetween(
+        /*
+        * LiveIntroductionAccessPolicy is the single member-facing playback
+        * authorization boundary.
+        *
+        * IMPORTANT:
+        *
+        * No CloudFront signed URL may be created before this policy succeeds.
+        */
+        $access = $this
+            ->liveIntroductionAccessPolicy
+            ->authorizePlayback(
                 $viewerUserId,
                 $ownerUserId
-            )
-        ) {
+            );
+
+        $video = $access['video'] ?? null;
+
+        if (!is_array($video)) {
             throw new DomainException(
                 'Video playback is not available.'
             );
         }
 
-        if (
-            $this->profileReportModel->isGloballyHidden(
-                $ownerUserId
+        $objectKey = trim(
+            (string) (
+                $video['playback_object_key']
+                ?? ''
             )
-        ) {
-            throw new DomainException(
-                'Video playback is not available.'
-            );
-        }
-
-        if (
-            mb_strtoupper(
-                (string) ($viewer['gender'] ?? '')
-            )
-            === mb_strtoupper(
-                (string) ($owner['gender'] ?? '')
-            )
-        ) {
-            throw new DomainException(
-                'Video playback is not available.'
-            );
-        }
-
-        if (
-            ($owner['profile_visibility'] ?? 'ALL_MEMBERS')
-            === 'PAID_MEMBERS_ONLY'
-            && ! BooleanValue::fromDatabase(
-                $viewer['is_paid'] ?? false
-            )
-        ) {
-            throw new DomainException(
-                'A Pro membership is required '
-                    . 'to view this profile.'
-            );
-        }
-
-        $visibility = (string) (
-            $video['visibility']
-            ?? ''
         );
 
-        if (
-            $visibility
-            === MemberVideoIntroductionModel::VISIBILITY_PRO
-            && ! BooleanValue::fromDatabase(
-                $viewer['is_paid'] ?? false
-            )
-        ) {
+        if ($objectKey === '') {
             throw new DomainException(
-                'A Pro membership is required to view '
-                    . 'this Video Introduction.'
+                'Video playback is not available.'
             );
         }
 
-        if (
-            $visibility
-            === MemberVideoIntroductionModel::VISIBILITY_ACCEPTED_INTEREST
-            && ! $this->interestModel->acceptedBetween(
-                $viewerUserId,
-                $ownerUserId
-            )
-        ) {
-            throw new DomainException(
-                'This Video Introduction is available '
-                    . 'after an Interest is accepted.'
+        /*
+        * Signed URL generation occurs only AFTER:
+        *
+        * - paid entitlement;
+        * - protected profile relationship;
+        * - Verified Profile;
+        * - block/report protection;
+        * - gender/Interest privacy;
+        * - video moderation;
+        * - video visibility;
+        * - membership Live Introduction quota
+        *
+        * have all succeeded.
+        */
+        return $this
+            ->cloudFrontService
+            ->signedUrl(
+                $objectKey,
+                $this->config
+                    ->playbackUrlTtlSeconds
             );
-        }
-
-        return $this->cloudFrontService->signedUrl(
-            (string) $video['playback_object_key'],
-            $this->config->playbackUrlTtlSeconds
-        );
     }
 
     /**

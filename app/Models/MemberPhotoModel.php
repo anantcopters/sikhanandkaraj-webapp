@@ -199,6 +199,108 @@ final class MemberPhotoModel extends Model
     }
 
     /**
+     * Return approved primary photos for a member collection.
+     *
+     * This is the batch equivalent of findApprovedPrimaryForMember() and should
+     * be preferred by card/listing surfaces to avoid per-member photo queries.
+     *
+     * @param list<int> $memberIds
+     */
+    public function findApprovedPrimaryForMembers(
+        array $memberIds
+    ): array {
+        $memberIds = array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $memberIds
+                    ),
+                    static fn(int $memberId): bool =>
+                    $memberId > 0
+                )
+            )
+        );
+
+        if ($memberIds === []) {
+            return [];
+        }
+
+        $rows = $this
+            ->select([
+                'id',
+                'member_id',
+                'thumbnail_object_key',
+                'medium_object_key',
+                'visibility',
+                'is_primary',
+            ])
+            ->whereIn(
+                'member_id',
+                $memberIds
+            )
+            ->where(
+                'status',
+                self::STATUS_APPROVED
+            )
+            ->where(
+                'is_primary',
+                true
+            )
+            ->where(
+                'deleted_at',
+                null
+            )
+            ->orderBy(
+                'member_id',
+                'ASC'
+            )
+            ->orderBy(
+                'created_at',
+                'DESC'
+            )
+            ->orderBy(
+                'id',
+                'DESC'
+            )
+            ->findAll();
+
+        $byMemberId = [];
+
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+
+            $memberId = max(
+                0,
+                (int) (
+                    $row['member_id']
+                    ?? 0
+                )
+            );
+
+            /*
+             * There should be only one active approved primary photo.
+             *
+             * If historical data contains more than one, the ordering above
+             * deterministically keeps the newest record.
+             */
+            if (
+                $memberId > 0
+                && !isset(
+                    $byMemberId[$memberId]
+                )
+            ) {
+                $byMemberId[$memberId] =
+                    $row;
+            }
+        }
+
+        return $byMemberId;
+    }
+
+    /**
      * Count approved, active profile photos belonging to a member.
      */
     public function countApprovedForMember(

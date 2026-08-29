@@ -178,7 +178,47 @@ $this->section(
 );
 ?>
 
-<section class="py-3 py-lg-4">
+<section class="py-3 py-lg-3">
+    <div
+        class="
+        position-fixed
+        top-0
+        start-0
+        w-100
+        h-100
+        bg-light
+        bg-opacity-75
+        d-none
+        align-items-center
+        justify-content-center
+    "
+        style="z-index: 2000;"
+        data-search-results-loader
+        aria-hidden="true">
+
+        <div class="text-center">
+
+            <div
+                class="
+                spinner-border
+                text-primary
+                mb-3
+            "
+                role="status">
+
+                <span class="visually-hidden">
+                    Loading matches...
+                </span>
+
+            </div>
+
+            <div class="fw-medium">
+                Loading profiles...
+            </div>
+
+        </div>
+
+    </div>
     <div class="container">
 
         <!-- =============================================================
@@ -267,7 +307,8 @@ $this->section(
                         ) ?>"
                 method="get"
                 class="d-flex
-                    align-items-center gap-2">
+                    align-items-center gap-2"
+                data-search-result-sort-form>
 
                 <?php foreach (
                     $sortingFilters
@@ -322,8 +363,7 @@ $this->section(
                     class="form-select"
                     data-choice
                     data-choice-search="false"
-                    aria-label="Sort Search results"
-                    onchange="this.form.submit()">
+                    aria-label="Sort Search results">
 
                     <option
                         value="default"
@@ -602,9 +642,79 @@ $this->section(
                                             $item['available']
                                             ?? false
                                         ) === true;
+
+                                    $membershipLocked =
+                                        (
+                                            $item['membershipLocked']
+                                            ?? false
+                                        ) === true;
                                     ?>
 
                                     <?php if (
+                                        $membershipLocked
+                                        && $url !== ''
+                                    ): ?>
+
+                                        <a
+                                            href="<?= esc(
+                                                        $url,
+                                                        'attr'
+                                                    ) ?>"
+                                            class="d-flex
+            align-items-start
+            gap-2
+            text-decoration-none">
+
+                                            <i
+                                                class="<?= esc(
+                                                            $icon,
+                                                            'attr'
+                                                        ) ?>
+                fs-18
+                text-muted
+                flex-shrink-0"
+                                                aria-hidden="true">
+                                            </i>
+
+                                            <span>
+
+                                                <span
+                                                    class="d-flex
+                    align-items-center
+                    gap-1
+                    text-body
+                    fs-13
+                    fw-medium">
+
+                                                    <?= esc(
+                                                        $label
+                                                    ) ?>
+
+                                                    <i
+                                                        class="ri-vip-crown-line
+                        text-danger
+                        fs-16 fw-medium me-2"
+                                                        aria-hidden="true">
+                                                    </i>
+
+                                                </span>
+
+                                                <span
+                                                    class="d-block
+                    text-danger
+                    fs-12 fw-medium">
+
+                                                    <?= esc(
+                                                        $help
+                                                    ) ?>
+
+                                                </span>
+
+                                            </span>
+
+                                        </a>
+
+                                    <?php elseif (
                                         $available
                                         && $url !== ''
                                     ): ?>
@@ -615,18 +725,18 @@ $this->section(
                                                         'attr'
                                                     ) ?>"
                                             class="d-flex
-                                                align-items-start
-                                                gap-2
-                                                text-decoration-none">
+            align-items-start
+            gap-2
+            text-decoration-none">
 
                                             <i
                                                 class="<?= esc(
                                                             $icon,
                                                             'attr'
                                                         ) ?>
-                                                    fs-18
-                                                    text-primary
-                                                    flex-shrink-0"
+                fs-18
+                text-primary
+                flex-shrink-0"
                                                 aria-hidden="true">
                                             </i>
 
@@ -634,9 +744,9 @@ $this->section(
 
                                                 <span
                                                     class="d-block
-                                                        text-body
-                                                        fs-13
-                                                        fw-medium">
+                    text-body
+                    fs-13
+                    fw-medium">
 
                                                     <?= esc(
                                                         $label
@@ -650,8 +760,8 @@ $this->section(
 
                                                     <span
                                                         class="d-block
-                                                            text-muted
-                                                            fs-12">
+                        text-muted
+                        fs-12">
 
                                                         <?= esc(
                                                             $help
@@ -669,16 +779,16 @@ $this->section(
 
                                         <div
                                             class="d-flex
-                                                align-items-start
-                                                gap-2 text-muted">
+            align-items-start
+            gap-2 text-muted">
 
                                             <i
                                                 class="<?= esc(
                                                             $icon,
                                                             'attr'
                                                         ) ?>
-                                                    fs-18
-                                                    flex-shrink-0"
+                fs-18
+                flex-shrink-0"
                                                 aria-hidden="true">
                                             </i>
 
@@ -686,8 +796,8 @@ $this->section(
 
                                                 <span
                                                     class="d-block
-                                                        fs-13
-                                                        fw-medium">
+                    fs-13
+                    fw-medium">
 
                                                     <?= esc(
                                                         $label
@@ -701,7 +811,7 @@ $this->section(
 
                                                     <span
                                                         class="d-block
-                                                            fs-12">
+                        fs-12">
 
                                                         <?= esc(
                                                             $help

@@ -147,9 +147,9 @@ $isVideoApproved =
                     </span>
 
                     <span
-                        class="badge <?= $isMobileVerified
-                                            ? 'bg-success-subtle text-success'
-                                            : 'bg-warning-subtle text-warning' ?>">
+                        class="badge p-2 <?= $isMobileVerified
+                                            ? 'bg-success-subtle text-body'
+                                            : 'bg-warning-subtle text-body' ?>">
 
                         <?= $isMobileVerified
                             ? 'Verified'
@@ -194,9 +194,9 @@ $isVideoApproved =
                     </span>
 
                     <span
-                        class="badge <?= $isEmailVerified
-                                            ? 'bg-success-subtle text-success'
-                                            : 'bg-warning-subtle text-warning' ?>">
+                        class="badge p-2 <?= $isEmailVerified
+                                            ? 'bg-success-subtle text-body'
+                                            : 'bg-warning-subtle text-body' ?>">
 
                         <?= $isEmailVerified
                             ? 'Verified'
@@ -231,7 +231,7 @@ $isVideoApproved =
                         <span
                             class="badge
                                 bg-success-subtle
-                                text-success">
+                                text-body p-2">
 
                             Verified
                         </span>
@@ -241,7 +241,7 @@ $isVideoApproved =
                         <span
                             class="badge
                                 bg-warning-subtle
-                                text-warning">
+                                text-body p-2">
 
                             Under Review
                         </span>
@@ -251,7 +251,7 @@ $isVideoApproved =
                         <span
                             class="badge
                                 bg-danger-subtle
-                                text-danger">
+                                text-body p-2">
 
                             Rejected
                         </span>
@@ -259,7 +259,7 @@ $isVideoApproved =
                         <span
                             class="badge
                                 bg-secondary-subtle
-                                text-secondary">
+                                text-body p-2">
 
                             Not Added
                         </span>
@@ -288,9 +288,9 @@ $isVideoApproved =
                     </span>
 
                     <span
-                        class="badge <?= $isVideoApproved
-                                            ? 'bg-success-subtle text-success'
-                                            : 'bg-secondary-subtle text-secondary' ?>">
+                        class="badge p-2 <?= $isVideoApproved
+                                            ? 'bg-success-subtle text-body'
+                                            : 'bg-secondary-subtle text-body' ?>">
 
                         <?= $isVideoApproved
                             ? 'Verified'

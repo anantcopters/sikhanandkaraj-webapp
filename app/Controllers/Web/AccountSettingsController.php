@@ -15,15 +15,27 @@ use Throwable;
 
 final class AccountSettingsController extends BaseController
 {
+    /**
+     * Supported Account Settings sections.
+     *
+     * Profile Visibility was intentionally removed from the membership model.
+     * Access to protected Full Profiles is now governed centrally by
+     * ProfileAccessPolicy rather than member-selected profile visibility.
+     */
     private const ALLOWED_SECTIONS = [
         'password',
         'email',
-        'visibility',
         'aadhaar-verification',
         'video-introduction',
         'report-profile',
         'plans',
-        'contact',
+
+        /*
+        * Read-only purchased membership and commercial usage history.
+        */
+        'membership-history',
+
+        'contact'
     ];
 
     public function index(
@@ -36,6 +48,72 @@ final class AccountSettingsController extends BaseController
         );
 
         $userId = $this->authenticatedUserId();
+
+        /*
+        * Membership-plan presentation is loaded only for the Plans section.
+        *
+        * This gives the view:
+        *
+        * - authoritative active plan definitions;
+        * - current member plan;
+        * - purchase/renewal/upgrade/downgrade decision for every plan.
+        *
+        * The controller does not compare plan hierarchy itself.
+        */
+        $membershipPlans = [
+            'currentAccount' => [
+                'accountType' => 'FREE',
+                'accountLabel' => 'Free Account',
+                'isPaid' => false,
+                'membership' => null,
+            ],
+            'plans' => [],
+        ];
+
+        if ($section === 'plans') {
+            $membershipPlans =
+                service(
+                    'membershipPlanPresentationService'
+                )->memberPlans(
+                    $userId
+                );
+        }
+
+        /*
+        * Resolve Account Settings membership capabilities once.
+        *
+        * The View uses these values only for feature-lock presentation.
+        *
+        * Individual feature services independently repeat authorization before
+        * performing protected writes.
+        */
+        $membershipEntitlementService =
+            service(
+                'membershipEntitlementService'
+            );
+
+        $membershipCapabilities = [
+            'aadhaar' =>
+            $membershipEntitlementService
+                ->canUseAadhaar(
+                    $userId
+                ),
+
+            'liveIntroduction' =>
+            $membershipEntitlementService
+                ->canCreateLiveIntroduction(
+                    $userId
+                ),
+
+            /*
+            * Report remains available to Free and Paid members.
+            */
+            'report' =>
+            $membershipEntitlementService
+                ->canReport(
+                    $userId
+                ),
+        ];
 
         /** @var MemberAccountSettingsService $service */
         $service = service(
@@ -118,6 +196,48 @@ final class AccountSettingsController extends BaseController
                 );
         }
 
+        $membershipHistory = [
+            'currentMembership' =>
+            null,
+
+            'membershipHistory' =>
+            [],
+
+            'profileUsageHistory' =>
+            [],
+
+            'liveIntroductionUsageHistory' =>
+            [],
+        ];
+
+        if ($section === 'membership-history') {
+            /*
+            * Membership history is read-only and belongs to the authenticated
+            * member only.
+            *
+            * No user/member ID comes from the request.
+            */
+            $membershipHistory =
+                service(
+                    'memberMembershipHistoryService'
+                )->historyForUser(
+                    $userId
+                );
+        }
+
+        /*
+        * Membership Usage is read-only commercial data.
+        *
+        * The controller does not calculate quotas itself. All counters and
+        * membership resolution remain centralized in MemberMembershipUsageService.
+        */
+        $membershipUsage =
+            service(
+                'memberMembershipUsageService'
+            )->forUser(
+                $userId
+            );
+
         return view(
             'Pages/AccountSettings/Index',
             array_merge(
@@ -150,6 +270,21 @@ final class AccountSettingsController extends BaseController
 
                     'profileReports' =>
                     $profileReports,
+
+                    'membershipCapabilities' =>
+                    $membershipCapabilities,
+
+                    /*
+                    * Authoritative current-plan and pricing presentation.
+                    */
+                    'membershipPlans' =>
+                    $membershipPlans,
+
+                    'membershipHistory' =>
+                    $membershipHistory,
+
+                    'membershipUsage' =>
+                    $membershipUsage,
 
                     'pageScripts' => [
                         'assets/js/components/form-validator.js',
@@ -475,75 +610,6 @@ final class AccountSettingsController extends BaseController
                     ]
                 );
         }
-    }
-
-    public function saveVisibility(): RedirectResponse
-    {
-        $input = [
-            'profile_visibility' =>
-            mb_strtoupper(
-                trim(
-                    (string) $this->request
-                        ->getPost(
-                            'profile_visibility'
-                        )
-                )
-            ),
-        ];
-
-        $validation = service(
-            'validation'
-        );
-
-        $validation->setRules(
-            AccountSettingsValidation
-                ::visibilityRules()
-        );
-
-        if (!$validation->run($input)) {
-            return redirect()
-                ->to(
-                    route_to(
-                        'web.account.settings.section',
-                        'visibility'
-                    )
-                )
-                ->with(
-                    'validationErrors',
-                    $validation->getErrors()
-                );
-        }
-
-        /** @var MemberAccountSettingsService $service */
-        $service = service(
-            'memberAccountSettingsService'
-        );
-
-        $service->saveVisibility(
-            $this->authenticatedUserId(),
-            (string) $validation
-                ->getValidated()['profile_visibility']
-        );
-
-        return redirect()
-            ->to(
-                route_to(
-                    'web.account.settings.section',
-                    'visibility'
-                )
-            )
-            ->with(
-                'accountNotice',
-                [
-                    'type' => 'success',
-                    'title' =>
-                    'Visibility updated',
-                    'message' =>
-                    'Your profile visibility has been updated.',
-                    'logoutAfterClose' =>
-                    false,
-                ]
-            );
     }
 
     public function contact(): RedirectResponse

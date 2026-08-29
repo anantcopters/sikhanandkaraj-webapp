@@ -62,6 +62,7 @@ final class SearchController extends BaseController
 
                         'pageScripts' => [
                             'assets/js/pages/member-search.js',
+                            'assets/js/components/submit-loader.js',
                         ],
                     ]
                 )
@@ -98,6 +99,15 @@ final class SearchController extends BaseController
                     'mode' =>
                     'basic',
 
+                    /*
+                    * Fail closed if Search form state could not be resolved.
+                    *
+                    * Never accidentally expose a membership-controlled feature because its
+                    * entitlement lookup failed.
+                    */
+                    'canUseAdvancedSearch' =>
+                    false,
+
                     'filters' =>
                     [],
 
@@ -118,6 +128,7 @@ final class SearchController extends BaseController
 
                     'pageScripts' => [
                         'assets/js/pages/member-search.js',
+                        'assets/js/components/submit-loader.js',
                     ],
                 ]
             );
@@ -314,11 +325,25 @@ final class SearchController extends BaseController
                         'default',
 
                         /*
+                        * One Report CAPTCHA is generated for the complete result page.
+                        *
+                        * Do not generate one challenge per card because the CAPTCHA service owns
+                        * session challenge state.
+                        */
+                        'reportCaptcha' =>
+                        service(
+                            'memberProfileReportCaptchaService'
+                        )->generate(),
+
+                        /*
                      * Existing Profile View action JS handles the Interest
                      * loader on Search result cards as well.
                      */
                         'pageScripts' => [
                             'assets/js/pages/member-profile-actions.js',
+                            'assets/js/pages/search-results.js',
+                            'assets/js/components/form-validator.js',
+                            'assets/js/components/submit-loader.js',
                         ],
                     ]
                 )
@@ -395,9 +420,14 @@ final class SearchController extends BaseController
     /**
      * Universal exact Profile-ID Search.
      *
-     * Existing member-discovery restrictions are deliberately retained.
+     * IMPORTANT:
+     *
+     * Profile-ID Search returns ProfileCard for both Free and Paid members.
+     *
+     * It must never bypass the Full Profile membership policy by redirecting
+     * directly to MemberProfileController.
      */
-    public function profile(): RedirectResponse
+    public function profile(): string|RedirectResponse
     {
         $userId =
             $this->authenticatedUserId();
@@ -443,7 +473,7 @@ final class SearchController extends BaseController
 
             $profile =
                 $service
-                ->profileByReference(
+                ->profileCardByReference(
                     $userId,
                     $reference
                 );
@@ -471,19 +501,34 @@ final class SearchController extends BaseController
                     );
             }
 
-            return redirect()
-                ->to(
-                    route_to(
-                        'web.members.view',
-                        (string) (
-                            $profile['profile_ref_number']
-                            ?? ''
-                        )
-                    )
-                );
-        } catch (
-            Throwable $exception
-        ) {
+            return view(
+                'Pages/Search/ProfileResult',
+                [
+                    'pageTitle' =>
+                    'Profile Search',
+
+                    'profile' =>
+                    $profile,
+
+                    /*
+                 * Report is available to Free and Paid members.
+                 */
+                    'reportCaptcha' =>
+                    service(
+                        'memberProfileReportCaptchaService'
+                    )->generate(),
+
+                    'formAlert' =>
+                    $this->readFormAlert(),
+
+                    'pageScripts' => [
+                        'assets/js/components/form-validator.js',
+                        'assets/js/components/submit-loader.js',
+                        'assets/js/pages/member-profile-actions.js',
+                    ],
+                ]
+            );
+        } catch (Throwable $exception) {
             service(
                 'applicationErrorLogger'
             )->exception(
@@ -520,7 +565,7 @@ final class SearchController extends BaseController
                         'Profile Search unavailable',
 
                         'message' =>
-                        'The profile could not be opened. '
+                        'The profile could not be loaded. '
                             . 'Please try again.',
                     ]
                 );
@@ -728,6 +773,27 @@ final class SearchController extends BaseController
                 $this->request
                     ->getGet(
                         'height_max_id'
+                    )
+            ),
+
+            /*
+            * Advanced Search Amritdhari filter.
+            *
+            * Keep this as a scalar because:
+            *
+            * ''  = Any
+            * '1' = Yes
+            * '0' = No
+            *
+            * In particular, do not use truthiness because "0" is a valid
+            * Search criterion.
+            */
+            'amritdhari' =>
+            trim(
+                (string)
+                $this->request
+                    ->getGet(
+                        'amritdhari'
                     )
             ),
 

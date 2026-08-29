@@ -15,7 +15,17 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Owns member password, email and profile-visibility settings.
+ * Owns member password and email Account Settings.
+ *
+ * Membership-controlled capabilities are deliberately not persisted here.
+ *
+ * In particular:
+ *
+ * - users.is_paid was a temporary QA flag and has been removed;
+ * - profile_visibility has been removed from the membership architecture;
+ * - Paid/Free state is resolved through MembershipService;
+ * - protected Full Profile access is resolved through ProfileAccessPolicy;
+ * - Photo Visibility remains an independent profile-photo concern.
  */
 final class MemberAccountSettingsService
 {
@@ -32,6 +42,14 @@ final class MemberAccountSettingsService
 
     /**
      * Return Account Settings presentation state.
+     *
+     * IMPORTANT:
+     *
+     * Membership state is intentionally not returned from the users table.
+     *
+     * Controllers that need membership capabilities must resolve them through
+     * MembershipEntitlementService. This prevents Account Settings from
+     * accidentally reintroducing users.is_paid as a second membership authority.
      *
      * @return array<string, mixed>
      */
@@ -73,18 +91,6 @@ final class MemberAccountSettingsService
             'pendingEmail' =>
             $this->emailPresentation(
                 $pendingEmail
-            ),
-
-            'profileVisibility' =>
-            $this->normaliseVisibility(
-                $user['profile_visibility']
-                    ?? 'ALL_MEMBERS'
-            ),
-
-            'isPaid' =>
-            BooleanValue::fromDatabase(
-                $user['is_paid']
-                    ?? false
             ),
 
             /*
@@ -590,33 +596,6 @@ final class MemberAccountSettingsService
     }
 
     /**
-     * Save the member's profile visibility.
-     */
-    public function saveVisibility(
-        int $userId,
-        string $visibility
-    ): void {
-        $visibility = $this
-            ->normaliseVisibility(
-                $visibility
-            );
-
-        if (
-            $this->userModel->update(
-                $userId,
-                [
-                    'profile_visibility' =>
-                    $visibility,
-                ]
-            ) === false
-        ) {
-            throw new RuntimeException(
-                'Profile visibility could not be updated.'
-            );
-        }
-    }
-
-    /**
      * @param array<string, mixed>|null $contact
      *
      * @return array<string, mixed>|null
@@ -698,30 +677,5 @@ final class MemberAccountSettingsService
 
         return $availableAt === false
             || $availableAt <= time();
-    }
-
-    private function normaliseVisibility(
-        mixed $visibility
-    ): string {
-        $visibility = mb_strtoupper(
-            trim(
-                (string) $visibility
-            )
-        );
-
-        if (
-            !in_array(
-                $visibility,
-                [
-                    'ALL_MEMBERS',
-                    'PAID_MEMBERS_ONLY',
-                ],
-                true
-            )
-        ) {
-            return 'ALL_MEMBERS';
-        }
-
-        return $visibility;
     }
 }

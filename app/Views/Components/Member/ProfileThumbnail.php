@@ -95,6 +95,15 @@ $accountType = trim(
     )
 );
 
+$accountTypeCode = mb_strtoupper(
+    trim(
+        (string) (
+            $profile['accountCode']
+            ?? ''
+        )
+    )
+);
+
 $matchPercentage =
     isset(
         $profile['matchPercentage']
@@ -219,19 +228,27 @@ $canOpenModal =
 
                 </p>
 
-                <!-- Backend-supplied member account type -->
-                <?php if ($accountType !== ''): ?>
+                <!-- Backend-supplied membership plan logo -->
+                <?php if ($accountTypeCode !== ''): ?>
 
-                    <p class="fs-12 text-center mb-1">
+                    <div
+                        class="d-flex
+            justify-content-center
+            align-items-center
+            my-0">
 
-                        <span
-                            class="text-primary fw-semibold">
+                        <?= view(
+                            'Components/Membership/PlanLogo',
+                            [
+                                'planCode' =>
+                                $accountTypeCode,
 
-                            <?= esc($accountType) ?>
+                                'width' =>
+                                180,
+                            ]
+                        ) ?>
 
-                        </span>
-
-                    </p>
+                    </div>
 
                 <?php endif; ?>
 

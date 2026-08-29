@@ -76,6 +76,13 @@ document.addEventListener('DOMContentLoaded', () => {
         || 41943040
     );
 
+    /*
+     * MediaRecorder timing and encoded media duration can differ
+     * slightly because recording stops on media-frame boundaries.
+     * Keep this aligned with the server-side FFprobe tolerance.
+     */
+    const durationToleranceSeconds = 0.5;
+
     let stream = null;
 
     let recorder = null;
@@ -88,7 +95,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let timer = null;
 
+    let maximumTimer = null;
+
     let validRecording = false;
+
+    let previewUrl = null;
 
     const supportedMimeTypes = [
         'video/webm;codecs=vp9,opus',
@@ -171,6 +182,116 @@ document.addEventListener('DOMContentLoaded', () => {
         live.srcObject = null;
     };
 
+    const clearRecordingTimers = () => {
+        if (timer !== null) {
+            window.clearInterval(
+                timer
+            );
+
+            timer = null;
+        }
+
+        if (maximumTimer !== null) {
+            window.clearTimeout(
+                maximumTimer
+            );
+
+            maximumTimer = null;
+        }
+    };
+
+    const stopRecorder = () => {
+        if (
+            recorder?.state
+            === 'recording'
+        ) {
+            recorder.stop();
+        }
+    };
+
+    const readMediaDuration = (
+        blob
+    ) => new Promise(
+        (resolve, reject) => {
+            const media = document.createElement(
+                'video'
+            );
+
+            const objectUrl =
+                URL.createObjectURL(
+                    blob
+                );
+
+            const cleanup = () => {
+                URL.revokeObjectURL(
+                    objectUrl
+                );
+
+                media.removeAttribute(
+                    'src'
+                );
+
+                media.load();
+            };
+
+            media.preload = 'metadata';
+
+            media.addEventListener(
+                'loadedmetadata',
+                () => {
+                    const duration =
+                        Number(
+                            media.duration
+                        );
+
+                    if (
+                        Number.isFinite(duration)
+                        && duration > 0
+                    ) {
+                        cleanup();
+
+                        resolve(
+                            duration
+                        );
+
+                        return;
+                    }
+
+                    cleanup();
+
+                    reject(
+                        new Error(
+                            'The recorded video duration '
+                            + 'could not be determined.'
+                        )
+                    );
+                },
+                {
+                    once: true,
+                }
+            );
+
+            media.addEventListener(
+                'error',
+                () => {
+                    cleanup();
+
+                    reject(
+                        new Error(
+                            'The recorded video could not '
+                            + 'be inspected. Please retake it.'
+                        )
+                    );
+                },
+                {
+                    once: true,
+                }
+            );
+
+            media.src = objectUrl;
+        }
+    );
+
     if (!window.isSecureContext) {
         enable.disabled = true;
 
@@ -225,6 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     height: {
                                         ideal: 720,
                                     },
+
                                     aspectRatio: {
                                         ideal: 16 / 9,
                                     },
@@ -279,11 +401,15 @@ document.addEventListener('DOMContentLoaded', () => {
         () => {
             clearError();
 
+            clearRecordingTimers();
+
             chunks = [];
 
             elapsed = 0;
 
             validRecording = false;
+
+            fileInput.value = '';
 
             submitReview.classList.add(
                 'd-none'
@@ -297,7 +423,8 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             if (mimeType !== '') {
-                recorderOptions.mimeType = mimeType;
+                recorderOptions.mimeType =
+                    mimeType;
             }
 
             try {
@@ -330,7 +457,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             recorder.addEventListener(
                 'stop',
-                finishRecording
+                finishRecording,
+                {
+                    once: true,
+                }
             );
 
             recorder.start(1000);
@@ -354,31 +484,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
             timer = window.setInterval(
                 () => {
-                    elapsed = Math.floor(
-                        (
-                            performance.now()
-                            - startedAt
-                        ) / 1000
-                    );
+                    const elapsedMilliseconds =
+                        performance.now()
+                        - startedAt;
+
+                    elapsed =
+                        elapsedMilliseconds
+                        / 1000;
+
+                    const remaining =
+                        Math.max(
+                            0,
+                            Math.ceil(
+                                maxSeconds
+                                - elapsed
+                            )
+                        );
 
                     countdown.textContent =
-                        `${Math.max(
-                            0,
-                            maxSeconds - elapsed
-                        )} seconds remaining`;
+                        `${remaining} seconds remaining`;
 
                     stop.disabled =
                         elapsed < minSeconds;
-
-                    if (
-                        elapsed >= maxSeconds
-                        && recorder?.state
-                        === 'recording'
-                    ) {
-                        recorder.stop();
-                    }
                 },
                 250
+            );
+
+            /*
+             * This timeout is the hard browser-side limit.
+             * The interval above is only responsible for UI updates.
+             */
+            maximumTimer = window.setTimeout(
+                stopRecorder,
+                maxSeconds * 1000
             );
         }
     );
@@ -390,45 +528,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 recorder?.state === 'recording'
                 && elapsed >= minSeconds
             ) {
-                recorder.stop();
+                stopRecorder();
             }
         }
     );
 
-    function finishRecording() {
-        window.clearInterval(
-            timer
-        );
+    async function finishRecording() {
+        clearRecordingTimers();
 
-        elapsed = Math.round(
-            (
-                performance.now()
-                - startedAt
-            ) / 1000
-        );
+        validRecording = false;
+
+        updateSubmit();
 
         stop.classList.add(
             'd-none'
         );
 
+        const wallClockDuration =
+            (
+                performance.now()
+                - startedAt
+            ) / 1000;
+
         countdown.textContent =
-            `${elapsed} seconds recorded`;
-
-        if (
-            elapsed < minSeconds
-            || elapsed > maxSeconds + 1
-        ) {
-            showError(
-                `Record between ${minSeconds} `
-                + `and ${maxSeconds} seconds.`
-            );
-
-            retake.classList.remove(
-                'd-none'
-            );
-
-            return;
-        }
+            `${Math.round(
+                wallClockDuration
+            )} seconds recorded`;
 
         const recordedMimeType =
             recorder?.mimeType
@@ -439,9 +564,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const blob = new Blob(
             chunks,
             {
-                type: recordedMimeType.split(';')[0],
+                type:
+                    recordedMimeType
+                        .split(';')[0],
             }
         );
+
+        if (blob.size <= 0) {
+            showError(
+                'The recording is empty. '
+                + 'Please retake it.'
+            );
+
+            retake.classList.remove(
+                'd-none'
+            );
+
+            releaseCamera();
+
+            return;
+        }
 
         if (blob.size > maxSizeBytes) {
             showError(
@@ -452,6 +594,57 @@ document.addEventListener('DOMContentLoaded', () => {
             retake.classList.remove(
                 'd-none'
             );
+
+            releaseCamera();
+
+            return;
+        }
+
+        let mediaDuration;
+
+        try {
+            mediaDuration =
+                await readMediaDuration(
+                    blob
+                );
+        } catch (exception) {
+            showError(
+                exception.message
+                || 'The recorded video could not '
+                + 'be validated. Please retake it.'
+            );
+
+            retake.classList.remove(
+                'd-none'
+            );
+
+            releaseCamera();
+
+            return;
+        }
+
+        if (
+            mediaDuration < minSeconds
+            || mediaDuration
+            > (
+                maxSeconds
+                + durationToleranceSeconds
+            )
+        ) {
+            showError(
+                `The recorded video is ${mediaDuration.toFixed(1)} `
+                + `seconds. Record between ${minSeconds} `
+                + `and ${maxSeconds} seconds.`
+            );
+
+            countdown.textContent =
+                `${mediaDuration.toFixed(1)} seconds recorded`;
+
+            retake.classList.remove(
+                'd-none'
+            );
+
+            releaseCamera();
 
             return;
         }
@@ -470,14 +663,29 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         );
 
-        const transfer = new DataTransfer();
+        const transfer =
+            new DataTransfer();
 
-        transfer.items.add(file);
+        transfer.items.add(
+            file
+        );
 
-        fileInput.files = transfer.files;
+        fileInput.files =
+            transfer.files;
+
+        if (previewUrl !== null) {
+            URL.revokeObjectURL(
+                previewUrl
+            );
+        }
+
+        previewUrl =
+            URL.createObjectURL(
+                blob
+            );
 
         preview.src =
-            URL.createObjectURL(blob);
+            previewUrl;
 
         live.classList.add(
             'd-none'
@@ -490,6 +698,9 @@ document.addEventListener('DOMContentLoaded', () => {
         retake.classList.remove(
             'd-none'
         );
+
+        countdown.textContent =
+            `${mediaDuration.toFixed(1)} seconds recorded`;
 
         setRecorderStatus(
             'Preview your recording before submitting',
@@ -519,6 +730,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     window.addEventListener(
         'beforeunload',
-        releaseCamera
+        () => {
+            clearRecordingTimers();
+
+            releaseCamera();
+
+            if (previewUrl !== null) {
+                URL.revokeObjectURL(
+                    previewUrl
+                );
+            }
+        }
     );
 });

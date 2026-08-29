@@ -200,8 +200,8 @@ $verificationSummary =
                     </span>
 
                     <i
-                        class="ri-checkbox-circle-fill
-                            fs-15"
+                        class="ri-checkbox-circle-line
+                            fs-15 text-success"
                         aria-hidden="true">
                     </i>
 

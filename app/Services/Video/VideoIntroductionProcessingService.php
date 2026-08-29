@@ -14,6 +14,9 @@ use Config\VideoIntroduction;
 use RuntimeException;
 use Throwable;
 
+final class PermanentVideoProcessingException
+extends RuntimeException {}
+
 final class VideoIntroductionProcessingService
 {
     public function __construct(
@@ -49,7 +52,11 @@ final class VideoIntroductionProcessingService
                 (int) $job['id'],
                 $videoId,
                 'Video record not found.',
-                true
+                true,
+                (int) (
+                    $job['attempt_count']
+                    ?? 1
+                )
             );
 
             return true;
@@ -94,11 +101,20 @@ final class VideoIntroductionProcessingService
                 $duration
                 < $this->config->minimumDurationSeconds
                 || $duration
-                > ($this->config->maximumDurationSeconds + 0.5)
+                > (
+                    $this->config
+                    ->maximumDurationSeconds
+                    + 0.5
+                )
             ) {
-                throw new RuntimeException(
+                throw new PermanentVideoProcessingException(
                     'Recorded duration must be between '
-                        . '15 and 30 seconds.'
+                        . $this->config
+                        ->minimumDurationSeconds
+                        . ' and '
+                        . $this->config
+                        ->maximumDurationSeconds
+                        . ' seconds.'
                 );
             }
 
@@ -195,7 +211,7 @@ final class VideoIntroductionProcessingService
                     (int) $job['id'],
                     [
                         'status' =>
-                        'COMPLETED',
+                        MemberVideoProcessingJobModel::STATUS_COMPLETED,
 
                         'completed_at' =>
                         date('Y-m-d H:i:sP'),
@@ -230,7 +246,9 @@ final class VideoIntroductionProcessingService
             );
 
             $permanent =
-                $attemptCount
+                $exception
+                instanceof PermanentVideoProcessingException
+                || $attemptCount
                 >= $this->config
                 ->maximumProcessingAttempts;
 
@@ -270,7 +288,8 @@ final class VideoIntroductionProcessingService
                 (int) $job['id'],
                 $videoId,
                 $exception->getMessage(),
-                $permanent
+                $permanent,
+                $attemptCount
             );
         } finally {
             $this->removeDirectory(
@@ -293,29 +312,32 @@ final class VideoIntroductionProcessingService
             $row = $this->database
                 ->query(
                     "SELECT *
-                     FROM member_video_processing_jobs
-                     WHERE (
-                         (
-                             status IN ('PENDING', 'FAILED')
-                             AND available_at <= CURRENT_TIMESTAMP
-                         )
-                         OR
-                         (
-                             status = 'PROCESSING'
-                             AND locked_at <=
-                                 CURRENT_TIMESTAMP
-                                 - INTERVAL '15 minutes'
-                         )
-                     )
-                     AND attempt_count < ?
-                     ORDER BY available_at, id
-                     FOR UPDATE SKIP LOCKED
-                     LIMIT 1",
-                    [
-                        $this->config
-                            ->maximumProcessingAttempts,
-                    ]
-                )
+                        FROM member_video_processing_jobs
+                        WHERE (
+                            (
+                                status IN (?, ?)
+                                AND available_at <= CURRENT_TIMESTAMP
+                            )
+                            OR
+                            (
+                                status = ?
+                                AND locked_at <=
+                                    CURRENT_TIMESTAMP
+                                    - INTERVAL '15 minutes'
+                            )
+                        )
+                        AND attempt_count < ?
+                        ORDER BY available_at, id
+                        FOR UPDATE SKIP LOCKED
+                        LIMIT 1",
+                                    [
+                                        MemberVideoProcessingJobModel::STATUS_PENDING,
+                                        MemberVideoProcessingJobModel::STATUS_FAILED,
+                                        MemberVideoProcessingJobModel::STATUS_PROCESSING,
+                                        $this->config
+                                            ->maximumProcessingAttempts,
+                                    ]
+                                )
                 ->getRowArray();
 
             if (! is_array($row)) {
@@ -332,7 +354,7 @@ final class VideoIntroductionProcessingService
                 (int) $row['id'],
                 [
                     'status' =>
-                    'PROCESSING',
+                    MemberVideoProcessingJobModel::STATUS_PROCESSING,
 
                     'attempt_count' =>
                     $attempt,
@@ -776,7 +798,8 @@ final class VideoIntroductionProcessingService
         int $jobId,
         int $videoId,
         string $error,
-        bool $permanent
+        bool $permanent,
+        ?int $attemptCount = null
     ): void {
         $safeError = mb_substr(
             preg_replace(
@@ -792,13 +815,26 @@ final class VideoIntroductionProcessingService
             $jobId,
             [
                 'status' =>
-                'FAILED',
+                MemberVideoProcessingJobModel::STATUS_FAILED,
+
+                'attempt_count' =>
+                $permanent
+                    ? $this->config
+                    ->maximumProcessingAttempts
+                    : max(
+                        1,
+                        (int) $attemptCount
+                    ),
 
                 'available_at' =>
-                date(
-                    'Y-m-d H:i:sP',
-                    strtotime('+10 minutes')
-                ),
+                $permanent
+                    ? date(
+                        'Y-m-d H:i:sP'
+                    )
+                    : date(
+                        'Y-m-d H:i:sP',
+                        strtotime('+10 minutes')
+                    ),
 
                 'locked_at' =>
                 null,
@@ -836,7 +872,7 @@ final class VideoIntroductionProcessingService
 
         if (! is_array($video)) {
             return;
-        }        
+        }
     }
 
     private function removeDirectory(

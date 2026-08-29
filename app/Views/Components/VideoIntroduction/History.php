@@ -47,28 +47,28 @@ $statusLabels = [
 
 $statusClasses = [
     'PROCESSING' =>
-    'bg-primary-subtle text-primary',
+    'bg-primary-subtle text-body',
 
     'PROCESSING_FAILED' =>
-    'bg-danger-subtle text-danger',
+    'bg-danger-subtle text-body',
 
     'PENDING_REVIEW' =>
-    'bg-warning-subtle text-warning',
+    'bg-warning-subtle text-body',
 
     'APPROVED' =>
-    'bg-success-subtle text-success',
+    'bg-success-subtle text-body',
 
     'REJECTED' =>
-    'bg-danger-subtle text-danger',
+    'bg-danger-subtle text-body',
 
     'RESUBMISSION_REQUESTED' =>
-    'bg-warning-subtle text-warning',
+    'bg-warning-subtle text-body',
 
     'REPLACED' =>
-    'bg-secondary-subtle text-secondary',
+    'bg-secondary-subtle text-body',
 
     'DELETED' =>
-    'bg-dark-subtle text-dark',
+    'bg-dark-subtle text-body',
 ];
 ?>
 
@@ -188,7 +188,7 @@ $statusClasses = [
                                     <span
                                         class="badge
                                             bg-primary-subtle
-                                            text-primary">
+                                            text-body p-2">
 
                                         Submitted
                                     </span>
@@ -226,7 +226,7 @@ $statusClasses = [
                                         <span
                                             class="badge
                                                 bg-danger-subtle
-                                                text-danger">
+                                                text-body p-2">
 
                                             Processing failed
                                         </span>
@@ -270,9 +270,9 @@ $statusClasses = [
 
                                     <td>
                                         <span
-                                            class="badge <?= esc(
+                                            class="badge p-2 <?= esc(
                                                                 $statusClasses[$status]
-                                                                    ?? 'bg-light text-body',
+                                                                    ?? 'bg-light',
                                                                 'attr'
                                                             ) ?>">
 
@@ -341,9 +341,9 @@ $statusClasses = [
 
                                     <td>
                                         <span
-                                            class="badge <?= esc(
+                                            class="badge p-2 <?= esc(
                                                                 $statusClasses[$decisionStatus]
-                                                                    ?? 'bg-light text-body',
+                                                                    ?? 'bg-light',
                                                                 'attr'
                                                             ) ?>">
 
@@ -388,7 +388,7 @@ $statusClasses = [
                                         <span
                                             class="badge
                                                 bg-secondary-subtle
-                                                text-secondary">
+                                                text-body p-2">
 
                                             Replaced
                                         </span>
@@ -428,7 +428,7 @@ $statusClasses = [
                                         <span
                                             class="badge
                                                 bg-dark-subtle
-                                                text-dark">
+                                                text-body p-2">
 
                                             Deleted
                                         </span>

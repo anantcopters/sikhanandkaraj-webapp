@@ -102,7 +102,7 @@ $formAction = url_to(
 );
 ?>
 
-<section class="py-3 py-lg-4">
+<section class="py-3 py-lg-3">
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-12 col-lg-8 col-xl-7">

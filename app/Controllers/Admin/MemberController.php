@@ -154,9 +154,26 @@ final class MemberController extends BaseController
                             'formAlert'
                         ),
 
+                        'matchScoreComparison' =>
+                        session(
+                            'matchScoreComparison'
+                        ),
+
+                        'matchScoreDiagnosticErrors' =>
+                        session(
+                            'matchScoreDiagnosticErrors'
+                        ) ?? [],
+
+                        'matchScoreDiagnosticInput' =>
+                        session(
+                            'matchScoreDiagnosticInput'
+                        ) ?? [],
+
                         'pageScripts' => [
                             'assets/js/pages/admin-member-view.js',
                             'assets/js/pages/admin-video-introduction-review.js',
+                            'assets/js/components/form-validator.js',
+                            'assets/js/components/submit-loader.js',
                         ],
                     ],
                     $service->profilePreview(
@@ -190,6 +207,281 @@ final class MemberController extends BaseController
 
             throw PageNotFoundException
                 ::forPageNotFound();
+        }
+    }
+
+    /**
+     * Display all qualified Matches for one member to an administrator.
+     */
+    public function matches(
+        int $userId
+    ): string {
+        $search = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim(
+                (string) $this->request
+                    ->getGet(
+                        'search'
+                    )
+            )
+        ) ?? '';
+
+        $search = mb_substr(
+            $search,
+            0,
+            100
+        );
+
+        $sort = mb_strtolower(
+            trim(
+                (string) $this->request
+                    ->getGet(
+                        'sort'
+                    )
+            )
+        );
+
+        if (
+            !in_array(
+                $sort,
+                [
+                    'match_score',
+                    'partner_preference',
+                ],
+                true
+            )
+        ) {
+            $sort =
+                'match_score';
+        }
+
+        $page = max(
+            1,
+            (int) (
+                $this->request
+                ->getGet(
+                    'page_adminMemberMatches'
+                )
+                ?? 1
+            )
+        );
+
+        try {
+            $result = service(
+                'adminMemberMatchesService'
+            )->paginatedMatches(
+                memberUserId: $userId,
+
+                search: $search,
+
+                sort: $sort,
+
+                page: $page,
+
+                perPage: 9
+            );
+
+            return view(
+                'Admin/Members/Matches',
+                [
+                    'pageTitle' =>
+                    'Member Matches',
+
+                    ...$result,
+
+                    'pageScripts' => [
+                        'assets/js/pages/admin-member-matches.js',
+                    ],
+                ]
+            );
+        } catch (
+            PageNotFoundException $exception
+        ) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_member_matches',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_member_user_id' =>
+                        $userId,
+                    ]
+                )
+            );
+
+            throw PageNotFoundException
+                ::forPageNotFound();
+        }
+    }
+
+    /**
+     * Calculate a read-only directional Match Score diagnostic.
+     *
+     * This endpoint exists only for authenticated administrators.
+     *
+     * It does not persist anything and does not affect actual member ranking.
+     */
+    public function matchScoreDiagnostic(
+        int $userId
+    ): RedirectResponse {
+        $profileReference =
+            mb_strtoupper(
+                trim(
+                    (string) $this->request
+                        ->getPost(
+                            'profile_reference'
+                        )
+                )
+            );
+
+        /*
+     * Keep client/server validation consistent with the project.
+     *
+     * Profile references are deliberately treated as strings rather than
+     * assuming a numeric member ID format.
+     */
+        $validation =
+            service(
+                'validation'
+            );
+
+        $validation->setRules(
+            [
+                'profile_reference' => [
+                    'label' =>
+                    'Profile ID',
+
+                    'rules' =>
+                    'required|max_length[50]',
+                ],
+            ]
+        );
+
+        $input = [
+            'profile_reference' =>
+            $profileReference,
+        ];
+
+        $returnContext = mb_strtolower(
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'return_context'
+                    )
+            )
+        );
+
+        $returnUrl =
+            $returnContext === 'matches'
+            ? route_to(
+                'admin.members.matches',
+                $userId
+            )
+            : route_to(
+                'admin.members.view',
+                $userId
+            );
+
+        if (!$validation->run($input)) {
+            return redirect()
+                ->to(
+                    $returnUrl
+                )
+                ->with(
+                    'matchScoreDiagnosticErrors',
+                    $validation->getErrors()
+                )
+                ->with(
+                    'matchScoreDiagnosticInput',
+                    $input
+                );
+        }
+
+        try {
+            $diagnostic =
+                service(
+                    'memberMatchScoreDiagnosticService'
+                )->compare(
+                    $userId,
+                    $profileReference
+                );
+
+            return redirect()
+                ->to(
+                    $returnUrl
+                )
+                ->with(
+                    'matchScoreComparison',
+                    $diagnostic
+                )
+                ->with(
+                    'matchScoreDiagnosticInput',
+                    $input
+                );
+        } catch (DomainException $exception) {
+            return redirect()
+                ->to(
+                    $returnUrl
+                )
+                ->with(
+                    'matchScoreDiagnosticErrors',
+                    [
+                        'profile_reference' =>
+                        $exception->getMessage(),
+                    ]
+                )
+                ->with(
+                    'matchScoreDiagnosticInput',
+                    $input
+                );
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_member_match_score_diagnostic',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_member_user_id' =>
+                        $userId,
+                    ]
+                )
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'admin.members.view',
+                        $userId
+                    )
+                )
+                ->with(
+                    'matchScoreDiagnosticErrors',
+                    [
+                        'profile_reference' =>
+                        'The Match Score diagnostic could not be calculated.',
+                    ]
+                )
+                ->with(
+                    'matchScoreDiagnosticInput',
+                    $input
+                );
         }
     }
 

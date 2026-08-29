@@ -1063,6 +1063,53 @@ $this->section('content');
             $profileReference,
         ]
     ) ?>
+    <!--
+    Match Score diagnostics.
+
+    Intrinsic signals are always displayed.
+
+    A viewer-specific diagnostic can additionally calculate the real
+    directional score against another member.
+-->
+    <?= view(
+        'Admin/Members/Partials/MatchScoreDiagnostics',
+        [
+            'memberId' =>
+            $resolvedMemberId,
+
+            'diagnostics' =>
+            isset($matchScoreDiagnostics)
+                && is_array(
+                    $matchScoreDiagnostics
+                )
+                ? $matchScoreDiagnostics
+                : [],
+
+            'comparison' =>
+            isset($matchScoreComparison)
+                && is_array(
+                    $matchScoreComparison
+                )
+                ? $matchScoreComparison
+                : [],
+
+            'diagnosticErrors' =>
+            isset($matchScoreDiagnosticErrors)
+                && is_array(
+                    $matchScoreDiagnosticErrors
+                )
+                ? $matchScoreDiagnosticErrors
+                : [],
+
+            'diagnosticInput' =>
+            isset($matchScoreDiagnosticInput)
+                && is_array(
+                    $matchScoreDiagnosticInput
+                )
+                ? $matchScoreDiagnosticInput
+                : [],
+        ]
+    ) ?>
     <?php
     $interactionStats = isset(
         $memberInteractionStats

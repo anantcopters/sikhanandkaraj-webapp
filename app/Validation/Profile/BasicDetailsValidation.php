@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 namespace App\Validation\Profile;
+use App\Support\Domain\MemberAgePolicy;
 
 /**
  * Defines server-side validation for member basic details.
@@ -14,9 +15,18 @@ final class BasicDetailsValidation
      *
      * @return array<string, array<string, mixed>>
      */
-    public static function rules(): array
-    {
+    public static function rules(
+        string $gender = ''
+    ): array {
+        $normalizedGender =
+            mb_strtoupper(
+                trim($gender)
+            );
 
+        $minimumAge =
+            MemberAgePolicy::minimumAgeForGender(
+                $normalizedGender
+            );
 
         return [
             'full_name' => [
@@ -40,16 +50,28 @@ final class BasicDetailsValidation
             ],
 
             'date_of_birth' => [
-                'label' => 'Date of birth',
+                'label' =>
+                'Date of birth',
+
                 'rules' => [
                     'required',
                     'valid_date[Y-m-d]',
+                    'minimum_age['
+                        . $minimumAge
+                        . ']',
                 ],
+
                 'errors' => [
                     'required' =>
                     'Please select your date of birth.',
+
                     'valid_date' =>
                     'Please enter a valid date of birth.',
+
+                    'minimum_age' =>
+                    'The member must be at least '
+                        . $minimumAge
+                        . ' years old.',
                 ],
             ],
 
