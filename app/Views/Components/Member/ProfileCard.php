@@ -189,6 +189,15 @@ $accountType = trim(
     )
 );
 
+$accountTypeCode = mb_strtoupper(
+    trim(
+        (string) (
+            $profile['accountCode']
+            ?? ''
+        )
+    )
+);
+
 $professionalSummary = trim(
     (string) (
         $profile['professionalSummary']
@@ -320,27 +329,23 @@ $blockModalId =
 
                 </div>
 
-                <?php if ($accountType !== ''): ?>
+                <div
+                    class="mt-1
+        d-flex
+        justify-content-center">
 
-                    <span
-                        class="badge rounded
-                            bg-primary-subtle
-                            text-primary
-                            border border-primary
-                            border-opacity-25
-                            mt-3 px-2 py-2 fs-12">
+                    <?= view(
+                        'Components/Membership/PlanLogo',
+                        [
+                            'planCode' =>
+                            $accountTypeCode,
 
-                        <i
-                            class="ri-vip-crown-line
-                                me-1 fs-14"
-                            aria-hidden="true">
-                        </i>
+                            'width' =>
+                            180,
+                        ]
+                    ) ?>
 
-                        <?= esc($accountType) ?>
-
-                    </span>
-
-                <?php endif; ?>
+                </div>
 
             </div>
 
