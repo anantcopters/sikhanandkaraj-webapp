@@ -160,397 +160,416 @@ $preferenceModalId =
         overflow-hidden">
 
     <div class="card-body p-3">
+        <div class="row">
 
-        <div
-            class="d-flex flex-column
+            <div class="col-12">
+                <div
+                    class="d-flex flex-column
                 flex-sm-row gap-3">
 
-            <div
-                class="d-flex flex-column
+                    <div
+                        class="d-flex flex-column
                     align-items-center
                     flex-shrink-0"
-                style="width: 160px;">
+                        style="width: 160px;">
 
-                <div class="member-profile-thumbnail">
+                        <div class="member-profile-thumbnail">
 
-                    <img
-                        src="<?= esc(
-                                    $image,
-                                    'attr'
-                                ) ?>"
-                        alt="<?= esc(
-                                    $name
-                                        . ' profile photo',
-                                    'attr'
-                                ) ?>"
-                        loading="lazy">
+                            <img
+                                src="<?= esc(
+                                            $image,
+                                            'attr'
+                                        ) ?>"
+                                alt="<?= esc(
+                                            $name
+                                                . ' profile photo',
+                                            'attr'
+                                        ) ?>"
+                                loading="lazy">
 
-                </div>
+                        </div>
 
-                <div
-                    class="mt-1
+                        <div
+                            class="mt-1
                         d-flex
                         justify-content-center">
 
-                    <?= view(
-                        'Components/Membership/PlanLogo',
-                        [
-                            'planCode' =>
-                            $accountTypeCode,
+                            <?= view(
+                                'Components/Membership/PlanLogo',
+                                [
+                                    'planCode' =>
+                                    $accountTypeCode,
 
-                            'width' =>
-                            180,
-                        ]
-                    ) ?>
+                                    'width' =>
+                                    180,
+                                ]
+                            ) ?>
 
-                </div>
+                        </div>
 
-            </div>
+                    </div>
 
-            <div class="flex-grow-1 min-w-0">
+                    <div class="flex-grow-1 min-w-0">
 
-                <div class="mb-2">
+                        <div class="mb-2">
 
-                    <h3
-                        class="fs-18
+                            <h3
+                                class="fs-18
                             fw-semibold
                             mb-1
                             text-truncate">
 
-                        <?= esc($name) ?>
+                                <?= esc($name) ?>
 
-                    </h3>
+                            </h3>
 
-                    <?php if ($reference !== ''): ?>
+                            <?php if ($reference !== ''): ?>
 
-                        <div
-                            class="text-muted fs-13">
+                                <div
+                                    class="text-muted fs-13">
 
-                            <?= esc($reference) ?>
+                                    <?= esc($reference) ?>
+
+                                </div>
+
+                            <?php endif; ?>
 
                         </div>
 
-                    <?php endif; ?>
+                        <?php if ($activity !== ''): ?>
 
-                </div>
-
-                <?php if ($activity !== ''): ?>
-
-                    <div
-                        class="d-flex
+                            <div
+                                class="d-flex
                             align-items-center
                             gap-1 fs-12
                             text-success mb-2">
 
-                        <i
-                            class="ri-checkbox-blank-circle-fill"
-                            aria-hidden="true"></i>
+                                <i
+                                    class="ri-checkbox-blank-circle-fill"
+                                    aria-hidden="true"></i>
 
-                        <?= esc($activity) ?>
+                                <?= esc($activity) ?>
 
-                    </div>
+                            </div>
 
-                <?php endif; ?>
+                        <?php endif; ?>
 
-                <div
-                    class="d-flex flex-wrap
+                        <div
+                            class="d-flex flex-wrap
                         align-items-center
                         gap-2 fs-13
                         text-muted mb-2">
 
-                    <?php if (
-                        $age !== null
-                        && $age > 0
-                    ): ?>
+                            <?php if (
+                                $age !== null
+                                && $age > 0
+                            ): ?>
 
-                        <span>
-                            <?= esc(
-                                (string) $age
-                            ) ?> yrs
-                        </span>
+                                <span>
+                                    <?= esc(
+                                        (string) $age
+                                    ) ?> yrs
+                                </span>
 
-                    <?php endif; ?>
+                            <?php endif; ?>
 
-                    <?php if ($height !== ''): ?>
+                            <?php if ($height !== ''): ?>
 
-                        <span aria-hidden="true">
-                            ·
-                        </span>
+                                <span aria-hidden="true">
+                                    ·
+                                </span>
 
-                        <span>
-                            <?= esc($height) ?>
-                        </span>
+                                <span>
+                                    <?= esc($height) ?>
+                                </span>
 
-                    <?php endif; ?>
+                            <?php endif; ?>
 
-                </div>
+                        </div>
 
-                <?php if ($location !== ''): ?>
+                        <?php if ($location !== ''): ?>
 
-                    <p
-                        class="d-flex
+                            <p
+                                class="d-flex
                             align-items-center
                             gap-1 text-muted
                             fs-13 mb-2">
 
-                        <i
-                            class="ri-map-pin-line
+                                <i
+                                    class="ri-map-pin-line
                                 text-primary"
-                            aria-hidden="true"></i>
+                                    aria-hidden="true"></i>
 
-                        <?= esc($location) ?>
+                                <?= esc($location) ?>
 
-                    </p>
+                            </p>
 
-                <?php endif; ?>
+                        <?php endif; ?>
 
-                <?php if (
-                    $maritalStatus !== ''
-                ): ?>
+                        <?php if (
+                            $maritalStatus !== ''
+                        ): ?>
 
-                    <p class="fs-13 mb-2">
+                            <p class="fs-13 mb-2">
 
-                        <?= esc(
-                            $maritalStatus
-                        ) ?>
+                                <?= esc(
+                                    $maritalStatus
+                                ) ?>
 
-                    </p>
+                            </p>
 
-                <?php endif; ?>
+                        <?php endif; ?>
 
-                <div
-                    class="d-flex
+                        <div
+                            class="d-flex
                         flex-wrap
                         align-items-center
                         gap-2">
 
-                    <a
-                        href="<?= esc(
-                                    $profileUrl,
-                                    'attr'
-                                ) ?>"
-                        class="btn
+                            <a
+                                href="<?= esc(
+                                            $profileUrl,
+                                            'attr'
+                                        ) ?>"
+                                class="btn
                             btn-outline-primary
                             btn-sm
                             d-inline-flex
                             align-items-center
                             gap-1">
 
-                        <i
-                            class="ri-eye-line"
-                            aria-hidden="true"></i>
+                                <i
+                                    class="ri-eye-line"
+                                    aria-hidden="true"></i>
 
-                        View Profile
+                                View Profile
 
-                    </a>
+                            </a>
 
-                    <button
-                        type="button"
-                        class="btn
+                            <button
+                                type="button"
+                                class="btn
                             btn-outline-primary
                             btn-sm
                             d-inline-flex
                             align-items-center
                             gap-1"
-                        data-bs-toggle="modal"
-                        data-bs-target="#<?= esc(
-                                                $preferenceModalId,
-                                                'attr'
-                                            ) ?>">
+                                data-bs-toggle="modal"
+                                data-bs-target="#<?= esc(
+                                                        $preferenceModalId,
+                                                        'attr'
+                                                    ) ?>">
 
-                        <i
-                            class="ri-list-check-3"
-                            aria-hidden="true"></i>
+                                <i
+                                    class="ri-list-check-3"
+                                    aria-hidden="true"></i>
 
-                        Partner Preference
+                                Partner Preference
 
-                    </button>
+                            </button>
 
-                    <button
-                        type="button"
-                        class="btn
+                            <button
+                                type="button"
+                                class="btn
                             btn-danger
                             btn-sm
                             d-inline-flex
                             align-items-center
                             gap-1"
-                        data-bs-toggle="modal"
-                        data-bs-target="#<?= esc(
-                                                $matchModalId,
-                                                'attr'
-                                            ) ?>">
+                                data-bs-toggle="modal"
+                                data-bs-target="#<?= esc(
+                                                        $matchModalId,
+                                                        'attr'
+                                                    ) ?>">
 
-                        <i
-                            class="ri-calculator-line"
-                            aria-hidden="true"></i>
+                                <i
+                                    class="ri-calculator-line"
+                                    aria-hidden="true"></i>
 
-                        Match
+                                Match
 
-                    </button>
+                            </button>
+
+                        </div>
+
+                    </div>
 
                 </div>
-
             </div>
-
         </div>
 
         <?php if (
             $professionalSummary !== ''
         ): ?>
+            <div class="row">
 
-            <div
-                class="d-flex
+                <div class="col-12">
+                    <div
+                        class="d-flex
             align-items-center
             mt-3">
 
-                <div
-                    class="avatar-xs
+                        <div
+                            class="avatar-xs
                 flex-shrink-0
                 me-2">
 
-                    <span
-                        class="avatar-title
+                            <span
+                                class="avatar-title
                     bg-dark-subtle
                     rounded-circle
                     shadow">
 
-                        <i
-                            class="ri-briefcase-4-line
+                                <i
+                                    class="ri-briefcase-4-line
                         fs-16
                         text-primary"
-                            aria-hidden="true"></i>
+                                    aria-hidden="true"></i>
 
-                    </span>
+                            </span>
 
-                </div>
+                        </div>
 
-                <div class="flex-grow-1">
+                        <div class="flex-grow-1">
 
-                    <h5
-                        class="fs-13
+                            <h5
+                                class="fs-13
                     mb-0
                     fw-semibold">
 
-                        <?= esc(
-                            $professionalSummary
-                        ) ?>
+                                <?= esc(
+                                    $professionalSummary
+                                ) ?>
 
-                    </h5>
+                            </h5>
 
+                        </div>
+
+                    </div>
                 </div>
-
             </div>
 
         <?php endif; ?>
 
 
         <!-- Admin-only Match scores -->
-        <div
-            class="d-flex
-        align-items-center
-        flex-wrap
-        gap-3
-        mt-3
-        pt-3
-        border-top">
 
-            <div
-                class="d-flex
-            align-items-center
-            gap-2">
+        <!-- Admin-only matching summary -->
+        <div class="row mt-3">
 
-                <span
-                    class="avatar-xs
-                flex-shrink-0">
+            <div class="col-12">
 
-                    <span
-                        class="avatar-title
-                    bg-primary-subtle
-                    text-primary
-                    rounded-circle">
-
-                        <i
-                            class="ri-calculator-line"
-                            aria-hidden="true"></i>
-
-                    </span>
-
-                </span>
-
-                <div>
+                <div
+                    class="d-flex
+                align-items-center
+                flex-wrap
+                gap-4
+                pt-3
+                border-top">
 
                     <div
-                        class="text-muted
-                    fs-11">
+                        class="d-flex
+                    align-items-center
+                    gap-2">
 
-                        Match Score
+                        <span
+                            class="avatar-xs
+                        flex-shrink-0">
+
+                            <span
+                                class="avatar-title
+                            bg-primary-subtle
+                            text-primary
+                            rounded-circle">
+
+                                <i
+                                    class="ri-calculator-line"
+                                    aria-hidden="true"></i>
+
+                            </span>
+
+                        </span>
+
+                        <div>
+
+                            <div
+                                class="text-muted
+                            fs-12">
+
+                                Match Score
+
+                            </div>
+
+                            <div
+                                class="fw-semibold
+                            fs-18
+                            lh-1">
+
+                                <?= esc(
+                                    number_format(
+                                        $matchScore,
+                                        2
+                                    )
+                                ) ?>%
+
+                            </div>
+
+                        </div>
 
                     </div>
 
                     <div
-                        class="fw-semibold
-                    fs-16
-                    lh-1">
+                        class="d-flex
+                    align-items-center
+                    gap-2">
 
-                        <?= esc(
-                            (string) $matchScore
-                        ) ?>%
+                        <span
+                            class="avatar-xs
+                        flex-shrink-0">
+
+                            <span
+                                class="avatar-title
+                            bg-success-subtle
+                            text-success
+                            rounded-circle">
+
+                                <i
+                                    class="ri-list-check-3"
+                                    aria-hidden="true"></i>
+
+                            </span>
+
+                        </span>
+
+                        <div>
+
+                            <div
+                                class="text-muted
+                            fs-12">
+
+                                Partner Preference
+
+                            </div>
+
+                            <div
+                                class="fw-semibold
+                            fs-18
+                            lh-1">
+
+                                <?= esc(
+                                    (string)
+                                    $partnerPreferencePercentage
+                                ) ?>%
+
+                            </div>
+
+                        </div>
 
                     </div>
 
                 </div>
 
             </div>
-
-
-            <div
-                class="d-flex
-            align-items-center
-            gap-2">
-
-                <span
-                    class="avatar-xs
-                flex-shrink-0">
-
-                    <span
-                        class="avatar-title
-                    bg-success-subtle
-                    text-success
-                    rounded-circle">
-
-                        <i
-                            class="ri-list-check-3"
-                            aria-hidden="true"></i>
-
-                    </span>
-
-                </span>
-
-                <div>
-
-                    <div
-                        class="text-muted
-                    fs-11">
-
-                        Partner Preference
-
-                    </div>
-
-                    <div
-                        class="fw-semibold
-                    fs-16
-                    lh-1">
-
-                        <?= esc(
-                            (string)
-                            $partnerPreferencePercentage
-                        ) ?>%
-
-                    </div>
-
-                </div>
-
-            </div>           
 
         </div>
 
