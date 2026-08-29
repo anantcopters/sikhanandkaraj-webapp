@@ -331,42 +331,42 @@ $this->section(
                             $statusPresentation = match ($status) {
                                 'APPROVED' => [
                                     'Approved',
-                                    'bg-success-subtle text-success',
+                                    'bg-success-subtle text-body p-2',
                                 ],
 
                                 'REJECTED' => [
                                     'Rejected',
-                                    'bg-danger-subtle text-danger',
+                                    'bg-danger-subtle text-body p-2',
                                 ],
 
                                 'PROCESSING_FAILED' => [
                                     'Processing Failed',
-                                    'bg-danger-subtle text-danger',
+                                    'bg-danger-subtle text-body p-2',
                                 ],
 
                                 'RESUBMISSION_REQUESTED' => [
                                     'Resubmission Requested',
-                                    'bg-warning-subtle text-warning',
+                                    'bg-warning-subtle text-body p-2',
                                 ],
 
                                 'PENDING_REVIEW' => [
                                     'Pending Review',
-                                    'bg-warning-subtle text-warning',
+                                    'bg-warning-subtle text-body p-2',
                                 ],
 
                                 'PROCESSING' => [
                                     'Processing',
-                                    'bg-primary-subtle text-primary',
+                                    'bg-primary-subtle text-body p-2',
                                 ],
 
                                 'REPLACED' => [
                                     'Replaced',
-                                    'bg-secondary-subtle text-secondary',
+                                    'bg-secondary-subtle text-body p-2',
                                 ],
 
                                 'DELETED' => [
                                     'Deleted',
-                                    'bg-secondary-subtle text-secondary',
+                                    'bg-secondary-subtle text-body p-2',
                                 ],
 
                                 default => [

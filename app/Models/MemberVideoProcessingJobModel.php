@@ -8,7 +8,20 @@ use CodeIgniter\Model;
 
 final class MemberVideoProcessingJobModel extends Model
 {
-    protected $table = 'member_video_processing_jobs';
+    public const STATUS_PENDING =
+    'PENDING';
+
+    public const STATUS_PROCESSING =
+    'PROCESSING';
+
+    public const STATUS_FAILED =
+    'FAILED';
+
+    public const STATUS_COMPLETED =
+    'COMPLETED';
+
+    protected $table =
+    'member_video_processing_jobs';
 
     protected $primaryKey = 'id';
 

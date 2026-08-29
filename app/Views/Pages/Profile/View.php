@@ -2378,8 +2378,8 @@ $this->section('content');
                 <?php if ($hasVideoIntroductionBadge): ?>
                     <div class="col-12 col-lg-6">
                         <section
-                            class="card border border-success
-                border-opacity-25 shadow-sm
+                            class="card border border-danger
+        border-opacity-25 shadow-sm
                 rounded-3 h-100"
                             aria-labelledby="
                 liveIntroductionVerifiedTitle
@@ -2387,13 +2387,13 @@ $this->section('content');
 
                             <div
                                 class="card-header
-                    bg-primary-subtle
+                    bg-info-subtle
                     d-flex align-items-center
                     gap-2 py-2">
 
                                 <i
                                     class="ri-video-line
-                        text-success fs-18"
+                         fs-18"
                                     aria-hidden="true">
                                 </i>
 
@@ -2411,7 +2411,7 @@ $this->section('content');
                                     $isVideoIntroductionHidden
                                 ): ?>
                                     <div
-                                        class="alert alert-light
+                                        class="alert alert-warning
                             border fs-13 mb-0">
 
                                         This member has an approved
