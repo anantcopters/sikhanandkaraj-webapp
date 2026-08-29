@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 namespace App\Validation\Profile;
+use App\Support\Domain\MemberAgePolicy;
 
 /**
  * Defines server-side validation for member basic details.
@@ -23,9 +24,9 @@ final class BasicDetailsValidation
             );
 
         $minimumAge =
-            $normalizedGender === 'MALE'
-            ? 21
-            : 18;
+            MemberAgePolicy::minimumAgeForGender(
+                $normalizedGender
+            );
 
         return [
             'full_name' => [

@@ -122,7 +122,7 @@ $memberGender = mb_strtoupper(
     )
 );
 
-$minimumMemberAge = $memberGender === 'MALE'
+$minimumMemberAge = $memberGender === 'M'
     ? 21
     : 18;
 

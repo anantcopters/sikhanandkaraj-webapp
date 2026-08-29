@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Validation\Prelaunch;
 
 use App\Validation\Profile\BasicDetailsValidation;
+use App\Support\Domain\MemberAgePolicy;
 
 /**
  * Validation definitions for the standalone prelaunch form.
@@ -12,12 +13,6 @@ use App\Validation\Profile\BasicDetailsValidation;
 final class PrelaunchProfileValidation
 {
     private const NEAREST_GURUDWARA_MAX_LENGTH = 300;
-
-    private const PARENT_CONTACT_NUMBER_LENGTH = 10;
-
-    private const FEMALE_MINIMUM_AGE = 18;
-
-    private const MALE_MINIMUM_AGE = 21;
 
     /**
      * Return the complete profile-creation validation rules.
@@ -42,9 +37,10 @@ final class PrelaunchProfileValidation
             trim($gender)
         );
 
-        $minimumAge = $normalizedGender === 'MALE'
-            ? self::MALE_MINIMUM_AGE
-            : self::FEMALE_MINIMUM_AGE;
+        $minimumAge =
+            MemberAgePolicy::minimumAgeForGender(
+                $normalizedGender
+            );
 
         $rules['date_of_birth'] = [
             'label' => 'Date of birth',
