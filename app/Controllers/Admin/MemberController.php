@@ -211,6 +211,137 @@ final class MemberController extends BaseController
     }
 
     /**
+     * Display all qualified Matches for one member to an administrator.
+     */
+    public function matches(
+        int $userId
+    ): string {
+        $search = preg_replace(
+            '/\s+/u',
+            ' ',
+            trim(
+                (string) $this->request
+                    ->getGet(
+                        'search'
+                    )
+            )
+        ) ?? '';
+
+        $search = mb_substr(
+            $search,
+            0,
+            100
+        );
+
+        $sort = mb_strtolower(
+            trim(
+                (string) $this->request
+                    ->getGet(
+                        'sort'
+                    )
+            )
+        );
+
+        if (
+            !in_array(
+                $sort,
+                [
+                    'match_score',
+                    'partner_preference',
+                ],
+                true
+            )
+        ) {
+            $sort =
+                'match_score';
+        }
+
+        $page = max(
+            1,
+            (int) (
+                $this->request
+                ->getGet(
+                    'page_adminMemberMatches'
+                )
+                ?? 1
+            )
+        );
+
+        try {
+            $result = service(
+                'adminMemberMatchesService'
+            )->paginatedMatches(
+                memberUserId: $userId,
+
+                search: $search,
+
+                sort: $sort,
+
+                page: $page,
+
+                perPage: 9
+            );
+
+            return view(
+                'Admin/Members/Matches',
+                [
+                    'pageTitle' =>
+                    'Member Matches',
+
+                    ...$result,
+
+                    'matchScoreComparison' =>
+                    session(
+                        'matchScoreComparison'
+                    ),
+
+                    'matchScoreDiagnosticErrors' =>
+                    session(
+                        'matchScoreDiagnosticErrors'
+                    ) ?? [],
+
+                    'matchScoreDiagnosticInput' =>
+                    session(
+                        'matchScoreDiagnosticInput'
+                    ) ?? [],
+
+                    'pageScripts' => [
+                        'assets/js/pages/admin-member-matches.js',
+                        'assets/js/components/form-validator.js',
+                        'assets/js/components/submit-loader.js',
+                    ],
+                ]
+            );
+        } catch (
+            PageNotFoundException $exception
+        ) {
+            throw $exception;
+        } catch (Throwable $exception) {
+            service(
+                'applicationErrorLogger'
+            )->exception(
+                $exception,
+                'error',
+                AdminErrorContext::forOperation(
+                    operation: 'admin_member_matches',
+
+                    component: self::class,
+
+                    method: __FUNCTION__,
+
+                    additionalContext: [
+                        'target_member_user_id' =>
+                        $userId,
+                    ]
+                )
+            );
+
+            throw PageNotFoundException
+                ::forPageNotFound();
+        }
+    }
+
+    /**
      * Calculate a read-only directional Match Score diagnostic.
      *
      * This endpoint exists only for authenticated administrators.
@@ -258,11 +389,31 @@ final class MemberController extends BaseController
             $profileReference,
         ];
 
+        $returnContext = mb_strtolower(
+            trim(
+                (string) $this->request
+                    ->getPost(
+                        'return_context'
+                    )
+            )
+        );
+
+        $returnUrl =
+            $returnContext === 'matches'
+            ? route_to(
+                'admin.members.matches',
+                $userId
+            )
+            : route_to(
+                'admin.members.view',
+                $userId
+            );
+
         if (!$validation->run($input)) {
             return redirect()
                 ->to(
                     route_to(
-                        'admin.members.view',
+                        $returnUrl,
                         $userId
                     )
                 )

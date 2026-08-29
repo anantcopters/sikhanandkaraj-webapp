@@ -162,6 +162,7 @@ use App\Services\Membership\MembershipPurchaseService;
 use App\Models\MemberPaymentModel;
 use App\Services\Development\DevelopmentMembershipPaymentSimulator;
 use App\Services\Membership\MembershipPaymentService;
+use App\Services\Admin\AdminMemberMatchesService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -1660,6 +1661,58 @@ final class Services extends BaseService
             static::memberMatchScoreDiagnosticService(
                 false
             )
+        );
+    }
+
+    /**
+     * Return administrator-only Match listing service.
+     *
+     * Candidate eligibility, Partner Preference matching, Match Score and
+     * common profile presentation remain delegated to their existing
+     * production authorities.
+     */
+    public static function adminMemberMatchesService(
+        bool $getShared = true
+    ): AdminMemberMatchesService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'adminMemberMatchesService'
+            );
+        }
+
+        $database = db_connect();
+
+        /** @var Matchmaking $configuration */
+        $configuration = config(
+            Matchmaking::class
+        );
+
+        return new AdminMemberMatchesService(
+            new UserModel(
+                $database
+            ),
+
+            new MemberMatchCandidateModel(
+                $database
+            ),
+
+            static::partnerPreferenceMatchService(
+                false
+            ),
+
+            static::memberMatchScoreService(
+                false
+            ),
+
+            static::memberProfilePresentationService(
+                false
+            ),
+
+            static::memberPhotoUrlService(
+                false
+            ),
+
+            $configuration
         );
     }
 

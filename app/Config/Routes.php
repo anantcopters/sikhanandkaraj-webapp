@@ -2024,6 +2024,20 @@ $routes->group('admin', [
                 );
 
                 /*
+                * Administrator Match listing for one member.
+                *
+                * Both ADMIN and SUPER_ADMIN may use this read-only diagnostic screen.
+                */
+                $routes->get(
+                    '(:num)/matches',
+                    'MemberController::matches/$1',
+                    [
+                        'as' =>
+                        'admin.members.matches',
+                    ]
+                );
+
+                /*
                 * Read-only viewer-specific Match Score diagnostic.
                 *
                 * Both ADMIN and SUPER_ADMIN may inspect ranking diagnostics.
