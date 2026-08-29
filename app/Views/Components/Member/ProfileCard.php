@@ -251,11 +251,11 @@ $relationshipBadgeClass =
     match ($interestState) {
         'ACCEPTED_SENT',
         'ACCEPTED_RECEIVED' =>
-        'bg-success-subtle text-success',
+        'bg-success-subtle text-body',
 
         'DECLINED_SENT',
         'DECLINED_RECEIVED' =>
-        'bg-danger-subtle text-danger',
+        'bg-danger-subtle text-body',
 
         'PENDING_SENT',
         'PENDING_RECEIVED' =>
@@ -379,27 +379,7 @@ $blockModalId =
 
                     <div
                         class="d-flex
-                            align-items-center
-                            gap-2">
-
-                        <?php if (
-                            $relationshipLabel !== ''
-                        ): ?>
-
-                            <span
-                                class="badge <?= esc(
-                                                    $relationshipBadgeClass,
-                                                    'attr'
-                                                ) ?>
-                                    border px-2 py-2">
-
-                                <?= esc(
-                                    $relationshipLabel
-                                ) ?>
-
-                            </span>
-
-                        <?php endif; ?>
+                            align-items-center">
 
                         <?php if (
                             $reference !== ''
@@ -647,6 +627,29 @@ $blockModalId =
                     <?php endif; ?>
 
                 </div>
+
+                <?php if (
+                    $relationshipLabel !== ''
+                ): ?>
+
+                    <div class="mt-2">
+
+                        <span
+                            class="badge <?= esc(
+                                                $relationshipBadgeClass,
+                                                'attr'
+                                            ) ?>
+                border p-2">
+
+                            <?= esc(
+                                $relationshipLabel
+                            ) ?>
+
+                        </span>
+
+                    </div>
+
+                <?php endif; ?>
 
             </div>
 

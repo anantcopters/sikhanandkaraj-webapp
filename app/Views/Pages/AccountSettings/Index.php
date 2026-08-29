@@ -229,14 +229,14 @@ $this->section('content');
                                 <span
                                     class="
             badge
-            bg-primary-subtle
-            text-primary
+            bg-danger-subtle
+            text-danger
             ms-auto
         "
                                     title="Paid membership feature">
 
                                     <i
-                                        class="ri-vip-crown-line"
+                                        class="ri-vip-crown-line fs-14 fw-normal"
                                         aria-hidden="true">
                                     </i>
 

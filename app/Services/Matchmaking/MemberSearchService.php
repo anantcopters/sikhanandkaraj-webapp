@@ -1430,12 +1430,6 @@ final class MemberSearchService
                 $masterData['states']
                     ?? []
             ),
-
-            'photo_visibility' =>
-            $this->photoVisibility(
-                $input['photo_visibility']
-                    ?? []
-            ),
         ];
 
         /*
@@ -1469,6 +1463,19 @@ final class MemberSearchService
         if ($mode !== 'advanced') {
             return $filters;
         }
+
+        /*
+        * Photo Visibility is an Advanced Search criterion.
+        *
+        * Keeping this normalization after the Advanced Search boundary ensures
+        * a Free member cannot manually submit photo_visibility through Basic
+        * Search and bypass the membership-controlled Advanced Search flow.
+        */
+        $filters['photo_visibility'] =
+            $this->photoVisibility(
+                $input['photo_visibility']
+                    ?? []
+            );
 
         /*
         * Amritdhari is an Advanced Search candidate filter.
@@ -2023,6 +2030,20 @@ final class MemberSearchService
     private function quickLinkGroups(
         int $viewerUserId
     ): array {
+
+        /*
+        * City, Community and Public Photo Quick Links expose
+        * Advanced Search capabilities.
+        *
+        * Resolve the existing Advanced Search membership entitlement once
+        * for the complete Quick Links collection.
+        */
+        $canUseAdvancedSearch =
+            $this->membershipEntitlementService
+            ->canUseAdvancedSearch(
+                $viewerUserId
+            );
+
         /*
      * Reuse the member's saved Basic Details location.
      */
@@ -2156,15 +2177,15 @@ final class MemberSearchService
             : '';
 
         /*
-     * Existing photo-visibility Search filter.
-     */
+        * Existing photo-visibility Search filter.
+        */
         $publicPhotoUrl =
             $searchResultsUrl
             . '?'
             . http_build_query(
                 [
                     'mode' =>
-                    'basic',
+                    'advanced',
 
                     'photo_visibility' => [
                         'PUBLIC',
@@ -2338,19 +2359,34 @@ final class MemberSearchService
                         'Living in same City',
 
                         'help' =>
-                        $cityId > 0
-                            ? 'Find eligible profiles living in your City.'
-                            : 'Add your City in Basic Details to use this search.',
+                        !$canUseAdvancedSearch
+                            ? 'Upgrade your membership to use this search.'
+                            : (
+                                $cityId > 0
+                                ? 'Find eligible profiles living in your City.'
+                                : 'Add your City in Basic Details to use this search.'
+                            ),
 
                         'icon' =>
                         'ri-map-pin-line',
 
                         'url' =>
-                        $sameCityUrl,
+                        !$canUseAdvancedSearch
+                            ? route_to(
+                                'web.account.settings.section',
+                                'plans'
+                            )
+                            : $sameCityUrl,
 
                         'available' =>
-                        $stateId > 0
-                            && $cityId > 0,
+                        !$canUseAdvancedSearch
+                            || (
+                                $stateId > 0
+                                && $cityId > 0
+                            ),
+
+                        'membershipLocked' =>
+                        !$canUseAdvancedSearch,
                     ],
                 ],
             ],
@@ -2371,22 +2407,37 @@ final class MemberSearchService
                         'Same Community',
 
                         'help' =>
-                        $communityId > 0
-                            && $communityName !== ''
-                            ? 'Find eligible profiles from the '
-                            . $communityName
-                            . ' community.'
-                            : 'Add your Community in Family Details to use this search.',
+                        !$canUseAdvancedSearch
+                            ? 'Upgrade your membership to use this search.'
+                            : (
+                                $communityId > 0
+                                && $communityName !== ''
+                                ? 'Find eligible profiles from the '
+                                . $communityName
+                                . ' community.'
+                                : 'Add your Community in Family Details to use this search.'
+                            ),
 
                         'icon' =>
                         'ri-group-line',
 
                         'url' =>
-                        $sameCommunityUrl,
+                        !$canUseAdvancedSearch
+                            ? route_to(
+                                'web.account.settings.section',
+                                'plans'
+                            )
+                            : $sameCommunityUrl,
 
                         'available' =>
-                        $communityId > 0
-                            && $communityName !== '',
+                        !$canUseAdvancedSearch
+                            || (
+                                $communityId > 0
+                                && $communityName !== ''
+                            ),
+
+                        'membershipLocked' =>
+                        !$canUseAdvancedSearch,
                     ],
 
                     [
@@ -2394,16 +2445,26 @@ final class MemberSearchService
                         'Profiles with Public Photos',
 
                         'help' =>
-                        'Show profiles whose approved primary photo is public.',
+                        !$canUseAdvancedSearch
+                            ? 'Upgrade your membership to use this search.'
+                            : 'Show profiles whose approved primary photo is public.',
 
                         'icon' =>
                         'ri-image-2-line',
 
                         'url' =>
-                        $publicPhotoUrl,
+                        !$canUseAdvancedSearch
+                            ? route_to(
+                                'web.account.settings.section',
+                                'plans'
+                            )
+                            : $publicPhotoUrl,
 
                         'available' =>
                         true,
+
+                        'membershipLocked' =>
+                        !$canUseAdvancedSearch,
                     ],
                 ],
             ],

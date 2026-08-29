@@ -1275,76 +1275,7 @@ $this->section(
 
                                     </div>
 
-                                    <!-- =========================================
-                                     Photo Settings
-                                     Single-row presentation.
-                                     ========================================= -->
-
-                                    <div class="col-12">
-
-                                        <div
-                                            class="d-flex flex-wrap
-                                            align-items-center gap-3">
-
-                                            <label
-                                                class="form-labelm mb-0">
-
-                                                Photo Settings
-                                            </label>
-
-                                            <div class="form-check mb-0">
-
-                                                <input
-                                                    type="checkbox"
-                                                    class="form-check-input"
-                                                    id="photoPublic"
-                                                    name="photo_visibility[]"
-                                                    value="PUBLIC"
-                                                    <?= in_array(
-                                                        'PUBLIC',
-                                                        $selectedPhotoVisibility,
-                                                        true
-                                                    )
-                                                        ? 'checked'
-                                                        : '' ?>>
-
-                                                <label
-                                                    class="form-check-label"
-                                                    for="photoPublic">
-
-                                                    Public
-                                                </label>
-
-                                            </div>
-
-                                            <div class="form-check mb-0">
-
-                                                <input
-                                                    type="checkbox"
-                                                    class="form-check-input"
-                                                    id="photoInterested"
-                                                    name="photo_visibility[]"
-                                                    value="INTERESTED_MEMBERS"
-                                                    <?= in_array(
-                                                        'INTERESTED_MEMBERS',
-                                                        $selectedPhotoVisibility,
-                                                        true
-                                                    )
-                                                        ? 'checked'
-                                                        : '' ?>>
-
-                                                <label
-                                                    class="form-check-label"
-                                                    for="photoInterested">
-
-                                                    Visible to Interested Members
-                                                </label>
-
-                                            </div>
-
-                                        </div>
-
-                                    </div>
+                                    
 
                                 </div>
 
