@@ -272,14 +272,49 @@ final class ProfileController extends BaseController
      */
     public function updateBasicDetails(): RedirectResponse
     {
-        $userId = $this->authenticatedUserId();
+        $userId =
+            $this->authenticatedUserId();
 
-        $input = $this->basicDetailsInput();
+        $input =
+            $this->basicDetailsInput();
 
-        $validation = service('validation');
+        /** @var BasicDetailsService $basicDetailsService */
+        $basicDetailsService =
+            service(
+                'basicDetailsService'
+            );
+
+        $basicProfile =
+            $basicDetailsService
+            ->getForUser(
+                $userId
+            );
+
+        $user =
+            is_array(
+                $basicProfile['user']
+                    ?? null
+            )
+            ? $basicProfile['user']
+            : [];
+
+        $gender =
+            trim(
+                (string) (
+                    $user['gender']
+                    ?? ''
+                )
+            );
+
+        $validation =
+            service(
+                'validation'
+            );
 
         $validation->setRules(
-            BasicDetailsValidation::rules()
+            BasicDetailsValidation::rules(
+                $gender
+            )
         );
 
         if (!$validation->run($input)) {
@@ -296,7 +331,10 @@ final class ProfileController extends BaseController
                 );
         }
 
-        $validatedData = $validation->getValidated();
+        $validatedData =
+            $validation->getValidated();
+
+        // Existing code continues unchanged...
 
         try {
             /** @var BasicDetailsService $service */
