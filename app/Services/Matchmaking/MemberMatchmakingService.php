@@ -6,6 +6,7 @@ namespace App\Services\Matchmaking;
 
 use App\Models\MemberMatchCandidateModel;
 use App\Services\Profile\MemberPhotoUrlService;
+use App\Services\Membership\MembershipEntitlementService;
 use App\Models\UserModel;
 use Config\Matchmaking;
 use DateTimeImmutable;
@@ -62,6 +63,16 @@ final class MemberMatchmakingService
          */
         private readonly MemberPhotoUrlService
         $photoUrlService,
+
+        /*
+        * Membership-controlled card capabilities are resolved
+        * through the central entitlement authority.
+        *
+        * Do not infer viewer access from the candidate's
+        * membership state.
+        */
+        private readonly MembershipEntitlementService
+        $membershipEntitlementService,
 
         private readonly Matchmaking
         $configuration
@@ -693,8 +704,25 @@ final class MemberMatchmakingService
         }
 
         /*
-         * Normalize candidate IDs once.
-         */
+        * Resolve the logged-in member's full-profile entitlement
+        * once for the complete Dashboard collection.
+        *
+        * This is a viewer capability, not a property of the
+        * candidate being displayed.
+        *
+        * The actual profile-view endpoint still performs the
+        * authoritative ProfileAccessPolicy authorization.
+        */
+        $canViewFullProfile =
+            $this
+            ->membershipEntitlementService
+            ->canViewFullProfile(
+                $viewerUserId
+            );
+
+        /*
+        * Normalize candidate IDs once.
+        */
         $memberIds = [];
 
         foreach ($rows as $row) {
@@ -894,9 +922,20 @@ final class MemberMatchmakingService
                 $interestRelationship;
 
             /*
-             * Match percentage belongs specifically to matchmaking context,
-             * not to the generic member-summary contract.
-             */
+            * ProfileCard needs the logged-in member's membership
+            * capability to decide whether View Profile or the
+            * upgrade action should be presented.
+            *
+            * This controls presentation only. The profile endpoint
+            * remains responsible for authoritative access control.
+            */
+            $profile['canViewFullProfile'] =
+                $canViewFullProfile;
+
+            /*
+            * Match percentage belongs specifically to matchmaking context,
+            * not to the generic member-summary contract.
+            */
             $profile['matchPercentage'] =
                 isset(
                     $row['match_percentage']

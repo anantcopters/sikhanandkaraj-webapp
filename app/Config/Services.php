@@ -1983,10 +1983,19 @@ final class Services extends BaseService
             ),
 
             /*
-             * Reuse the same centralized photo authorization/signing service used
-             * by Search so Dashboard does not perform one photo query per card.
-             */
+            * Reuse the same centralized photo authorization/signing service used
+            * by Search so Dashboard does not perform one photo query per card.
+            */
             static::memberPhotoUrlService(
+                false
+            ),
+
+            /*
+            * Dashboard ProfileCard presentation needs the viewer's
+            * membership capability so paid members receive the
+            * View Profile action.
+            */
+            static::membershipEntitlementService(
                 false
             ),
 
