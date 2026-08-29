@@ -156,19 +156,21 @@ $this->section(
                 </div>
 
                 <div
-                    class="page-title-right
-                        mt-3
-                        mt-sm-0">
+                    class="d-flex
+        align-items-center
+        justify-content-between
+        gap-3
+        mb-2">
 
                     <a
                         href="<?= route_to(
                                     'admin.members.index'
                                 ) ?>"
-                        class="btn
-                            btn-light
-                            d-inline-flex
-                            align-items-center
-                            gap-1">
+                        class="d-inline-flex
+            align-items-center
+            gap-1
+            text-primary
+            fw-medium">
 
                         <i
                             class="ri-arrow-left-line"
@@ -177,6 +179,43 @@ $this->section(
                         Back to Members
 
                     </a>
+
+                </div>
+
+                <div class="mb-3">
+
+                    <h1
+                        class="fs-24
+            fw-semibold
+            mb-1">
+
+                        Member Matches
+
+                    </h1>
+
+                    <p class="text-muted mb-0">
+
+                        Matches for
+
+                        <span class="fw-semibold">
+
+                            <?= esc(
+                                $memberName
+                            ) ?>
+
+                        </span>
+
+                        <?php if (
+                            $memberReference !== ''
+                        ): ?>
+
+                            (<?= esc(
+                                    $memberReference
+                                ) ?>)
+
+                        <?php endif; ?>
+
+                    </p>
 
                 </div>
 
@@ -483,6 +522,47 @@ $this->section(
             </div>
 
         <?php endif; ?>
+
+    </div>
+
+    <div
+        class="
+        position-fixed
+        top-0
+        start-0
+        w-100
+        h-100
+        bg-light
+        bg-opacity-75
+        d-none
+        align-items-center
+        justify-content-center
+    "
+        style="z-index: 2000;"
+        data-admin-match-results-loader
+        aria-hidden="true">
+
+        <div class="text-center">
+
+            <div
+                class="
+                spinner-border
+                text-primary
+                mb-3
+            "
+                role="status">
+
+                <span class="visually-hidden">
+                    Loading matches...
+                </span>
+
+            </div>
+
+            <div class="fw-medium">
+                Loading profiles...
+            </div>
+
+        </div>
 
     </div>
 

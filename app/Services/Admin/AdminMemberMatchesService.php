@@ -455,6 +455,70 @@ final class AdminMemberMatchesService
                     )
                 );
 
+            $profile['matchScoreComponents'] =
+                isset(
+                    $candidate['match_score_components']
+                )
+                && is_array(
+                    $candidate['match_score_components']
+                )
+                ? $candidate['match_score_components']
+                : [];
+
+            $profile['matchScoreContributions'] =
+                isset(
+                    $candidate['match_score_contributions']
+                )
+                && is_array(
+                    $candidate['match_score_contributions']
+                )
+                ? $candidate['match_score_contributions']
+                : [];
+
+            $profile['partnerPreferenceMatch'] = [
+                'percentage' =>
+                max(
+                    0,
+                    min(
+                        100,
+                        (int) round(
+                            (float) (
+                                $candidate['match_percentage']
+                                ?? 0
+                            )
+                        )
+                    )
+                ),
+
+                'matched' =>
+                max(
+                    0,
+                    (int) (
+                        $candidate['matched_preferences']
+                        ?? 0
+                    )
+                ),
+
+                'total' =>
+                max(
+                    0,
+                    (int) (
+                        $candidate['total_preferences']
+                        ?? 0
+                    )
+                ),
+
+                'criteria' =>
+                isset(
+                    $candidate['match_criteria']
+                )
+                    && is_array(
+                        $candidate['match_criteria']
+                    )
+                    ? $candidate['match_criteria']
+                    : [],
+            ];
+
             $profiles[] =
                 $profile;
         }

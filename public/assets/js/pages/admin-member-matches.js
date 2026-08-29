@@ -8,6 +8,53 @@ document.addEventListener(
                 '[data-admin-match-sort]'
             );
 
+        const loader =
+            document.querySelector(
+                '[data-admin-match-results-loader]'
+            );
+
+        const showLoader = () => {
+            if (
+                !(loader instanceof HTMLElement)
+            ) {
+                return;
+            }
+
+            loader.classList.remove(
+                'd-none'
+            );
+
+            loader.classList.add(
+                'd-flex'
+            );
+
+            loader.setAttribute(
+                'aria-hidden',
+                'false'
+            );
+        };
+
+        const hideLoader = () => {
+            if (
+                !(loader instanceof HTMLElement)
+            ) {
+                return;
+            }
+
+            loader.classList.add(
+                'd-none'
+            );
+
+            loader.classList.remove(
+                'd-flex'
+            );
+
+            loader.setAttribute(
+                'aria-hidden',
+                'true'
+            );
+        };
+
         if (
             sortSelect
             && sortSelect.form
@@ -15,81 +62,16 @@ document.addEventListener(
             sortSelect.addEventListener(
                 'change',
                 () => {
+                    showLoader();
+
                     sortSelect.form.submit();
                 }
             );
         }
 
-        const modalElement =
-            document.getElementById(
-                'admin-match-diagnostic-modal'
-            );
-
-        if (!modalElement) {
-            return;
-        }
-
-        const profileReferenceInput =
-            modalElement.querySelector(
-                '[name="profile_reference"]'
-            );
-
-        const diagnosticButtons =
-            document.querySelectorAll(
-                '[data-match-diagnostic]'
-            );
-
-        diagnosticButtons.forEach(
-            (button) => {
-                button.addEventListener(
-                    'click',
-                    () => {
-                        if (
-                            profileReferenceInput
-                        ) {
-                            profileReferenceInput.value =
-                                button.dataset
-                                    .profileReference
-                                || '';
-
-                            profileReferenceInput
-                                .classList
-                                .remove(
-                                    'is-invalid'
-                                );
-                        }
-
-                        const modal =
-                            bootstrap.Modal
-                                .getOrCreateInstance(
-                                    modalElement
-                                );
-
-                        modal.show();
-                    }
-                );
-            }
+        window.addEventListener(
+            'pageshow',
+            hideLoader
         );
-
-        /*
-         * Diagnostic POST follows the existing Post/Redirect/Get flow.
-         *
-         * When the controller returns validation errors or a completed
-         * comparison through flashdata, reopen the modal automatically.
-         */
-        if (
-            modalElement.dataset
-                .matchResult === '1'
-            || modalElement.dataset
-                .matchError === '1'
-        ) {
-            const modal =
-                bootstrap.Modal
-                    .getOrCreateInstance(
-                        modalElement
-                    );
-
-            modal.show();
-        }
     }
 );
