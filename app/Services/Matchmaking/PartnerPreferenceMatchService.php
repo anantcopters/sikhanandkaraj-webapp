@@ -273,6 +273,15 @@ final class PartnerPreferenceMatchService
                 $score['total'];
 
             /*
+            * Keep individual configured criterion results available to internal
+            * presentation consumers.
+            *
+            * Display labels deliberately remain outside the matching engine.
+            */
+            $candidate['match_criteria'] =
+                $score['criteria'];
+
+            /*
             * Keep the result available to internal consumers without turning it
             * into Search eligibility.
             */

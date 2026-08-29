@@ -10,6 +10,7 @@ use App\Services\Matchmaking\MemberMatchScoreService;
 use App\Services\Matchmaking\MemberProfilePresentationService;
 use App\Services\Matchmaking\PartnerPreferenceMatchService;
 use App\Services\Profile\MemberPhotoUrlService;
+use App\Services\Matchmaking\PartnerPreferencePresentationService;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use Config\Matchmaking;
 
@@ -60,6 +61,9 @@ final class AdminMemberMatchesService
 
         private readonly MemberPhotoUrlService
         $photoUrlService,
+
+        private readonly PartnerPreferencePresentationService
+        $partnerPreferencePresentationService,
 
         private readonly Matchmaking
         $configuration
@@ -432,16 +436,50 @@ final class AdminMemberMatchesService
                     $candidateId
                 );
 
-            $profile['partnerPreferencePercentage'] = max(
-                0.0,
-                min(
-                    100.0,
-                    (float) (
-                        $candidate['match_percentage']
+            $partnerPreferencePercentage =
+                max(
+                    0,
+                    min(
+                        100,
+                        (int) round(
+                            (float) (
+                                $candidate['match_percentage']
+                                ?? 0
+                            )
+                        )
+                    )
+                );
+
+            $matchedPreferenceCount =
+                max(
+                    0,
+                    (int) (
+                        $candidate['matched_preferences']
                         ?? 0
                     )
+                );
+
+            $totalPreferenceCount =
+                max(
+                    0,
+                    (int) (
+                        $candidate['total_preferences']
+                        ?? 0
+                    )
+                );
+
+            $matchCriteria =
+                isset(
+                    $candidate['match_criteria']
                 )
-            );
+                && is_array(
+                    $candidate['match_criteria']
+                )
+                ? $candidate['match_criteria']
+                : [];
+
+            $profile['partnerPreferencePercentage'] =
+                $partnerPreferencePercentage;
 
             $profile['matchScore'] =
                 max(
@@ -477,47 +515,33 @@ final class AdminMemberMatchesService
 
             $profile['partnerPreferenceMatch'] = [
                 'percentage' =>
-                max(
-                    0,
-                    min(
-                        100,
-                        (int) round(
-                            (float) (
-                                $candidate['match_percentage']
-                                ?? 0
-                            )
-                        )
-                    )
-                ),
+                $partnerPreferencePercentage,
 
                 'matched' =>
-                max(
-                    0,
-                    (int) (
-                        $candidate['matched_preferences']
-                        ?? 0
-                    )
-                ),
+                $matchedPreferenceCount,
 
                 'total' =>
+                $totalPreferenceCount,
+
+                'unmatched' =>
                 max(
                     0,
-                    (int) (
-                        $candidate['total_preferences']
-                        ?? 0
-                    )
+                    $totalPreferenceCount
+                        - $matchedPreferenceCount
                 ),
 
                 'criteria' =>
-                isset(
-                    $candidate['match_criteria']
-                )
-                    && is_array(
-                        $candidate['match_criteria']
-                    )
-                    ? $candidate['match_criteria']
-                    : [],
+                $matchCriteria,
+
+                'displayItems' =>
+                $this
+                    ->partnerPreferencePresentationService
+                    ->displayItems(
+                        $memberUserId,
+                        $matchCriteria
+                    ),
             ];
+
 
             $profiles[] =
                 $profile;

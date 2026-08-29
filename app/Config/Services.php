@@ -163,6 +163,7 @@ use App\Models\MemberPaymentModel;
 use App\Services\Development\DevelopmentMembershipPaymentSimulator;
 use App\Services\Membership\MembershipPaymentService;
 use App\Services\Admin\AdminMemberMatchesService;
+use App\Services\Matchmaking\PartnerPreferencePresentationService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -1589,6 +1590,32 @@ final class Services extends BaseService
     }
 
     /**
+     * Return the shared Partner Preference presentation service.
+     *
+     * Matching remains owned by PartnerPreferenceMatchService. This service
+     * only resolves authoritative Match criteria into readable UI rows.
+     */
+    public static function partnerPreferencePresentationService(
+        bool $getShared = true
+    ): PartnerPreferencePresentationService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'partnerPreferencePresentationService'
+            );
+        }
+
+        return new PartnerPreferencePresentationService(
+            static::basicPartnerPreferenceService(
+                false
+            ),
+
+            static::additionalPartnerPreferenceService(
+                false
+            )
+        );
+    }
+
+    /**
      * Administrator member listing, complete profile display and
      * account-status management.
      */
@@ -1709,6 +1736,10 @@ final class Services extends BaseService
             ),
 
             static::memberPhotoUrlService(
+                false
+            ),
+
+            static::partnerPreferencePresentationService(
                 false
             ),
 
@@ -2114,18 +2145,10 @@ final class Services extends BaseService
                 false
             ),
 
-            /*
-         * Reuse the existing Partner Preference services.
-         *
-         * These provide the human-readable preference values
-         * required by the Partner Preference Match modal.
-         */
-            static::basicPartnerPreferenceService(
+            static::partnerPreferencePresentationService(
                 false
             ),
-            static::additionalPartnerPreferenceService(
-                false
-            ),
+            
             static::profileAccessPolicy(
                 false
             )

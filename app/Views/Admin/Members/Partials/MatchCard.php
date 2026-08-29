@@ -400,24 +400,24 @@ $preferenceModalId =
 
             <div
                 class="d-flex
-                    align-items-center
-                    mt-3">
+            align-items-center
+            mt-3">
 
                 <div
                     class="avatar-xs
-                        flex-shrink-0
-                        me-2">
+                flex-shrink-0
+                me-2">
 
                     <span
                         class="avatar-title
-                            bg-dark-subtle
-                            rounded-circle
-                            shadow">
+                    bg-dark-subtle
+                    rounded-circle
+                    shadow">
 
                         <i
                             class="ri-briefcase-4-line
-                                fs-16
-                                text-primary"
+                        fs-16
+                        text-primary"
                             aria-hidden="true"></i>
 
                     </span>
@@ -428,8 +428,8 @@ $preferenceModalId =
 
                     <h5
                         class="fs-13
-                            mb-0
-                            fw-semibold">
+                    mb-0
+                    fw-semibold">
 
                         <?= esc(
                             $professionalSummary
@@ -442,6 +442,117 @@ $preferenceModalId =
             </div>
 
         <?php endif; ?>
+
+
+        <!-- Admin-only Match scores -->
+        <div
+            class="d-flex
+        align-items-center
+        flex-wrap
+        gap-3
+        mt-3
+        pt-3
+        border-top">
+
+            <div
+                class="d-flex
+            align-items-center
+            gap-2">
+
+                <span
+                    class="avatar-xs
+                flex-shrink-0">
+
+                    <span
+                        class="avatar-title
+                    bg-primary-subtle
+                    text-primary
+                    rounded-circle">
+
+                        <i
+                            class="ri-calculator-line"
+                            aria-hidden="true"></i>
+
+                    </span>
+
+                </span>
+
+                <div>
+
+                    <div
+                        class="text-muted
+                    fs-11">
+
+                        Match Score
+
+                    </div>
+
+                    <div
+                        class="fw-semibold
+                    fs-16
+                    lh-1">
+
+                        <?= esc(
+                            (string) $matchScore
+                        ) ?>%
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div
+                class="d-flex
+            align-items-center
+            gap-2">
+
+                <span
+                    class="avatar-xs
+                flex-shrink-0">
+
+                    <span
+                        class="avatar-title
+                    bg-success-subtle
+                    text-success
+                    rounded-circle">
+
+                        <i
+                            class="ri-list-check-3"
+                            aria-hidden="true"></i>
+
+                    </span>
+
+                </span>
+
+                <div>
+
+                    <div
+                        class="text-muted
+                    fs-11">
+
+                        Partner Preference
+
+                    </div>
+
+                    <div
+                        class="fw-semibold
+                    fs-16
+                    lh-1">
+
+                        <?= esc(
+                            (string)
+                            $partnerPreferencePercentage
+                        ) ?>%
+
+                    </div>
+
+                </div>
+
+            </div>           
+
+        </div>
 
     </div>
 

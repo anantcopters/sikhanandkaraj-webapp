@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use CodeIgniter\Pager\Pager;
+use App\Services\Admin\AdminMemberMatchesService;
 
 /**
  * @var array<string, mixed>       $member
@@ -60,7 +61,7 @@ $resolvedSearch = trim(
 $resolvedSort = trim(
     (string) (
         $sort
-        ?? 'match_score'
+        ?? AdminMemberMatchesService::SORT_MATCH_SCORE
     )
 );
 
@@ -78,30 +79,6 @@ $resolvedPagerGroup = trim(
         ?? 'adminMemberMatches'
     )
 );
-
-$comparison =
-    isset($matchScoreComparison)
-    && is_array(
-        $matchScoreComparison
-    )
-    ? $matchScoreComparison
-    : [];
-
-$diagnosticErrors =
-    isset($matchScoreDiagnosticErrors)
-    && is_array(
-        $matchScoreDiagnosticErrors
-    )
-    ? $matchScoreDiagnosticErrors
-    : [];
-
-$diagnosticInput =
-    isset($matchScoreDiagnosticInput)
-    && is_array(
-        $matchScoreDiagnosticInput
-    )
-    ? $matchScoreDiagnosticInput
-    : [];
 
 $this->extend(
     'Admin/Layouts/Main'
@@ -122,8 +99,7 @@ $this->section(
                 class="page-title-box
                     d-sm-flex
                     align-items-sm-center
-                    justify-content-between
-                    gap-3">
+                    justify-content-between">
 
                 <div>
 
@@ -131,14 +107,18 @@ $this->section(
                         Member Matches
                     </h4>
 
-                    <p class="text-muted mb-0 mt-1">
+                    <p
+                        class="text-muted
+                            mb-0 mt-1">
 
                         Matches for
 
                         <span class="fw-semibold">
+
                             <?= esc(
                                 $memberName
                             ) ?>
+
                         </span>
 
                         <?php if (
@@ -156,21 +136,18 @@ $this->section(
                 </div>
 
                 <div
-                    class="d-flex
-        align-items-center
-        justify-content-between
-        gap-3
-        mb-2">
+                    class="page-title-right
+                        mt-3 mt-sm-0">
 
                     <a
                         href="<?= route_to(
                                     'admin.members.index'
                                 ) ?>"
-                        class="d-inline-flex
-            align-items-center
-            gap-1
-            text-primary
-            fw-medium">
+                        class="btn
+                            btn-light
+                            d-inline-flex
+                            align-items-center
+                            gap-1">
 
                         <i
                             class="ri-arrow-left-line"
@@ -179,43 +156,6 @@ $this->section(
                         Back to Members
 
                     </a>
-
-                </div>
-
-                <div class="mb-3">
-
-                    <h1
-                        class="fs-24
-            fw-semibold
-            mb-1">
-
-                        Member Matches
-
-                    </h1>
-
-                    <p class="text-muted mb-0">
-
-                        Matches for
-
-                        <span class="fw-semibold">
-
-                            <?= esc(
-                                $memberName
-                            ) ?>
-
-                        </span>
-
-                        <?php if (
-                            $memberReference !== ''
-                        ): ?>
-
-                            (<?= esc(
-                                    $memberReference
-                                ) ?>)
-
-                        <?php endif; ?>
-
-                    </p>
 
                 </div>
 
@@ -241,7 +181,8 @@ $this->section(
                         ) ?>"
                 class="row
                     g-2
-                    align-items-end">
+                    align-items-end"
+                data-admin-match-form>
 
                 <div
                     class="col-12
@@ -257,7 +198,8 @@ $this->section(
 
                     <div class="input-group">
 
-                        <span class="input-group-text">
+                        <span
+                            class="input-group-text">
 
                             <i
                                 class="ri-search-line"
@@ -304,9 +246,12 @@ $this->section(
                         data-choice-position="bottom">
 
                         <option
-                            value="match_score"
+                            value="<?= esc(
+                                        AdminMemberMatchesService::SORT_MATCH_SCORE,
+                                        'attr'
+                                    ) ?>"
                             <?= $resolvedSort
-                                === 'match_score'
+                                === AdminMemberMatchesService::SORT_MATCH_SCORE
                                 ? 'selected'
                                 : '' ?>>
 
@@ -315,9 +260,12 @@ $this->section(
                         </option>
 
                         <option
-                            value="partner_preference"
+                            value="<?= esc(
+                                        AdminMemberMatchesService::SORT_PARTNER_PREFERENCE,
+                                        'attr'
+                                    ) ?>"
                             <?= $resolvedSort
-                                === 'partner_preference'
+                                === AdminMemberMatchesService::SORT_PARTNER_PREFERENCE
                                 ? 'selected'
                                 : '' ?>>
 
@@ -335,8 +283,7 @@ $this->section(
 
                     <button
                         type="submit"
-                        class="btn
-                            btn-primary">
+                        class="btn btn-primary">
 
                         <i
                             class="ri-search-line me-1"
@@ -355,7 +302,8 @@ $this->section(
                                         'admin.members.matches',
                                         $memberId
                                     ) ?>"
-                            class="btn btn-light">
+                            class="btn btn-light"
+                            data-admin-match-navigation>
 
                             Reset
 
@@ -380,7 +328,8 @@ $this->section(
                     gap-2
                     mb-3">
 
-                <div class="text-muted fs-13">
+                <div
+                    class="text-muted fs-13">
 
                     <i
                         class="ri-information-line me-1"
@@ -390,10 +339,12 @@ $this->section(
                     Partner Preference threshold of
 
                     <strong>
+
                         <?= esc(
                             (string)
                             $minimumMatchPercentage
                         ) ?>%
+
                     </strong>
 
                     are included.
@@ -452,7 +403,6 @@ $this->section(
 
             <?php else: ?>
 
-                <!-- 3 columns x 3 rows on XL screens -->
                 <div class="row g-3">
 
                     <?php foreach (
@@ -470,9 +420,6 @@ $this->section(
                                 [
                                     'profile' =>
                                     $profile,
-
-                                    'memberId' =>
-                                    $memberId,
                                 ]
                             ) ?>
 
@@ -497,7 +444,9 @@ $this->section(
             ]);
             ?>
 
-            <div class="card-footer py-3">
+            <div
+                class="card-footer py-3"
+                data-admin-match-pagination>
 
                 <?= view(
                     'Components/Pagination',
@@ -526,18 +475,16 @@ $this->section(
     </div>
 
     <div
-        class="
-        position-fixed
-        top-0
-        start-0
-        w-100
-        h-100
-        bg-light
-        bg-opacity-75
-        d-none
-        align-items-center
-        justify-content-center
-    "
+        class="position-fixed
+            top-0
+            start-0
+            w-100
+            h-100
+            bg-light
+            bg-opacity-75
+            d-none
+            align-items-center
+            justify-content-center"
         style="z-index: 2000;"
         data-admin-match-results-loader
         aria-hidden="true">
@@ -545,11 +492,9 @@ $this->section(
         <div class="text-center">
 
             <div
-                class="
-                spinner-border
-                text-primary
-                mb-3
-            "
+                class="spinner-border
+                    text-primary
+                    mb-3"
                 role="status">
 
                 <span class="visually-hidden">
@@ -567,29 +512,6 @@ $this->section(
     </div>
 
 </div>
-
-<?= view(
-    'Admin/Members/Partials/MatchComparisonModal',
-    [
-        'memberId' =>
-        $memberId,
-
-        'memberName' =>
-        $memberName,
-
-        'memberReference' =>
-        $memberReference,
-
-        'comparison' =>
-        $comparison,
-
-        'diagnosticErrors' =>
-        $diagnosticErrors,
-
-        'diagnosticInput' =>
-        $diagnosticInput,
-    ]
-) ?>
 
 <?php
 $this->endSection();

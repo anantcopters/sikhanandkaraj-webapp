@@ -290,25 +290,8 @@ final class MemberController extends BaseController
 
                     ...$result,
 
-                    'matchScoreComparison' =>
-                    session(
-                        'matchScoreComparison'
-                    ),
-
-                    'matchScoreDiagnosticErrors' =>
-                    session(
-                        'matchScoreDiagnosticErrors'
-                    ) ?? [],
-
-                    'matchScoreDiagnosticInput' =>
-                    session(
-                        'matchScoreDiagnosticInput'
-                    ) ?? [],
-
                     'pageScripts' => [
                         'assets/js/pages/admin-member-matches.js',
-                        'assets/js/components/form-validator.js',
-                        'assets/js/components/submit-loader.js',
                     ],
                 ]
             );
@@ -412,10 +395,7 @@ final class MemberController extends BaseController
         if (!$validation->run($input)) {
             return redirect()
                 ->to(
-                    route_to(
-                        $returnUrl,
-                        $userId
-                    )
+                    $returnUrl
                 )
                 ->with(
                     'matchScoreDiagnosticErrors',
@@ -428,11 +408,6 @@ final class MemberController extends BaseController
         }
 
         try {
-            /*
-         * Reuse the existing Admin diagnostic service.
-         *
-         * Controller remains orchestration only and contains no scoring logic.
-         */
             $diagnostic =
                 service(
                     'memberMatchScoreDiagnosticService'
@@ -443,10 +418,7 @@ final class MemberController extends BaseController
 
             return redirect()
                 ->to(
-                    route_to(
-                        'admin.members.view',
-                        $userId
-                    )
+                    $returnUrl
                 )
                 ->with(
                     'matchScoreComparison',
@@ -459,10 +431,7 @@ final class MemberController extends BaseController
         } catch (DomainException $exception) {
             return redirect()
                 ->to(
-                    route_to(
-                        'admin.members.view',
-                        $userId
-                    )
+                    $returnUrl
                 )
                 ->with(
                     'matchScoreDiagnosticErrors',
