@@ -45,10 +45,7 @@ $currentYear =
                         font-size:12px;
                         line-height:1.6;
                     ">
-                    SikhanandKaraj is built
-                    to help Sikh families connect
-                    through a trusted matrimonial
-                    platform.
+                    A secure Sikh matrimonial platform helping individuals and families discover meaningful relationships rooted in faith and shared values.
                 </td>
             </tr>
 
@@ -62,7 +59,7 @@ $currentYear =
                     © <?= esc(
                             $currentYear
                         ) ?>
-                    SikhanandKaraj.
+                    Sikhanandkaraj.
                     All rights reserved.
                 </td>
             </tr>

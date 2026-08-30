@@ -110,6 +110,12 @@ $pageScripts = $pageScripts ?? [];
                 'admin/match-score'
             );
 
+        $emailPreviewActive =
+            str_starts_with(
+                $currentPath,
+                'admin/email-preview'
+            );
+
         $sakVolunteersActive =
             str_starts_with(
                 $currentPath,
@@ -131,7 +137,8 @@ $pageScripts = $pageScripts ?? [];
 
         $administrationGroupActive =
             $administratorsActive
-            || $matchScoreActive;
+            || $matchScoreActive
+            || $emailPreviewActive;
 
         $profileReportsActive =
             str_starts_with(
@@ -645,6 +652,31 @@ $pageScripts = $pageScripts ?? [];
                                                     aria-hidden="true"></i>
 
                                                 Match Score
+                                            </a>
+                                        </li>
+
+                                        <li>
+                                            <a
+                                                href="<?= route_to(
+                                                            'admin.email-preview.index'
+                                                        ) ?>"
+                                                class="dropdown-item
+            d-flex
+            align-items-center
+            gap-2
+            <?= $emailPreviewActive
+                                    ? 'active'
+                                    : '' ?>"
+                                                <?= $emailPreviewActive
+                                                    ? 'aria-current="page"'
+                                                    : '' ?>>
+
+                                                <i
+                                                    class="ri-mail-settings-line"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                Email Preview Centre
                                             </a>
                                         </li>
                                     </ul>
