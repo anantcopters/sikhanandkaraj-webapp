@@ -8,6 +8,9 @@ use InvalidArgumentException;
 
 final class TestEmailService
 {
+    private const TEST_SUBJECT_PREFIX =
+    'TEST EMAIL - SikhanandKaraj QA - ';
+
     public function __construct(
         private readonly EmailRegistry $registry,
         private readonly EmailQueueService $queueService
@@ -19,7 +22,9 @@ final class TestEmailService
     ): int {
         $recipientEmail =
             mb_strtolower(
-                trim($recipientEmail)
+                trim(
+                    $recipientEmail
+                )
             );
 
         if (
@@ -45,7 +50,7 @@ final class TestEmailService
 
                 recipientName: 'SikhanandKaraj QA',
 
-                subject: '[TEST] '
+                subject: self::TEST_SUBJECT_PREFIX
                     . $definition->subject,
 
                 viewName: $definition->viewName,

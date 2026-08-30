@@ -17,8 +17,8 @@ final class EmailRegistry
     public const CATEGORY_VERIFICATION =
     'VERIFICATION';
 
-    public const CATEGORY_ADMIN =
-    'ADMINISTRATION';
+    public const CATEGORY_SECURITY =
+    'SECURITY';
 
     /**
      * @return array<string, EmailDefinition>
@@ -69,7 +69,7 @@ final class EmailRegistry
 
                 name: 'Administrator Invitation',
 
-                category: self::CATEGORY_ADMIN,
+                category: self::CATEGORY_SECURITY,
 
                 subject: 'Complete your SikhanandKaraj administrator account',
 
