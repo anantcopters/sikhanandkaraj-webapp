@@ -164,6 +164,11 @@ use App\Services\Development\DevelopmentMembershipPaymentSimulator;
 use App\Services\Membership\MembershipPaymentService;
 use App\Services\Admin\AdminMemberMatchesService;
 use App\Services\Matchmaking\PartnerPreferencePresentationService;
+use App\Services\Email\AdminEmailService;
+use App\Services\Email\EmailRegistry;
+use App\Services\Email\EmailRenderer;
+use App\Services\Email\MemberEmailService;
+use App\Services\Email\TestEmailService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -464,7 +469,7 @@ final class Services extends BaseService
         return new AdminInvitationService(
             new AdminUserModel($database),
             new AdminInvitationModel($database),
-            new EmailQueueService($database),
+            static::adminEmailService(false),
             $database
         );
     }
@@ -2148,7 +2153,7 @@ final class Services extends BaseService
             static::partnerPreferencePresentationService(
                 false
             ),
-            
+
             static::profileAccessPolicy(
                 false
             )
@@ -3323,5 +3328,74 @@ final class Services extends BaseService
                     \App\Models\MemberMembershipLiveIntroductionViewModel::class
                 )
             );
+    }
+
+    public static function emailRegistry(
+        bool $getShared = true
+    ): EmailRegistry {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'emailRegistry'
+            );
+        }
+
+        return new EmailRegistry();
+    }
+
+    public static function emailRenderer(
+        bool $getShared = true
+    ): EmailRenderer {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'emailRenderer'
+            );
+        }
+
+        return new EmailRenderer();
+    }
+
+    public static function memberEmailService(
+        bool $getShared = true
+    ): MemberEmailService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberEmailService'
+            );
+        }
+
+        return new MemberEmailService(
+            static::emailRegistry(false),
+            new EmailQueueService()
+        );
+    }
+
+    public static function adminEmailService(
+        bool $getShared = true
+    ): AdminEmailService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'adminEmailService'
+            );
+        }
+
+        return new AdminEmailService(
+            static::emailRegistry(false),
+            new EmailQueueService()
+        );
+    }
+
+    public static function testEmailService(
+        bool $getShared = true
+    ): TestEmailService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'testEmailService'
+            );
+        }
+
+        return new TestEmailService(
+            static::emailRegistry(false),
+            new EmailQueueService()
+        );
     }
 }
