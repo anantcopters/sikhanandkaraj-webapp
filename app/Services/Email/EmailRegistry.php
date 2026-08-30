@@ -34,7 +34,7 @@ final class EmailRegistry
 
                 category: self::CATEGORY_VERIFICATION,
 
-                subject: 'Verify your SikhanandKaraj email',
+                subject: 'Verify your Sikhanandkaraj email',
 
                 viewName: 'Emails/Authentication/VerifyEmail',
 
@@ -71,7 +71,7 @@ final class EmailRegistry
 
                 category: self::CATEGORY_SECURITY,
 
-                subject: 'Complete your SikhanandKaraj administrator account',
+                subject: 'Complete your Sikhanandkaraj administrator account',
 
                 viewName: 'Emails/Admin/AdminInvitation',
 

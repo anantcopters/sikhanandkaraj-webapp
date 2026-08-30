@@ -34,7 +34,7 @@ $resolvedSubtitle =
                             $resolvedLogo,
                             'attr'
                         ) ?>"
-                alt="SikhanandKaraj"
+                alt="Sikhanandkaraj"
                 width="210"
                 style="
                     display:block;
@@ -54,7 +54,7 @@ $resolvedSubtitle =
                     line-height:1.2;
                     font-weight:700;
                 ">
-                SikhanandKaraj
+                Sikhanandkaraj
             </div>
 
         <?php endif; ?>

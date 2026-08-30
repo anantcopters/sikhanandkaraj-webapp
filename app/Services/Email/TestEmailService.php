@@ -9,7 +9,7 @@ use InvalidArgumentException;
 final class TestEmailService
 {
     private const TEST_SUBJECT_PREFIX =
-    'TEST EMAIL - SikhanandKaraj QA - ';
+    'TEST EMAIL - Sikhanandkaraj QA - ';
 
     public function __construct(
         private readonly EmailRegistry $registry,
@@ -48,7 +48,7 @@ final class TestEmailService
             ->enqueue(
                 recipientEmail: $recipientEmail,
 
-                recipientName: 'SikhanandKaraj QA',
+                recipientName: 'Sikhanandkaraj QA',
 
                 subject: self::TEST_SUBJECT_PREFIX
                     . $definition->subject,

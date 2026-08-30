@@ -49,7 +49,7 @@ ob_start();
         line-height:1.7;
     ">
     You have been invited to become
-    an administrator for SikhanandKaraj.
+    an administrator for Sikhanandkaraj.
 </p>
 
 <p

@@ -62,7 +62,7 @@ ob_start();
         <?= esc($resolvedEmail) ?>
     </strong>
     should be linked with your
-    SikhanandKaraj account.
+    Sikhanandkaraj account.
 </p>
 
 <?php if ($isReplacement): ?>
