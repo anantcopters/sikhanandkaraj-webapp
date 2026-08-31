@@ -220,7 +220,7 @@ $pageScripts = $pageScripts ?? [];
                         <img
                             src="<?= base_url(
                                         'assets/images/'
-                                            . 'logo_sak_bgremove_final.png'
+                                            . 'logo_sak_header.png'
                                     ) ?>"
                             alt="Sikhanandkaraj"
                             class="public-navbar__logo">

@@ -43,6 +43,13 @@ final class EngagementDigestService
     private const MAXIMUM_BATCH_SIZE =
     500;
 
+    /**
+     * Keep Engagement reservation recovery aligned with the current
+     * communication/email operational stale-work threshold.
+     */
+    private const STALE_PROCESSING_MINUTES =
+    10;
+
     public function __construct(
         private readonly CommunicationEventModel
         $eventModel,
@@ -93,11 +100,25 @@ final class EngagementDigestService
             );
 
         /*
-        * Filter the recipient batch by the requested digest frequency before
-        * LIMIT is applied.
-        *
-        * CommunicationPolicyService still revalidates the current preference
-        * immediately before queueing each member's digest.
+        * Recover Engagement events left in PROCESSING by an interrupted previous
+        * digest run.
+        */
+        $this
+            ->eventModel
+            ->releaseStaleEngagementProcessing(
+                self::STALE_PROCESSING_MINUTES
+            );
+
+        /*
+        * Explicitly opted-out members must not accumulate an Engagement backlog.
+        */
+        $this
+            ->eventModel
+            ->consumeOptedOutEngagementEvents();
+
+        /*
+        * Apply frequency before LIMIT so another frequency cannot consume this
+        * worker's batch capacity.
         */
         $recipientUserIds =
             $this
@@ -239,6 +260,12 @@ final class EngagementDigestService
          * SKIP LOCKED prevents two digest workers from consuming the same
          * member activity concurrently.
          */
+        /*
+ * Reserve this member's pending Engagement events.
+ *
+ * SKIP LOCKED prevents two digest workers from consuming the same member
+ * activity concurrently.
+ */
         $events =
             $this
             ->eventModel
@@ -258,15 +285,59 @@ final class EngagementDigestService
 
         $eventIds =
             array_values(
-                array_map(
-                    static fn(array $event): int =>
-                    (int) (
-                        $event['id']
-                        ?? 0
+                array_filter(
+                    array_map(
+                        static fn(array $event): int =>
+                        (int) (
+                            $event['id']
+                            ?? 0
+                        ),
+                        $events
                     ),
-                    $events
+                    static fn(int $eventId): bool =>
+                    $eventId > 0
                 )
             );
+
+        /*
+        * Normal member email requires a verified primary email.
+        *
+        * Reuse the same authoritative recipient resolver as every other normal
+        * member email.
+        */
+        $recipient =
+            $this
+            ->recipientService
+            ->verifiedPrimaryEmail(
+                $recipientUserId
+            );
+
+        if ($recipient === null) {
+            /*
+            * No verified primary email means the communication is intentionally
+            * skipped.
+            *
+            * Consume the current events so activity which occurred while the
+            * member was ineligible for email is not delivered later as a stale
+            * digest after an email address is verified.
+            */
+            $this
+                ->eventModel
+                ->markSkippedEngagementIds(
+                    $eventIds,
+                    'Engagement email skipped because no verified primary email was available.'
+                );
+
+            return [
+                'queued' =>
+                false,
+
+                'events' =>
+                count(
+                    $eventIds
+                ),
+            ];
+        }
 
         try {
             $summary =
@@ -335,15 +406,21 @@ final class EngagementDigestService
                     $eventIds
                 );
 
-            return [
-                'queued' =>
-                true,
+            if ($recipient === null) {
+                /*
+                * Do not consume the events.
+                *
+                * The member may verify an email later, at which point the
+                * pending Engagement events remain available.
+                */
+                return [
+                    'queued' =>
+                    false,
 
-                'events' =>
-                count(
-                    $eventIds
-                ),
-            ];
+                    'events' =>
+                    0,
+                ];
+            }
         } catch (Throwable $exception) {
             /*
              * Queue failure must not lose Engagement activity.

@@ -1208,15 +1208,55 @@ Intentionally deferred/not required in the current scope:
 - Additional membership reminder cadences: Phase 3 policy/preferences.
 - Payment-failed email: implement when the authoritative payment failure workflow/product requirement is finalized.
 
-## Phase 3 - Unified communication policy - NEXT
+## Phase 3 - Unified communication policy - IMPLEMENTED
 
-- Central communication event orchestration/policy.
+Implemented:
+
+- Channel-independent `CommunicationEventRegistry`.
+- Durable `communication_events` orchestration boundary.
+- Concurrency-safe reference-backed communication-event idempotency.
+- Central `CommunicationPolicyService`.
+- Channel-independent communication categories and delivery decisions.
 - Member Communication Preferences.
-- Digest support.
-- Centralized concurrency-grade communication idempotency/outbox strategy where required.
-- Communication operations/admin view.
-- Delivery metrics.
-- Scheduled/digest preference handling.
+- Matrimonial Activity email preference.
+- Engagement email frequency controls:
+  - Daily Digest.
+  - Weekly Digest.
+  - Off.
+- Existing application Choices UI reused for Engagement frequency selection.
+- `PROFILE_VIEWED` business-event producer.
+- `PROFILE_SHORTLISTED` business-event producer.
+- Privacy-safe Engagement digest aggregation.
+- Daily and Weekly Engagement digest processing.
+- Frequency-aware recipient batching.
+- Verified-primary-email eligibility reused for digest delivery.
+- Durable email queue reused as the email delivery boundary.
+- Engagement event reservation using PostgreSQL row locking and
+  `SKIP LOCKED`.
+- Recovery of stale Engagement event reservations.
+- Opted-out Engagement event consumption so disabled communication does
+  not accumulate a future backlog.
+- Communication Operations administration screen.
+- Email queue status visibility.
+- Queue-health visibility including:
+  - ready work;
+  - retry pending;
+  - stale processing;
+  - permanent failures;
+  - oldest pending communication.
+- Scheduled digest CLI with meaningful process exit codes.
+
+Phase 3 intentionally does not include:
+
+- Manual administrative retry.
+- Additional Engagement automation.
+- Marketing/bulk campaigns.
+- SMS channel standardization.
+- WhatsApp delivery.
+- Provider-specific bounce/read analytics.
+
+Those capabilities belong to later approved phases and are not required
+for Phase 3 completion.
 
 ## Phase 4 - SMS standardization
 

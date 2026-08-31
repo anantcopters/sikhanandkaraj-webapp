@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 namespace App\Models;
+use App\Services\Communication\CommunicationCategory;
 
 use App\Services\Communication\CommunicationEventRegistry;
 use CodeIgniter\Model;
@@ -263,6 +264,140 @@ final class CommunicationEventModel extends Model
 
             throw $exception;
         }
+    }
+
+    /**
+     * Release stale Engagement reservations.
+     *
+     * A digest process may terminate after reserving events but before either:
+     *
+     * - queueing the digest and marking the events PROCESSED; or
+     * - returning the events to PENDING.
+     *
+     * Without recovery those PROCESSING rows would never be selected again.
+     *
+     * This follows the same stale-work recovery principle already used by the
+     * durable email queue.
+     */
+    public function releaseStaleEngagementProcessing(
+        int $staleMinutes = 10
+    ): int {
+        $staleMinutes =
+            max(
+                1,
+                min(
+                    60,
+                    $staleMinutes
+                )
+            );
+
+        $result =
+            $this
+            ->db
+            ->query(
+                '
+            UPDATE
+                communication_events
+            SET
+                status = ?,
+                processing_started_at = NULL,
+                updated_at = CURRENT_TIMESTAMP,
+                last_error = ?
+            WHERE
+                status = ?
+                AND processing_started_at IS NOT NULL
+                AND processing_started_at
+                    <= CURRENT_TIMESTAMP
+                    - (? * INTERVAL \'1 minute\')
+                AND event_key IN (?, ?)
+            ',
+                [
+                    self::STATUS_PENDING,
+
+                    'Recovered stale Engagement digest reservation.',
+
+                    self::STATUS_PROCESSING,
+
+                    $staleMinutes,
+
+                    CommunicationEventRegistry
+                    ::PROFILE_VIEWED,
+
+                    CommunicationEventRegistry
+                    ::PROFILE_SHORTLISTED,
+                ]
+            );
+
+        return max(
+            0,
+            $this
+                ->db
+                ->affectedRows()
+        );
+    }
+
+    /**
+     * Consume pending Engagement events for members who explicitly disabled
+     * Engagement email.
+     *
+     * Engagement defaults to OFF when no preference exists, but only explicit
+     * OFF rows are consumed here. A missing preference row is left untouched
+     * because it may belong to a member whose preference record has not yet
+     * been initialized.
+     */
+    public function consumeOptedOutEngagementEvents(): int
+    {
+        $this
+            ->db
+            ->query(
+                '
+            UPDATE
+                communication_events AS event
+            SET
+                status = ?,
+                processed_at = CURRENT_TIMESTAMP,
+                processing_started_at = NULL,
+                updated_at = CURRENT_TIMESTAMP,
+                last_error = ?
+            FROM
+                member_communication_preferences AS preference
+            WHERE
+                event.recipient_user_id =
+                    preference.user_id
+                AND preference.category = ?
+                AND preference.channel = ?
+                AND preference.frequency = ?
+                AND event.status = ?
+                AND event.event_key IN (?, ?)
+            ',
+                [
+                    self::STATUS_PROCESSED,
+
+                    'Engagement email skipped by member communication preference.',
+
+                    CommunicationCategory
+                    ::ENGAGEMENT,
+
+                    'EMAIL',
+
+                    'OFF',
+
+                    self::STATUS_PENDING,
+
+                    CommunicationEventRegistry
+                    ::PROFILE_VIEWED,
+
+                    CommunicationEventRegistry
+                    ::PROFILE_SHORTLISTED,
+                ]
+            );
+
+        return max(
+            0,
+            $this
+                ->db
+                ->affectedRows()
+        );
     }
 
     /**
@@ -556,6 +691,61 @@ final class CommunicationEventModel extends Model
                     mb_substr(
                         trim(
                             $error
+                        ),
+                        0,
+                        1000
+                    ),
+                ]
+            );
+    }
+
+    /**
+     * Mark Engagement events as intentionally consumed when current policy or
+     * recipient eligibility means that no email should be generated.
+     *
+     * These events must not remain PENDING indefinitely. If the member later
+     * changes communication preferences or verifies an email address, old
+     * Engagement activity must not suddenly generate a stale digest.
+     *
+     * @param list<int> $ids
+     */
+    public function markSkippedEngagementIds(
+        array $ids,
+        string $reason
+    ): void {
+        $ids =
+            $this
+            ->normaliseIds(
+                $ids
+            );
+
+        if ($ids === []) {
+            return;
+        }
+
+        $this
+            ->updateStatusForIds(
+                $ids,
+                self::STATUS_PROCESSED,
+                [
+                    'processing_started_at' =>
+                    null,
+
+                    'processed_at' =>
+                    gmdate(
+                        'Y-m-d H:i:s'
+                    ),
+
+                    /*
+                 * There is intentionally no additional SKIPPED status.
+                 *
+                 * The existing schema remains unchanged. last_error records
+                 * why no downstream email was generated.
+                 */
+                    'last_error' =>
+                    mb_substr(
+                        trim(
+                            $reason
                         ),
                         0,
                         1000

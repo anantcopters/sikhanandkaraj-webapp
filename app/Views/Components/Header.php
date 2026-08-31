@@ -187,7 +187,7 @@ $hidePublicLoginAction =
 
                 <img
                     src="<?= base_url(
-                                'assets/images/logo_sak_bgremove_final.png'
+                                'assets/images/logo_sak_header.png'
                             ) ?>"
                     alt="Sikhanandkaraj"
                     class="public-navbar__logo">

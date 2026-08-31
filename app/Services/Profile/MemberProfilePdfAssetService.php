@@ -34,7 +34,7 @@ final class MemberProfilePdfAssetService
             $this->requiredDataUri(
                 FCPATH
                     . 'assets/images/'
-                    . 'logo_sak_bgremove_final.png'
+                    . 'logo_sak_header.png'
             ),
 
             'marriageMotif' =>
