@@ -17,7 +17,7 @@ It is intended to be the source requirement for development of:
 
 This document describes required product behaviour and architecture boundaries. Implementation-specific details are recorded where they have become approved project architecture and must be preserved by later phases.
 
-**Status:** Product Requirement / Target Architecture / Implemented Email Baseline
+**Status:** Product Requirement / Implemented Communication Architecture / Future Channel Roadmap
 
 **Current implementation branch:** `email_service`
 
@@ -116,6 +116,125 @@ The application also has an in-app member notification mechanism covering events
 - System/member operational messages.
 
 The future architecture must continue extending these foundations rather than create unrelated delivery mechanisms for each feature.
+
+## 3.4 Implemented unified communication policy
+
+The application now includes a channel-independent communication policy and orchestration layer rather than treating each external channel as an unrelated feature.
+
+Implemented capabilities include:
+
+- Central `CommunicationEventRegistry`.
+- Durable `communication_events`.
+- Stable business-event identifiers.
+- Central `CommunicationPolicyService`.
+- Communication categories.
+- Channel-specific delivery decisions.
+- Reference-backed event idempotency.
+- Member Communication Preferences.
+- Matrimonial Activity email preference.
+- Engagement frequency preferences:
+  - Daily Digest.
+  - Weekly Digest.
+  - Off.
+- `PROFILE_VIEWED` and `PROFILE_SHORTLISTED` event producers.
+- Privacy-safe Engagement digest aggregation.
+- Daily and Weekly digest processing.
+- Frequency-aware recipient batching.
+- PostgreSQL row locking with `SKIP LOCKED`.
+- Recovery of stale Engagement event reservations.
+- Consumption of opted-out Engagement events so disabled communication does not create a future backlog.
+
+The durable email queue remains the Email delivery boundary.
+
+## 3.5 Implemented SMS foundation
+
+SMS is intentionally narrower than Email and Engagement communication.
+
+The current implementation includes:
+
+- Central SMS provider abstraction.
+- Environment-selectable SMS provider.
+- mTalkz provider integration.
+- Development/log SMS provider support.
+- Central SMS message/result objects.
+- Standard OTP SMS generation and delivery.
+- SMS attempt logging.
+- Provider message/reference capture where supplied by mTalkz.
+- Safe provider error capture.
+- SMS operational visibility.
+- OTP request abuse monitoring.
+
+The currently implemented mTalkz integration provides application-level submission success or failure.
+
+A successful SMS status therefore means:
+
+> **Accepted by Provider**
+
+It does **not** mean confirmed handset delivery.
+
+mTalkz DLR/handset-delivery integration is intentionally not implemented because a reliable callback contract is not available to the application. The platform must not infer or manufacture handset-delivery state.
+
+## 3.6 Implemented Communication Operations
+
+Authorized Super Admin users have a read-only Communication Operations area covering both Email and SMS.
+
+Email operations include visibility into:
+
+- Queue totals.
+- Pending.
+- Processing.
+- Sent.
+- Failed.
+- Work ready for processing.
+- Automatic retry pending.
+- Stale processing records.
+- Permanent failures.
+- Oldest pending communication.
+
+SMS operations include visibility into:
+
+- Provider-accepted requests.
+- Failed requests.
+- OTP volume.
+- Message type.
+- Masked recipient.
+- Provider.
+- Provider reference where available.
+- Safe provider failure information.
+- Rolling 24-hour SMS operational health.
+- SMS failure rate.
+- OTP abuse warnings.
+- Critical OTP abuse conditions.
+- Critical mTalkz provider conditions.
+
+Communication Operations is deliberately read-only. Manual retry is not part of the currently approved scope.
+
+## 3.7 Implemented combined Communication Health
+
+Communication Operations also provides a combined Email/SMS health summary.
+
+The combined health state is one of:
+
+- `HEALTHY`
+- `WARNING`
+- `CRITICAL`
+
+Email health is derived from the existing Email queue operational state.
+
+SMS health is derived from existing SMS delivery logs, OTP monitoring and provider operational alerts.
+
+The overall communication state follows the most severe active channel state.
+
+This health view is informational only. It does not:
+
+- retry communication;
+- modify queue state;
+- send administrator alerts;
+- create a separate health-history table;
+- run an additional monitoring cron;
+- replace provider/infrastructure monitoring.
+
+The purpose is to give Super Admin one immediate view of current application communication health while preserving the existing detailed Email and SMS operational screens.
 
 ---
 
@@ -743,14 +862,16 @@ Retention should be configurable. Security/audit records are separate from the m
 
 # 17. SMS requirements
 
-SMS should be deliberately narrow because of cost, privacy and spam perception.
+SMS is deliberately narrow because of cost, privacy and spam perception.
 
-Recommended primary use:
+## 17.1 Current approved use
+
+The currently implemented primary SMS use is:
 
 - OTP/mobile verification.
-- Critical account recovery/security events.
-- Selected payment/membership transactional alerts.
-- Selected urgent reminders only if product evidence supports them.
+- OTP-based login/recovery/security workflows already supported by the application.
+
+Future SMS use may include selected transactional cases only after explicit product approval.
 
 SMS should not be the default channel for:
 
@@ -760,7 +881,90 @@ SMS should not be the default channel for:
 - Routine moderation approvals.
 - Marketing without explicit consent.
 
-SMS content must be short, privacy-safe and must not expose protected member data.
+SMS content must remain short and privacy-safe and must not expose protected member data.
+
+## 17.2 Provider abstraction
+
+Feature and security workflows must not contain mTalkz-specific HTTP/API logic.
+
+SMS delivery must continue through the application's SMS provider abstraction so provider selection remains an infrastructure/configuration concern.
+
+Development may use the logging provider while QA/Production may use mTalkz according to environment configuration.
+
+OTP generation and SMS-provider selection remain separate concerns.
+
+A fixed development OTP must not imply that a real SMS provider is required, and selecting mTalkz must not change OTP-generation rules.
+
+## 17.3 mTalkz submission status
+
+The current mTalkz integration provides submission-level success/failure.
+
+A successful SMS attempt means:
+
+> **Accepted by Provider**
+
+Internally the persisted status may remain `SENT`, but operational UI must not describe that state as confirmed handset delivery.
+
+The current application does not have a reliable mTalkz DLR callback contract and therefore does not claim:
+
+- `DELIVERED`;
+- `READ`;
+- handset receipt;
+- final telecom-network delivery.
+
+DLR support may be reconsidered if mTalkz later provides a documented and securely verifiable callback contract.
+
+## 17.4 SMS delivery logging
+
+SMS operational logging must:
+
+- record message type;
+- record normalized recipient destination required for operational correlation;
+- record provider;
+- record provider message/reference where available;
+- record application/provider submission status;
+- record safe provider failure information;
+- record relevant timestamps.
+
+The following must not be persisted in SMS operational logs:
+
+- OTP value;
+- complete SMS message body;
+- API key;
+- raw provider credentials;
+- unnecessary raw provider responses.
+
+Administrative presentation must mask the recipient mobile number.
+
+## 17.5 OTP abuse monitoring
+
+Existing OTP verification records remain authoritative for OTP issuance/rate limiting.
+
+Communication Operations derives monitoring severity from those records rather than maintaining a second OTP counter.
+
+Current operational severity is:
+
+- `WARNING`: 5-9 requests during the rolling 24-hour monitoring period.
+- `CRITICAL`: 10 or more requests during the rolling 24-hour monitoring period.
+
+Verification records whose SMS delivery failed are excluded from abuse monitoring so a provider outage does not incorrectly classify a member as abusive.
+
+This monitoring is operational visibility. Existing OTP services remain authoritative for actual request enforcement.
+
+## 17.6 SMS operational health
+
+SMS operational health uses a rolling 24-hour view of:
+
+- total requests;
+- requests accepted by the provider;
+- failed requests;
+- provider failure rate.
+
+Percentage-based provider failure alerts require a meaningful minimum sample so a single early failure is not incorrectly presented as a provider outage.
+
+Critical provider/account errors such as invalid API configuration, deactivated provider account, invalid sender configuration or insufficient provider credit may be surfaced as critical operational conditions.
+
+No separate operational-alert persistence is required for the currently approved scope. These conditions are derived from authoritative SMS/OTP records when Communication Operations is opened.
 
 ---
 
@@ -1008,21 +1212,66 @@ For queued non-essential communications, current consent/preference should prefe
 
 # 22. Admin and operational requirements
 
-## 22.1 Communication operations
+## 22.1 Communication Operations
 
-Authorized administration should eventually provide visibility into:
+Authorized Super Admin administration currently provides read-only operational visibility for Email and SMS.
 
-- Queued.
-- Processing.
-- Sent/accepted by provider.
-- Failed.
-- Retry pending.
-- Delivery/bounce status where provider supports it.
-- Channel.
-- Event type.
-- Recipient reference without unnecessarily exposing full contact data.
-- Created/sent timestamps.
-- Failure reason safe for admin use.
+### Email
+
+Email operations expose:
+
+- Queued/pending communication.
+- Processing communication.
+- Sent communication.
+- Failed communication.
+- Work ready for worker pickup.
+- Automatic retry pending.
+- Stale processing records.
+- Oldest pending communication.
+- Safe operational failure information.
+- Event/reference information.
+- Masked recipient information.
+
+### SMS
+
+SMS operations expose:
+
+- Requests accepted by provider.
+- Failed requests.
+- Message type.
+- Masked recipient mobile.
+- Provider.
+- Provider message/reference where available.
+- Safe provider error.
+- Created/accepted/failed timestamps.
+- Rolling 24-hour provider health.
+- Failure percentage.
+- OTP request monitoring.
+- Operational warnings and critical conditions.
+
+For SMS, `SENT` represents provider acceptance and must be presented to administrators as **Accepted by Provider**. It does not represent confirmed handset delivery.
+
+### Combined health
+
+Communication Operations also exposes a combined Email/SMS health summary.
+
+The overall status is:
+
+- `HEALTHY`
+- `WARNING`
+- `CRITICAL`
+
+The combined status is derived from the existing Email and SMS operational sources and follows the most severe current channel state.
+
+The health view must remain observational. Opening the page must not:
+
+- retry communication;
+- mutate queue state;
+- modify OTP state;
+- create alert records;
+- send another communication.
+
+Provider-specific delivery/bounce/read state may be added only where the relevant provider exposes a reliable supported mechanism.
 
 ## 22.2 Retry
 
@@ -1083,7 +1332,11 @@ The communication platform should eventually expose metrics for:
 - Reminder scanned/queued/skipped/failed counts.
 - Membership lifecycle scanned/expired/failed/remaining counts.
 - Email bounce rate when available.
-- SMS delivery status when available.
+- SMS provider acceptance/failure rate.
+- SMS handset-delivery status only when a provider exposes a reliable supported DLR mechanism.
+- OTP request abuse warnings/critical conditions.
+- Critical SMS provider/account failures.
+- Combined Email/SMS application communication health.
 - WhatsApp delivery/read status when available and appropriate.
 - Cost by SMS/WhatsApp channel.
 - Unsubscribe/opt-out rates.
@@ -1091,6 +1344,10 @@ The communication platform should eventually expose metrics for:
 Scheduled CLI jobs should return meaningful exit codes so cron/server monitoring can detect failed runs without invalidating successfully queued work.
 
 Do not use WhatsApp read receipts or similar telemetry to infer matrimonial interest or expose it to another member without a separate product decision.
+
+The currently implemented Communication Health view is an application operational summary, not a replacement for infrastructure/provider monitoring.
+
+Current health information is derived on demand from authoritative Email queue, SMS delivery-log and OTP verification state. The approved Phase 6A scope does not persist health snapshots or send proactive administrator alerts.
 
 ---
 
@@ -1258,12 +1515,42 @@ Phase 3 intentionally does not include:
 Those capabilities belong to later approved phases and are not required
 for Phase 3 completion.
 
-## Phase 4 - SMS standardization
+## Phase 4 - SMS standardization - IMPLEMENTED FOR APPROVED CURRENT SCOPE
 
-- Move SMS behind channel abstraction/queue if not already equivalent.
-- OTP remains high priority.
-- Add only approved transactional cases.
-- Delivery status/cost monitoring.
+Implemented:
+
+- SMS provider abstraction.
+- Environment-selectable SMS provider.
+- mTalkz provider integration.
+- Development/log provider support.
+- Standardized OTP SMS delivery.
+- Central SMS result handling.
+- SMS attempt/delivery logging.
+- Safe provider failure recording.
+- Provider message/reference recording where available.
+- Communication Operations SMS tab.
+- SMS status and message-type filtering.
+- Masked recipient presentation.
+- `SENT` presented operationally as `Accepted by Provider`.
+- Rolling 24-hour SMS operational health.
+- SMS provider failure-rate monitoring.
+- OTP request abuse monitoring.
+- OTP severity:
+  - Warning at 5-9 requests during the rolling 24-hour period.
+  - Critical at 10+ requests during the rolling 24-hour period.
+- Critical mTalkz provider/account condition visibility.
+
+Intentionally not implemented:
+
+- Handset-delivery/DLR state because a reliable mTalkz callback contract is not available.
+- SMS delivery inference from provider submission success.
+- SMS marketing/bulk campaigns.
+- General matrimonial-activity SMS.
+- SMS provider failover.
+- Manual administrative SMS retry.
+- SMS cost analytics beyond information reliably exposed by the configured provider.
+
+A successful SMS submission means **Accepted by Provider**, not confirmed handset delivery.
 
 ## Phase 5 - WhatsApp
 
@@ -1275,14 +1562,51 @@ for Phase 3 completion.
 - Initial small transactional event set.
 - Admin monitoring.
 
-## Phase 6 - Engagement automation
+## Phase 6 - Communication operational health - IMPLEMENTED FOR APPROVED 6A SCOPE
 
-Only after transactional communication is stable:
+### Phase 6A - Combined Communication Health - IMPLEMENTED
 
-- Match digests.
-- Profile completion reminders.
-- Re-engagement.
-- Controlled marketing campaigns.
+Implemented inside the existing Communication Operations architecture:
+
+- Combined Email and SMS health summary.
+- Overall health state:
+  - `HEALTHY`
+  - `WARNING`
+  - `CRITICAL`
+- Email health derived from the existing Email queue-health calculation.
+- SMS health derived from existing SMS operational health and alert calculations.
+- Overall state follows the most severe active channel state.
+- Existing Bootstrap/Admin UI reused.
+- Existing detailed Email and SMS tabs remain authoritative for investigation.
+- No separate health table.
+- No new monitoring service.
+- No additional cron.
+- No automatic retry.
+- No proactive administrator notification.
+
+The Phase 6A health summary is intentionally informational and read-only.
+
+### Phase 6B - Proactive administrator alerts - DEFERRED / NOT CURRENTLY REQUIRED
+
+Not currently approved.
+
+Potential future scope could notify administrators when a critical communication condition occurs without requiring them to open Communication Operations.
+
+This would require appropriate deduplication, cooldown and recovery semantics and should only be introduced if production operational demand justifies it.
+
+### Phase 6C - Scheduled communication-health monitoring - DEFERRED / NOT CURRENTLY REQUIRED
+
+Not currently approved.
+
+The current application does not require a separate scheduled health-monitoring subsystem.
+
+### Phase 6D - Communication analytics/trends - DEFERRED / NOT CURRENTLY REQUIRED
+
+Not currently approved.
+
+Long-term trend analysis, provider cost analytics and infrastructure-grade monitoring should be introduced only where production volume and operational requirements justify the additional complexity.
+
+Engagement digests are not Phase 6 work. Daily/Weekly Engagement digesting was implemented as part of Phase 3 Unified Communication Policy.
 
 ---
 
@@ -1295,8 +1619,9 @@ Only after transactional communication is stable:
 - [x] Feature services do not directly depend on the mail provider/SMTP implementation.
 - [x] External email delivery is queued independently of the originating business transaction where appropriate.
 - [x] Existing email queue reliability is retained and reused.
-- [ ] Unified cross-channel Communication Policy/Event orchestration is implemented.
-- [ ] Transactional outbox/concurrency-grade central idempotency is implemented where required for later scale/channels.
+- [x] Unified cross-channel Communication Policy/Event orchestration is implemented.
+- [x] Reference-backed communication-event idempotency is implemented for the current approved orchestration scope.
+- [ ] A full transactional outbox is introduced if later scale/channel requirements demonstrate that it is necessary.
 
 ## Email
 
@@ -1334,8 +1659,9 @@ Only after transactional communication is stable:
 
 ## Member preferences
 
-- [ ] Essential transactional/security communication is clearly represented in the future preferences UI separately from optional engagement/marketing communication.
-- [ ] Optional communication can be disabled according to channel/category policy.
+- [x] Essential communication is distinguished by central category/policy from optional communication.
+- [x] Implemented optional Email communication can be controlled according to the current channel/category policy.
+- [x] Engagement Email frequency supports Daily Digest, Weekly Digest and Off.
 - [ ] WhatsApp consent is independently represented where required.
 - [ ] Marketing consent is not inferred from transactional contact verification.
 
@@ -1346,14 +1672,20 @@ Only after transactional communication is stable:
 - [x] Email provider failure does not corrupt committed matrimonial/membership/support state.
 - [x] Queue processing supports safe worker concurrency.
 - [x] Scheduled membership reminder reruns are operationally idempotent for the normal single-scheduler model.
-- [ ] Cross-producer concurrency-grade event uniqueness is centralized for future high-volume/multi-channel use.
+- [x] Reference-backed communication-event idempotency is centralized for the currently implemented communication-event scope.
+- [ ] A stronger transactional outbox/uniqueness mechanism is introduced if future multi-channel scale requires it.
 
 ## Admin/Operations
 
 - [x] Email templates can be previewed and test-sent by authorized users according to environment rules.
-- [ ] Full communication operations/admin delivery dashboard is implemented.
+- [x] Read-only Email and SMS Communication Operations is implemented.
+- [x] Email queue health is visible to authorized Super Admin users.
+- [x] SMS provider acceptance/failure health is visible to authorized Super Admin users.
+- [x] OTP abuse warnings/critical conditions are visible in Communication Operations.
+- [x] Combined Email/SMS Communication Health is implemented.
 - [ ] Manual retries are audited if/when exposed through UI.
-- [ ] SMS/WhatsApp volume and cost monitoring exists when those channels are enabled.
+- [ ] WhatsApp volume/delivery monitoring exists when WhatsApp is enabled.
+- [ ] Provider cost monitoring is introduced where reliable provider cost/balance information is available and operationally useful.
 
 ## WhatsApp
 
@@ -1416,10 +1748,35 @@ The following are no longer open decisions because they are approved/implemented
 
 # 30. Final product recommendation
 
-SikhanandKaraj should continue building a unified communication platform around **business events and channel policy**, rather than adding email, SMS and WhatsApp independently inside each feature.
+SikhanandKaraj now has an established communication architecture built around **business events, central policy and controlled channel delivery**, rather than independent Email/SMS implementations inside individual matrimonial features.
 
-The Email foundation and the approved Phase 2 transactional/member email set are now established. The next architectural priority should therefore be Phase 3: unified communication policy, preferences, digesting, stronger central idempotency/outbox semantics where needed, administration and delivery metrics.
+The currently approved communication foundation includes:
 
-In-app notifications should remain the richest and safest matrimonial activity channel. Email should handle important transactional/activity communication and controlled engagement. SMS should remain deliberately narrow. WhatsApp should be introduced later as an explicit-consent, template-controlled high-value channel.
+- Standardized Email definitions and delivery.
+- Durable Email queue and worker.
+- Privacy-safe transactional/member Email.
+- Member Communication Preferences.
+- Channel-independent Communication Event Registry.
+- Central Communication Policy.
+- Durable communication-event orchestration.
+- Daily/Weekly Engagement digesting.
+- Standardized OTP SMS.
+- mTalkz provider abstraction.
+- SMS operational logging.
+- OTP abuse monitoring.
+- Email and SMS Communication Operations.
+- Combined Email/SMS Communication Health.
 
-Most importantly, communications must never become an alternate route around SikhanandKaraj's privacy, moderation or Free/Paid authorization rules. External channels should tell the member that something relevant happened and safely bring them back into the authenticated application, where current policy remains authoritative.
+In-app notifications should remain the richest and safest matrimonial activity channel.
+
+Email should continue handling important transactional/activity communication and controlled Engagement.
+
+SMS should remain deliberately narrow and primarily support OTP/security use unless additional transactional cases receive explicit product approval.
+
+A successful SMS submission must continue to mean **Accepted by Provider** rather than confirmed handset delivery unless a reliable provider DLR mechanism is introduced later.
+
+WhatsApp remains a future optional channel. It should only be introduced with explicit consent, provider-approved templates and the existing central Communication Policy architecture.
+
+Proactive communication-health alerts, scheduled health monitoring, extensive analytics, bulk marketing and additional automation should not be introduced merely for architectural completeness. They should be added only when production usage demonstrates a clear operational or product requirement.
+
+Most importantly, no communication channel may become an alternate route around SikhanandKaraj's privacy, moderation, verification or Free/Paid authorization rules. External communication should provide the minimum useful information and safely return the member to the authenticated application, where current authoritative policy is evaluated again.
