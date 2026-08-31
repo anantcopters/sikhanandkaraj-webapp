@@ -36,6 +36,7 @@ ob_start();
     style="
         margin:0 0 18px;
         font-size:15px;
+        font-weight:500;
         line-height:1.7;
     ">
     Sat Sri Akal

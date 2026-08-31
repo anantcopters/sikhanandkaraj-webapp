@@ -6,20 +6,55 @@ declare(strict_types=1);
  * @var string $emailTitle
  * @var string $emailSubtitle
  * @var string $emailContent
+ * @var string|null $supportPhone
  */
 
 $resolvedTitle =
-    trim((string) ($emailTitle ?? ''));
+    trim(
+        (string) ($emailTitle ?? '')
+    );
 
 $resolvedSubtitle =
-    trim((string) ($emailSubtitle ?? ''));
+    trim(
+        (string) ($emailSubtitle ?? '')
+    );
 
 $resolvedContent =
     (string) ($emailContent ?? '');
 
+$resolvedSupportPhone =
+    trim(
+        (string) ($supportPhone ?? '')
+    );
+
 $logoUrl =
     base_url(
-        'assets/images/Logo.png'
+        'assets/images/'
+            . 'logo_sak_bgremove_final.png'
+    );
+
+$interRegularUrl =
+    base_url(
+        'assets/fonts/inter/'
+            . 'Inter-Regular.ttf'
+    );
+
+$interMediumUrl =
+    base_url(
+        'assets/fonts/inter/'
+            . 'Inter-Medium.ttf'
+    );
+
+$interSemiBoldUrl =
+    base_url(
+        'assets/fonts/inter/'
+            . 'Inter-SemiBold.ttf'
+    );
+
+$interBoldUrl =
+    base_url(
+        'assets/fonts/inter/'
+            . 'Inter-Bold.ttf'
     );
 ?>
 <!doctype html>
@@ -35,6 +70,62 @@ $logoUrl =
     <title>
         <?= esc($resolvedTitle) ?>
     </title>
+
+    <style>
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 400;
+            src: url('<?= esc(
+                            $interRegularUrl,
+                            'attr'
+                        ) ?>') format('truetype');
+        }
+
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 500;
+            src: url('<?= esc(
+                            $interMediumUrl,
+                            'attr'
+                        ) ?>') format('truetype');
+        }
+
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 600;
+            src: url('<?= esc(
+                            $interSemiBoldUrl,
+                            'attr'
+                        ) ?>') format('truetype');
+        }
+
+        @font-face {
+            font-family: 'Inter';
+            font-style: normal;
+            font-weight: 700;
+            src: url('<?= esc(
+                            $interBoldUrl,
+                            'attr'
+                        ) ?>') format('truetype');
+        }
+
+        body,
+        table,
+        td,
+        a,
+        p,
+        div,
+        span {
+            font-family:
+                'Inter',
+                Arial,
+                Helvetica,
+                sans-serif;
+        }
+    </style>
 </head>
 
 <body
@@ -44,9 +135,9 @@ $logoUrl =
         background:#f7f5f8;
         color:#212529;
         font-family:
-            'hkgrotesk',
-            'Helvetica Neue',
+            'Inter',
             Arial,
+            Helvetica,
             sans-serif;
     ">
 
@@ -79,6 +170,11 @@ $logoUrl =
                         border-radius:12px;
                         overflow:hidden;
                         border:1px solid #ece7ef;
+                        font-family:
+                            'Inter',
+                            Arial,
+                            Helvetica,
+                            sans-serif;
                     ">
 
                     <?= view(
@@ -89,6 +185,9 @@ $logoUrl =
 
                             'subtitle' =>
                             $resolvedSubtitle,
+
+                            'supportPhone' =>
+                            $resolvedSupportPhone,
                         ]
                     ) ?>
 
@@ -99,6 +198,11 @@ $logoUrl =
                                     34px
                                     36px
                                     30px;
+                                font-family:
+                                    'Inter',
+                                    Arial,
+                                    Helvetica,
+                                    sans-serif;
                             ">
 
                             <?= $resolvedContent ?>
