@@ -47,6 +47,54 @@ final class CommunicationOperationsService
     private const STALE_PROCESSING_MINUTES =
     10;
 
+    /**
+     * OTP abuse monitoring.
+     *
+     * The existing OTP services remain authoritative for enforcement.
+     * Communication Operations only presents operational severity.
+     *
+     * 5-9 requests / rolling 24 hours:
+     *     WARNING
+     *
+     * 10+ requests / rolling 24 hours:
+     *     CRITICAL
+     */
+    private const OTP_WARNING_REQUESTS =
+    5;
+
+    private const OTP_CRITICAL_REQUESTS =
+    10;
+
+    /**
+     * SMS operational health.
+     *
+     * A failure-rate alert should only be generated after a meaningful sample
+     * exists. This avoids alarming Super Admin because one of the first few SMS
+     * requests happened to fail.
+     */
+    private const SMS_FAILURE_SAMPLE_MINIMUM =
+    10;
+
+    private const SMS_FAILURE_WARNING_PERCENT =
+    20.0;
+
+    private const SMS_FAILURE_CRITICAL_PERCENT =
+    50.0;
+
+    /**
+     * Provider errors which normally require administrative action rather than a
+     * member simply retrying an OTP.
+     *
+     * These are based on the mTalkz API status contract currently used by the
+     * application.
+     */
+    private const SMS_CRITICAL_PROVIDER_CODES = [
+        'AZQ02', // Invalid API Key.
+        'AZQ03', // Invalid/deactivated user.
+        'AZQ05', // Invalid sender ID.
+        'AZQ10', // Insufficient credit.
+    ];
+
     public function __construct(
         private readonly EmailQueueModel
         $emailQueueModel,
@@ -375,6 +423,21 @@ final class CommunicationOperationsService
             ->get()
             ->getResultArray();
 
+        $otpAlerts =
+            $this
+            ->otpLimitAlerts();
+
+        $smsHealth =
+            $this
+            ->smsOperationalHealth();
+
+        $operationalAlerts =
+            $this
+            ->smsOperationalAlerts(
+                $otpAlerts,
+                $smsHealth
+            );
+
         return [
             'rows' =>
             array_map(
@@ -391,14 +454,25 @@ final class CommunicationOperationsService
                 ->smsSummary(),
 
             /*
-         * Basic Phase 4E:
-         *
-         * Reuse authoritative contact_verifications rather than maintaining
-         * another OTP counter in sms_delivery_logs.
-         */
+ * Phase 4E:
+ *
+ * OTP abuse visibility is derived from the authoritative
+ * contact_verifications records. No second OTP counter is maintained.
+ */
             'otpAlerts' =>
-            $this
-                ->otpLimitAlerts(),
+            $otpAlerts,
+
+            /*
+ * Phase 4G:
+ *
+ * Operational health and alerts are derived from existing SMS delivery
+ * records. This remains read-only and does not create another alert queue.
+ */
+            'smsHealth' =>
+            $smsHealth,
+
+            'operationalAlerts' =>
+            $operationalAlerts,
 
             'filters' => [
                 'status' =>
@@ -594,11 +668,525 @@ final class CommunicationOperationsService
     }
 
     /**
-     * Basic OTP abuse visibility.
+     * Return SMS provider health for the rolling 24-hour period.
      *
-     * The existing contact_verifications table remains authoritative for OTP
-     * issuance/rate limiting. This query only exposes contacts which have reached
-     * the existing five-request threshold during the rolling 24-hour period.
+     * SENT means accepted by the configured provider. It does not represent
+     * handset delivery because mTalkz does not currently provide the application
+     * with a DLR callback contract.
+     *
+     * @return array<string, int|float|null>
+     */
+    private function smsOperationalHealth(): array
+    {
+        $row =
+            $this
+            ->database
+            ->query(
+                <<<'SQL'
+            SELECT
+                COUNT(*) AS total,
+
+                COUNT(*) FILTER (
+                    WHERE status = 'SENT'
+                ) AS accepted,
+
+                COUNT(*) FILTER (
+                    WHERE status = 'FAILED'
+                ) AS failed,
+
+                MAX(failed_at) FILTER (
+                    WHERE status = 'FAILED'
+                ) AS last_failed_at
+
+            FROM
+                sms_delivery_logs
+
+            WHERE
+                created_at
+                    >= CURRENT_TIMESTAMP - INTERVAL '24 hours'
+            SQL
+            )
+            ->getRowArray();
+
+        $total =
+            max(
+                0,
+                (int) (
+                    $row['total']
+                    ?? 0
+                )
+            );
+
+        $accepted =
+            max(
+                0,
+                (int) (
+                    $row['accepted']
+                    ?? 0
+                )
+            );
+
+        $failed =
+            max(
+                0,
+                (int) (
+                    $row['failed']
+                    ?? 0
+                )
+            );
+
+        $failureRate =
+            $total > 0
+            ? round(
+                (
+                    $failed
+                    / $total
+                )
+                    * 100,
+                1
+            )
+            : 0.0;
+
+        return [
+            'totalLast24Hours' =>
+            $total,
+
+            'acceptedLast24Hours' =>
+            $accepted,
+
+            'failedLast24Hours' =>
+            $failed,
+
+            'failureRate' =>
+            $failureRate,
+
+            'lastFailedAt' =>
+            trim(
+                (string) (
+                    $row['last_failed_at']
+                    ?? ''
+                )
+            ),
+        ];
+    }
+
+    /**
+     * Build lightweight SMS operational alerts from existing application data.
+     *
+     * No alert table is required in this phase. These alerts represent the
+     * current operational state whenever Super Admin opens Communication
+     * Operations.
+     *
+     * Alert sources:
+     *
+     * 1. Critical OTP request volume.
+     * 2. High SMS provider failure rate.
+     * 3. mTalkz provider errors requiring administrative action.
+     *
+     * @param array<int, array<string, mixed>> $otpAlerts
+     * @param array<string, int|float|null> $smsHealth
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function smsOperationalAlerts(
+        array $otpAlerts,
+        array $smsHealth
+    ): array {
+        $alerts = [];
+
+        /*
+     * OTP alerts.
+     *
+     * Keep each affected mobile/purpose visible because these are separate
+     * operational incidents.
+     */
+        foreach ($otpAlerts as $otpAlert) {
+            $severity =
+                mb_strtoupper(
+                    trim(
+                        (string) (
+                            $otpAlert['severity']
+                            ?? 'WARNING'
+                        )
+                    )
+                );
+
+            $requestCount =
+                max(
+                    0,
+                    (int) (
+                        $otpAlert['requestCount']
+                        ?? 0
+                    )
+                );
+
+            $mobile =
+                trim(
+                    (string) (
+                        $otpAlert['mobile']
+                        ?? '—'
+                    )
+                );
+
+            $purpose =
+                trim(
+                    (string) (
+                        $otpAlert['purpose']
+                        ?? ''
+                    )
+                );
+
+            $alerts[] = [
+                'severity' =>
+                $severity,
+
+                'type' =>
+                'OTP_ABUSE',
+
+                'title' =>
+                $severity === 'CRITICAL'
+                    ? 'Critical OTP request volume'
+                    : 'OTP request limit reached',
+
+                'message' =>
+                $mobile
+                    . (
+                        $purpose !== ''
+                        ? ' · '
+                        . str_replace(
+                            '_',
+                            ' ',
+                            $purpose
+                        )
+                        : ''
+                    )
+                    . ' · '
+                    . number_format(
+                        $requestCount
+                    )
+                    . ' requests in the last 24 hours',
+
+                'occurredAt' =>
+                trim(
+                    (string) (
+                        $otpAlert['lastRequestedAt']
+                        ?? ''
+                    )
+                ),
+            ];
+        }
+
+        /*
+     * SMS provider failure rate.
+     *
+     * Do not raise a percentage-based alert until a meaningful sample exists.
+     * Otherwise one failed request out of one request would incorrectly look
+     * like a 100% provider outage.
+     */
+        $totalLast24Hours =
+            max(
+                0,
+                (int) (
+                    $smsHealth['totalLast24Hours']
+                    ?? 0
+                )
+            );
+
+        $failedLast24Hours =
+            max(
+                0,
+                (int) (
+                    $smsHealth['failedLast24Hours']
+                    ?? 0
+                )
+            );
+
+        $failureRate =
+            max(
+                0.0,
+                (float) (
+                    $smsHealth['failureRate']
+                    ?? 0.0
+                )
+            );
+
+        if (
+            $totalLast24Hours
+            >= self::SMS_FAILURE_SAMPLE_MINIMUM
+            && $failureRate
+            >= self::SMS_FAILURE_WARNING_PERCENT
+        ) {
+            $severity =
+                $failureRate
+                >= self::SMS_FAILURE_CRITICAL_PERCENT
+                ? 'CRITICAL'
+                : 'WARNING';
+
+            $alerts[] = [
+                'severity' =>
+                $severity,
+
+                'type' =>
+                'SMS_FAILURE_RATE',
+
+                'title' =>
+                $severity === 'CRITICAL'
+                    ? 'Critical SMS failure rate'
+                    : 'High SMS failure rate',
+
+                'message' =>
+                number_format(
+                    $failedLast24Hours
+                )
+                    . ' of '
+                    . number_format(
+                        $totalLast24Hours
+                    )
+                    . ' SMS requests failed during the last 24 hours ('
+                    . number_format(
+                        $failureRate,
+                        1
+                    )
+                    . '%).',
+
+                'occurredAt' =>
+                trim(
+                    (string) (
+                        $smsHealth['lastFailedAt']
+                        ?? ''
+                    )
+                ),
+            ];
+        }
+
+        /*
+     * Provider configuration/account failures.
+     *
+     * Only the latest occurrence of each critical mTalkz error code is
+     * surfaced. The SMS history below still contains the individual failures.
+     */
+        foreach (
+            $this->criticalProviderFailures()
+            as $providerFailure
+        ) {
+            $alerts[] = [
+                'severity' =>
+                'CRITICAL',
+
+                'type' =>
+                'PROVIDER_ERROR',
+
+                'title' =>
+                'mTalkz provider action required',
+
+                'message' =>
+                trim(
+                    (string) (
+                        $providerFailure['error']
+                        ?? 'mTalkz rejected the SMS request.'
+                    )
+                ),
+
+                'occurredAt' =>
+                trim(
+                    (string) (
+                        $providerFailure['occurredAt']
+                        ?? ''
+                    )
+                ),
+            ];
+        }
+
+        /*
+     * Present CRITICAL before WARNING.
+     *
+     * Within the same severity, newest operational condition appears first.
+     */
+        usort(
+            $alerts,
+            static function (
+                array $left,
+                array $right
+            ): int {
+                $severityWeight = [
+                    'CRITICAL' => 2,
+                    'WARNING' => 1,
+                ];
+
+                $leftSeverity =
+                    $severityWeight[(string) (
+                        $left['severity']
+                        ?? ''
+                    )]
+                    ?? 0;
+
+                $rightSeverity =
+                    $severityWeight[(string) (
+                        $right['severity']
+                        ?? ''
+                    )]
+                    ?? 0;
+
+                if (
+                    $leftSeverity
+                    !== $rightSeverity
+                ) {
+                    return $rightSeverity
+                        <=> $leftSeverity;
+                }
+
+                return strcmp(
+                    (string) (
+                        $right['occurredAt']
+                        ?? ''
+                    ),
+                    (string) (
+                        $left['occurredAt']
+                        ?? ''
+                    )
+                );
+            }
+        );
+
+        return $alerts;
+    }
+
+    /**
+     * Return the latest occurrence of each mTalkz provider condition which
+     * requires administrative action.
+     *
+     * The SMS provider already stores a safe error in the form:
+     *
+     * AZQ02 - Invalid Api Key
+     *
+     * Therefore this query can classify the documented provider status without
+     * persisting or parsing raw mTalkz responses.
+     *
+     * @return array<int, array{
+     *     error:string,
+     *     occurredAt:string
+     * }>
+     */
+    private function criticalProviderFailures(): array
+    {
+        $conditions = [];
+        $parameters = [];
+
+        foreach (
+            self::SMS_CRITICAL_PROVIDER_CODES
+            as $index => $code
+        ) {
+            $parameterName =
+                'provider_code_'
+                . $index;
+
+            $conditions[] =
+                'error_message LIKE :'
+                . $parameterName
+                . ':';
+
+            $parameters[$parameterName] =
+                $code
+                . '%';
+        }
+
+        if ($conditions === []) {
+            return [];
+        }
+
+        $sql =
+            '
+        SELECT DISTINCT ON (
+            SUBSTRING(
+                error_message
+                FROM 1
+                FOR 5
+            )
+        )
+            error_message,
+            failed_at
+
+        FROM
+            sms_delivery_logs
+
+        WHERE
+            status = \'FAILED\'
+
+            AND created_at
+                >= CURRENT_TIMESTAMP - INTERVAL \'24 hours\'
+
+            AND (
+                '
+            . implode(
+                "\n OR ",
+                $conditions
+            )
+            . '
+            )
+
+        ORDER BY
+            SUBSTRING(
+                error_message
+                FROM 1
+                FOR 5
+            ),
+            failed_at DESC
+        ';
+
+        $rows =
+            $this
+            ->database
+            ->query(
+                $sql,
+                $parameters
+            )
+            ->getResultArray();
+
+        return array_map(
+            static function (
+                array $row
+            ): array {
+                return [
+                    'error' =>
+                    mb_substr(
+                        trim(
+                            (string) (
+                                $row['error_message']
+                                ?? ''
+                            )
+                        ),
+                        0,
+                        250
+                    ),
+
+                    'occurredAt' =>
+                    trim(
+                        (string) (
+                            $row['failed_at']
+                            ?? ''
+                        )
+                    ),
+                ];
+            },
+            $rows
+        );
+    }
+
+    /**
+     * OTP abuse visibility.
+     *
+     * contact_verifications remains authoritative for OTP issuance and rate
+     * limiting. Communication Operations only derives a severity from those
+     * existing records.
+     *
+     * WARNING:
+     *     5-9 requests during the rolling 24-hour period.
+     *
+     * CRITICAL:
+     *     10 or more requests during the rolling 24-hour period.
+     *
+     * DELIVERY_FAILED is deliberately excluded so an SMS provider outage does
+     * not incorrectly make a member appear abusive.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -650,6 +1238,26 @@ final class CommunicationOperationsService
             function (
                 array $row
             ): array {
+                $requestCount =
+                    max(
+                        0,
+                        (int) (
+                            $row['request_count']
+                            ?? 0
+                        )
+                    );
+
+                /*
+             * Severity is presentation/operations metadata only.
+             *
+             * It does not change the existing OTP enforcement rules.
+             */
+                $severity =
+                    $requestCount
+                    >= self::OTP_CRITICAL_REQUESTS
+                    ? 'CRITICAL'
+                    : 'WARNING';
+
                 return [
                     'mobile' =>
                     $this
@@ -671,13 +1279,10 @@ final class CommunicationOperationsService
                     ),
 
                     'requestCount' =>
-                    max(
-                        0,
-                        (int) (
-                            $row['request_count']
-                            ?? 0
-                        )
-                    ),
+                    $requestCount,
+
+                    'severity' =>
+                    $severity,
 
                     'lastRequestedAt' =>
                     trim(

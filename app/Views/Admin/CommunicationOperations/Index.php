@@ -1509,6 +1509,44 @@ $this->section(
             ? $operations['otpAlerts']
             : [];
 
+        $smsHealth =
+            isset($operations['smsHealth'])
+            && is_array(
+                $operations['smsHealth']
+            )
+            ? $operations['smsHealth']
+            : [];
+
+        $operationalAlerts =
+            isset($operations['operationalAlerts'])
+            && is_array(
+                $operations['operationalAlerts']
+            )
+            ? $operations['operationalAlerts']
+            : [];
+
+        $smsFailureRate =
+            max(
+                0.0,
+                (float) (
+                    $smsHealth['failureRate']
+                    ?? 0.0
+                )
+            );
+
+        $criticalOperationalAlerts =
+            count(
+                array_filter(
+                    $operationalAlerts,
+                    static fn(
+                        array $alert
+                    ): bool => (
+                        $alert['severity']
+                        ?? ''
+                    ) === 'CRITICAL'
+                )
+            );
+
         $smsFilters =
             isset($operations['filters'])
             && is_array(
@@ -1572,10 +1610,12 @@ $this->section(
                     'class' => 'text-primary',
                 ],
                 [
-                    'label' => 'OTP Alerts',
-                    'value' => count($otpAlerts),
+                    'label' => 'Operational Alerts',
+                    'value' => count(
+                        $operationalAlerts
+                    ),
                     'icon' => 'ri-alarm-warning-line',
-                    'class' => count($otpAlerts) > 0
+                    'class' => $operationalAlerts !== []
                         ? 'text-danger'
                         : 'text-success',
                 ],
@@ -1646,7 +1686,456 @@ $this->section(
             <?php endforeach; ?>
 
         </div>
+        <div
+            class="card
+    border
+    border-danger
+    border-opacity-25">
 
+            <div class="card-header">
+
+                <div
+                    class="d-flex
+            align-items-center
+            justify-content-between">
+
+                    <div>
+
+                        <h5 class="card-title mb-1">
+                            SMS Operational Health
+                        </h5>
+
+                        <p class="text-muted mb-0">
+                            Provider acceptance and failure activity
+                            during the rolling last 24 hours.
+                        </p>
+
+                    </div>
+
+                    <?php if ($criticalOperationalAlerts > 0): ?>
+
+                        <span
+                            class="badge
+                    bg-danger-subtle
+                    text-body
+                    p-2">
+
+                            Attention Required
+
+                        </span>
+
+                    <?php elseif ($operationalAlerts !== []): ?>
+
+                        <span
+                            class="badge
+                    bg-warning-subtle
+                    text-body
+                    p-2">
+
+                            Review Recommended
+
+                        </span>
+
+                    <?php else: ?>
+
+                        <span
+                            class="badge
+                    bg-success-subtle
+                    text-body
+                    p-2">
+
+                            Normal
+
+                        </span>
+
+                    <?php endif; ?>
+
+                </div>
+
+            </div>
+
+            <div class="card-body">
+
+                <div class="row g-3">
+
+                    <div class="col-xl-3 col-md-6">
+
+                        <div
+                            class="border
+                    rounded
+                    p-3
+                    h-100">
+
+                            <div
+                                class="d-flex
+                        align-items-center
+                        gap-2
+                        mb-2">
+
+                                <i
+                                    class="ri-message-2-line
+                            fs-20
+                            text-primary">
+                                </i>
+
+                                <span class="fw-medium">
+                                    Requests
+                                </span>
+
+                            </div>
+
+                            <h4 class="mb-1">
+
+                                <?= number_format(
+                                    (int) (
+                                        $smsHealth['totalLast24Hours']
+                                        ?? 0
+                                    )
+                                ) ?>
+
+                            </h4>
+
+                            <p class="text-muted fs-12 mb-0">
+                                SMS requests during the last 24 hours.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="col-xl-3 col-md-6">
+
+                        <div
+                            class="border
+                    rounded
+                    p-3
+                    h-100">
+
+                            <div
+                                class="d-flex
+                        align-items-center
+                        gap-2
+                        mb-2">
+
+                                <i
+                                    class="ri-checkbox-circle-line
+                            fs-20
+                            text-success">
+                                </i>
+
+                                <span class="fw-medium">
+                                    Accepted
+                                </span>
+
+                            </div>
+
+                            <h4 class="mb-1">
+
+                                <?= number_format(
+                                    (int) (
+                                        $smsHealth['acceptedLast24Hours']
+                                        ?? 0
+                                    )
+                                ) ?>
+
+                            </h4>
+
+                            <p class="text-muted fs-12 mb-0">
+                                Requests accepted by the configured provider.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="col-xl-3 col-md-6">
+
+                        <div
+                            class="border
+                    rounded
+                    p-3
+                    h-100">
+
+                            <div
+                                class="d-flex
+                        align-items-center
+                        gap-2
+                        mb-2">
+
+                                <i
+                                    class="ri-error-warning-line
+                            fs-20
+                            <?= (
+                                (int) (
+                                    $smsHealth['failedLast24Hours']
+                                    ?? 0
+                                )
+                            ) > 0
+                                ? 'text-danger'
+                                : 'text-success' ?>">
+                                </i>
+
+                                <span class="fw-medium">
+                                    Failed
+                                </span>
+
+                            </div>
+
+                            <h4 class="mb-1">
+
+                                <?= number_format(
+                                    (int) (
+                                        $smsHealth['failedLast24Hours']
+                                        ?? 0
+                                    )
+                                ) ?>
+
+                            </h4>
+
+                            <p class="text-muted fs-12 mb-0">
+                                Requests rejected or failed before
+                                provider acceptance.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="col-xl-3 col-md-6">
+
+                        <div
+                            class="border
+                    rounded
+                    p-3
+                    h-100">
+
+                            <div
+                                class="d-flex
+                        align-items-center
+                        gap-2
+                        mb-2">
+
+                                <i
+                                    class="ri-percent-line
+                            fs-20
+                            <?= $smsFailureRate >= 50
+                                ? 'text-danger'
+                                : (
+                                    $smsFailureRate >= 20
+                                    ? 'text-warning'
+                                    : 'text-success'
+                                ) ?>">
+                                </i>
+
+                                <span class="fw-medium">
+                                    Failure Rate
+                                </span>
+
+                            </div>
+
+                            <h4
+                                class="mb-1
+                        <?= $smsFailureRate >= 50
+                            ? 'text-danger'
+                            : '' ?>">
+
+                                <?= number_format(
+                                    $smsFailureRate,
+                                    1
+                                ) ?>%
+
+                            </h4>
+
+                            <p class="text-muted fs-12 mb-0">
+                                Rolling SMS provider failure percentage.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <?php if ($operationalAlerts !== []): ?>
+
+            <div
+                class="card
+        border
+        border-danger
+        border-opacity-25">
+
+                <div class="card-header">
+
+                    <div
+                        class="d-flex
+                align-items-center
+                justify-content-between">
+
+                        <div>
+
+                            <h5 class="card-title mb-1">
+                                Operational Alerts
+                            </h5>
+
+                            <p class="text-muted mb-0">
+                                Current SMS provider and OTP conditions
+                                requiring operational review.
+                            </p>
+
+                        </div>
+
+                        <span
+                            class="badge
+                    <?= $criticalOperationalAlerts > 0
+                        ? 'bg-danger-subtle'
+                        : 'bg-warning-subtle' ?>
+                    text-body
+                    p-2">
+
+                            <?= number_format(
+                                count(
+                                    $operationalAlerts
+                                )
+                            ) ?>
+
+                            Alert<?= count($operationalAlerts) === 1
+                                        ? ''
+                                        : 's' ?>
+
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="card-body p-0">
+
+                    <div class="table-responsive">
+
+                        <table
+                            class="table
+                    table-hover
+                    align-middle
+                    mb-0">
+
+                            <thead class="table-light">
+
+                                <tr>
+                                    <th>Severity</th>
+                                    <th>Alert</th>
+                                    <th>Details</th>
+                                    <th>Last Seen</th>
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                <?php foreach (
+                                    $operationalAlerts
+                                    as $alert
+                                ): ?>
+
+                                    <?php
+
+                                    $alertSeverity =
+                                        mb_strtoupper(
+                                            trim(
+                                                (string) (
+                                                    $alert['severity']
+                                                    ?? 'WARNING'
+                                                )
+                                            )
+                                        );
+
+                                    $alertOccurredAt =
+                                        trim(
+                                            (string) (
+                                                $alert['occurredAt']
+                                                ?? ''
+                                            )
+                                        );
+
+                                    ?>
+
+                                    <tr>
+
+                                        <td>
+
+                                            <span
+                                                class="badge
+                                        <?= $alertSeverity === 'CRITICAL'
+                                            ? 'bg-danger-subtle'
+                                            : 'bg-warning-subtle' ?>
+                                        text-body
+                                        p-2">
+
+                                                <?= esc(
+                                                    $alertSeverity
+                                                ) ?>
+
+                                            </span>
+
+                                        </td>
+
+                                        <td>
+
+                                            <span class="fw-medium">
+
+                                                <?= esc(
+                                                    (string) (
+                                                        $alert['title']
+                                                        ?? 'Operational alert'
+                                                    )
+                                                ) ?>
+
+                                            </span>
+
+                                        </td>
+
+                                        <td>
+
+                                            <?= esc(
+                                                (string) (
+                                                    $alert['message']
+                                                    ?? '—'
+                                                )
+                                            ) ?>
+
+                                        </td>
+
+                                        <td>
+
+                                            <?= $alertOccurredAt !== ''
+                                                ? esc(
+                                                    DateDisplay
+                                                        ::formatUtcDateTime(
+                                                            $alertOccurredAt
+                                                        )
+                                                )
+                                                : '—' ?>
+
+                                        </td>
+
+                                    </tr>
+
+                                <?php endforeach; ?>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        <?php endif; ?>
 
         <?php if ($otpAlerts !== []): ?>
 
@@ -1703,6 +2192,7 @@ $this->section(
                             <thead class="table-light">
 
                                 <tr>
+                                    <th>Severity</th>
                                     <th>Mobile</th>
                                     <th>Purpose</th>
                                     <th>Requests</th>
@@ -1714,8 +2204,37 @@ $this->section(
                             <tbody>
 
                                 <?php foreach ($otpAlerts as $alert): ?>
+                                    <?php
 
+                                    $otpSeverity =
+                                        mb_strtoupper(
+                                            trim(
+                                                (string) (
+                                                    $alert['severity']
+                                                    ?? 'WARNING'
+                                                )
+                                            )
+                                        );
+
+                                    ?>
                                     <tr>
+                                        <td>
+
+                                            <span
+                                                class="badge
+        <?= $otpSeverity === 'CRITICAL'
+                                        ? 'bg-danger-subtle'
+                                        : 'bg-warning-subtle' ?>
+        text-body
+        p-2">
+
+                                                <?= esc(
+                                                    $otpSeverity
+                                                ) ?>
+
+                                            </span>
+
+                                        </td>
 
                                         <td>
                                             <?= esc(
