@@ -288,17 +288,54 @@ $smsUrl =
     . '?channel=sms';
 
 /**
- * Preserve active filters when building pagination links.
+ * Preserve the active communication channel and its filters
+ * when building pagination links.
+ *
+ * Email:
+ * - channel=email
+ * - status
+ * - reference_type
+ * - search
+ *
+ * SMS:
+ * - channel=sms
+ * - status
+ * - message_type
+ * - search
+ *
+ * The SMS message type is read directly from the normalized
+ * operations filters so pagination cannot switch the user back
+ * to the default Email channel.
  */
+$currentMessageType =
+    trim(
+        (string) (
+            $filters['messageType']
+            ?? ''
+        )
+    );
+
 $paginationUrl =
     static function (
         int $page
     ) use (
+        $currentChannel,
         $currentStatus,
         $currentReferenceType,
+        $currentMessageType,
         $currentSearch
     ): string {
+        /*
+         * Always preserve the channel.
+         *
+         * CommunicationOperationsController defaults to Email when
+         * channel is absent, so SMS pagination must explicitly carry
+         * channel=sms.
+         */
         $query = [
+            'channel' =>
+            $currentChannel,
+
             'page' =>
             $page,
         ];
@@ -308,12 +345,24 @@ $paginationUrl =
                 $currentStatus;
         }
 
+        /*
+         * Channel-specific filters must not leak into the other
+         * communication channel.
+         */
         if (
-            $currentReferenceType
-            !== ''
+            $currentChannel === 'email'
+            && $currentReferenceType !== ''
         ) {
             $query['reference_type'] =
                 $currentReferenceType;
+        }
+
+        if (
+            $currentChannel === 'sms'
+            && $currentMessageType !== ''
+        ) {
+            $query['message_type'] =
+                $currentMessageType;
         }
 
         if ($currentSearch !== '') {
@@ -1244,16 +1293,42 @@ $this->section(
 
                     <?php if (
                         $staleProcessing > 0
-                        || $failedHealth > 0
                     ): ?>
 
+                        <!--
+    Stale PROCESSING records indicate that queue work may
+    have been abandoned by the worker and requires immediate
+    operational attention.
+    -->
                         <span
                             class="badge
-                    bg-danger-subtle
-                    text-body
-                    p-2">
+bg-danger-subtle
+text-body
+p-2">
 
                             Attention Required
+
+                        </span>
+
+                    <?php elseif (
+                        $failedHealth > 0
+                        || $retryPending > 0
+                    ): ?>
+
+                        <!--
+    Failed or retry-pending email means communication is not
+    fully healthy, but automatic recovery may still be active.
+
+    Keep this consistent with the combined Communication
+    Health calculation, where retry-pending work is WARNING.
+    -->
+                        <span
+                            class="badge
+bg-warning-subtle
+text-body
+p-2">
+
+                            Warning
 
                         </span>
 
@@ -1261,9 +1336,9 @@ $this->section(
 
                         <span
                             class="badge
-                    bg-success-subtle
-                    text-body
-                    p-2">
+bg-success-subtle
+text-body
+p-2">
 
                             Healthy
 
