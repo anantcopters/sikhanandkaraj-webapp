@@ -1908,13 +1908,11 @@ final class Services extends BaseService
             ),
 
             /*
-         * Intentionally construct this with
-         * the SAME database connection used
-         * by the interaction models.
+         * Intentionally construct this with the SAME database connection
+         * used by the interaction models.
          *
-         * Interest persistence and in-app
-         * notification creation must remain
-         * in the same transaction.
+         * Interest persistence and in-app notification creation must remain
+         * in the same authoritative transaction.
          */
             new MemberNotificationService(
                 new MemberNotificationModel(
@@ -1923,23 +1921,31 @@ final class Services extends BaseService
             ),
 
             /*
-         * External email communication is
-         * handled separately from the domain
-         * transaction.
+         * Existing immediate email communication remains unchanged during
+         * the incremental communication-orchestration migration.
          */
             static::memberEmailService(
+                false
+            ),
+
+            /*
+         * Durable channel-independent events are best-effort external
+         * communication orchestration.
+         *
+         * The CommunicationEventService handles publication failure without
+         * failing the already-completed matrimonial action.
+         */
+            static::communicationEventService(
                 false
             ),
 
             $database,
 
             /*
-         * Shortlist entitlement is resolved
-         * centrally.
+         * Shortlist entitlement is resolved centrally.
          *
-         * Report, Block and Interest remain
-         * available according to the existing
-         * membership capability rules.
+         * Report, Block and Interest remain available according to the
+         * existing membership capability rules.
          */
             static::membershipEntitlementService(
                 false

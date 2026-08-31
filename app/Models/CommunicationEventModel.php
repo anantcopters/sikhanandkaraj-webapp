@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Services\Communication\CommunicationEventRegistry;
 use CodeIgniter\Model;
 
 /**
@@ -141,20 +142,28 @@ final class CommunicationEventModel extends Model
             ->transBegin();
 
         try {
+            /*
+            * Engagement events already have real producers, but their digest
+            * consumer is introduced in the next phase.
+            *
+            * Do not reserve and acknowledge them through the transitional generic
+            * dispatcher.
+            */
             $sql =
                 '
-            SELECT
-                *
-            FROM
-                communication_events
-            WHERE
-                status = ?
-                AND available_at <= ?
-            ORDER BY
-                id ASC
-            LIMIT ?
-            FOR UPDATE SKIP LOCKED
-            ';
+                    SELECT
+                        *
+                    FROM
+                        communication_events
+                    WHERE
+                        status = ?
+                        AND available_at <= ?
+                        AND event_key NOT IN (?, ?)
+                    ORDER BY
+                        id ASC
+                    LIMIT ?
+                    FOR UPDATE SKIP LOCKED
+                    ';
 
             $rows =
                 $database
@@ -162,9 +171,17 @@ final class CommunicationEventModel extends Model
                     $sql,
                     [
                         self::STATUS_PENDING,
+
                         gmdate(
                             'Y-m-d H:i:s'
                         ),
+
+                        CommunicationEventRegistry
+                        ::PROFILE_VIEWED,
+
+                        CommunicationEventRegistry
+                        ::PROFILE_SHORTLISTED,
+
                         $limit,
                     ]
                 )

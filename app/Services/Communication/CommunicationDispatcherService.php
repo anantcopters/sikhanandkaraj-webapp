@@ -100,9 +100,15 @@ final class CommunicationDispatcherService
     }
 
     /**
-     * Phase 3B validates and acknowledges the durable event.
+     * Validate one durable communication event.
      *
-     * Phase 3C will attach immediate/digest channel dispatchers here.
+     * Phase 3C now receives real Engagement events.
+     *
+     * IMPORTANT:
+     *
+     * PROFILE_VIEWED and PROFILE_SHORTLISTED must remain PENDING until the
+     * digest dispatcher is implemented. They must not be acknowledged merely
+     * because their payload is valid.
      *
      * @param array<string, mixed> $event
      */
@@ -131,24 +137,35 @@ final class CommunicationDispatcherService
                 )
             );
 
-        if ($payload === '') {
-            return;
+        if ($payload !== '') {
+            try {
+                json_decode(
+                    $payload,
+                    true,
+                    512,
+                    JSON_THROW_ON_ERROR
+                );
+            } catch (JsonException $exception) {
+                throw new \RuntimeException(
+                    'Communication event payload is invalid.',
+                    0,
+                    $exception
+                );
+            }
         }
 
-        try {
-            json_decode(
-                $payload,
-                true,
-                512,
-                JSON_THROW_ON_ERROR
-            );
-        } catch (JsonException $exception) {
-            throw new \RuntimeException(
-                'Communication event payload is invalid.',
-                0,
-                $exception
-            );
-        }
+        /*
+        * Engagement events are intentionally not consumed yet.
+        *
+        * The next phase will resolve the member's DAILY/WEEKLY preference,
+        * aggregate the applicable event window and queue one digest email.
+        *
+        * Throwing here would incorrectly increase attempt_count and eventually
+        * move a perfectly valid event to FAILED.
+        *
+        * Therefore processPending() must exclude these events from reservation
+        * until the digest consumer is introduced.
+        */
     }
 
     private function markProcessed(
