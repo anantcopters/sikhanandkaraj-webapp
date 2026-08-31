@@ -2490,13 +2490,14 @@ final class Services extends BaseService
     }
 
     /**
-     * Return authenticated member Account Settings service.
+     * Return the authenticated member Account Settings service.
      *
-     * Email verification deliberately receives MemberEmailService rather than
-     * EmailQueueService directly.
+     * Email verification deliberately receives MemberEmailService
+     * instead of EmailQueueService directly.
      *
-     * This keeps all email generation behind the Phase-1 email boundary while
-     * still allowing verification emails to use an unverified destination.
+     * Verification email is the explicit exception to the normal
+     * "verified primary email required" communication rule because
+     * its purpose is to establish email verification.
      */
     public static function memberAccountSettingsService(
         bool $getShared = true
@@ -2508,8 +2509,8 @@ final class Services extends BaseService
         }
 
         /*
-     * Use one database connection for the Account Settings workflow and
-     * its persistence models.
+     * Keep the Account Settings persistence models on the
+     * same application database connection.
      */
         $database =
             db_connect();
@@ -2541,14 +2542,9 @@ final class Services extends BaseService
                 ),
 
                 /*
-             * IMPORTANT:
-             *
-             * EmailVerificationService now delegates email construction
-             * and queueing to MemberEmailService.
-             *
-             * Verification itself remains the explicit exception to the
-             * "verified primary email required" rule because the purpose
-             * of this communication is to verify that address.
+             * EmailVerificationService owns verification
+             * workflow while MemberEmailService owns email
+             * definition/rendering/queueing.
              */
                 static::memberEmailService(
                     false

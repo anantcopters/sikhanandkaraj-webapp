@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Email;
 
+use App\Support\CurrencyDisplay;
+use App\Support\DateDisplay;
+
 use Throwable;
 
 final class MemberEmailService
@@ -555,17 +558,29 @@ final class MemberEmailService
                 'planName' =>
                 $planName,
 
+                /*
+                * Currency formatting belongs to the common
+                * presentation Support layer.
+                */
                 'amount' =>
-                $this->formatIndianRupees(
+                CurrencyDisplay::formatIndianRupees(
                     $amountPaise
                 ),
 
                 'transactionReference' =>
                 $transactionReference,
 
+                /*
+                * Membership timestamps are stored in UTC.
+                *
+                * Reuse the project-wide date presentation
+                * boundary rather than defining email-specific
+                * timezone/date rules.
+                */
                 'expiresAt' =>
-                $this->formatEmailDate(
-                    $expiresAt
+                DateDisplay::formatUtcDate(
+                    $expiresAt,
+                    ''
                 ),
 
                 'isExpired' =>
@@ -627,8 +642,9 @@ final class MemberEmailService
                 '',
 
                 'expiresAt' =>
-                $this->formatEmailDate(
-                    $expiresAt
+                DateDisplay::formatUtcDate(
+                    $expiresAt,
+                    ''
                 ),
 
                 'isExpired' =>
@@ -649,83 +665,7 @@ final class MemberEmailService
         );
     }
 
-    /**
-     * Convert the immutable paise snapshot into a member-readable INR value.
-     *
-     * Email presentation must not perform floating-point currency arithmetic.
-     */
-    private function formatIndianRupees(
-        int $amountPaise
-    ): string {
-        $amountPaise =
-            max(
-                0,
-                $amountPaise
-            );
-
-        $rupees =
-            intdiv(
-                $amountPaise,
-                100
-            );
-
-        $paise =
-            $amountPaise % 100;
-
-        return '₹'
-            . number_format(
-                $rupees,
-                0,
-                '.',
-                ','
-            )
-            . (
-                $paise > 0
-                ? '.'
-                . str_pad(
-                    (string) $paise,
-                    2,
-                    '0',
-                    STR_PAD_LEFT
-                )
-                : ''
-            );
-    }
-
-    /**
-     * Convert database UTC timestamps to the existing human-readable
-     * email presentation.
-     *
-     * Invalid/legacy timestamps fail closed to an empty display value rather
-     * than throwing after the underlying business transaction has completed.
-     */
-    private function formatEmailDate(
-        string $value
-    ): string {
-        $value =
-            trim(
-                $value
-            );
-
-        if ($value === '') {
-            return '';
-        }
-
-        try {
-            return (
-                new \DateTimeImmutable(
-                    $value,
-                    new \DateTimeZone(
-                        'UTC'
-                    )
-                )
-            )->format(
-                'd F Y'
-            );
-        } catch (Throwable) {
-            return '';
-        }
-    }
+    
 
     /**
      * Central boundary for normal member email.
