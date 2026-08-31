@@ -1749,6 +1749,39 @@ $routes->group('admin', [
                     );
                 }
             );
+
+            /*
+            * --------------------------------------------------------------------------
+            * Communication Operations
+            * --------------------------------------------------------------------------
+            *
+            * Read-only operational visibility over application communication.
+            *
+            * This follows the same SUPER_ADMIN authorization boundary as Email Preview
+            * Centre because communication delivery metadata and failure information are
+            * operational administration data.
+            *
+            * Manual retry is intentionally not exposed in this phase.
+            */
+            $routes->group(
+                'communication-operations',
+                [
+                    'filter' =>
+                    'superAdmin',
+                ],
+                static function (
+                    RouteCollection $routes
+                ): void {
+                    $routes->get(
+                        '',
+                        'CommunicationOperationsController::index',
+                        [
+                            'as' =>
+                            'admin.communication-operations.index',
+                        ]
+                    );
+                }
+            );
         });
 
         /*

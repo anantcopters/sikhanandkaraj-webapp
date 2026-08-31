@@ -177,6 +177,8 @@ use App\Models\CommunicationEventModel;
 use App\Services\Communication\CommunicationDispatcherService;
 use App\Services\Communication\CommunicationEventService;
 use App\Services\Communication\EngagementDigestService;
+use App\Services\Communication\CommunicationOperationsService;
+use App\Models\EmailQueueModel;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -3711,6 +3713,35 @@ final class Services extends BaseService
             new EmailRegistry(),
 
             new EmailQueueService(
+                $database
+            ),
+
+            $database
+        );
+    }
+
+    /**
+     * Return the read-only communication operations service.
+     *
+     * This service provides Super Admin operational visibility over the
+     * existing durable email queue.
+     *
+     * It deliberately does not own sending, retry or provider behaviour.
+     */
+    public static function communicationOperationsService(
+        bool $getShared = true
+    ): CommunicationOperationsService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'communicationOperationsService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new CommunicationOperationsService(
+            new EmailQueueModel(
                 $database
             ),
 

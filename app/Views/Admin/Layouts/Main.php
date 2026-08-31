@@ -116,6 +116,16 @@ $pageScripts = $pageScripts ?? [];
                 'admin/email-preview'
             );
 
+        $communicationOperationsActive =
+            str_starts_with(
+                $currentPath,
+                'admin/users/communication-operations'
+            )
+            || str_starts_with(
+                $currentPath,
+                'admin/communication-operations'
+            );
+
         $sakVolunteersActive =
             str_starts_with(
                 $currentPath,
@@ -138,7 +148,8 @@ $pageScripts = $pageScripts ?? [];
         $administrationGroupActive =
             $administratorsActive
             || $matchScoreActive
-            || $emailPreviewActive;
+            || $emailPreviewActive
+            || $communicationOperationsActive;
 
         $profileReportsActive =
             str_starts_with(
@@ -677,6 +688,30 @@ $pageScripts = $pageScripts ?? [];
                                                 </i>
 
                                                 Email Preview Centre
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a
+                                                href="<?= route_to(
+                                                            'admin.communication-operations.index'
+                                                        ) ?>"
+                                                class="dropdown-item
+        d-flex
+        align-items-center
+        gap-2
+        <?= $communicationOperationsActive
+                                    ? 'active'
+                                    : '' ?>"
+                                                <?= $communicationOperationsActive
+                                                    ? 'aria-current="page"'
+                                                    : '' ?>>
+
+                                                <i
+                                                    class="ri-mail-check-line"
+                                                    aria-hidden="true">
+                                                </i>
+
+                                                Communication Operations
                                             </a>
                                         </li>
                                     </ul>
