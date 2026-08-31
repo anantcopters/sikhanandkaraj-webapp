@@ -194,6 +194,8 @@ final class EngagementDigestService
     }
 
     /**
+     * Process one member's pending Engagement events.
+     *
      * @return array{
      *     queued:bool,
      *     events:int
@@ -204,9 +206,14 @@ final class EngagementDigestService
         string $frequency
     ): array {
         /*
-         * CommunicationPolicyService remains the single authority for the
-         * member's configured Engagement frequency.
-         */
+        * CommunicationPolicyService remains the single authority for the
+        * member's configured Engagement frequency.
+        *
+        * The database query already filters recipients by frequency, but the
+        * policy is deliberately checked again immediately before processing.
+        * This protects against a preference change between batch discovery and
+        * recipient processing.
+        */
         $decision =
             $this
             ->communicationPolicyService
@@ -227,45 +234,11 @@ final class EngagementDigestService
         }
 
         /*
-         * Normal member email requires a verified primary email.
-         *
-         * Reuse the same recipient authority as all existing member email.
-         */
-        $recipient =
-            $this
-            ->recipientService
-            ->verifiedPrimaryEmail(
-                $recipientUserId
-            );
-
-        if ($recipient === null) {
-            /*
-             * Do not consume the events.
-             *
-             * The member may verify an email later, at which point the
-             * pending Engagement events remain available.
-             */
-            return [
-                'queued' =>
-                false,
-
-                'events' =>
-                0,
-            ];
-        }
-
-        /*
-         * Reserve this member's pending Engagement events.
-         *
-         * SKIP LOCKED prevents two digest workers from consuming the same
-         * member activity concurrently.
-         */
-        /*
- * Reserve this member's pending Engagement events.
- *
- * SKIP LOCKED prevents two digest workers from consuming the same member
- * activity concurrently.
- */
+        * Reserve this member's currently pending Engagement events.
+        *
+        * PostgreSQL SKIP LOCKED in CommunicationEventModel prevents two digest
+        * workers from consuming the same member activity concurrently.
+        */
         $events =
             $this
             ->eventModel
@@ -283,6 +256,12 @@ final class EngagementDigestService
             ];
         }
 
+        /*
+        * Keep only valid persisted event IDs.
+        *
+        * These exact IDs are acknowledged only after the digest has entered the
+        * durable email queue.
+        */
         $eventIds =
             array_values(
                 array_filter(
@@ -299,11 +278,23 @@ final class EngagementDigestService
                 )
             );
 
+        if ($eventIds === []) {
+            /*
+            * This should not normally occur because reserved communication
+            * events are persisted rows. Return them to PENDING rather than
+            * leaving an invalid reservation in PROCESSING.
+            */
+            throw new \RuntimeException(
+                'Reserved Engagement events do not contain valid event IDs.'
+            );
+        }
+
         /*
-        * Normal member email requires a verified primary email.
+        * Normal member communication requires a verified primary email.
         *
-        * Reuse the same authoritative recipient resolver as every other normal
-        * member email.
+        * Reuse MemberEmailRecipientService so Engagement digest delivery follows
+        * exactly the same recipient authority as the existing member email
+        * workflows.
         */
         $recipient =
             $this
@@ -314,11 +305,11 @@ final class EngagementDigestService
 
         if ($recipient === null) {
             /*
-            * No verified primary email means the communication is intentionally
+            * No verified primary email means this digest is intentionally
             * skipped.
             *
-            * Consume the current events so activity which occurred while the
-            * member was ineligible for email is not delivered later as a stale
+            * Consume the reserved events so activity which occurred while the
+            * member was not eligible for email is not delivered later as a stale
             * digest after an email address is verified.
             */
             $this
@@ -340,6 +331,12 @@ final class EngagementDigestService
         }
 
         try {
+            /*
+            * The digest contains aggregate activity only.
+            *
+            * No actor name, profile URL, photo, contact information or other
+            * member PII is copied into the external communication.
+            */
             $summary =
                 $this
                 ->summarise(
@@ -355,11 +352,11 @@ final class EngagementDigestService
                 );
 
             /*
-             * The email queue is the durable channel boundary.
-             *
-             * Communication events are marked PROCESSED only after the
-             * digest has successfully entered email_queue.
-             */
+            * The existing email queue remains the durable email-channel
+            * boundary.
+            *
+            * This service does not make an SMTP/provider connection directly.
+            */
             $this
                 ->emailQueueService
                 ->enqueue(
@@ -400,39 +397,45 @@ final class EngagementDigestService
                     maxAttempts: $definition->maxAttempts
                 );
 
+            /*
+            * Acknowledge the communication events only after the digest has
+            * successfully entered the durable email queue.
+            */
             $this
                 ->eventModel
                 ->markProcessedIds(
                     $eventIds
                 );
 
-            if ($recipient === null) {
-                /*
-                * Do not consume the events.
-                *
-                * The member may verify an email later, at which point the
-                * pending Engagement events remain available.
-                */
-                return [
-                    'queued' =>
-                    false,
+            /*
+            * IMPORTANT:
+            *
+            * The current file is missing this successful return. Without it PHP
+            * reaches the end of a method declared ": array" and raises a
+            * TypeError after successfully queueing the digest.
+            */
+            return [
+                'queued' =>
+                true,
 
-                    'events' =>
-                    0,
-                ];
-            }
+                'events' =>
+                count(
+                    $eventIds
+                ),
+            ];
         } catch (Throwable $exception) {
             /*
-             * Queue failure must not lose Engagement activity.
-             *
-             * Return reserved events to PENDING so a later digest run can
-             * retry them.
-             */
+            * Queue/render/definition failure must not lose Engagement activity.
+            *
+            * Return the reserved events to PENDING so a later digest run can
+            * retry them.
+            */
             $this
                 ->eventModel
                 ->releaseIds(
                     $eventIds,
-                    $exception->getMessage()
+                    $exception
+                        ->getMessage()
                 );
 
             throw $exception;
