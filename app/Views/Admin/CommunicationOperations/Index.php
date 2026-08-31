@@ -15,6 +15,101 @@ $operations =
     ? $operations
     : [];
 
+$communicationHealth =
+    isset($communicationHealth)
+    && is_array(
+        $communicationHealth
+    )
+    ? $communicationHealth
+    : [];
+
+$overallCommunicationStatus =
+    mb_strtoupper(
+        trim(
+            (string) (
+                $communicationHealth['status']
+                ?? 'UNAVAILABLE'
+            )
+        )
+    );
+
+$emailCommunicationHealth =
+    isset($communicationHealth['email'])
+    && is_array(
+        $communicationHealth['email']
+    )
+    ? $communicationHealth['email']
+    : [];
+
+$smsCommunicationHealth =
+    isset($communicationHealth['sms'])
+    && is_array(
+        $communicationHealth['sms']
+    )
+    ? $communicationHealth['sms']
+    : [];
+
+$emailCommunicationStatus =
+    mb_strtoupper(
+        trim(
+            (string) (
+                $emailCommunicationHealth['status']
+                ?? 'UNAVAILABLE'
+            )
+        )
+    );
+
+$smsCommunicationStatus =
+    mb_strtoupper(
+        trim(
+            (string) (
+                $smsCommunicationHealth['status']
+                ?? 'UNAVAILABLE'
+            )
+        )
+    );
+
+/**
+ * Reuse Bootstrap badge classes already used by Communication Operations.
+ */
+$healthBadgeClass =
+    static function (
+        string $status
+    ): string {
+        return match ($status) {
+            'HEALTHY' =>
+            'bg-success-subtle text-body p-2',
+
+            'WARNING' =>
+            'bg-warning-subtle text-body p-2',
+
+            'CRITICAL' =>
+            'bg-danger-subtle text-body p-2',
+
+            default =>
+            'bg-secondary-subtle text-body p-2',
+        };
+    };
+
+$healthIconClass =
+    static function (
+        string $status
+    ): string {
+        return match ($status) {
+            'HEALTHY' =>
+            'ri-checkbox-circle-line text-success',
+
+            'WARNING' =>
+            'ri-error-warning-line text-warning',
+
+            'CRITICAL' =>
+            'ri-alarm-warning-line text-danger',
+
+            default =>
+            'ri-question-line text-secondary',
+        };
+    };
+
 $rows =
     isset($operations['rows'])
     && is_array($operations['rows'])
@@ -283,14 +378,546 @@ $this->section(
                     </h4>
 
                     <p class="text-muted mb-0 mt-1">
-                        Monitor queued and delivered
-                        application email communication.
+                        Monitor application Email and SMS
+                        communication health and operations.
                     </p>
                 </div>
 
             </div>
 
         </div>
+    </div>
+    <!--
+    Phase 6A - Combined Communication Health.
+
+    This section intentionally reuses the existing Email queue and SMS
+    operational-health calculations. It is independent of the active tab so
+    Super Admin can see both channels immediately.
+-->
+    <div class="card border border-danger border-opacity-25">
+
+        <div class="card-header">
+
+            <div
+                class="d-flex
+            align-items-center
+            justify-content-between
+            gap-3">
+
+                <div>
+
+                    <h5 class="card-title mb-1">
+                        Communication Health
+                    </h5>
+
+                    <p class="text-muted mb-0">
+                        Current operational status of application
+                        Email and SMS communication.
+                    </p>
+
+                </div>
+
+                <span
+                    class="badge
+                <?= esc(
+                    $healthBadgeClass(
+                        $overallCommunicationStatus
+                    ),
+                    'attr'
+                ) ?>">
+
+                    <?= esc(
+                        ucwords(
+                            strtolower(
+                                $overallCommunicationStatus
+                            )
+                        )
+                    ) ?>
+
+                </span>
+
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <!-- Overall communication status -->
+                <div class="col-xl-4">
+
+                    <div
+                        class="border
+                    rounded
+                    p-3
+                    h-100">
+
+                        <div
+                            class="d-flex
+                        align-items-center
+                        gap-2
+                        mb-3">
+
+                            <i
+                                class="<?= esc(
+                                            $healthIconClass(
+                                                $overallCommunicationStatus
+                                            ),
+                                            'attr'
+                                        ) ?>
+                            fs-24">
+                            </i>
+
+                            <div>
+
+                                <div class="fw-medium">
+                                    Overall
+                                </div>
+
+                                <span
+                                    class="badge
+                                <?= esc(
+                                    $healthBadgeClass(
+                                        $overallCommunicationStatus
+                                    ),
+                                    'attr'
+                                ) ?>">
+
+                                    <?= esc(
+                                        ucwords(
+                                            strtolower(
+                                                $overallCommunicationStatus
+                                            )
+                                        )
+                                    ) ?>
+
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                        <p class="text-muted fs-13 mb-0">
+
+                            <?php if (
+                                $overallCommunicationStatus
+                                === 'HEALTHY'
+                            ): ?>
+
+                                Email and SMS communication are
+                                operating without a condition
+                                requiring attention.
+
+                            <?php elseif (
+                                $overallCommunicationStatus
+                                === 'WARNING'
+                            ): ?>
+
+                                Communication is operating, but
+                                one or more conditions should
+                                be reviewed.
+
+                            <?php elseif (
+                                $overallCommunicationStatus
+                                === 'CRITICAL'
+                            ): ?>
+
+                                One or more communication
+                                conditions require attention.
+
+                            <?php else: ?>
+
+                                Communication health could not
+                                be determined.
+
+                            <?php endif; ?>
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <!-- Email health -->
+                <div class="col-xl-4 col-md-6">
+
+                    <div
+                        class="border
+                    rounded
+                    p-3
+                    h-100">
+
+                        <div
+                            class="d-flex
+                        align-items-center
+                        justify-content-between
+                        gap-2
+                        mb-3">
+
+                            <div
+                                class="d-flex
+                            align-items-center
+                            gap-2">
+
+                                <i
+                                    class="ri-mail-line
+                                fs-24
+                                <?= $emailCommunicationStatus
+                                    === 'CRITICAL'
+                                    ? 'text-danger'
+                                    : (
+                                        $emailCommunicationStatus
+                                        === 'WARNING'
+                                        ? 'text-warning'
+                                        : 'text-success'
+                                    ) ?>">
+                                </i>
+
+                                <span class="fw-medium">
+                                    Email
+                                </span>
+
+                            </div>
+
+                            <span
+                                class="badge
+                            <?= esc(
+                                $healthBadgeClass(
+                                    $emailCommunicationStatus
+                                ),
+                                'attr'
+                            ) ?>">
+
+                                <?= esc(
+                                    ucwords(
+                                        strtolower(
+                                            $emailCommunicationStatus
+                                        )
+                                    )
+                                ) ?>
+
+                            </span>
+
+                        </div>
+
+                        <div
+                            class="d-flex
+                        flex-wrap
+                        gap-3
+                        mb-3">
+
+                            <div>
+
+                                <div
+                                    class="text-muted
+                                fs-12
+                                text-uppercase">
+                                    Ready
+                                </div>
+
+                                <div class="fw-semibold">
+
+                                    <?= number_format(
+                                        (int) (
+                                            $emailCommunicationHealth['readyNow']
+                                            ?? 0
+                                        )
+                                    ) ?>
+
+                                </div>
+
+                            </div>
+
+                            <div>
+
+                                <div
+                                    class="text-muted
+                                fs-12
+                                text-uppercase">
+                                    Retry
+                                </div>
+
+                                <div class="fw-semibold">
+
+                                    <?= number_format(
+                                        (int) (
+                                            $emailCommunicationHealth['retryPending']
+                                            ?? 0
+                                        )
+                                    ) ?>
+
+                                </div>
+
+                            </div>
+
+                            <div>
+
+                                <div
+                                    class="text-muted
+                                fs-12
+                                text-uppercase">
+                                    Stale
+                                </div>
+
+                                <div
+                                    class="fw-semibold
+                                <?= (
+                                    (int) (
+                                        $emailCommunicationHealth['staleProcessing']
+                                        ?? 0
+                                    )
+                                ) > 0
+                                    ? 'text-danger'
+                                    : '' ?>">
+
+                                    <?= number_format(
+                                        (int) (
+                                            $emailCommunicationHealth['staleProcessing']
+                                            ?? 0
+                                        )
+                                    ) ?>
+
+                                </div>
+
+                            </div>
+
+                            <div>
+
+                                <div
+                                    class="text-muted
+                                fs-12
+                                text-uppercase">
+                                    Failed
+                                </div>
+
+                                <div
+                                    class="fw-semibold
+                                <?= (
+                                    (int) (
+                                        $emailCommunicationHealth['failed']
+                                        ?? 0
+                                    )
+                                ) > 0
+                                    ? 'text-danger'
+                                    : '' ?>">
+
+                                    <?= number_format(
+                                        (int) (
+                                            $emailCommunicationHealth['failed']
+                                            ?? 0
+                                        )
+                                    ) ?>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <p class="text-muted fs-13 mb-0">
+
+                            <?= esc(
+                                (string) (
+                                    $emailCommunicationHealth['message']
+                                    ?? 'Email health is unavailable.'
+                                )
+                            ) ?>
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <!-- SMS health -->
+                <div class="col-xl-4 col-md-6">
+
+                    <div
+                        class="border
+                    rounded
+                    p-3
+                    h-100">
+
+                        <div
+                            class="d-flex
+                        align-items-center
+                        justify-content-between
+                        gap-2
+                        mb-3">
+
+                            <div
+                                class="d-flex
+                            align-items-center
+                            gap-2">
+
+                                <i
+                                    class="ri-message-2-line
+                                fs-24
+                                <?= $smsCommunicationStatus
+                                    === 'CRITICAL'
+                                    ? 'text-danger'
+                                    : (
+                                        $smsCommunicationStatus
+                                        === 'WARNING'
+                                        ? 'text-warning'
+                                        : 'text-success'
+                                    ) ?>">
+                                </i>
+
+                                <span class="fw-medium">
+                                    SMS
+                                </span>
+
+                            </div>
+
+                            <span
+                                class="badge
+                            <?= esc(
+                                $healthBadgeClass(
+                                    $smsCommunicationStatus
+                                ),
+                                'attr'
+                            ) ?>">
+
+                                <?= esc(
+                                    ucwords(
+                                        strtolower(
+                                            $smsCommunicationStatus
+                                        )
+                                    )
+                                ) ?>
+
+                            </span>
+
+                        </div>
+
+                        <div
+                            class="d-flex
+                        flex-wrap
+                        gap-3
+                        mb-3">
+
+                            <div>
+
+                                <div
+                                    class="text-muted
+                                fs-12
+                                text-uppercase">
+                                    Requests
+                                </div>
+
+                                <div class="fw-semibold">
+
+                                    <?= number_format(
+                                        (int) (
+                                            $smsCommunicationHealth['totalLast24Hours']
+                                            ?? 0
+                                        )
+                                    ) ?>
+
+                                </div>
+
+                            </div>
+
+                            <div>
+
+                                <div
+                                    class="text-muted
+                                fs-12
+                                text-uppercase">
+                                    Accepted
+                                </div>
+
+                                <div class="fw-semibold">
+
+                                    <?= number_format(
+                                        (int) (
+                                            $smsCommunicationHealth['acceptedLast24Hours']
+                                            ?? 0
+                                        )
+                                    ) ?>
+
+                                </div>
+
+                            </div>
+
+                            <div>
+
+                                <div
+                                    class="text-muted
+                                fs-12
+                                text-uppercase">
+                                    Failed
+                                </div>
+
+                                <div
+                                    class="fw-semibold
+                                <?= (
+                                    (int) (
+                                        $smsCommunicationHealth['failedLast24Hours']
+                                        ?? 0
+                                    )
+                                ) > 0
+                                    ? 'text-danger'
+                                    : '' ?>">
+
+                                    <?= number_format(
+                                        (int) (
+                                            $smsCommunicationHealth['failedLast24Hours']
+                                            ?? 0
+                                        )
+                                    ) ?>
+
+                                </div>
+
+                            </div>
+
+                            <div>
+
+                                <div
+                                    class="text-muted
+                                fs-12
+                                text-uppercase">
+                                    Failure
+                                </div>
+
+                                <div
+                                    class="fw-semibold">
+
+                                    <?= number_format(
+                                        (float) (
+                                            $smsCommunicationHealth['failureRate']
+                                            ?? 0
+                                        ),
+                                        1
+                                    ) ?>%
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <p class="text-muted fs-13 mb-0">
+
+                            <?= esc(
+                                (string) (
+                                    $smsCommunicationHealth['message']
+                                    ?? 'SMS health is unavailable.'
+                                )
+                            ) ?>
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
     </div>
     <div class="row mb-3">
         <div class="col-12">

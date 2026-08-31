@@ -80,6 +80,17 @@ final class CommunicationOperationsController extends BaseController
                     'communicationOperationsService'
                 );
 
+            /*
+             * Phase 6A:
+             *
+             * Combined communication health is independent of the currently
+             * selected Email/SMS tab so Super Admin always sees the state of
+             * both channels.
+             */
+            $communicationHealth =
+                $service
+                ->communicationHealth();
+
             if ($channel === 'sms') {
                 $messageType =
                     trim(
@@ -127,6 +138,9 @@ final class CommunicationOperationsController extends BaseController
                     'channel' =>
                     $channel,
 
+                    'communicationHealth' =>
+                    $communicationHealth,
+
                     'operations' =>
                     $operations,
                 ]
@@ -147,6 +161,31 @@ final class CommunicationOperationsController extends BaseController
                     'channel' =>
                     $channel,
 
+                    /*
+                     * Keep the health section fail-safe. The View will render
+                     * unavailable rather than incorrectly reporting Healthy.
+                     */
+                    'communicationHealth' => [
+                        'status' =>
+                        'UNAVAILABLE',
+
+                        'email' => [
+                            'status' =>
+                            'UNAVAILABLE',
+
+                            'message' =>
+                            'Email health is unavailable.',
+                        ],
+
+                        'sms' => [
+                            'status' =>
+                            'UNAVAILABLE',
+
+                            'message' =>
+                            'SMS health is unavailable.',
+                        ],
+                    ],
+
                     'operations' => [
                         'rows' =>
                         [],
@@ -155,6 +194,12 @@ final class CommunicationOperationsController extends BaseController
                         [],
 
                         'health' =>
+                        [],
+
+                        'smsHealth' =>
+                        [],
+
+                        'operationalAlerts' =>
                         [],
 
                         'otpAlerts' =>

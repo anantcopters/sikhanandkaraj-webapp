@@ -107,6 +107,361 @@ final class CommunicationOperationsService
     ) {}
 
     /**
+     * Return the combined communication health used by Communication Operations.
+     *
+     * Phase 6A deliberately reuses the existing Email and SMS operational-health
+     * calculations. It does not maintain another health table or another source
+     * of truth.
+     *
+     * Status meaning:
+     *
+     * HEALTHY
+     *     No current Email/SMS condition requires operational attention.
+     *
+     * WARNING
+     *     Communication is working, but an operational condition should be
+     *     reviewed.
+     *
+     * CRITICAL
+     *     A condition exists which may prevent or materially affect
+     *     communication.
+     *
+     * @return array{
+     *     status:string,
+     *     email:array{
+     *         status:string,
+     *         readyNow:int,
+     *         retryPending:int,
+     *         staleProcessing:int,
+     *         failed:int,
+     *         message:string
+     *     },
+     *     sms:array{
+     *         status:string,
+     *         totalLast24Hours:int,
+     *         acceptedLast24Hours:int,
+     *         failedLast24Hours:int,
+     *         failureRate:float,
+     *         alertCount:int,
+     *         criticalAlertCount:int,
+     *         warningAlertCount:int,
+     *         message:string
+     *     }
+     * }
+     */
+    public function communicationHealth(): array
+    {
+        /*
+     * Reuse the existing Email queue-health calculation.
+     */
+        $emailHealth =
+            $this
+            ->emailQueueHealth();
+
+        $emailReadyNow =
+            max(
+                0,
+                (int) (
+                    $emailHealth['readyNow']
+                    ?? 0
+                )
+            );
+
+        $emailRetryPending =
+            max(
+                0,
+                (int) (
+                    $emailHealth['retryPending']
+                    ?? 0
+                )
+            );
+
+        $emailStaleProcessing =
+            max(
+                0,
+                (int) (
+                    $emailHealth['staleProcessing']
+                    ?? 0
+                )
+            );
+
+        $emailFailed =
+            max(
+                0,
+                (int) (
+                    $emailHealth['failed']
+                    ?? 0
+                )
+            );
+
+        /*
+     * A stale PROCESSING record is the strongest Email operational signal
+     * because the queue worker should normally recover these records.
+     *
+     * Terminal FAILED records require review, but do not necessarily mean
+     * the Email channel itself is unavailable.
+     */
+        if ($emailStaleProcessing > 0) {
+            $emailStatus =
+                'CRITICAL';
+
+            $emailMessage =
+                number_format(
+                    $emailStaleProcessing
+                )
+                . ' stale processing record'
+                . (
+                    $emailStaleProcessing === 1
+                    ? ''
+                    : 's'
+                )
+                . ' require attention.';
+        } elseif ($emailFailed > 0) {
+            $emailStatus =
+                'WARNING';
+
+            $emailMessage =
+                number_format(
+                    $emailFailed
+                )
+                . ' failed email record'
+                . (
+                    $emailFailed === 1
+                    ? ''
+                    : 's'
+                )
+                . ' require review.';
+        } elseif ($emailRetryPending > 0) {
+            $emailStatus =
+                'WARNING';
+
+            $emailMessage =
+                number_format(
+                    $emailRetryPending
+                )
+                . ' email'
+                . (
+                    $emailRetryPending === 1
+                    ? ' is'
+                    : 's are'
+                )
+                . ' waiting for automatic retry.';
+        } else {
+            $emailStatus =
+                'HEALTHY';
+
+            $emailMessage =
+                $emailReadyNow > 0
+                ? number_format(
+                    $emailReadyNow
+                )
+                . ' email'
+                . (
+                    $emailReadyNow === 1
+                    ? ' is'
+                    : 's are'
+                )
+                . ' ready for normal worker pickup.'
+                : 'No Email issue requires attention.';
+        }
+
+        /*
+     * Reuse the existing Phase 4E/4G SMS calculations.
+     *
+     * This ensures that the combined health summary and the detailed SMS tab
+     * cannot apply different operational thresholds.
+     */
+        $otpAlerts =
+            $this
+            ->otpLimitAlerts();
+
+        $smsHealth =
+            $this
+            ->smsOperationalHealth();
+
+        $smsAlerts =
+            $this
+            ->smsOperationalAlerts(
+                $otpAlerts,
+                $smsHealth
+            );
+
+        $criticalSmsAlerts =
+            count(
+                array_filter(
+                    $smsAlerts,
+                    static fn(
+                        array $alert
+                    ): bool =>
+                    mb_strtoupper(
+                        trim(
+                            (string) (
+                                $alert['severity']
+                                ?? ''
+                            )
+                        )
+                    ) === 'CRITICAL'
+                )
+            );
+
+        $warningSmsAlerts =
+            count(
+                array_filter(
+                    $smsAlerts,
+                    static fn(
+                        array $alert
+                    ): bool =>
+                    mb_strtoupper(
+                        trim(
+                            (string) (
+                                $alert['severity']
+                                ?? ''
+                            )
+                        )
+                    ) === 'WARNING'
+                )
+            );
+
+        if ($criticalSmsAlerts > 0) {
+            $smsStatus =
+                'CRITICAL';
+
+            $smsMessage =
+                number_format(
+                    $criticalSmsAlerts
+                )
+                . ' critical SMS operational alert'
+                . (
+                    $criticalSmsAlerts === 1
+                    ? ''
+                    : 's'
+                )
+                . ' require attention.';
+        } elseif ($warningSmsAlerts > 0) {
+            $smsStatus =
+                'WARNING';
+
+            $smsMessage =
+                number_format(
+                    $warningSmsAlerts
+                )
+                . ' SMS operational warning'
+                . (
+                    $warningSmsAlerts === 1
+                    ? ''
+                    : 's'
+                )
+                . ' require review.';
+        } else {
+            $smsStatus =
+                'HEALTHY';
+
+            $smsMessage =
+                'No SMS issue requires attention.';
+        }
+
+        /*
+     * Overall health follows the most severe channel state.
+     */
+        if (
+            $emailStatus === 'CRITICAL'
+            || $smsStatus === 'CRITICAL'
+        ) {
+            $overallStatus =
+                'CRITICAL';
+        } elseif (
+            $emailStatus === 'WARNING'
+            || $smsStatus === 'WARNING'
+        ) {
+            $overallStatus =
+                'WARNING';
+        } else {
+            $overallStatus =
+                'HEALTHY';
+        }
+
+        return [
+            'status' =>
+            $overallStatus,
+
+            'email' => [
+                'status' =>
+                $emailStatus,
+
+                'readyNow' =>
+                $emailReadyNow,
+
+                'retryPending' =>
+                $emailRetryPending,
+
+                'staleProcessing' =>
+                $emailStaleProcessing,
+
+                'failed' =>
+                $emailFailed,
+
+                'message' =>
+                $emailMessage,
+            ],
+
+            'sms' => [
+                'status' =>
+                $smsStatus,
+
+                'totalLast24Hours' =>
+                max(
+                    0,
+                    (int) (
+                        $smsHealth['totalLast24Hours']
+                        ?? 0
+                    )
+                ),
+
+                'acceptedLast24Hours' =>
+                max(
+                    0,
+                    (int) (
+                        $smsHealth['acceptedLast24Hours']
+                        ?? 0
+                    )
+                ),
+
+                'failedLast24Hours' =>
+                max(
+                    0,
+                    (int) (
+                        $smsHealth['failedLast24Hours']
+                        ?? 0
+                    )
+                ),
+
+                'failureRate' =>
+                max(
+                    0.0,
+                    (float) (
+                        $smsHealth['failureRate']
+                        ?? 0.0
+                    )
+                ),
+
+                'alertCount' =>
+                count(
+                    $smsAlerts
+                ),
+
+                'criticalAlertCount' =>
+                $criticalSmsAlerts,
+
+                'warningAlertCount' =>
+                $warningSmsAlerts,
+
+                'message' =>
+                $smsMessage,
+            ],
+        ];
+    }
+
+    /**
      * Return the operational email queue listing.
      *
      * @return array{
