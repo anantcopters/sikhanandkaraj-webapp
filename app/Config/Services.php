@@ -169,6 +169,7 @@ use App\Services\Email\EmailRegistry;
 use App\Services\Email\EmailRenderer;
 use App\Services\Email\MemberEmailService;
 use App\Services\Email\TestEmailService;
+use App\Services\Email\MemberEmailRecipientService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -1118,7 +1119,18 @@ final class Services extends BaseService
         return new MemberNotificationService(
             new MemberNotificationModel(
                 $database
-            )
+            ),
+            new MemberNotificationService(
+                new MemberNotificationModel(
+                    $database
+                )
+            ),
+
+            static::memberEmailService(
+                false
+            ),
+
+            $database,
         );
     }
 
@@ -2208,7 +2220,22 @@ final class Services extends BaseService
 
             static::memberInteractionService(
                 false
-            )
+            ),
+            new MemberNotificationService(
+                new MemberNotificationModel(
+                    $database
+                )
+            ),
+
+            static::memberEmailService(
+                false
+            ),
+
+            $database,
+
+            static::membershipEntitlementService(
+                false
+            ),
         );
     }
 
@@ -3354,6 +3381,25 @@ final class Services extends BaseService
         return new EmailRenderer();
     }
 
+    public static function memberEmailRecipientService(
+        bool $getShared = true
+    ): MemberEmailRecipientService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberEmailRecipientService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new MemberEmailRecipientService(
+            new UserContactModel(
+                $database
+            )
+        );
+    }
+
     public static function memberEmailService(
         bool $getShared = true
     ): MemberEmailService {
@@ -3364,8 +3410,15 @@ final class Services extends BaseService
         }
 
         return new MemberEmailService(
-            static::emailRegistry(false),
-            new EmailQueueService()
+            static::emailRegistry(
+                false
+            ),
+
+            new EmailQueueService(),
+
+            static::memberEmailRecipientService(
+                false
+            )
         );
     }
 

@@ -13,6 +13,7 @@ use App\Services\Notification\MemberNotificationService;
 use CodeIgniter\Database\BaseConnection;
 use App\Support\MemberNameVisibility;
 use App\Services\Membership\MembershipEntitlementService;
+use App\Services\Email\MemberEmailService;
 use DomainException;
 use RuntimeException;
 use Throwable;
@@ -62,6 +63,9 @@ final class MemberInteractionService
 
         private readonly MemberNotificationService
         $notificationService,
+
+        private readonly MemberEmailService
+        $memberEmailService,
 
         private readonly BaseConnection
         $database,
@@ -122,76 +126,9 @@ final class MemberInteractionService
 
         try {
             /*
-         * Serialize Interest creation for the member pair.
-         *
-         * Ordering IDs ensures A -> B and B -> A requests
-         * acquire locks in the same order.
-         */
-            $this->database->query(
-                'SELECT id '
-                    . 'FROM users '
-                    . 'WHERE id IN (?, ?) '
-                    . 'ORDER BY id '
-                    . 'FOR UPDATE',
-                [
-                    $fromUserId,
-                    $toUserId,
-                ]
-            );
-
-            /*
-         * Recheck after locking.
-         *
-         * This prevents simultaneous reverse Interest
-         * submissions from creating two rows.
-         */
-            if (
-                $this->interestModel
-                ->existsBetween(
-                    $fromUserId,
-                    $toUserId
-                )
-            ) {
-                $this->database
-                    ->transCommit();
-
-                return false;
-            }
-
-            $insertId = $this
-                ->interestModel
-                ->insert(
-                    [
-                        'from_user_id' =>
-                        $fromUserId,
-
-                        'to_user_id' =>
-                        $toUserId,
-
-                        'status' =>
-                        MemberInterestModel
-                        ::STATUS_PENDING,
-
-                        'responded_at' =>
-                        null,
-                    ],
-                    true
-                );
-
-            if (
-                !is_numeric(
-                    $insertId
-                )
-                || (int) $insertId <= 0
-            ) {
-                throw new RuntimeException(
-                    'The interest could not be saved.'
-                );
-            }
-
-            /*
-         * Existing notification workflow remains intact.
-         */
+ * Existing in-app notification remains part
+ * of the authoritative Interest transaction.
+ */
             $this->createInterestReceivedNotification(
                 fromUserId: $fromUserId,
 
@@ -212,6 +149,38 @@ final class MemberInteractionService
 
             $this->database
                 ->transCommit();
+
+            /*
+ * ARCHITECTURE:
+ *
+ * Email is an optional external communication
+ * channel and must run only AFTER the Interest
+ * transaction has committed successfully.
+ *
+ * MemberEmailService is best-effort and does not
+ * propagate queue failures into this workflow.
+ */
+            $recipient =
+                $this->userModel
+                ->find(
+                    $toUserId
+                );
+
+            $this->memberEmailService
+                ->queueInterestReceived(
+                    recipientUserId: $toUserId,
+
+                    recipientName: is_array($recipient)
+                        ? trim(
+                            (string) (
+                                $recipient['full_name']
+                                ?? ''
+                            )
+                        )
+                        : '',
+
+                    interestId: (int) $insertId
+                );
 
             return true;
         } catch (

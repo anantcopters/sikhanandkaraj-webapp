@@ -14,12 +14,6 @@ final class EmailRegistry
     public const ADMIN_INVITATION =
     'ADMIN_INVITATION';
 
-    public const CATEGORY_VERIFICATION =
-    'VERIFICATION';
-
-    public const CATEGORY_SECURITY =
-    'SECURITY';
-
     public const MEMBER_INTEREST_RECEIVED =
     'MEMBER_INTEREST_RECEIVED';
 
@@ -28,6 +22,12 @@ final class EmailRegistry
 
     public const MEMBER_INTEREST_DECLINED =
     'MEMBER_INTEREST_DECLINED';
+
+    public const CATEGORY_VERIFICATION =
+    'VERIFICATION';
+
+    public const CATEGORY_SECURITY =
+    'SECURITY';
 
     public const CATEGORY_MATRIMONIAL_ACTIVITY =
     'MATRIMONIAL_ACTIVITY';
@@ -105,6 +105,114 @@ final class EmailRegistry
 
                 maxAttempts: 3
             ),
+
+            self::MEMBER_INTEREST_RECEIVED =>
+            new EmailDefinition(
+                key: self::MEMBER_INTEREST_RECEIVED,
+
+                name: 'Interest Received',
+
+                category: self::CATEGORY_MATRIMONIAL_ACTIVITY,
+
+                subject: 'You received a new Interest on Sikhanandkaraj',
+
+                viewName: 'Emails/Member/InterestActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'You received a new Interest',
+
+                    'message' =>
+                    'A member has shown Interest in your profile.',
+
+                    'actionUrl' =>
+                    base_url(
+                        'members/interests'
+                    ),
+
+                    'actionLabel' =>
+                    'View Interest',
+                ],
+
+                priority: 20,
+
+                maxAttempts: 3
+            ),
+
+            self::MEMBER_INTEREST_ACCEPTED =>
+            new EmailDefinition(
+                key: self::MEMBER_INTEREST_ACCEPTED,
+
+                name: 'Interest Accepted',
+
+                category: self::CATEGORY_MATRIMONIAL_ACTIVITY,
+
+                subject: 'Your Interest was accepted on Sikhanandkaraj',
+
+                viewName: 'Emails/Member/InterestActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'Your Interest was accepted',
+
+                    'message' =>
+                    'A member has accepted your Interest.',
+
+                    'actionUrl' =>
+                    base_url(
+                        'members/interests'
+                    ),
+
+                    'actionLabel' =>
+                    'View Interest',
+                ],
+
+                priority: 20,
+
+                maxAttempts: 3
+            ),
+
+            self::MEMBER_INTEREST_DECLINED =>
+            new EmailDefinition(
+                key: self::MEMBER_INTEREST_DECLINED,
+
+                name: 'Interest Declined',
+
+                category: self::CATEGORY_MATRIMONIAL_ACTIVITY,
+
+                subject: 'Update on your Sikhanandkaraj Interest',
+
+                viewName: 'Emails/Member/InterestActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'An Interest has been updated',
+
+                    'message' =>
+                    'A member has declined your Interest.',
+
+                    'actionUrl' =>
+                    base_url(
+                        'members/interests'
+                    ),
+
+                    'actionLabel' =>
+                    'View Interests',
+                ],
+
+                priority: 20,
+
+                maxAttempts: 3
+            ),
         ];
     }
 
@@ -120,7 +228,9 @@ final class EmailRegistry
 
         if (
             $key === ''
-            || !isset($definitions[$key])
+            || !isset(
+                $definitions[$key]
+            )
         ) {
             throw new InvalidArgumentException(
                 'Email definition could not be found.'
