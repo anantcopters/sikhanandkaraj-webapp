@@ -1223,6 +1223,15 @@ if (env('APP_DEPLOYMENT', 'development') === 'production') {
             ]
         );
 
+        $routes->post(
+            'account-settings/communication-preferences',
+            'Web\AccountSettingsController::updateCommunicationPreferences',
+            [
+                'as' =>
+                'web.account.settings.communication-preferences',
+            ]
+        );
+        
         $routes->get(
             'account-settings/(:segment)',
             'AccountSettingsController::index/$1',

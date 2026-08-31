@@ -170,6 +170,9 @@ use App\Services\Email\EmailRenderer;
 use App\Services\Email\MemberEmailService;
 use App\Services\Email\TestEmailService;
 use App\Services\Email\MemberEmailRecipientService;
+use App\Models\MemberCommunicationPreferenceModel;
+use App\Services\Communication\CommunicationPolicyService;
+use App\Services\Communication\MemberCommunicationPreferenceService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -3540,7 +3543,8 @@ final class Services extends BaseService
 
             static::memberEmailRecipientService(
                 false
-            )
+            ),
+            static::communicationPolicyService(false)
         );
     }
 
@@ -3571,6 +3575,50 @@ final class Services extends BaseService
         return new TestEmailService(
             static::emailRegistry(false),
             new EmailQueueService()
+        );
+    }
+
+    public static function communicationPolicyService(
+        bool $getShared = true
+    ): CommunicationPolicyService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'communicationPolicyService'
+            );
+        }
+
+        return new CommunicationPolicyService(
+            new MemberCommunicationPreferenceModel(
+                db_connect()
+            )
+        );
+    }
+
+    public static function memberCommunicationPreferenceService(
+        bool $getShared = true
+    ): MemberCommunicationPreferenceService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'memberCommunicationPreferenceService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        $preferenceModel =
+            new MemberCommunicationPreferenceModel(
+                $database
+            );
+
+        $policyService =
+            new CommunicationPolicyService(
+                $preferenceModel
+            );
+
+        return new MemberCommunicationPreferenceService(
+            $preferenceModel,
+            $policyService
         );
     }
 }

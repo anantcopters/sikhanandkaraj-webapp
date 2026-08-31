@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Email;
 
+use App\Services\Communication\CommunicationPolicyService;
 use App\Support\CurrencyDisplay;
 use App\Support\DateDisplay;
 
@@ -14,7 +15,8 @@ final class MemberEmailService
     public function __construct(
         private readonly EmailRegistry $registry,
         private readonly EmailQueueService $queueService,
-        private readonly MemberEmailRecipientService $recipientService
+        private readonly MemberEmailRecipientService $recipientService,
+        private readonly CommunicationPolicyService $communicationPolicyService,
     ) {}
 
     /**
@@ -816,9 +818,38 @@ final class MemberEmailService
             }
 
             $definition =
-                $this->registry->get(
-                    $definitionKey
+                EmailRegistry::definition(
+                    $emailIdentifier
                 );
+
+            /*
+            * 1. Communication policy.
+            */
+            if (
+                !$this
+                    ->communicationPolicyService
+                    ->allowsImmediateEmail(
+                        $recipientUserId,
+                        $definition->identifier
+                    )
+            ) {
+                return null;
+            }
+
+            /*
+            * 2. Existing verified-primary-email prerequisite.
+            */
+            $recipient =
+                $this
+                ->recipientService
+                ->verifiedPrimaryEmail(
+                    $recipientUserId,
+                    $recipientName
+                );
+
+            if ($recipient === null) {
+                return null;
+            }
 
             $viewData['userName'] =
                 $recipient['name'] !== ''
