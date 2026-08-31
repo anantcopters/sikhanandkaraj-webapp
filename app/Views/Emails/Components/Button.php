@@ -51,7 +51,7 @@ if (
                     font-weight:600;
                     line-height:1.2;
                     border-radius:7px;
-                ">
+                " target="_blank">
 
                 <?= esc(
                     $resolvedLabel

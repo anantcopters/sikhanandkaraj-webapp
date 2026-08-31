@@ -281,10 +281,116 @@ final class MemberInterestService
 
         try {
             /*
- * The in-app notification is authoritative
- * application state and remains inside the
- * Interest transaction.
- */
+         * Lock the exact Interest row before
+         * reading it.
+         */
+            $this->database->query(
+                'SELECT id '
+                    . 'FROM member_interests '
+                    . 'WHERE from_user_id = ? '
+                    . 'AND to_user_id = ? '
+                    . 'FOR UPDATE',
+                [
+                    $fromUserId,
+                    $toUserId,
+                ]
+            );
+
+            $interest =
+                $this->interestModel
+                ->findBetween(
+                    $fromUserId,
+                    $toUserId
+                );
+
+            if (
+                !is_array(
+                    $interest
+                )
+            ) {
+                throw new DomainException(
+                    'This interest is no longer available.'
+                );
+            }
+
+            $currentStatus =
+                $this->recordStatus(
+                    $interest
+                );
+
+            /*
+         * Repeated submission of the same
+         * decision remains idempotent.
+         */
+            if (
+                $currentStatus
+                === $newStatus
+            ) {
+                $this->database
+                    ->transCommit();
+
+                return false;
+            }
+
+            /*
+         * Accepted/Declined are final
+         * member-facing states.
+         */
+            if (
+                $currentStatus
+                !== MemberInterestModel
+                ::STATUS_PENDING
+            ) {
+                throw new DomainException(
+                    'This interest has already been responded to.'
+                );
+            }
+
+            $interestId =
+                max(
+                    0,
+                    (int) (
+                        $interest['id']
+                        ?? 0
+                    )
+                );
+
+            if (
+                $interestId <= 0
+            ) {
+                throw new RuntimeException(
+                    'The interest could not be resolved.'
+                );
+            }
+
+            $updated =
+                $this->interestModel
+                ->update(
+                    $interestId,
+                    [
+                        'status' =>
+                        $newStatus,
+
+                        'responded_at' =>
+                        date(
+                            'Y-m-d H:i:s'
+                        ),
+                    ]
+                );
+
+            if (
+                $updated === false
+            ) {
+                throw new RuntimeException(
+                    'The interest response could not be saved.'
+                );
+            }
+
+            /*
+         * In-app notification is authoritative
+         * application state and remains inside
+         * the same transaction.
+         */
             $this->createResponseNotification(
                 senderUserId: $fromUserId,
 
@@ -307,37 +413,6 @@ final class MemberInterestService
 
             $this->database
                 ->transCommit();
-
-            /*
- * External email is deliberately queued only
- * after the authoritative Interest transaction
- * has committed.
- */
-            $recipient =
-                $this->userModel
-                ->find(
-                    $fromUserId
-                );
-
-            $this->memberEmailService
-                ->queueInterestResponse(
-                    recipientUserId: $fromUserId,
-
-                    recipientName: is_array($recipient)
-                        ? trim(
-                            (string) (
-                                $recipient['full_name']
-                                ?? ''
-                            )
-                        )
-                        : '',
-
-                    interestId: $interestId,
-
-                    status: $newStatus
-                );
-
-            return true;
         } catch (
             Throwable $exception
         ) {
@@ -346,6 +421,37 @@ final class MemberInterestService
 
             throw $exception;
         }
+
+        /*
+     * External email is deliberately queued
+     * only after the authoritative Interest
+     * transaction has committed successfully.
+     */
+        $recipient =
+            $this->userModel
+            ->find(
+                $fromUserId
+            );
+
+        $this->memberEmailService
+            ->queueInterestResponse(
+                recipientUserId: $fromUserId,
+
+                recipientName: is_array($recipient)
+                    ? trim(
+                        (string) (
+                            $recipient['full_name']
+                            ?? ''
+                        )
+                    )
+                    : '',
+
+                interestId: $interestId,
+
+                status: $newStatus
+            );
+
+        return true;
     }
 
     /**

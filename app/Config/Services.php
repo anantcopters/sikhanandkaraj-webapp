@@ -1862,7 +1862,8 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new MemberInteractionService(
             new UserModel(
@@ -1886,26 +1887,39 @@ final class Services extends BaseService
             ),
 
             /*
-            * Intentionally construct this with the SAME database connection used by
-            * the interaction models.
-            *
-            * Interest persistence and notification creation must continue to
-            * participate in the same transaction.
-            */
+         * Intentionally construct this with
+         * the SAME database connection used
+         * by the interaction models.
+         *
+         * Interest persistence and in-app
+         * notification creation must remain
+         * in the same transaction.
+         */
             new MemberNotificationService(
                 new MemberNotificationModel(
                     $database
                 )
             ),
 
+            /*
+         * External email communication is
+         * handled separately from the domain
+         * transaction.
+         */
+            static::memberEmailService(
+                false
+            ),
+
             $database,
 
             /*
-            * Shortlist entitlement is resolved centrally.
-            *
-            * Report, Block and Interest remain available to Free + Paid members
-            * according to MembershipEntitlementService.
-            */
+         * Shortlist entitlement is resolved
+         * centrally.
+         *
+         * Report, Block and Interest remain
+         * available according to the existing
+         * membership capability rules.
+         */
             static::membershipEntitlementService(
                 false
             )
@@ -2184,7 +2198,8 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new MemberInterestService(
             new UserModel(
@@ -2204,29 +2219,21 @@ final class Services extends BaseService
             ),
 
             /*
-            * Use the same DB connection so Interest response
-            * and notification remain in one transaction.
-            */
+         * Use the same DB connection so
+         * Interest response and in-app
+         * notification remain in one
+         * transaction.
+         */
             new MemberNotificationService(
                 new MemberNotificationModel(
                     $database
                 )
             ),
 
-            $database,
-            static::membershipEntitlementService(
-                false
-            ),
-
-            static::memberInteractionService(
-                false
-            ),
-            new MemberNotificationService(
-                new MemberNotificationModel(
-                    $database
-                )
-            ),
-
+            /*
+         * Email remains a downstream,
+         * best-effort communication channel.
+         */
             static::memberEmailService(
                 false
             ),
@@ -2236,6 +2243,10 @@ final class Services extends BaseService
             static::membershipEntitlementService(
                 false
             ),
+
+            static::memberInteractionService(
+                false
+            )
         );
     }
 

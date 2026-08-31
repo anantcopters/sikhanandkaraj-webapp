@@ -109,7 +109,8 @@ final class MemberInteractionService
         /*
      * Fast path.
      *
-     * Check either direction, not only from -> to.
+     * Check either direction, not only
+     * from -> to.
      */
         if (
             $this->interestModel
@@ -126,15 +127,90 @@ final class MemberInteractionService
 
         try {
             /*
- * Existing in-app notification remains part
- * of the authoritative Interest transaction.
- */
+         * Serialize Interest creation for
+         * the member pair.
+         *
+         * Ordering IDs ensures A -> B and
+         * B -> A requests acquire locks in
+         * the same order.
+         */
+            $this->database->query(
+                'SELECT id '
+                    . 'FROM users '
+                    . 'WHERE id IN (?, ?) '
+                    . 'ORDER BY id '
+                    . 'FOR UPDATE',
+                [
+                    $fromUserId,
+                    $toUserId,
+                ]
+            );
+
+            /*
+         * Recheck after locking.
+         *
+         * This prevents simultaneous reverse
+         * Interest submissions from creating
+         * two rows.
+         */
+            if (
+                $this->interestModel
+                ->existsBetween(
+                    $fromUserId,
+                    $toUserId
+                )
+            ) {
+                $this->database
+                    ->transCommit();
+
+                return false;
+            }
+
+            $insertId =
+                $this->interestModel
+                ->insert(
+                    [
+                        'from_user_id' =>
+                        $fromUserId,
+
+                        'to_user_id' =>
+                        $toUserId,
+
+                        'status' =>
+                        MemberInterestModel
+                        ::STATUS_PENDING,
+
+                        'responded_at' =>
+                        null,
+                    ],
+                    true
+                );
+
+            if (
+                !is_numeric(
+                    $insertId
+                )
+                || (int) $insertId <= 0
+            ) {
+                throw new RuntimeException(
+                    'The interest could not be saved.'
+                );
+            }
+
+            $interestId =
+                (int) $insertId;
+
+            /*
+         * Existing in-app notification remains
+         * part of the authoritative Interest
+         * transaction.
+         */
             $this->createInterestReceivedNotification(
                 fromUserId: $fromUserId,
 
                 toUserId: $toUserId,
 
-                interestId: (int) $insertId
+                interestId: $interestId
             );
 
             if (
@@ -149,40 +225,6 @@ final class MemberInteractionService
 
             $this->database
                 ->transCommit();
-
-            /*
- * ARCHITECTURE:
- *
- * Email is an optional external communication
- * channel and must run only AFTER the Interest
- * transaction has committed successfully.
- *
- * MemberEmailService is best-effort and does not
- * propagate queue failures into this workflow.
- */
-            $recipient =
-                $this->userModel
-                ->find(
-                    $toUserId
-                );
-
-            $this->memberEmailService
-                ->queueInterestReceived(
-                    recipientUserId: $toUserId,
-
-                    recipientName: is_array($recipient)
-                        ? trim(
-                            (string) (
-                                $recipient['full_name']
-                                ?? ''
-                            )
-                        )
-                        : '',
-
-                    interestId: (int) $insertId
-                );
-
-            return true;
         } catch (
             Throwable $exception
         ) {
@@ -191,6 +233,41 @@ final class MemberInteractionService
 
             throw $exception;
         }
+
+        /*
+     * Email is an optional external
+     * communication channel.
+     *
+     * Queue it only AFTER the authoritative
+     * Interest transaction has committed.
+     *
+     * MemberEmailService performs the verified
+     * primary-email check and treats email
+     * queue failure as best-effort.
+     */
+        $recipient =
+            $this->userModel
+            ->find(
+                $toUserId
+            );
+
+        $this->memberEmailService
+            ->queueInterestReceived(
+                recipientUserId: $toUserId,
+
+                recipientName: is_array($recipient)
+                    ? trim(
+                        (string) (
+                            $recipient['full_name']
+                            ?? ''
+                        )
+                    )
+                    : '',
+
+                interestId: $interestId
+            );
+
+        return true;
     }
 
     /**
