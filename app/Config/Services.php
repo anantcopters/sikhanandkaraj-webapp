@@ -173,6 +173,9 @@ use App\Services\Email\MemberEmailRecipientService;
 use App\Models\MemberCommunicationPreferenceModel;
 use App\Services\Communication\CommunicationPolicyService;
 use App\Services\Communication\MemberCommunicationPreferenceService;
+use App\Models\CommunicationEventModel;
+use App\Services\Communication\CommunicationDispatcherService;
+use App\Services\Communication\CommunicationEventService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -3619,6 +3622,44 @@ final class Services extends BaseService
         return new MemberCommunicationPreferenceService(
             $preferenceModel,
             $policyService
+        );
+    }
+
+    /**
+     * Durable channel-independent communication event publisher.
+     */
+    public static function communicationEventService(
+        bool $getShared = true
+    ): CommunicationEventService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'communicationEventService'
+            );
+        }
+
+        return new CommunicationEventService(
+            new CommunicationEventModel(
+                db_connect()
+            )
+        );
+    }
+
+    /**
+     * Durable communication-event dispatcher.
+     */
+    public static function communicationDispatcherService(
+        bool $getShared = true
+    ): CommunicationDispatcherService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'communicationDispatcherService'
+            );
+        }
+
+        return new CommunicationDispatcherService(
+            new CommunicationEventModel(
+                db_connect()
+            )
         );
     }
 }
