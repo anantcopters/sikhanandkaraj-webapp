@@ -31,11 +31,19 @@ final class AccountSettingsController extends BaseController
         'plans',
 
         /*
-        * Read-only purchased membership and commercial usage history.
-        */
+    * Read-only purchased membership and commercial usage history.
+    */
         'membership-history',
 
-        'contact'
+        /*
+    * Optional member-controlled external communication.
+    *
+    * Essential security, verification, membership, moderation and
+    * support communication is not controlled by this section.
+    */
+        'communication-preferences',
+
+        'contact',
     ];
 
     public function index(
@@ -225,6 +233,20 @@ final class AccountSettingsController extends BaseController
                 );
         }
 
+        $communicationPreferences = [];
+
+        if (
+            $section ===
+            'communication-preferences'
+        ) {
+            $communicationPreferences =
+                service(
+                    'memberCommunicationPreferenceService'
+                )->settingsForMember(
+                    $userId
+                );
+        }
+
         /*
         * Membership Usage is read-only commercial data.
         *
@@ -283,8 +305,12 @@ final class AccountSettingsController extends BaseController
                     'membershipHistory' =>
                     $membershipHistory,
 
+                    'communicationPreferences' =>
+                    $communicationPreferences,
+
                     'membershipUsage' =>
                     $membershipUsage,
+
 
                     'pageScripts' => [
                         'assets/js/components/form-validator.js',
@@ -731,6 +757,132 @@ final class AccountSettingsController extends BaseController
                         'Message not sent',
                         'message' =>
                         $exception->getMessage(),
+                    ]
+                );
+        }
+    }
+
+    /**
+     * Save optional member email communication preferences.
+     *
+     * Essential communication categories are intentionally not accepted
+     * from the request and therefore cannot be disabled from this screen.
+     */
+    public function updateCommunicationPreferences(): RedirectResponse
+    {
+        $userId =
+            $this
+            ->authenticatedUserId();
+
+        try {
+            /*
+         * Standard HTML checkbox semantics:
+         *
+         * checked   => field is submitted;
+         * unchecked => field is absent.
+         */
+            $matrimonialActivityEmail =
+                $this
+                ->request
+                ->getPost(
+                    'matrimonial_activity_email'
+                ) !== null;
+
+            $engagementEmail =
+                $this
+                ->request
+                ->getPost(
+                    'engagement_email'
+                ) !== null;
+
+            service(
+                'memberCommunicationPreferenceService'
+            )->updateEmailPreferences(
+                $userId,
+                $matrimonialActivityEmail,
+                $engagementEmail
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.account.settings.section',
+                        'communication-preferences'
+                    )
+                )
+                ->with(
+                    'accountNotice',
+                    [
+                        'type' =>
+                        'success',
+
+                        'title' =>
+                        'Preferences updated',
+
+                        'message' =>
+                        'Your communication preferences have been saved.',
+
+                        'logoutAfterClose' =>
+                        false,
+                    ]
+                );
+        } catch (DomainException $exception) {
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.account.settings.section',
+                        'communication-preferences'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'warning',
+
+                        'title' =>
+                        'Preferences not updated',
+
+                        'message' =>
+                        $exception
+                            ->getMessage(),
+                    ]
+                );
+        } catch (Throwable $exception) {
+            log_message(
+                'error',
+                'Member communication preference update failed. '
+                    . 'Member: {memberId}; '
+                    . 'reason: {message}',
+                [
+                    'memberId' =>
+                    $userId,
+
+                    'message' =>
+                    $exception
+                        ->getMessage(),
+                ]
+            );
+
+            return redirect()
+                ->to(
+                    route_to(
+                        'web.account.settings.section',
+                        'communication-preferences'
+                    )
+                )
+                ->with(
+                    'formAlert',
+                    [
+                        'type' =>
+                        'danger',
+
+                        'title' =>
+                        'Preferences not updated',
+
+                        'message' =>
+                        'We could not update your communication '
+                            . 'preferences. Please try again.',
                     ]
                 );
         }

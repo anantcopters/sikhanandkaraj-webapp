@@ -146,6 +146,13 @@ $menuItems = [
         'icon' =>
         'ri-history-line',
     ],
+    'communication-preferences' => [
+        'label' =>
+        'Communication Preferences',
+
+        'icon' =>
+        'ri-notification-3-line',
+    ],
     'contact' => [
         'label' => 'Contact Us',
         'icon' => 'ri-customer-service-2-line',
@@ -1185,6 +1192,20 @@ $this->section('content');
                                 [
                                     'membershipHistory' =>
                                     $membershipHistory
+                                        ?? [],
+                                ]
+                            ) ?>
+
+                        <?php elseif (
+                            $activeSection ===
+                            'communication-preferences'
+                        ): ?>
+
+                            <?= view(
+                                'Pages/AccountSettings/CommunicationPreferences',
+                                [
+                                    'communicationPreferences' =>
+                                    $communicationPreferences
                                         ?? [],
                                 ]
                             ) ?>

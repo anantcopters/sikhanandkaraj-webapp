@@ -92,6 +92,22 @@ final class EmailRegistry
     'MATRIMONIAL_ACTIVITY';
 
     /*
+    * --------------------------------------------------------------------------
+    * Additional approved communication categories
+    * --------------------------------------------------------------------------
+    *
+    * TRANSACTIONAL covers mandatory non-marketing application transactions.
+    *
+    * ENGAGEMENT is reserved for optional match/recommendation communication
+    * and future digest-capable events.
+    */
+    public const CATEGORY_TRANSACTIONAL =
+    'TRANSACTIONAL';
+
+    public const CATEGORY_ENGAGEMENT =
+    'ENGAGEMENT';
+
+    /*
     * Approved communication categories from the central communications
     * architecture.
     */

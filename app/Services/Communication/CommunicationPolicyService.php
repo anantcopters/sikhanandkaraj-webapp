@@ -5,22 +5,17 @@ declare(strict_types=1);
 namespace App\Services\Communication;
 
 use App\Models\MemberCommunicationPreferenceModel;
+use App\Services\Email\EmailDefinition;
 use App\Services\Email\EmailRegistry;
 
 /**
  * Central server-side communication policy.
  *
- * This service answers:
+ * This service decides whether a communication may be sent through
+ * a particular channel.
  *
- * "May this member receive this communication through this channel?"
- *
- * It deliberately separates:
- *
- * - essential communication;
- * - optional member-controlled communication;
- * - future digest behaviour.
- *
- * No controller/template should independently decide these rules.
+ * Recipient-address eligibility remains a separate concern and is
+ * handled by MemberEmailRecipientService.
  */
 final class CommunicationPolicyService
 {
@@ -30,31 +25,27 @@ final class CommunicationPolicyService
     ) {}
 
     /**
-     * Determine whether an EMAIL event may be sent immediately.
-     *
-     * NOTE:
-     *
-     * Verified-email eligibility remains the responsibility of
-     * MemberEmailRecipientService.
-     *
-     * This service only answers communication-policy questions.
+     * Determine whether an email definition may be delivered
+     * immediately to this member.
      */
     public function allowsImmediateEmail(
         int $userId,
-        string $eventIdentifier
+        EmailDefinition $definition
     ): bool {
         if ($userId <= 0) {
             return false;
         }
 
         $category =
-            $this
-            ->categoryForEvent(
-                $eventIdentifier
+            mb_strtoupper(
+                trim(
+                    $definition->category
+                )
             );
 
         /*
-         * Essential categories are not member-disableable.
+         * Essential communication cannot be disabled by a
+         * member preference.
          */
         if (
             $this
@@ -76,14 +67,7 @@ final class CommunicationPolicyService
             );
 
         /*
-         * No explicit row means use the approved default.
-         *
-         * MATRIMONIAL_ACTIVITY currently defaults to immediate email
-         * because the existing Interest email implementation is already
-         * active.
-         *
-         * ENGAGEMENT does not default to immediate email because those
-         * events are intended for digest/preferences.
+         * No explicit preference means use the central default.
          */
         if ($preference === null) {
             return $this
@@ -115,7 +99,7 @@ final class CommunicationPolicyService
     }
 
     /**
-     * Whether the member is allowed to control this category.
+     * Whether this category may be controlled by the member.
      */
     public function isMemberConfigurable(
         string $category
@@ -131,10 +115,7 @@ final class CommunicationPolicyService
     }
 
     /**
-     * Current member-facing email preference.
-     *
-     * This gives the Account Settings UI a resolved value even when
-     * no database override exists.
+     * Return the resolved email preference for Account Settings.
      *
      * @return array{
      *     enabled:bool,
@@ -164,18 +145,18 @@ final class CommunicationPolicyService
             );
 
         if ($preference === null) {
+            $enabled =
+                $this
+                ->defaultImmediateEmailEnabled(
+                    $category
+                );
+
             return [
                 'enabled' =>
-                $this
-                    ->defaultImmediateEmailEnabled(
-                        $category
-                    ),
+                $enabled,
 
                 'frequency' =>
-                $this
-                    ->defaultImmediateEmailEnabled(
-                        $category
-                    )
+                $enabled
                     ? MemberCommunicationPreferenceModel
                     ::FREQUENCY_IMMEDIATE
                     : MemberCommunicationPreferenceModel
@@ -211,7 +192,15 @@ final class CommunicationPolicyService
     }
 
     /**
-     * Essential communication cannot be disabled by member preference.
+     * Essential application communication.
+     *
+     * Membership includes:
+     *
+     * - membership activated;
+     * - membership expiring soon;
+     * - membership expired.
+     *
+     * These must not be disabled by optional communication settings.
      */
     private function isEssentialCategory(
         string $category
@@ -231,34 +220,19 @@ final class CommunicationPolicyService
     }
 
     /**
-     * Approved default behaviour where no member override exists.
+     * Current optional-email default.
+     *
+     * Existing Interest communication remains enabled unless the
+     * member explicitly disables Matrimonial Activity emails.
+     *
+     * Engagement defaults OFF until the digest/engagement phase
+     * actually introduces those emails.
      */
     private function defaultImmediateEmailEnabled(
         string $category
     ): bool {
         return $category ===
             EmailRegistry::CATEGORY_MATRIMONIAL_ACTIVITY;
-    }
-
-    /**
-     * Resolve the category from the same central EmailRegistry used by
-     * production email definitions.
-     *
-     * No duplicate event/category map should be created here.
-     */
-    private function categoryForEvent(
-        string $eventIdentifier
-    ): string {
-        $definition =
-            EmailRegistry::definition(
-                $eventIdentifier
-            );
-
-        return mb_strtoupper(
-            trim(
-                $definition->category
-            )
-        );
     }
 
     private function booleanValue(

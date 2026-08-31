@@ -792,8 +792,15 @@ final class MemberEmailService
     /**
      * Central boundary for normal member email.
      *
-     * Only the current verified primary EMAIL is
-     * eligible for normal application communication.
+     * All normal member communication passes through:
+     *
+     * 1. Email Registry definition resolution;
+     * 2. central communication policy;
+     * 3. verified-primary-email eligibility;
+     * 4. durable email queue.
+     *
+     * Email Verification deliberately uses its separate flow because the
+     * destination email is not verified yet.
      *
      * @param array<string, mixed> $viewData
      */
@@ -806,39 +813,39 @@ final class MemberEmailService
         ?int $referenceId
     ): ?int {
         try {
-            $recipient =
-                $this->recipientService
-                ->verifiedPrimaryEmail(
-                    $recipientUserId,
-                    $recipientName
-                );
-
-            if ($recipient === null) {
-                return null;
-            }
-
+            /*
+         * Existing EmailRegistry remains the single source of truth
+         * for category, subject, view, priority and retry policy.
+         */
             $definition =
-                EmailRegistry::definition(
-                    $emailIdentifier
+                $this
+                ->registry
+                ->get(
+                    $definitionKey
                 );
 
             /*
-            * 1. Communication policy.
-            */
+         * Apply the central communication policy before resolving
+         * the recipient address.
+         *
+         * Essential communication always passes this policy check.
+         * Optional communication respects the member preference.
+         */
             if (
                 !$this
                     ->communicationPolicyService
                     ->allowsImmediateEmail(
                         $recipientUserId,
-                        $definition->identifier
+                        $definition
                     )
             ) {
                 return null;
             }
 
             /*
-            * 2. Existing verified-primary-email prerequisite.
-            */
+         * Normal member communication requires a verified primary
+         * email address.
+         */
             $recipient =
                 $this
                 ->recipientService
@@ -856,7 +863,8 @@ final class MemberEmailService
                 ? $recipient['name']
                 : 'Member';
 
-            return $this->queueService
+            return $this
+                ->queueService
                 ->enqueue(
                     recipientEmail: $recipient['email'],
 
@@ -877,6 +885,10 @@ final class MemberEmailService
                     referenceId: $referenceId
                 );
         } catch (Throwable $exception) {
+            /*
+         * Optional external communication must never cause the
+         * completed matrimonial/business action to fail.
+         */
             log_message(
                 'error',
                 'Member email could not be queued. '
