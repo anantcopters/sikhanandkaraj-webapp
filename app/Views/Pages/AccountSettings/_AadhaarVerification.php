@@ -67,7 +67,8 @@ $canUpload =
 /*
  * This value is supplied by MemberAadhaarService.
  *
- * Never resolve membership/plan state directly inside the View.
+ * Aadhaar Verification is available to both Free and Paid members.
+ * The View must never resolve account type or product entitlement itself.
  */
 $hasAadhaarEntitlement =
     (
@@ -128,66 +129,7 @@ $statusClass = match ($status) {
         <?= esc($statusLabel) ?>
     </span>
 </div>
-<?php if (!$hasAadhaarEntitlement): ?>
 
-    <!--
-        Free-member feature lock.
-
-        Existing Aadhaar verification/history remains visible below this
-        message. Only new upload/re-upload capability is locked.
-    -->
-    <div
-        class="alert alert-info border fs-13"
-        role="status">
-
-        <div
-            class="d-flex
-                align-items-start
-                gap-2">
-
-            <i
-                class="ri-lock-2-line
-                    text-muted
-                    fs-18"
-                aria-hidden="true">
-            </i>
-
-            <div>
-
-                <strong>
-                    Aadhaar Verification is available
-                    with a paid membership.
-                </strong>
-
-                <p class="text-muted mb-2 mt-1">
-                    Upgrade your membership to submit
-                    or re-submit your Aadhaar document
-                    for verification.
-                </p>
-
-                <a
-                    href="<?= route_to(
-                                'web.account.settings.section',
-                                'plans'
-                            ) ?>"
-                    class="text-danger fw-medium">
-
-                    View Membership Plans
-
-                    <i
-                        class="ri-arrow-right-line ms-1"
-                        aria-hidden="true">
-                    </i>
-
-                </a>
-
-            </div>
-
-        </div>
-
-    </div>
-
-<?php endif; ?>
 
 <?php if (
     $status === 'REJECTED'

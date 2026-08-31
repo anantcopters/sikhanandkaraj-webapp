@@ -384,7 +384,21 @@ Email Verification itself must be allowed to send to an unverified destination b
 
 ## 8.2 Communication must not become a paid-feature bypass
 
-Free members may receive notifications about legitimate activity, but the communication must not reveal paid-only profile information.
+Free members may receive notifications about legitimate activity, but the communication must not reveal information that remains protected by Paid Full Profile or other commercial access rules.
+
+Aadhaar Verification is available to both Free and Paid members and must not be treated as a Paid capability by communication policy.
+
+Aadhaar approval and rejection communication follows the same privacy, eligibility and delivery rules regardless of the member's commercial membership plan.
+
+External Aadhaar communication must continue to avoid exposing Aadhaar number, document, stored Aadhaar name, Aadhaar DOB or other protected Aadhaar data.
+
+Example:
+
+> You received a new Interest on SikhanandKaraj.
+
+The external message should not expose information that requires Paid Full Profile access.
+
+When the member follows a CTA, the application must execute the current authorization rules for the destination feature. A communication itself never grants access.
 
 Example:
 

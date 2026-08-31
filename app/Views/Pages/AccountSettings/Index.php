@@ -93,17 +93,6 @@ $menuItems = [
 
         'icon' =>
         'ri-fingerprint-line',
-
-        /*
-     * Keep the section accessible so members can review existing Aadhaar
-     * verification status/history. Only new paid operations are restricted
-     * inside the section by the backend-resolved capability.
-     */
-        'paidFeature' =>
-        !(
-            $membershipCapabilities['aadhaar']
-            ?? false
-        ),
     ],
     'video-introduction' => [
         'label' =>
