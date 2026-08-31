@@ -328,6 +328,10 @@ final class Services extends BaseService
 
     /**
      * Return the member password-reset service.
+     *
+     * MemberEmailService is downstream from successful password
+     * persistence and OTP consumption. It does not participate in
+     * password-reset authorization.
      */
     public static function passwordResetService(
         bool $getShared = true
@@ -338,14 +342,34 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new PasswordResetService(
-            new UserModel($database),
-            new UserContactModel($database),
-            new ContactVerificationModel($database),
+            new UserModel(
+                $database
+            ),
+
+            new UserContactModel(
+                $database
+            ),
+
+            new ContactVerificationModel(
+                $database
+            ),
+
             $database,
-            static::smsProvider(false)
+
+            static::smsProvider(
+                false
+            ),
+
+            /*
+         * Existing centralized member-email pipeline.
+         */
+            static::memberEmailService(
+                false
+            )
         );
     }
 
@@ -1385,8 +1409,11 @@ final class Services extends BaseService
     /**
      * Return the prelaunch administrator review service.
      *
-     * The dedicated factories are reused here so dependency construction is
-     * maintained in one location.
+     * The dedicated factories are reused here so dependency
+     * construction is maintained in one location.
+     *
+     * MemberEmailService is downstream from successful
+     * prelaunch-to-member migration and never owns approval.
      */
     public static function prelaunchAdminReviewService(
         bool $getShared = true
@@ -1397,23 +1424,37 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new PrelaunchAdminReviewService(
             new PrelaunchProfileModel(
                 $database
             ),
+
             new PrelaunchPhotoModel(
                 $database
             ),
+
             static::adminAuditService(
                 false
             ),
+
             $database,
+
             static::prelaunchContactAvailabilityService(
                 false
             ),
+
             static::prelaunchMemberMigrationService(
+                false
+            ),
+
+            /*
+         * Reuse the existing centralized member-email
+         * definition/policy/recipient/queue architecture.
+         */
+            static::memberEmailService(
                 false
             )
         );
@@ -2514,6 +2555,9 @@ final class Services extends BaseService
      * Verification email is the explicit exception to the normal
      * "verified primary email required" communication rule because
      * its purpose is to establish email verification.
+     *
+     * MemberEmailService is also injected into Account Settings for
+     * post-success security notifications such as Password Changed.
      */
     public static function memberAccountSettingsService(
         bool $getShared = true
@@ -2567,7 +2611,15 @@ final class Services extends BaseService
                 )
             ),
 
-            $database
+            $database,
+
+            /*
+         * Security notification after successful
+         * password persistence.
+         */
+            static::memberEmailService(
+                false
+            )
         );
     }
 

@@ -787,7 +787,147 @@ final class MemberEmailService
         );
     }
 
+    /**
+     * Queue confirmation after a prelaunch profile has
+     * successfully become an active Member account.
+     *
+     * This communication uses the normal member-email boundary:
+     *
+     * - EmailRegistry owns definition/category/retry policy.
+     * - CommunicationPolicyService owns delivery policy.
+     * - MemberEmailRecipientService requires a verified primary email.
+     * - EmailQueueService owns durable delivery and automatic retries.
+     *
+     * A member without a verified primary email simply does not
+     * receive this external communication. Profile approval remains
+     * authoritative and must never be rolled back because of email.
+     */
+    public function queuePrelaunchProfileApproved(
+        int $recipientUserId,
+        int $prelaunchProfileId
+    ): ?int {
+        if (
+            $recipientUserId <= 0
+            || $prelaunchProfileId <= 0
+        ) {
+            return null;
+        }
 
+        return $this->queueMemberCommunication(
+            recipientUserId: $recipientUserId,
+
+            recipientName: '',
+
+            definitionKey: EmailRegistry
+            ::MEMBER_PRELAUNCH_PROFILE_APPROVED,
+
+            viewData: [
+                'heading' =>
+                'Your profile is approved',
+
+                'message' =>
+                'Your Sikhanandkaraj profile has been '
+                    . 'reviewed and approved. Your member '
+                    . 'account is now active. You can sign '
+                    . 'in using your verified mobile number. '
+                    . 'If your account does not yet have a '
+                    . 'password, the existing password setup '
+                    . 'process will guide you through creating one.',
+
+                'actionUrl' =>
+                base_url(
+                    'login'
+                ),
+
+                'actionLabel' =>
+                'Login to Sikhanandkaraj',
+
+                'emailSubtitle' =>
+                'Profile Approved',
+
+                'securityNotice' =>
+                '',
+            ],
+
+            /*
+            * The prelaunch profile is the immutable business
+            * reference that caused this communication.
+            */
+            referenceType: 'PRELAUNCH_PROFILE_APPROVAL',
+
+            referenceId: $prelaunchProfileId
+        );
+    }
+
+    /**
+     * Queue the security notification after a Member password
+     * has successfully changed.
+     *
+     * This method must only be called after the password update
+     * has committed/succeeded.
+     *
+     * Email delivery remains best effort. Failure to queue or send
+     * this notification must never make the already-completed
+     * password change appear to have failed.
+     */
+    public function queuePasswordChanged(
+        int $recipientUserId
+    ): ?int {
+        if ($recipientUserId <= 0) {
+            return null;
+        }
+
+        return $this->queueMemberCommunication(
+            recipientUserId: $recipientUserId,
+
+            recipientName: '',
+
+            definitionKey: EmailRegistry
+            ::MEMBER_PASSWORD_CHANGED,
+
+            viewData: [
+                'heading' =>
+                'Your password was changed',
+
+                'message' =>
+                'The password for your Sikhanandkaraj '
+                    . 'account was changed successfully.',
+
+                /*
+                * For a security notification, the safest
+                * actionable destination is the existing
+                * password-reset flow rather than a profile
+                * or account page.
+                */
+                'actionUrl' =>
+                base_url(
+                    'forgot-password'
+                ),
+
+                'actionLabel' =>
+                'Reset Password',
+
+                'emailSubtitle' =>
+                'Security Update',
+
+                'securityNotice' =>
+                'If you made this change, no further action '
+                    . 'is required. If you did not change '
+                    . 'your password, reset it immediately '
+                    . 'and contact Sikhanandkaraj support.',
+            ],
+
+            referenceType: 'MEMBER_PASSWORD_CHANGED',
+
+            /*
+            * Password changes can legitimately happen multiple
+            * times. EmailQueueService does not treat this
+            * reference as a uniqueness constraint; it is retained
+            * only for Communication Operations correlation.
+            */
+            referenceId: $recipientUserId
+        );
+    }
 
     /**
      * Central boundary for normal member email.

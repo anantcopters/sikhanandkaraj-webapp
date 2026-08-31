@@ -93,6 +93,25 @@ final class EmailRegistry
 
     /*
     * --------------------------------------------------------------------------
+    * Member account communications
+    * --------------------------------------------------------------------------
+    *
+    * These are essential account lifecycle/security communications.
+    *
+    * Prelaunch approval is transactional because it confirms that the
+    * submitted prelaunch profile has become an active Member account.
+    *
+    * Password Changed is security communication and must not be disabled
+    * through optional member communication preferences.
+    */
+    public const MEMBER_PRELAUNCH_PROFILE_APPROVED =
+    'MEMBER_PRELAUNCH_PROFILE_APPROVED';
+
+    public const MEMBER_PASSWORD_CHANGED =
+    'MEMBER_PASSWORD_CHANGED';
+
+    /*
+    * --------------------------------------------------------------------------
     * Communication categories
     * --------------------------------------------------------------------------
     *
@@ -194,6 +213,96 @@ final class EmailRegistry
 
                     'expiresInHours' =>
                     24,
+                ],
+
+                priority: 5,
+
+                maxAttempts: 3
+            ),
+
+            self::MEMBER_PRELAUNCH_PROFILE_APPROVED =>
+            new EmailDefinition(
+                key: self::MEMBER_PRELAUNCH_PROFILE_APPROVED,
+
+                name: 'Prelaunch Profile Approved',
+
+                category: self::CATEGORY_TRANSACTIONAL,
+
+                subject: 'Your Sikhanandkaraj profile is approved',
+
+                viewName: 'Emails/Member/AccountActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'Your profile is approved',
+
+                    'message' =>
+                    'Your Sikhanandkaraj profile has been '
+                        . 'reviewed and approved. Your member '
+                        . 'account is now active.',
+
+                    'actionUrl' =>
+                    base_url(
+                        'login'
+                    ),
+
+                    'actionLabel' =>
+                    'Login to Sikhanandkaraj',
+
+                    'emailSubtitle' =>
+                    'Profile Approved',
+
+                    'securityNotice' =>
+                    '',
+                ],
+
+                priority: 10,
+
+                maxAttempts: 3
+            ),
+
+            self::MEMBER_PASSWORD_CHANGED =>
+            new EmailDefinition(
+                key: self::MEMBER_PASSWORD_CHANGED,
+
+                name: 'Member Password Changed',
+
+                category: self::CATEGORY_SECURITY,
+
+                subject: 'Your Sikhanandkaraj password was changed',
+
+                viewName: 'Emails/Member/AccountActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'Your password was changed',
+
+                    'message' =>
+                    'The password for your Sikhanandkaraj '
+                        . 'account was changed successfully.',
+
+                    'actionUrl' =>
+                    base_url(
+                        'forgot-password'
+                    ),
+
+                    'actionLabel' =>
+                    'Reset Password',
+
+                    'emailSubtitle' =>
+                    'Security Update',
+
+                    'securityNotice' =>
+                    'If you made this change, no further action '
+                        . 'is required. If you did not change '
+                        . 'your password, reset it immediately '
+                        . 'and contact Sikhanandkaraj support.',
                 ],
 
                 priority: 5,

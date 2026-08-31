@@ -8,6 +8,7 @@ use App\Models\EmailVerificationTokenModel;
 use App\Models\UserContactModel;
 use App\Models\UserModel;
 use App\Services\EmailVerification\EmailVerificationService;
+use App\Services\Email\MemberEmailService;
 use App\Support\BooleanValue;
 use CodeIgniter\Database\BaseConnection;
 use DomainException;
@@ -37,7 +38,14 @@ final class MemberAccountSettingsService
         private readonly EmailVerificationTokenModel $tokenModel,
         private readonly EmailVerificationService
         $emailVerificationService,
-        private readonly BaseConnection $database
+        private readonly BaseConnection $database,
+
+        /*
+        * Security email remains downstream from the
+        * authoritative password persistence operation.
+        */
+        private readonly MemberEmailService
+        $memberEmailService
     ) {}
 
     /**
@@ -114,15 +122,21 @@ final class MemberAccountSettingsService
 
     /**
      * Change the member password after checking the current password.
+     *
+     * Password validation and persistence remain authoritative.
+     * Security email is queued only after the password has been
+     * successfully persisted.
      */
     public function changePassword(
         int $userId,
         string $currentPassword,
         string $newPassword
     ): void {
-        $user = $this->userModel->find(
-            $userId
-        );
+        $user =
+            $this->userModel
+            ->find(
+                $userId
+            );
 
         if (!is_array($user)) {
             throw new DomainException(
@@ -137,6 +151,10 @@ final class MemberAccountSettingsService
             )
         );
 
+        /*
+        * Existing server-side current-password validation
+        * remains authoritative.
+        */
         if (
             $passwordHash === ''
             || !password_verify(
@@ -149,6 +167,9 @@ final class MemberAccountSettingsService
             );
         }
 
+        /*
+        * Existing same-password protection remains server-side.
+        */
         if (
             password_verify(
                 $newPassword,
@@ -161,10 +182,11 @@ final class MemberAccountSettingsService
             );
         }
 
-        $newPasswordHash = password_hash(
-            $newPassword,
-            PASSWORD_DEFAULT
-        );
+        $newPasswordHash =
+            password_hash(
+                $newPassword,
+                PASSWORD_DEFAULT
+            );
 
         if (!is_string($newPasswordHash)) {
             throw new RuntimeException(
@@ -172,8 +194,12 @@ final class MemberAccountSettingsService
             );
         }
 
+        /*
+        * Password persistence is the authoritative operation.
+        */
         if (
-            $this->userModel->update(
+            $this->userModel
+            ->update(
                 $userId,
                 [
                     'password_hash' =>
@@ -185,6 +211,20 @@ final class MemberAccountSettingsService
                 'The password could not be updated.'
             );
         }
+
+        /*
+        * Queue the security notification only after the
+        * password update has succeeded.
+        *
+        * MemberEmailService is best-effort and catches its
+        * own downstream communication failures. Therefore an
+        * SMTP/queue problem cannot cause the UI to report the
+        * successful password change as failed.
+        */
+        $this->memberEmailService
+            ->queuePasswordChanged(
+                $userId
+            );
     }
 
     /**
