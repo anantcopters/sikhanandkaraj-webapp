@@ -20,6 +20,18 @@ final class EmailRegistry
     public const CATEGORY_SECURITY =
     'SECURITY';
 
+    public const MEMBER_INTEREST_RECEIVED =
+    'MEMBER_INTEREST_RECEIVED';
+
+    public const MEMBER_INTEREST_ACCEPTED =
+    'MEMBER_INTEREST_ACCEPTED';
+
+    public const MEMBER_INTEREST_DECLINED =
+    'MEMBER_INTEREST_DECLINED';
+
+    public const CATEGORY_MATRIMONIAL_ACTIVITY =
+    'MATRIMONIAL_ACTIVITY';
+
     /**
      * @return array<string, EmailDefinition>
      */
