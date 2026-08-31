@@ -43,7 +43,9 @@ $engagement =
     action="<?= route_to(
                 'web.account.settings.communication-preferences'
             ) ?>"
-    data-form-validator>
+    data-form-validator
+    data-submit-loader
+    >
 
     <?= csrf_field() ?>
 
