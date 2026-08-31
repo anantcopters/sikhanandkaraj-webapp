@@ -788,19 +788,62 @@ final class AccountSettingsController extends BaseController
                     'matrimonial_activity_email'
                 ) !== null;
 
-            $engagementEmail =
-                $this
-                ->request
-                ->getPost(
-                    'engagement_email'
-                ) !== null;
+            $engagementFrequency =
+                mb_strtoupper(
+                    trim(
+                        (string) (
+                            $this
+                            ->request
+                            ->getPost(
+                                'engagement_frequency'
+                            )
+                            ?? ''
+                        )
+                    )
+                );
+
+            $allowedEngagementFrequencies = [
+                'DAILY',
+                'WEEKLY',
+                'OFF',
+            ];
+
+            if (
+                !in_array(
+                    $engagementFrequency,
+                    $allowedEngagementFrequencies,
+                    true
+                )
+            ) {
+                return redirect()
+                    ->to(
+                        route_to(
+                            'web.account.settings.section',
+                            'communication-preferences'
+                        )
+                    )
+                    ->with(
+                        'formAlert',
+                        [
+                            'type' =>
+                            'warning',
+
+                            'title' =>
+                            'Preferences not updated',
+
+                            'message' =>
+                            'Please select a valid Matches & '
+                                . 'Recommendations email frequency.',
+                        ]
+                    );
+            }
 
             service(
                 'memberCommunicationPreferenceService'
             )->updateEmailPreferences(
                 $userId,
                 $matrimonialActivityEmail,
-                $engagementEmail
+                $engagementFrequency
             );
 
             return redirect()

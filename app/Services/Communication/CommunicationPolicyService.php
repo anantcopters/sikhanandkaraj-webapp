@@ -6,16 +6,14 @@ namespace App\Services\Communication;
 
 use App\Models\MemberCommunicationPreferenceModel;
 use App\Services\Email\EmailDefinition;
-use App\Services\Email\EmailRegistry;
 
 /**
  * Central server-side communication policy.
  *
- * This service decides whether a communication may be sent through
- * a particular channel.
+ * The policy determines HOW a communication may be delivered.
  *
  * Recipient-address eligibility remains a separate concern and is
- * handled by MemberEmailRecipientService.
+ * handled by the appropriate channel recipient service.
  */
 final class CommunicationPolicyService
 {
@@ -25,27 +23,48 @@ final class CommunicationPolicyService
     ) {}
 
     /**
-     * Determine whether an email definition may be delivered
-     * immediately to this member.
+     * Backward-compatible decision used by the existing immediate
+     * member-email pipeline.
      */
     public function allowsImmediateEmail(
         int $userId,
         EmailDefinition $definition
     ): bool {
+        return $this
+            ->emailDeliveryDecision(
+                $userId,
+                $definition->category
+            ) ===
+            CommunicationDeliveryDecision
+            ::IMMEDIATE;
+    }
+
+    /**
+     * Resolve the member's EMAIL delivery decision for a communication
+     * category.
+     *
+     * Essential categories always remain IMMEDIATE.
+     *
+     * Optional categories respect the persisted member preference.
+     */
+    public function emailDeliveryDecision(
+        int $userId,
+        string $category
+    ): string {
         if ($userId <= 0) {
-            return false;
+            return CommunicationDeliveryDecision
+            ::SKIP;
         }
 
         $category =
-            mb_strtoupper(
-                trim(
-                    $definition->category
-                )
+            $this
+            ->normaliseCategory(
+                $category
             );
 
         /*
-         * Essential communication cannot be disabled by a
-         * member preference.
+         * Essential communication is never disabled or delayed by
+         * optional member communication preferences.
          */
         if (
             $this
@@ -53,7 +72,8 @@ final class CommunicationPolicyService
                 $category
             )
         ) {
-            return true;
+            return CommunicationDeliveryDecision
+            ::IMMEDIATE;
         }
 
         $preference =
@@ -66,12 +86,9 @@ final class CommunicationPolicyService
                 ::CHANNEL_EMAIL
             );
 
-        /*
-         * No explicit preference means use the central default.
-         */
         if ($preference === null) {
             return $this
-                ->defaultImmediateEmailEnabled(
+                ->defaultEmailDeliveryDecision(
                     $category
                 );
         }
@@ -83,19 +100,17 @@ final class CommunicationPolicyService
                         ?? false
                 )
         ) {
-            return false;
+            return CommunicationDeliveryDecision
+            ::SKIP;
         }
 
-        return mb_strtoupper(
-            trim(
+        return $this
+            ->frequencyToDecision(
                 (string) (
                     $preference['frequency']
                     ?? ''
                 )
-            )
-        ) ===
-            MemberCommunicationPreferenceModel
-            ::FREQUENCY_IMMEDIATE;
+            );
     }
 
     /**
@@ -106,16 +121,15 @@ final class CommunicationPolicyService
     ): bool {
         return !$this
             ->isEssentialCategory(
-                mb_strtoupper(
-                    trim(
+                $this
+                    ->normaliseCategory(
                         $category
                     )
-                )
             );
     }
 
     /**
-     * Return the resolved email preference for Account Settings.
+     * Return the resolved email preference consumed by Account Settings.
      *
      * @return array{
      *     enabled:bool,
@@ -128,10 +142,9 @@ final class CommunicationPolicyService
         string $category
     ): array {
         $category =
-            mb_strtoupper(
-                trim(
-                    $category
-                )
+            $this
+            ->normaliseCategory(
+                $category
             );
 
         $preference =
@@ -145,46 +158,51 @@ final class CommunicationPolicyService
             );
 
         if ($preference === null) {
-            $enabled =
+            $decision =
                 $this
-                ->defaultImmediateEmailEnabled(
+                ->defaultEmailDeliveryDecision(
                     $category
                 );
 
             return [
                 'enabled' =>
-                $enabled,
+                $decision !==
+                    CommunicationDeliveryDecision
+                    ::SKIP,
 
                 'frequency' =>
-                $enabled
-                    ? MemberCommunicationPreferenceModel
-                    ::FREQUENCY_IMMEDIATE
-                    : MemberCommunicationPreferenceModel
-                    ::FREQUENCY_OFF,
+                $this
+                    ->decisionToFrequency(
+                        $decision
+                    ),
 
                 'explicit' =>
                 false,
             ];
         }
 
+        $enabled =
+            $this
+            ->booleanValue(
+                $preference['is_enabled']
+                    ?? false
+            );
+
         return [
             'enabled' =>
-            $this
-                ->booleanValue(
-                    $preference['is_enabled']
-                        ?? false
-                ),
+            $enabled,
 
             'frequency' =>
-            mb_strtoupper(
-                trim(
+            $enabled
+                ? $this
+                ->normaliseFrequency(
                     (string) (
                         $preference['frequency']
-                        ?? MemberCommunicationPreferenceModel
-                        ::FREQUENCY_OFF
+                        ?? ''
                     )
                 )
-            ),
+                : MemberCommunicationPreferenceModel
+                ::FREQUENCY_OFF,
 
             'explicit' =>
             true,
@@ -192,15 +210,7 @@ final class CommunicationPolicyService
     }
 
     /**
-     * Essential application communication.
-     *
-     * Membership includes:
-     *
-     * - membership activated;
-     * - membership expiring soon;
-     * - membership expired.
-     *
-     * These must not be disabled by optional communication settings.
+     * Essential communication categories.
      */
     private function isEssentialCategory(
         string $category
@@ -208,31 +218,147 @@ final class CommunicationPolicyService
         return in_array(
             $category,
             [
-                EmailRegistry::CATEGORY_SECURITY,
-                EmailRegistry::CATEGORY_VERIFICATION,
-                EmailRegistry::CATEGORY_TRANSACTIONAL,
-                EmailRegistry::CATEGORY_MODERATION,
-                EmailRegistry::CATEGORY_MEMBERSHIP,
-                EmailRegistry::CATEGORY_SUPPORT,
+                CommunicationCategory::SECURITY,
+                CommunicationCategory::VERIFICATION,
+                CommunicationCategory::TRANSACTIONAL,
+                CommunicationCategory::MODERATION,
+                CommunicationCategory::MEMBERSHIP,
+                CommunicationCategory::SUPPORT,
             ],
             true
         );
     }
 
     /**
-     * Current optional-email default.
+     * Defaults when the member has not explicitly saved a preference.
      *
-     * Existing Interest communication remains enabled unless the
-     * member explicitly disables Matrimonial Activity emails.
+     * Existing Interest email behaviour remains unchanged.
      *
-     * Engagement defaults OFF until the digest/engagement phase
-     * actually introduces those emails.
+     * Engagement defaults to DAILY so high-frequency events such as
+     * Profile Viewed and Shortlisted do not become immediate emails.
      */
-    private function defaultImmediateEmailEnabled(
+    private function defaultEmailDeliveryDecision(
         string $category
-    ): bool {
-        return $category ===
-            EmailRegistry::CATEGORY_MATRIMONIAL_ACTIVITY;
+    ): string {
+        if (
+            $category ===
+            CommunicationCategory
+            ::MATRIMONIAL_ACTIVITY
+        ) {
+            return CommunicationDeliveryDecision
+            ::IMMEDIATE;
+        }
+
+        if (
+            $category ===
+            CommunicationCategory
+            ::ENGAGEMENT
+        ) {
+            return CommunicationDeliveryDecision
+            ::DAILY;
+        }
+
+        return CommunicationDeliveryDecision
+        ::SKIP;
+    }
+
+    private function frequencyToDecision(
+        string $frequency
+    ): string {
+        return match ($this
+            ->normaliseFrequency(
+                $frequency
+            )) {
+            MemberCommunicationPreferenceModel
+            ::FREQUENCY_IMMEDIATE =>
+            CommunicationDeliveryDecision
+            ::IMMEDIATE,
+
+            MemberCommunicationPreferenceModel
+            ::FREQUENCY_DAILY =>
+            CommunicationDeliveryDecision
+            ::DAILY,
+
+            MemberCommunicationPreferenceModel
+            ::FREQUENCY_WEEKLY =>
+            CommunicationDeliveryDecision
+            ::WEEKLY,
+
+            default =>
+            CommunicationDeliveryDecision
+            ::SKIP,
+        };
+    }
+
+    private function decisionToFrequency(
+        string $decision
+    ): string {
+        return match ($decision) {
+            CommunicationDeliveryDecision
+            ::IMMEDIATE =>
+            MemberCommunicationPreferenceModel
+            ::FREQUENCY_IMMEDIATE,
+
+            CommunicationDeliveryDecision
+            ::DAILY =>
+            MemberCommunicationPreferenceModel
+            ::FREQUENCY_DAILY,
+
+            CommunicationDeliveryDecision
+            ::WEEKLY =>
+            MemberCommunicationPreferenceModel
+            ::FREQUENCY_WEEKLY,
+
+            default =>
+            MemberCommunicationPreferenceModel
+            ::FREQUENCY_OFF,
+        };
+    }
+
+    private function normaliseCategory(
+        string $category
+    ): string {
+        return mb_strtoupper(
+            trim(
+                $category
+            )
+        );
+    }
+
+    private function normaliseFrequency(
+        string $frequency
+    ): string {
+        $frequency =
+            mb_strtoupper(
+                trim(
+                    $frequency
+                )
+            );
+
+        if (
+            !in_array(
+                $frequency,
+                [
+                    MemberCommunicationPreferenceModel
+                    ::FREQUENCY_IMMEDIATE,
+
+                    MemberCommunicationPreferenceModel
+                    ::FREQUENCY_DAILY,
+
+                    MemberCommunicationPreferenceModel
+                    ::FREQUENCY_WEEKLY,
+
+                    MemberCommunicationPreferenceModel
+                    ::FREQUENCY_OFF,
+                ],
+                true
+            )
+        ) {
+            return MemberCommunicationPreferenceModel
+            ::FREQUENCY_OFF;
+        }
+
+        return $frequency;
     }
 
     private function booleanValue(

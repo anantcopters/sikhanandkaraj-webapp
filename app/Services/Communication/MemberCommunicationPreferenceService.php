@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Communication;
 
 use App\Models\MemberCommunicationPreferenceModel;
-use App\Services\Email\EmailRegistry;
 use RuntimeException;
 
 /**
@@ -41,8 +40,8 @@ final class MemberCommunicationPreferenceService
                 ->policyService
                 ->emailPreference(
                     $userId,
-                    EmailRegistry
-                    ::CATEGORY_MATRIMONIAL_ACTIVITY
+                    CommunicationCategory
+                    ::MATRIMONIAL_ACTIVITY
                 ),
 
             'engagement' =>
@@ -50,8 +49,8 @@ final class MemberCommunicationPreferenceService
                 ->policyService
                 ->emailPreference(
                     $userId,
-                    EmailRegistry
-                    ::CATEGORY_ENGAGEMENT
+                    CommunicationCategory
+                    ::ENGAGEMENT
                 ),
         ];
     }
@@ -59,13 +58,19 @@ final class MemberCommunicationPreferenceService
     /**
      * Save member-controlled EMAIL preferences.
      *
-     * Phase 3A deliberately exposes only the settings that are already
-     * meaningful to the current email architecture.
+     * Matrimonial Activity:
+     * - enabled  => IMMEDIATE
+     * - disabled => OFF
+     *
+     * Engagement:
+     * - DAILY
+     * - WEEKLY
+     * - OFF
      */
     public function updateEmailPreferences(
         int $userId,
         bool $matrimonialActivity,
-        bool $engagement
+        string $engagementFrequency
     ): void {
         if ($userId <= 0) {
             throw new RuntimeException(
@@ -74,26 +79,41 @@ final class MemberCommunicationPreferenceService
         }
 
         $this
-            ->saveEmailToggle(
+            ->saveEmailPreference(
                 $userId,
-                EmailRegistry
-                ::CATEGORY_MATRIMONIAL_ACTIVITY,
+                CommunicationCategory
+                ::MATRIMONIAL_ACTIVITY,
+                $matrimonialActivity,
                 $matrimonialActivity
+                    ? MemberCommunicationPreferenceModel
+                    ::FREQUENCY_IMMEDIATE
+                    : MemberCommunicationPreferenceModel
+                    ::FREQUENCY_OFF
+            );
+
+        $engagementFrequency =
+            $this
+            ->normaliseEngagementFrequency(
+                $engagementFrequency
             );
 
         $this
-            ->saveEmailToggle(
+            ->saveEmailPreference(
                 $userId,
-                EmailRegistry
-                ::CATEGORY_ENGAGEMENT,
-                $engagement
+                CommunicationCategory
+                ::ENGAGEMENT,
+                $engagementFrequency !==
+                    MemberCommunicationPreferenceModel
+                    ::FREQUENCY_OFF,
+                $engagementFrequency
             );
     }
 
-    private function saveEmailToggle(
+    private function saveEmailPreference(
         int $userId,
         string $category,
-        bool $enabled
+        bool $enabled,
+        string $frequency
     ): void {
         if (
             !$this
@@ -120,16 +140,47 @@ final class MemberCommunicationPreferenceService
 
                     isEnabled: $enabled,
 
-                    frequency: $enabled
-                        ? MemberCommunicationPreferenceModel
-                        ::FREQUENCY_IMMEDIATE
-                        : MemberCommunicationPreferenceModel
-                        ::FREQUENCY_OFF
+                    frequency: $frequency
                 )
         ) {
             throw new RuntimeException(
                 'Communication preferences could not be saved.'
             );
         }
+    }
+
+    private function normaliseEngagementFrequency(
+        string $frequency
+    ): string {
+        $frequency =
+            mb_strtoupper(
+                trim(
+                    $frequency
+                )
+            );
+
+        if (
+            !in_array(
+                $frequency,
+                [
+                    MemberCommunicationPreferenceModel
+                    ::FREQUENCY_DAILY,
+
+                    MemberCommunicationPreferenceModel
+                    ::FREQUENCY_WEEKLY,
+
+                    MemberCommunicationPreferenceModel
+                    ::FREQUENCY_OFF,
+                ],
+                true
+            )
+        ) {
+            throw new RuntimeException(
+                'Please select a valid Matches & Recommendations '
+                    . 'email frequency.'
+            );
+        }
+
+        return $frequency;
     }
 }

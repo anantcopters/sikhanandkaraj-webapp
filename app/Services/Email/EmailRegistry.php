@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Email;
 
+use App\Services\Communication\CommunicationCategory;
 use InvalidArgumentException;
 
 final class EmailRegistry
@@ -79,43 +80,41 @@ final class EmailRegistry
     public const MEMBER_MEMBERSHIP_EXPIRED =
     'MEMBER_MEMBERSHIP_EXPIRED';
 
+    /*
+    * --------------------------------------------------------------------------
+    * Communication categories
+    * --------------------------------------------------------------------------
+    *
+    * Categories are channel-independent and are owned by
+    * CommunicationCategory.
+    *
+    * These aliases are retained so existing EmailRegistry consumers remain
+    * backward compatible while the communication architecture moves toward
+    * channel-independent orchestration.
+    */
     public const CATEGORY_MODERATION =
-    'MODERATION';
+    CommunicationCategory::MODERATION;
 
     public const CATEGORY_VERIFICATION =
-    'VERIFICATION';
+    CommunicationCategory::VERIFICATION;
 
     public const CATEGORY_SECURITY =
-    'SECURITY';
+    CommunicationCategory::SECURITY;
 
     public const CATEGORY_MATRIMONIAL_ACTIVITY =
-    'MATRIMONIAL_ACTIVITY';
+    CommunicationCategory::MATRIMONIAL_ACTIVITY;
 
-    /*
-    * --------------------------------------------------------------------------
-    * Additional approved communication categories
-    * --------------------------------------------------------------------------
-    *
-    * TRANSACTIONAL covers mandatory non-marketing application transactions.
-    *
-    * ENGAGEMENT is reserved for optional match/recommendation communication
-    * and future digest-capable events.
-    */
     public const CATEGORY_TRANSACTIONAL =
-    'TRANSACTIONAL';
+    CommunicationCategory::TRANSACTIONAL;
 
     public const CATEGORY_ENGAGEMENT =
-    'ENGAGEMENT';
+    CommunicationCategory::ENGAGEMENT;
 
-    /*
-    * Approved communication categories from the central communications
-    * architecture.
-    */
     public const CATEGORY_SUPPORT =
-    'SUPPORT';
+    CommunicationCategory::SUPPORT;
 
     public const CATEGORY_MEMBERSHIP =
-    'MEMBERSHIP';
+    CommunicationCategory::MEMBERSHIP;
 
     /**
      * @return array<string, EmailDefinition>
