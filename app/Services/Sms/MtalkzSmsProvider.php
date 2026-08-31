@@ -180,7 +180,9 @@ final class MtalkzSmsProvider implements SmsProviderInterface
                 );
 
                 return SmsSendResult::failure(
-                    'mTalkz rejected the SMS request.'
+                    $this->providerErrorMessage(
+                        $decodedResponse
+                    )
                 );
             }
 
@@ -271,11 +273,28 @@ final class MtalkzSmsProvider implements SmsProviderInterface
     }
 
     /**
-     * Detect explicit provider-level failure responses.
+     * Detect an explicit mTalkz provider-level failure.
      *
-     * Keep this deliberately conservative. Unknown successful response
-     * structures should not be rejected merely because mTalkz changes or
-     * extends response metadata.
+     * mTalkz returns HTTP 200 for both successful and rejected API requests,
+     * therefore the JSON status is authoritative.
+     *
+     * Known response contract:
+     *
+     * Success:
+     *
+     * {
+     *     "status": "OK",
+     *     "data": [...],
+     *     "msgid": "9813100982",
+     *     "message": "message Submitted successfully"
+     * }
+     *
+     * Failure:
+     *
+     * {
+     *     "status": "AZQ02",
+     *     "message": "Invalid Api Key"
+     * }
      *
      * @param mixed $decodedResponse
      */
@@ -283,74 +302,108 @@ final class MtalkzSmsProvider implements SmsProviderInterface
         mixed $decodedResponse,
         string $responseBody
     ): bool {
-        if ($responseBody === '') {
+        /*
+     * A successful provider request must return a usable JSON response.
+     *
+     * Empty/non-JSON responses cannot safely be treated as accepted SMS.
+     */
+        if (
+            $responseBody === ''
+            || !is_array(
+                $decodedResponse
+            )
+        ) {
             return true;
         }
 
-        if (!is_array($decodedResponse)) {
-            $normalizedBody =
-                mb_strtolower(
-                    $responseBody
-                );
-
-            return str_contains(
-                $normalizedBody,
-                'error'
-            )
-                || str_contains(
-                    $normalizedBody,
-                    'failed'
-                )
-                || str_contains(
-                    $normalizedBody,
-                    'invalid'
-                );
-        }
-
-        if (
-            isset(
-                $decodedResponse['status']
-            )
-        ) {
-            $status =
-                mb_strtolower(
-                    trim(
-                        (string)
+        $status =
+            mb_strtoupper(
+                trim(
+                    (string) (
                         $decodedResponse['status']
+                        ?? ''
                     )
-                );
-
-            if (
-                in_array(
-                    $status,
-                    [
-                        'error',
-                        'failed',
-                        'failure',
-                        'invalid',
-                    ],
-                    true
                 )
-            ) {
-                return true;
-            }
-        }
+            );
 
-        if (
-            isset(
-                $decodedResponse['success']
-            )
-            && $decodedResponse['success']
-            === false
-        ) {
-            return true;
-        }
-
-        return false;
+        /*
+     * mTalkz documents OK as the successful API status.
+     *
+     * Everything else is treated as rejected rather than trying to infer
+     * success from HTTP 200.
+     */
+        return $status !== 'OK';
     }
 
     /**
-     * Extract the provider reference when mTalkz returns one.
+     * Return a safe provider error for operational logging.
+     *
+     * Only documented mTalkz status/message metadata is retained. The raw
+     * provider response is deliberately not returned because future provider
+     * responses could contain recipient or message information.
+     *
+     * @param mixed $decodedResponse
+     */
+    private function providerErrorMessage(
+        mixed $decodedResponse
+    ): string {
+        if (!is_array($decodedResponse)) {
+            return 'mTalkz returned an invalid response.';
+        }
+
+        $status =
+            mb_strtoupper(
+                trim(
+                    (string) (
+                        $decodedResponse['status']
+                        ?? ''
+                    )
+                )
+            );
+
+        $message =
+            trim(
+                (string) (
+                    $decodedResponse['message']
+                    ?? ''
+                )
+            );
+
+        if (
+            $status !== ''
+            && $message !== ''
+        ) {
+            return mb_substr(
+                $status
+                    . ' - '
+                    . $message,
+                0,
+                500
+            );
+        }
+
+        if ($status !== '') {
+            return mb_substr(
+                'mTalkz status: '
+                    . $status,
+                0,
+                500
+            );
+        }
+
+        return 'mTalkz rejected the SMS request.';
+    }
+
+    /**
+     * Extract the provider reference returned by mTalkz.
+     *
+     * mTalkz returns:
+     *
+     * - msgid: request/campaign reference;
+     * - data[n].id: individual submitted SMS reference.
+     *
+     * Current application SMS calls contain one recipient, therefore prefer the
+     * individual message ID when available and fall back to msgid.
      *
      * @param mixed $decodedResponse
      */
@@ -362,11 +415,8 @@ final class MtalkzSmsProvider implements SmsProviderInterface
         }
 
         $providerMessageId =
-            $decodedResponse['message_id']
-            ?? $decodedResponse['messageid']
-            ?? $decodedResponse['request_id']
-            ?? $decodedResponse['requestid']
-            ?? $decodedResponse['id']
+            $decodedResponse['data'][0]['id']
+            ?? $decodedResponse['msgid']
             ?? null;
 
         if (!is_scalar($providerMessageId)) {
@@ -375,8 +425,7 @@ final class MtalkzSmsProvider implements SmsProviderInterface
 
         $providerMessageId =
             trim(
-                (string)
-                $providerMessageId
+                (string) $providerMessageId
             );
 
         return $providerMessageId !== ''
