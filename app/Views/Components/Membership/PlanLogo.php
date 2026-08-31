@@ -33,13 +33,13 @@ $width =
 
 $logos = [
     'GO' =>
-    'Logo_Go_Plan.png',
+    'Logo_Go_Plan_S.png',
 
     'PLUS' =>
-    'Logo_Plus_Plan.png',
+    'Logo_Plus_Plan_S.png',
 
     'PRO' =>
-    'Logo_Pro_Plan.png',
+    'Logo_Pro_Plan_S.png',
 ];
 
 $image =

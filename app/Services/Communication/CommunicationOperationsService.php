@@ -6,6 +6,7 @@ namespace App\Services\Communication;
 
 use App\Models\EmailQueueModel;
 use CodeIgniter\Database\BaseConnection;
+use App\Models\SmsDeliveryLogModel;
 
 /**
  * Read-only operational presentation for the communication subsystem.
@@ -49,6 +50,9 @@ final class CommunicationOperationsService
     public function __construct(
         private readonly EmailQueueModel
         $emailQueueModel,
+
+        private readonly SmsDeliveryLogModel
+        $smsDeliveryLogModel,
 
         private readonly BaseConnection
         $database
@@ -212,6 +216,662 @@ final class CommunicationOperationsService
             $this
                 ->emailReferenceTypes(),
         ];
+    }
+
+    /**
+     * Return read-only SMS delivery operations.
+     *
+     * @return array<string, mixed>
+     */
+    public function smsDelivery(
+        string $status = '',
+        string $messageType = '',
+        string $search = '',
+        int $page = 1,
+        int $perPage = self::DEFAULT_PER_PAGE
+    ): array {
+        $status =
+            mb_strtoupper(
+                trim(
+                    $status
+                )
+            );
+
+        if (
+            !in_array(
+                $status,
+                [
+                    '',
+                    SmsDeliveryLogModel
+                    ::STATUS_SENT,
+                    SmsDeliveryLogModel
+                    ::STATUS_FAILED,
+                ],
+                true
+            )
+        ) {
+            $status = '';
+        }
+
+        $messageType =
+            mb_strtoupper(
+                mb_substr(
+                    trim(
+                        $messageType
+                    ),
+                    0,
+                    50
+                )
+            );
+
+        $search =
+            mb_substr(
+                trim(
+                    $search
+                ),
+                0,
+                self::MAXIMUM_SEARCH_LENGTH
+            );
+
+        $page =
+            max(
+                1,
+                $page
+            );
+
+        $perPage =
+            max(
+                1,
+                min(
+                    self::MAXIMUM_PER_PAGE,
+                    $perPage
+                )
+            );
+
+        $builder =
+            $this
+            ->smsDeliveryLogModel
+            ->builder();
+
+        $this->applySmsFilters(
+            $builder,
+            $status,
+            $messageType,
+            $search
+        );
+
+        $countRow =
+            $builder
+            ->select(
+                'COUNT(*) AS total',
+                false
+            )
+            ->get()
+            ->getRowArray();
+
+        $total =
+            max(
+                0,
+                (int) (
+                    $countRow['total']
+                    ?? 0
+                )
+            );
+
+        $totalPages =
+            max(
+                1,
+                (int) ceil(
+                    $total
+                        / $perPage
+                )
+            );
+
+        if ($page > $totalPages) {
+            $page =
+                $totalPages;
+        }
+
+        /*
+     * Create a fresh builder after the COUNT query.
+     */
+        $builder =
+            $this
+            ->smsDeliveryLogModel
+            ->builder();
+
+        $this->applySmsFilters(
+            $builder,
+            $status,
+            $messageType,
+            $search
+        );
+
+        $rows =
+            $builder
+            ->select(
+                [
+                    'id',
+                    'message_type',
+                    'recipient_mobile',
+                    'provider',
+                    'provider_message_id',
+                    'status',
+                    'error_message',
+                    'created_at',
+                    'sent_at',
+                    'failed_at',
+                ]
+            )
+            ->orderBy(
+                'id',
+                'DESC'
+            )
+            ->limit(
+                $perPage,
+                ($page - 1)
+                    * $perPage
+            )
+            ->get()
+            ->getResultArray();
+
+        return [
+            'rows' =>
+            array_map(
+                fn(array $row): array =>
+                $this
+                    ->presentSmsRow(
+                        $row
+                    ),
+                $rows
+            ),
+
+            'summary' =>
+            $this
+                ->smsSummary(),
+
+            /*
+         * Basic Phase 4E:
+         *
+         * Reuse authoritative contact_verifications rather than maintaining
+         * another OTP counter in sms_delivery_logs.
+         */
+            'otpAlerts' =>
+            $this
+                ->otpLimitAlerts(),
+
+            'filters' => [
+                'status' =>
+                $status,
+
+                'messageType' =>
+                $messageType,
+
+                'search' =>
+                $search,
+            ],
+
+            'pagination' => [
+                'page' =>
+                $page,
+
+                'perPage' =>
+                $perPage,
+
+                'total' =>
+                $total,
+
+                'totalPages' =>
+                $totalPages,
+            ],
+
+            'statusOptions' => [
+                SmsDeliveryLogModel
+                ::STATUS_SENT,
+
+                SmsDeliveryLogModel
+                ::STATUS_FAILED,
+            ],
+
+            'messageTypeOptions' =>
+            $this
+                ->smsMessageTypes(),
+        ];
+    }
+
+    /**
+     * @param \CodeIgniter\Database\BaseBuilder $builder
+     */
+    private function applySmsFilters(
+        $builder,
+        string $status,
+        string $messageType,
+        string $search
+    ): void {
+        if ($status !== '') {
+            $builder
+                ->where(
+                    'status',
+                    $status
+                );
+        }
+
+        if ($messageType !== '') {
+            $builder
+                ->where(
+                    'message_type',
+                    $messageType
+                );
+        }
+
+        if ($search !== '') {
+            /*
+         * Search is allowed against normalized mobile and provider reference.
+         *
+         * SMS body is not stored and therefore cannot accidentally become
+         * searchable through Admin.
+         */
+            $builder
+                ->groupStart()
+                ->like(
+                    'recipient_mobile',
+                    $search,
+                    'both',
+                    true,
+                    true
+                )
+                ->orLike(
+                    'provider_message_id',
+                    $search,
+                    'both',
+                    true,
+                    true
+                )
+                ->groupEnd();
+        }
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function smsSummary(): array
+    {
+        $row =
+            $this
+            ->database
+            ->query(
+                <<<'SQL'
+            SELECT
+                COUNT(*) AS total,
+
+                COUNT(*) FILTER (
+                    WHERE status = 'SENT'
+                ) AS sent,
+
+                COUNT(*) FILTER (
+                    WHERE status = 'FAILED'
+                ) AS failed,
+
+                COUNT(*) FILTER (
+                    WHERE
+                        message_type = 'OTP'
+                        AND created_at >= CURRENT_TIMESTAMP - INTERVAL '24 hours'
+                ) AS otp_last_24_hours,
+
+                COUNT(*) FILTER (
+                    WHERE
+                        status = 'SENT'
+                        AND created_at >= CURRENT_DATE
+                ) AS sent_today,
+
+                COUNT(*) FILTER (
+                    WHERE
+                        status = 'FAILED'
+                        AND created_at >= CURRENT_DATE
+                ) AS failed_today
+
+            FROM
+                sms_delivery_logs
+            SQL
+            )
+            ->getRowArray();
+
+        return [
+            'total' =>
+            max(
+                0,
+                (int) (
+                    $row['total']
+                    ?? 0
+                )
+            ),
+
+            'sent' =>
+            max(
+                0,
+                (int) (
+                    $row['sent']
+                    ?? 0
+                )
+            ),
+
+            'failed' =>
+            max(
+                0,
+                (int) (
+                    $row['failed']
+                    ?? 0
+                )
+            ),
+
+            'otpLast24Hours' =>
+            max(
+                0,
+                (int) (
+                    $row['otp_last_24_hours']
+                    ?? 0
+                )
+            ),
+
+            'sentToday' =>
+            max(
+                0,
+                (int) (
+                    $row['sent_today']
+                    ?? 0
+                )
+            ),
+
+            'failedToday' =>
+            max(
+                0,
+                (int) (
+                    $row['failed_today']
+                    ?? 0
+                )
+            ),
+        ];
+    }
+
+    /**
+     * Basic OTP abuse visibility.
+     *
+     * The existing contact_verifications table remains authoritative for OTP
+     * issuance/rate limiting. This query only exposes contacts which have reached
+     * the existing five-request threshold during the rolling 24-hour period.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function otpLimitAlerts(): array
+    {
+        $rows =
+            $this
+            ->database
+            ->query(
+                <<<'SQL'
+            SELECT
+                uc.id AS contact_id,
+                uc.contact_value AS mobile,
+                cv.purpose,
+                COUNT(*) AS request_count,
+                MAX(cv.created_at) AS last_requested_at
+
+            FROM
+                contact_verifications cv
+
+            INNER JOIN
+                user_contacts uc
+                    ON uc.id = cv.user_contact_id
+
+            WHERE
+                cv.created_at
+                    >= CURRENT_TIMESTAMP - INTERVAL '24 hours'
+
+                AND cv.status <> 'DELIVERY_FAILED'
+
+            GROUP BY
+                uc.id,
+                uc.contact_value,
+                cv.purpose
+
+            HAVING
+                COUNT(*) >= 5
+
+            ORDER BY
+                request_count DESC,
+                last_requested_at DESC
+
+            LIMIT 25
+            SQL
+            )
+            ->getResultArray();
+
+        return array_map(
+            function (
+                array $row
+            ): array {
+                return [
+                    'mobile' =>
+                    $this
+                        ->maskMobile(
+                            (string) (
+                                $row['mobile']
+                                ?? ''
+                            )
+                        ),
+
+                    'purpose' =>
+                    mb_strtoupper(
+                        trim(
+                            (string) (
+                                $row['purpose']
+                                ?? ''
+                            )
+                        )
+                    ),
+
+                    'requestCount' =>
+                    max(
+                        0,
+                        (int) (
+                            $row['request_count']
+                            ?? 0
+                        )
+                    ),
+
+                    'lastRequestedAt' =>
+                    trim(
+                        (string) (
+                            $row['last_requested_at']
+                            ?? ''
+                        )
+                    ),
+                ];
+            },
+            $rows
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function smsMessageTypes(): array
+    {
+        $rows =
+            $this
+            ->database
+            ->query(
+                <<<'SQL'
+            SELECT DISTINCT
+                message_type
+
+            FROM
+                sms_delivery_logs
+
+            WHERE
+                TRIM(message_type) <> ''
+
+            ORDER BY
+                message_type ASC
+            SQL
+            )
+            ->getResultArray();
+
+        return array_values(
+            array_filter(
+                array_map(
+                    static fn(
+                        array $row
+                    ): string =>
+                    trim(
+                        (string) (
+                            $row['message_type']
+                            ?? ''
+                        )
+                    ),
+                    $rows
+                )
+            )
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     *
+     * @return array<string, mixed>
+     */
+    private function presentSmsRow(
+        array $row
+    ): array {
+        return [
+            'id' =>
+            (int) (
+                $row['id']
+                ?? 0
+            ),
+
+            'messageType' =>
+            trim(
+                (string) (
+                    $row['message_type']
+                    ?? ''
+                )
+            ),
+
+            'recipient' =>
+            $this
+                ->maskMobile(
+                    (string) (
+                        $row['recipient_mobile']
+                        ?? ''
+                    )
+                ),
+
+            'provider' =>
+            trim(
+                (string) (
+                    $row['provider']
+                    ?? ''
+                )
+            ),
+
+            'providerMessageId' =>
+            trim(
+                (string) (
+                    $row['provider_message_id']
+                    ?? ''
+                )
+            ),
+
+            'status' =>
+            mb_strtoupper(
+                trim(
+                    (string) (
+                        $row['status']
+                        ?? ''
+                    )
+                )
+            ),
+
+            'error' =>
+            mb_substr(
+                trim(
+                    (string) (
+                        $row['error_message']
+                        ?? ''
+                    )
+                ),
+                0,
+                250
+            ),
+
+            'createdAt' =>
+            trim(
+                (string) (
+                    $row['created_at']
+                    ?? ''
+                )
+            ),
+
+            'sentAt' =>
+            trim(
+                (string) (
+                    $row['sent_at']
+                    ?? ''
+                )
+            ),
+
+            'failedAt' =>
+            trim(
+                (string) (
+                    $row['failed_at']
+                    ?? ''
+                )
+            ),
+        ];
+    }
+
+    private function maskMobile(
+        string $mobile
+    ): string {
+        $digits =
+            preg_replace(
+                '/\D+/',
+                '',
+                $mobile
+            );
+
+        if (
+            !is_string(
+                $digits
+            )
+            || $digits === ''
+        ) {
+            return '—';
+        }
+
+        $visible =
+            min(
+                3,
+                strlen(
+                    $digits
+                )
+            );
+
+        return str_repeat(
+            'X',
+            max(
+                0,
+                strlen(
+                    $digits
+                )
+                    - $visible
+            )
+        )
+            . substr(
+                $digits,
+                -$visible
+            );
     }
 
     /**

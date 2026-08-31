@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Sms;
 
+use InvalidArgumentException;
+
 /**
  * Creates standardized application SMS messages.
  *
@@ -19,6 +21,9 @@ namespace App\Services\Sms;
  */
 final class SmsMessageFactory
 {
+    public const TYPE_OTP =
+    'OTP';
+
     private const OTP_TEMPLATE =
     'Your Sikhanandkaraj verification code is %s. '
         . 'Do not share this code with anyone. - KIRAT';
@@ -43,7 +48,7 @@ final class SmsMessageFactory
                 $otp
             ) !== 1
         ) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 'OTP SMS requires a four-digit verification code.'
             );
         }
@@ -65,7 +70,14 @@ final class SmsMessageFactory
             variables: [
                 'otp' =>
                 $otp,
-            ]
+            ],
+
+            /*
+             * Operational classification only.
+             *
+             * The delivery log never stores the OTP or SMS body.
+             */
+            messageType: self::TYPE_OTP
         );
     }
 }

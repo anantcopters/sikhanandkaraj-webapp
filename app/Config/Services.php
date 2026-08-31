@@ -179,6 +179,7 @@ use App\Services\Communication\CommunicationEventService;
 use App\Services\Communication\EngagementDigestService;
 use App\Services\Communication\CommunicationOperationsService;
 use App\Models\EmailQueueModel;
+use App\Models\SmsDeliveryLogModel;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -3723,8 +3724,11 @@ final class Services extends BaseService
     /**
      * Return the read-only communication operations service.
      *
-     * This service provides Super Admin operational visibility over the
-     * existing durable email queue.
+     * This provides Super Admin operational visibility over:
+     *
+     * - the existing durable email queue;
+     * - SMS delivery attempts;
+     * - basic OTP rate-limit alerts.
      *
      * It deliberately does not own sending, retry or provider behaviour.
      */
@@ -3742,6 +3746,10 @@ final class Services extends BaseService
 
         return new CommunicationOperationsService(
             new EmailQueueModel(
+                $database
+            ),
+
+            new SmsDeliveryLogModel(
                 $database
             ),
 

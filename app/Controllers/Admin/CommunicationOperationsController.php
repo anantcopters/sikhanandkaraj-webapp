@@ -11,28 +11,43 @@ use Throwable;
 final class CommunicationOperationsController extends BaseController
 {
     /**
-     * Read-only communication operations screen.
+     * Read-only Communication Operations.
      *
-     * Route authorization is restricted to SUPER_ADMIN, following the
-     * existing Email Preview Centre security boundary.
+     * The existing SUPER_ADMIN route remains authoritative.
      */
     public function index(): string
     {
+        $channel =
+            mb_strtolower(
+                trim(
+                    (string) $this
+                        ->request
+                        ->getGet(
+                            'channel'
+                        )
+                )
+            );
+
+        if (
+            !in_array(
+                $channel,
+                [
+                    'email',
+                    'sms',
+                ],
+                true
+            )
+        ) {
+            $channel =
+                'email';
+        }
+
         $status =
             trim(
                 (string) $this
                     ->request
                     ->getGet(
                         'status'
-                    )
-            );
-
-        $referenceType =
-            trim(
-                (string) $this
-                    ->request
-                    ->getGet(
-                        'reference_type'
                     )
             );
 
@@ -65,20 +80,52 @@ final class CommunicationOperationsController extends BaseController
                     'communicationOperationsService'
                 );
 
-            $operations =
-                $service
-                ->emailQueue(
-                    $status,
-                    $referenceType,
-                    $search,
-                    $page
-                );
+            if ($channel === 'sms') {
+                $messageType =
+                    trim(
+                        (string) $this
+                            ->request
+                            ->getGet(
+                                'message_type'
+                            )
+                    );
+
+                $operations =
+                    $service
+                    ->smsDelivery(
+                        $status,
+                        $messageType,
+                        $search,
+                        $page
+                    );
+            } else {
+                $referenceType =
+                    trim(
+                        (string) $this
+                            ->request
+                            ->getGet(
+                                'reference_type'
+                            )
+                    );
+
+                $operations =
+                    $service
+                    ->emailQueue(
+                        $status,
+                        $referenceType,
+                        $search,
+                        $page
+                    );
+            }
 
             return view(
                 'Admin/CommunicationOperations/Index',
                 [
                     'pageTitle' =>
                     'Communication Operations',
+
+                    'channel' =>
+                    $channel,
 
                     'operations' =>
                     $operations,
@@ -97,57 +144,24 @@ final class CommunicationOperationsController extends BaseController
                     'pageTitle' =>
                     'Communication Operations',
 
+                    'channel' =>
+                    $channel,
+
                     'operations' => [
                         'rows' =>
                         [],
 
-                        'summary' => [
-                            'total' =>
-                            0,
+                        'summary' =>
+                        [],
 
-                            'PENDING' =>
-                            0,
+                        'health' =>
+                        [],
 
-                            'PROCESSING' =>
-                            0,
+                        'otpAlerts' =>
+                        [],
 
-                            'SENT' =>
-                            0,
-
-                            'FAILED' =>
-                            0,
-                        ],
-
-                        'health' => [
-                            'readyNow' =>
-                            0,
-
-                            'retryPending' =>
-                            0,
-
-                            'staleProcessing' =>
-                            0,
-
-                            'failed' =>
-                            0,
-
-                            'oldestPendingAt' =>
-                            '',
-
-                            'oldestPendingMinutes' =>
-                            null,
-                        ],
-
-                        'filters' => [
-                            'status' =>
-                            '',
-
-                            'referenceType' =>
-                            '',
-
-                            'search' =>
-                            '',
-                        ],
+                        'filters' =>
+                        [],
 
                         'pagination' => [
                             'page' =>
@@ -167,6 +181,9 @@ final class CommunicationOperationsController extends BaseController
                         [],
 
                         'referenceTypeOptions' =>
+                        [],
+
+                        'messageTypeOptions' =>
                         [],
                     ],
 
