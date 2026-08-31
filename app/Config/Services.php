@@ -2489,6 +2489,15 @@ final class Services extends BaseService
         );
     }
 
+    /**
+     * Return authenticated member Account Settings service.
+     *
+     * Email verification deliberately receives MemberEmailService rather than
+     * EmailQueueService directly.
+     *
+     * This keeps all email generation behind the Phase-1 email boundary while
+     * still allowing verification emails to use an unverified destination.
+     */
     public static function memberAccountSettingsService(
         bool $getShared = true
     ): MemberAccountSettingsService {
@@ -2498,22 +2507,64 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        /*
+     * Use one database connection for the Account Settings workflow and
+     * its persistence models.
+     */
+        $database =
+            db_connect();
 
         return new MemberAccountSettingsService(
-            new UserModel($database),
-            new UserContactModel($database),
-            new EmailVerificationTokenModel($database),
-            new EmailVerificationService(
-                new UserModel($database),
-                new UserContactModel($database),
-                new EmailVerificationTokenModel($database),
-                static::emailQueueService(false)
+            new UserModel(
+                $database
             ),
+
+            new UserContactModel(
+                $database
+            ),
+
+            new EmailVerificationTokenModel(
+                $database
+            ),
+
+            new EmailVerificationService(
+                new UserModel(
+                    $database
+                ),
+
+                new UserContactModel(
+                    $database
+                ),
+
+                new EmailVerificationTokenModel(
+                    $database
+                ),
+
+                /*
+             * IMPORTANT:
+             *
+             * EmailVerificationService now delegates email construction
+             * and queueing to MemberEmailService.
+             *
+             * Verification itself remains the explicit exception to the
+             * "verified primary email required" rule because the purpose
+             * of this communication is to verify that address.
+             */
+                static::memberEmailService(
+                    false
+                )
+            ),
+
             $database
         );
     }
 
+    /**
+     * Return authenticated-member Contact Us service.
+     *
+     * Support persistence remains authoritative. Email is injected only as a
+     * downstream transactional communication channel.
+     */
     public static function memberContactRequestService(
         bool $getShared = true
     ): MemberContactRequestService {
@@ -2523,9 +2574,16 @@ final class Services extends BaseService
             );
         }
 
+        $database =
+            db_connect();
+
         return new MemberContactRequestService(
             new MemberContactRequestModel(
-                db_connect()
+                $database
+            ),
+
+            static::memberEmailService(
+                false
             )
         );
     }
@@ -2549,6 +2607,12 @@ final class Services extends BaseService
         );
     }
 
+    /**
+     * Return administrator member-support service.
+     *
+     * Profile-report review behavior remains unchanged. MemberEmailService is
+     * used only by Contact Us resolution.
+     */
     public static function memberSupportService(
         bool $getShared = true
     ): MemberSupportService {
@@ -2558,7 +2622,8 @@ final class Services extends BaseService
             );
         }
 
-        $database = db_connect();
+        $database =
+            db_connect();
 
         return new MemberSupportService(
             new MemberProfileReportModel(
@@ -2567,6 +2632,10 @@ final class Services extends BaseService
 
             new MemberContactRequestModel(
                 $database
+            ),
+
+            static::memberEmailService(
+                false
             ),
 
             $database
@@ -2918,9 +2987,10 @@ final class Services extends BaseService
     /**
      * Return membership lifecycle housekeeping service.
      *
-     * This service synchronizes persisted lifecycle status only.
+     * This service synchronizes persisted lifecycle status and emits the
+     * transactional membership-expired communication.
      *
-     * MembershipService remains the runtime membership authority.
+     * MembershipService remains the runtime authorization authority.
      */
     public static function membershipLifecycleService(
         bool $getShared = true
@@ -2937,6 +3007,10 @@ final class Services extends BaseService
         return new MembershipLifecycleService(
             new MemberMembershipModel(
                 $database
+            ),
+
+            static::memberEmailService(
+                false
             )
         );
     }
@@ -3274,6 +3348,8 @@ final class Services extends BaseService
      *
      * Development and the future production payment gateway must both feed
      * authoritative successful-payment results through this service.
+     *
+     * MemberEmailService is deliberately downstream from payment processing.
      */
     public static function membershipPaymentService(
         bool $getShared = true
@@ -3302,6 +3378,12 @@ final class Services extends BaseService
                 $database
             ),
 
+            /*
+         * Keep the existing authoritative purchase service.
+         *
+         * Payment processing must not reproduce purchase/renewal/upgrade
+         * business rules locally.
+         */
             new MembershipPurchaseService(
                 $database,
 
@@ -3312,6 +3394,13 @@ final class Services extends BaseService
                 new MemberMembershipModel(
                     $database
                 )
+            ),
+
+            /*
+         * Optional external communication.
+         */
+            static::memberEmailService(
+                false
             )
         );
     }

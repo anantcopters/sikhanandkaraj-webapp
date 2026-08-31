@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Membership;
 
 use App\Models\MemberMembershipModel;
+use App\Services\Email\MemberEmailService;
 use RuntimeException;
 use Throwable;
 
@@ -22,20 +23,33 @@ use Throwable;
  * - history;
  * - administration;
  * - reporting;
- * - future renewal/payment workflows.
+ * - renewal/payment workflows;
+ * - lifecycle communication.
  */
 final class MembershipLifecycleService
 {
     public function __construct(
         private readonly MemberMembershipModel
-        $membershipModel
+        $membershipModel,
+
+        /*
+         * External communication remains downstream from lifecycle state.
+         *
+         * Membership expiry itself must succeed even when the member has no
+         * verified email or the email queue/provider is temporarily unavailable.
+         */
+        private readonly MemberEmailService
+        $memberEmailService
     ) {}
 
     /**
      * Expire ACTIVE memberships whose expires_at has passed.
      *
-     * Processing is batched so one invocation cannot accidentally hold a very
-     * large set in memory.
+     * Processing is batched so one invocation cannot accidentally hold a
+     * very large set in memory.
+     *
+     * Authorization does NOT depend on this method having executed because
+     * MembershipService independently checks expires_at at request time.
      *
      * @return array{
      *     scanned:int,
@@ -60,17 +74,23 @@ final class MembershipLifecycleService
             $this->nowUtc();
 
         $memberships =
-            $this->membershipModel
+            $this
+            ->membershipModel
             ->expiredActiveMemberships(
                 $nowUtc,
                 $batchSize
             );
 
-        $expired = 0;
+        $expired =
+            0;
 
-        $failed = 0;
+        $failed =
+            0;
 
-        foreach ($memberships as $membership) {
+        foreach (
+            $memberships
+            as $membership
+        ) {
             $membershipId =
                 max(
                     0,
@@ -80,7 +100,19 @@ final class MembershipLifecycleService
                     )
                 );
 
-            if ($membershipId <= 0) {
+            $memberUserId =
+                max(
+                    0,
+                    (int) (
+                        $membership['user_id']
+                        ?? 0
+                    )
+                );
+
+            if (
+                $membershipId <= 0
+                || $memberUserId <= 0
+            ) {
                 $failed++;
 
                 continue;
@@ -88,19 +120,21 @@ final class MembershipLifecycleService
 
             try {
                 if (
-                    !$this->membershipModel
+                    !$this
+                        ->membershipModel
                         ->markExpired(
                             $membershipId
                         )
                 ) {
                     /*
-                     * A concurrent process may already have expired/replaced/
-                     * cancelled the row.
+                     * A concurrent process may already have expired,
+                     * replaced or cancelled the row.
                      *
                      * Re-read only when necessary.
                      */
                     $current =
-                        $this->membershipModel
+                        $this
+                        ->membershipModel
                         ->find(
                             $membershipId
                         );
@@ -114,8 +148,16 @@ final class MembershipLifecycleService
                                     ?? ''
                                 )
                             )
-                        ) !== MemberMembershipModel::STATUS_ACTIVE
+                        )
+                        !== MemberMembershipModel
+                        ::STATUS_ACTIVE
                     ) {
+                        /*
+                         * Another process already transitioned the row.
+                         *
+                         * Do not send an expiry email from this invocation
+                         * because this process did not own the transition.
+                         */
                         continue;
                     }
 
@@ -125,13 +167,45 @@ final class MembershipLifecycleService
                 }
 
                 $expired++;
+
+                /*
+                 * ------------------------------------------------------
+                 * Downstream lifecycle communication
+                 * ------------------------------------------------------
+                 *
+                 * The membership is already EXPIRED.
+                 *
+                 * Email failure is isolated inside MemberEmailService and
+                 * therefore does not change the lifecycle result.
+                 */
+                $this
+                    ->memberEmailService
+                    ->queueMembershipExpired(
+                        recipientUserId: $memberUserId,
+
+                        membershipId: $membershipId,
+
+                        planName: trim(
+                            (string) (
+                                $membership['plan_name_snapshot']
+                                ?? ''
+                            )
+                        ),
+
+                        expiresAt: trim(
+                            (string) (
+                                $membership['expires_at']
+                                ?? ''
+                            )
+                        )
+                    );
             } catch (Throwable) {
                 /*
-                 * Do not stop the entire batch because one historical row is
-                 * malformed.
+                 * Do not stop the entire batch because one historical row
+                 * is malformed or cannot be transitioned.
                  *
-                 * The CLI wrapper logs/report failures and returns a non-zero
-                 * exit status when required.
+                 * The CLI wrapper remains responsible for reporting the
+                 * aggregate lifecycle failure.
                  */
                 $failed++;
             }
@@ -150,7 +224,8 @@ final class MembershipLifecycleService
             $failed,
 
             'remaining' =>
-            $this->membershipModel
+            $this
+                ->membershipModel
                 ->expiredActiveCount(
                     $nowUtc
                 ),

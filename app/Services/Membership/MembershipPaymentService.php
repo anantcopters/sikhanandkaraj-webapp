@@ -7,6 +7,7 @@ namespace App\Services\Membership;
 use App\Models\MemberMembershipModel;
 use App\Models\MemberPaymentModel;
 use App\Models\MembershipPlanModel;
+use App\Services\Email\MemberEmailService;
 use CodeIgniter\Database\BaseConnection;
 use RuntimeException;
 use Throwable;
@@ -27,7 +28,16 @@ final class MembershipPaymentService
         $membershipModel,
 
         private readonly MembershipPurchaseService
-        $purchaseService
+        $purchaseService,
+
+        /*
+        * Membership email is a downstream communication channel.
+        *
+        * It must never participate in payment authenticity or membership
+        * activation decisions.
+        */
+        private readonly MemberEmailService
+        $memberEmailService
     ) {}
 
     /**
@@ -410,6 +420,77 @@ final class MembershipPaymentService
                 throw new RuntimeException(
                     'The processed payment could not be loaded.'
                 );
+            }
+
+            /*
+ * ------------------------------------------------------------------
+ * Load the immutable membership snapshot
+ * ------------------------------------------------------------------
+ *
+ * The activated membership contains the exact commercial values that
+ * belonged to this purchase. Do not use the current plan master because
+ * pricing/duration may change later.
+ */
+            $membership =
+                $this
+                ->membershipModel
+                ->find(
+                    $activation
+                        ->membershipId
+                );
+
+            if (is_array($membership)) {
+                /*
+                * ------------------------------------------------------------------
+                * Downstream transactional email
+                * ------------------------------------------------------------------
+                *
+                * Payment and membership activation are already committed.
+                *
+                * MemberEmailService is failure-safe, therefore SES/queue/recipient
+                * problems cannot alter successful payment processing.
+                */
+                $this
+                    ->memberEmailService
+                    ->queueMembershipActivated(
+                        recipientUserId: (int) (
+                            $processed['user_id']
+                            ?? 0
+                        ),
+
+                        membershipId: $activation
+                            ->membershipId,
+
+                        planName: trim(
+                            (string) (
+                                $membership['plan_name_snapshot']
+                                ?? $processed['plan_name_snapshot']
+                                ?? ''
+                            )
+                        ),
+
+                        amountPaise: max(
+                            0,
+                            (int) (
+                                $processed['amount_paise']
+                                ?? 0
+                            )
+                        ),
+
+                        transactionReference: trim(
+                            (string) (
+                                $processed['transaction_reference']
+                                ?? ''
+                            )
+                        ),
+
+                        expiresAt: trim(
+                            (string) (
+                                $membership['expires_at']
+                                ?? ''
+                            )
+                        )
+                    );
             }
 
             return $processed;

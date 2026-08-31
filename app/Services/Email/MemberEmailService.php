@@ -397,6 +397,337 @@ final class MemberEmailService
     }
 
     /**
+     * Queue acknowledgement after a member successfully creates
+     * a Contact Us request.
+     *
+     * The member's original message is intentionally not copied into
+     * external email. The authenticated application remains the canonical
+     * location for support history.
+     */
+    public function queueSupportRequestReceived(
+        int $recipientUserId,
+        string $requestReference,
+        int $requestId
+    ): ?int {
+        $requestReference =
+            trim(
+                $requestReference
+            );
+
+        return $this->queueMemberCommunication(
+            recipientUserId: $recipientUserId,
+
+            recipientName: '',
+
+            definitionKey: EmailRegistry
+            ::MEMBER_SUPPORT_REQUEST_RECEIVED,
+
+            viewData: [
+                'heading' =>
+                'We received your support request',
+
+                'message' =>
+                'Your request has been received by the '
+                    . 'Sikhanandkaraj support team.',
+
+                'requestReference' =>
+                $requestReference,
+
+                'responseNote' =>
+                '',
+
+                'actionUrl' =>
+                base_url(
+                    'account-settings/contact'
+                ),
+
+                'actionLabel' =>
+                'View Support Request',
+            ],
+
+            referenceType: 'MEMBER_CONTACT_REQUEST',
+
+            referenceId: $requestId
+        );
+    }
+
+    /**
+     * Queue the member-facing support resolution.
+     *
+     * responseNote is safe to expose because MemberSupportService receives it
+     * specifically as "the message to the member". Internal report/moderation
+     * notes must never call this method.
+     */
+    public function queueSupportRequestResolved(
+        int $recipientUserId,
+        string $requestReference,
+        int $requestId,
+        string $responseNote
+    ): ?int {
+        $requestReference =
+            trim(
+                $requestReference
+            );
+
+        $responseNote =
+            trim(
+                $responseNote
+            );
+
+        return $this->queueMemberCommunication(
+            recipientUserId: $recipientUserId,
+
+            recipientName: '',
+
+            definitionKey: EmailRegistry
+            ::MEMBER_SUPPORT_REQUEST_RESOLVED,
+
+            viewData: [
+                'heading' =>
+                'Your support request has been resolved',
+
+                'message' =>
+                'The Sikhanandkaraj support team has '
+                    . 'reviewed and resolved your request.',
+
+                'requestReference' =>
+                $requestReference,
+
+                'responseNote' =>
+                $responseNote,
+
+                'actionUrl' =>
+                base_url(
+                    'account-settings/contact'
+                ),
+
+                'actionLabel' =>
+                'View Support History',
+            ],
+
+            referenceType: 'MEMBER_CONTACT_REQUEST',
+
+            referenceId: $requestId
+        );
+    }
+
+    /**
+     * Queue the successful-payment / membership-activation email.
+     *
+     * Commercial values are supplied from immutable payment/membership
+     * snapshots. Provider IDs and raw provider responses must never be passed
+     * into the email view.
+     */
+    public function queueMembershipActivated(
+        int $recipientUserId,
+        int $membershipId,
+        string $planName,
+        int $amountPaise,
+        string $transactionReference,
+        string $expiresAt
+    ): ?int {
+        $planName =
+            trim(
+                $planName
+            );
+
+        $transactionReference =
+            trim(
+                $transactionReference
+            );
+
+        return $this->queueMemberCommunication(
+            recipientUserId: $recipientUserId,
+
+            recipientName: '',
+
+            definitionKey: EmailRegistry
+            ::MEMBER_MEMBERSHIP_ACTIVATED,
+
+            viewData: [
+                'heading' =>
+                'Your membership is active',
+
+                'message' =>
+                'Your payment was successful and your '
+                    . 'Sikhanandkaraj membership is now active.',
+
+                'planName' =>
+                $planName,
+
+                'amount' =>
+                $this->formatIndianRupees(
+                    $amountPaise
+                ),
+
+                'transactionReference' =>
+                $transactionReference,
+
+                'expiresAt' =>
+                $this->formatEmailDate(
+                    $expiresAt
+                ),
+
+                'isExpired' =>
+                false,
+
+                'actionUrl' =>
+                base_url(
+                    'account-settings/membership'
+                ),
+
+                'actionLabel' =>
+                'View Membership',
+            ],
+
+            referenceType: 'MEMBER_MEMBERSHIP',
+
+            referenceId: $membershipId
+        );
+    }
+
+    /**
+     * Queue a membership-expired lifecycle notification.
+     *
+     * This is transactional lifecycle communication. It is not the future
+     * renewal-reminder/engagement flow.
+     */
+    public function queueMembershipExpired(
+        int $recipientUserId,
+        int $membershipId,
+        string $planName,
+        string $expiresAt
+    ): ?int {
+        return $this->queueMemberCommunication(
+            recipientUserId: $recipientUserId,
+
+            recipientName: '',
+
+            definitionKey: EmailRegistry
+            ::MEMBER_MEMBERSHIP_EXPIRED,
+
+            viewData: [
+                'heading' =>
+                'Your membership has expired',
+
+                'message' =>
+                'Your Sikhanandkaraj membership period has ended. '
+                    . 'Your profile remains available, but paid membership '
+                    . 'features now follow the current account entitlement.',
+
+                'planName' =>
+                trim(
+                    $planName
+                ),
+
+                'amount' =>
+                '',
+
+                'transactionReference' =>
+                '',
+
+                'expiresAt' =>
+                $this->formatEmailDate(
+                    $expiresAt
+                ),
+
+                'isExpired' =>
+                true,
+
+                'actionUrl' =>
+                base_url(
+                    'account-settings/plans'
+                ),
+
+                'actionLabel' =>
+                'View Membership Plans',
+            ],
+
+            referenceType: 'MEMBER_MEMBERSHIP',
+
+            referenceId: $membershipId
+        );
+    }
+
+    /**
+     * Convert the immutable paise snapshot into a member-readable INR value.
+     *
+     * Email presentation must not perform floating-point currency arithmetic.
+     */
+    private function formatIndianRupees(
+        int $amountPaise
+    ): string {
+        $amountPaise =
+            max(
+                0,
+                $amountPaise
+            );
+
+        $rupees =
+            intdiv(
+                $amountPaise,
+                100
+            );
+
+        $paise =
+            $amountPaise % 100;
+
+        return '₹'
+            . number_format(
+                $rupees,
+                0,
+                '.',
+                ','
+            )
+            . (
+                $paise > 0
+                ? '.'
+                . str_pad(
+                    (string) $paise,
+                    2,
+                    '0',
+                    STR_PAD_LEFT
+                )
+                : ''
+            );
+    }
+
+    /**
+     * Convert database UTC timestamps to the existing human-readable
+     * email presentation.
+     *
+     * Invalid/legacy timestamps fail closed to an empty display value rather
+     * than throwing after the underlying business transaction has completed.
+     */
+    private function formatEmailDate(
+        string $value
+    ): string {
+        $value =
+            trim(
+                $value
+            );
+
+        if ($value === '') {
+            return '';
+        }
+
+        try {
+            return (
+                new \DateTimeImmutable(
+                    $value,
+                    new \DateTimeZone(
+                        'UTC'
+                    )
+                )
+            )->format(
+                'd F Y'
+            );
+        } catch (Throwable) {
+            return '';
+        }
+    }
+
+    /**
      * Central boundary for normal member email.
      *
      * Only the current verified primary EMAIL is

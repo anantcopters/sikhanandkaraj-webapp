@@ -41,6 +41,37 @@ final class EmailRegistry
     public const MEMBER_VIDEO_RESUBMISSION_REQUESTED =
     'MEMBER_VIDEO_RESUBMISSION_REQUESTED';
 
+    /*
+    * --------------------------------------------------------------------------
+    * Support communications
+    * --------------------------------------------------------------------------
+    *
+    * These emails acknowledge member-created Contact Us requests and notify
+    * the member when an administrator resolves the request.
+    */
+    public const MEMBER_SUPPORT_REQUEST_RECEIVED =
+    'MEMBER_SUPPORT_REQUEST_RECEIVED';
+
+    public const MEMBER_SUPPORT_REQUEST_RESOLVED =
+    'MEMBER_SUPPORT_REQUEST_RESOLVED';
+
+    /*
+    * --------------------------------------------------------------------------
+    * Membership communications
+    * --------------------------------------------------------------------------
+    *
+    * Membership activation is generated only after the authoritative payment
+    * processor has successfully activated the membership.
+    *
+    * Expiry is generated only when MembershipLifecycleService successfully
+    * transitions an ACTIVE membership to EXPIRED.
+    */
+    public const MEMBER_MEMBERSHIP_ACTIVATED =
+    'MEMBER_MEMBERSHIP_ACTIVATED';
+
+    public const MEMBER_MEMBERSHIP_EXPIRED =
+    'MEMBER_MEMBERSHIP_EXPIRED';
+
     public const CATEGORY_MODERATION =
     'MODERATION';
 
@@ -52,6 +83,16 @@ final class EmailRegistry
 
     public const CATEGORY_MATRIMONIAL_ACTIVITY =
     'MATRIMONIAL_ACTIVITY';
+
+    /*
+    * Approved communication categories from the central communications
+    * architecture.
+    */
+    public const CATEGORY_SUPPORT =
+    'SUPPORT';
+
+    public const CATEGORY_MEMBERSHIP =
+    'MEMBERSHIP';
 
     /**
      * @return array<string, EmailDefinition>
@@ -475,6 +516,233 @@ final class EmailRegistry
                 ],
 
                 priority: 20,
+
+                maxAttempts: 3
+            ),
+            /*
+ * --------------------------------------------------------------------------
+ * Support Request Received
+ * --------------------------------------------------------------------------
+ *
+ * This is a transactional acknowledgement. The member has just submitted
+ * the request, therefore the email confirms the public support reference
+ * without copying the member's potentially sensitive support message.
+ */
+            self::MEMBER_SUPPORT_REQUEST_RECEIVED =>
+            new EmailDefinition(
+                key: self::MEMBER_SUPPORT_REQUEST_RECEIVED,
+
+                name: 'Support Request Received',
+
+                category: self::CATEGORY_SUPPORT,
+
+                subject: 'We received your Sikhanandkaraj support request',
+
+                viewName: 'Emails/Member/SupportActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'We received your support request',
+
+                    'message' =>
+                    'Your request has been received by the '
+                        . 'Sikhanandkaraj support team.',
+
+                    'requestReference' =>
+                    'SAKSUPP-123456',
+
+                    'responseNote' =>
+                    '',
+
+                    'actionUrl' =>
+                    base_url(
+                        'account-settings/contact'
+                    ),
+
+                    'actionLabel' =>
+                    'View Support Request',
+                ],
+
+                priority: 20,
+
+                maxAttempts: 3
+            ),
+
+            /*
+ * --------------------------------------------------------------------------
+ * Support Request Resolved
+ * --------------------------------------------------------------------------
+ *
+ * The administrator's member-facing response may be included because it is
+ * explicitly written for the member. Internal administration information
+ * and administrator identity are deliberately excluded.
+ */
+            self::MEMBER_SUPPORT_REQUEST_RESOLVED =>
+            new EmailDefinition(
+                key: self::MEMBER_SUPPORT_REQUEST_RESOLVED,
+
+                name: 'Support Request Resolved',
+
+                category: self::CATEGORY_SUPPORT,
+
+                subject: 'Your Sikhanandkaraj support request has been resolved',
+
+                viewName: 'Emails/Member/SupportActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'Your support request has been resolved',
+
+                    'message' =>
+                    'The Sikhanandkaraj support team has '
+                        . 'reviewed and resolved your request.',
+
+                    'requestReference' =>
+                    'SAKSUPP-123456',
+
+                    'responseNote' =>
+                    'Your request has been reviewed and the '
+                        . 'required update has been completed.',
+
+                    'actionUrl' =>
+                    base_url(
+                        'account-settings/contact'
+                    ),
+
+                    'actionLabel' =>
+                    'View Support History',
+                ],
+
+                priority: 20,
+
+                maxAttempts: 3
+            ),
+
+            /*
+ * --------------------------------------------------------------------------
+ * Membership Activated
+ * --------------------------------------------------------------------------
+ *
+ * This email is sent only after successful payment processing and
+ * authoritative membership activation.
+ *
+ * Provider payment IDs and raw gateway responses are deliberately excluded.
+ */
+            self::MEMBER_MEMBERSHIP_ACTIVATED =>
+            new EmailDefinition(
+                key: self::MEMBER_MEMBERSHIP_ACTIVATED,
+
+                name: 'Membership Activated',
+
+                category: self::CATEGORY_MEMBERSHIP,
+
+                subject: 'Your Sikhanandkaraj membership is active',
+
+                viewName: 'Emails/Member/MembershipActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'Your membership is active',
+
+                    'message' =>
+                    'Your payment was successful and your '
+                        . 'Sikhanandkaraj membership is now active.',
+
+                    'planName' =>
+                    'Sikhanandkaraj Pro',
+
+                    'amount' =>
+                    '₹2,999',
+
+                    'transactionReference' =>
+                    'SAKPAY-1234567890ABCDEF',
+
+                    'expiresAt' =>
+                    '31 August 2027',
+
+                    'isExpired' =>
+                    false,
+
+                    'actionUrl' =>
+                    base_url(
+                        'account-settings/membership'
+                    ),
+
+                    'actionLabel' =>
+                    'View Membership',
+                ],
+
+                priority: 15,
+
+                maxAttempts: 3
+            ),
+
+            /*
+ * --------------------------------------------------------------------------
+ * Membership Expired
+ * --------------------------------------------------------------------------
+ *
+ * This is a lifecycle notification, not a marketing email. It tells the
+ * member that the previously purchased commercial period has ended.
+ */
+            self::MEMBER_MEMBERSHIP_EXPIRED =>
+            new EmailDefinition(
+                key: self::MEMBER_MEMBERSHIP_EXPIRED,
+
+                name: 'Membership Expired',
+
+                category: self::CATEGORY_MEMBERSHIP,
+
+                subject: 'Your Sikhanandkaraj membership has expired',
+
+                viewName: 'Emails/Member/MembershipActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'Your membership has expired',
+
+                    'message' =>
+                    'Your Sikhanandkaraj membership period has ended. '
+                        . 'Your profile remains available, but paid membership '
+                        . 'features now follow the current account entitlement.',
+
+                    'planName' =>
+                    'Sikhanandkaraj Pro',
+
+                    'amount' =>
+                    '',
+
+                    'transactionReference' =>
+                    '',
+
+                    'expiresAt' =>
+                    '31 August 2026',
+
+                    'isExpired' =>
+                    true,
+
+                    'actionUrl' =>
+                    base_url(
+                        'account-settings/plans'
+                    ),
+
+                    'actionLabel' =>
+                    'View Membership Plans',
+                ],
+
+                priority: 30,
 
                 maxAttempts: 3
             ),
