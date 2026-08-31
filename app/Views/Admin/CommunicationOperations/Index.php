@@ -1548,7 +1548,13 @@ $this->section(
             <?php
             $smsCards = [
                 [
-                    'label' => 'Sent Today',
+                    /*
+                    * SENT means that the configured SMS provider accepted the request.
+                    *
+                    * mTalkz does not provide us with a DLR callback, therefore we must
+                    * not represent this as confirmed handset delivery.
+                    */
+                    'label' => 'Accepted Today',
                     'value' => $smsSummary['sentToday'] ?? 0,
                     'icon' => 'ri-send-plane-line',
                     'class' => 'text-success',
@@ -1812,8 +1818,8 @@ $this->section(
                 </h5>
 
                 <p class="text-muted mb-0">
-                    Provider acceptance history. SENT does not yet represent
-                    handset delivery confirmation.
+                    SMS requests accepted or rejected by the configured
+                    provider. Handset delivery confirmation is not available.
                 </p>
 
             </div>
@@ -1869,11 +1875,13 @@ $this->section(
                                             : '' ?>>
 
                                         <?= esc(
-                                            ucfirst(
-                                                strtolower(
-                                                    $status
+                                            $status === 'SENT'
+                                                ? 'Accepted by Provider'
+                                                : ucfirst(
+                                                    strtolower(
+                                                        $status
+                                                    )
                                                 )
-                                            )
                                         ) ?>
 
                                     </option>
@@ -2125,7 +2133,9 @@ $this->section(
                                         p-2">
 
                                                 <?= esc(
-                                                    $smsStatus
+                                                    $smsStatus === 'SENT'
+                                                        ? 'Accepted by Provider'
+                                                        : $smsStatus
                                                 ) ?>
 
                                             </span>
