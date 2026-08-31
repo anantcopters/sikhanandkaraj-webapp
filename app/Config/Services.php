@@ -176,6 +176,7 @@ use App\Services\Communication\MemberCommunicationPreferenceService;
 use App\Models\CommunicationEventModel;
 use App\Services\Communication\CommunicationDispatcherService;
 use App\Services\Communication\CommunicationEventService;
+use App\Services\Communication\EngagementDigestService;
 use Config\ProfilePdf;
 use Config\Matchmaking;
 use App\Logging\ApplicationErrorLogWriter;
@@ -3666,6 +3667,54 @@ final class Services extends BaseService
             new CommunicationEventModel(
                 db_connect()
             )
+        );
+    }
+
+    /**
+     * Return the Engagement digest service.
+     *
+     * The service reuses:
+     *
+     * - durable communication_events;
+     * - central CommunicationPolicyService;
+     * - verified primary-email resolution;
+     * - EmailRegistry;
+     * - the existing durable email queue.
+     */
+    public static function engagementDigestService(
+        bool $getShared = true
+    ): EngagementDigestService {
+        if ($getShared) {
+            return static::getSharedInstance(
+                'engagementDigestService'
+            );
+        }
+
+        $database =
+            db_connect();
+
+        return new EngagementDigestService(
+            new CommunicationEventModel(
+                $database
+            ),
+
+            static::communicationPolicyService(
+                false
+            ),
+
+            new MemberEmailRecipientService(
+                new UserContactModel(
+                    $database
+                )
+            ),
+
+            new EmailRegistry(),
+
+            new EmailQueueService(
+                $database
+            ),
+
+            $database
         );
     }
 }

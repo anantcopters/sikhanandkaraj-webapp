@@ -264,4 +264,345 @@ final class CommunicationEventModel extends Model
             throw $exception;
         }
     }
+
+    /**
+     * Return recipients who currently have pending Engagement activity.
+     *
+     * This only discovers candidate recipients.
+     *
+     * CommunicationPolicyService remains responsible for deciding whether
+     * each member receives DAILY, WEEKLY or no Engagement email.
+     *
+     * @return list<int>
+     */
+    public function pendingEngagementRecipientIds(
+        int $limit
+    ): array {
+        $limit =
+            max(
+                1,
+                min(
+                    500,
+                    $limit
+                )
+            );
+
+        $rows =
+            $this
+            ->db
+            ->query(
+                '
+            SELECT
+                recipient_user_id
+            FROM
+                communication_events
+            WHERE
+                status = ?
+                AND available_at <= ?
+                AND event_key IN (?, ?)
+            GROUP BY
+                recipient_user_id
+            ORDER BY
+                MIN(id) ASC
+            LIMIT ?
+            ',
+                [
+                    self::STATUS_PENDING,
+
+                    gmdate(
+                        'Y-m-d H:i:s'
+                    ),
+
+                    CommunicationEventRegistry
+                    ::PROFILE_VIEWED,
+
+                    CommunicationEventRegistry
+                    ::PROFILE_SHORTLISTED,
+
+                    $limit,
+                ]
+            )
+            ->getResultArray();
+
+        return array_values(
+            array_filter(
+                array_map(
+                    static fn(array $row): int =>
+                    (int) (
+                        $row['recipient_user_id']
+                        ?? 0
+                    ),
+                    $rows
+                ),
+                static fn(int $userId): bool =>
+                $userId > 0
+            )
+        );
+    }
+
+    /**
+     * Reserve all currently pending Engagement events for one recipient.
+     *
+     * PostgreSQL row locking follows the same SKIP LOCKED pattern already
+     * used by the generic communication dispatcher.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function reserveEngagementForRecipient(
+        int $recipientUserId
+    ): array {
+        if ($recipientUserId <= 0) {
+            return [];
+        }
+
+        $database =
+            $this->db;
+
+        $database
+            ->transBegin();
+
+        try {
+            $rows =
+                $database
+                ->query(
+                    '
+                SELECT
+                    *
+                FROM
+                    communication_events
+                WHERE
+                    recipient_user_id = ?
+                    AND status = ?
+                    AND available_at <= ?
+                    AND event_key IN (?, ?)
+                ORDER BY
+                    id ASC
+                FOR UPDATE SKIP LOCKED
+                ',
+                    [
+                        $recipientUserId,
+
+                        self::STATUS_PENDING,
+
+                        gmdate(
+                            'Y-m-d H:i:s'
+                        ),
+
+                        CommunicationEventRegistry
+                        ::PROFILE_VIEWED,
+
+                        CommunicationEventRegistry
+                        ::PROFILE_SHORTLISTED,
+                    ]
+                )
+                ->getResultArray();
+
+            if ($rows === []) {
+                $database
+                    ->transCommit();
+
+                return [];
+            }
+
+            $ids =
+                array_values(
+                    array_map(
+                        static fn(array $row): int =>
+                        (int) $row['id'],
+                        $rows
+                    )
+                );
+
+            $this
+                ->updateStatusForIds(
+                    $ids,
+                    self::STATUS_PROCESSING,
+                    [
+                        'processing_started_at' =>
+                        gmdate(
+                            'Y-m-d H:i:s'
+                        ),
+
+                        'last_error' =>
+                        null,
+                    ]
+                );
+
+            if (
+                $database
+                ->transStatus()
+                === false
+            ) {
+                throw new \RuntimeException(
+                    'Engagement events could not be reserved.'
+                );
+            }
+
+            $database
+                ->transCommit();
+
+            foreach ($rows as &$row) {
+                $row['status'] =
+                    self::STATUS_PROCESSING;
+            }
+
+            unset(
+                $row
+            );
+
+            return $rows;
+        } catch (\Throwable $exception) {
+            $database
+                ->transRollback();
+
+            throw $exception;
+        }
+    }
+
+    /**
+     * Mark digest events processed after the digest has successfully entered
+     * the durable email queue.
+     *
+     * @param list<int> $ids
+     */
+    public function markProcessedIds(
+        array $ids
+    ): void {
+        $ids =
+            $this
+            ->normaliseIds(
+                $ids
+            );
+
+        if ($ids === []) {
+            return;
+        }
+
+        $this
+            ->updateStatusForIds(
+                $ids,
+                self::STATUS_PROCESSED,
+                [
+                    'processing_started_at' =>
+                    null,
+
+                    'processed_at' =>
+                    gmdate(
+                        'Y-m-d H:i:s'
+                    ),
+
+                    'last_error' =>
+                    null,
+                ]
+            );
+    }
+
+    /**
+     * Return reserved events to PENDING when the digest could not be queued.
+     *
+     * @param list<int> $ids
+     */
+    public function releaseIds(
+        array $ids,
+        string $error
+    ): void {
+        $ids =
+            $this
+            ->normaliseIds(
+                $ids
+            );
+
+        if ($ids === []) {
+            return;
+        }
+
+        $this
+            ->updateStatusForIds(
+                $ids,
+                self::STATUS_PENDING,
+                [
+                    'processing_started_at' =>
+                    null,
+
+                    'last_error' =>
+                    mb_substr(
+                        trim(
+                            $error
+                        ),
+                        0,
+                        1000
+                    ),
+                ]
+            );
+    }
+
+    /**
+     * @param list<int> $ids
+     * @param array<string, mixed> $additionalValues
+     */
+    private function updateStatusForIds(
+        array $ids,
+        string $status,
+        array $additionalValues = []
+    ): void {
+        $ids =
+            $this
+            ->normaliseIds(
+                $ids
+            );
+
+        if ($ids === []) {
+            return;
+        }
+
+        $values =
+            array_merge(
+                [
+                    'status' =>
+                    $status,
+
+                    'updated_at' =>
+                    gmdate(
+                        'Y-m-d H:i:s'
+                    ),
+                ],
+                $additionalValues
+            );
+
+        $builder =
+            $this
+            ->db
+            ->table(
+                $this->table
+            );
+
+        $builder
+            ->whereIn(
+                'id',
+                $ids
+            )
+            ->update(
+                $values
+            );
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function normaliseIds(
+        array $ids
+    ): array {
+        return array_values(
+            array_unique(
+                array_filter(
+                    array_map(
+                        'intval',
+                        $ids
+                    ),
+                    static fn(int $id): bool =>
+                    $id > 0
+                )
+            )
+        );
+    }
 }

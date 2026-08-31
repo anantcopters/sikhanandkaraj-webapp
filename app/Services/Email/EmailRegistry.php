@@ -24,6 +24,17 @@ final class EmailRegistry
     public const MEMBER_INTEREST_DECLINED =
     'MEMBER_INTEREST_DECLINED';
 
+    /*
+    * --------------------------------------------------------------------------
+    * Engagement digest
+    * --------------------------------------------------------------------------
+    *
+    * High-frequency Engagement events are aggregated before email delivery.
+    * They must not become one email per Profile View or Shortlist.
+    */
+    public const MEMBER_ENGAGEMENT_DIGEST =
+    'MEMBER_ENGAGEMENT_DIGEST';
+
     public const MEMBER_PHOTO_REJECTED =
     'MEMBER_PHOTO_REJECTED';
 
@@ -294,6 +305,49 @@ final class EmailRegistry
                 ],
 
                 priority: 20,
+
+                maxAttempts: 3
+            ),
+
+            self::MEMBER_ENGAGEMENT_DIGEST =>
+            new EmailDefinition(
+                key: self::MEMBER_ENGAGEMENT_DIGEST,
+
+                name: 'Member Engagement Digest',
+
+                category: self::CATEGORY_ENGAGEMENT,
+
+                subject: 'Your latest Sikhanandkaraj profile activity',
+
+                viewName: 'Emails/Member/EngagementDigest',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'profileViewCount' =>
+                    8,
+
+                    'uniqueViewerCount' =>
+                    5,
+
+                    'shortlistCount' =>
+                    2,
+
+                    'actionUrl' =>
+                    base_url(
+                        'dashboard'
+                    ),
+
+                    'actionLabel' =>
+                    'View Your Dashboard',
+                ],
+
+                /*
+                * Digest email is lower urgency than Interest, verification,
+                * moderation or membership communication.
+                */
+                priority: 50,
 
                 maxAttempts: 3
             ),

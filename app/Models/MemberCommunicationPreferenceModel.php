@@ -153,10 +153,10 @@ final class MemberCommunicationPreferenceModel extends Model
             );
 
         $now =
-            date(
+            gmdate(
                 'Y-m-d H:i:s'
             );
-
+            
         $sql =
             '
             INSERT INTO member_communication_preferences
