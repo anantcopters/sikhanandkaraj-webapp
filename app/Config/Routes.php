@@ -1653,136 +1653,134 @@ $routes->group('admin', [
                     'as' => 'admin.users.suspend',
                 ]
             );
-
-            /*
-            * --------------------------------------------------------------------------
-            * Match Score configuration
-            * --------------------------------------------------------------------------
-            *
-            * Ranking weights affect every member's Search/Dashboard ordering and are
-            * therefore restricted to SUPER_ADMIN.
-            *
-            * Normal ADMIN users can see read-only member diagnostics through the normal
-            * admin/members/{id} profile view, but cannot change global ranking rules.
-            */
-            $routes->group(
-                'match-score',
-                [
-                    'filter' =>
-                    'superAdmin',
-                ],
-                static function (
-                    RouteCollection $routes
-                ): void {
-                    $routes->get(
-                        '',
-                        'MatchScoreConfigurationController::index',
-                        [
-                            'as' =>
-                            'admin.match-score.index',
-                        ]
-                    );
-
-                    $routes->post(
-                        '',
-                        'MatchScoreConfigurationController::update',
-                        [
-                            'as' =>
-                            'admin.match-score.update',
-                        ]
-                    );
-                }
-            );
-
-            /*
-            * --------------------------------------------------------------------------
-            * Email Preview Centre
-            * --------------------------------------------------------------------------
-            *
-            * Email preview and test delivery are operational communication tools.
-            *
-            * Access is restricted to SUPER_ADMIN because this area:
-            *
-            * - exposes application email definitions and rendered templates;
-            * - allows test email delivery to an explicitly supplied address;
-            * - uses the real email queue, worker and configured provider.
-            *
-            * The parent adminAuth group already requires an authenticated, active,
-            * verified administrator. The additional superAdmin filter ensures that
-            * normal ADMIN users cannot access the preview or test-send endpoints,
-            * including through a direct URL/request.
-            */
-            $routes->group(
-                'email-preview',
-                [
-                    'filter' =>
-                    'superAdmin',
-                ],
-                static function (
-                    RouteCollection $routes
-                ): void {
-                    $routes->get(
-                        '',
-                        'EmailPreviewController::index',
-                        [
-                            'as' =>
-                            'admin.email-preview.index',
-                        ]
-                    );
-
-                    $routes->get(
-                        '(:segment)',
-                        'EmailPreviewController::preview/$1',
-                        [
-                            'as' =>
-                            'admin.email-preview.preview',
-                        ]
-                    );
-
-                    $routes->post(
-                        '(:segment)/send-test',
-                        'EmailPreviewController::sendTest/$1',
-                        [
-                            'as' =>
-                            'admin.email-preview.send-test',
-                        ]
-                    );
-                }
-            );
-
-            /*
-            * --------------------------------------------------------------------------
-            * Communication Operations
-            * --------------------------------------------------------------------------
-            *
-            * Read-only operational visibility over application communication.
-            *
-            * This follows the same SUPER_ADMIN authorization boundary as Email Preview
-            * Centre because communication delivery metadata and failure information are
-            * operational administration data.
-            *
-            * Manual retry is intentionally not exposed in this phase.
-            */
-            $routes->group(
-                'communication-operations',
-                [
-                    'filter' =>
-                    'superAdmin',
-                ],
-                static function (
-                    RouteCollection $routes
-                ): void {
-                    $routes->get(
-                        '',
-                        'CommunicationOperationsController::index',
-                        [
-                            'as' =>
-                            'admin.communication-operations.index',
-                        ]
-                    );
-                }
-            );
         });
+
+        /*
+        * --------------------------------------------------------------------------
+        * Match Score configuration
+        * --------------------------------------------------------------------------
+        *
+        * Ranking weights affect every member's Search/Dashboard ordering and are
+        * therefore restricted to SUPER_ADMIN.
+        *
+        * Normal ADMIN users can see read-only member diagnostics through the normal
+        * admin/members/{id} profile view, but cannot change global ranking rules.
+        */
+        $routes->group(
+            'match-score',
+            [
+                'filter' =>
+                'superAdmin',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->get(
+                    '',
+                    'MatchScoreConfigurationController::index',
+                    [
+                        'as' =>
+                        'admin.match-score.index',
+                    ]
+                );
+
+                $routes->post(
+                    '',
+                    'MatchScoreConfigurationController::update',
+                    [
+                        'as' =>
+                        'admin.match-score.update',
+                    ]
+                );
+            }
+        );
+
+        /*
+        * --------------------------------------------------------------------------
+        * Email Preview Centre
+        * --------------------------------------------------------------------------
+        *
+        * Email preview and test delivery are operational communication tools.
+        *
+        * Access is restricted to SUPER_ADMIN because this area:
+        *
+        * - exposes application email definitions and rendered templates;
+        * - allows test email delivery to an explicitly supplied address;
+        * - uses the real email queue, worker and configured provider.
+        *
+        * The parent adminAuth group already requires an authenticated, active,
+        * verified administrator. The additional superAdmin filter ensures that
+        * normal ADMIN users cannot access the preview or test-send endpoints,
+        * including through a direct URL/request.
+        */
+        $routes->group(
+            'email-preview',
+            [
+                'filter' =>
+                'superAdmin',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->get(
+                    '',
+                    'EmailPreviewController::index',
+                    [
+                        'as' =>
+                        'admin.email-preview.index',
+                    ]
+                );
+
+                $routes->get(
+                    '(:segment)',
+                    'EmailPreviewController::preview/$1',
+                    [
+                        'as' =>
+                        'admin.email-preview.preview',
+                    ]
+                );
+
+                $routes->post(
+                    '(:segment)/send-test',
+                    'EmailPreviewController::sendTest/$1',
+                    [
+                        'as' =>
+                        'admin.email-preview.send-test',
+                    ]
+                );
+            }
+        );
+
+        /*
+        * --------------------------------------------------------------------------
+        * Communication Operations
+        * --------------------------------------------------------------------------
+        *
+        * Communication operations is an application-level operational tool rather
+        * than administrator-user management.
+        *
+        * It therefore remains protected by SUPER_ADMIN but is not nested under the
+        * /admin/users URL namespace.
+        */
+        $routes->group(
+            'communication-operations',
+            [
+                'filter' =>
+                'superAdmin',
+            ],
+            static function (
+                RouteCollection $routes
+            ): void {
+                $routes->get(
+                    '',
+                    'CommunicationOperationsController::index',
+                    [
+                        'as' =>
+                        'admin.communication-operations.index',
+                    ]
+                );
+            }
+        );
 
         /*
         * --------------------------------------------------------------------------

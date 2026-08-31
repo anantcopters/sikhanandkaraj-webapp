@@ -159,6 +159,8 @@ $engagementFrequency =
                 class="form-select"
                 id="engagementFrequency"
                 name="engagement_frequency"
+                data-choice
+                data-choice-search="false"
                 required>
 
                 <option

@@ -27,6 +27,71 @@ $summary =
     ? $operations['summary']
     : [];
 
+$health =
+    isset($operations['health'])
+    && is_array(
+        $operations['health']
+    )
+    ? $operations['health']
+    : [];
+
+$readyNow =
+    max(
+        0,
+        (int) (
+            $health['readyNow']
+            ?? 0
+        )
+    );
+
+$retryPending =
+    max(
+        0,
+        (int) (
+            $health['retryPending']
+            ?? 0
+        )
+    );
+
+$staleProcessing =
+    max(
+        0,
+        (int) (
+            $health['staleProcessing']
+            ?? 0
+        )
+    );
+
+$failedHealth =
+    max(
+        0,
+        (int) (
+            $health['failed']
+            ?? 0
+        )
+    );
+
+$oldestPendingAt =
+    trim(
+        (string) (
+            $health['oldestPendingAt']
+            ?? ''
+        )
+    );
+
+$oldestPendingMinutes =
+    isset(
+        $health['oldestPendingMinutes']
+    )
+    && is_numeric(
+        $health['oldestPendingMinutes']
+    )
+    ? max(
+        0,
+        (int) $health['oldestPendingMinutes']
+    )
+    : null;
+
 $filters =
     isset($operations['filters'])
     && is_array($operations['filters'])
@@ -277,7 +342,7 @@ $this->section(
     <div class="row">
 
         <div class="col-xl col-md-4 col-sm-6">
-            <div class="card">
+            <div class="card border border-danger border-opacity-25">
                 <div class="card-body">
 
                     <div
@@ -317,7 +382,7 @@ $this->section(
         </div>
 
         <div class="col-xl col-md-4 col-sm-6">
-            <div class="card">
+            <div class="card border border-danger border-opacity-25">
                 <div class="card-body">
 
                     <div
@@ -357,7 +422,7 @@ $this->section(
         </div>
 
         <div class="col-xl col-md-4 col-sm-6">
-            <div class="card">
+            <div class="card border border-danger border-opacity-25">
                 <div class="card-body">
 
                     <div
@@ -397,7 +462,7 @@ $this->section(
         </div>
 
         <div class="col-xl col-md-4 col-sm-6">
-            <div class="card">
+            <div class="card border border-danger border-opacity-25">
                 <div class="card-body">
 
                     <div
@@ -437,7 +502,7 @@ $this->section(
         </div>
 
         <div class="col-xl col-md-4 col-sm-6">
-            <div class="card">
+            <div class="card border border-danger border-opacity-25">
                 <div class="card-body">
 
                     <div
@@ -478,8 +543,301 @@ $this->section(
 
     </div>
 
+    <div class="card border border-danger border-opacity-25">
+
+        <div class="card-header">
+
+            <div
+                class="d-flex
+            align-items-center
+            justify-content-between
+            flex-wrap
+            gap-2">
+
+                <div>
+
+                    <h5 class="card-title mb-1">
+                        Queue Health
+                    </h5>
+
+                    <p class="text-muted mb-0">
+                        Current email work waiting for the queue
+                        worker or requiring operational attention.
+                    </p>
+
+                </div>
+
+                <?php if (
+                    $staleProcessing > 0
+                    || $failedHealth > 0
+                ): ?>
+
+                    <span
+                        class="badge
+                    bg-danger-subtle
+                    text-body
+                    p-2">
+
+                        Attention Required
+
+                    </span>
+
+                <?php else: ?>
+
+                    <span
+                        class="badge
+                    bg-success-subtle
+                    text-body
+                    p-2">
+
+                        Healthy
+
+                    </span>
+
+                <?php endif; ?>
+
+            </div>
+
+        </div>
+
+        <div class="card-body">
+
+            <div class="row g-3">
+
+                <div class="col-xl-3 col-md-6">
+
+                    <div
+                        class="border
+                    rounded
+                    p-3
+                    h-100">
+
+                        <div
+                            class="d-flex
+                        align-items-center
+                        gap-2
+                        mb-2">
+
+                            <i
+                                class="ri-send-plane-line
+                            fs-20
+                            text-primary">
+                            </i>
+
+                            <span class="fw-medium">
+                                Ready Now
+                            </span>
+
+                        </div>
+
+                        <h4 class="mb-1">
+                            <?= number_format(
+                                $readyNow
+                            ) ?>
+                        </h4>
+
+                        <p class="text-muted fs-12 mb-0">
+                            Pending emails currently eligible
+                            for worker pickup.
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div class="col-xl-3 col-md-6">
+
+                    <div
+                        class="border
+                    rounded
+                    p-3
+                    h-100">
+
+                        <div
+                            class="d-flex
+                        align-items-center
+                        gap-2
+                        mb-2">
+
+                            <i
+                                class="ri-refresh-line
+                            fs-20
+                            text-warning">
+                            </i>
+
+                            <span class="fw-medium">
+                                Retry Pending
+                            </span>
+
+                        </div>
+
+                        <h4 class="mb-1">
+                            <?= number_format(
+                                $retryPending
+                            ) ?>
+                        </h4>
+
+                        <p class="text-muted fs-12 mb-0">
+                            Previously attempted emails still
+                            within the automatic retry limit.
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div class="col-xl-3 col-md-6">
+
+                    <div
+                        class="border
+                    rounded
+                    p-3
+                    h-100">
+
+                        <div
+                            class="d-flex
+                        align-items-center
+                        gap-2
+                        mb-2">
+
+                            <i
+                                class="ri-loader-4-line
+                            fs-20
+                            <?= $staleProcessing > 0
+                                ? 'text-danger'
+                                : 'text-info' ?>">
+                            </i>
+
+                            <span class="fw-medium">
+                                Stale Processing
+                            </span>
+
+                        </div>
+
+                        <h4
+                            class="mb-1
+                        <?= $staleProcessing > 0
+                            ? 'text-danger'
+                            : '' ?>">
+
+                            <?= number_format(
+                                $staleProcessing
+                            ) ?>
+
+                        </h4>
+
+                        <p class="text-muted fs-12 mb-0">
+                            Processing records older than the
+                            queue recovery threshold.
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div class="col-xl-3 col-md-6">
+
+                    <div
+                        class="border
+                    rounded
+                    p-3
+                    h-100">
+
+                        <div
+                            class="d-flex
+                        align-items-center
+                        gap-2
+                        mb-2">
+
+                            <i
+                                class="ri-time-line
+                            fs-20
+                            text-secondary">
+                            </i>
+
+                            <span class="fw-medium">
+                                Oldest Pending
+                            </span>
+
+                        </div>
+
+                        <?php if (
+                            $oldestPendingAt !== ''
+                        ): ?>
+
+                            <h6 class="mb-1">
+
+                                <?= esc(
+                                    DateDisplay
+                                        ::formatUtcDate(
+                                            $oldestPendingAt,
+                                            'd M Y, h:i A'
+                                        )
+                                ) ?>
+
+                            </h6>
+
+                            <?php if (
+                                $oldestPendingMinutes
+                                !== null
+                            ): ?>
+
+                                <p
+                                    class="text-muted
+                                fs-12
+                                mb-0">
+
+                                    Waiting approximately
+
+                                    <?php if (
+                                        $oldestPendingMinutes
+                                        >= 60
+                                    ): ?>
+
+                                        <?= number_format(
+                                            $oldestPendingMinutes
+                                                / 60,
+                                            1
+                                        ) ?>
+                                        hours.
+
+                                    <?php else: ?>
+
+                                        <?= number_format(
+                                            $oldestPendingMinutes
+                                        ) ?>
+                                        minutes.
+
+                                    <?php endif; ?>
+
+                                </p>
+
+                            <?php endif; ?>
+
+                        <?php else: ?>
+
+                            <h4 class="mb-1">
+                                —
+                            </h4>
+
+                            <p class="text-muted fs-12 mb-0">
+                                No pending email.
+                            </p>
+
+                        <?php endif; ?>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
     <!-- Existing Admin form/card/table patterns are reused. -->
-    <div class="card">
+    <div class="card border border-danger border-opacity-25">
 
         <div class="card-body">
 

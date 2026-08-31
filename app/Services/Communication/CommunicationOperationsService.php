@@ -38,6 +38,14 @@ final class CommunicationOperationsService
     private const MAXIMUM_SEARCH_LENGTH =
     100;
 
+    /**
+     * EmailQueueService already recovers stale PROCESSING records.
+     *
+     * Keep the operational warning threshold aligned with that queue behaviour.
+     */
+    private const STALE_PROCESSING_MINUTES =
+    10;
+
     public function __construct(
         private readonly EmailQueueModel
         $emailQueueModel,
@@ -156,6 +164,10 @@ final class CommunicationOperationsService
             'summary' =>
             $this
                 ->emailQueueSummary(),
+
+            'health' =>
+            $this
+                ->emailQueueHealth(),
 
             'filters' => [
                 'status' =>
@@ -283,6 +295,197 @@ final class CommunicationOperationsService
         }
 
         return $summary;
+    }
+
+    /**
+     * Return current queue-health information.
+     *
+     * Unlike the lifetime status summary, these values describe work which
+     * requires or may require operational attention now.
+     *
+     * @return array{
+     *     readyNow:int,
+     *     retryPending:int,
+     *     staleProcessing:int,
+     *     failed:int,
+     *     oldestPendingAt:string,
+     *     oldestPendingMinutes:int|null
+     * }
+     */
+    private function emailQueueHealth(): array
+    {
+        $row =
+            $this
+            ->database
+            ->query(
+                '
+            SELECT
+                COUNT(*) FILTER (
+                    WHERE
+                        status = ?
+                        AND available_at <= CURRENT_TIMESTAMP
+                        AND attempts < max_attempts
+                ) AS ready_now,
+
+                COUNT(*) FILTER (
+                    WHERE
+                        status = ?
+                        AND attempts > 0
+                        AND attempts < max_attempts
+                ) AS retry_pending,
+
+                COUNT(*) FILTER (
+                    WHERE
+                        status = ?
+                        AND locked_at IS NOT NULL
+                        AND locked_at
+                            <= CURRENT_TIMESTAMP
+                            - (? * INTERVAL \'1 minute\')
+                ) AS stale_processing,
+
+                COUNT(*) FILTER (
+                    WHERE
+                        status = ?
+                ) AS failed,
+
+                MIN(created_at) FILTER (
+                    WHERE
+                        status = ?
+                ) AS oldest_pending_at
+
+            FROM
+                email_queue
+            ',
+                [
+                    EmailQueueModel
+                    ::STATUS_PENDING,
+
+                    EmailQueueModel
+                    ::STATUS_PENDING,
+
+                    EmailQueueModel
+                    ::STATUS_PROCESSING,
+
+                    self
+                    ::STALE_PROCESSING_MINUTES,
+
+                    EmailQueueModel
+                    ::STATUS_FAILED,
+
+                    EmailQueueModel
+                    ::STATUS_PENDING,
+                ]
+            )
+            ->getRowArray();
+
+        $oldestPendingAt =
+            trim(
+                (string) (
+                    $row['oldest_pending_at']
+                    ?? ''
+                )
+            );
+
+        return [
+            'readyNow' =>
+            max(
+                0,
+                (int) (
+                    $row['ready_now']
+                    ?? 0
+                )
+            ),
+
+            'retryPending' =>
+            max(
+                0,
+                (int) (
+                    $row['retry_pending']
+                    ?? 0
+                )
+            ),
+
+            'staleProcessing' =>
+            max(
+                0,
+                (int) (
+                    $row['stale_processing']
+                    ?? 0
+                )
+            ),
+
+            'failed' =>
+            max(
+                0,
+                (int) (
+                    $row['failed']
+                    ?? 0
+                )
+            ),
+
+            'oldestPendingAt' =>
+            $oldestPendingAt,
+
+            'oldestPendingMinutes' =>
+            $this
+                ->pendingAgeMinutes(
+                    $oldestPendingAt
+                ),
+        ];
+    }
+
+    /**
+     * Calculate operational age from the database's UTC timestamp.
+     *
+     * This value is used only for queue-health presentation. Member-facing
+     * date formatting continues to use DateDisplay in the View.
+     */
+    private function pendingAgeMinutes(
+        string $createdAt
+    ): ?int {
+        if ($createdAt === '') {
+            return null;
+        }
+
+        $row =
+            $this
+            ->database
+            ->query(
+                '
+            SELECT
+                GREATEST(
+                    0,
+                    FLOOR(
+                        EXTRACT(
+                            EPOCH FROM (
+                                CURRENT_TIMESTAMP
+                                - ?::timestamp
+                            )
+                        ) / 60
+                    )
+                ) AS age_minutes
+            ',
+                [
+                    $createdAt,
+                ]
+            )
+            ->getRowArray();
+
+        if (
+            !isset(
+                $row['age_minutes']
+            )
+            || !is_numeric(
+                $row['age_minutes']
+            )
+        ) {
+            return null;
+        }
+
+        return max(
+            0,
+            (int) $row['age_minutes']
+        );
     }
 
     /**

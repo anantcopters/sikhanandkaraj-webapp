@@ -118,6 +118,26 @@ final class CommunicationOperationsController extends BaseController
                             0,
                         ],
 
+                        'health' => [
+                            'readyNow' =>
+                            0,
+
+                            'retryPending' =>
+                            0,
+
+                            'staleProcessing' =>
+                            0,
+
+                            'failed' =>
+                            0,
+
+                            'oldestPendingAt' =>
+                            '',
+
+                            'oldestPendingMinutes' =>
+                            null,
+                        ],
+
                         'filters' => [
                             'status' =>
                             '',

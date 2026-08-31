@@ -119,7 +119,7 @@ $pageScripts = $pageScripts ?? [];
         $communicationOperationsActive =
             str_starts_with(
                 $currentPath,
-                'admin/users/communication-operations'
+                'admin/communication-operations'
             )
             || str_starts_with(
                 $currentPath,
