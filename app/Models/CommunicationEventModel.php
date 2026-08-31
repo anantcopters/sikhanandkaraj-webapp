@@ -266,18 +266,42 @@ final class CommunicationEventModel extends Model
     }
 
     /**
-     * Return recipients who currently have pending Engagement activity.
+     * Return recipient IDs having pending Engagement events.
      *
-     * This only discovers candidate recipients.
+     * The member communication preference is applied before LIMIT so members
+     * configured for another digest frequency do not consume this worker's
+     * recipient batch.
      *
-     * CommunicationPolicyService remains responsible for deciding whether
-     * each member receives DAILY, WEEKLY or no Engagement email.
+     * Missing preference rows use the existing Engagement default of OFF.
      *
      * @return list<int>
      */
     public function pendingEngagementRecipientIds(
+        string $frequency,
         int $limit
     ): array {
+        $frequency =
+            mb_strtoupper(
+                trim(
+                    $frequency
+                )
+            );
+
+        if (
+            !in_array(
+                $frequency,
+                [
+                    'DAILY',
+                    'WEEKLY',
+                ],
+                true
+            )
+        ) {
+            throw new \InvalidArgumentException(
+                'Engagement digest frequency must be DAILY or WEEKLY.'
+            );
+        }
+
         $limit =
             max(
                 1,
@@ -287,57 +311,61 @@ final class CommunicationEventModel extends Model
                 )
             );
 
-        $rows =
+        $query =
             $this
             ->db
             ->query(
                 '
-            SELECT
-                recipient_user_id
+            SELECT DISTINCT
+                event.recipient_user_id
             FROM
-                communication_events
+                communication_events AS event
+            INNER JOIN
+                member_communication_preferences AS preference
+                    ON preference.user_id =
+                        event.recipient_user_id
+                    AND preference.category = ?
+                    AND preference.channel = ?
+                    AND preference.frequency = ?
             WHERE
-                status = ?
-                AND available_at <= ?
-                AND event_key IN (?, ?)
-            GROUP BY
-                recipient_user_id
+                event.status = ?
+                AND event.available_at <= CURRENT_TIMESTAMP
+                AND event.event_key IN (?, ?)
             ORDER BY
-                MIN(id) ASC
+                event.recipient_user_id ASC
             LIMIT ?
             ',
                 [
+                    'ENGAGEMENT',
+                    'EMAIL',
+                    $frequency,
                     self::STATUS_PENDING,
-
-                    gmdate(
-                        'Y-m-d H:i:s'
-                    ),
-
-                    CommunicationEventRegistry
-                    ::PROFILE_VIEWED,
-
-                    CommunicationEventRegistry
-                    ::PROFILE_SHORTLISTED,
-
+                    CommunicationEventRegistry::PROFILE_VIEWED,
+                    CommunicationEventRegistry::PROFILE_SHORTLISTED,
                     $limit,
                 ]
-            )
+            );
+
+        $rows =
+            $query
             ->getResultArray();
 
-        return array_values(
-            array_filter(
-                array_map(
-                    static fn(array $row): int =>
-                    (int) (
-                        $row['recipient_user_id']
-                        ?? 0
-                    ),
-                    $rows
-                ),
-                static fn(int $userId): bool =>
-                $userId > 0
-            )
-        );
+        $recipientUserIds = [];
+
+        foreach ($rows as $row) {
+            $recipientUserId =
+                (int) (
+                    $row['recipient_user_id']
+                    ?? 0
+                );
+
+            if ($recipientUserId > 0) {
+                $recipientUserIds[] =
+                    $recipientUserId;
+            }
+        }
+
+        return $recipientUserIds;
     }
 
     /**

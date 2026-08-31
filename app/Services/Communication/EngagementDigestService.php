@@ -92,10 +92,18 @@ final class EngagementDigestService
                 )
             );
 
+        /*
+        * Filter the recipient batch by the requested digest frequency before
+        * LIMIT is applied.
+        *
+        * CommunicationPolicyService still revalidates the current preference
+        * immediately before queueing each member's digest.
+        */
         $recipientUserIds =
             $this
             ->eventModel
             ->pendingEngagementRecipientIds(
+                $frequency,
                 $limit
             );
 
