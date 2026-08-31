@@ -69,6 +69,13 @@ final class EmailRegistry
     public const MEMBER_MEMBERSHIP_ACTIVATED =
     'MEMBER_MEMBERSHIP_ACTIVATED';
 
+    /**
+     * One lifecycle reminder sent three calendar days before
+     * an ACTIVE membership reaches expires_at.
+     */
+    public const MEMBER_MEMBERSHIP_EXPIRING_SOON =
+    'MEMBER_MEMBERSHIP_EXPIRING_SOON';
+
     public const MEMBER_MEMBERSHIP_EXPIRED =
     'MEMBER_MEMBERSHIP_EXPIRED';
 
@@ -682,6 +689,79 @@ final class EmailRegistry
                 ],
 
                 priority: 15,
+
+                maxAttempts: 3
+            ),
+
+            /*
+ * --------------------------------------------------------------------------
+ * Membership Expiring Soon
+ * --------------------------------------------------------------------------
+ *
+ * One transactional lifecycle reminder is sent three calendar days before
+ * the purchased membership period expires.
+ *
+ * The reminder uses the same MembershipActivity template as activation and
+ * expiry. No separate email UI is required.
+ */
+            self::MEMBER_MEMBERSHIP_EXPIRING_SOON =>
+            new EmailDefinition(
+                key: self::MEMBER_MEMBERSHIP_EXPIRING_SOON,
+
+                name: 'Membership Expiring Soon',
+
+                category: self::CATEGORY_MEMBERSHIP,
+
+                subject: 'Your Sikhanandkaraj membership expires in 3 days',
+
+                viewName: 'Emails/Member/MembershipActivity',
+
+                previewData: [
+                    'userName' =>
+                    'Harpreet Singh',
+
+                    'heading' =>
+                    'Your membership expires in 3 days',
+
+                    'message' =>
+                    'Your Sikhanandkaraj membership is approaching '
+                        . 'its expiry date. Renew your membership to '
+                        . 'continue using paid membership features.',
+
+                    'planName' =>
+                    'Sikhanandkaraj Pro',
+
+                    /*
+         * Amount and transaction reference are intentionally empty.
+         *
+         * This is a renewal reminder, not a payment receipt.
+         */
+                    'amount' =>
+                    '',
+
+                    'transactionReference' =>
+                    '',
+
+                    'expiresAt' =>
+                    '3rd Sep 2026',
+
+                    /*
+         * Existing MembershipActivity.php will therefore display
+         * "Valid Until" rather than "Expired On".
+         */
+                    'isExpired' =>
+                    false,
+
+                    'actionUrl' =>
+                    base_url(
+                        'account-settings/plans'
+                    ),
+
+                    'actionLabel' =>
+                    'View Membership Plans',
+                ],
+
+                priority: 25,
 
                 maxAttempts: 3
             ),

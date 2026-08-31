@@ -602,6 +602,126 @@ final class MemberEmailService
     }
 
     /**
+     * Queue the one-time membership expiry reminder.
+     *
+     * The reminder is intentionally tied to the purchased membership ID.
+     *
+     * Idempotency:
+     *
+     * The morning lifecycle job may be executed more than once. Once this
+     * reminder has entered email_queue, another reminder for the same purchased
+     * membership must not be created.
+     *
+     * Delivery retries remain owned by EmailQueueService/email_worker.php.
+     */
+    public function queueMembershipExpiringSoon(
+        int $recipientUserId,
+        int $membershipId,
+        string $planName,
+        string $expiresAt
+    ): ?int {
+        if (
+            $recipientUserId <= 0
+            || $membershipId <= 0
+        ) {
+            return null;
+        }
+
+        /*
+     * Use a reminder-specific reference type.
+     *
+     * MEMBER_MEMBERSHIP is already used by activation/expiry communication,
+     * therefore using the same reference type here would make those distinct
+     * business communications indistinguishable.
+     */
+        $referenceType =
+            'MEMBER_MEMBERSHIP_EXPIRY_REMINDER';
+
+        /*
+     * Scheduled jobs must be safe to rerun.
+     *
+     * A reminder already in PENDING, PROCESSING, SENT or FAILED state counts
+     * as having been generated.
+     */
+        if (
+            $this
+            ->queueService
+            ->hasReference(
+                $referenceType,
+                $membershipId
+            )
+        ) {
+            return null;
+        }
+
+        return $this->queueMemberCommunication(
+            recipientUserId: $recipientUserId,
+
+            recipientName: '',
+
+            definitionKey: EmailRegistry
+            ::MEMBER_MEMBERSHIP_EXPIRING_SOON,
+
+            viewData: [
+                'heading' =>
+                'Your membership expires in 3 days',
+
+                'message' =>
+                'Your Sikhanandkaraj membership is approaching '
+                    . 'its expiry date. Renew your membership to '
+                    . 'continue using paid membership features.',
+
+                /*
+             * Use the immutable purchased plan snapshot rather
+             * than the current membership-plan master.
+             */
+                'planName' =>
+                trim(
+                    $planName
+                ),
+
+                /*
+             * This is not a payment receipt.
+             */
+                'amount' =>
+                '',
+
+                'transactionReference' =>
+                '',
+
+                /*
+             * Reuse the existing project-wide UTC -> member-facing
+             * date presentation boundary.
+             */
+                'expiresAt' =>
+                DateDisplay::formatUtcDate(
+                    $expiresAt,
+                    ''
+                ),
+
+                /*
+             * MembershipActivity.php already uses this flag to
+             * display "Valid Until" instead of "Expired On".
+             */
+                'isExpired' =>
+                false,
+
+                'actionUrl' =>
+                base_url(
+                    'account-settings/plans'
+                ),
+
+                'actionLabel' =>
+                'View Membership Plans',
+            ],
+
+            referenceType: $referenceType,
+
+            referenceId: $membershipId
+        );
+    }
+
+    /**
      * Queue a membership-expired lifecycle notification.
      *
      * This is transactional lifecycle communication. It is not the future
@@ -665,7 +785,7 @@ final class MemberEmailService
         );
     }
 
-    
+
 
     /**
      * Central boundary for normal member email.
