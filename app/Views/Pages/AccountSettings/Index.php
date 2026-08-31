@@ -686,7 +686,7 @@ $this->section('content');
                                             <span
                                                 class="badge
                                                     bg-success-subtle
-                                                    text-success p-2">
+                                                    text-body p-2">
 
                                                 Verified
                                             </span>
@@ -694,7 +694,7 @@ $this->section('content');
                                             <span
                                                 class="badge
                                                     bg-warning-subtle
-                                                    text-warning p-2">
+                                                    text-body p-2">
 
                                                 Verification pending
                                             </span>
@@ -1011,16 +1011,16 @@ $this->section('content');
 
                                                 $statusClass = match ($status) {
                                                     'DISMISSED' =>
-                                                    'bg-secondary-subtle text-secondary',
+                                                    'bg-secondary-subtle text-body',
 
                                                     'ACTION_TAKEN' =>
-                                                    'bg-danger-subtle text-danger',
+                                                    'bg-danger-subtle text-body',
 
                                                     'REVIEWED' =>
-                                                    'bg-success-subtle text-success',
+                                                    'bg-success-subtle text-body',
 
                                                     default =>
-                                                    'bg-warning-subtle text-dark',
+                                                    'bg-warning-subtle text-body',
                                                 };
 
                                                 $reportedAt =
@@ -1041,7 +1041,7 @@ $this->section('content');
                                                         <span
                                                             class="badge
                                         bg-primary-subtle
-                                        text-primary
+                                        text-body
                                         p-2">
 
                                                             <?= esc(
@@ -1325,7 +1325,7 @@ $this->section('content');
                                                         <span
                                                             class="badge
                                         bg-primary-subtle
-                                        text-primary
+                                        text-body
                                         p-2">
 
                                                             <?= esc(
@@ -1345,8 +1345,8 @@ $this->section('content');
                                                         <span
                                                             class="badge
                                         <?= $isResolved
-                                                    ? 'bg-success-subtle text-success'
-                                                    : 'bg-warning-subtle text-dark' ?>
+                                                    ? 'bg-success-subtle text-body'
+                                                    : 'bg-warning-subtle text-body' ?>
                                         p-2">
 
                                                             <?= $isResolved

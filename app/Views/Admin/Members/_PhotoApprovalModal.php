@@ -257,7 +257,7 @@ $carouselId = $modalId . 'Carousel';
                                                     <span
                                                         class="badge
                                                             bg-primary-subtle
-                                                            text-primary p-2">
+                                                            text-body p-2">
 
                                                         Main Photo
                                                     </span>

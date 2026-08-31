@@ -539,7 +539,7 @@ $this->section(
                     <span
                         class="badge
                     bg-primary-subtle
-                    text-primary
+                    text-body
                     p-2 fs-12">
 
                         <i
@@ -716,7 +716,7 @@ $this->section(
                                         <span
                                             class="badge
                 bg-success-subtle
-                text-success p-2">
+                text-body p-2">
 
                                             Approved
                                         </span>

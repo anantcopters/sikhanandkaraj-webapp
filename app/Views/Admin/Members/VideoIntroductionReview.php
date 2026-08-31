@@ -459,7 +459,7 @@ $this->section(
                     <span
                         class="badge
                             bg-primary-subtle
-                            text-primary">
+                            text-body p-2">
 
                         <?= esc(
                             (string) count(
@@ -623,7 +623,7 @@ $this->section(
                                                     <span
                                                         class="badge
                                                             bg-primary-subtle
-                                                            text-primary">
+                                                            text-body p-2">
 
                                                         Primary
                                                     </span>

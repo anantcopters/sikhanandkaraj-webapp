@@ -346,16 +346,16 @@ $this->section('content');
 
                             $statusClass = match ($status) {
                                 'REVIEWED' =>
-                                'bg-success-subtle text-success',
+                                'bg-success-subtle text-body p-2',
 
                                 'DISMISSED' =>
-                                'bg-secondary-subtle text-secondary',
+                                'bg-secondary-subtle text-body p-2',
 
                                 'ACTION_TAKEN' =>
-                                'bg-danger-subtle text-danger',
+                                'bg-danger-subtle text-body p-2',
 
                                 default =>
-                                'bg-warning-subtle text-dark',
+                                'bg-warning-subtle text-body p-2',
                             };
 
                             $submittedAt =

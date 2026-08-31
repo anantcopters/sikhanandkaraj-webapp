@@ -176,7 +176,7 @@ $resolvedSections = isset(
                                                         <span
                                                             class="badge
                                                                 bg-danger-subtle
-                                                                text-danger">
+                                                                text-body p-2">
 
                                                             Strict
                                                         </span>

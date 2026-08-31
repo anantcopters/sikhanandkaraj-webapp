@@ -1326,7 +1326,7 @@ $this->section('content');
                 </p>
             </div>
 
-            <span class="badge bg-primary-subtle text-primary">
+            <span class="badge bg-primary-subtle text-body p-2">
                 <?= esc(
                     (string) count(
                         $resolvedAdminPhotos
@@ -1506,7 +1506,7 @@ $this->section('content');
                                         <span
                                             class="badge
                                 bg-primary-subtle
-                                text-primary
+                                text-body p-2
                                 mt-2">
 
                                             <i
@@ -1878,7 +1878,7 @@ $this->section('content');
                                 <span
                                     class="badge
                                         bg-primary-subtle
-                                        text-primary
+                                        text-body
                                         p-2">
 
                                     <?= esc(

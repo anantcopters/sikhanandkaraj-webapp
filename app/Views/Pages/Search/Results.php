@@ -437,7 +437,7 @@ $this->section(
                         class="badge
                             rounded-pill
                             bg-primary-subtle
-                            text-primary p-2">
+                            text-body p-2">
 
                         <?= esc(
                             $chip

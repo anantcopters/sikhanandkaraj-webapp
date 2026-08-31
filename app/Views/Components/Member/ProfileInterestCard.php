@@ -191,10 +191,10 @@ if ($createdAt !== '') {
 $badgeClass =
     match ($status) {
         'ACCEPTED' =>
-        'bg-success-subtle text-success',
+        'bg-success-subtle text-body',
 
         'DECLINED' =>
-        'bg-danger-subtle text-danger',
+        'bg-danger-subtle text-body',
 
         default =>
         'bg-warning-subtle text-body',
@@ -440,7 +440,7 @@ $profileNavigationUrl =
                                             $badgeClass,
                                             'attr'
                                         ) ?>
-                            border px-2 py-2
+                            border p-2
                             flex-shrink-0">
 
                         <?= esc(

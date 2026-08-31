@@ -293,7 +293,7 @@ $this->section('content');
                                     <span
                                         class="badge
                                             bg-warning-subtle
-                                            text-warning p-2"
+                                            text-body p-2"
                                         data-pending-count>
 
                                         Pending

@@ -227,7 +227,7 @@ $sectionIcon = trim(
                                     <span
                                         class="badge
                                             bg-danger-subtle
-                                            text-danger text-uppercase fw-medium px-2 py-1">
+                                            text-body text-uppercase fw-medium px-2 py-1">
 
                                         Strict
                                     </span>

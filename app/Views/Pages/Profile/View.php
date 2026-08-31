@@ -2499,7 +2499,7 @@ $this->section('content');
                                 </p>
                             </div>
 
-                            <span class="badge bg-primary p-2 text-white fs-12">
+                            <span class="badge bg-primary p-2 text-body fs-12">
                                 <?= esc(
                                     (string) count($galleryPhotos)
                                 ) ?>
@@ -2877,7 +2877,7 @@ $this->section('content');
                                     <span
                                         class="badge
                             bg-primary-subtle
-                            text-primary
+                            text-body
                             fs-14
                             p-2">
 
@@ -3696,7 +3696,7 @@ $this->section('content');
                                     <span
                                         class="badge
                                             bg-danger-subtle
-                                            text-danger
+                                            text-body
                                             mt-1">
 
                                         Must Match
